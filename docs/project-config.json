@@ -1,0 +1,187 @@
+{
+  "_description": "Project-specific configuration consumed by .claude hooks at runtime. Update when adding services/apps.",
+  "schemaVersion": 2,
+  "project": {
+    "name": "easy-claude",
+    "description": "Claude Code enhancement framework — hooks, skills, agents, and workflows that extend Claude Code capabilities",
+    "languages": ["javascript"],
+    "packageManagers": ["npm"]
+  },
+  "framework": {
+    "name": "claude-code-framework",
+    "backendPatternsDoc": "docs/project-reference/backend-patterns-reference.md",
+    "frontendPatternsDoc": "docs/project-reference/frontend-patterns-reference.md",
+    "codeReviewDoc": "docs/project-reference/code-review-rules.md",
+    "integrationTestDoc": "docs/project-reference/integration-test-reference.md",
+    "searchPatternKeywords": [
+      "hook",
+      "skill",
+      "agent",
+      "workflow",
+      "context",
+      "injector",
+      "session"
+    ]
+  },
+  "modules": [
+    {
+      "name": "hooks",
+      "kind": "library",
+      "pathRegex": "[\\\\/]\\.claude[\\\\/]hooks[\\\\/]",
+      "description": "Runtime hooks for context injection, enforcement, and session management",
+      "tags": ["core", "cjs"]
+    },
+    {
+      "name": "hooks-lib",
+      "kind": "library",
+      "pathRegex": "[\\\\/]\\.claude[\\\\/]hooks[\\\\/]lib[\\\\/]",
+      "description": "Shared utility modules consumed by hooks",
+      "tags": ["core", "cjs"]
+    },
+    {
+      "name": "skills",
+      "kind": "library",
+      "pathRegex": "[\\\\/]\\.claude[\\\\/]skills[\\\\/]",
+      "description": "199 skill definitions for task automation (SKILL.md + scripts)",
+      "tags": ["core", "markdown"]
+    },
+    {
+      "name": "agents",
+      "kind": "library",
+      "pathRegex": "[\\\\/]\\.claude[\\\\/]agents[\\\\/]",
+      "description": "28 agent definitions for specialized subagent roles",
+      "tags": ["core", "markdown"]
+    },
+    {
+      "name": "scripts",
+      "kind": "library",
+      "pathRegex": "[\\\\/]\\.claude[\\\\/]scripts[\\\\/]",
+      "description": "Utility scripts for catalog generation, skill management, and worktree operations",
+      "tags": ["tooling", "cjs", "python"]
+    },
+    {
+      "name": "docs-framework",
+      "kind": "library",
+      "pathRegex": "[\\\\/]\\.claude[\\\\/]docs[\\\\/]",
+      "description": "Framework documentation — agents, skills, hooks, configuration guides",
+      "tags": ["docs"]
+    }
+  ],
+  "contextGroups": [
+    {
+      "name": "hooks-context",
+      "pathRegexes": ["[\\\\/]\\.claude[\\\\/]hooks[\\\\/].*\\.cjs$"],
+      "fileExtensions": [".cjs"],
+      "guideDoc": ".claude/docs/hooks/README.md",
+      "rules": [
+        "Hooks use CommonJS (require/module.exports)",
+        "Hook files read stdin JSON and write to stdout/stderr",
+        "Shared utilities go in .claude/hooks/lib/",
+        "Test hooks via node .claude/hooks/tests/test-all-hooks.cjs"
+      ]
+    },
+    {
+      "name": "skills-context",
+      "pathRegexes": ["[\\\\/]\\.claude[\\\\/]skills[\\\\/].*SKILL\\.md$"],
+      "fileExtensions": [".md"],
+      "guideDoc": ".claude/docs/skills/README.md",
+      "rules": [
+        "Each skill is a directory with SKILL.md as entry point",
+        "Skills may have scripts/, references/, and tests/ subdirectories",
+        "Follow naming conventions in .claude/docs/skill-naming-conventions.md"
+      ]
+    },
+    {
+      "name": "agents-context",
+      "pathRegexes": ["[\\\\/]\\.claude[\\\\/]agents[\\\\/].*\\.md$"],
+      "fileExtensions": [".md"],
+      "guideDoc": ".claude/docs/agents/README.md",
+      "rules": [
+        "Agent definitions are markdown files in .claude/agents/",
+        "Follow patterns in .claude/docs/agents/agent-patterns.md"
+      ]
+    }
+  ],
+  "designSystem": {
+    "docsPath": "docs/project-reference/design-system",
+    "appMappings": []
+  },
+  "styling": {
+    "fileExtensions": [],
+    "guideDoc": "",
+    "appMap": {},
+    "patterns": []
+  },
+  "componentSystem": {
+    "selectorPrefixes": [],
+    "layerClassification": {}
+  },
+  "testing": {
+    "frameworks": ["custom-cjs-runner"],
+    "filePatterns": {
+      "unit": "*.test.cjs",
+      "integration": "*.test.cjs"
+    },
+    "commands": {
+      "all": "node .claude/hooks/tests/test-all-hooks.cjs",
+      "suite": "node .claude/hooks/tests/run-all-tests.cjs"
+    }
+  },
+  "databases": {},
+  "messaging": {},
+  "api": {},
+  "infrastructure": {},
+  "referenceDocs": [
+    {
+      "filename": "project-structure-reference.md",
+      "purpose": "Project directory structure and module overview",
+      "sections": ["directory-tree", "module-descriptions"]
+    },
+    {
+      "filename": "backend-patterns-reference.md",
+      "purpose": "Backend coding patterns (N/A for framework project)",
+      "sections": []
+    },
+    {
+      "filename": "frontend-patterns-reference.md",
+      "purpose": "Frontend coding patterns (N/A for framework project)",
+      "sections": []
+    },
+    {
+      "filename": "integration-test-reference.md",
+      "purpose": "Integration test patterns and conventions",
+      "sections": []
+    },
+    {
+      "filename": "feature-docs-reference.md",
+      "purpose": "Business feature documentation index",
+      "sections": []
+    },
+    {
+      "filename": "code-review-rules.md",
+      "purpose": "Code review checklist and rules",
+      "sections": []
+    },
+    {
+      "filename": "scss-styling-guide.md",
+      "purpose": "SCSS styling patterns (N/A for framework project)",
+      "sections": []
+    },
+    {
+      "filename": "domain-entities-reference.md",
+      "purpose": "Domain entities reference (N/A for framework project)",
+      "sections": []
+    },
+    {
+      "filename": "e2e-test-reference.md",
+      "purpose": "E2E test patterns (N/A for framework project)",
+      "sections": []
+    }
+  ],
+  "custom": {
+    "projectType": "claude-code-framework",
+    "hookCount": 34,
+    "skillCount": 199,
+    "agentCount": 28
+  }
+}

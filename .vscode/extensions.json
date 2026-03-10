@@ -1,0 +1,24 @@
+{
+  "recommendations": [
+    "alefragnani.bookmarks",
+    "christian-kohler.npm-intellisense",
+    "christian-kohler.path-intellisense",
+    "dbaeumer.vscode-eslint",
+    "donjayamanne.githistory",
+    "eamodio.gitlens",
+    "emeraldwalk.runonsave",
+    "esbenp.prettier-vscode",
+    "pkief.material-icon-theme",
+    "rvest.vs-code-prettier-eslint",
+    "shd101wyy.markdown-preview-enhanced",
+    "sonarsource.sonarlint-vscode",
+    "streetsidesoftware.code-spell-checker",
+    "thinker.sort-json",
+    "waderyan.gitblame",
+    "yzhang.markdown-all-in-one",
+    "davidanson.vscode-markdownlint",
+    "anthropic.claude-code",
+    "adamerose.markdown-wysiwyg",
+    "mathematic.vscode-pdf"
+  ]
+}
