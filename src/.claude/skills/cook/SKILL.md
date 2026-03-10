@@ -1,7 +1,7 @@
 ---
 name: cook
 version: 1.0.0
-description: '[Implementation] Implement a feature [step by step]'
+description: "[Implementation] Implement a feature [step by step]"
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
@@ -39,6 +39,15 @@ description: '[Implementation] Implement a feature [step by step]'
 Do NOT start coding until you have a plan (approved or self-created) and have searched
 the codebase for 3+ similar implementations. This applies to EVERY feature regardless
 of perceived simplicity. "Simple" features have hidden complexity.
+</HARD-GATE>
+
+## Per-Phase Quality Cycle (MANDATORY)
+
+<HARD-GATE>
+Follow `.claude/skills/shared/iterative-phase-quality-protocol.md`:
+Each plan phase = one quality cycle (plan→implement→review→fix→verify).
+DO NOT start next phase until current phase passes VERIFY.
+After each phase: re-assess remaining phases for scope changes.
 </HARD-GATE>
 
 ## Greenfield Mode
@@ -138,8 +147,8 @@ mistakes compound through later tasks.
 ### Code Review
 
 - **Two-stage review** (see `.claude/skills/shared/two-stage-task-review-protocol.md`):
-    1. First: dispatch `spec-compliance-reviewer` to verify implementation matches spec
-    2. Only after spec passes: dispatch `code-reviewer` for quality review
+  1. First: dispatch `spec-compliance-reviewer` to verify implementation matches spec
+  2. Only after spec passes: dispatch `code-reviewer` for quality review
 - If critical issues: fix and re-run `tester`.
 - Repeat until all tests pass and code is reviewed.
 - Report summary to user and ask for approval.

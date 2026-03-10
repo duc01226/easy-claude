@@ -38,15 +38,6 @@
       {
         "hooks": [
           {
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/notify-waiting.js",
-            "type": "command"
-          }
-        ],
-        "matcher": "AskUserQuestion"
-      },
-      {
-        "hooks": [
-          {
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-output-swap.cjs",
             "type": "command"
           }
@@ -102,6 +93,15 @@
       }
     ],
     "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/notify-waiting.js",
+            "type": "command"
+          }
+        ],
+        "matcher": "AskUserQuestion"
+      },
       {
         "hooks": [
           {
