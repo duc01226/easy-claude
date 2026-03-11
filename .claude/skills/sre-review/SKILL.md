@@ -1,7 +1,7 @@
 ---
 name: sre-review
 version: 1.0.0
-description: '[Code Quality] Production readiness review for service-layer and API changes'
+description: "[Code Quality] Production readiness review for service-layer and API changes"
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
@@ -85,6 +85,18 @@ Review the changed files and score each criterion 0-2:
 | 10  | **Seeder Idempotency** | Data seeders use check-then-create pattern (query before insert) — safe for repeated runs on any environment  |
 
 **Decision test for reviewers:** _"If the database is reset, does this data still need to exist?"_ Yes → must be in a seeder. No → migration is acceptable.
+
+### Database Performance (max 4 points)
+
+> **[IMPORTANT] Database Performance Protocol (MANDATORY):**
+>
+> 1. **Paging Required** — ALL list/collection queries MUST use pagination. NEVER load all records into memory. Verify: no unbounded `GetAll()`, `ToList()`, or `Find()` without `Skip/Take` or cursor-based paging.
+> 2. **Index Required** — ALL query filter fields, foreign keys, and sort columns MUST have database indexes configured. Verify: entity expressions match index field order, database collections have index management methods, migrations include indexes for WHERE/JOIN/ORDER BY columns.
+
+| #   | Criterion            | What to Check                                                                                                          |
+| --- | -------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| 11  | **Pagination**       | List/collection queries use pagination (Skip/Take, cursor). No unbounded GetAll/ToList loading all records into memory |
+| 12  | **Database Indexes** | Query filter fields, foreign keys, and sort columns have matching database indexes. Migrations include index creation  |
 
 ## Scoring
 

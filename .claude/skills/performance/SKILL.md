@@ -1,7 +1,7 @@
 ---
 name: performance
 version: 1.0.0
-description: '[Debugging] Analyze and optimize performance bottlenecks'
+description: "[Debugging] Analyze and optimize performance bottlenecks"
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
@@ -42,6 +42,11 @@ description: '[Debugging] Analyze and optimize performance bottlenecks'
 - Question assumptions: "Is this really slow?" → trace the actual execution path and query plan
 - Challenge completeness: "Are there other bottlenecks?" → check the full request pipeline
 - No "should improve performance" without proof — measure before and after
+
+> **[IMPORTANT] Database Performance Protocol (MANDATORY):**
+>
+> 1. **Paging Required** — ALL list/collection queries MUST use pagination. NEVER load all records into memory. Verify: no unbounded `GetAll()`, `ToList()`, or `Find()` without `Skip/Take` or cursor-based paging.
+> 2. **Index Required** — ALL query filter fields, foreign keys, and sort columns MUST have database indexes configured. Verify: entity expressions match index field order, database collections have index management methods, migrations include indexes for WHERE/JOIN/ORDER BY columns.
 
 ## ⚠️ MANDATORY: Confidence & Evidence Gate
 

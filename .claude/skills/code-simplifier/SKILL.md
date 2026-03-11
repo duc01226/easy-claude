@@ -1,7 +1,7 @@
 ---
 name: code-simplifier
 version: 2.0.0
-description: '[Code Quality] Simplifies and refines code for clarity, consistency, and maintainability while preserving all functionality. Focuses on recently modified code unless instructed otherwise.'
+description: "[Code Quality] Simplifies and refines code for clarity, consistency, and maintainability while preserving all functionality. Focuses on recently modified code unless instructed otherwise."
 allowed-tools: Read, Edit, Glob, Grep, Task
 ---
 
@@ -105,12 +105,12 @@ Task(subagent_type="code-simplifier:code-simplifier", prompt="Review and simplif
 
 ```typescript
 function getData() {
-    const result = fetchData();
-    if (result !== null && result !== undefined) {
-        return result;
-    } else {
-        return null;
-    }
+  const result = fetchData();
+  if (result !== null && result !== undefined) {
+    return result;
+  } else {
+    return null;
+  }
 }
 ```
 
@@ -118,30 +118,30 @@ function getData() {
 
 ```typescript
 function getData() {
-    return fetchData() ?? null;
+  return fetchData() ?? null;
 }
 ```
 
 ## Workflow
 
 1. **Identify targets**
-    - If no arguments: `git diff --name-only HEAD~1` for recent changes
-    - If arguments provided: use specified files/patterns
-    - Skip: generated code, migrations, vendor files
+   - If no arguments: `git diff --name-only HEAD~1` for recent changes
+   - If arguments provided: use specified files/patterns
+   - Skip: generated code, migrations, vendor files
 
 2. **Analyze each file**
-    - Identify complexity hotspots (nesting > 3, methods > 20 lines)
-    - Find duplicated code patterns
-    - Check naming clarity
+   - Identify complexity hotspots (nesting > 3, methods > 20 lines)
+   - Find duplicated code patterns
+   - Check naming clarity
 
 3. **Apply simplifications**
-    - One refactoring type at a time
-    - Preserve all functionality
-    - Follow platform patterns
+   - One refactoring type at a time
+   - Preserve all functionality
+   - Follow platform patterns
 
 4. **Verify**
-    - Run related tests if available
-    - Confirm no behavior changes
+   - Run related tests if available
+   - Confirm no behavior changes
 
 ## Project Patterns
 
@@ -153,6 +153,11 @@ function getData() {
 - Use project validation fluent API (see docs/project-reference/backend-patterns-reference.md)
 - Check entity expressions have database indexes
 - Verify document database index methods exist for collections
+
+> **[IMPORTANT] Database Performance Protocol (MANDATORY):**
+>
+> 1. **Paging Required** — ALL list/collection queries MUST use pagination. NEVER load all records into memory. Verify: no unbounded `GetAll()`, `ToList()`, or `Find()` without `Skip/Take` or cursor-based paging.
+> 2. **Index Required** — ALL query filter fields, foreign keys, and sort columns MUST have database indexes configured. Verify: entity expressions match index field order, database collections have index management methods, migrations include indexes for WHERE/JOIN/ORDER BY columns.
 
 ### Frontend
 
