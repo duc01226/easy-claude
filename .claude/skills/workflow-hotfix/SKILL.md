@@ -1,7 +1,7 @@
 ---
 name: workflow-hotfix
 version: 1.0.0
-description: "[Workflow] Trigger Hotfix workflow — production emergency P0/P1 urgent fix with minimal ceremony."
+description: '[Workflow] Trigger Hotfix workflow — production emergency P0/P1 urgent fix with minimal ceremony.'
 ---
 
 Activate the `hotfix` workflow. Run `/workflow-start hotfix` with the user's prompt as context.

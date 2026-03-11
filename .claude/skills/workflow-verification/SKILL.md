@@ -1,7 +1,7 @@
 ---
 name: workflow-verification
 version: 1.0.0
-description: "[Workflow] Trigger Verification & Validation workflow — verify, validate, and confirm correctness with investigation and testing."
+description: '[Workflow] Trigger Verification & Validation workflow — verify, validate, and confirm correctness with investigation and testing.'
 ---
 
 Activate the `verification` workflow. Run `/workflow-start verification` with the user's prompt as context.

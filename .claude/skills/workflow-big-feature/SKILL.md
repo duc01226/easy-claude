@@ -1,7 +1,7 @@
 ---
 name: workflow-big-feature
 version: 1.0.0
-description: "[Workflow] Trigger Big Feature workflow — research-driven development for large, complex, or ambiguous features needing market research, business evaluation, domain analysis, tech stack research, and architecture design before implementation."
+description: '[Workflow] Trigger Big Feature workflow — research-driven development for large, complex, or ambiguous features needing market research, business evaluation, domain analysis, tech stack research, and architecture design before implementation.'
 ---
 
 Activate the `big-feature` workflow. Run `/workflow-start big-feature` with the user's prompt as context.
