@@ -222,6 +222,15 @@
       {
         "hooks": [
           {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/ba-refinement-context.cjs",
+            "type": "command"
+          }
+        ],
+        "matcher": "Write|Edit|MultiEdit"
+      },
+      {
+        "hooks": [
+          {
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/figma-context-extractor.cjs",
             "type": "command"
           }
