@@ -219,13 +219,13 @@ Hooks receive JSON via stdin with event-specific payload:
 
 ```json
 {
-  "tool_name": "Edit",
-  "tool_input": {
-    "file_path": "/path/to/file.ts",
-    "old_string": "...",
-    "new_string": "..."
-  },
-  "session_id": "abc123"
+    "tool_name": "Edit",
+    "tool_input": {
+        "file_path": "/path/to/file.ts",
+        "old_string": "...",
+        "new_string": "..."
+    },
+    "session_id": "abc123"
 }
 ```
 
@@ -252,19 +252,19 @@ Hooks are registered in `settings.json` under `hooks.{EventName}[].hooks[]`. Eac
 
 ```json
 {
-  "hooks": {
-    "PreToolUse": [
-      {
-        "hooks": [
-          {
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/privacy-block.cjs",
-            "type": "command"
-          }
-        ],
-        "matcher": "Bash|Glob|Grep|Read|Edit|Write|NotebookEdit"
-      }
-    ]
-  }
+    "hooks": {
+        "PreToolUse": [
+            {
+                "hooks": [
+                    {
+                        "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/privacy-block.cjs",
+                        "type": "command"
+                    }
+                ],
+                "matcher": "Bash|Glob|Grep|Read|Edit|Write|NotebookEdit"
+            }
+        ]
+    }
 }
 ```
 
@@ -272,11 +272,11 @@ Hooks are registered in `settings.json` under `hooks.{EventName}[].hooks[]`. Eac
 
 ```json
 {
-  "privacyBlock": true,
-  "codeReview": {
-    "enabled": true,
-    "rulesPath": "docs/project-reference/code-review-rules.md"
-  }
+    "privacyBlock": true,
+    "codeReview": {
+        "enabled": true,
+        "rulesPath": "docs/project-reference/code-review-rules.md"
+    }
 }
 ```
 

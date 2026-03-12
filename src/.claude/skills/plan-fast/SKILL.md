@@ -1,7 +1,7 @@
 ---
 name: plan-fast
 version: 1.0.0
-description: "[Planning] No research. Only analyze and create an implementation plan"
+description: '[Planning] No research. Only analyze and create an implementation plan'
 disable-model-invocation: true
 ---
 
@@ -98,19 +98,19 @@ Use `planner` subagent to:
 
 - Every `plan.md` MUST start with YAML frontmatter:
 
-  ```yaml
-  ---
-  title: "{Brief title}"
-  description: "{One sentence for card preview}"
-  status: pending
-  priority: P2
-  effort: { sum of phases, e.g., 4h }
-  story_points: { sum of phase SPs, e.g., 8 }
-  branch: { current git branch }
-  tags: [relevant, tags]
-  created: { YYYY-MM-DD }
-  ---
-  ```
+    ```yaml
+    ---
+    title: '{Brief title}'
+    description: '{One sentence for card preview}'
+    status: pending
+    priority: P2
+    effort: { sum of phases, e.g., 4h }
+    story_points: { sum of phase SPs, e.g., 8 }
+    branch: { current git branch }
+    tags: [relevant, tags]
+    created: { YYYY-MM-DD }
+    ---
+    ```
 
 - Save the overview access point at `{plan-dir}/plan.md`. Keep it generic, under 80 lines, and list each implementation phase with status and progress plus links to phase files.
 - For each phase, create `{plan-dir}/phase-XX-phase-name-here.md` containing the following sections in order: Context links (reference parent plan, dependencies, docs), Overview (date, description, priority, implementation status, review status), Key Insights, Requirements, Architecture, **UI Layout** (see below), Related code files, Implementation Steps, Todo list, Success Criteria, Risk Assessment, Security Considerations, Next steps.
@@ -121,8 +121,8 @@ Use `planner` subagent to:
 - Always plan and break work into many small todo tasks using `TaskCreate`
 - Always add a final review todo task to verify work quality and identify fixes/enhancements
 - **MANDATORY FINAL TASKS:** After creating all planning todo tasks, ALWAYS add these two final tasks:
-  1. **Task: "Run /plan-validate"** — Trigger `/plan-validate` skill to interview the user with critical questions and validate plan assumptions
-  2. **Task: "Run /plan-review"** — Trigger `/plan-review` skill to auto-review plan for validity, correctness, and best practices
+    1. **Task: "Run /plan-validate"** — Trigger `/plan-validate` skill to interview the user with critical questions and validate plan assumptions
+    2. **Task: "Run /plan-review"** — Trigger `/plan-review` skill to auto-review plan for validity, correctness, and best practices
 
 ## Post-Plan Validation
 

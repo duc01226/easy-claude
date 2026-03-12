@@ -1,8 +1,10 @@
 ---
 name: workflow-refactor
 version: 1.0.0
-description: '[Workflow] Trigger Code Refactoring workflow — restructure and improve existing code without changing behavior.'
+description: "[Workflow] Trigger Code Refactoring workflow — restructure and improve existing code without changing behavior."
 ---
+
+> **[IMPORTANT]** This skill activates a full workflow. You MUST create todo tasks for ALL steps and execute them in sequence. Do NOT skip any step.
 
 Activate the `refactor` workflow. Run `/workflow-start refactor` with the user's prompt as context.
 

@@ -2,8 +2,8 @@
 name: tdd-spec
 version: 1.0.0
 category: Testing
-description: "[Testing] Generate or update test specifications in feature docs (Section 17) with unified TC-{FEATURE}-{NNN} format. Supports TDD-first, implement-first, update, and sync modes."
-triggers: "tdd spec, tdd test, test driven, write test specs, create test cases, update test specs, test specifications for feature, test spec for feature, sync test specs, generate test specs from code, update test specs after changes, test specs from PR, test specs from pull request, code to test specs"
+description: '[Testing] Generate or update test specifications in feature docs (Section 17) with unified TC-{FEATURE}-{NNN} format. Supports TDD-first, implement-first, update, and sync modes.'
+triggers: 'tdd spec, tdd test, test driven, write test specs, create test cases, update test specs, test specifications for feature, test spec for feature, sync test specs, generate test specs from code, update test specs after changes, test specs from PR, test specs from pull request, code to test specs'
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Task, TaskCreate, AskUserQuestion
 ---
 
@@ -48,10 +48,10 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Task, TaskCreate, AskUserQue
 - **Evidence required:** Every TC MUST have `Evidence: {FilePath}:{LineRange}` or `TBD (pre-implementation)` for TDD-first mode
 - **Minimum 4 categories:** Positive (happy path), negative (error handling), **authorization** (role-based access), edge cases
 - **Cross-cutting TC categories** (ref: `.claude/skills/shared/cross-cutting-quality-concerns-protocol.md`):
-  - **Authorization TCs (mandatory):** Authorized access succeeds, unauthorized access rejected, role-based visibility verified
-  - **Seed Data TCs (if applicable):** Reference data exists, seeder runs correctly
-  - **Performance TCs (if applicable):** Feature performs within SLA under production-like data volume
-  - **Data Migration TCs (if applicable):** Data transforms correctly, rollback works, no data loss
+    - **Authorization TCs (mandatory):** Authorized access succeeds, unauthorized access rejected, role-based visibility verified
+    - **Seed Data TCs (if applicable):** Reference data exists, seeder runs correctly
+    - **Performance TCs (if applicable):** Feature performs within SLA under production-like data volume
+    - **Data Migration TCs (if applicable):** Data transforms correctly, rollback works, no data loss
 - **Interactive review:** ALWAYS use `AskUserQuestion` to review TC list with user before writing
 
 ---
