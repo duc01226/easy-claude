@@ -1,7 +1,7 @@
 ---
 name: code-simplifier
 version: 2.0.0
-description: "[Code Quality] Simplifies and refines code for clarity, consistency, and maintainability while preserving all functionality. Focuses on recently modified code unless instructed otherwise."
+description: '[Code Quality] Simplifies and refines code for clarity, consistency, and maintainability while preserving all functionality. Focuses on recently modified code unless instructed otherwise.'
 allowed-tools: Read, Edit, Glob, Grep, Task
 ---
 
@@ -42,6 +42,14 @@ allowed-tools: Read, Edit, Glob, Grep, Task
 - Preserve all existing functionality; no behavior changes
 - Follow platform patterns (Entity expressions, fluent helpers, project store base (search for: store base class), BEM)
 - Keep tests passing after every change
+
+### Frontend/UI Context (if applicable)
+
+When this task involves frontend or UI changes, **MUST READ** `.claude/skills/shared/ui-system-context.md` and the following docs:
+
+- Component patterns: `docs/project-reference/frontend-patterns-reference.md`
+- Styling/BEM guide: `docs/project-reference/scss-styling-guide.md`
+- Design system tokens: `docs/project-reference/design-system/README.md`
 
 # Code Simplifier Skill
 
@@ -105,12 +113,12 @@ Task(subagent_type="code-simplifier:code-simplifier", prompt="Review and simplif
 
 ```typescript
 function getData() {
-  const result = fetchData();
-  if (result !== null && result !== undefined) {
-    return result;
-  } else {
-    return null;
-  }
+    const result = fetchData();
+    if (result !== null && result !== undefined) {
+        return result;
+    } else {
+        return null;
+    }
 }
 ```
 
@@ -118,30 +126,30 @@ function getData() {
 
 ```typescript
 function getData() {
-  return fetchData() ?? null;
+    return fetchData() ?? null;
 }
 ```
 
 ## Workflow
 
 1. **Identify targets**
-   - If no arguments: `git diff --name-only HEAD~1` for recent changes
-   - If arguments provided: use specified files/patterns
-   - Skip: generated code, migrations, vendor files
+    - If no arguments: `git diff --name-only HEAD~1` for recent changes
+    - If arguments provided: use specified files/patterns
+    - Skip: generated code, migrations, vendor files
 
 2. **Analyze each file**
-   - Identify complexity hotspots (nesting > 3, methods > 20 lines)
-   - Find duplicated code patterns
-   - Check naming clarity
+    - Identify complexity hotspots (nesting > 3, methods > 20 lines)
+    - Find duplicated code patterns
+    - Check naming clarity
 
 3. **Apply simplifications**
-   - One refactoring type at a time
-   - Preserve all functionality
-   - Follow platform patterns
+    - One refactoring type at a time
+    - Preserve all functionality
+    - Follow platform patterns
 
 4. **Verify**
-   - Run related tests if available
-   - Confirm no behavior changes
+    - Run related tests if available
+    - Confirm no behavior changes
 
 ## Project Patterns
 

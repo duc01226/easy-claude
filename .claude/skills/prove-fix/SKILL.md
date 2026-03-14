@@ -1,7 +1,7 @@
 ---
 name: prove-fix
 version: 1.0.0
-description: "[Code Quality] Prove fix correctness with code proof traces, confidence scoring, and stack-trace-style evidence chains. Use after /fix in bugfix workflows."
+description: '[Code Quality] Prove fix correctness with code proof traces, confidence scoring, and stack-trace-style evidence chains. Use after /fix in bugfix workflows.'
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
@@ -34,6 +34,14 @@ description: "[Code Quality] Prove fix correctness with code proof traces, confi
 - Each change gets its OWN proof trace and confidence score
 - If ANY change scores below 80%, flag it and recommend additional investigation
 - This step is **non-negotiable** after `/fix` — never skip it
+
+### Frontend/UI Context (if applicable)
+
+When this task involves frontend or UI changes, **MUST READ** `.claude/skills/shared/ui-system-context.md` and the following docs:
+
+- Component patterns: `docs/project-reference/frontend-patterns-reference.md`
+- Styling/BEM guide: `docs/project-reference/scss-styling-guide.md`
+- Design system tokens: `docs/project-reference/design-system/README.md`
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 

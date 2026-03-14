@@ -30,6 +30,13 @@ description: '[Fix & Debug] Systematic debugging with root cause investigation. 
 - Output: confirmed root cause OR "hypothesis, not confirmed" with evidence gaps
 - This is investigation-only — hand off to /fix for implementation
 
+### Frontend/UI Context (if applicable)
+
+When this task involves frontend or UI changes, **MUST READ** `.claude/skills/shared/ui-system-context.md` and the following docs:
+- Component patterns: `docs/project-reference/frontend-patterns-reference.md`
+- Styling/BEM guide: `docs/project-reference/scss-styling-guide.md`
+- Design system tokens: `docs/project-reference/design-system/README.md`
+
 ## Debug Mindset (NON-NEGOTIABLE)
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**

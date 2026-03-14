@@ -32,6 +32,14 @@ description: '[Implementation] Analyze and fix issues [INTELLIGENT ROUTING]'
 - Never assume first hypothesis is correct — verify with actual code traces
 - Parent skill for all fix-\* variants; routes based on issue keywords
 
+### Frontend/UI Context (if applicable)
+
+When this task involves frontend or UI changes, **MUST READ** `.claude/skills/shared/ui-system-context.md` and the following docs:
+
+- Component patterns: `docs/project-reference/frontend-patterns-reference.md`
+- Styling/BEM guide: `docs/project-reference/scss-styling-guide.md`
+- Design system tokens: `docs/project-reference/design-system/README.md`
+
 ## Variant Decision Guide
 
 | If the issue is...        | Use                 | Why                                         |

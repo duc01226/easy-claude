@@ -4,7 +4,7 @@
   "project": {
     "name": "easy-claude",
     "description": "Claude Code enhancement framework — hooks, skills, agents, and workflows that extend Claude Code capabilities",
-    "languages": ["javascript"],
+    "languages": ["javascript", "python"],
     "packageManagers": ["npm"]
   },
   "framework": {
@@ -42,7 +42,7 @@
       "name": "skills",
       "kind": "library",
       "pathRegex": "[\\\\/]\\.claude[\\\\/]skills[\\\\/]",
-      "description": "199 skill definitions for task automation (SKILL.md + scripts)",
+      "description": "236 skill definitions for task automation (SKILL.md + scripts)",
       "tags": ["core", "markdown"]
     },
     {
@@ -58,6 +58,13 @@
       "pathRegex": "[\\\\/]\\.claude[\\\\/]scripts[\\\\/]",
       "description": "Utility scripts for catalog generation, skill management, and worktree operations",
       "tags": ["tooling", "cjs", "python"]
+    },
+    {
+      "name": "workflows",
+      "kind": "library",
+      "pathRegex": "[\\\\/]\\.claude[\\\\/]workflows[\\\\/]",
+      "description": "Workflow definitions for orchestrating multi-step task sequences",
+      "tags": ["core", "markdown"]
     },
     {
       "name": "docs-framework",
@@ -169,8 +176,16 @@
     },
     {
       "filename": "domain-entities-reference.md",
-      "purpose": "Domain entities reference (N/A for framework project)",
-      "sections": []
+      "purpose": "Framework conceptual domain — Hook, Skill, Agent, Workflow, Context Group, Module",
+      "sections": [
+        "hook",
+        "skill",
+        "agent",
+        "workflow",
+        "context-group",
+        "module",
+        "entity-relationships"
+      ]
     },
     {
       "filename": "e2e-test-reference.md",
@@ -180,8 +195,8 @@
   ],
   "custom": {
     "projectType": "claude-code-framework",
-    "hookCount": 34,
-    "skillCount": 199,
+    "hookCount": 36,
+    "skillCount": 236,
     "agentCount": 28
   }
 }

@@ -1,6 +1,6 @@
 # Project Structure Reference
 
-<!-- Last scanned: 2026-03-10 -->
+<!-- Last scanned: 2026-03-15 -->
 <!-- This file is referenced by Claude skills and agents for project-specific context. -->
 
 ## Overview
@@ -11,14 +11,14 @@
 
 | Component      | Count                     | Location                     | Format                          |
 | -------------- | ------------------------- | ---------------------------- | ------------------------------- |
-| Hooks          | 34                        | `.claude/hooks/*.cjs`        | CommonJS Node.js scripts        |
+| Hooks          | 37                        | `.claude/hooks/*.cjs/.js`    | CommonJS Node.js scripts        |
 | Hook Libraries | 25                        | `.claude/hooks/lib/*.cjs`    | CommonJS utility modules        |
-| Skills         | 204                       | `.claude/skills/*/SKILL.md`  | Markdown + YAML frontmatter     |
+| Skills         | 237                       | `.claude/skills/*/SKILL.md`  | Markdown + YAML frontmatter     |
 | Agents         | 28                        | `.claude/agents/*.md`        | Markdown definitions            |
 | Workflows      | 48                        | `.claude/workflows.json`     | JSON workflow definitions       |
 | Output Styles  | 6                         | `.claude/output-styles/*.md` | Coding level presets (ELI5→God) |
-| Scripts        | 19                        | `.claude/scripts/*`          | CJS + Python utilities          |
-| Hook Tests     | 13 suites + 12 standalone | `.claude/hooks/tests/`       | CJS test files                  |
+| Scripts        | 15                        | `.claude/scripts/*`          | CJS + Python utilities          |
+| Hook Tests     | 14 suites + 13 standalone | `.claude/hooks/tests/`       | CJS test files                  |
 
 ## Project Directory Tree
 
@@ -28,20 +28,28 @@ easy-claude/
 │   ├── .ck.json                      # Claude Kit configuration
 │   ├── .ckignore                     # Ignore patterns for Claude Kit
 │   ├── .env.example                  # Environment template
+│   ├── .gitignore                    # Framework-level gitignore
 │   ├── .mcp.json                     # MCP server configuration
+│   ├── .mcp.README.md               # MCP configuration docs
+│   ├── .mcp.json.example            # MCP config template
 │   ├── .todo-state.json              # Persistent todo state
 │   ├── metadata.json                 # Framework metadata (large)
 │   ├── settings.json                 # Hook registration & features
-│   ├── settings.local.json           # Local settings overrides
+│   ├── settings.local.json.example   # Local settings template
 │   ├── statusline.cjs                # Status line (Node.js)
 │   ├── statusline.ps1               # Status line (PowerShell)
 │   ├── statusline.sh                # Status line (Bash)
 │   ├── workflows.json               # 48 workflow definitions
 │   ├── workflows.schema.json        # Workflow JSON schema
 │   ├── agent-memory/                 # Persistent agent memory
-│   │   ├── code-reviewer/MEMORY.md
-│   │   ├── planner/MEMORY.md
-│   │   └── researcher/MEMORY.md
+│   │   ├── backend-developer/
+│   │   ├── code-reviewer/
+│   │   ├── code-simplifier/
+│   │   ├── frontend-developer/
+│   │   ├── fullstack-developer/
+│   │   ├── knowledge-worker/
+│   │   ├── planner/
+│   │   └── researcher/
 │   ├── agents/                       # 28 agent definitions
 │   │   ├── architect.md
 │   │   ├── backend-developer.md
@@ -52,6 +60,7 @@ easy-claude/
 │   │   ├── security-auditor.md
 │   │   └── ... (28 total)
 │   ├── config/                       # Templates & config
+│   │   ├── README.md
 │   │   ├── agent-template.md
 │   │   ├── skill-template.md
 │   │   └── release-notes-template.yaml
@@ -64,44 +73,103 @@ easy-claude/
 │   │   ├── skill-naming-conventions.md
 │   │   ├── anti-hallucination-patterns.md
 │   │   ├── AI-DEBUGGING-PROTOCOL.md
+│   │   ├── team-collaboration-guide.md
 │   │   ├── agents/                   # Agent documentation
 │   │   ├── configuration/            # Settings reference
 │   │   ├── hooks/                    # Hook documentation
 │   │   ├── skills/                   # Skill documentation
 │   │   └── team-artifacts/           # Templates for PBIs, stories, specs
-│   ├── hooks/                        # 34 runtime hooks
+│   ├── hooks/                        # 37 runtime hooks
+│   │   ├── config/                   # Hook configuration
+│   │   │   └── swap-config.json
+│   │   ├── docs/                     # Hook documentation
+│   │   │   └── README.md
 │   │   ├── lib/                      # 25 shared utility modules
+│   │   │   ├── __tests__/            # Lib unit tests
 │   │   │   ├── ck-config-loader.cjs
 │   │   │   ├── ck-config-utils.cjs
+│   │   │   ├── ck-env-utils.cjs
+│   │   │   ├── ck-git-utils.cjs
+│   │   │   ├── ck-path-utils.cjs
+│   │   │   ├── ck-paths.cjs
+│   │   │   ├── ck-plan-resolver.cjs
+│   │   │   ├── ck-session-state.cjs
 │   │   │   ├── context-injector-base.cjs
+│   │   │   ├── context-tracker.cjs
+│   │   │   ├── debug-log.cjs
+│   │   │   ├── dedup-constants.cjs
+│   │   │   ├── edit-state.cjs
+│   │   │   ├── hook-runner.cjs
+│   │   │   ├── notify-windows.ps1
 │   │   │   ├── project-config-loader.cjs
 │   │   │   ├── project-config-schema.cjs
+│   │   │   ├── prompt-injections.cjs
+│   │   │   ├── session-init-helpers.cjs
 │   │   │   ├── stdin-parser.cjs
 │   │   │   ├── swap-engine.cjs
+│   │   │   ├── temp-file-cleanup.cjs
+│   │   │   ├── test-fixture-generator.cjs
 │   │   │   ├── todo-state.cjs
 │   │   │   ├── workflow-state.cjs
-│   │   │   └── ... (25 total)
+│   │   │   └── wr-config.cjs
 │   │   ├── notifications/            # Multi-channel notifications
 │   │   │   ├── notify.cjs
-│   │   │   └── providers/            # desktop, discord, slack, telegram
+│   │   │   ├── lib/
+│   │   │   ├── docs/
+│   │   │   └── providers/            # desktop, discord, slack, telegram, terminal-bell
 │   │   ├── scout-block/              # Broad search prevention
 │   │   │   ├── broad-pattern-detector.cjs
+│   │   │   ├── error-formatter.cjs
 │   │   │   ├── path-extractor.cjs
-│   │   │   └── pattern-matcher.cjs
+│   │   │   ├── pattern-matcher.cjs
+│   │   │   ├── tests/
+│   │   │   └── vendor/
 │   │   ├── tests/                    # Hook test suites
 │   │   │   ├── test-all-hooks.cjs    # Main test runner
 │   │   │   ├── run-all-tests.cjs     # Suite runner
-│   │   │   └── suites/               # 13 test suites
-│   │   ├── session-init.cjs          # Session startup
-│   │   ├── workflow-router.cjs       # Intent → workflow routing
-│   │   ├── edit-enforcement.cjs      # Task-gated edits
-│   │   ├── privacy-block.cjs         # Secrets protection
-│   │   ├── path-boundary-block.cjs   # Scope enforcement
-│   │   ├── scout-block.cjs           # Broad search prevention
-│   │   ├── backend-context.cjs       # Backend pattern injection
-│   │   ├── frontend-context.cjs      # Frontend pattern injection
-│   │   ├── tool-output-swap.cjs      # Large output compression
-│   │   └── ... (34 total)
+│   │   │   ├── suites/               # 14 test suites
+│   │   │   ├── fixtures/             # Test fixtures
+│   │   │   ├── helpers/              # Test helpers
+│   │   │   ├── lib/                  # Test library utils
+│   │   │   ├── docs/                 # Test documentation
+│   │   │   └── 13 standalone tests   # test-*.cjs / test-*.js
+│   │   ├── artifact-path-resolver.cjs
+│   │   ├── ba-refinement-context.cjs # BA refinement context injection
+│   │   ├── backend-context.cjs
+│   │   ├── bash-cleanup.cjs
+│   │   ├── code-patterns-injector.cjs
+│   │   ├── code-review-rules-injector.cjs
+│   │   ├── design-system-context.cjs
+│   │   ├── edit-enforcement.cjs
+│   │   ├── figma-context-extractor.cjs
+│   │   ├── frontend-context.cjs
+│   │   ├── init-prompt-gate.cjs
+│   │   ├── knowledge-context.cjs
+│   │   ├── lessons-injector.cjs
+│   │   ├── mindset-injector.cjs       # Coding mindset/output style injection
+│   │   ├── notify-waiting.js          # Cross-platform notification hook (.js)
+│   │   ├── npm-auto-install.cjs
+│   │   ├── path-boundary-block.cjs
+│   │   ├── post-compact-recovery.cjs
+│   │   ├── post-edit-prettier.cjs
+│   │   ├── privacy-block.cjs
+│   │   ├── prompt-context-assembler.cjs
+│   │   ├── role-context-injector.cjs
+│   │   ├── scout-block.cjs
+│   │   ├── scss-styling-context.cjs
+│   │   ├── search-before-code.cjs
+│   │   ├── session-end.cjs
+│   │   ├── session-init-docs.cjs
+│   │   ├── session-init.cjs
+│   │   ├── session-resume.cjs
+│   │   ├── skill-enforcement.cjs
+│   │   ├── subagent-init.cjs
+│   │   ├── todo-tracker.cjs
+│   │   ├── tool-output-swap.cjs
+│   │   ├── windows-command-detector.cjs
+│   │   ├── workflow-router.cjs
+│   │   ├── workflow-step-tracker.cjs
+│   │   └── write-compact-marker.cjs
 │   ├── output-styles/                # 6 coding level presets
 │   │   ├── coding-level-0-eli5.md
 │   │   ├── coding-level-1-junior.md
@@ -109,19 +177,35 @@ easy-claude/
 │   │   ├── coding-level-3-senior.md
 │   │   ├── coding-level-4-lead.md
 │   │   └── coding-level-5-god.md
-│   ├── scripts/                      # Utility scripts
-│   │   ├── generate_catalogs.py      # Skills/commands catalog
+│   ├── scripts/                      # Utility scripts (15 executable)
+│   │   ├── generate_catalogs.py      # Skills/commands catalog generator
 │   │   ├── scan_skills.py            # Skill scanner
+│   │   ├── audit-skill-descriptions.py
+│   │   ├── ck-help.py                # Claude Kit help utility
+│   │   ├── resolve_env.py            # Environment resolver
+│   │   ├── win_compat.py             # Windows compatibility
+│   │   ├── sync-copilot-workflows.cjs
+│   │   ├── sync-skills-to-tools.py
 │   │   ├── worktree.cjs              # Git worktree management
-│   │   └── ... (19 total)
-│   ├── skills/                       # 204 skill definitions
+│   │   ├── worktree.test.cjs         # Worktree tests
+│   │   ├── add-skill-versions.cjs
+│   │   ├── add-suffix-notes.cjs
+│   │   ├── add-task-protocol-suffix.cjs
+│   │   ├── enhance-skills.cjs
+│   │   ├── set-active-plan.cjs
+│   │   ├── commands_data.yaml        # Commands catalog data
+│   │   ├── skills_data.yaml          # Skills catalog data
+│   │   ├── requirements.txt          # Python dependencies
+│   │   └── README.md
+│   ├── skills/                       # 237 skill definitions
 │   │   ├── INSTALLATION.md           # Dependency installation guide
 │   │   ├── README.md                 # Skills overview
 │   │   ├── TESTING.md                # Testing guide
+│   │   ├── THIRD_PARTY_NOTICES.md    # Third-party licenses
 │   │   ├── install.sh                # Linux/macOS installer
 │   │   ├── install.ps1               # Windows installer
 │   │   ├── common/                   # Shared Python utilities
-│   │   ├── shared/                   # Shared protocols
+│   │   ├── shared/                   # Shared protocols (19 files)
 │   │   ├── _templates/               # Skill creation templates
 │   │   ├── cook/SKILL.md             # Implementation skill
 │   │   ├── fix/SKILL.md              # Bug fix skill
@@ -131,10 +215,12 @@ easy-claude/
 │   │   ├── excalidraw-diagram/       # Diagramming skill
 │   │   ├── media-processing/         # FFmpeg/ImageMagick skills
 │   │   ├── mcp-builder/              # MCP server builder
-│   │   ├── workflow-*/               # Workflow activation skills
-│   │   ├── scan-*/                   # Project scanning skills (10)
-│   │   └── ... (204 total)
+│   │   ├── workflow-*/               # Workflow trigger skills (51)
+│   │   ├── scan-*/                   # Project scanning skills (11)
+│   │   └── ... (237 total SKILL.md files)
 │   ├── tests/                        # Framework-level tests
+│   │   └── workflow-routing-test.cjs
+│   ├── tmp/                          # Temporary files (gitignored)
 │   └── workflows/                    # Workflow rule files
 │       ├── development-rules.md
 │       ├── documentation-management.md
@@ -154,8 +240,15 @@ easy-claude/
 │       ├── e2e-test-reference.md
 │       ├── feature-docs-reference.md
 │       └── lessons.md
+├── .vscode/                         # VS Code workspace settings
+│   ├── extensions.json
+│   ├── mcp.json
+│   └── settings.json
 ├── CLAUDE.md                         # Project instructions for Claude
 ├── README.md                         # Project README
+├── LICENSE                           # Apache 2.0
+├── NOTICE                            # Attribution notice
+├── .gitignore                        # Root gitignore
 └── claude-start.cmd                  # Windows launch script
 ```
 
@@ -175,18 +268,18 @@ easy-claude/
 
 | Code | Module         | Location                       | Description                                       |
 | ---- | -------------- | ------------------------------ | ------------------------------------------------- |
-| HK   | Hooks          | `.claude/hooks/`               | 34 runtime enforcement & context injection hooks  |
+| HK   | Hooks          | `.claude/hooks/`               | 37 runtime enforcement & context injection hooks  |
 | HL   | Hook Libraries | `.claude/hooks/lib/`           | 25 shared utility modules for hooks               |
-| SK   | Skills         | `.claude/skills/`              | 204 task automation skill definitions             |
+| SK   | Skills         | `.claude/skills/`              | 237 task automation skill definitions             |
 | AG   | Agents         | `.claude/agents/`              | 28 specialized subagent role definitions          |
 | WF   | Workflows      | `.claude/workflows.json`       | 48 end-to-end process orchestrations              |
-| SC   | Scripts        | `.claude/scripts/`             | 19 utility scripts (catalog gen, audit, worktree) |
+| SC   | Scripts        | `.claude/scripts/`             | 15 utility scripts (catalog gen, audit, worktree) |
 | OS   | Output Styles  | `.claude/output-styles/`       | 6 coding level presets                            |
-| NT   | Notifications  | `.claude/hooks/notifications/` | Multi-channel notification providers              |
-| SB   | Scout Block    | `.claude/hooks/scout-block/`   | Broad search prevention subsystem                 |
-| HT   | Hook Tests     | `.claude/hooks/tests/`         | 13 test suites + 12 standalone tests              |
+| NT   | Notifications  | `.claude/hooks/notifications/` | Multi-channel notification providers (5)          |
+| SB   | Scout Block    | `.claude/hooks/scout-block/`   | Broad search prevention subsystem (4 modules)     |
+| HT   | Hook Tests     | `.claude/hooks/tests/`         | 14 test suites + 13 standalone tests              |
 
-## Hooks (34)
+## Hooks (37)
 
 ### Safety Hooks
 
@@ -207,18 +300,20 @@ easy-claude/
 
 ### Context Injection Hooks
 
-| Hook                         | Event                       | Purpose                                              |
-| ---------------------------- | --------------------------- | ---------------------------------------------------- |
-| `backend-context`            | PreToolUse                  | Inject backend patterns when editing backend files   |
-| `frontend-context`           | PreToolUse                  | Inject frontend patterns when editing frontend files |
-| `design-system-context`      | PreToolUse                  | Inject design system tokens                          |
-| `scss-styling-context`       | PreToolUse                  | Inject SCSS patterns                                 |
-| `code-patterns-injector`     | PreToolUse                  | Inject code patterns from reference docs             |
-| `code-review-rules-injector` | PreToolUse                  | Inject review rules during reviews                   |
-| `lessons-injector`           | UserPromptSubmit/PreToolUse | Re-inject learned lessons                            |
-| `knowledge-context`          | PreToolUse                  | Inject domain knowledge                              |
-| `role-context-injector`      | SubagentStart               | Inject role-specific context for agents              |
-| `figma-context-extractor`    | PreToolUse                  | Extract Figma design context                         |
+| Hook                         | Event      | Purpose                                              |
+| ---------------------------- | ---------- | ---------------------------------------------------- |
+| `backend-context`            | PreToolUse | Inject backend patterns when editing backend files   |
+| `frontend-context`           | PreToolUse | Inject frontend patterns when editing frontend files |
+| `design-system-context`      | PreToolUse | Inject design system tokens                          |
+| `scss-styling-context`       | PreToolUse | Inject SCSS patterns                                 |
+| `code-patterns-injector`     | PreToolUse | Inject code patterns from reference docs             |
+| `code-review-rules-injector` | PreToolUse | Inject review rules during reviews                   |
+| `lessons-injector`           | PreToolUse | Re-inject learned lessons                            |
+| `knowledge-context`          | PreToolUse | Inject domain knowledge                              |
+| `role-context-injector`      | PreToolUse | Inject role-specific context for agents              |
+| `figma-context-extractor`    | PreToolUse | Extract Figma design context                         |
+| `mindset-injector`           | PreToolUse | Inject coding mindset/output style context           |
+| `ba-refinement-context`      | PreToolUse | Inject BA refinement context for story editing       |
 
 ### Session Management Hooks
 
@@ -242,16 +337,16 @@ easy-claude/
 
 ### Utility Hooks
 
-| Hook                       | Event             | Purpose                          |
-| -------------------------- | ----------------- | -------------------------------- |
-| `tool-output-swap`         | PostToolUse       | Compress large tool outputs      |
-| `post-edit-prettier`       | PostToolUse       | Run prettier after edits         |
-| `npm-auto-install`         | PostToolUse       | Auto-install npm deps            |
-| `bash-cleanup`             | PostToolUse       | Clean bash output                |
-| `windows-command-detector` | PreToolUse        | Detect Windows-specific commands |
-| `artifact-path-resolver`   | PreToolUse        | Resolve artifact paths           |
-| `subagent-init`            | SubagentStart     | Initialize subagent context      |
-| `notify-waiting`           | Stop/Notification | Desktop/channel notifications    |
+| Hook                       | Event             | Purpose                              |
+| -------------------------- | ----------------- | ------------------------------------ |
+| `tool-output-swap`         | PostToolUse       | Compress large tool outputs          |
+| `post-edit-prettier`       | PostToolUse       | Run prettier after edits             |
+| `npm-auto-install`         | SessionStart      | Auto-install npm deps on startup     |
+| `bash-cleanup`             | PostToolUse       | Clean bash output                    |
+| `windows-command-detector` | PreToolUse        | Detect Windows-specific commands     |
+| `artifact-path-resolver`   | PreToolUse        | Resolve artifact paths               |
+| `subagent-init`            | SubagentStart     | Initialize subagent context          |
+| `notify-waiting`           | Stop/Notification | Cross-platform desktop notifications |
 
 ## Workflows (48)
 
@@ -299,3 +394,34 @@ easy-claude/
 | `spec-compliance-reviewer` | Implementation vs specification matching     |
 | `tester`                   | Test execution, coverage analysis            |
 | `ui-ux-designer`           | UI/UX design, wireframes, accessibility      |
+
+## Key Entry Points
+
+| Entry Point                                  | Purpose                                    |
+| -------------------------------------------- | ------------------------------------------ |
+| `.claude/settings.json`                      | Hook registration, permissions, features   |
+| `.claude/hooks/session-init.cjs`             | Session startup — loads config, sets state |
+| `.claude/hooks/workflow-router.cjs`          | Intent matching — routes to workflows      |
+| `.claude/hooks/prompt-context-assembler.cjs` | Assembles full prompt context              |
+| `.claude/workflows.json`                     | All 48 workflow definitions                |
+| `docs/project-config.json`                   | Project-specific runtime configuration     |
+| `.claude/hooks/tests/test-all-hooks.cjs`     | Main test runner                           |
+| `CLAUDE.md`                                  | Project instructions for Claude            |
+
+## Scan Skills (11)
+
+Skills that populate `docs/project-reference/`:
+
+| Skill                    | Generates                        |
+| ------------------------ | -------------------------------- |
+| `scan-project-structure` | `project-structure-reference.md` |
+| `scan-backend-patterns`  | `backend-patterns-reference.md`  |
+| `scan-frontend-patterns` | `frontend-patterns-reference.md` |
+| `scan-integration-tests` | `integration-test-reference.md`  |
+| `scan-code-review-rules` | `code-review-rules.md`           |
+| `scan-scss-styling`      | `scss-styling-guide.md`          |
+| `scan-design-system`     | `design-system/`                 |
+| `scan-domain-entities`   | `domain-entities-reference.md`   |
+| `scan-e2e-tests`         | `e2e-test-reference.md`          |
+| `scan-feature-docs`      | `feature-docs-reference.md`      |
+| `scan-ui-system`         | UI system context                |
