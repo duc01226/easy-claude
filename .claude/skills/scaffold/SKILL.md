@@ -1,7 +1,7 @@
 ---
 name: scaffold
 version: 1.0.0
-description: '[Architecture] Scaffold project architecture with OOP/SOLID base classes, infrastructure abstractions, and reusable foundation code before feature implementation.'
+description: "[Architecture] Scaffold project architecture with OOP/SOLID base classes, infrastructure abstractions, and reusable foundation code before feature implementation."
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
@@ -27,12 +27,12 @@ description: '[Architecture] Scaffold project architecture with OOP/SOLID base c
 
 1. **Workflow check:** Active workflow is `greenfield-init` OR `big-feature`. If not → SKIP this skill entirely, mark step as completed.
 2. **Existing scaffolding check:** AI MUST self-investigate for existing base/foundational abstractions:
-    - Abstract/base classes: grep `abstract class.*Base|Base[A-Z]\w+|Abstract[A-Z]\w+`
-    - Generic interfaces: grep `interface I\w+<|IGeneric|IBase`
-    - Infrastructure abstractions: grep `IRepository|IUnitOfWork|IService|IHandler`
-    - Utility/extension layers: grep `Extensions|Helpers|Utils|Common` (directories or classes)
-    - Frontend foundations: grep `base.*component|base.*service|base.*store|abstract.*component` (case-insensitive)
-    - DI/IoC registration: grep `AddScoped|AddSingleton|providers:|NgModule|@Injectable`
+   - Abstract/base classes: grep `abstract class.*Base|Base[A-Z]\w+|Abstract[A-Z]\w+`
+   - Generic interfaces: grep `interface I\w+<|IGeneric|IBase`
+   - Infrastructure abstractions: grep `IRepository|IUnitOfWork|IService|IHandler`
+   - Utility/extension layers: grep `Extensions|Helpers|Utils|Common` (directories or classes)
+   - Frontend foundations: grep `base.*component|base.*service|base.*store|abstract.*component` (case-insensitive)
+   - DI/IoC registration: grep `AddScoped|AddSingleton|providers:|NgModule|@Injectable`
 3. **If existing scaffolding found → SKIP.** Log: "Existing scaffolding detected at {file:line}. Skipping /scaffold step." Mark step as completed.
 4. **If NO foundational abstractions found → PROCEED** with full scaffolding workflow below.
 
@@ -108,9 +108,33 @@ AI must self-investigate the chosen tech stack and produce a checklist covering 
 
 ### UI Foundation
 
-- [ ] Global styles / design tokens
-- [ ] Base layout component
-- [ ] Loading/error/notification components
+> **Skip if:** Backend-only project, no frontend component. **Apply if:** Project has ANY frontend.
+
+#### Design Token Files
+
+- [ ] Create design token file(s) per chosen format (CSS custom properties / SCSS variables / JSON)
+- [ ] Define minimum token set: colors (primary, secondary, surface, bg, text, error, success, warning), spacing (xs-xl), typography (heading/body/caption families + sizes), breakpoints, shadows, z-index
+- [ ] Create theme file(s) if theming required (light/dark CSS classes or theme provider)
+
+#### Base Layout & Responsive
+
+- [ ] Base layout component (app shell: header, sidebar/nav, main content, footer)
+- [ ] Responsive container/grid utility
+- [ ] Responsive mixin/utility for breakpoints
+- [ ] Mobile-first media query definitions
+
+#### Base UI Components
+
+- [ ] Loading indicator component (spinner or skeleton)
+- [ ] Error display component (inline + page-level)
+- [ ] Empty state component (message + action)
+- [ ] Notification/toast component
+- [ ] Base button component with variants (primary, secondary, ghost, danger)
+- [ ] Base input component with validation display
+
+#### Design System Documentation
+
+- [ ] Create `docs/project-reference/design-system/README.md` skeleton with: token naming conventions, component tier classification (Common/Domain-Shared/Page), usage examples
 
 ## Code Quality Gate Tooling (MANDATORY MUST — Setup Before Any Feature Code)
 

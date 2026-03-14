@@ -1,7 +1,7 @@
 ---
 name: project-config
 version: 1.0.0
-description: '[Utilities] Scan workspace and update docs/project-config.json to match current project structure'
+description: "[Utilities] Scan workspace and update docs/project-config.json to match current project structure"
 disable-model-invocation: true
 ---
 
@@ -280,25 +280,28 @@ find . -name "*fixture*" -path "*e2e*" 2>/dev/null | head -10
 
 ```json
 {
-    "e2eTesting": {
-        "framework": "playwright|cypress|selenium|webdriver",
-        "language": "typescript|csharp",
-        "configFile": "testing/e2e/tests/playwright.config.ts",
-        "testsPath": "testing/e2e/tests/specs/",
-        "pageObjectsPath": "testing/e2e/tests/page-objects/",
-        "fixturesPath": "testing/e2e/tests/fixtures/",
-        "guideDoc": "docs/project-reference/e2e-test-reference.md",
-        "testSpecsDocs": ["docs/test-specs/", "docs/business-features/**/detailed-features/*.md"],
-        "searchPatterns": ["test\\(['\"]TC-", "\\.spec\\.ts$", "\\[Trait"],
-        "runCommands": {
-            "all": "npm run e2e",
-            "headed": "npm run e2e:headed",
-            "ui": "npm run e2e:ui"
-        },
-        "tcCodeFormat": "TC-{MODULE}-E2E-{NNN}",
-        "bestPractices": [],
-        "entryPoints": []
-    }
+  "e2eTesting": {
+    "framework": "playwright|cypress|selenium|webdriver",
+    "language": "typescript|csharp",
+    "configFile": "testing/e2e/tests/playwright.config.ts",
+    "testsPath": "testing/e2e/tests/specs/",
+    "pageObjectsPath": "testing/e2e/tests/page-objects/",
+    "fixturesPath": "testing/e2e/tests/fixtures/",
+    "guideDoc": "docs/project-reference/e2e-test-reference.md",
+    "testSpecsDocs": [
+      "docs/test-specs/",
+      "docs/business-features/**/detailed-features/*.md"
+    ],
+    "searchPatterns": ["test\\(['\"]TC-", "\\.spec\\.ts$", "\\[Trait"],
+    "runCommands": {
+      "all": "npm run e2e",
+      "headed": "npm run e2e:headed",
+      "ui": "npm run e2e:ui"
+    },
+    "tcCodeFormat": "TC-{MODULE}-E2E-{NNN}",
+    "bestPractices": [],
+    "entryPoints": []
+  }
 }
 ```
 
@@ -328,15 +331,15 @@ find . -name "*fixture*" -path "*e2e*" 2>/dev/null | head -10
 ## Phase 4: Verify (MANDATORY)
 
 1. **Schema validation** — Run the validator to ensure structure is intact:
-    ```bash
-    node -e "
-    const { validateConfig, formatResult } = require('./.claude/hooks/lib/project-config-schema.cjs');
-    const config = JSON.parse(require('fs').readFileSync('docs/project-config.json', 'utf-8'));
-    const result = validateConfig(config);
-    console.log(formatResult(result));
-    process.exit(result.valid ? 0 : 1);
-    "
-    ```
+   ```bash
+   node -e "
+   const { validateConfig, formatResult } = require('./.claude/hooks/lib/project-config-schema.cjs');
+   const config = JSON.parse(require('fs').readFileSync('docs/project-config.json', 'utf-8'));
+   const result = validateConfig(config);
+   console.log(formatResult(result));
+   process.exit(result.valid ? 0 : 1);
+   "
+   ```
 2. **If validation fails** — fix the errors before proceeding. Never commit an invalid config.
 3. Spot-check 2-3 service paths to confirm they match actual directories
 4. Run hook tests: `node .claude/hooks/tests/test-all-hooks.cjs`
@@ -347,22 +350,20 @@ After project-config is verified, AI **MANDATORY IMPORTANT MUST** create `TaskCr
 
 **Canonical mapping** (from `SCAN_SKILL_MAP` in `.claude/hooks/session-init-docs.cjs`):
 
-| Reference Doc                    | Scan Skill Command        |
-| -------------------------------- | ------------------------- |
-| `project-structure-reference.md` | `/scan-project-structure` |
-| `backend-patterns-reference.md`  | `/scan-backend-patterns`  |
-| `frontend-patterns-reference.md` | `/scan-frontend-patterns` |
-| `integration-test-reference.md`  | `/scan-integration-tests` |
-| `feature-docs-reference.md`      | `/scan-feature-docs`      |
-| `code-review-rules.md`           | `/scan-code-review-rules` |
-| `scss-styling-guide.md`          | `/scan-scss-styling`      |
-| `design-system/README.md`        | `/scan-design-system`     |
-| `e2e-test-reference.md`          | `/scan-e2e-tests`         |
-| `domain-entities-reference.md`   | `/scan-domain-entities`   |
+| Reference Doc                                                                 | Scan Skill Command        |
+| ----------------------------------------------------------------------------- | ------------------------- |
+| `project-structure-reference.md`                                              | `/scan-project-structure` |
+| `backend-patterns-reference.md`                                               | `/scan-backend-patterns`  |
+| `design-system/` + `scss-styling-guide.md` + `frontend-patterns-reference.md` | `/scan-ui-system`         |
+| `integration-test-reference.md`                                               | `/scan-integration-tests` |
+| `feature-docs-reference.md`                                                   | `/scan-feature-docs`      |
+| `code-review-rules.md`                                                        | `/scan-code-review-rules` |
+| `e2e-test-reference.md`                                                       | `/scan-e2e-tests`         |
+| `domain-entities-reference.md`                                                | `/scan-domain-entities`   |
 
 **Instructions:**
 
-1. Create **one `TaskCreate`** per scan skill above (10 tasks total)
+1. Create **one `TaskCreate`** per scan skill above (8 tasks total)
 2. Each task subject: `"Run /scan-{name} to populate docs/{filename}"`
 3. Each task description: `"Invoke /scan-{name} skill to scan codebase and populate docs/{filename} with real project patterns."`
 4. Tasks should be `pending` — execute sequentially after project-config phase completes
@@ -373,20 +374,20 @@ After project-config is verified, AI **MANDATORY IMPORTANT MUST** create `TaskCr
 **When investigating or fixing E2E test failures, AI MUST:**
 
 1. **Update `e2eTesting` section** in `docs/project-config.json` with any discovered patterns:
-    - New run commands found
-    - Missing entry points identified
-    - Best practices learned from debugging
+   - New run commands found
+   - Missing entry points identified
+   - Best practices learned from debugging
 
 2. **Update `docs/project-reference/e2e-test-reference.md`** with learnings:
-    - Common failure patterns and fixes
-    - Setup gotchas (auth, fixtures, seed data)
-    - Environment-specific configurations
-    - Selector strategy tips for the project
+   - Common failure patterns and fixes
+   - Setup gotchas (auth, fixtures, seed data)
+   - Environment-specific configurations
+   - Selector strategy tips for the project
 
 3. **Check TC code traceability** — ensure all E2E tests have proper:
-    - TC code in test name: `TC-{MODULE}-E2E-{NNN}`
-    - Tags/traits linking to test specs
-    - Comments linking to feature docs
+   - TC code in test name: `TC-{MODULE}-E2E-{NNN}`
+   - Tags/traits linking to test specs
+   - Comments linking to feature docs
 
 **Example update workflow:**
 

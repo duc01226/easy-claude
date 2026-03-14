@@ -50,6 +50,15 @@ allowed-tools: Read, Write, Edit, Grep, Glob, TaskCreate, AskUserQuestion
 5. Priority order: infra → scaffold → first feature → remaining features
 6. **[CRITICAL] Architecture Scaffolding Story:** FIRST story = "Architecture Scaffolding" — all OOP/SOLID base abstract classes, generic interfaces, infrastructure abstractions per chosen tech stack. AI self-investigates what base classes the project needs. All feature stories depend on this.
 7. Scaffolding acceptance criteria: all base classes compile/type-check, DI/IoC registrations resolve, smoke test passes
+8. **UI System Foundation Story:** If the project has a frontend, generate a "UI System Foundation" story (Sprint 0) with these sub-stories:
+
+   | Sub-Story                                                                 | SP  | Priority  | Depends On               |
+   | ------------------------------------------------------------------------- | --- | --------- | ------------------------ |
+   | "Set up design token system"                                              | 2-3 | Must Have | Architecture Scaffolding |
+   | "Create base layout and responsive grid"                                  | 2-3 | Must Have | Design tokens            |
+   | "Create core UI components (loading, error, empty, toast, button, input)" | 3-5 | Must Have | Design tokens + layout   |
+
+   **Dependency rule:** All UI feature stories MUST depend on "UI System Foundation" stories.
 
 - Each story needs happy path, edge case, and error scenario (minimum)
 - Use correct project domain vocabulary when available (check project docs for terminology)
@@ -247,15 +256,15 @@ Scenario: Unauthorized user cannot {perform action}
 ````markdown
 ---
 id: US-{YYMMDD}-{NNN}
-parent_pbi: '{PBI-ID}'
-title: '{Brief story title}'
-persona: '{User persona}'
+parent_pbi: "{PBI-ID}"
+title: "{Brief story title}"
+persona: "{User persona}"
 priority: P1 | P2 | P3
 story_points: 1 | 2 | 3 | 5 | 8 | 13
 complexity: Low | Medium | High | Very High
 sprint: 0 | 1 | 2 | ...
 status: draft | ready | in_progress | done
-module: '{ServiceA | ServiceB | ServiceC | ServiceD}'
+module: "{ServiceA | ServiceB | ServiceC | ServiceD}"
 ---
 
 # User Stories for {PBI Title}
