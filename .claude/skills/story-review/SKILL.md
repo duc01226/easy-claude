@@ -1,7 +1,7 @@
 ---
 name: story-review
 version: 1.0.0
-description: '[Code Quality] Review user stories for completeness, coverage, dependencies, and quality before implementation. AI self-review gate after /story.'
+description: "[Code Quality] Review user stories for completeness, coverage, dependencies, and quality before implementation. AI self-review gate after /story."
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
@@ -40,13 +40,14 @@ description: '[Code Quality] Review user stories for completeness, coverage, dep
 - [ ] **No overlapping scope** — Stories don't duplicate functionality
 - [ ] **Vertical slices** — Each story delivers end-to-end value (not horizontal layers)
 - [ ] **Authorization scenarios** — Every story includes at least 1 authorization scenario (unauthorized access → rejection) per PBI roles table (ref: `.claude/skills/shared/cross-cutting-quality-concerns-protocol.md` §1)
+- [ ] **UI Wireframe section** — If story involves UI: has `## UI Wireframe` section per `ui-wireframe-protocol.md` (wireframe + component tree + interaction flow + states + responsive). If backend-only: explicit "N/A"
 
 ### Recommended (>=50% should pass)
 
 - [ ] **Edge cases** — Boundary values, empty states, max limits addressed
 - [ ] **Error scenarios** — Failure paths explicitly covered in stories
 - [ ] **API contract** — If API changes needed, story specifies contract
-- [ ] **UI/UX considerations** — Frontend stories reference design specs or mockups
+- [ ] **UI/UX visualization** — Frontend stories have component decomposition tree with EXISTING/NEW classification, design token mapping, and responsive breakpoint behavior per `ui-wireframe-protocol.md`
 - [ ] **Seed data stories** — If PBI has seed data requirements, Sprint 0 seed data story exists (ref: `.claude/skills/shared/cross-cutting-quality-concerns-protocol.md` §2)
 - [ ] **Data migration stories** — If PBI has schema changes, data migration story exists (ref: `.claude/skills/shared/cross-cutting-quality-concerns-protocol.md` §5)
 

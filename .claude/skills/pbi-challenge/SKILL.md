@@ -1,7 +1,7 @@
 ---
 name: pbi-challenge
 version: 1.0.0
-description: '[Code Quality] AI-assisted Dev BA PIC review of PBI drafts. Generates challenge prompts, flags gaps, provides actionable feedback for BA drafter revision.'
+description: "[Code Quality] AI-assisted Dev BA PIC review of PBI drafts. Generates challenge prompts, flags gaps, provides actionable feedback for BA drafter revision."
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting.
@@ -20,30 +20,31 @@ description: '[Code Quality] AI-assisted Dev BA PIC review of PBI drafts. Genera
 
 1. **Locate PBI draft** — Find BA drafters' draft PBI in `team-artifacts/pbis/` or path provided by user
 2. **Load protocols** — Read these 3 protocols:
-    - `.claude/skills/shared/ba-team-decision-model-protocol.md` (decision model, veto scope)
-    - `.claude/skills/shared/refinement-dor-checklist-protocol.md` (DoR criteria)
-    - `.claude/skills/shared/cross-cutting-quality-concerns-protocol.md` (authorization, seed data, migration)
+   - `.claude/skills/shared/ba-team-decision-model-protocol.md` (decision model, veto scope)
+   - `.claude/skills/shared/refinement-dor-checklist-protocol.md` (DoR criteria)
+   - `.claude/skills/shared/cross-cutting-quality-concerns-protocol.md` (authorization, seed data, migration)
 3. **Load domain context** — Auto-detect module from PBI content, load:
-    - `docs/project-reference/domain-entities-reference.md` (entity definitions)
-    - Relevant feature docs from `docs/business-features/{App}/`
-    - Existing business rules (BR-{MOD}-XXX) from feature docs
+   - `docs/project-reference/domain-entities-reference.md` (entity definitions)
+   - Relevant feature docs from `docs/business-features/{App}/`
+   - Existing business rules (BR-{MOD}-XXX) from feature docs
 4. **Technical Feasibility Analysis:**
-    - Can described features be built with the project's architecture?
-    - Any domain entity conflicts? (cross-reference entity definitions)
-    - Any cross-service implications? (message bus events, shared data between services)
-    - Estimated complexity alignment (does scope match story points?)
+   - Can described features be built with the project's architecture?
+   - Any domain entity conflicts? (cross-reference entity definitions)
+   - Any cross-service implications? (message bus events, shared data between services)
+   - Estimated complexity alignment (does scope match story points?)
 5. **AC Quality Analysis:**
-    - Vagueness detector: flag "should", "might", "TBD", "etc.", "various", "appropriate"
-    - Coverage check: happy path + edge case + error case + authorization scenario
-    - Missing scenarios: suggest specific additions based on feature type
+   - Vagueness detector: flag "should", "might", "TBD", "etc.", "various", "appropriate"
+   - Coverage check: happy path + edge case + error case + authorization scenario
+   - Missing scenarios: suggest specific additions based on feature type
 6. **Cross-Cutting Concerns Check:**
-    - Authorization section present and complete? (roles × CRUD matrix)
-    - Seed data requirements addressed? (or explicit "N/A")
-    - Data migration implications? (schema changes)
-    - Performance considerations? (list/grid/export features)
+   - Authorization section present and complete? (roles × CRUD matrix)
+   - Seed data requirements addressed? (or explicit "N/A")
+   - Data migration implications? (schema changes)
+   - Performance considerations? (list/grid/export features)
+   - **UI Layout section present?** If PBI involves UI: must have `## UI Layout` per `ui-wireframe-protocol.md` with wireframe + components (with tiers) + states + design tokens. If backend-only: explicit "N/A". Flag missing UI visualization as a gap.
 7. **Generate Challenge Prompts** — Output specific, actionable questions:
-    - NOT vague: "needs work" or "improve AC"
-    - SPECIFIC: "AC #2 says 'user can filter results' — which filters exactly? Suggest: status, date range, priority"
+   - NOT vague: "needs work" or "improve AC"
+   - SPECIFIC: "AC #2 says 'user can filter results' — which filters exactly? Suggest: status, date range, priority"
 8. **Provide AI Verdict** — APPROVE / REQUEST_REVISION / ESCALATE_TO_LEAD
 9. **AskUserQuestion** — Dev BA PIC reviews AI analysis and makes final human decision
 

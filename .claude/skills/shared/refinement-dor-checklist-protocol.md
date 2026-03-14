@@ -10,15 +10,15 @@ Every PBI MUST pass the DoR gate before entering grooming. This protocol defines
 
 All items are **Required** — every item must pass for DoR gate to succeed.
 
-| #   | Criterion                       | Pass Condition                                                                                                      | Owner                              |
-| --- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| 1   | **User story template**         | PBI contains "As a {role}, I want {goal}, so that {benefit}" format                                                 | BA Drafters                        |
-| 2   | **AC testable and unambiguous** | All AC use GIVEN/WHEN/THEN format. No "should", "might", "TBD", "etc.", "various", "appropriate"                    | BA Drafters                        |
-| 3   | **Wireframes/mockups attached** | UI features have wireframe or mockup reference (link or embedded). Backend-only features: "N/A" explicitly stated   | UX BA                              |
-| 4   | **UI design ready**             | Visual design completed for UI features. Backend-only: "N/A"                                                        | Designer BA                        |
-| 5   | **AI pre-review passed**        | `/refine-review` or `/pbi-challenge` returned PASS or WARN (not FAIL)                                               | Dev BA PIC                         |
-| 6   | **Story points estimated**      | PBI has `story_points` field with value 1-21 AND `complexity` field (Low/Medium/High)                               | AI estimation, Dev BA PIC verifies |
-| 7   | **Dependencies table complete** | PBI has dependencies table with columns: Dependency, Type (must-before/can-parallel/blocked-by/independent), Status | BA Drafters                        |
+| #   | Criterion                       | Pass Condition                                                                                                                                           | Owner                              |
+| --- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| 1   | **User story template**         | PBI contains "As a {role}, I want {goal}, so that {benefit}" format                                                                                      | BA Drafters                        |
+| 2   | **AC testable and unambiguous** | All AC use GIVEN/WHEN/THEN format. No "should", "might", "TBD", "etc.", "various", "appropriate"                                                         | BA Drafters                        |
+| 3   | **Wireframes/mockups attached** | UI features have `## UI Layout` section per `ui-wireframe-protocol.md` (wireframe + components + states + tokens). Backend-only: "N/A" explicitly stated | UX BA                              |
+| 4   | **UI design ready**             | Visual design completed for UI features. Component decomposition tree included for refine/story detail level. Backend-only: "N/A"                        | Designer BA                        |
+| 5   | **AI pre-review passed**        | `/refine-review` or `/pbi-challenge` returned PASS or WARN (not FAIL)                                                                                    | Dev BA PIC                         |
+| 6   | **Story points estimated**      | PBI has `story_points` field with value 1-21 AND `complexity` field (Low/Medium/High)                                                                    | AI estimation, Dev BA PIC verifies |
+| 7   | **Dependencies table complete** | PBI has dependencies table with columns: Dependency, Type (must-before/can-parallel/blocked-by/independent), Status                                      | BA Drafters                        |
 
 ---
 

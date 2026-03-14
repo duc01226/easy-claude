@@ -1,7 +1,7 @@
 ---
 name: refine-review
 version: 1.0.0
-description: '[Code Quality] Review PBI artifact for completeness, missing concerns, and quality before proceeding to story creation. AI self-review gate after /refine.'
+description: "[Code Quality] Review PBI artifact for completeness, missing concerns, and quality before proceeding to story creation. AI self-review gate after /refine."
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
@@ -39,6 +39,7 @@ description: '[Code Quality] Review PBI artifact for completeness, missing conce
 - [ ] **No vague language** — No "should work", "might need", "TBD" in acceptance criteria
 - [ ] **Scope boundary** — Clear "out of scope" or "not included" section
 - [ ] **Authorization defined** — PBI has "Authorization & Access Control" section with roles × CRUD table (ref: `.claude/skills/shared/cross-cutting-quality-concerns-protocol.md` §1)
+- [ ] **UI Layout section** — If PBI involves UI changes: has `## UI Layout` section per `ui-wireframe-protocol.md` (wireframe + components with tiers + states + design tokens). If backend-only: explicit "N/A"
 
 ### Recommended (>=50% should pass)
 
