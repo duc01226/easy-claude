@@ -1,7 +1,7 @@
 ---
 name: refine-review
 version: 1.0.0
-description: "[Code Quality] Review PBI artifact for completeness, missing concerns, and quality before proceeding to story creation. AI self-review gate after /refine."
+description: '[Code Quality] Review PBI artifact for completeness, missing concerns, and quality before proceeding to story creation. AI self-review gate after /refine.'
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
@@ -19,6 +19,14 @@ description: "[Code Quality] Review PBI artifact for completeness, missing conce
 **Key distinction:** AI self-review (automatic), NOT user interview.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
+
+### Frontend/UI Context (if applicable)
+
+When this task involves frontend or UI changes, **MUST READ** `.claude/skills/shared/ui-system-context.md` and the following docs:
+
+- Component patterns: `docs/project-reference/frontend-patterns-reference.md`
+- Styling/BEM guide: `docs/project-reference/scss-styling-guide.md`
+- Design system tokens: `docs/project-reference/design-system/README.md`
 
 ## Workflow
 

@@ -1,7 +1,7 @@
 ---
 name: workflow-feature
 version: 1.0.0
-description: "[Workflow] Trigger Feature Implementation workflow — implement a well-defined feature with investigation, planning, implementation, and review."
+description: '[Workflow] Trigger Feature Implementation workflow — implement a well-defined feature with investigation, planning, implementation, and review.'
 ---
 
 > **[IMPORTANT]** This skill activates a full workflow. You MUST create todo tasks for ALL steps and execute them in sequence. Do NOT skip any step.

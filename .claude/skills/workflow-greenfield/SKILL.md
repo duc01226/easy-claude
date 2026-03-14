@@ -1,7 +1,7 @@
 ---
 name: workflow-greenfield
 version: 1.0.0
-description: "[Workflow] Trigger Greenfield Project Init workflow — start a new project from scratch with full inception, implementation, and integration testing."
+description: '[Workflow] Trigger Greenfield Project Init workflow — start a new project from scratch with full inception, implementation, and integration testing.'
 ---
 
 > **[IMPORTANT]** This skill activates a full workflow. You MUST create todo tasks for ALL steps and execute them in sequence. Do NOT skip any step.

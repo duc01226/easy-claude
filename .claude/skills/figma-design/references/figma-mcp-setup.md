@@ -29,15 +29,15 @@ Add to `.claude/settings.json` or project MCP config:
 
 ```json
 {
-  "mcpServers": {
-    "figma-context": {
-      "command": "npx",
-      "args": ["-y", "figma-context-mcp"],
-      "env": {
-        "FIGMA_ACCESS_TOKEN": "${FIGMA_ACCESS_TOKEN}"
-      }
+    "mcpServers": {
+        "figma-context": {
+            "command": "npx",
+            "args": ["-y", "figma-context-mcp"],
+            "env": {
+                "FIGMA_ACCESS_TOKEN": "${FIGMA_ACCESS_TOKEN}"
+            }
+        }
     }
-  }
 }
 ```
 

@@ -27,6 +27,8 @@ description: '[Code Quality] Review all uncommitted changes before commit'
 >
 > - `docs/project-reference/code-review-rules.md` — anti-patterns, review checklists, quality standards **(READ FIRST)**
 > - `project-structure-reference.md` — service list, directory tree, conventions
+> - `docs/project-reference/scss-styling-guide.md` — BEM methodology, SCSS variables, mixins
+> - `docs/project-reference/design-system/README.md` — design tokens, component inventory, icons
 >
 > If files not found, search for: project documentation, coding standards, architecture docs.
 

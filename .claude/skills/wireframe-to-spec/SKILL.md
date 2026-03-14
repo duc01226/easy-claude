@@ -1,7 +1,7 @@
 ---
 name: wireframe-to-spec
 version: 1.0.0
-description: "[Frontend] Convert hand-drawn wireframes, digital wireframes, or UI sketches into structured design specifications. Accepts image inputs and produces ui-wireframe-protocol-formatted specs. Triggers on wireframe, sketch, hand-drawn, mockup image, wireframe to spec, sketch to code."
+description: '[Frontend] Convert hand-drawn wireframes, digital wireframes, or UI sketches into structured design specifications. Accepts image inputs and produces ui-wireframe-protocol-formatted specs. Triggers on wireframe, sketch, hand-drawn, mockup image, wireframe to spec, sketch to code.'
 allowed-tools: Read, Write, Grep, Glob, AskUserQuestion
 ---
 
@@ -19,6 +19,14 @@ allowed-tools: Read, Write, Grep, Glob, AskUserQuestion
 4. **Output** — PBI-compatible `## UI Layout` section or standalone spec file
 
 **Key Rules:**
+
+### Frontend/UI Context (if applicable)
+
+When this task involves frontend or UI changes, **MUST READ** `.claude/skills/shared/ui-system-context.md` and the following docs:
+
+- Component patterns: `docs/project-reference/frontend-patterns-reference.md`
+- Styling/BEM guide: `docs/project-reference/scss-styling-guide.md`
+- Design system tokens: `docs/project-reference/design-system/README.md`
 
 - **MUST READ** `.claude/skills/shared/ui-wireframe-protocol.md` before generating output
 - Always require human review — wireframe analysis is 70-80% accurate

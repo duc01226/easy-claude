@@ -1,7 +1,7 @@
 ---
 name: scan-ui-system
 version: 1.0.0
-description: "[Documentation] Orchestrate all UI system scans in parallel: design system + SCSS styling + frontend patterns. Single command to populate all UI-related project reference docs. Use for project onboarding, post-scaffold setup, or periodic refresh."
+description: '[Documentation] Orchestrate all UI system scans in parallel: design system + SCSS styling + frontend patterns. Single command to populate all UI-related project reference docs. Use for project onboarding, post-scaffold setup, or periodic refresh.'
 allowed-tools: Read, Write, Grep, Glob
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: scaffold
 version: 1.0.0
-description: "[Architecture] Scaffold project architecture with OOP/SOLID base classes, infrastructure abstractions, and reusable foundation code before feature implementation."
+description: '[Architecture] Scaffold project architecture with OOP/SOLID base classes, infrastructure abstractions, and reusable foundation code before feature implementation.'
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
@@ -27,12 +27,12 @@ description: "[Architecture] Scaffold project architecture with OOP/SOLID base c
 
 1. **Workflow check:** Active workflow is `greenfield-init` OR `big-feature`. If not → SKIP this skill entirely, mark step as completed.
 2. **Existing scaffolding check:** AI MUST self-investigate for existing base/foundational abstractions:
-   - Abstract/base classes: grep `abstract class.*Base|Base[A-Z]\w+|Abstract[A-Z]\w+`
-   - Generic interfaces: grep `interface I\w+<|IGeneric|IBase`
-   - Infrastructure abstractions: grep `IRepository|IUnitOfWork|IService|IHandler`
-   - Utility/extension layers: grep `Extensions|Helpers|Utils|Common` (directories or classes)
-   - Frontend foundations: grep `base.*component|base.*service|base.*store|abstract.*component` (case-insensitive)
-   - DI/IoC registration: grep `AddScoped|AddSingleton|providers:|NgModule|@Injectable`
+    - Abstract/base classes: grep `abstract class.*Base|Base[A-Z]\w+|Abstract[A-Z]\w+`
+    - Generic interfaces: grep `interface I\w+<|IGeneric|IBase`
+    - Infrastructure abstractions: grep `IRepository|IUnitOfWork|IService|IHandler`
+    - Utility/extension layers: grep `Extensions|Helpers|Utils|Common` (directories or classes)
+    - Frontend foundations: grep `base.*component|base.*service|base.*store|abstract.*component` (case-insensitive)
+    - DI/IoC registration: grep `AddScoped|AddSingleton|providers:|NgModule|@Injectable`
 3. **If existing scaffolding found → SKIP.** Log: "Existing scaffolding detected at {file:line}. Skipping /scaffold step." Mark step as completed.
 4. **If NO foundational abstractions found → PROCEED** with full scaffolding workflow below.
 

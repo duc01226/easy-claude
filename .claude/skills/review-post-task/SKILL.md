@@ -1,7 +1,7 @@
 ---
 name: review-post-task
 version: 1.0.0
-description: "[Code Quality] Two-pass code review for task completion"
+description: '[Code Quality] Two-pass code review for task completion'
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.

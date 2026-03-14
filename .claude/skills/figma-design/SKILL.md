@@ -1,7 +1,7 @@
 ---
 name: figma-design
 version: 1.0.0
-description: "[Frontend] Extract design context from Figma URLs via MCP, REST API, or screenshot fallback. Produces structured design tokens, component inventory, and layout specs for design-spec consumption. Triggers on figma url, figma design, extract figma, figma to code."
+description: '[Frontend] Extract design context from Figma URLs via MCP, REST API, or screenshot fallback. Produces structured design tokens, component inventory, and layout specs for design-spec consumption. Triggers on figma url, figma design, extract figma, figma to code.'
 allowed-tools: Read, Write, Grep, Glob, AskUserQuestion
 ---
 
@@ -19,6 +19,14 @@ allowed-tools: Read, Write, Grep, Glob, AskUserQuestion
 4. **Output Artifact** — Structured markdown for design-spec consumption
 
 **Key Rules:**
+
+### Frontend/UI Context (if applicable)
+
+When this task involves frontend or UI changes, **MUST READ** `.claude/skills/shared/ui-system-context.md` and the following docs:
+
+- Component patterns: `docs/project-reference/frontend-patterns-reference.md`
+- Styling/BEM guide: `docs/project-reference/scss-styling-guide.md`
+- Design system tokens: `docs/project-reference/design-system/README.md`
 
 - Always try highest-fidelity method first, fallback gracefully
 - Output must be consumable by `design-spec` and `ui-wireframe-protocol`

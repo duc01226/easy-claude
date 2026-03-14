@@ -1,2 +1,3 @@
 *.local.json
 .claude/tmp/
+.claude/workflow-state.json

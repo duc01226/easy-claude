@@ -84,6 +84,7 @@ if (!condition3) return;
 - Use `project store base (search for: store base class)` for complex state
 - Apply `untilDestroyed()` to all subscriptions
 - Leverage project component base classes (**⚠️ MUST READ** `docs/project-reference/frontend-patterns-reference.md`)
+- Follow BEM/SCSS conventions (**⚠️ MUST READ** `docs/project-reference/scss-styling-guide.md`)
 - Use BEM naming for all CSS classes
 
 ## Workflow

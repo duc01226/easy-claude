@@ -30,6 +30,7 @@ allowed-tools: Read, Grep, Glob, Bash, Write, TaskCreate, Edit, AskUserQuestion
 > - `docs/project-reference/code-review-rules.md` — anti-patterns, review checklists, quality standards **(READ FIRST)**
 > - `backend-patterns-reference.md` — backend CQRS, validation, entity patterns
 > - `frontend-patterns-reference.md` — component hierarchy, store, forms patterns
+> - `docs/project-reference/design-system/README.md` — design tokens, component inventory, icons
 >
 > If files not found, search for: project coding standards, architecture documentation.
 
