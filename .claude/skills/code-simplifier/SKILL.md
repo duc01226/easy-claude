@@ -1,7 +1,7 @@
 ---
 name: code-simplifier
 version: 2.0.0
-description: '[Code Quality] Simplifies and refines code for clarity, consistency, and maintainability while preserving all functionality. Focuses on recently modified code unless instructed otherwise.'
+description: "[Code Quality] Simplifies and refines code for clarity, consistency, and maintainability while preserving all functionality. Focuses on recently modified code unless instructed otherwise."
 allowed-tools: Read, Edit, Glob, Grep, Task
 ---
 
@@ -11,6 +11,7 @@ allowed-tools: Read, Edit, Glob, Grep, Task
 
 - `.claude/skills/shared/understand-code-first-protocol.md`
 - `.claude/skills/shared/evidence-based-reasoning-protocol.md`
+- `.claude/skills/shared/design-patterns-quality-checklist.md` — Design pattern opportunities, anti-pattern detection, DRY/abstraction enforcement
 - `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
 
 > **External Memory:** For complex or lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report file in `plans/reports/` — prevents context loss and serves as deliverable.
@@ -113,12 +114,12 @@ Task(subagent_type="code-simplifier:code-simplifier", prompt="Review and simplif
 
 ```typescript
 function getData() {
-    const result = fetchData();
-    if (result !== null && result !== undefined) {
-        return result;
-    } else {
-        return null;
-    }
+  const result = fetchData();
+  if (result !== null && result !== undefined) {
+    return result;
+  } else {
+    return null;
+  }
 }
 ```
 
@@ -126,30 +127,37 @@ function getData() {
 
 ```typescript
 function getData() {
-    return fetchData() ?? null;
+  return fetchData() ?? null;
 }
 ```
 
 ## Workflow
 
 1. **Identify targets**
-    - If no arguments: `git diff --name-only HEAD~1` for recent changes
-    - If arguments provided: use specified files/patterns
-    - Skip: generated code, migrations, vendor files
+   - If no arguments: `git diff --name-only HEAD~1` for recent changes
+   - If arguments provided: use specified files/patterns
+   - Skip: generated code, migrations, vendor files
 
 2. **Analyze each file**
-    - Identify complexity hotspots (nesting > 3, methods > 20 lines)
-    - Find duplicated code patterns
-    - Check naming clarity
+   - Identify complexity hotspots (nesting > 3, methods > 20 lines)
+   - Find duplicated code patterns
+   - Check naming clarity
 
-3. **Apply simplifications**
-    - One refactoring type at a time
-    - Preserve all functionality
-    - Follow platform patterns
+3. **Design Pattern Assessment** (per `design-patterns-quality-checklist.md`)
+   - **DRY/Abstraction:** Flag duplicate patterns extractable to base class, generic, or helper
+   - **Right Responsibility:** Verify logic is in lowest appropriate layer (Entity > Service > Component)
+   - **Pattern Opportunities:** Check for creational/structural/behavioral pattern opportunities (switch→Strategy, scattered new→Factory, etc.)
+   - **Anti-Patterns:** Flag God Objects, Copy-Paste, Circular Dependencies, Singleton overuse
+   - **Guard against over-engineering:** Only recommend patterns with evidence of 3+ occurrences of the problem
 
-4. **Verify**
-    - Run related tests if available
-    - Confirm no behavior changes
+4. **Apply simplifications**
+   - One refactoring type at a time
+   - Preserve all functionality
+   - Follow platform patterns
+
+5. **Verify**
+   - Run related tests if available
+   - Confirm no behavior changes
 
 ## Project Patterns
 

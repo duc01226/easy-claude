@@ -1,7 +1,7 @@
 ---
 name: code-review
 version: 2.1.0
-description: '[Code Quality] Use when receiving code review feedback (especially if unclear or technically questionable), when completing tasks requiring review before proceeding, or before making completion claims. Covers receiving feedback with technical rigor, requesting reviews via code-reviewer subagent, and verification gates requiring evidence before status claims.'
+description: "[Code Quality] Use when receiving code review feedback (especially if unclear or technically questionable), when completing tasks requiring review before proceeding, or before making completion claims. Covers receiving feedback with technical rigor, requesting reviews via code-reviewer subagent, and verification gates requiring evidence before status claims."
 allowed-tools: Read, Grep, Glob, Bash, Write, TaskCreate, Edit, AskUserQuestion
 ---
 
@@ -9,6 +9,7 @@ allowed-tools: Read, Grep, Glob, Bash, Write, TaskCreate, Edit, AskUserQuestion
 
 **Prerequisites:** **MUST READ** `.claude/skills/shared/evidence-based-reasoning-protocol.md` before executing.
 
+- `.claude/skills/shared/design-patterns-quality-checklist.md` — Design pattern opportunities, anti-pattern detection, DRY/abstraction enforcement
 - `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
 
 > **Critical Purpose:** Ensure quality — no flaws, no bugs, no missing updates, no stale content. Verify both code AND documentation.
@@ -122,6 +123,7 @@ After ALL files reviewed, **re-read accumulated report** to see big picture:
 - **Frontend**: Constants/columns in Model (not Component)?
 - **Duplication**: Any duplicated logic across changes? Similar code elsewhere? (grep to verify)
 - **Architecture**: Clean Architecture followed? Service boundaries respected?
+- **Design Patterns** (per `design-patterns-quality-checklist.md`): Pattern opportunities (switch→Strategy, scattered new→Factory)? Anti-patterns (God Object, Copy-Paste, Circular Dependency)? DRY via base classes/generics? Right responsibility layer? Tech-agnostic abstractions?
 
 **Clean Code & Over-engineering Checks:**
 
@@ -165,20 +167,20 @@ Update report with: Overall Assessment, Critical Issues, High Priority, Architec
 3. **Single Responsibility** - One reason to change per method/class. **For event handlers, consumers, and background jobs: one handler = one independent concern.** Never bundle unrelated operations — if one fails, platform silently swallows the exception and the rest never execute.
 4. **DRY** - No code duplication; extract shared logic
 5. **Naming** - Clear, specific names that reveal intent:
-    - Specific not generic: `employeeRecords` not `data`
-    - Methods: Verb+Noun: `getEmployee()`, `validateInput()`
-    - Booleans: is/has/can/should prefix: `isActive`, `hasPermission`
-    - No cryptic abbreviations: `employeeCount` not `empCnt`
+   - Specific not generic: `employeeRecords` not `data`
+   - Methods: Verb+Noun: `getEmployee()`, `validateInput()`
+   - Booleans: is/has/can/should prefix: `isActive`, `hasPermission`
+   - No cryptic abbreviations: `employeeCount` not `empCnt`
 6. **Performance** - Efficient data access patterns:
-    - No O(n²): use dictionary lookup instead of nested loops
-    - Project in query: don't load all then `.Select(x.Id)`
-    - Always paginate: never get all data without pagination (search for: pagination pattern)
-    - Batch load: use batch-by-IDs pattern, not N+1 queries (search for: batch load pattern)
+   - No O(n²): use dictionary lookup instead of nested loops
+   - Project in query: don't load all then `.Select(x.Id)`
+   - Always paginate: never get all data without pagination (search for: pagination pattern)
+   - Batch load: use batch-by-IDs pattern, not N+1 queries (search for: batch load pattern)
 7. **Entity Indexes** - Database queries have matching indexes:
-    - Database collections: index management methods (search for: index setup pattern)
-    - EF Core: Composite indexes in migrations for filter columns
-    - Expression fields match index field order (leftmost prefix)
-    - Text search queries have text indexes configured
+   - Database collections: index management methods (search for: index setup pattern)
+   - EF Core: Composite indexes in migrations for filter columns
+   - Expression fields match index field order (leftmost prefix)
+   - Text search queries have text indexes configured
 
 ## Data Lifecycle Rules (MUST CHECK)
 

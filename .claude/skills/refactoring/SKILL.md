@@ -1,7 +1,7 @@
 ---
 name: refactoring
 version: 2.1.0
-description: '[Code Quality] Restructure code without changing behavior using extract method, extract class, rename, move, and inline patterns. Triggers: refactor, extract method, extract class, rename symbol, restructure code, clean up code, decompose function.'
+description: "[Code Quality] Restructure code without changing behavior using extract method, extract class, rename, move, and inline patterns. Triggers: refactor, extract method, extract class, rename symbol, restructure code, clean up code, decompose function."
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Task, TaskCreate
 ---
 
@@ -9,6 +9,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Task, TaskCreate
 
 **Prerequisites:** **MUST READ** `.claude/skills/shared/understand-code-first-protocol.md` AND `.claude/skills/shared/evidence-based-reasoning-protocol.md` before executing.
 
+- `.claude/skills/shared/design-patterns-quality-checklist.md` — Design pattern opportunities, anti-pattern detection, DRY/abstraction enforcement
 - `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
 
 ## Quick Summary
