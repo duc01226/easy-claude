@@ -33,12 +33,12 @@ Entity/Model > Domain Service > Application Service > Handler/Controller > Compo
 ### 3. Abstraction for Extensibility & Tech-Agnostic Design
 
 - **Dependency Inversion:** High-level modules depend on abstractions, not concretions
-  - Flag: direct `new ConcreteService()` in business logic → use DI + interface
-  - Flag: framework-specific types in domain layer → abstract behind interface
+    - Flag: direct `new ConcreteService()` in business logic → use DI + interface
+    - Flag: framework-specific types in domain layer → abstract behind interface
 - **Abstract class/interface for variation points:** When behavior varies by type → Strategy or Template Method pattern, not switch/if chains
 - **Technology agnostic:** Domain/business logic MUST NOT depend on specific framework, ORM, or transport mechanism
-  - Flag: `HttpContext`, `DbContext`, framework annotations in domain entities
-  - Solution: Ports & Adapters — domain defines interfaces, infrastructure implements
+    - Flag: `HttpContext`, `DbContext`, framework annotations in domain entities
+    - Solution: Ports & Adapters — domain defines interfaces, infrastructure implements
 
 ### 4. Scalability & Change-Resilience
 

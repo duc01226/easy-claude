@@ -1,7 +1,7 @@
 ---
 name: review-post-task
 version: 1.0.0
-description: "[Code Quality] Two-pass code review for task completion"
+description: '[Code Quality] Two-pass code review for task completion'
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
@@ -11,6 +11,7 @@ description: "[Code Quality] Two-pass code review for task completion"
 - `.claude/skills/shared/understand-code-first-protocol.md`
 - `.claude/skills/shared/evidence-based-reasoning-protocol.md`
 - `.claude/skills/shared/design-patterns-quality-checklist.md` — Design pattern opportunities, anti-pattern detection, DRY/abstraction enforcement
+- `.claude/skills/shared/double-round-trip-review-protocol.md` — Mandatory two-round review enforcement
 
 > **Critical Purpose:** Ensure quality — no flaws, no bugs, no missing updates, no stale content. Verify both code AND documentation.
 
@@ -98,7 +99,7 @@ Before approving, verify the code is **easy to read, easy to maintain, easy to u
 
 Fix issues found.
 
-**Pass 2 (conditional):** Only if Pass 1 made changes. Re-review ALL changes (original + corrections). Verify no new issues introduced.
+**Pass 2 (MANDATORY — Round 2):** Re-review ALL changes (original + corrections) with fresh eyes. Do NOT skip even if Pass 1 made no changes. Focus on what Pass 1 missed: cross-cutting concerns, subtle edge cases, naming inconsistencies, missing pieces, convention drift, over-engineering. Update report with Round 2 findings. See `.claude/skills/shared/double-round-trip-review-protocol.md`.
 
 **Final Report:** Task description, Pass 1/2 results, changes summary, issues fixed, remaining concerns.
 

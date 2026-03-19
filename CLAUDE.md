@@ -5,7 +5,7 @@ Claude Code enhancement framework — a collection of hooks, skills, agents, and
 ## Project Structure
 
 - `.claude/hooks/` — Runtime hooks (36 CJS modules) for context injection, enforcement, and session management
-- `.claude/skills/` — 236 skill definitions (SKILL.md + scripts) for task automation
+- `.claude/skills/` — 237 skill definitions (SKILL.md + scripts) for task automation
 - `.claude/agents/` — 28 agent definitions for specialized subagent roles
 - `.claude/docs/` — Framework documentation
 - `.claude/scripts/` — Utility scripts (catalog generation, skill management)

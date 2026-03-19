@@ -1,7 +1,7 @@
 ---
 name: easy-claude-help
 version: 1.0.0
-description: "[Utilities] Configuration guide for the easy-claude framework — explain settings, guide users through configuring .ck.json."
+description: '[Utilities] Configuration guide for the easy-claude framework — explain settings, guide users through configuring .ck.json.'
 ---
 
 # easy-claude-help
@@ -47,9 +47,9 @@ Controls whether workflow detection requires user confirmation before activating
 
 ```json
 {
-  "workflow": {
-    "confirmationMode": "never"
-  }
+    "workflow": {
+        "confirmationMode": "never"
+    }
 }
 ```
 
@@ -57,9 +57,9 @@ Controls whether workflow detection requires user confirmation before activating
 
 ```json
 {
-  "workflow": {
-    "confirmationMode": "off"
-  }
+    "workflow": {
+        "confirmationMode": "off"
+    }
 }
 ```
 
@@ -87,7 +87,7 @@ Controls the response style and verbosity level. Affects how Claude explains thi
 
 ```json
 {
-  "codingLevel": 4
+    "codingLevel": 4
 }
 ```
 
@@ -101,10 +101,10 @@ Configure Claude's thinking and response language.
 
 ```json
 {
-  "locale": {
-    "thinkingLanguage": "en",
-    "responseLanguage": "fr"
-  }
+    "locale": {
+        "thinkingLanguage": "en",
+        "responseLanguage": "fr"
+    }
 }
 ```
 
@@ -118,10 +118,7 @@ Custom instructions injected into every session as reminders.
 
 ```json
 {
-  "assertions": [
-    "Always use TypeScript strict mode",
-    "Prefer functional components over class components"
-  ]
+    "assertions": ["Always use TypeScript strict mode", "Prefer functional components over class components"]
 }
 ```
 
@@ -135,11 +132,11 @@ Control plan file naming format and date pattern.
 
 ```json
 {
-  "plan": {
-    "namingFormat": "{date}-{issue}-{slug}",
-    "dateFormat": "YYMMDD-HHmm",
-    "issuePrefix": "GH-"
-  }
+    "plan": {
+        "namingFormat": "{date}-{issue}-{slug}",
+        "dateFormat": "YYMMDD-HHmm",
+        "issuePrefix": "GH-"
+    }
 }
 ```
 
@@ -153,12 +150,44 @@ Override where plans and docs are stored.
 
 ```json
 {
-  "paths": {
-    "docs": "docs",
-    "plans": "plans"
-  }
+    "paths": {
+        "docs": "docs",
+        "plans": "plans"
+    }
 }
 ```
+
+---
+
+### 7. Reference Docs Staleness
+
+Controls how old reference docs can be before the staleness gate activates.
+
+**Location:** `.claude/.ck.json` → `referenceDocs.staleDays`
+
+| Value   | Behavior                                                               |
+| ------- | ---------------------------------------------------------------------- |
+| `60`    | (default) Warn after 60 days, block prompts until scanned or dismissed |
+| `1-365` | Custom threshold in days                                               |
+
+**Example — relax to 90 days:**
+
+```json
+{
+    "referenceDocs": {
+        "staleDays": 90
+    }
+}
+```
+
+**How it works:**
+
+1. On session start, checks `<!-- Last scanned: YYYY-MM-DD -->` in each reference doc
+2. If any doc is older than `staleDays`, shows a warning listing stale docs
+3. On next prompt, blocks until you run `/scan-all`, `/scan-*`, or type `skip scan`
+4. `skip scan` dismisses the gate for 24 hours
+
+> **Tip:** Run `/scan-all` to refresh all 10 reference docs at once.
 
 ---
 
@@ -168,10 +197,10 @@ Override where plans and docs are stored.
 
 ```json
 {
-  "workflow": {
-    "confirmationMode": "never"
-  },
-  "codingLevel": 5
+    "workflow": {
+        "confirmationMode": "never"
+    },
+    "codingLevel": 5
 }
 ```
 
@@ -179,9 +208,9 @@ Override where plans and docs are stored.
 
 ```json
 {
-  "workflow": {
-    "confirmationMode": "off"
-  }
+    "workflow": {
+        "confirmationMode": "off"
+    }
 }
 ```
 
@@ -189,13 +218,13 @@ Override where plans and docs are stored.
 
 ```json
 {
-  "workflow": {
-    "confirmationMode": "always"
-  },
-  "codingLevel": 3,
-  "locale": {
-    "responseLanguage": "vi"
-  }
+    "workflow": {
+        "confirmationMode": "always"
+    },
+    "codingLevel": 3,
+    "locale": {
+        "responseLanguage": "vi"
+    }
 }
 ```
 
@@ -208,11 +237,11 @@ Override where plans and docs are stored.
 ### AI Config Update Protocol
 
 1. **Default → `.claude/.ck.local.json`** (personal override, not committed to git)
-   - Read current local config: `Read .claude/.ck.local.json`
-   - If file doesn't exist, create it with only the desired settings
-   - If file exists, merge the new settings (preserve existing keys)
+    - Read current local config: `Read .claude/.ck.local.json`
+    - If file doesn't exist, create it with only the desired settings
+    - If file exists, merge the new settings (preserve existing keys)
 2. **Only if user explicitly requests** → `.claude/.ck.json` (shared, committed to git)
-   - Use when user says "update project config", "share with team", "commit this setting"
+    - Use when user says "update project config", "share with team", "commit this setting"
 3. Confirm to user what was changed and which file was updated
 
 > Config changes take effect on the next prompt (no restart needed).

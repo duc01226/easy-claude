@@ -64,6 +64,10 @@ const DEFAULT_CONFIG = {
     // "off"    — disable workflow detection entirely (plain Claude, no injection)
     confirmationMode: "always",
   },
+  // Reference docs staleness enforcement (configurable threshold)
+  referenceDocs: {
+    staleDays: 60,
+  },
   assertions: [],
 };
 
@@ -177,6 +181,7 @@ function getDefaultConfig(
     paths: { ...DEFAULT_CONFIG.paths },
     codingLevel: -1, // Default: disabled (no injection, saves tokens)
     workflow: { ...DEFAULT_CONFIG.workflow },
+    referenceDocs: { ...DEFAULT_CONFIG.referenceDocs },
   };
   if (includeLocale) {
     result.locale = { ...DEFAULT_CONFIG.locale };
@@ -251,6 +256,9 @@ function loadConfig(options = {}) {
 
     // Workflow behavior (user-configurable, always included)
     result.workflow = merged.workflow || DEFAULT_CONFIG.workflow;
+
+    // Reference docs staleness config (always included)
+    result.referenceDocs = merged.referenceDocs || DEFAULT_CONFIG.referenceDocs;
 
     // Validate merged config — emit warnings to stderr, never block
     const validation = validateCkConfig(merged);

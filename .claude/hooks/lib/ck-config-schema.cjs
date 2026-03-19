@@ -52,6 +52,13 @@ const CK_SCHEMA = {
   codeReview: { type: "object", required: false, freeform: true },
   subagent: { type: "object", required: false, freeform: true },
   privacyBlock: { type: "boolean", required: false },
+  referenceDocs: {
+    type: "object",
+    required: false,
+    properties: {
+      staleDays: { type: "number", required: false, min: 1, max: 365 },
+    },
+  },
 };
 
 // ═══════════════════════════════════════════════════════════════════════════

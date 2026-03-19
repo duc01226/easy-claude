@@ -1,7 +1,7 @@
 ---
 name: code-review
 version: 2.1.0
-description: "[Code Quality] Use when receiving code review feedback (especially if unclear or technically questionable), when completing tasks requiring review before proceeding, or before making completion claims. Covers receiving feedback with technical rigor, requesting reviews via code-reviewer subagent, and verification gates requiring evidence before status claims."
+description: '[Code Quality] Use when receiving code review feedback (especially if unclear or technically questionable), when completing tasks requiring review before proceeding, or before making completion claims. Covers receiving feedback with technical rigor, requesting reviews via code-reviewer subagent, and verification gates requiring evidence before status claims.'
 allowed-tools: Read, Grep, Glob, Bash, Write, TaskCreate, Edit, AskUserQuestion
 ---
 
@@ -10,6 +10,7 @@ allowed-tools: Read, Grep, Glob, Bash, Write, TaskCreate, Edit, AskUserQuestion
 **Prerequisites:** **MUST READ** `.claude/skills/shared/evidence-based-reasoning-protocol.md` before executing.
 
 - `.claude/skills/shared/design-patterns-quality-checklist.md` — Design pattern opportunities, anti-pattern detection, DRY/abstraction enforcement
+- `.claude/skills/shared/double-round-trip-review-protocol.md` — Mandatory two-round review enforcement
 - `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
 
 > **Critical Purpose:** Ensure quality — no flaws, no bugs, no missing updates, no stale content. Verify both code AND documentation.
@@ -98,6 +99,8 @@ Before starting, call TaskCreate with review phase tasks:
 - `[Review Phase 1] Review file-by-file and update report` - pending
 - `[Review Phase 2] Re-read report for holistic assessment` - pending
 - `[Review Phase 3] Generate final review findings` - pending
+- `[Review Round 2] Focused re-review of all files` - pending
+- `[Review Final] Consolidate Round 1 + Round 2 findings` - pending
   Update todo status as each phase completes.
 
 **Step 0: Create Report File**
@@ -160,6 +163,24 @@ Cross-reference changed files against related documentation:
 **Phase 3: Final Review Result**
 Update report with: Overall Assessment, Critical Issues, High Priority, Architecture Recommendations, Documentation Staleness, Positive Observations
 
+## Round 2: Focused Re-Review (MANDATORY)
+
+> **Protocol:** `.claude/skills/shared/double-round-trip-review-protocol.md`
+
+After completing Phase 3 (Round 1), execute a **second full review round**:
+
+1. **Re-read** the Round 1 report to understand what was already caught
+2. **Re-scan** ALL reviewed files — do NOT rely on Round 1 memory
+3. **Focus on** what Round 1 typically misses:
+    - Cross-cutting concerns spanning multiple files
+    - Subtle edge cases (null, empty, boundary, off-by-one)
+    - Naming inconsistencies across files
+    - Missing pieces (error handling, validation, tests)
+    - Convention drift (grep to verify against codebase patterns)
+    - Over-engineering that seemed justified in Round 1
+4. **Update report** with `## Round 2 Findings` section
+5. **Final verdict** must incorporate findings from BOTH rounds
+
 ## Clean Code Rules (MUST CHECK)
 
 1. **No Magic Numbers/Strings** - All literal values must be named constants
@@ -167,20 +188,20 @@ Update report with: Overall Assessment, Critical Issues, High Priority, Architec
 3. **Single Responsibility** - One reason to change per method/class. **For event handlers, consumers, and background jobs: one handler = one independent concern.** Never bundle unrelated operations — if one fails, platform silently swallows the exception and the rest never execute.
 4. **DRY** - No code duplication; extract shared logic
 5. **Naming** - Clear, specific names that reveal intent:
-   - Specific not generic: `employeeRecords` not `data`
-   - Methods: Verb+Noun: `getEmployee()`, `validateInput()`
-   - Booleans: is/has/can/should prefix: `isActive`, `hasPermission`
-   - No cryptic abbreviations: `employeeCount` not `empCnt`
+    - Specific not generic: `employeeRecords` not `data`
+    - Methods: Verb+Noun: `getEmployee()`, `validateInput()`
+    - Booleans: is/has/can/should prefix: `isActive`, `hasPermission`
+    - No cryptic abbreviations: `employeeCount` not `empCnt`
 6. **Performance** - Efficient data access patterns:
-   - No O(n²): use dictionary lookup instead of nested loops
-   - Project in query: don't load all then `.Select(x.Id)`
-   - Always paginate: never get all data without pagination (search for: pagination pattern)
-   - Batch load: use batch-by-IDs pattern, not N+1 queries (search for: batch load pattern)
+    - No O(n²): use dictionary lookup instead of nested loops
+    - Project in query: don't load all then `.Select(x.Id)`
+    - Always paginate: never get all data without pagination (search for: pagination pattern)
+    - Batch load: use batch-by-IDs pattern, not N+1 queries (search for: batch load pattern)
 7. **Entity Indexes** - Database queries have matching indexes:
-   - Database collections: index management methods (search for: index setup pattern)
-   - EF Core: Composite indexes in migrations for filter columns
-   - Expression fields match index field order (leftmost prefix)
-   - Text search queries have text indexes configured
+    - Database collections: index management methods (search for: index setup pattern)
+    - EF Core: Composite indexes in migrations for filter columns
+    - Expression fields match index field order (leftmost prefix)
+    - Text search queries have text indexes configured
 
 ## Data Lifecycle Rules (MUST CHECK)
 

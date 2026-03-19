@@ -1,7 +1,7 @@
 ---
 name: debug
 version: 1.0.0
-description: '[Fix & Debug] Systematic debugging with root cause investigation. Use when bugfix workflow reaches debug step.'
+description: "[Fix & Debug] Systematic debugging with root cause investigation. Use when bugfix workflow reaches debug step."
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
@@ -66,10 +66,10 @@ description: '[Fix & Debug] Systematic debugging with root cause investigation. 
 ### Step 3: Trace
 
 - For each hypothesis, trace the code path:
-    - Find entry point (API, UI, job, event)
-    - Follow through handlers/services
-    - Check data transformations and state changes
-    - Verify error handling paths
+  - Find entry point (API, UI, job, event)
+  - Follow through handlers/services
+  - Check data transformations and state changes
+  - Verify error handling paths
 - Use grep/read to collect `file:line` evidence
 
 ### Step 4: Confirm
@@ -91,6 +91,7 @@ description: '[Fix & Debug] Systematic debugging with root cause investigation. 
 ## Red Flags — STOP (Debugging-Specific)
 
 If you're thinking:
+
 - "I see the problem, let me fix it" — Seeing symptoms is not understanding root cause. Investigate first.
 - "Quick fix for now, investigate later" — Quick fixes mask bugs and create debt. Find root cause.
 - "Just try changing X and see" — One hypothesis at a time. Scientific method, not trial and error.
@@ -118,9 +119,16 @@ If you're thinking:
 ## Next Steps
 
 **MANDATORY IMPORTANT MUST** after completing this skill, use `AskUserQuestion` to recommend:
+
 - **"/fix (Recommended)"** — Apply fix based on debug findings
 - **"/plan"** — If fix requires planning
 - **"Skip, continue manually"** — user decides
+
+## Standalone Review Gate (Non-Workflow Only)
+
+> **MANDATORY IMPORTANT MUST:** If this skill is called **outside a workflow** (standalone `/debug`), you MUST create a `TaskCreate` todo task for `/review-changes` as the **last task** in your task list. This ensures all changes are reviewed before commit even without a workflow enforcing it.
+>
+> If already running inside a workflow (e.g., `bugfix`), skip this — the workflow sequence handles `/review-changes` at the appropriate step.
 
 ## Closing Reminders
 
