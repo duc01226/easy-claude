@@ -53,9 +53,9 @@ Hooks automatically inject relevant project knowledge (backend patterns, fronten
 1. **Claude Code installed** — Verify with `claude --version`
 2. **Project configured** — `docs/project-config.json` exists
 3. **Know where outputs go:**
-    - Plans and reports: `plans/` and `plans/reports/`
-    - Documentation: `docs/`
-    - Design specs, test specs: within `docs/` or `plans/`
+   - Plans and reports: `plans/` and `plans/reports/`
+   - Documentation: `docs/`
+   - Design specs, test specs: within `docs/` or `plans/`
 
 ---
 
@@ -67,23 +67,23 @@ Hooks automatically inject relevant project knowledge (backend patterns, fronten
 
 1. **Capture an idea**
 
-    ```
-    /idea "Allow employees to upload profile photos"
-    ```
+   ```
+   /idea "Allow employees to upload profile photos"
+   ```
 
 2. **Refine to PBI**
 
-    ```
-    /refine {idea-file-path}
-    ```
+   ```
+   /refine {idea-file-path}
+   ```
 
-    Creates PBI with GIVEN/WHEN/THEN acceptance criteria
+   Creates PBI with GIVEN/WHEN/THEN acceptance criteria
 
 3. **Prioritize backlog**
-    ```
-    /prioritize rice
-    ```
-    Scores and orders PBIs using RICE, MoSCoW, or Value-Effort framework
+   ```
+   /prioritize rice
+   ```
+   Scores and orders PBIs using RICE, MoSCoW, or Value-Effort framework
 
 **Workflow trigger:** Say "new feature idea" or "backlog item" → activates **idea-to-pbi** workflow
 
@@ -95,23 +95,23 @@ Hooks automatically inject relevant project knowledge (backend patterns, fronten
 
 1. **Refine idea into PBI**
 
-    ```
-    /refine {idea-file-path}
-    ```
+   ```
+   /refine {idea-file-path}
+   ```
 
 2. **Create user stories**
 
-    ```
-    /story {pbi-file-path}
-    ```
+   ```
+   /story {pbi-file-path}
+   ```
 
-    Slices PBI into vertical stories meeting INVEST criteria
+   Slices PBI into vertical stories meeting INVEST criteria
 
 3. **Hand off to development**
-    ```
-    /handoff
-    ```
-    Creates structured handoff record with context for developers
+   ```
+   /handoff
+   ```
+   Creates structured handoff record with context for developers
 
 **Workflow trigger:** Say "refine this idea" → activates **idea-to-pbi** or **po-ba-handoff** workflow
 
@@ -123,22 +123,22 @@ Hooks automatically inject relevant project knowledge (backend patterns, fronten
 
 1. **Generate test spec from PBI**
 
-    ```
-    /tdd-spec {pbi-or-feature-doc}
-    ```
+   ```
+   /tdd-spec {pbi-or-feature-doc}
+   ```
 
-    Creates test specs with `TC-{FEATURE}-{NNN}` IDs in unified format
+   Creates test specs with `TC-{FEATURE}-{NNN}` IDs in unified format
 
 2. **Generate integration tests from specs**
 
-    ```
-    /integration-test
-    ```
+   ```
+   /integration-test
+   ```
 
 3. **Run quality gate**
-    ```
-    /quality-gate pre-qa
-    ```
+   ```
+   /quality-gate pre-qa
+   ```
 
 **Workflow trigger:** Say "test cases from PBI" → activates **pbi-to-tests** workflow
 
@@ -150,19 +150,19 @@ Hooks automatically inject relevant project knowledge (backend patterns, fronten
 
 1. **Create design spec**
 
-    ```
-    /design-spec {pbi-or-requirements}
-    ```
+   ```
+   /design-spec {pbi-or-requirements}
+   ```
 
-    Generates component inventory, states, token mappings, accessibility checklist
+   Generates component inventory, states, token mappings, accessibility checklist
 
 2. **Review against design system**
    Spec auto-maps to tokens in `docs/project-reference/design-system/`
 
 3. **Hand off to development**
-    ```
-    /handoff
-    ```
+   ```
+   /handoff
+   ```
 
 **Workflow trigger:** Say "design spec for" → activates **design-workflow**
 
@@ -174,16 +174,16 @@ Hooks automatically inject relevant project knowledge (backend patterns, fronten
 
 1. **Run quality gate**
 
-    ```
-    /quality-gate pre-dev {artifact-path}
-    /quality-gate pre-qa {artifact-path}
-    /quality-gate pre-release
-    ```
+   ```
+   /quality-gate pre-dev {artifact-path}
+   /quality-gate pre-qa {artifact-path}
+   /quality-gate pre-release
+   ```
 
 2. **Review artifact quality**
-    ```
-    /review-artifact {artifact-path}
-    ```
+   ```
+   /review-artifact {artifact-path}
+   ```
 
 **Workflow trigger:** Say "quality check" → activates **qa-po-acceptance** or **pre-development** workflow
 
@@ -195,26 +195,26 @@ Hooks automatically inject relevant project knowledge (backend patterns, fronten
 
 1. **Generate status report**
 
-    ```
-    /status sprint
-    ```
+   ```
+   /status sprint
+   ```
 
 2. **Check dependencies**
 
-    ```
-    /dependency all
-    ```
+   ```
+   /dependency all
+   ```
 
 3. **Prepare team sync**
 
-    ```
-    /team-sync daily
-    ```
+   ```
+   /team-sync daily
+   ```
 
 4. **Run sprint retrospective**
-    ```
-    /retro
-    ```
+   ```
+   /retro
+   ```
 
 **Workflow trigger:** Say "status report" → activates **pm-reporting** workflow
 
@@ -313,12 +313,16 @@ QC:                              /quality-gate ──→ [PASS/FAIL report]
 
 ### Workflow 3: Design Workflow (`design-workflow`)
 
-**Trigger:** "ui spec", "component spec", "design the"
+**Trigger:** "ui spec", "component spec", "design the", "landing page", "screenshot"
 **Roles:** UX Designer, Developer
-**Steps:** `/design-spec` → `/code-review`
+**Steps:** `/design-spec` → `/interface-design` | `/frontend-design` → `/code-review`
 
 ```
 UX:   [PBI] ──→ /design-spec ──→ [component spec + states + tokens]
+                                        │
+                              DESIGN IMPLEMENTATION GATE:
+                              Product UIs → /interface-design
+                              Marketing/Creative → /frontend-design
                                         │
 Dev:                             /code-review ──→ Implementation
 ```

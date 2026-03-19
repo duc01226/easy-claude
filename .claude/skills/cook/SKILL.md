@@ -1,7 +1,7 @@
 ---
 name: cook
 version: 1.0.0
-description: '[Implementation] Implement a feature [step by step]'
+description: "[Implementation] Implement a feature [step by step]"
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
@@ -122,6 +122,7 @@ Think harder to plan & start working on these tasks:
 - Use `/code` slash command to implement the plan step by step.
 - Use `ui-ux-designer` subagent for frontend work per `./docs/design-guidelines.md`.
 - For product UIs (dashboards, admin panels, SaaS apps), activate `/interface-design` for craft-driven design guidance.
+- For marketing pages, landing pages, creative UIs, or screenshot replication, activate `/frontend-design` for distinctive design with bold aesthetics.
 - Run type checking and compile to verify no syntax errors.
 
 **Subagent Context Discipline:**
@@ -155,8 +156,8 @@ mistakes compound through later tasks.
 ### Code Review
 
 - **Two-stage review** (see `.claude/skills/shared/two-stage-task-review-protocol.md`):
-    1. First: dispatch `spec-compliance-reviewer` to verify implementation matches spec
-    2. Only after spec passes: dispatch `code-reviewer` for quality review
+  1. First: dispatch `spec-compliance-reviewer` to verify implementation matches spec
+  2. Only after spec passes: dispatch `code-reviewer` for quality review
 - If critical issues: fix and re-run `tester`.
 - Repeat until all tests pass and code is reviewed.
 - Report summary to user and ask for approval.
