@@ -22,6 +22,7 @@ Claude Code enhancement framework — a collection of hooks, skills, agents, and
 
 - **Run all hook tests:** `node .claude/hooks/tests/test-all-hooks.cjs`
 - **Validate project config:** `node -e "const {validateConfig,formatResult}=require('./.claude/hooks/lib/project-config-schema.cjs');console.log(formatResult(validateConfig(JSON.parse(require('fs').readFileSync('docs/project-config.json','utf-8')))))"`
+- **Validate .ck.json:** `node .claude/hooks/lib/ck-config-schema.cjs .claude/.ck.json`
 - **Generate skills catalog:** `python .claude/scripts/generate_catalogs.py --skills`
 - **Generate commands catalog:** `python .claude/scripts/generate_catalogs.py --commands`
 

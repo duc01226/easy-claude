@@ -1,11 +1,11 @@
 ---
 name: debugger
 description: >-
-    Use this agent to investigate issues, diagnose errors, analyze system behavior,
-    examine logs and CI/CD pipelines, debug test failures, or identify performance
-    bottlenecks. Produces diagnostic reports with root cause analysis.
+  Use this agent to investigate issues, diagnose errors, analyze system behavior,
+  examine logs and CI/CD pipelines, debug test failures, or identify performance
+  bottlenecks. Produces diagnostic reports with root cause analysis.
 tools: Read, Grep, Glob, Bash, Write, TaskCreate
-model: inherit
+model: opus
 memory: project
 maxTurns: 30
 ---

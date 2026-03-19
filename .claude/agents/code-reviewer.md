@@ -5,7 +5,7 @@ description: >-
   before merging PRs, or when assessing code quality and technical debt.
   Produces report-driven reviews with file-by-file analysis and holistic assessment.
 tools: Read, Grep, Glob, Bash, Write, TaskCreate
-model: inherit
+model: opus
 memory: project
 skills: code-review
 maxTurns: 30

@@ -1,11 +1,11 @@
 ---
 name: spec-compliance-reviewer
 description: >-
-    Use this agent to verify an implementation matches its specification — nothing
-    more, nothing less. Dispatched BEFORE code-reviewer. Catches spec drift,
-    missing requirements, extra features, and misunderstandings.
+  Use this agent to verify an implementation matches its specification — nothing
+  more, nothing less. Dispatched BEFORE code-reviewer. Catches spec drift,
+  missing requirements, extra features, and misunderstandings.
 tools: Read, Grep, Glob, Bash, Write, TaskCreate
-model: inherit
+model: opus
 memory: project
 maxTurns: 20
 ---
@@ -45,15 +45,15 @@ You will receive:
 1. **Extract Requirements** — Parse the spec into a numbered checklist of discrete requirements
 2. **Read Actual Code** — For each changed file, read the implementation (not just the diff)
 3. **Line-by-Line Verification** — For each requirement:
-    - Find the code that implements it (cite `file:line`)
-    - Verify it matches the requirement's intent, not just keywords
-    - Mark: `PASS` (implemented correctly), `FAIL` (missing/wrong), `PARTIAL` (incomplete)
+   - Find the code that implements it (cite `file:line`)
+   - Verify it matches the requirement's intent, not just keywords
+   - Mark: `PASS` (implemented correctly), `FAIL` (missing/wrong), `PARTIAL` (incomplete)
 4. **Check for Extras** — Scan for code that doesn't map to any requirement:
-    - Unneeded features, over-engineering, gold-plating
-    - "Nice to haves" that weren't in spec
+   - Unneeded features, over-engineering, gold-plating
+   - "Nice to haves" that weren't in spec
 5. **Check for Misunderstandings** — Look for requirements interpreted differently than intended:
-    - Right feature, wrong behavior
-    - Correct name, incorrect logic
+   - Right feature, wrong behavior
+   - Correct name, incorrect logic
 
 ## Output
 
