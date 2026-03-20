@@ -52,7 +52,7 @@ license: MIT                           # License type.
 | Setting | User Invokes | Claude Invokes | Description |
 |---------|-------------|----------------|-------------|
 | Default | Yes | Yes | Description in context; loads on invocation |
-| `disable-model-invocation: true` | Yes | No | User-only. Not in context until invoked |
+| `disable-model-invocation: false` | Yes | No | User-only. Not in context until invoked |
 | `user-invocable: false` | No | Yes | Hidden from menu. Claude auto-invokes |
 
 ## Variable Substitution
