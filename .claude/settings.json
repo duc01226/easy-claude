@@ -47,6 +47,15 @@
       {
         "hooks": [
           {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/graph-grep-suggester.cjs",
+            "type": "command"
+          }
+        ],
+        "matcher": "Grep|Glob"
+      },
+      {
+        "hooks": [
+          {
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/bash-cleanup.cjs",
             "type": "command"
           }
@@ -57,6 +66,15 @@
         "hooks": [
           {
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/post-edit-prettier.cjs",
+            "type": "command"
+          }
+        ],
+        "matcher": "Edit|Write|MultiEdit"
+      },
+      {
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/graph-auto-update.cjs",
             "type": "command"
           }
         ],
@@ -154,6 +172,15 @@
           }
         ],
         "matcher": "Skill"
+      },
+      {
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/graph-context-injector.cjs",
+            "type": "command"
+          }
+        ],
+        "matcher": "Skill|Agent"
       },
       {
         "hooks": [
@@ -324,6 +351,15 @@
       {
         "hooks": [
           {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/graph-session-init.cjs",
+            "type": "command"
+          }
+        ],
+        "matcher": "startup"
+      },
+      {
+        "hooks": [
+          {
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/workflow-router.cjs",
             "type": "command"
           },
@@ -388,18 +424,31 @@
       "Bash(rm -rf ~/*)",
       "Bash(rm -rf .)",
       "Bash(rm -rf /)",
+      "Bash(*rm -rf:*)",
       "Bash(del /s:*)",
+      "Bash(*del /s:*)",
       "Bash(git push --force:*)",
+      "Bash(*git push --force:*)",
       "Bash(git push -f:*)",
+      "Bash(*git push -f:*)",
       "Bash(git reset:*)",
+      "Bash(*git reset:*)",
       "Bash(git clean -fd:*)",
+      "Bash(*git clean -fd:*)",
       "Bash(git clean -f:*)",
+      "Bash(*git clean -f:*)",
       "Bash(git branch -D:*)",
+      "Bash(*git branch -D:*)",
       "Bash(git stash drop:*)",
+      "Bash(*git stash drop:*)",
       "Bash(git checkout -- .)",
+      "Bash(*git checkout -- .)",
       "Bash(git checkout -- :*)",
+      "Bash(*git checkout --:*)",
       "Bash(git restore .)",
+      "Bash(*git restore .)",
       "Bash(git restore --staged:*)",
+      "Bash(*git restore --staged:*)",
       "Edit(**/.git/**)",
       "Edit(.git/**)",
       "Edit(**/.env*)",

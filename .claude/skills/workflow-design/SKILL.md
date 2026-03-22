@@ -1,7 +1,7 @@
 ---
 name: workflow-design
 version: 1.0.0
-description: "[Workflow] Trigger Design Workflow workflow — designer workflow: create design specification and implement UI (product, marketing, creative) from requirements or screenshots."
+description: '[Workflow] Trigger Design Workflow workflow — designer workflow: create design specification and implement UI (product, marketing, creative) from requirements or screenshots.'
 ---
 
 > **[IMPORTANT]** This skill activates a full workflow. You MUST create todo tasks for ALL steps and execute them in sequence. Do NOT skip any step.

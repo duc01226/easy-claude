@@ -20,34 +20,23 @@ const quaternion = new THREE.Quaternion();
 const scale = new THREE.Vector3(1, 1, 1);
 
 for (let i = 0; i < 10000; i++) {
-  position.set(
-    Math.random() * 100 - 50,
-    Math.random() * 100 - 50,
-    Math.random() * 100 - 50
-  );
+    position.set(Math.random() * 100 - 50, Math.random() * 100 - 50, Math.random() * 100 - 50);
 
-  rotation.set(
-    Math.random() * Math.PI,
-    Math.random() * Math.PI,
-    Math.random() * Math.PI
-  );
+    rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
 
-  quaternion.setFromEuler(rotation);
-  matrix.compose(position, quaternion, scale);
-  mesh.setMatrixAt(i, matrix);
+    quaternion.setFromEuler(rotation);
+    matrix.compose(position, quaternion, scale);
+    mesh.setMatrixAt(i, matrix);
 }
 
 mesh.instanceMatrix.needsUpdate = true;
 scene.add(mesh);
 
 // Per-instance colors
-mesh.instanceColor = new THREE.InstancedBufferAttribute(
-  new Float32Array(10000 * 3),
-  3
-);
+mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(10000 * 3), 3);
 
 for (let i = 0; i < 10000; i++) {
-  mesh.setColorAt(i, new THREE.Color(Math.random(), Math.random(), Math.random()));
+    mesh.setColorAt(i, new THREE.Color(Math.random(), Math.random(), Math.random()));
 }
 ```
 
@@ -77,9 +66,9 @@ scene.add(lod);
 
 // Update LOD in animation loop
 function animate() {
-  lod.update(camera);
-  renderer.render(scene, camera);
-  requestAnimationFrame(animate);
+    lod.update(camera);
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
 }
 ```
 
@@ -94,14 +83,11 @@ object.frustumCulled = false;
 // Manually test if in view
 const frustum = new THREE.Frustum();
 const cameraViewProjectionMatrix = new THREE.Matrix4();
-cameraViewProjectionMatrix.multiplyMatrices(
-  camera.projectionMatrix,
-  camera.matrixWorldInverse
-);
+cameraViewProjectionMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
 frustum.setFromProjectionMatrix(cameraViewProjectionMatrix);
 
 if (frustum.intersectsObject(object)) {
-  // Object is visible
+    // Object is visible
 }
 ```
 
@@ -163,12 +149,12 @@ const mesh3 = new THREE.Mesh(geometry3, sharedMaterial);
 
 ```javascript
 // Reduce shadow map resolution
-light.shadow.mapSize.width = 1024;  // instead of 2048
+light.shadow.mapSize.width = 1024; // instead of 2048
 light.shadow.mapSize.height = 1024;
 
 // Limit shadow camera frustum
 light.shadow.camera.near = 0.5;
-light.shadow.camera.far = 50;  // only cast shadows within this range
+light.shadow.camera.far = 50; // only cast shadows within this range
 light.shadow.camera.left = -10;
 light.shadow.camera.right = 10;
 
@@ -185,8 +171,8 @@ renderer.shadowMap.type = THREE.PCFShadowMap; // instead of PCFSoftShadowMap
 ```javascript
 // Lower resolution for post-processing
 const renderTarget = new THREE.WebGLRenderTarget(
-  window.innerWidth * 0.5,  // half resolution
-  window.innerHeight * 0.5
+    window.innerWidth * 0.5, // half resolution
+    window.innerHeight * 0.5
 );
 
 // Appropriate pixel format
@@ -202,25 +188,25 @@ renderTarget.dispose();
 ```javascript
 // Reuse objects instead of creating/destroying
 class ObjectPool {
-  constructor(factory, initialSize) {
-    this.factory = factory;
-    this.pool = [];
-    for (let i = 0; i < initialSize; i++) {
-      this.pool.push(factory());
+    constructor(factory, initialSize) {
+        this.factory = factory;
+        this.pool = [];
+        for (let i = 0; i < initialSize; i++) {
+            this.pool.push(factory());
+        }
     }
-  }
 
-  get() {
-    return this.pool.length > 0 ? this.pool.pop() : this.factory();
-  }
+    get() {
+        return this.pool.length > 0 ? this.pool.pop() : this.factory();
+    }
 
-  release(obj) {
-    this.pool.push(obj);
-  }
+    release(obj) {
+        this.pool.push(obj);
+    }
 }
 
 const bulletPool = new ObjectPool(() => {
-  return new THREE.Mesh(bulletGeometry, bulletMaterial);
+    return new THREE.Mesh(bulletGeometry, bulletMaterial);
 }, 100);
 
 // Use
@@ -240,10 +226,10 @@ const stats = new Stats();
 document.body.appendChild(stats.dom);
 
 function animate() {
-  stats.begin();
-  // ... rendering
-  stats.end();
-  requestAnimationFrame(animate);
+    stats.begin();
+    // ... rendering
+    stats.end();
+    requestAnimationFrame(animate);
 }
 
 // Renderer info

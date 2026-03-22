@@ -81,6 +81,23 @@ Target: All uncommitted changes (staged and unstaged) in the current working dir
 **Proof Required** — Every claim backed by `file:line` evidence or grep results. Speculation is forbidden.
 **Doc Staleness** — Cross-reference changed files against related docs (feature docs, test specs, READMEs). Flag any doc that is stale or missing updates to reflect current code changes.
 
+> **Graph Intelligence (MANDATORY when graph.db exists):** MUST READ `.claude/skills/shared/graph-assisted-investigation-protocol.md`. Run `python .claude/scripts/code_graph batch-query <f1> <f2> --json` on changed files for test coverage and caller impact.
+
+## Blast Radius Pre-Analysis (RECOMMENDED if graph.db exists)
+
+If `.code-graph/graph.db` exists, run graph-blast-radius analysis before reviewing changes:
+
+- `python .claude/scripts/code_graph graph-blast-radius --json`
+- Include in review: impacted files count, untested changes, risk level based on blast radius size
+
+### Graph-Assisted Change Review
+
+For each changed file, trace its full impact:
+
+1. `python .claude/scripts/code_graph trace <changed-file> --direction downstream --json` — see all files affected by changes (including implicit MESSAGE_BUS consumers, event handlers)
+2. Flag any affected file NOT covered by tests
+3. This catches cross-service impact that simple diff review misses
+
 ## Review Approach (Report-Driven Two-Phase - CRITICAL)
 
 **⛔ MANDATORY FIRST: Create Todo Tasks for Review Phases**

@@ -17,29 +17,23 @@ import { RapierPhysics } from 'three/addons/physics/RapierPhysics.js';
 const physics = await RapierPhysics();
 
 // Create physics body
-const box = new THREE.Mesh(
-  new THREE.BoxGeometry(),
-  new THREE.MeshStandardMaterial()
-);
+const box = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshStandardMaterial());
 scene.add(box);
 
 // Add physics (mass > 0 = dynamic)
 physics.addMesh(box, 1); // mass = 1
 
 // Static ground
-const ground = new THREE.Mesh(
-  new THREE.BoxGeometry(10, 0.5, 10),
-  new THREE.MeshStandardMaterial()
-);
+const ground = new THREE.Mesh(new THREE.BoxGeometry(10, 0.5, 10), new THREE.MeshStandardMaterial());
 ground.position.y = -2;
 scene.add(ground);
 physics.addMesh(ground); // no mass = static
 
 // Update in animation loop
 function animate() {
-  physics.step();
-  renderer.render(scene, camera);
-  requestAnimationFrame(animate);
+    physics.step();
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
 }
 ```
 
@@ -56,9 +50,9 @@ const physics = await AmmoPhysics();
 physics.addMesh(mesh, mass);
 
 function animate() {
-  physics.step();
-  renderer.render(scene, camera);
-  requestAnimationFrame(animate);
+    physics.step();
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
 }
 ```
 
@@ -102,7 +96,7 @@ document.body.appendChild(VRButton.createButton(renderer));
 
 // Animation loop for VR
 renderer.setAnimationLoop(() => {
-  renderer.render(scene, camera);
+    renderer.render(scene, camera);
 });
 
 // Stop using requestAnimationFrame, use setAnimationLoop instead
@@ -118,8 +112,8 @@ document.body.appendChild(ARButton.createButton(renderer));
 
 // AR-specific features
 const session = renderer.xr.getSession();
-session.requestHitTestSource({ space: viewerSpace }).then((hitTestSource) => {
-  // Use hit testing for placing objects
+session.requestHitTestSource({ space: viewerSpace }).then(hitTestSource => {
+    // Use hit testing for placing objects
 });
 ```
 
@@ -135,11 +129,11 @@ scene.add(controller2);
 
 // Controller events
 controller1.addEventListener('selectstart', () => {
-  console.log('Trigger pressed');
+    console.log('Trigger pressed');
 });
 
 controller1.addEventListener('selectend', () => {
-  console.log('Trigger released');
+    console.log('Trigger released');
 });
 
 // Add visual controller models
@@ -179,24 +173,24 @@ const raycaster = new THREE.Raycaster();
 const tempMatrix = new THREE.Matrix4();
 
 function handleController(controller) {
-  const intersections = getIntersections(controller);
+    const intersections = getIntersections(controller);
 
-  if (intersections.length > 0) {
-    const intersection = intersections[0];
+    if (intersections.length > 0) {
+        const intersection = intersections[0];
 
-    // Teleport on button release
-    controller.addEventListener('selectend', () => {
-      const offset = intersection.point.y;
-      camera.position.y += offset;
-    });
-  }
+        // Teleport on button release
+        controller.addEventListener('selectend', () => {
+            const offset = intersection.point.y;
+            camera.position.y += offset;
+        });
+    }
 }
 
 function getIntersections(controller) {
-  tempMatrix.identity().extractRotation(controller.matrixWorld);
-  raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
-  raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
-  return raycaster.intersectObjects(scene.children, true);
+    tempMatrix.identity().extractRotation(controller.matrixWorld);
+    raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
+    raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
+    return raycaster.intersectObjects(scene.children, true);
 }
 ```
 
@@ -209,11 +203,11 @@ camera.add(listener);
 const sound = new THREE.PositionalAudio(listener);
 const audioLoader = new THREE.AudioLoader();
 
-audioLoader.load('sound.ogg', (buffer) => {
-  sound.setBuffer(buffer);
-  sound.setRefDistance(1);
-  sound.setLoop(true);
-  sound.play();
+audioLoader.load('sound.ogg', buffer => {
+    sound.setBuffer(buffer);
+    sound.setRefDistance(1);
+    sound.setLoop(true);
+    sound.play();
 });
 
 // Attach to object
@@ -221,8 +215,8 @@ object.add(sound);
 
 // Update listener in VR
 renderer.setAnimationLoop(() => {
-  // Listener automatically updates with camera in VR
-  renderer.render(scene, camera);
+    // Listener automatically updates with camera in VR
+    renderer.render(scene, camera);
 });
 ```
 
@@ -230,16 +224,18 @@ renderer.setAnimationLoop(() => {
 
 ```javascript
 // Request room-scale experience
-navigator.xr.requestSession('immersive-vr', {
-  requiredFeatures: ['local-floor']
-}).then((session) => {
-  // Session setup
-});
+navigator.xr
+    .requestSession('immersive-vr', {
+        requiredFeatures: ['local-floor']
+    })
+    .then(session => {
+        // Session setup
+    });
 
 // Get play area bounds
-session.requestReferenceSpace('bounded-floor').then((space) => {
-  const bounds = space.boundsGeometry;
-  // Create visual boundary
+session.requestReferenceSpace('bounded-floor').then(space => {
+    const bounds = space.boundsGeometry;
+    // Create visual boundary
 });
 ```
 
@@ -258,7 +254,7 @@ session.requestReferenceSpace('bounded-floor').then((space) => {
 const gl = renderer.getContext();
 const ext = gl.getExtension('WEBGL_foveated_rendering');
 if (ext) {
-  ext.foveatedRenderingModeWEBGL(gl.FOVEATED_RENDERING_MODE_ENABLE_WEBGL);
+    ext.foveatedRenderingModeWEBGL(gl.FOVEATED_RENDERING_MODE_ENABLE_WEBGL);
 }
 ```
 
@@ -269,10 +265,10 @@ import { XRButton } from 'three/addons/webxr/XRButton.js';
 
 // Request MR features
 document.body.appendChild(
-  XRButton.createButton(renderer, {
-    requiredFeatures: ['hand-tracking', 'layers'],
-    optionalFeatures: ['local-floor', 'bounded-floor']
-  })
+    XRButton.createButton(renderer, {
+        requiredFeatures: ['hand-tracking', 'layers'],
+        optionalFeatures: ['local-floor', 'bounded-floor']
+    })
 );
 
 // Passthrough mode (Quest Pro, etc.)
@@ -286,7 +282,7 @@ baseLayer.compositionDisabled = true; // enable passthrough
 ```javascript
 // Detect if in VR
 if (renderer.xr.isPresenting) {
-  // In VR mode
+    // In VR mode
 }
 
 // Get VR camera (for raycasting)
@@ -294,11 +290,11 @@ const vrCamera = renderer.xr.getCamera(camera);
 
 // Different behavior for VR vs desktop
 renderer.setAnimationLoop(() => {
-  if (renderer.xr.isPresenting) {
-    // VR rendering logic
-  } else {
-    // Desktop rendering logic
-  }
-  renderer.render(scene, camera);
+    if (renderer.xr.isPresenting) {
+        // VR rendering logic
+    } else {
+        // Desktop rendering logic
+    }
+    renderer.render(scene, camera);
 });
 ```

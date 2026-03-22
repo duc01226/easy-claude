@@ -11,7 +11,7 @@ const manager = new THREE.LoadingManager();
 manager.onStart = (url, loaded, total) => console.log('Loading:', url);
 manager.onProgress = (url, loaded, total) => console.log(`${loaded}/${total}`);
 manager.onLoad = () => console.log('Complete');
-manager.onError = (url) => console.error('Error:', url);
+manager.onError = url => console.error('Error:', url);
 
 const loader = new THREE.TextureLoader(manager);
 ```
@@ -25,16 +25,16 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const loader = new GLTFLoader();
 loader.load(
-  'model.gltf',
-  (gltf) => {
-    scene.add(gltf.scene);
+    'model.gltf',
+    gltf => {
+        scene.add(gltf.scene);
 
-    // Access animations
-    const mixer = new THREE.AnimationMixer(gltf.scene);
-    gltf.animations.forEach((clip) => mixer.clipAction(clip).play());
-  },
-  (xhr) => console.log((xhr.loaded / xhr.total * 100) + '% loaded'),
-  (error) => console.error(error)
+        // Access animations
+        const mixer = new THREE.AnimationMixer(gltf.scene);
+        gltf.animations.forEach(clip => mixer.clipAction(clip).play());
+    },
+    xhr => console.log((xhr.loaded / xhr.total) * 100 + '% loaded'),
+    error => console.error(error)
 );
 ```
 
@@ -46,8 +46,8 @@ Autodesk format, common in game dev:
 import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 
 const loader = new FBXLoader();
-loader.load('model.fbx', (object) => {
-  scene.add(object);
+loader.load('model.fbx', object => {
+    scene.add(object);
 });
 ```
 
@@ -59,19 +59,19 @@ Simple geometry format:
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 
 const loader = new OBJLoader();
-loader.load('model.obj', (object) => {
-  scene.add(object);
+loader.load('model.obj', object => {
+    scene.add(object);
 });
 
 // With MTL (material library)
 import { MTLLoader } from 'three/addons/loaders/MTLLoader.js';
 
 const mtlLoader = new MTLLoader();
-mtlLoader.load('model.mtl', (materials) => {
-  materials.preload();
-  const objLoader = new OBJLoader();
-  objLoader.setMaterials(materials);
-  objLoader.load('model.obj', (object) => scene.add(object));
+mtlLoader.load('model.mtl', materials => {
+    materials.preload();
+    const objLoader = new OBJLoader();
+    objLoader.setMaterials(materials);
+    objLoader.load('model.obj', object => scene.add(object));
 });
 ```
 
@@ -88,13 +88,13 @@ const material = new THREE.MeshStandardMaterial({ map: texture });
 
 // Load with callback
 textureLoader.load(
-  'texture.jpg',
-  (texture) => {
-    material.map = texture;
-    material.needsUpdate = true;
-  },
-  (xhr) => console.log((xhr.loaded / xhr.total * 100) + '% loaded'),
-  (error) => console.error(error)
+    'texture.jpg',
+    texture => {
+        material.map = texture;
+        material.needsUpdate = true;
+    },
+    xhr => console.log((xhr.loaded / xhr.total) * 100 + '% loaded'),
+    error => console.error(error)
 );
 ```
 
@@ -105,9 +105,12 @@ Load environment maps (skybox):
 ```javascript
 const cubeLoader = new THREE.CubeTextureLoader();
 const envMap = cubeLoader.load([
-  'px.jpg', 'nx.jpg',  // positive x, negative x
-  'py.jpg', 'ny.jpg',  // positive y, negative y
-  'pz.jpg', 'nz.jpg'   // positive z, negative z
+    'px.jpg',
+    'nx.jpg', // positive x, negative x
+    'py.jpg',
+    'ny.jpg', // positive y, negative y
+    'pz.jpg',
+    'nz.jpg' // positive z, negative z
 ]);
 
 scene.background = envMap;
@@ -127,7 +130,7 @@ dracoLoader.setDecoderPath('path/to/draco/');
 
 const loader = new GLTFLoader();
 loader.setDRACOLoader(dracoLoader);
-loader.load('compressed.gltf', (gltf) => scene.add(gltf.scene));
+loader.load('compressed.gltf', gltf => scene.add(gltf.scene));
 ```
 
 ## KTX2 Compressed Textures
@@ -140,9 +143,9 @@ import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
 const ktx2Loader = new KTX2Loader();
 ktx2Loader.setTranscoderPath('path/to/basis/');
 ktx2Loader.detectSupport(renderer);
-ktx2Loader.load('texture.ktx2', (texture) => {
-  material.map = texture;
-  material.needsUpdate = true;
+ktx2Loader.load('texture.ktx2', texture => {
+    material.map = texture;
+    material.needsUpdate = true;
 });
 ```
 

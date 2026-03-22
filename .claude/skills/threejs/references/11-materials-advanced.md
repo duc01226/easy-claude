@@ -8,28 +8,28 @@ Physically-based rendering with metallic/roughness workflow:
 
 ```javascript
 const material = new THREE.MeshStandardMaterial({
-  color: 0xffffff,
-  metalness: 0.5,     // 0 = dielectric, 1 = metal
-  roughness: 0.5,     // 0 = smooth/shiny, 1 = rough/matte
+    color: 0xffffff,
+    metalness: 0.5, // 0 = dielectric, 1 = metal
+    roughness: 0.5, // 0 = smooth/shiny, 1 = rough/matte
 
-  map: colorTexture,          // base color
-  normalMap: normalTexture,   // surface detail
-  roughnessMap: roughnessTexture,
-  metalnessMap: metalnessTexture,
-  aoMap: aoTexture,           // ambient occlusion
-  emissive: 0xff0000,         // glow color
-  emissiveMap: emissiveTexture,
-  emissiveIntensity: 1.0,
+    map: colorTexture, // base color
+    normalMap: normalTexture, // surface detail
+    roughnessMap: roughnessTexture,
+    metalnessMap: metalnessTexture,
+    aoMap: aoTexture, // ambient occlusion
+    emissive: 0xff0000, // glow color
+    emissiveMap: emissiveTexture,
+    emissiveIntensity: 1.0,
 
-  envMap: environmentMap,     // reflections
-  envMapIntensity: 1.0,
+    envMap: environmentMap, // reflections
+    envMapIntensity: 1.0,
 
-  alphaMap: alphaTexture,     // transparency control
-  transparent: true,
-  opacity: 1.0,
+    alphaMap: alphaTexture, // transparency control
+    transparent: true,
+    opacity: 1.0,
 
-  side: THREE.DoubleSide,     // render both sides
-  flatShading: false          // smooth normals
+    side: THREE.DoubleSide, // render both sides
+    flatShading: false // smooth normals
 });
 ```
 
@@ -39,33 +39,33 @@ Extended PBR with clearcoat, transmission, sheen:
 
 ```javascript
 const material = new THREE.MeshPhysicalMaterial({
-  // All MeshStandardMaterial properties plus:
+    // All MeshStandardMaterial properties plus:
 
-  // Clearcoat (protective layer)
-  clearcoat: 1.0,
-  clearcoatRoughness: 0.1,
-  clearcoatMap: clearcoatTexture,
-  clearcoatRoughnessMap: clearcoatRoughTexture,
-  clearcoatNormalMap: clearcoatNormalTexture,
+    // Clearcoat (protective layer)
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.1,
+    clearcoatMap: clearcoatTexture,
+    clearcoatRoughnessMap: clearcoatRoughTexture,
+    clearcoatNormalMap: clearcoatNormalTexture,
 
-  // Transmission (transparency with refraction)
-  transmission: 1.0,          // 0-1, glass-like
-  thickness: 0.5,             // volumetric thickness
-  ior: 1.5,                   // index of refraction (glass = 1.5)
+    // Transmission (transparency with refraction)
+    transmission: 1.0, // 0-1, glass-like
+    thickness: 0.5, // volumetric thickness
+    ior: 1.5, // index of refraction (glass = 1.5)
 
-  // Sheen (fabric-like edge glow)
-  sheen: 1.0,
-  sheenRoughness: 0.5,
-  sheenColor: new THREE.Color(0xffffff),
+    // Sheen (fabric-like edge glow)
+    sheen: 1.0,
+    sheenRoughness: 0.5,
+    sheenColor: new THREE.Color(0xffffff),
 
-  // Iridescence (rainbow effect)
-  iridescence: 1.0,
-  iridescenceIOR: 1.3,
-  iridescenceThicknessRange: [100, 400],
+    // Iridescence (rainbow effect)
+    iridescence: 1.0,
+    iridescenceIOR: 1.3,
+    iridescenceThicknessRange: [100, 400],
 
-  // Anisotropy (directional reflections)
-  anisotropy: 1.0,
-  anisotropyRotation: 0
+    // Anisotropy (directional reflections)
+    anisotropy: 1.0,
+    anisotropyRotation: 0
 });
 ```
 
@@ -75,13 +75,13 @@ Full control over vertex and fragment shaders:
 
 ```javascript
 const material = new THREE.ShaderMaterial({
-  uniforms: {
-    time: { value: 0.0 },
-    color: { value: new THREE.Color(0xff0000) },
-    texture1: { value: texture }
-  },
+    uniforms: {
+        time: { value: 0.0 },
+        color: { value: new THREE.Color(0xff0000) },
+        texture1: { value: texture }
+    },
 
-  vertexShader: `
+    vertexShader: `
     varying vec2 vUv;
     varying vec3 vNormal;
 
@@ -92,7 +92,7 @@ const material = new THREE.ShaderMaterial({
     }
   `,
 
-  fragmentShader: `
+    fragmentShader: `
     uniform float time;
     uniform vec3 color;
     uniform sampler2D texture1;
@@ -109,8 +109,8 @@ const material = new THREE.ShaderMaterial({
     }
   `,
 
-  transparent: true,
-  side: THREE.DoubleSide
+    transparent: true,
+    side: THREE.DoubleSide
 });
 
 // Update uniform in animation loop
@@ -123,10 +123,10 @@ Like ShaderMaterial but without Three.js shader injection:
 
 ```javascript
 const material = new THREE.RawShaderMaterial({
-  uniforms: {
-    // ...
-  },
-  vertexShader: `
+    uniforms: {
+        // ...
+    },
+    vertexShader: `
     precision mediump float;
     precision mediump int;
 
@@ -143,7 +143,7 @@ const material = new THREE.RawShaderMaterial({
       gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     }
   `,
-  fragmentShader: `
+    fragmentShader: `
     precision mediump float;
 
     varying vec2 vUv;
@@ -158,6 +158,7 @@ const material = new THREE.RawShaderMaterial({
 ## Common Shader Patterns
 
 ### Fresnel Effect
+
 ```glsl
 // In fragment shader
 float fresnel = pow(1.0 - dot(vNormal, vViewDirection), 3.0);
@@ -165,6 +166,7 @@ gl_FragColor = vec4(mix(baseColor, edgeColor, fresnel), 1.0);
 ```
 
 ### Noise/Distortion
+
 ```glsl
 // Simple noise function
 float noise(vec2 p) {
@@ -179,6 +181,7 @@ vec2 distortedUV = vUv + vec2(
 ```
 
 ### Scrolling Texture
+
 ```glsl
 uniform float time;
 varying vec2 vUv;

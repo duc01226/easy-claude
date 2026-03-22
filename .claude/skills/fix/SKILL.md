@@ -123,6 +123,25 @@ When this task involves frontend or UI changes, **MUST READ** `.claude/skills/sh
 **H) Simple/Quick Fixes** (default: small bug, single file, straightforward)
 → `/fix-fast <detailed-description>`
 
+## Graph Intelligence (MANDATORY — DO NOT SKIP when graph.db exists)
+
+If `.code-graph/graph.db` exists, you MUST use graph to enhance analysis with structural queries:
+
+**Without graph, your fix may miss affected callers, consumers, and tests. This step is NOT optional.**
+
+- **Trace callers of buggy function:** `python .claude/scripts/code_graph query callers_of <function> --json`
+- **Find existing tests:** `python .claude/scripts/code_graph query tests_for <function> --json`
+- **Batch analysis:** `python .claude/scripts/code_graph batch-query file1 file2 --json`
+
+> See `.claude/skills/shared/graph-intelligence-queries.md` for full query reference.
+
+### Graph-Assisted Fix Verification
+
+Before and after fixing, use graph trace to understand blast radius:
+
+1. `python .claude/scripts/code_graph trace <file-to-fix> --direction downstream --json` — see all downstream consumers affected by the fix
+2. `python .claude/scripts/code_graph trace <file-to-fix> --direction both --json` — full flow to ensure fix doesn't break upstream or downstream
+
 ## Notes
 
 - `detailed-description` = enhanced prompt describing issue in detail

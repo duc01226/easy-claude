@@ -5,6 +5,7 @@ Modern node-based material system for creating custom shaders visually.
 ## What is TSL?
 
 Three Shading Language (TSL) is a node-based system for creating materials and shaders:
+
 - Functional approach to shader composition
 - Type-safe node graph
 - Unified GLSL/WGSL output (WebGL & WebGPU)
@@ -36,14 +37,7 @@ material.normalNode = normalMap(normalTexture);
 ### Input Nodes
 
 ```javascript
-import {
-  attribute,
-  uniform,
-  texture,
-  cubeTexture,
-  instancedArray,
-  storage
-} from 'three/nodes';
+import { attribute, uniform, texture, cubeTexture, instancedArray, storage } from 'three/nodes';
 
 // Geometry attributes
 const positionNode = attribute('position');
@@ -70,10 +64,10 @@ const storageNode = storage(buffer, 'vec4', count);
 import { add, sub, mul, div, pow, sin, cos, length, normalize } from 'three/nodes';
 
 // Basic operations
-const result = add(a, b);     // a + b
-const result = sub(a, b);     // a - b
-const result = mul(a, b);     // a * b
-const result = div(a, b);     // a / b
+const result = add(a, b); // a + b
+const result = sub(a, b); // a - b
+const result = mul(a, b); // a * b
+const result = div(a, b); // a / b
 
 // Trigonometry
 const result = sin(angle);
@@ -109,10 +103,10 @@ import { Fn, vec3, float } from 'three/nodes';
 
 // Define custom function
 const customColor = Fn(([uv, time]) => {
-  const r = sin(uv.x.mul(10).add(time));
-  const g = cos(uv.y.mul(10).add(time));
-  const b = float(0.5);
-  return vec3(r, g, b);
+    const r = sin(uv.x.mul(10).add(time));
+    const g = cos(uv.y.mul(10).add(time));
+    const b = float(0.5);
+    return vec3(r, g, b);
 });
 
 // Use in material
@@ -142,10 +136,7 @@ material.colorNode = texture(tex, rotatedUV);
 ```javascript
 import { normalView, positionView, dot, pow } from 'three/nodes';
 
-const fresnel = pow(
-  float(1).sub(dot(normalView, positionView.normalize())),
-  3
-);
+const fresnel = pow(float(1).sub(dot(normalView, positionView.normalize())), 3);
 
 material.colorNode = mix(baseColor, edgeColor, fresnel);
 ```
@@ -177,12 +168,12 @@ import { compute, uniform, storage, Fn } from 'three/nodes';
 
 // Define compute shader
 const computeShader = Fn(() => {
-  const storageBuffer = storage(buffer, 'vec4', count);
-  const index = instanceIndex; // built-in
+    const storageBuffer = storage(buffer, 'vec4', count);
+    const index = instanceIndex; // built-in
 
-  // Modify buffer
-  const value = storageBuffer.element(index);
-  storageBuffer.element(index).assign(value.mul(2));
+    // Modify buffer
+    const value = storageBuffer.element(index);
+    storageBuffer.element(index).assign(value.mul(2));
 })();
 
 // Create compute node
@@ -196,12 +187,12 @@ renderer.compute(computeNode);
 
 ```javascript
 import {
-  MeshStandardNodeMaterial,
-  MeshPhysicalNodeMaterial,
-  MeshBasicNodeMaterial,
-  PointsNodeMaterial,
-  LineBasicNodeMaterial,
-  SpriteNodeMaterial
+    MeshStandardNodeMaterial,
+    MeshPhysicalNodeMaterial,
+    MeshBasicNodeMaterial,
+    PointsNodeMaterial,
+    LineBasicNodeMaterial,
+    SpriteNodeMaterial
 } from 'three/nodes';
 
 // Standard PBR
@@ -223,12 +214,12 @@ import { pass, PassNode } from 'three/nodes';
 
 // Custom post-processing pass
 const customPass = new PassNode('customPass', (input, output) => {
-  // input: previous pass texture
-  // output: render target
+    // input: previous pass texture
+    // output: render target
 
-  // Apply effect
-  const modifiedColor = input.mul(color(1, 0.5, 0.5));
-  output.assign(modifiedColor);
+    // Apply effect
+    const modifiedColor = input.mul(color(1, 0.5, 0.5));
+    output.assign(modifiedColor);
 });
 
 // Add to post-processing chain
@@ -239,25 +230,14 @@ postProcessing.addPass(customPass);
 
 ```javascript
 import * as THREE from 'three/webgpu';
-import {
-  MeshStandardNodeMaterial,
-  texture,
-  uniform,
-  timerLocal,
-  sin,
-  cos,
-  vec2
-} from 'three/nodes';
+import { MeshStandardNodeMaterial, texture, uniform, timerLocal, sin, cos, vec2 } from 'three/nodes';
 
 const material = new MeshStandardNodeMaterial();
 
 // Animated UV scroll
 const time = timerLocal();
 const scrollSpeed = uniform(0.1);
-const uvOffset = vec2(
-  time.mul(scrollSpeed),
-  sin(time).mul(0.1)
-);
+const uvOffset = vec2(time.mul(scrollSpeed), sin(time).mul(0.1));
 const scrolledUV = uv().add(uvOffset);
 
 // Apply to color
@@ -274,11 +254,11 @@ material.emissiveNode = color(1, 0.5, 0).mul(emission);
 ```javascript
 // Old way (ShaderMaterial)
 const material = new THREE.ShaderMaterial({
-  uniforms: {
-    time: { value: 0 }
-  },
-  vertexShader: `...`,
-  fragmentShader: `...`
+    uniforms: {
+        time: { value: 0 }
+    },
+    vertexShader: `...`,
+    fragmentShader: `...`
 });
 
 // New way (Node Material)

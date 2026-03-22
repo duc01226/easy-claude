@@ -7,7 +7,7 @@ Three.js geometry creation - built-in shapes, BufferGeometry, custom geometry, i
 ## Quick Start
 
 ```javascript
-import * as THREE from "three";
+import * as THREE from 'three';
 
 // Built-in geometry
 const box = new THREE.BoxGeometry(1, 1, 1);
@@ -86,12 +86,7 @@ new THREE.PolyhedronGeometry(vertices, indices, 1, 0);
 
 ```javascript
 // Lathe - points[], segments, phiStart, phiLength
-const points = [
-  new THREE.Vector2(0, 0),
-  new THREE.Vector2(0.5, 0),
-  new THREE.Vector2(0.5, 1),
-  new THREE.Vector2(0, 1),
-];
+const points = [new THREE.Vector2(0, 0), new THREE.Vector2(0.5, 0), new THREE.Vector2(0.5, 1), new THREE.Vector2(0, 1)];
 new THREE.LatheGeometry(points, 32);
 
 // Extrude - shape, options
@@ -103,49 +98,45 @@ shape.lineTo(0, 1);
 shape.lineTo(0, 0);
 
 const extrudeSettings = {
-  steps: 2,
-  depth: 1,
-  bevelEnabled: true,
-  bevelThickness: 0.1,
-  bevelSize: 0.1,
-  bevelSegments: 3,
+    steps: 2,
+    depth: 1,
+    bevelEnabled: true,
+    bevelThickness: 0.1,
+    bevelSize: 0.1,
+    bevelSegments: 3
 };
 new THREE.ExtrudeGeometry(shape, extrudeSettings);
 
 // Tube - path, tubularSegments, radius, radialSegments, closed
-const curve = new THREE.CatmullRomCurve3([
-  new THREE.Vector3(-1, 0, 0),
-  new THREE.Vector3(0, 1, 0),
-  new THREE.Vector3(1, 0, 0),
-]);
+const curve = new THREE.CatmullRomCurve3([new THREE.Vector3(-1, 0, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(1, 0, 0)]);
 new THREE.TubeGeometry(curve, 64, 0.2, 8, false);
 ```
 
 ### Text Geometry
 
 ```javascript
-import { FontLoader } from "three/examples/jsm/loaders/FontLoader.js";
-import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry.js";
+import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
+import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
 
 const loader = new FontLoader();
-loader.load("fonts/helvetiker_regular.typeface.json", (font) => {
-  const geometry = new TextGeometry("Hello", {
-    font: font,
-    size: 1,
-    depth: 0.2, // Was 'height' in older versions
-    curveSegments: 12,
-    bevelEnabled: true,
-    bevelThickness: 0.03,
-    bevelSize: 0.02,
-    bevelSegments: 5,
-  });
+loader.load('fonts/helvetiker_regular.typeface.json', font => {
+    const geometry = new TextGeometry('Hello', {
+        font: font,
+        size: 1,
+        depth: 0.2, // Was 'height' in older versions
+        curveSegments: 12,
+        bevelEnabled: true,
+        bevelThickness: 0.03,
+        bevelSize: 0.02,
+        bevelSegments: 5
+    });
 
-  // Center text
-  geometry.computeBoundingBox();
-  geometry.center();
+    // Center text
+    geometry.computeBoundingBox();
+    geometry.center();
 
-  const mesh = new THREE.Mesh(geometry, material);
-  scene.add(mesh);
+    const mesh = new THREE.Mesh(geometry, material);
+    scene.add(mesh);
 });
 ```
 
@@ -160,56 +151,56 @@ const geometry = new THREE.BufferGeometry();
 
 // Vertices (3 floats per vertex: x, y, z)
 const vertices = new Float32Array([
-  -1,
-  -1,
-  0, // vertex 0
-  1,
-  -1,
-  0, // vertex 1
-  1,
-  1,
-  0, // vertex 2
-  -1,
-  1,
-  0, // vertex 3
+    -1,
+    -1,
+    0, // vertex 0
+    1,
+    -1,
+    0, // vertex 1
+    1,
+    1,
+    0, // vertex 2
+    -1,
+    1,
+    0 // vertex 3
 ]);
-geometry.setAttribute("position", new THREE.BufferAttribute(vertices, 3));
+geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
 
 // Indices (for indexed geometry - reuse vertices)
 const indices = new Uint16Array([
-  0,
-  1,
-  2, // triangle 1
-  0,
-  2,
-  3, // triangle 2
+    0,
+    1,
+    2, // triangle 1
+    0,
+    2,
+    3 // triangle 2
 ]);
 geometry.setIndex(new THREE.BufferAttribute(indices, 1));
 
 // Normals (required for lighting)
 const normals = new Float32Array([0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1]);
-geometry.setAttribute("normal", new THREE.BufferAttribute(normals, 3));
+geometry.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
 
 // UVs (for texturing)
 const uvs = new Float32Array([0, 0, 1, 0, 1, 1, 0, 1]);
-geometry.setAttribute("uv", new THREE.BufferAttribute(uvs, 2));
+geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
 
 // Colors (per-vertex colors)
 const colors = new Float32Array([
-  1,
-  0,
-  0, // red
-  0,
-  1,
-  0, // green
-  0,
-  0,
-  1, // blue
-  1,
-  1,
-  0, // yellow
+    1,
+    0,
+    0, // red
+    0,
+    1,
+    0, // green
+    0,
+    0,
+    1, // blue
+    1,
+    1,
+    0 // yellow
 ]);
-geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 // Use with: material.vertexColors = true
 ```
 
@@ -262,21 +253,15 @@ geometry.computeBoundingSphere();
 ```javascript
 // More efficient memory layout for large meshes
 const interleavedBuffer = new THREE.InterleavedBuffer(
-  new Float32Array([
-    // pos.x, pos.y, pos.z, uv.u, uv.v (repeated per vertex)
-    -1, -1, 0, 0, 0, 1, -1, 0, 1, 0, 1, 1, 0, 1, 1, -1, 1, 0, 0, 1,
-  ]),
-  5, // stride (floats per vertex)
+    new Float32Array([
+        // pos.x, pos.y, pos.z, uv.u, uv.v (repeated per vertex)
+        -1, -1, 0, 0, 0, 1, -1, 0, 1, 0, 1, 1, 0, 1, 1, -1, 1, 0, 0, 1
+    ]),
+    5 // stride (floats per vertex)
 );
 
-geometry.setAttribute(
-  "position",
-  new THREE.InterleavedBufferAttribute(interleavedBuffer, 3, 0),
-); // size 3, offset 0
-geometry.setAttribute(
-  "uv",
-  new THREE.InterleavedBufferAttribute(interleavedBuffer, 2, 3),
-); // size 2, offset 3
+geometry.setAttribute('position', new THREE.InterleavedBufferAttribute(interleavedBuffer, 3, 0)); // size 3, offset 0
+geometry.setAttribute('uv', new THREE.InterleavedBufferAttribute(interleavedBuffer, 2, 3)); // size 2, offset 3
 ```
 
 ## EdgesGeometry & WireframeGeometry
@@ -284,17 +269,11 @@ geometry.setAttribute(
 ```javascript
 // Edge lines (only hard edges)
 const edges = new THREE.EdgesGeometry(boxGeometry, 15); // 15 = threshold angle
-const edgeMesh = new THREE.LineSegments(
-  edges,
-  new THREE.LineBasicMaterial({ color: 0xffffff }),
-);
+const edgeMesh = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff }));
 
 // Wireframe (all triangles)
 const wireframe = new THREE.WireframeGeometry(boxGeometry);
-const wireMesh = new THREE.LineSegments(
-  wireframe,
-  new THREE.LineBasicMaterial({ color: 0xffffff }),
-);
+const wireMesh = new THREE.LineSegments(wireframe, new THREE.LineBasicMaterial({ color: 0xffffff }));
 ```
 
 ## Points
@@ -305,17 +284,17 @@ const geometry = new THREE.BufferGeometry();
 const positions = new Float32Array(1000 * 3);
 
 for (let i = 0; i < 1000; i++) {
-  positions[i * 3] = (Math.random() - 0.5) * 10;
-  positions[i * 3 + 1] = (Math.random() - 0.5) * 10;
-  positions[i * 3 + 2] = (Math.random() - 0.5) * 10;
+    positions[i * 3] = (Math.random() - 0.5) * 10;
+    positions[i * 3 + 1] = (Math.random() - 0.5) * 10;
+    positions[i * 3 + 2] = (Math.random() - 0.5) * 10;
 }
 
-geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
 const material = new THREE.PointsMaterial({
-  size: 0.1,
-  sizeAttenuation: true, // Size decreases with distance
-  color: 0xffffff,
+    size: 0.1,
+    sizeAttenuation: true, // Size decreases with distance
+    color: 0xffffff
 });
 
 const points = new THREE.Points(geometry, material);
@@ -326,16 +305,9 @@ scene.add(points);
 
 ```javascript
 // Line (connected points)
-const points = [
-  new THREE.Vector3(-1, 0, 0),
-  new THREE.Vector3(0, 1, 0),
-  new THREE.Vector3(1, 0, 0),
-];
+const points = [new THREE.Vector3(-1, 0, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(1, 0, 0)];
 const geometry = new THREE.BufferGeometry().setFromPoints(points);
-const line = new THREE.Line(
-  geometry,
-  new THREE.LineBasicMaterial({ color: 0xff0000 }),
-);
+const line = new THREE.Line(geometry, new THREE.LineBasicMaterial({ color: 0xff0000 }));
 
 // LineLoop (closed loop)
 const loop = new THREE.LineLoop(geometry, material);
@@ -343,24 +315,24 @@ const loop = new THREE.LineLoop(geometry, material);
 // LineSegments (pairs of points)
 const segmentsGeometry = new THREE.BufferGeometry();
 segmentsGeometry.setAttribute(
-  "position",
-  new THREE.BufferAttribute(
-    new Float32Array([
-      -1,
-      0,
-      0,
-      0,
-      1,
-      0, // segment 1
-      0,
-      1,
-      0,
-      1,
-      0,
-      0, // segment 2
-    ]),
-    3,
-  ),
+    'position',
+    new THREE.BufferAttribute(
+        new Float32Array([
+            -1,
+            0,
+            0,
+            0,
+            1,
+            0, // segment 1
+            0,
+            1,
+            0,
+            1,
+            0,
+            0 // segment 2
+        ]),
+        3
+    )
 );
 const segments = new THREE.LineSegments(segmentsGeometry, material);
 ```
@@ -381,31 +353,21 @@ const dummy = new THREE.Object3D();
 const matrix = new THREE.Matrix4();
 
 for (let i = 0; i < count; i++) {
-  dummy.position.set(
-    (Math.random() - 0.5) * 20,
-    (Math.random() - 0.5) * 20,
-    (Math.random() - 0.5) * 20,
-  );
-  dummy.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
-  dummy.scale.setScalar(0.5 + Math.random());
-  dummy.updateMatrix();
+    dummy.position.set((Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20);
+    dummy.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+    dummy.scale.setScalar(0.5 + Math.random());
+    dummy.updateMatrix();
 
-  instancedMesh.setMatrixAt(i, dummy.matrix);
+    instancedMesh.setMatrixAt(i, dummy.matrix);
 }
 
 // Flag for GPU update
 instancedMesh.instanceMatrix.needsUpdate = true;
 
 // Optional: per-instance colors
-instancedMesh.instanceColor = new THREE.InstancedBufferAttribute(
-  new Float32Array(count * 3),
-  3,
-);
+instancedMesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(count * 3), 3);
 for (let i = 0; i < count; i++) {
-  instancedMesh.setColorAt(
-    i,
-    new THREE.Color(Math.random(), Math.random(), Math.random()),
-  );
+    instancedMesh.setColorAt(i, new THREE.Color(Math.random(), Math.random(), Math.random()));
 }
 instancedMesh.instanceColor.needsUpdate = true;
 
@@ -425,7 +387,7 @@ instancedMesh.instanceMatrix.needsUpdate = true;
 // Raycasting with instanced mesh
 const intersects = raycaster.intersectObject(instancedMesh);
 if (intersects.length > 0) {
-  const instanceId = intersects[0].instanceId;
+    const instanceId = intersects[0].instanceId;
 }
 ```
 
@@ -440,11 +402,11 @@ geometry.copy(new THREE.BoxGeometry(1, 1, 1));
 // Add per-instance attribute
 const offsets = new Float32Array(count * 3);
 for (let i = 0; i < count; i++) {
-  offsets[i * 3] = Math.random() * 10;
-  offsets[i * 3 + 1] = Math.random() * 10;
-  offsets[i * 3 + 2] = Math.random() * 10;
+    offsets[i * 3] = Math.random() * 10;
+    offsets[i * 3 + 1] = Math.random() * 10;
+    offsets[i * 3 + 2] = Math.random() * 10;
 }
-geometry.setAttribute("offset", new THREE.InstancedBufferAttribute(offsets, 3));
+geometry.setAttribute('offset', new THREE.InstancedBufferAttribute(offsets, 3));
 
 // Use in shader
 // attribute vec3 offset;
@@ -454,7 +416,7 @@ geometry.setAttribute("offset", new THREE.InstancedBufferAttribute(offsets, 3));
 ## Geometry Utilities
 
 ```javascript
-import * as BufferGeometryUtils from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 // Merge geometries (must have same attributes)
 const merged = BufferGeometryUtils.mergeGeometries([geo1, geo2, geo3]);
@@ -466,11 +428,7 @@ const merged = BufferGeometryUtils.mergeGeometries([geo1, geo2], true);
 BufferGeometryUtils.computeTangents(geometry);
 
 // Interleave attributes for better performance
-const interleaved = BufferGeometryUtils.interleaveAttributes([
-  geometry.attributes.position,
-  geometry.attributes.normal,
-  geometry.attributes.uv,
-]);
+const interleaved = BufferGeometryUtils.interleaveAttributes([geometry.attributes.position, geometry.attributes.normal, geometry.attributes.uv]);
 ```
 
 ## Common Patterns
@@ -510,13 +468,11 @@ const geometry = new THREE.BoxGeometry(1, 1, 1, 4, 4, 4);
 // Create morph target
 const morphPositions = geometry.attributes.position.array.slice();
 for (let i = 0; i < morphPositions.length; i += 3) {
-  morphPositions[i] *= 2; // Scale X
-  morphPositions[i + 1] *= 0.5; // Squash Y
+    morphPositions[i] *= 2; // Scale X
+    morphPositions[i + 1] *= 0.5; // Squash Y
 }
 
-geometry.morphAttributes.position = [
-  new THREE.BufferAttribute(new Float32Array(morphPositions), 3),
-];
+geometry.morphAttributes.position = [new THREE.BufferAttribute(new Float32Array(morphPositions), 3)];
 
 const mesh = new THREE.Mesh(geometry, material);
 mesh.morphTargetInfluences[0] = 0.5; // 50% blend

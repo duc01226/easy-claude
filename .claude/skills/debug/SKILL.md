@@ -78,6 +78,24 @@ description: "[Fix & Debug] Systematic debugging with root cause investigation. 
 - Verify the root cause explains ALL symptoms
 - Check for secondary contributing factors
 
+## Dependency Tracing (MANDATORY — DO NOT SKIP when graph.db exists)
+
+If `.code-graph/graph.db` exists, you MUST use structural queries to trace dependencies:
+
+**Graph reveals ALL callers and consumers of buggy code — grep alone misses structural relationships.**
+
+- **Who calls the buggy function:** `python .claude/scripts/code_graph query callers_of <function> --json`
+- **Who imports the buggy module:** `python .claude/scripts/code_graph query importers_of <file> --json`
+- **What tests exist:** `python .claude/scripts/code_graph query tests_for <function> --json`
+- **What does this function call:** `python .claude/scripts/code_graph query callees_of <function> --json`
+
+### Graph-Assisted Debugging
+
+After identifying suspect files, use graph trace to understand the full context:
+1. `python .claude/scripts/code_graph trace <suspect-file> --direction both --json` — see what calls this code AND what it triggers downstream
+2. `python .claude/scripts/code_graph trace <suspect-file> --direction upstream --json` — find all callers that could trigger the bug
+3. This reveals implicit connections (MESSAGE_BUS, event handlers) that may propagate the issue across services
+
 ### Step 5: Report
 
 - Output: confirmed root cause with evidence chain

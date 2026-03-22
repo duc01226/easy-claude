@@ -1,7 +1,7 @@
 ---
 name: cook
 version: 1.0.0
-description: "[Implementation] Implement a feature [step by step]"
+description: '[Implementation] Implement a feature [step by step]'
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
@@ -156,8 +156,8 @@ mistakes compound through later tasks.
 ### Code Review
 
 - **Two-stage review** (see `.claude/skills/shared/two-stage-task-review-protocol.md`):
-  1. First: dispatch `spec-compliance-reviewer` to verify implementation matches spec
-  2. Only after spec passes: dispatch `code-reviewer` for quality review
+    1. First: dispatch `spec-compliance-reviewer` to verify implementation matches spec
+    2. Only after spec passes: dispatch `code-reviewer` for quality review
 - If critical issues: fix and re-run `tester`.
 - Repeat until all tests pass and code is reviewed.
 - Report summary to user and ask for approval.
@@ -188,6 +188,16 @@ If you're thinking:
 - "I'll commit after I finish everything" — Commit after each task. Frequent commits prevent loss.
 - "This refactor will make it better" — Only refactor what's in scope. YAGNI.
 - "I can skip the review, it's obvious" — Reviews catch what authors miss. Never skip.
+
+> **Graph Intelligence (MANDATORY when graph.db exists):** MUST READ `.claude/skills/shared/graph-assisted-investigation-protocol.md`. After implementing, run `python .claude/scripts/code_graph connections <file> --json` on modified files to verify no related files need updates.
+
+### Graph-Trace Before Implementation
+
+When graph DB is available, BEFORE writing code, trace to understand the blast radius:
+
+- `python .claude/scripts/code_graph trace <file-to-modify> --direction both --json` — see what calls this code AND what it triggers
+- `python .claude/scripts/code_graph trace <file-to-modify> --direction downstream --json` — see all downstream consumers that may need updating
+- This prevents breaking implicit dependencies (bus message consumers, event handlers) that aren't visible in the file itself
 
 ---
 

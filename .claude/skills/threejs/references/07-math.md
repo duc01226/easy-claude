@@ -18,10 +18,10 @@ v.divide(otherVector);
 v.divideScalar(scalar);
 
 // Analysis
-v.length();           // magnitude
-v.lengthSq();         // magnitude squared (faster)
-v.normalize();        // make length = 1
-v.dot(otherVector);   // dot product
+v.length(); // magnitude
+v.lengthSq(); // magnitude squared (faster)
+v.normalize(); // make length = 1
+v.dot(otherVector); // dot product
 v.cross(otherVector); // cross product
 v.distanceTo(otherVector);
 v.angleTo(otherVector);
@@ -128,13 +128,13 @@ Color manipulation:
 
 ```javascript
 const color = new THREE.Color(0xff0000); // hex
-const color = new THREE.Color('red');    // CSS
-const color = new THREE.Color(1, 0, 0);  // RGB 0-1
+const color = new THREE.Color('red'); // CSS
+const color = new THREE.Color(1, 0, 0); // RGB 0-1
 
 // Conversions
-color.getHex();      // 0xff0000
+color.getHex(); // 0xff0000
 color.getHexString(); // "ff0000"
-color.getStyle();    // "rgb(255,0,0)"
+color.getStyle(); // "rgb(255,0,0)"
 
 // Color spaces
 color.setHSL(h, s, l); // hue, saturation, lightness
@@ -167,11 +167,11 @@ const intersects = raycaster.intersectObjects(scene.children, true);
 // recursive = true to check children
 
 if (intersects.length > 0) {
-  const hit = intersects[0];
-  console.log(hit.object);   // intersected object
-  console.log(hit.point);    // intersection point (Vector3)
-  console.log(hit.distance); // distance from camera
-  console.log(hit.face);     // intersected face
+    const hit = intersects[0];
+    console.log(hit.object); // intersected object
+    console.log(hit.point); // intersection point (Vector3)
+    console.log(hit.distance); // distance from camera
+    console.log(hit.face); // intersected face
 }
 ```
 
@@ -192,7 +192,7 @@ box.setFromPoints(arrayOfVector3);
 box.min; // Vector3
 box.max; // Vector3
 box.getCenter(target); // fills target Vector3
-box.getSize(target);   // fills target Vector3
+box.getSize(target); // fills target Vector3
 
 // Tests
 box.containsPoint(point);
@@ -244,10 +244,10 @@ Parametric curves:
 ```javascript
 // Bezier curve
 const curve = new THREE.CubicBezierCurve3(
-  new THREE.Vector3(-10, 0, 0),
-  new THREE.Vector3(-5, 15, 0),
-  new THREE.Vector3(20, 15, 0),
-  new THREE.Vector3(10, 0, 0)
+    new THREE.Vector3(-10, 0, 0),
+    new THREE.Vector3(-5, 15, 0),
+    new THREE.Vector3(20, 15, 0),
+    new THREE.Vector3(10, 0, 0)
 );
 
 // Sample points

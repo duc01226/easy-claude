@@ -1,9 +1,9 @@
 ---
 name: threejs
-description: "Build 3D web apps with Three.js (WebGL/WebGPU). 556 searchable examples, 60 API classes, 20 use cases. Actions: create 3D scene, load model, add animation, implement physics, build VR/XR. Topics: GLTF loader, PBR materials, particle effects, shadows, post-processing, compute shaders, TSL. Integrations: WebGPU, physics engines, spatial audio."
+description: 'Build 3D web apps with Three.js (WebGL/WebGPU). 556 searchable examples, 60 API classes, 20 use cases. Actions: create 3D scene, load model, add animation, implement physics, build VR/XR. Topics: GLTF loader, PBR materials, particle effects, shadows, post-processing, compute shaders, TSL. Integrations: WebGPU, physics engines, spatial audio.'
 license: MIT
 version: 3.0.0
-argument-hint: "[3D scene or feature]"
+argument-hint: '[3D scene or feature]'
 ---
 
 # Three.js Development
@@ -80,12 +80,7 @@ python3 .claude/skills/threejs/scripts/search.py --complexity high -n 5
 ```javascript
 // 1. Scene, Camera, Renderer
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(
-  75,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  1000,
-);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
@@ -98,14 +93,14 @@ dirLight.position.set(5, 5, 5);
 scene.add(dirLight);
 
 // 3. Load GLTF Model
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 const loader = new GLTFLoader();
-loader.load("model.glb", (gltf) => scene.add(gltf.scene));
+loader.load('model.glb', gltf => scene.add(gltf.scene));
 
 // 4. Animation Loop
 function animate() {
-  requestAnimationFrame(animate);
-  renderer.render(scene, camera);
+    requestAnimationFrame(animate);
+    renderer.render(scene, camera);
 }
 animate();
 ```

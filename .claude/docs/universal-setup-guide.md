@@ -74,7 +74,7 @@ Update the root `CLAUDE.md` with your project-specific:
 - Service ports and infrastructure
 - Naming conventions
 
-The existing `CLAUDE.md` serves as a template — replace BravoSUITE-specific content with your project's.
+The existing `CLAUDE.md` serves as a template — replace project-specific content with your project's.
 
 ### Step 5: Start Working
 

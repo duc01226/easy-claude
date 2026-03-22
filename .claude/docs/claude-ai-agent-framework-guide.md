@@ -14,18 +14,19 @@
 3. [The Three Pillars](#3-the-three-pillars-hooks-skills-workflows)
 4. [Hook System Deep Dive](#4-hook-system-deep-dive)
 5. [Skill System Deep Dive](#5-skill-system-deep-dive)
-   - 5.5 [Cross-Cutting Skill Patterns](#55-cross-cutting-skill-patterns-new)
+    - 5.5 [Cross-Cutting Skill Patterns](#55-cross-cutting-skill-patterns-new)
 6. [Workflow System Deep Dive](#6-workflow-system-deep-dive)
 7. [Project Configuration — Generic & Reusable](#7-project-configuration--generic--reusable)
 8. [AI Agent Best Practices Applied](#8-ai-agent-best-practices-applied)
-   - 8.9 [TDD Workflow & Unified Test Specification System](#89-tdd-workflow--unified-test-specification-system)
-   - 8.10 [Full Development Lifecycle Coverage](#810-full-development-lifecycle-coverage)
-   - 8.11 [How to Use — Test Generation & Documentation Cases](#811-how-to-use--test-generation--documentation-cases)
-   - 8.12 [E2E Testing System — Framework-Agnostic AI-Assisted E2E](#812-e2e-testing-system--framework-agnostic-ai-assisted-e2e)
-   - 8.13 [Greenfield Project Support — AI as Solution Architect](#813-greenfield-project-support--ai-as-solution-architect)
-   - 8.14 [Big Feature Workflow — Research-Driven Development](#814-big-feature-workflow--research-driven-development)
-   - 8.15 [Prompt Engineering Principles Applied](#815-prompt-engineering-principles-applied)
-   - 8.16 [Context Engineering Principles Applied](#816-context-engineering-principles-applied)
+    - 8.9 [TDD Workflow & Unified Test Specification System](#89-tdd-workflow--unified-test-specification-system)
+    - 8.10 [Full Development Lifecycle Coverage](#810-full-development-lifecycle-coverage)
+    - 8.11 [How to Use — Test Generation & Documentation Cases](#811-how-to-use--test-generation--documentation-cases)
+    - 8.12 [E2E Testing System — Framework-Agnostic AI-Assisted E2E](#812-e2e-testing-system--framework-agnostic-ai-assisted-e2e)
+    - 8.13 [Greenfield Project Support — AI as Solution Architect](#813-greenfield-project-support--ai-as-solution-architect)
+    - 8.14 [Big Feature Workflow — Research-Driven Development](#814-big-feature-workflow--research-driven-development)
+    - 8.15 [Prompt Engineering Principles Applied](#815-prompt-engineering-principles-applied)
+    - 8.16 [Context Engineering Principles Applied](#816-context-engineering-principles-applied)
+    - 8.17 [Code Review Graph — Structural Intelligence](#817-code-graph--structural-intelligence)
 9. [State Management & Recovery](#9-state-management--recovery)
 10. [Testing Infrastructure](#10-testing-infrastructure)
 11. [Quick Reference](#11-quick-reference)
@@ -95,6 +96,7 @@ graph TB
             DC[Design System Context]
             CP[Code Patterns Injector]
             LI[Lessons Injector]
+            GR[Graph Context Injector]
         end
     end
 
@@ -419,7 +421,7 @@ Skills are **Markdown files with YAML frontmatter** that define AI behavior patt
 # .claude/skills/{skill-name}/SKILL.md
 ---
 name: prove-fix
-description: "[Code Quality] Prove fix correctness with code proof traces"
+description: '[Code Quality] Prove fix correctness with code proof traces'
 version: 1.2.0
 allowed-tools: Read, Grep, Glob, Bash, Write, TaskCreate
 ---
@@ -510,6 +512,13 @@ mindmap
       frontend-design
       ui-ux-pro-max
       web-design-guidelines
+    Code Intelligence
+      graph-build
+      graph-blast-radius
+      graph-query
+      graph-export
+      graph-export-mermaid
+      graph-connect-api
     AI & Tools
       sequential-thinking
       ai-multimodal
@@ -689,35 +698,35 @@ Workflows are **JSON-defined sequences of skills** stored in `.claude/workflows.
 
 ```json
 {
-  "bugfix": {
-    "name": "Bug Fix",
-    "confirmFirst": false,
-    "whenToUse": "User reports a bug, error, crash, failure",
-    "whenNotToUse": "New feature implementation, refactoring",
-    "sequence": [
-      "scout",
-      "feature-investigation",
-      "debug",
-      "plan",
-      "plan-review",
-      "plan-validate",
-      "why-review",
-      "fix",
-      "prove-fix",
-      "code-simplifier",
-      "review-changes",
-      "code-review",
-      "changelog",
-      "test",
-      "docs-update",
-      "watzup",
-      "workflow-end"
-    ],
-    "preActions": {
-      "readFiles": ["docs/project-reference/backend-patterns-reference.md"],
-      "injectContext": "Debug mindset: Never assume first hypothesis..."
+    "bugfix": {
+        "name": "Bug Fix",
+        "confirmFirst": false,
+        "whenToUse": "User reports a bug, error, crash, failure",
+        "whenNotToUse": "New feature implementation, refactoring",
+        "sequence": [
+            "scout",
+            "feature-investigation",
+            "debug",
+            "plan",
+            "plan-review",
+            "plan-validate",
+            "why-review",
+            "fix",
+            "prove-fix",
+            "code-simplifier",
+            "review-changes",
+            "code-review",
+            "changelog",
+            "test",
+            "docs-update",
+            "watzup",
+            "workflow-end"
+        ],
+        "preActions": {
+            "readFiles": ["docs/project-reference/backend-patterns-reference.md"],
+            "injectContext": "Debug mindset: Never assume first hypothesis..."
+        }
     }
-  }
 }
 ```
 
@@ -836,13 +845,10 @@ Each workflow defines `preActions` that load context before any step executes:
 
 ```json
 {
-  "preActions": {
-    "readFiles": [
-      "docs/project-reference/backend-patterns-reference.md",
-      "docs/project-reference/code-review-rules.md"
-    ],
-    "injectContext": "Role: API Designer\nMulti-line instruction text that guides AI behavior..."
-  }
+    "preActions": {
+        "readFiles": ["docs/project-reference/backend-patterns-reference.md", "docs/project-reference/code-review-rules.md"],
+        "injectContext": "Role: API Designer\nMulti-line instruction text that guides AI behavior..."
+    }
 }
 ```
 
@@ -885,68 +891,54 @@ graph LR
 
 ```json
 {
-  "$schema": "v2",
+    "$schema": "v2",
 
-  "framework": {
-    "name": "Your Framework Name",
-    "backendPatternsDoc": "docs/project-reference/backend-patterns-reference.md",
-    "frontendPatternsDoc": "docs/project-reference/frontend-patterns-reference.md",
-    "searchPatternKeywords": ["yourPattern1", "yourPattern2"]
-  },
-
-  "contextGroups": [
-    {
-      "name": "Backend Services",
-      "pathRegexes": ["src[\\\\/]services[\\\\/]", "src[\\\\/]api[\\\\/]"],
-      "fileExtensions": [".ts", ".py", ".cs", ".go"],
-      "patternsDoc": "docs/project-reference/backend-patterns-reference.md",
-      "rules": [
-        "Use service-specific repositories",
-        "Use validation framework, never throw raw exceptions",
-        "Side effects go in event handlers"
-      ]
+    "framework": {
+        "name": "Your Framework Name",
+        "backendPatternsDoc": "docs/project-reference/backend-patterns-reference.md",
+        "frontendPatternsDoc": "docs/project-reference/frontend-patterns-reference.md",
+        "searchPatternKeywords": ["yourPattern1", "yourPattern2"]
     },
-    {
-      "name": "Frontend Apps",
-      "pathRegexes": ["src[\\\\/]web[\\\\/]", "src[\\\\/]client[\\\\/]"],
-      "fileExtensions": [".ts", ".tsx", ".vue", ".html", ".scss"],
-      "patternsDoc": "docs/project-reference/frontend-patterns-reference.md",
-      "rules": [
-        "Extend project base components",
-        "Use project state management",
-        "Follow project CSS conventions"
-      ]
-    }
-  ],
 
-  "modules": [
-    {
-      "name": "orders-service",
-      "type": "backend",
-      "path": "src/services/orders",
-      "database": "postgresql",
-      "port": 5100
-    }
-    // ... add all your modules
-  ],
+    "contextGroups": [
+        {
+            "name": "Backend Services",
+            "pathRegexes": ["src[\\\\/]services[\\\\/]", "src[\\\\/]api[\\\\/]"],
+            "fileExtensions": [".ts", ".py", ".cs", ".go"],
+            "patternsDoc": "docs/project-reference/backend-patterns-reference.md",
+            "rules": ["Use service-specific repositories", "Use validation framework, never throw raw exceptions", "Side effects go in event handlers"]
+        },
+        {
+            "name": "Frontend Apps",
+            "pathRegexes": ["src[\\\\/]web[\\\\/]", "src[\\\\/]client[\\\\/]"],
+            "fileExtensions": [".ts", ".tsx", ".vue", ".html", ".scss"],
+            "patternsDoc": "docs/project-reference/frontend-patterns-reference.md",
+            "rules": ["Extend project base components", "Use project state management", "Follow project CSS conventions"]
+        }
+    ],
 
-  "designSystem": {
-    "appMappings": [
-      {
-        "name": "web-app",
-        "docFile": "DesignSystem.md",
-        "pathRegexes": ["src[\\\\/]web[\\\\/]"]
-      }
-    ]
-  },
+    "modules": [
+        {
+            "name": "orders-service",
+            "type": "backend",
+            "path": "src/services/orders",
+            "database": "postgresql",
+            "port": 5100
+        }
+        // ... add all your modules
+    ],
 
-  "referenceDocs": [
-    "project-structure-reference.md",
-    "backend-patterns-reference.md",
-    "frontend-patterns-reference.md",
-    "code-review-rules.md",
-    "lessons.md"
-  ]
+    "designSystem": {
+        "appMappings": [
+            {
+                "name": "web-app",
+                "docFile": "DesignSystem.md",
+                "pathRegexes": ["src[\\\\/]web[\\\\/]"]
+            }
+        ]
+    },
+
+    "referenceDocs": ["project-structure-reference.md", "backend-patterns-reference.md", "frontend-patterns-reference.md", "code-review-rules.md", "lessons.md"]
 }
 ```
 
@@ -1693,9 +1685,9 @@ test-spec-update: review-changes → tdd-spec → test-specs-docs →
 2. Builds mapping: TC code → test method name (e.g., `TC-ORD-001` → `CreateOrder_WhenValidData_ShouldCreateSuccessfully`)
 3. Reads existing integration tests in same service for conventions (namespace, base class, naming)
 4. Generates test file with:
-   - TC annotation/tag linking each test to its TC code
-   - `// TC-ORD-001: Description` comment before each test
-   - Real DI (no mocks), unique test data helpers, entity assertion helpers
+    - TC annotation/tag linking each test to its TC code
+    - `// TC-ORD-001: Description` comment before each test
+    - Real DI (no mocks), unique test data helpers, entity assertion helpers
 5. Runs build to verify compilation
 6. Verifies bidirectional traceability: every test ↔ doc TC
 
@@ -1727,10 +1719,10 @@ test-to-integration: scout → integration-test → test → watzup → workflow
 
 1. `/integration-test` enters REVIEW mode — scans all test files in the target domain
 2. Checks for flaky patterns:
-   - DB assertions without async polling (e.g., checking state changed by background event handlers without retry/wait)
-   - Hardcoded delays instead of condition-based polling
-   - Non-unique test data causing cross-test interference
-   - Race conditions from shared mutable state
+    - DB assertions without async polling (e.g., checking state changed by background event handlers without retry/wait)
+    - Hardcoded delays instead of condition-based polling
+    - Non-unique test data causing cross-test interference
+    - Race conditions from shared mutable state
 3. Checks best practices: collection attributes, TC annotations, minimum test count, no mocks
 4. Generates quality report with severity levels (HIGH/MEDIUM/LOW)
 
@@ -1760,10 +1752,10 @@ test-verify: scout → integration-test (review) → test → integration-test (
 
 1. `/integration-test` enters DIAGNOSE mode — reads the failing test and traces the application code path
 2. Walks a decision tree:
-   - Compilation error? → Test not updated after code change (TEST BUG)
-   - Assertion failure with correct expected value? → Application logic wrong (CODE BUG)
-   - Intermittent failure? → Missing async polling or non-unique data (TEST BUG — flaky)
-   - Validation error on happy path? → Test sends invalid data (TEST BUG) or rule too strict (CODE BUG)
+    - Compilation error? → Test not updated after code change (TEST BUG)
+    - Assertion failure with correct expected value? → Application logic wrong (CODE BUG)
+    - Intermittent failure? → Missing async polling or non-unique data (TEST BUG — flaky)
+    - Validation error on happy path? → Test sends invalid data (TEST BUG) or rule too strict (CODE BUG)
 3. Generates diagnosis report classifying each failure as TEST BUG, CODE BUG, or INFRA ISSUE
 4. Provides specific fix recommendations with file:line evidence
 
@@ -1790,12 +1782,12 @@ test-verify: scout → integration-test (review) → test → integration-test (
 3. Collects TC entries from feature doc Section 17
 4. Builds 3-way traceability matrix: test code ↔ feature doc ↔ test-specs dashboard
 5. Identifies:
-   - Orphaned tests (have annotation but no matching TC in docs)
-   - Orphaned TCs (documented but no matching test)
-   - Behavior mismatches (test does something different from what spec says)
+    - Orphaned tests (have annotation but no matching TC in docs)
+    - Orphaned TCs (documented but no matching test)
+    - Behavior mismatches (test does something different from what spec says)
 6. For mismatches, determines which source is correct:
-   - Test passes + spec disagrees → update spec
-   - Test fails + spec describes expected behavior → update test
+    - Test passes + spec disagrees → update spec
+    - Test fails + spec describes expected behavior → update test
 7. Generates traceability report with recommended fixes
 
 ---
@@ -1969,9 +1961,9 @@ Three dedicated workflows support E2E testing scenarios:
 3. Validates recording file exists
 4. Loads test specs from feature docs (TC-{MODULE}-{NNN})
 5. Generates test file following project conventions:
-   - Page Object class (using project's POM pattern)
-   - Test assertions using project's assertion patterns
-   - TC references in test names for traceability
+    - Page Object class (using project's POM pattern)
+    - Test assertions using project's assertion patterns
+    - TC references in test names for traceability
 6. Runs test to verify it passes
 7. Reports generated files
 
@@ -2025,31 +2017,31 @@ The `/e2e-test` skill relies on the `e2eTesting` section in `docs/project-config
 
 ```json
 {
-  "e2eTesting": {
-    "framework": "selenium-specflow",
-    "language": "csharp",
-    "guideDoc": "docs/project-reference/e2e-test-reference.md",
-    "architecture": {
-      "pattern": "page-object-model",
-      "bddFramework": "specflow",
-      "testRunner": "xunit",
-      "settingsClass": "YourAutomationTestSettings",
-      "startupClass": "BaseYourStartup"
-    },
-    "runCommands": {
-      "all": "dotnet test src/AutomationTest/...",
-      "filter": "dotnet test --filter \"FullyQualifiedName~{TestName}\""
-    },
-    "bestPractices": [
-      "Extend BddStepDefinitions<TSettings, TContext> for step defs",
-      "Use Page Object Model hierarchy",
-      "Use WaitUntilAssertSuccess for resilient assertions"
-    ],
-    "entryPoints": [
-      "src/Platform/{YourFramework}.AutomationTest/Pages/Page.cs",
-      "src/Platform/{YourFramework}.AutomationTest/TestCases/BddStepDefinitions.cs"
-    ]
-  }
+    "e2eTesting": {
+        "framework": "selenium-specflow",
+        "language": "csharp",
+        "guideDoc": "docs/project-reference/e2e-test-reference.md",
+        "architecture": {
+            "pattern": "page-object-model",
+            "bddFramework": "specflow",
+            "testRunner": "xunit",
+            "settingsClass": "YourAutomationTestSettings",
+            "startupClass": "BaseYourStartup"
+        },
+        "runCommands": {
+            "all": "dotnet test src/AutomationTest/...",
+            "filter": "dotnet test --filter \"FullyQualifiedName~{TestName}\""
+        },
+        "bestPractices": [
+            "Extend BddStepDefinitions<TSettings, TContext> for step defs",
+            "Use Page Object Model hierarchy",
+            "Use WaitUntilAssertSuccess for resilient assertions"
+        ],
+        "entryPoints": [
+            "src/Platform/{YourFramework}.AutomationTest/Pages/Page.cs",
+            "src/Platform/{YourFramework}.AutomationTest/TestCases/BddStepDefinitions.cs"
+        ]
+    }
 }
 ```
 
@@ -2895,6 +2887,150 @@ Context engineering is the discipline of **managing what information reaches the
 | **Tiered injection frequency** | Lessons (every prompt) vs patterns (every edit) vs design tokens (UI only)    |
 | **Output compression**         | Swap engine replaces 500-line outputs with 10-line summaries + disk pointers  |
 | **State persistence**          | External JSON files survive compaction; disk = persistent, context = volatile |
+
+---
+
+### 8.17 Code Review Graph — Structural Intelligence
+
+The Code Review Graph is a persistent knowledge graph built from your codebase using Tree-sitter AST parsing. It stores every function, class, import, call, inheritance, and test relationship in SQLite and uses BFS to compute blast radius on changes. This gives Claude **structural awareness** — it knows what your change breaks before reviewing the code.
+
+#### The Token Problem
+
+```mermaid
+graph LR
+    subgraph "Without Graph"
+        A1["Developer changes<br/>auth.py"] --> B1["Claude reads<br/>ENTIRE codebase"]
+        B1 --> C1["13,205 tokens<br/>unfocused context"]
+        C1 --> D1["Review quality: 7.2/10"]
+    end
+
+    subgraph "With Graph"
+        A2["Developer changes<br/>auth.py"] --> B2["Graph computes<br/>blast radius"]
+        B2 --> C2["1,928 tokens<br/>precise context"]
+        C2 --> D2["Review quality: 8.8/10"]
+    end
+
+    style C1 fill:#ff6b6b,stroke:#c92a2a,color:#fff
+    style D1 fill:#ff6b6b,stroke:#c92a2a,color:#fff
+    style C2 fill:#69db7c,stroke:#2b8a3e
+    style D2 fill:#69db7c,stroke:#2b8a3e
+```
+
+**Result: 6.8x fewer tokens, 22% higher review quality** (tested on httpx, FastAPI, Next.js).
+
+#### Three-Hook Architecture
+
+The graph integrates via 3 CJS hooks that fire automatically:
+
+```mermaid
+graph TB
+    subgraph "Hook 1: graph-session-init.cjs"
+        SE["SessionStart"] --> CHK{"Python +<br/>tree-sitter<br/>installed?"}
+        CHK -->|Yes| STAT["Inject: Graph active<br/>94 files, 875 nodes"]
+        CHK -->|No| GUIDE["Inject: Install<br/>instructions"]
+    end
+
+    subgraph "Hook 2: graph-auto-update.cjs"
+        EDIT["PostToolUse<br/>(Edit/Write)"] --> DEB["3s debounce"]
+        DEB --> INC["Incremental update:<br/>re-parse changed file<br/>+ dependents"]
+    end
+
+    subgraph "Hook 3: graph-context-injector.cjs"
+        SKILL["PreToolUse(Skill)<br/>/code-review, /scout,<br/>/debug, /sre-review"] --> BR["Run graph-blast-radius"]
+        BR --> INJ["Inject into context:<br/>Risk level, impacted files,<br/>untested functions"]
+    end
+
+    style SE fill:#339af0,stroke:#1864ab,color:#fff
+    style EDIT fill:#ffd43b,stroke:#fab005
+    style SKILL fill:#69db7c,stroke:#2b8a3e
+```
+
+#### Graph in Workflow Context
+
+Every workflow that touches code benefits from the graph automatically:
+
+```mermaid
+sequenceDiagram
+    participant Dev as Developer
+    participant WF as Workflow
+    participant GH as Graph Hooks
+    participant DB as graph.db
+
+    Dev->>WF: Start bugfix workflow
+
+    rect rgb(240, 248, 255)
+        Note over WF,DB: /scout step
+        WF->>GH: context-injector fires
+        GH->>DB: Structural overview query
+        DB-->>GH: 94 files, 875 nodes
+        GH-->>WF: Inject codebase map
+    end
+
+    rect rgb(255, 248, 240)
+        Note over WF,DB: /debug + /fix steps
+        WF->>WF: Claude edits auth.py
+        WF->>GH: auto-update fires
+        GH->>DB: Re-parse auth.py + dependents
+    end
+
+    rect rgb(240, 255, 240)
+        Note over WF,DB: /code-review step
+        WF->>GH: context-injector fires
+        GH->>DB: BFS blast radius
+        DB-->>GH: MEDIUM risk, 5 impacted files
+        GH-->>WF: Inject review context
+        Note over WF: Claude flags untested<br/>functions + broken callers
+    end
+```
+
+#### Available Skills & Commands
+
+| Category    | Skill                   | Purpose                                                        |
+| ----------- | ----------------------- | -------------------------------------------------------------- |
+| **Build**   | `/graph-build`          | Build or incrementally update the knowledge graph              |
+| **Analyze** | `/graph-blast-radius`   | Show impacted files, functions, and test gaps                  |
+| **Query**   | `/graph-query`          | Natural language: "who calls login?", "tests for AuthService?" |
+| **Export**  | `/graph-export`         | Full graph to JSON for external tools                          |
+| **Export**  | `/graph-export-mermaid` | Single-file graph as Mermaid diagram                           |
+| **Connect** | `/graph-connect-api`    | Detect frontend-backend API connections                        |
+| **Connect** | `/connect-implicit`     | Detect implicit connections (events, message bus)              |
+| **Sync**    | `/graph-sync`           | Sync graph with git state after pull/checkout                  |
+| **Batch**   | `/graph-query batch`    | Multi-file deduplicated query                                  |
+
+Skills that **automatically receive graph context** when graph.db exists: `/code-review`, `/review-changes`, `/scout`, `/debug`, `/sre-review`, `/investigate`, `/feature-investigation`, `/fix`, `/refactoring`, `/security`, `/performance`, `/code-simplifier`, `/prove-fix`.
+
+#### Auto-Maintenance
+
+The graph requires **zero manual maintenance** after initial build:
+
+- **Every edit:** `graph-auto-update.cjs` re-parses the edited file (3s debounce, atomic lock)
+- **Every session:** `graph-session-init.cjs` diffs `last_synced_commit` vs HEAD, syncs changed files from git pull/checkout/merge
+- **Implicit connections:** `connect-implicit` runs after build/update when `graphConnectors.implicitConnections[]` is configured, creating edges for entity events, message bus, and loosely coupled patterns
+
+#### Why This Matters for AI Agents
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  AI AGENT CHALLENGE         │  GRAPH SOLUTION                    │
+│─────────────────────────────│────────────────────────────────────│
+│  "What did this change      │  BFS blast radius computes         │
+│   break?"                   │  impacted callers + dependents     │
+│─────────────────────────────│────────────────────────────────────│
+│  "Are there tests for       │  TESTED_BY edges reveal untested   │
+│   the changed code?"        │  functions instantly               │
+│─────────────────────────────│────────────────────────────────────│
+│  "What's the risk level     │  Node count + edge depth =         │
+│   of this PR?"              │  LOW/MEDIUM/HIGH/CRITICAL          │
+│─────────────────────────────│────────────────────────────────────│
+│  "Which files should I      │  Impacted files list replaces      │
+│   review?"                  │  reading entire codebase           │
+│─────────────────────────────│────────────────────────────────────│
+│  "How does auth connect     │  CALLS + IMPORTS edges trace       │
+│   to the API layer?"        │  the full dependency chain         │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+> **Setup:** `pip install tree-sitter tree-sitter-language-pack networkx` then `/graph-build`. See [code-graph-mechanism.md](./code-graph-mechanism.md) for full technical details.
 
 ---
 

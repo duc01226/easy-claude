@@ -10,37 +10,37 @@ Load and extrude SVG paths:
 import { SVGLoader } from 'three/addons/loaders/SVGLoader.js';
 
 const loader = new SVGLoader();
-loader.load('image.svg', (data) => {
-  const paths = data.paths;
-  const group = new THREE.Group();
+loader.load('image.svg', data => {
+    const paths = data.paths;
+    const group = new THREE.Group();
 
-  paths.forEach((path) => {
-    const material = new THREE.MeshBasicMaterial({
-      color: path.color,
-      side: THREE.DoubleSide,
-      depthWrite: false
+    paths.forEach(path => {
+        const material = new THREE.MeshBasicMaterial({
+            color: path.color,
+            side: THREE.DoubleSide,
+            depthWrite: false
+        });
+
+        const shapes = SVGLoader.createShapes(path);
+        shapes.forEach(shape => {
+            const geometry = new THREE.ShapeGeometry(shape);
+            const mesh = new THREE.Mesh(geometry, material);
+            group.add(mesh);
+        });
     });
 
-    const shapes = SVGLoader.createShapes(path);
-    shapes.forEach((shape) => {
-      const geometry = new THREE.ShapeGeometry(shape);
-      const mesh = new THREE.Mesh(geometry, material);
-      group.add(mesh);
+    // Extrude SVG
+    paths.forEach(path => {
+        const shapes = SVGLoader.createShapes(path);
+        const geometry = new THREE.ExtrudeGeometry(shapes, {
+            depth: 10,
+            bevelEnabled: false
+        });
+        const mesh = new THREE.Mesh(geometry, material);
+        group.add(mesh);
     });
-  });
 
-  // Extrude SVG
-  paths.forEach((path) => {
-    const shapes = SVGLoader.createShapes(path);
-    const geometry = new THREE.ExtrudeGeometry(shapes, {
-      depth: 10,
-      bevelEnabled: false
-    });
-    const mesh = new THREE.Mesh(geometry, material);
-    group.add(mesh);
-  });
-
-  scene.add(group);
+    scene.add(group);
 });
 ```
 
@@ -52,14 +52,14 @@ XML-based format from Blender, SketchUp:
 import { ColladaLoader } from 'three/addons/loaders/ColladaLoader.js';
 
 const loader = new ColladaLoader();
-loader.load('model.dae', (collada) => {
-  const model = collada.scene;
-  scene.add(model);
+loader.load('model.dae', collada => {
+    const model = collada.scene;
+    scene.add(model);
 
-  // Access animations
-  const animations = collada.animations;
-  const mixer = new THREE.AnimationMixer(model);
-  animations.forEach(clip => mixer.clipAction(clip).play());
+    // Access animations
+    const animations = collada.animations;
+    const mixer = new THREE.AnimationMixer(model);
+    animations.forEach(clip => mixer.clipAction(clip).play());
 });
 ```
 
@@ -71,13 +71,13 @@ loader.load('model.dae', (collada) => {
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 
 const loader = new STLLoader();
-loader.load('model.stl', (geometry) => {
-  const material = new THREE.MeshPhongMaterial({ color: 0xff5533 });
-  const mesh = new THREE.Mesh(geometry, material);
-  scene.add(mesh);
+loader.load('model.stl', geometry => {
+    const material = new THREE.MeshPhongMaterial({ color: 0xff5533 });
+    const mesh = new THREE.Mesh(geometry, material);
+    scene.add(mesh);
 
-  // STL doesn't include normals, compute them
-  geometry.computeVertexNormals();
+    // STL doesn't include normals, compute them
+    geometry.computeVertexNormals();
 });
 ```
 
@@ -102,8 +102,8 @@ Virtual Reality Modeling Language:
 import { VRMLLoader } from 'three/addons/loaders/VRMLLoader.js';
 
 const loader = new VRMLLoader();
-loader.load('model.wrl', (object) => {
-  scene.add(object);
+loader.load('model.wrl', object => {
+    scene.add(object);
 });
 ```
 
@@ -115,20 +115,20 @@ Protein Data Bank (chemistry/molecular):
 import { PDBLoader } from 'three/addons/loaders/PDBLoader.js';
 
 const loader = new PDBLoader();
-loader.load('molecule.pdb', (pdb) => {
-  const geometryAtoms = pdb.geometryAtoms;
-  const geometryBonds = pdb.geometryBonds;
-  const json = pdb.json;
+loader.load('molecule.pdb', pdb => {
+    const geometryAtoms = pdb.geometryAtoms;
+    const geometryBonds = pdb.geometryBonds;
+    const json = pdb.json;
 
-  // Render atoms as spheres
-  const material = new THREE.MeshPhongMaterial({ color: 0xffffff });
-  const atoms = new THREE.Mesh(geometryAtoms, material);
-  scene.add(atoms);
+    // Render atoms as spheres
+    const material = new THREE.MeshPhongMaterial({ color: 0xffffff });
+    const atoms = new THREE.Mesh(geometryAtoms, material);
+    scene.add(atoms);
 
-  // Render bonds as cylinders
-  const bondMaterial = new THREE.MeshPhongMaterial({ color: 0xcccccc });
-  const bonds = new THREE.Mesh(geometryBonds, bondMaterial);
-  scene.add(bonds);
+    // Render bonds as cylinders
+    const bondMaterial = new THREE.MeshPhongMaterial({ color: 0xcccccc });
+    const bonds = new THREE.Mesh(geometryBonds, bondMaterial);
+    scene.add(bonds);
 });
 ```
 
@@ -142,15 +142,15 @@ import { LDrawLoader } from 'three/addons/loaders/LDrawLoader.js';
 const loader = new LDrawLoader();
 loader.setPath('ldraw/');
 
-loader.load('model.mpd', (group) => {
-  scene.add(group);
+loader.load('model.mpd', group => {
+    scene.add(group);
 
-  // Smooth LEGO bricks
-  group.traverse((child) => {
-    if (child.isMesh) {
-      child.material.flatShading = false;
-    }
-  });
+    // Smooth LEGO bricks
+    group.traverse(child => {
+        if (child.isMesh) {
+            child.material.flatShading = false;
+        }
+    });
 });
 ```
 
@@ -162,11 +162,11 @@ Visualization Toolkit (scientific data):
 import { VTKLoader } from 'three/addons/loaders/VTKLoader.js';
 
 const loader = new VTKLoader();
-loader.load('model.vtk', (geometry) => {
-  geometry.computeVertexNormals();
-  const material = new THREE.MeshStandardMaterial();
-  const mesh = new THREE.Mesh(geometry, material);
-  scene.add(mesh);
+loader.load('model.vtk', geometry => {
+    geometry.computeVertexNormals();
+    const material = new THREE.MeshStandardMaterial();
+    const mesh = new THREE.Mesh(geometry, material);
+    scene.add(mesh);
 });
 ```
 
@@ -178,16 +178,14 @@ Polygon file format (scanned 3D data):
 import { PLYLoader } from 'three/addons/loaders/PLYLoader.js';
 
 const loader = new PLYLoader();
-loader.load('model.ply', (geometry) => {
-  geometry.computeVertexNormals();
+loader.load('model.ply', geometry => {
+    geometry.computeVertexNormals();
 
-  // Check if has vertex colors
-  const material = geometry.attributes.color ?
-    new THREE.MeshStandardMaterial({ vertexColors: true }) :
-    new THREE.MeshStandardMaterial({ color: 0x888888 });
+    // Check if has vertex colors
+    const material = geometry.attributes.color ? new THREE.MeshStandardMaterial({ vertexColors: true }) : new THREE.MeshStandardMaterial({ color: 0x888888 });
 
-  const mesh = new THREE.Mesh(geometry, material);
-  scene.add(mesh);
+    const mesh = new THREE.Mesh(geometry, material);
+    scene.add(mesh);
 });
 ```
 
@@ -199,8 +197,8 @@ loader.load('model.ply', (geometry) => {
 import { TDSLoader } from 'three/addons/loaders/TDSLoader.js';
 
 const loader = new TDSLoader();
-loader.load('model.3ds', (object) => {
-  scene.add(object);
+loader.load('model.3ds', object => {
+    scene.add(object);
 });
 ```
 
@@ -232,21 +230,21 @@ import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
 
 const fontLoader = new FontLoader();
-fontLoader.load('fonts/helvetiker_regular.typeface.json', (font) => {
-  const geometry = new TextGeometry('Hello World', {
-    font: font,
-    size: 80,
-    height: 5,
-    curveSegments: 12,
-    bevelEnabled: true,
-    bevelThickness: 10,
-    bevelSize: 8,
-    bevelSegments: 5
-  });
+fontLoader.load('fonts/helvetiker_regular.typeface.json', font => {
+    const geometry = new TextGeometry('Hello World', {
+        font: font,
+        size: 80,
+        height: 5,
+        curveSegments: 12,
+        bevelEnabled: true,
+        bevelThickness: 10,
+        bevelSize: 8,
+        bevelSegments: 5
+    });
 
-  const material = new THREE.MeshPhongMaterial({ color: 0x00ff00 });
-  const mesh = new THREE.Mesh(geometry, material);
-  scene.add(mesh);
+    const material = new THREE.MeshPhongMaterial({ color: 0x00ff00 });
+    const mesh = new THREE.Mesh(geometry, material);
+    scene.add(mesh);
 });
 ```
 
@@ -258,11 +256,11 @@ High dynamic range images:
 import { EXRLoader } from 'three/addons/loaders/EXRLoader.js';
 
 const loader = new EXRLoader();
-loader.load('env.exr', (texture) => {
-  texture.mapping = THREE.EquirectangularReflectionMapping;
+loader.load('env.exr', texture => {
+    texture.mapping = THREE.EquirectangularReflectionMapping;
 
-  scene.background = texture;
-  scene.environment = texture;
+    scene.background = texture;
+    scene.environment = texture;
 });
 ```
 
@@ -274,18 +272,18 @@ HDR environment maps:
 import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 
 const loader = new RGBELoader();
-loader.load('env.hdr', (texture) => {
-  texture.mapping = THREE.EquirectangularReflectionMapping;
+loader.load('env.hdr', texture => {
+    texture.mapping = THREE.EquirectangularReflectionMapping;
 
-  scene.background = texture;
-  scene.environment = texture;
+    scene.background = texture;
+    scene.environment = texture;
 
-  // Use with PMREM generator for better quality
-  const pmremGenerator = new THREE.PMREMGenerator(renderer);
-  const envMap = pmremGenerator.fromEquirectangular(texture).texture;
-  scene.environment = envMap;
-  texture.dispose();
-  pmremGenerator.dispose();
+    // Use with PMREM generator for better quality
+    const pmremGenerator = new THREE.PMREMGenerator(renderer);
+    const envMap = pmremGenerator.fromEquirectangular(texture).texture;
+    scene.environment = envMap;
+    texture.dispose();
+    pmremGenerator.dispose();
 });
 ```
 
@@ -300,9 +298,9 @@ const loader = new KTX2Loader();
 loader.setTranscoderPath('basis/');
 loader.detectSupport(renderer);
 
-loader.load('texture.ktx2', (texture) => {
-  material.map = texture;
-  material.needsUpdate = true;
+loader.load('texture.ktx2', texture => {
+    material.map = texture;
+    material.needsUpdate = true;
 });
 ```
 
@@ -311,13 +309,17 @@ loader.load('texture.ktx2', (texture) => {
 ```javascript
 // Load with progress
 loader.load(
-  'file.ext',
-  (result) => { /* success */ },
-  (xhr) => {
-    const percent = (xhr.loaded / xhr.total * 100);
-    console.log(`${percent}% loaded`);
-  },
-  (error) => { /* error */ }
+    'file.ext',
+    result => {
+        /* success */
+    },
+    xhr => {
+        const percent = (xhr.loaded / xhr.total) * 100;
+        console.log(`${percent}% loaded`);
+    },
+    error => {
+        /* error */
+    }
 );
 
 // Center imported model
