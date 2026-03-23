@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -417,9 +418,10 @@ def auto_detect_config(root: Path) -> dict | None:
     """
     detected: dict[str, list[tuple[str, str]]] = {"frontend": [], "backend": []}
 
-    for dirpath, dirnames, filenames in root.walk():
+    for dirpath_str, dirnames, filenames in os.walk(str(root)):
         # Skip excluded directories
         dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS]
+        dirpath = Path(dirpath_str)
         rel = dirpath.relative_to(root)
 
         # Check marker files

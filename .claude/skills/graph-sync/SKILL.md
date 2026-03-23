@@ -1,6 +1,6 @@
 ---
 name: graph-sync
-description: "[Code Intelligence] Sync the code review knowledge graph with current git state. Detects files changed since last sync via git diff and re-parses them. Runs automatically on session start; use manually after pulling code or switching branches."
+description: '[Code Intelligence] Sync the code review knowledge graph with current git state. Detects files changed since last sync via git diff and re-parses them. Runs automatically on session start; use manually after pulling code or switching branches.'
 version: 1.0.0
 allowed-tools: Bash, Read, AskUserQuestion
 ---
@@ -37,9 +37,9 @@ This means after `sync`, ALL connections are up-to-date — not just direct code
 ## Steps
 
 1. **Run sync** via Bash:
-   ```bash
-   python .claude/scripts/code_graph sync --json
-   ```
+    ```bash
+    python .claude/scripts/code_graph sync --json
+    ```
 2. **Report results:** Files synced, added, modified, deleted
 3. If sync reports `full_rebuild_fallback` (unreachable commit), inform user that a full rebuild was triggered
 

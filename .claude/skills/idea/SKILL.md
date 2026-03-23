@@ -49,6 +49,7 @@ allowed-tools: Read, Write, Grep, Glob, TaskCreate, AskUserQuestion, Bash
 
 - Validation step is mandatory, not optional
 - Auto-detect module silently; only prompt when ambiguous
+- MUST include rough `t_shirt_size` (XS/S/M/L/XL) in idea artifact for early sizing (see `.claude/skills/shared/estimation-framework.md` T-Shirt to Story Point Mapping)
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 

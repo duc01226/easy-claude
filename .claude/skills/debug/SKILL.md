@@ -9,6 +9,7 @@ description: "[Fix & Debug] Systematic debugging with root cause investigation. 
 **Prerequisites:** **MUST READ** `.claude/skills/shared/understand-code-first-protocol.md` AND `.claude/skills/shared/evidence-based-reasoning-protocol.md` before executing.
 
 - `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
+- `.claude/skills/shared/estimation-framework.md` — Story points and complexity (MUST include `story_points` and `complexity` estimate in debug report)
 - `.claude/skills/shared/red-flag-stop-conditions-protocol.md` — STOP after 3+ failed attempts, when each fix reveals new problems
 
 ## Quick Summary

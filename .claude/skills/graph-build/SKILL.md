@@ -86,10 +86,10 @@ Run `python .claude/scripts/code_graph describe --json` to get MCP-style structu
 
 ### Common Mistakes (DO NOT USE)
 
-| Invalid Command | Correct Alternative |
-|----------------|-------------------|
-| `incremental` | `update --json` (incremental is the default behavior of `update`) |
-| `update --files <list>` | `update --json` (auto-detects changed files via git diff) |
-| `build --files <list>` | `build --json` (always does full rebuild) |
-| `sync --files <list>` | `sync --json` (auto-detects from git) |
-| `file_summary` | `connections <file> --json` |
+| Invalid Command         | Correct Alternative                                               |
+| ----------------------- | ----------------------------------------------------------------- |
+| `incremental`           | `update --json` (incremental is the default behavior of `update`) |
+| `update --files <list>` | `update --json` (auto-detects changed files via git diff)         |
+| `build --files <list>`  | `build --json` (always does full rebuild)                         |
+| `sync --files <list>`   | `sync --json` (auto-detects from git)                             |
+| `file_summary`          | `connections <file> --json`                                       |
