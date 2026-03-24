@@ -542,6 +542,7 @@ Example for a "Create Goal" story:
 
 **MANDATORY IMPORTANT MUST** after completing this skill, use `AskUserQuestion` to recommend:
 - **"/tdd-spec (Recommended)"** — Generate test specifications from stories
+- **"/pbi-mockup"** — Generate HTML mockup report from PBI and stories
 - **"/plan-validate"** — If stories need validation against plan
 - **"Skip, continue manually"** — user decides
 

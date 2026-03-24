@@ -195,6 +195,32 @@ function stripInlineCode(cmd) {
 }
 
 /**
+ * Strip sed/awk pattern arguments from command before path extraction.
+ * These tools take expression arguments containing forward slashes
+ * (e.g., 's/docker compose/new/g') that trigger false-positive path detection.
+ *
+ * Handles: sed 's/old/new/', sed -i 's/.../.../', sed -i.bak -e 's/.../.../',
+ *          awk '{print $1}', awk -F, '/pattern/ {print}'
+ *
+ * @param {string} cmd - Shell command string
+ * @returns {string} Command with sed/awk pattern content replaced by empty strings
+ */
+function stripSedAwkPatterns(cmd) {
+    const tools = '(?:sed|awk|gawk|mawk)';
+    // Match: tool [optional-flags] 'pattern' → tool [flags] ''
+    // Flags: zero or more "-flag" arguments (e.g., -i, -e, -i.bak, -F,)
+    const flags = '(?:\\s+-\\S*)*\\s+';
+
+    // Single-quoted patterns
+    let result = cmd.replace(new RegExp(`(\\b${tools}\\b${flags})'[^']*'`, 'g'), "$1''");
+
+    // Double-quoted patterns
+    result = result.replace(new RegExp(`(\\b${tools}\\b${flags})"(?:[^"\\\\]|\\\\.)*"`, 'g'), '$1""');
+
+    return result;
+}
+
+/**
  * Extract file paths from tool input
  * @param {Object} toolInput - Tool input object
  * @param {string} toolName - Name of the tool being used
@@ -216,8 +242,9 @@ function extractPaths(toolInput, toolName) {
 
     // Bash command parsing
     if (toolInput.command) {
-        // Strip inline code to prevent false positives from code string literals
-        const cmd = stripInlineCode(toolInput.command);
+        // Strip inline code and sed/awk patterns to prevent false positives
+        let cmd = stripInlineCode(toolInput.command);
+        cmd = stripSedAwkPatterns(cmd);
 
         // Skip path extraction for commands running inside containers
         // (docker exec, docker run, kubectl exec, etc.) — paths are container-internal
@@ -327,5 +354,6 @@ module.exports = {
     isWithinDir,
     extractPaths,
     extractMatches,
-    stripInlineCode
+    stripInlineCode,
+    stripSedAwkPatterns
 };

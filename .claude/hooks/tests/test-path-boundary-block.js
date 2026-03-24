@@ -234,6 +234,50 @@ const inlineCodeTests = [
     }
 ];
 
+// Tests for sed/awk pattern false positives (should ALLOW)
+const sedAwkTests = [
+    {
+        name: 'sed substitution with path-like pattern - should allow',
+        input: {
+            tool_input: {
+                command:
+                    'find "MyProject-DevStarts/StartDocker/" -name "*.cmd" -exec sed -i \'s/docker compose --ansi always \\(.*\\) build /docker compose \\1/\' {} \\;'
+            }
+        },
+        expectBlock: false
+    },
+    {
+        name: 'sed -i with slash-heavy substitution - should allow',
+        input: { tool_input: { command: "sed -i 's/\\/usr\\/local\\/bin/\\/opt\\/bin/g' config.txt" } },
+        expectBlock: false
+    },
+    {
+        name: 'sed with double-quoted pattern - should allow',
+        input: { tool_input: { command: 'sed -i "s/docker compose/podman compose/g" file.txt' } },
+        expectBlock: false
+    },
+    {
+        name: 'awk with path-like pattern - should allow',
+        input: { tool_input: { command: "awk '/\\/api\\/v2/ {print $0}' access.log" } },
+        expectBlock: false
+    },
+    {
+        name: 'sed with -e flag and substitution - should allow',
+        input: { tool_input: { command: "sed -e 's/docker/podman/g' file.txt" } },
+        expectBlock: false
+    },
+    {
+        name: 'sed piped from echo - should allow',
+        input: { tool_input: { command: 'echo "test" | sed \'s/docker compose/new/\'' } },
+        expectBlock: false
+    },
+    {
+        name: 'sed then real outside path - should block',
+        input: { tool_input: { command: "sed 's/old/new/' /etc/passwd" } },
+        expectBlock: true
+    }
+];
+
 // Tests for MCP filesystem tools
 const mcpTests = [
     {
@@ -403,6 +447,7 @@ async function main() {
         ['Path Traversal Tests', traversalTests],
         ['Bash Command Tests', bashTests],
         ['Inline Code Tests', inlineCodeTests],
+        ['Sed/Awk Pattern Tests', sedAwkTests],
         ['MCP Filesystem Tests', mcpTests],
         ['NotebookEdit Tests', notebookTests],
         ['Config Toggle Tests', configTests],
