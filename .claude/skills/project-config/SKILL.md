@@ -104,7 +104,6 @@ If validation fails, note the errors — the scan should fix them.
 Check if `CLAUDE.md` exists at the project root. If missing, create a skeleton with essential sections so the AI has project instructions from the start.
 
 ```bash
-# Check if CLAUDE.md exists
 test -f CLAUDE.md && echo "EXISTS" || echo "MISSING"
 ```
 
@@ -116,9 +115,9 @@ The skeleton should contain:
 - Key file locations section (empty, to be filled by the user or `/scan-*` skills)
 - Development commands section (empty placeholders)
 - Naming conventions section
-- A note directing users to run `/project-config` for full setup
+- A note directing users to run `/claude-md-init` after scan skills complete for full generation
 
-> **NOTE:** The `session-init-docs.cjs` hook also creates this skeleton automatically on session start. This phase is a safety net for cases where the hook didn't run or was skipped.
+> **NOTE:** The `session-init-docs.cjs` hook also creates this skeleton automatically on session start. This phase is a safety net for cases where the hook didn't run or was skipped. The full CLAUDE.md generation via `/claude-md-init` runs as the last task in Phase 5, after all scan skills populate reference docs.
 
 **If EXISTS — skip.** Do not overwrite an existing CLAUDE.md.
 
@@ -445,6 +444,7 @@ After project-config is verified, AI **MANDATORY IMPORTANT MUST** create `TaskCr
 3. Each task description: `"Invoke /scan-{name} skill to scan codebase and populate docs/{filename} with real project patterns."`
 4. Tasks should be `pending` — execute sequentially after project-config phase completes
 5. `/scan-project-structure` should run **first** (other scans may reference its output)
+6. **LAST TASK:** After ALL scan skills complete, create a final task: `"Run /claude-md-init to generate CLAUDE.md from config + scan results"`. This must run last because it reads populated reference docs to build the documentation index and lookup guide.
 
 ## E2E Investigation Guidance
 

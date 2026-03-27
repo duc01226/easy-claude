@@ -1,12 +1,12 @@
-# easy-claude - Code Instructions
+# {project-name} - Code Instructions
 
 <!-- SECTION:tldr -->
 
-> **Project:** easy-claude — Claude Code enhancement framework — hooks, skills, agents, and workflows that extend Claude Code capabilities
+> **Project:** {project-name} — {project-description}
 >
-> **Tech Stack:** javascript, python + claude-code-framework
+> **Tech Stack:** {tech-stack-summary}
 >
-> **Apps/Services:** hooks, hooks-lib, skills, agents, scripts, workflows, docs-framework
+> **Apps/Services:** {app-list}
 
 <!-- /SECTION:tldr -->
 
@@ -20,15 +20,9 @@
 
 **Golden Rules (memorize these):**
 
-1. Hooks use CommonJS (require/module.exports)
-2. Hook files read stdin JSON and write to stdout/stderr
-3. Shared utilities go in .claude/hooks/lib/
-4. Test hooks via node .claude/hooks/tests/test-all-hooks.cjs
-5. Each skill is a directory with SKILL.md as entry point
-6. Skills may have scripts/, references/, and tests/ subdirectories
-7. Follow naming conventions in .claude/docs/skill-naming-conventions.md
-8. Agent definitions are markdown files in .claude/agents/
-9. Follow patterns in .claude/docs/agents/agent-patterns.md
+1. {rule-1}
+2. {rule-2}
+3. {rule-3}
 
 <!-- /SECTION:golden-rules -->
 
@@ -48,15 +42,9 @@
 
 **Decision Quick-Ref:**
 
-| Task                  | Pattern                                                                     |
-| --------------------- | --------------------------------------------------------------------------- |
-| New hook              | `.claude/hooks/<name>.cjs` — CJS, reads stdin JSON, writes stdout/stderr    |
-| Shared hook utility   | `.claude/hooks/lib/<name>.cjs` — extracted module for reuse across hooks    |
-| New skill             | `.claude/skills/<skill-name>/SKILL.md` + optional `scripts/`, `references/` |
-| New agent             | `.claude/agents/<agent-name>.md` — markdown definition                      |
-| New workflow          | `.claude/workflows.json` entry + skill definitions for each step            |
-| Test hooks            | `node .claude/hooks/tests/test-all-hooks.cjs`                               |
-| Project config change | Update `docs/project-config.json`, validate with schema                     |
+| Task     | Pattern     |
+| -------- | ----------- |
+| {task-1} | {pattern-1} |
 
 <!-- /SECTION:decision-quick-ref -->
 
@@ -121,16 +109,11 @@ Entity/Model (Lowest)  >  Service  >  Component/Handler (Highest)
 
 ## Naming Conventions
 
-| Type           | Convention       | Example                                       |
-| -------------- | ---------------- | --------------------------------------------- |
-| Files          | kebab-case       | `context-injector.cjs`, `session-manager.cjs` |
-| Hook files     | `<name>.cjs`     | `.claude/hooks/workflow-router.cjs`           |
-| Hook libraries | `<name>.cjs`     | `.claude/hooks/lib/project-config-schema.cjs` |
-| Skill dirs     | `<skill-name>/`  | `.claude/skills/code-review/SKILL.md`         |
-| Agent files    | `<name>.md`      | `.claude/agents/code-reviewer.md`             |
-| Constants      | UPPER_SNAKE_CASE | `MAX_RETRY_COUNT`                             |
-| Booleans       | Prefix with verb | `isActive`, `hasPermission`, `canEdit`        |
-| Collections    | Plural           | `users`, `items`, `employees`                 |
+| Type        | Convention       | Example                                |
+| ----------- | ---------------- | -------------------------------------- |
+| Constants   | UPPER_SNAKE_CASE | `MAX_RETRY_COUNT`                      |
+| Booleans    | Prefix with verb | `isActive`, `hasPermission`, `canEdit` |
+| Collections | Plural           | `users`, `items`, `employees`          |
 
 ---
 
@@ -139,16 +122,7 @@ Entity/Model (Lowest)  >  Service  >  Component/Handler (Highest)
 ## Key File Locations
 
 ```
-.claude/hooks/              # Runtime hooks (CJS modules) — context injection, enforcement, session mgmt
-.claude/hooks/lib/          # Shared hook utility modules
-.claude/hooks/tests/        # Hook test suites
-.claude/skills/             # Skill definitions (SKILL.md + scripts/)
-.claude/agents/             # Agent definitions (markdown)
-.claude/scripts/            # Utility scripts — catalog gen, code graph, skill mgmt
-.claude/workflows/          # Workflow definitions and orchestration
-.claude/docs/               # Framework documentation
-docs/project-config.json    # Project config consumed by hooks at runtime
-docs/project-reference/     # Reference docs populated by /scan-* skills
+{key-locations-tree}
 ```
 
 <!-- /SECTION:key-locations -->
@@ -158,21 +132,46 @@ docs/project-reference/     # Reference docs populated by /scan-* skills
 ## Development Commands
 
 ```bash
-node .claude/hooks/tests/test-all-hooks.cjs                          # Run all hook tests
-node .claude/hooks/tests/run-all-tests.cjs                           # Run full test suite
-python .claude/scripts/generate_catalogs.py --skills                 # Generate skills catalog
-python .claude/scripts/generate_catalogs.py --commands               # Generate commands catalog
+{dev-commands}
 ```
 
 <!-- /SECTION:dev-commands -->
+
+<!-- SECTION:infra-ports -->
+
+## Infrastructure Ports
+
+| Service   | Port   | Credentials   |
+| --------- | ------ | ------------- |
+| {service} | {port} | {credentials} |
+
+<!-- /SECTION:infra-ports -->
+
+<!-- SECTION:api-ports -->
+
+## API Service Ports
+
+| API Service | Port   |
+| ----------- | ------ |
+| {service}   | {port} |
+
+<!-- /SECTION:api-ports -->
 
 <!-- SECTION:integration-testing -->
 
 ## Integration Testing
 
-See [integration-test-reference.md](docs/project-reference/integration-test-reference.md) for integration test patterns and setup.
+{integration-testing-summary}
 
 <!-- /SECTION:integration-testing -->
+
+<!-- SECTION:e2e-testing -->
+
+## E2E Testing
+
+{e2e-testing-summary}
+
+<!-- /SECTION:e2e-testing -->
 
 ---
 
@@ -229,11 +228,9 @@ python .claude/scripts/code_graph search <keyword> --kind Function --json       
 
 When working in specific areas, these skills MUST be automatically activated BEFORE any file creation or modification:
 
-| Path Pattern                 | Skill / Auto-Context | Pre-Read Files                  |
-| ---------------------------- | -------------------- | ------------------------------- |
-| `.claude/hooks/**/*.cjs`     | _(auto-context)_     | `.claude/docs/hooks/README.md`  |
-| `.claude/skills/**/SKILL.md` | _(auto-context)_     | `.claude/docs/skills/README.md` |
-| `.claude/agents/**/*.md`     | _(auto-context)_     | `.claude/docs/agents/README.md` |
+| Path Pattern   | Skill / Auto-Context | Pre-Read Files   |
+| -------------- | -------------------- | ---------------- |
+| {path-pattern} | {skill}              | {pre-read-files} |
 
 <!-- /SECTION:skill-activation -->
 
@@ -243,15 +240,7 @@ When working in specific areas, these skills MUST be automatically activated BEF
 
 ## Documentation Index
 
-```
-docs/project-config.json           # Project configuration (hooks read this at runtime)
-docs/project-reference/            # 10 reference docs populated by /scan-* skills
-  project-structure-reference.md   # Directory tree, module overview
-  domain-entities-reference.md     # Hook, Skill, Agent, Workflow domain model
-  integration-test-reference.md    # Integration test conventions
-  code-review-rules.md             # Code review checklist
-  feature-docs-reference.md        # Business feature doc index
-```
+{doc-index-tree}
 
 <!-- /SECTION:doc-index -->
 
@@ -259,14 +248,8 @@ docs/project-reference/            # 10 reference docs populated by /scan-* skil
 
 ### Doc Lookup Guide
 
-| If user prompt mentions...        | Read first                                              |
-| --------------------------------- | ------------------------------------------------------- |
-| Hook development, hook patterns   | `.claude/docs/hooks/README.md`                          |
-| Skill creation, skill structure   | `.claude/docs/skills/README.md`                         |
-| Agent patterns, agent definitions | `.claude/docs/agents/README.md`                         |
-| Domain model, entities            | `docs/project-reference/domain-entities-reference.md`   |
-| Project structure, modules        | `docs/project-reference/project-structure-reference.md` |
-| Code review rules                 | `docs/project-reference/code-review-rules.md`           |
-| Integration testing               | `docs/project-reference/integration-test-reference.md`  |
+| If user prompt mentions... | Read first |
+| -------------------------- | ---------- |
+| {topic}                    | {doc-path} |
 
 <!-- /SECTION:doc-lookup -->
