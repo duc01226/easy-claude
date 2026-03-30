@@ -40,5 +40,6 @@
   "messaging": {},
   "api": {},
   "infrastructure": {},
-  "referenceDocs": []
+  "referenceDocs": [],
+  "custom": {}
 }
