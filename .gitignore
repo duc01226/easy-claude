@@ -3,3 +3,4 @@
 .claude/workflow-state.json
 .code-graph/
 plans/
+.claude-md.backup

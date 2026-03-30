@@ -191,12 +191,16 @@
       "filename": "e2e-test-reference.md",
       "purpose": "E2E test patterns (N/A for framework project)",
       "sections": []
+    },
+    {
+      "filename": "docs-index-reference.md",
+      "purpose": "Documentation tree, file counts by category, doc relationships, and keyword-to-doc lookup table.",
+      "sections": [
+        "Documentation System",
+        "Documentation Graph",
+        "Key Doc Relationships",
+        "Doc Lookup Guide"
+      ]
     }
-  ],
-  "custom": {
-    "projectType": "claude-code-framework",
-    "hookCount": 36,
-    "skillCount": 236,
-    "agentCount": 28
-  }
+  ]
 }

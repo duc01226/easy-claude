@@ -168,8 +168,6 @@ python .claude/scripts/generate_catalogs.py --commands               # Generate 
 
 <!-- SECTION:integration-testing -->
 
-## Integration Testing
-
 See [integration-test-reference.md](docs/project-reference/integration-test-reference.md) for integration test patterns and setup.
 
 <!-- /SECTION:integration-testing -->
@@ -245,7 +243,7 @@ When working in specific areas, these skills MUST be automatically activated BEF
 
 ```
 docs/project-config.json           # Project configuration (hooks read this at runtime)
-docs/project-reference/            # 10 reference docs populated by /scan-* skills
+docs/project-reference/            # 12 reference docs populated by /scan-* skills
   project-structure-reference.md   # Directory tree, module overview
   domain-entities-reference.md     # Hook, Skill, Agent, Workflow domain model
   integration-test-reference.md    # Integration test conventions
