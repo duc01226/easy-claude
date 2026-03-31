@@ -29,7 +29,7 @@ license: Complete terms in LICENSE.txt
 > **UI System Context** — For frontend/UI/styling tasks, MUST READ these BEFORE implementing: `frontend-patterns-reference.md` (component base classes, stores, forms), `scss-styling-guide.md` (BEM methodology, SCSS vars, responsive), `design-system/README.md` (design tokens, component inventory, icons).
 > MUST READ `.claude/skills/shared/ui-system-context.md` for full protocol and checklists.
 
-- Component patterns: `docs/project-reference/frontend-patterns-reference.md`
+- Component patterns: `docs/project-reference/frontend-patterns-reference.md` (content auto-injected by hook — check for [Injected: ...] header before reading)
 - Styling/BEM guide: `docs/project-reference/scss-styling-guide.md`
 - Design system tokens: `docs/project-reference/design-system/README.md`
 

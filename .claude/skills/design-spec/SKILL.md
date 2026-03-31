@@ -25,7 +25,7 @@ allowed-tools: Read, Write, Edit, Grep, Glob, Bash
 - If wireframe image provided → auto-routes to `/wireframe-to-spec` for structured analysis
 - If screenshot provided → uses `ai-multimodal` for design extraction
 - Reference existing design system tokens from `docs/project-reference/design-system/`
-- Component patterns: `docs/project-reference/frontend-patterns-reference.md`
+- Component patterns: `docs/project-reference/frontend-patterns-reference.md` (content auto-injected by hook — check for [Injected: ...] header before reading)
 - Include accessibility requirements (keyboard nav, ARIA labels, contrast)
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**

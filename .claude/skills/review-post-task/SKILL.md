@@ -21,7 +21,7 @@ description: '[Code Quality] Two-pass code review for task completion'
 
 > **MANDATORY IMPORTANT MUST** Plan ToDo Task to READ the following project-specific reference docs:
 >
-> - `docs/project-reference/code-review-rules.md` — anti-patterns, review checklists, quality standards **(READ FIRST)**
+> - `docs/project-reference/code-review-rules.md` — anti-patterns, review checklists, quality standards **(READ FIRST)** (content auto-injected by hook — check for [Injected: ...] header before reading)
 > - `project-structure-reference.md` — service list, directory tree, conventions
 >
 > If files not found, search for: project documentation, coding standards, architecture docs.

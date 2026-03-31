@@ -26,6 +26,7 @@ const {
   CODE_PATTERNS: CODE_PATTERNS_MARKER,
 } = require("./lib/dedup-constants.cjs");
 const { injectAiMistakePrevention } = require("./lib/prompt-injections.cjs");
+const { readAndInjectDoc } = require("./lib/context-injector-base.cjs");
 
 /**
  * Get agent-specific context from config
@@ -82,18 +83,19 @@ function buildCodingPatternContext(agentType) {
     null;
 
   const lines = ["", CODE_PATTERNS_MARKER];
-  lines.push(
-    "",
-    "**MUST READ for full code examples:**",
-    `- \`${backendDoc}\` - Backend (patterns, repositories, entities, etc.)`,
-    `- \`${frontendDoc}\` - Frontend (Components, Store, Forms, etc.)`,
-  );
-  if (stylingDoc)
-    lines.push(`- \`${stylingDoc}\` - Styling (BEM, SCSS variables, mixins)`);
-  if (designSystemDoc)
-    lines.push(
-      `- \`${designSystemDoc}\` - Design system (tokens, components, icons)`,
-    );
+  // Inject doc content directly so subagents have full patterns without reading
+  const backendContent = readAndInjectDoc(backendDoc);
+  if (backendContent) lines.push(backendContent);
+  const frontendContent = readAndInjectDoc(frontendDoc);
+  if (frontendContent) lines.push(frontendContent);
+  if (stylingDoc) {
+    const stylingContent = readAndInjectDoc(stylingDoc);
+    if (stylingContent) lines.push(stylingContent);
+  }
+  if (designSystemDoc) {
+    const dsContent = readAndInjectDoc(designSystemDoc);
+    if (dsContent) lines.push(dsContent);
+  }
   return lines;
 }
 

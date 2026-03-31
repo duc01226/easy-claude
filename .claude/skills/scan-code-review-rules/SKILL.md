@@ -13,7 +13,7 @@ description: '[Documentation] Scan project and populate/sync docs/project-refere
 
 ## Quick Summary
 
-**Goal:** Scan project codebase for established conventions, lint rules, common patterns, and anti-patterns, then populate `docs/project-reference/code-review-rules.md` with actionable review rules and checklists.
+**Goal:** Scan project codebase for established conventions, lint rules, common patterns, and anti-patterns, then populate `docs/project-reference/code-review-rules.md` with actionable review rules and checklists. (content auto-injected by hook — check for [Injected: ...] header before reading)
 
 **Workflow:**
 

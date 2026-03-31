@@ -67,7 +67,7 @@ After all 3 scans complete, report:
 
 "UI System Scan Complete:
 
-- Design System: {X} tokens, {Y} components found → docs/project-reference/design-system/README.md
+- Design System: {X} tokens, {Y} components found → docs/project-reference/design-system/README.md (content auto-injected by hook — check for [Injected: ...] header before reading)
 - Styling: {approach} detected, {Z} variables/mixins → docs/project-reference/scss-styling-guide.md
 - Frontend Patterns: {framework} detected, {N} base classes → docs/project-reference/frontend-patterns-reference.md"
 

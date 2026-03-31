@@ -13,7 +13,7 @@ description: '[Documentation] Scan project and populate/sync docs/project-refere
 
 ## Quick Summary
 
-**Goal:** Scan backend codebase and populate `docs/project-reference/backend-patterns-reference.md` with actual repository patterns, CQRS command/query structures, validation patterns, entity conventions, event handlers, and migration approaches.
+**Goal:** Scan backend codebase and populate `docs/project-reference/backend-patterns-reference.md` with actual repository patterns, CQRS command/query structures, validation patterns, entity conventions, event handlers, and migration approaches. (content auto-injected by hook — check for [Injected: ...] header before reading)
 
 **Workflow:**
 

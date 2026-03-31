@@ -13,7 +13,7 @@ description: '[Documentation] Scan project and populate/sync docs/project-refere
 
 ## Quick Summary
 
-**Goal:** Scan frontend codebase and populate `docs/project-reference/frontend-patterns-reference.md` with component base classes, state management patterns, form handling, API service patterns, routing conventions, and directory structure.
+**Goal:** Scan frontend codebase and populate `docs/project-reference/frontend-patterns-reference.md` with component base classes, state management patterns, form handling, API service patterns, routing conventions, and directory structure. (content auto-injected by hook — check for [Injected: ...] header before reading)
 
 **Workflow:**
 

@@ -25,7 +25,7 @@ allowed-tools: NONE
 - Produce 4 domain outputs before proposing any direction
 - Run 4 mandate checks before showing output to user
 - Save reusable patterns to `docs/design-system/interface-system.md` when 2+ uses
-- Component patterns: `docs/project-reference/frontend-patterns-reference.md`
+- Component patterns: `docs/project-reference/frontend-patterns-reference.md` (content auto-injected by hook — check for [Injected: ...] header before reading)
 - Styling/BEM guide: `docs/project-reference/scss-styling-guide.md`
 
 **Scope:**

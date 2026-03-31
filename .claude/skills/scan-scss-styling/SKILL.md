@@ -13,7 +13,7 @@ description: '[Documentation] Scan project and populate/sync docs/project-refere
 
 ## Quick Summary
 
-**Goal:** Scan project stylesheets and populate `docs/project-reference/scss-styling-guide.md` with BEM methodology usage, SCSS architecture, mixins/variables inventory, theming patterns, responsive breakpoints, and design token conventions.
+**Goal:** Scan project stylesheets and populate `docs/project-reference/scss-styling-guide.md` with BEM methodology usage, SCSS architecture, mixins/variables inventory, theming patterns, responsive breakpoints, and design token conventions. (content auto-injected by hook — check for [Injected: ...] header before reading)
 
 **Workflow:**
 

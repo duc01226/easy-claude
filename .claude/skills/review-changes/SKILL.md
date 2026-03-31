@@ -11,7 +11,7 @@ description: '[Code Quality] Review all uncommitted changes before commit'
 > MUST READ `.claude/skills/shared/understand-code-first-protocol.md` for full protocol and checklists.
 > **Design Patterns Quality** — Priority checks: (1) DRY via OOP — same-suffix classes MUST share base class, 3+ similar patterns → extract. (2) Right Responsibility — logic in LOWEST layer (Entity > Service > Component). (3) SOLID principles.
 > MUST READ `.claude/skills/shared/design-patterns-quality-checklist.md` for full protocol and checklists.
-- `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
+- `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models) (content auto-injected by hook — check for [Injected: ...] header before reading)
 
 > **Critical Purpose:** Ensure quality — no flaws, no bugs, no missing updates, no stale content. Verify both code AND documentation.
 

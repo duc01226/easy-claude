@@ -20,7 +20,7 @@ allowed-tools: Read, Write, Edit, Grep, Glob, TaskCreate, AskUserQuestion, Bash
 > - `project-structure-reference.md` -- project patterns and structure
 > > **Estimation Framework** — SP scale: 1(trivial) → 2(small) → 3(medium) → 5(large) → 8(very large, high risk) → 13(epic, SHOULD split) → 21(MUST split). MUST provide `story_points` and `complexity` estimate after investigation.
 > MUST READ `.claude/skills/shared/estimation-framework.md` for full protocol and checklists.
-> - `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
+> - `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models) (content auto-injected by hook — check for [Injected: ...] header before reading)
 > - `docs/test-specs/` — Test specifications by module (read existing TCs for related features; include test story/acceptance criteria for new stories)
 >
 > If file not found, search for: project documentation, coding standards, architecture docs.

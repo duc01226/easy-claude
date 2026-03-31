@@ -137,7 +137,7 @@ AI must self-investigate the chosen tech stack and produce a checklist covering 
 
 #### Design System Documentation
 
-- [ ] Create `docs/project-reference/design-system/README.md` skeleton with: token naming conventions, component tier classification (Common/Domain-Shared/Page), usage examples
+- [ ] Create `docs/project-reference/design-system/README.md` skeleton with: token naming conventions, component tier classification (Common/Domain-Shared/Page), usage examples (content auto-injected by hook — check for [Injected: ...] header before reading)
 
 ## Code Quality Gate Tooling (MANDATORY MUST — Setup Before Any Feature Code)
 

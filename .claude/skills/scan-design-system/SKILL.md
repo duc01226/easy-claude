@@ -13,7 +13,7 @@ description: '[Documentation] Scan project and populate/sync docs/project-refere
 
 ## Quick Summary
 
-**Goal:** Scan project for design system artifacts and populate `docs/project-reference/design-system/README.md` with an overview of the design system, app-to-documentation mapping, design token inventory, and component catalog.
+**Goal:** Scan project for design system artifacts and populate `docs/project-reference/design-system/README.md` with an overview of the design system, app-to-documentation mapping, design token inventory, and component catalog. (content auto-injected by hook — check for [Injected: ...] header before reading)
 
 **Workflow:**
 

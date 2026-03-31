@@ -13,7 +13,7 @@ allowed-tools: Read, Edit, Glob, Grep, Task, Bash
 > MUST READ `.claude/skills/shared/understand-code-first-protocol.md` for full protocol and checklists.
 > **Design Patterns Quality** — Priority checks: (1) DRY via OOP — same-suffix classes MUST share base class, 3+ similar patterns → extract. (2) Right Responsibility — logic in LOWEST layer (Entity > Service > Component). (3) SOLID principles.
 > MUST READ `.claude/skills/shared/design-patterns-quality-checklist.md` for full protocol and checklists.
-- `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
+- `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models) (content auto-injected by hook — check for [Injected: ...] header before reading)
 
 > **External Memory:** For complex or lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report file in `plans/reports/` — prevents context loss and serves as deliverable.
 

@@ -23,7 +23,7 @@ allowed-tools: Read, Grep, Glob, Bash
 
 - Review-only skill: finds issues, does NOT fix them
 - Check categories in priority order (accessibility first)
-- Also reference `docs/project-reference/scss-styling-guide.md` if available
+- Also reference `docs/project-reference/scss-styling-guide.md` if available (content auto-injected by hook — check for [Injected: ...] header before reading)
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
