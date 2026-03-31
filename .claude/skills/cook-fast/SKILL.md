@@ -1,7 +1,7 @@
 ---
 name: cook-fast
 version: 1.0.0
-description: "[Implementation] Fast implementation - skip research, minimal planning"
+description: '[Implementation] Fast implementation - skip research, minimal planning'
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
@@ -52,10 +52,10 @@ Start working on these tasks immediately with minimal planning:
 ## Workflow
 
 1. **Quick Planning** (skip research phase)
-   - Analyze task requirements directly
-   - Create minimal todo list with `TaskCreate`
-   - NO researcher subagents, NO scout commands
-   - For non-trivial tasks: write brief analysis to `.ai/workspace/analysis/{task-name}.analysis.md` before implementing.
+    - Analyze task requirements directly
+    - Create minimal todo list with `TaskCreate`
+    - NO researcher subagents, NO scout commands
+    - For non-trivial tasks: write brief analysis to `.ai/workspace/analysis/{task-name}.analysis.md` before implementing.
 
 > **Graph Intelligence (MANDATORY when graph.db exists):** MUST READ `.claude/skills/shared/graph-assisted-investigation-protocol.md`. After implementing, run `python .claude/scripts/code_graph connections <file> --json` on modified files to verify no related files need updates.
 
@@ -66,18 +66,18 @@ When graph DB is available, run a quick downstream trace before implementing:
 - `python .claude/scripts/code_graph trace <file-to-modify> --direction downstream --json` — fast check for downstream impact
 
 2. **Rapid Implementation**
-   - Use `/code` directly on tasks
-   - Skip multi-step planning documents
-   - Focus on working code over documentation
+    - Use `/code` directly on tasks
+    - Skip multi-step planning documents
+    - Focus on working code over documentation
 
 3. **Quick Validation**
-   - Run type-check and compile
-   - Manual spot-check over full test suite
-   - Skip code-reviewer subagent
+    - Run type-check and compile
+    - Manual spot-check over full test suite
+    - Skip code-reviewer subagent
 
 4. **Commit** (optional)
-   - Ask user if ready to commit via `AskUserQuestion`
-   - If yes, use `/commit`
+    - Ask user if ready to commit via `AskUserQuestion`
+    - If yes, use `/commit`
 
 ## When to Use
 

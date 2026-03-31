@@ -63,36 +63,36 @@ Build a structured knowledge model in `.ai/workspace/analysis/[plan-name].analys
 **IMPLEMENTATION_PLAN_DEEP_ANALYSIS**: Thorough analysis of the implementation plan file:
 
 1. **Plan Structure Analysis**:
-   - Read and parse the implementation plan completely
-   - Extract all planned features, requirements, and changes
-   - Identify implementation phases and dependencies
-   - Document under `## Implementation Plan Overview`
+    - Read and parse the implementation plan completely
+    - Extract all planned features, requirements, and changes
+    - Identify implementation phases and dependencies
+    - Document under `## Implementation Plan Overview`
 
 2. **Requirements Extraction**:
-   - Parse Knowledge Graph from implementation plan
-   - Extract new business requirements
-   - Map functional and non-functional requirements
-   - Identify changed business workflows
-   - Document under `## Extracted Requirements`
+    - Parse Knowledge Graph from implementation plan
+    - Extract new business requirements
+    - Map functional and non-functional requirements
+    - Identify changed business workflows
+    - Document under `## Extracted Requirements`
 
 3. **Planned Changes Analysis**:
-   - Catalog all planned code changes (new files, modifications, deletions)
-   - Identify affected components, services, and layers
-   - Map file-level changes to business capabilities
-   - Extract integration points
-   - Document under `## Planned Changes Analysis`
+    - Catalog all planned code changes (new files, modifications, deletions)
+    - Identify affected components, services, and layers
+    - Map file-level changes to business capabilities
+    - Extract integration points
+    - Document under `## Planned Changes Analysis`
 
 4. **Architecture Impact Assessment**:
-   - Analyze how changes affect overall system architecture
-   - Identify CQRS pattern impacts (new Commands/Queries/Events)
-   - Map domain entity changes and repository patterns
-   - Document under `## Architecture Impact Assessment`
+    - Analyze how changes affect overall system architecture
+    - Identify CQRS pattern impacts (new Commands/Queries/Events)
+    - Map domain entity changes and repository patterns
+    - Document under `## Architecture Impact Assessment`
 
 5. **Existing Specification Analysis**:
-   - Read and analyze existing specification document structure
-   - Identify current test cases, requirements, entity relationships
-   - Map existing test coverage to planned changes
-   - Document under `## Current Specification Analysis`
+    - Read and analyze existing specification document structure
+    - Identify current test cases, requirements, entity relationships
+    - Map existing test coverage to planned changes
+    - Document under `## Current Specification Analysis`
 
 **AFFECTED_COMPONENTS_DISCOVERY**: For each planned change, discover:
 
@@ -171,11 +171,11 @@ Once approved, execute with MANDATORY steps:
 1. **Backup Original Specification**
 2. **Read and Parse Existing Specification**
 3. **Execute Planned Updates**:
-   - New Requirements Integration
-   - Entity Relationship Updates
-   - Test Case Enhancement
-   - Traceability Matrix Updates
-   - Coverage Analysis Updates
+    - New Requirements Integration
+    - Entity Relationship Updates
+    - Test Case Enhancement
+    - Traceability Matrix Updates
+    - Coverage Analysis Updates
 4. **Maintain Specification Structure**
 5. **Quality Assurance Validation**
 
@@ -218,8 +218,8 @@ Verify under `## Specification Validation`:
 - Always plan and break work into many small todo tasks using `TaskCreate`
 - Always add a final review todo task to verify work quality and identify fixes/enhancements
 - **MANDATORY FINAL TASKS:** After creating all planning todo tasks, ALWAYS add these two final tasks:
-  1. **Task: "Run /plan-validate"** — Trigger `/plan-validate` skill to interview the user with critical questions and validate plan assumptions
-  2. **Task: "Run /plan-review"** — Trigger `/plan-review` skill to auto-review plan for validity, correctness, and best practices
+    1. **Task: "Run /plan-validate"** — Trigger `/plan-validate` skill to interview the user with critical questions and validate plan assumptions
+    2. **Task: "Run /plan-review"** — Trigger `/plan-review` skill to auto-review plan for validity, correctness, and best practices
 
 ## REMINDER — Planning-Only Skill
 

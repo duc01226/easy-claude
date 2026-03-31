@@ -1,7 +1,7 @@
 ---
 name: cook-auto
 version: 1.0.0
-description: "[Implementation] Implement a feature automatically (trust me bro)"
+description: '[Implementation] Implement a feature automatically (trust me bro)'
 disable-model-invocation: false
 ---
 
@@ -47,7 +47,7 @@ disable-model-invocation: false
 ## Workflow:
 
 1. Trigger slash command `/plan <detailed-instruction-prompt>` to create an implementation plan based on the given tasks.
-   - **External Memory**: Ensure `/plan` writes analysis to `.ai/workspace/analysis/`. Re-read before `/code`.
+    - **External Memory**: Ensure `/plan` writes analysis to `.ai/workspace/analysis/`. Re-read before `/code`.
 2. Trigger slash command `/code <plan>` to implement the plan.
 3. Finally use `AskUserQuestion` tool to ask user if he wants to commit to git repository, if yes trigger `/commit` slash command to create a commit.
 

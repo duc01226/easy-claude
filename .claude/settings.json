@@ -27,7 +27,7 @@
       {
         "hooks": [
           {
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/notify-waiting.js",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/notifications/notify.cjs",
             "type": "command"
           }
         ],

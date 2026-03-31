@@ -1,7 +1,7 @@
 ---
 name: cook-parallel
 version: 1.0.0
-description: "[Implementation] Parallel implementation - multiple tasks simultaneously"
+description: '[Implementation] Parallel implementation - multiple tasks simultaneously'
 disable-model-invocation: false
 ---
 

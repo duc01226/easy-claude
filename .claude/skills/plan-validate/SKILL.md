@@ -1,7 +1,7 @@
 ---
 name: plan-validate
 version: 1.0.0
-description: "[Planning] Validate plan with critical questions interview"
+description: '[Planning] Validate plan with critical questions interview'
 allowed-tools: Read, Glob, Grep, TaskCreate, AskUserQuestion, Bash
 ---
 
@@ -157,8 +157,8 @@ After validation completes, provide summary:
 - Always plan and break work into many small todo tasks using `TaskCreate`
 - Always add a final review todo task to verify work quality and identify fixes/enhancements
 - **MANDATORY FINAL TASKS:** After creating all planning todo tasks, ALWAYS add these two final tasks:
-  1. **Task: "Run /plan-validate"** — Trigger `/plan-validate` skill to interview the user with critical questions and validate plan assumptions
-  2. **Task: "Run /plan-review"** — Trigger `/plan-review` skill to auto-review plan for validity, correctness, and best practices
+    1. **Task: "Run /plan-validate"** — Trigger `/plan-validate` skill to interview the user with critical questions and validate plan assumptions
+    2. **Task: "Run /plan-review"** — Trigger `/plan-review` skill to auto-review plan for validity, correctness, and best practices
 
 ## Important Notes
 

@@ -101,9 +101,9 @@ Always honoring **YAGNI**, **KISS**, and **DRY** principles.
 ##### GitHub Analysis
 
 - Use `gh` command to read and analyze:
-  - GitHub Actions logs
-  - Pull requests
-  - Issues and discussions
+    - GitHub Actions logs
+    - Pull requests
+    - Issues and discussions
 - Extract relevant technical context from GitHub resources
 
 ##### Remote Repository Analysis
@@ -436,23 +436,23 @@ Reference: `docs/project-reference/design-system/tokens.scss` for available toke
 When extraction fails:
 
 1. **MCP Not Available:**
-   - Log warning
-   - Note in plan: "Design context not extracted (MCP unavailable)"
-   - Continue with URL references only
+    - Log warning
+    - Note in plan: "Design context not extracted (MCP unavailable)"
+    - Continue with URL references only
 
 2. **Node Not Found:**
-   - Try parent node
-   - Note which nodes failed
-   - Continue with available data
+    - Try parent node
+    - Note which nodes failed
+    - Continue with available data
 
 3. **Rate Limited:**
-   - Extract first 3 nodes only
-   - Note in plan which nodes were skipped
+    - Extract first 3 nodes only
+    - Note in plan which nodes were skipped
 
 4. **Token Budget Exceeded:**
-   - Summarize aggressively
-   - Include only dimensions, colors, layout
-   - Link to full Figma for details
+    - Summarize aggressively
+    - Include only dimensions, colors, layout
+    - Link to full Figma for details
 
 #### Figma Output Template
 
@@ -524,25 +524,25 @@ No Figma designs referenced. If UI changes are needed:
 ALWAYS read these files first:
 
 1. **`./.claude/workflows/development-rules.md`** (IMPORTANT)
-   - File Name Conventions
-   - File Size Management
-   - Development rules and best practices
-   - Code quality standards
-   - Security guidelines
+    - File Name Conventions
+    - File Size Management
+    - Development rules and best practices
+    - Code quality standards
+    - Security guidelines
 
 2. **`./docs/project-reference/backend-patterns-reference.md`** + **`./docs/project-reference/frontend-patterns-reference.md`**
-   - Backend: CQRS, repositories, entities, validation, message bus
-   - Frontend: component base classes, state management, API services
-   - Naming conventions and coding standards
+    - Backend: CQRS, repositories, entities, validation, message bus
+    - Frontend: component base classes, state management, API services
+    - Naming conventions and coding standards
 
 3. **`./docs/project-reference/project-structure-reference.md`**
-   - Service architecture, ports, directory tree
-   - Tech stack and module codes
+    - Service architecture, ports, directory tree
+    - Tech stack and module codes
 
 4. **`./docs/design-guidelines.md`** (if exists)
-   - Design system guidelines
-   - Branding and UI/UX conventions
-   - Component library usage
+    - Design system guidelines
+    - Branding and UI/UX conventions
+    - Component library usage
 
 ##### Environment Analysis
 
@@ -641,24 +641,24 @@ When designing frontend solutions with Figma context:
 ##### Design Context Integration
 
 1. **Check for Figma Context**
-   - Review extracted design specifications
-   - Verify dimensions and spacing match design system
-   - Note any custom values needing tokens
+    - Review extracted design specifications
+    - Verify dimensions and spacing match design system
+    - Note any custom values needing tokens
 
 2. **Component Structure**
-   - Match Figma hierarchy to Angular component tree
-   - Identify reusable components
-   - Map to existing shared library components
+    - Match Figma hierarchy to Angular component tree
+    - Identify reusable components
+    - Map to existing shared library components
 
 3. **Token Mapping**
-   - Map Figma colors to design tokens
-   - Verify spacing uses standard tokens
-   - Flag any values needing new tokens
+    - Map Figma colors to design tokens
+    - Verify spacing uses standard tokens
+    - Flag any values needing new tokens
 
 4. **Responsive Considerations**
-   - Check if Figma shows breakpoint variants
-   - Plan responsive behavior for unlisted breakpoints
-   - Note any mobile-specific layouts
+    - Check if Figma shows breakpoint variants
+    - Plan responsive behavior for unlisted breakpoints
+    - Note any mobile-specific layouts
 
 #### Solution Design Best Practices
 
@@ -739,8 +739,8 @@ node .claude/scripts/set-active-plan.cjs {plan-dir}
 
 ```markdown
 ---
-title: "Feature Implementation Plan"
-description: "Add user authentication with OAuth2 support"
+title: 'Feature Implementation Plan'
+description: 'Add user authentication with OAuth2 support'
 status: pending
 priority: P1
 effort: 8h
@@ -865,8 +865,8 @@ All `plan.md` files MUST include YAML frontmatter at the top:
 
 ```yaml
 ---
-title: "{Brief plan title}"
-description: "{One-sentence summary for card preview}"
+title: '{Brief plan title}'
+description: '{One-sentence summary for card preview}'
 status: pending # pending | in-progress | completed | cancelled
 priority: P2 # P1 (High) | P2 (Medium) | P3 (Low)
 effort: 4h # Estimated total effort
@@ -1117,8 +1117,8 @@ All agents writing reports MUST:
 - Always plan and break work into many small todo tasks using `TaskCreate`
 - Always add a final review todo task to verify work quality and identify fixes/enhancements
 - **MANDATORY FINAL TASKS:** After creating all planning todo tasks, ALWAYS add these two final tasks:
-  1. **Task: "Run /plan-validate"** — Trigger `/plan-validate` skill to interview the user with critical questions and validate plan assumptions
-  2. **Task: "Run /plan-review"** — Trigger `/plan-review` skill to auto-review plan for validity, correctness, and best practices
+    1. **Task: "Run /plan-validate"** — Trigger `/plan-validate` skill to interview the user with critical questions and validate plan assumptions
+    2. **Task: "Run /plan-review"** — Trigger `/plan-review` skill to auto-review plan for validity, correctness, and best practices
 
 ## Important Notes
 

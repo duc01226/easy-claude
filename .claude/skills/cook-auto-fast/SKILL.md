@@ -1,7 +1,7 @@
 ---
 name: cook-auto-fast
 version: 1.0.0
-description: "[Implementation] No research. Only scout, plan & implement [trust me bro]"
+description: '[Implementation] No research. Only scout, plan & implement [trust me bro]'
 disable-model-invocation: false
 ---
 
@@ -57,7 +57,7 @@ Think harder to plan & start working on these tasks follow the Orchestration Pro
 ## Workflow:
 
 - **Scout**: Use `scout` subagent to find related resources, documents, and code snippets in the current codebase.
-  - **External Memory**: Write scout findings to `.ai/workspace/analysis/{task-name}.analysis.md`. Re-read before implementation.
+    - **External Memory**: Write scout findings to `.ai/workspace/analysis/{task-name}.analysis.md`. Re-read before implementation.
 - **Plan**: Trigger slash command `/plan-fast <detailed-instruction-prompt>` to create an implementation plan based on the reports from `scout` subagent.
 - **Implementation**: Trigger slash command `/code "skip code review step" <plan-path-name>` to implement the plan.
 

@@ -1,7 +1,7 @@
 ---
 name: cook-auto-parallel
 version: 1.0.0
-description: "[Implementation] Plan parallel phases & execute with fullstack-developer agents"
+description: '[Implementation] Plan parallel phases & execute with fullstack-developer agents'
 disable-model-invocation: false
 ---
 
@@ -59,9 +59,9 @@ disable-model-invocation: false
 
 - Read `plan.md` for dependency graph
 - Launch multiple `fullstack-developer` agents in PARALLEL for concurrent phases
-  - Example: "Phases 1-3 parallel" → launch 3 agents simultaneously
-  - Pass phase file path: `{plan-dir}/phase-XX-*.md`
-  - Include environment info
+    - Example: "Phases 1-3 parallel" → launch 3 agents simultaneously
+    - Pass phase file path: `{plan-dir}/phase-XX-*.md`
+    - Include environment info
 - Wait for all parallel phases complete before dependent phases
 - Sequential phases: launch one agent at a time
 

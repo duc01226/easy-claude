@@ -1,6 +1,6 @@
 ---
 name: review-changes
-description: "[Code Quality] Review all uncommitted changes before commit"
+description: '[Code Quality] Review all uncommitted changes before commit'
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
@@ -136,9 +136,9 @@ Check `## Plan Context` in injected context:
 1. Read `{plan-path}/plan.md` — get phase list and scope
 2. Read relevant `phase-*.md` files — extract files to modify, test specifications (TC IDs), success criteria
 3. Verify:
-   - [ ] **Scope match** — changed files listed in plan phases (warn on unplanned files)
-   - [ ] **TC evidence** — TCs mapped to completed phases have evidence (file:line), not "TBD"
-   - [ ] **Success criteria met** — phase success criteria satisfied by changes
+    - [ ] **Scope match** — changed files listed in plan phases (warn on unplanned files)
+    - [ ] **TC evidence** — TCs mapped to completed phases have evidence (file:line), not "TBD"
+    - [ ] **Success criteria met** — phase success criteria satisfied by changes
 4. Add "Plan Compliance" section to review report
 
 **Phase 1: Get Changes and Create Report File**
