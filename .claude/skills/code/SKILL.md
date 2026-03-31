@@ -8,8 +8,8 @@ description: '[Implementation] Start coding & testing an existing plan'
 
 **Prerequisites:** **MUST READ** before executing:
 
-- `.claude/skills/shared/understand-code-first-protocol.md`
-- `docs/project-reference/backend-patterns-reference.md`
+> **Understand Code First** — Search codebase for 3+ similar implementations BEFORE writing any code. Read existing files, validate assumptions with grep evidence, map dependencies via graph trace. Never invent new patterns when existing ones work.
+> MUST READ `.claude/skills/shared/understand-code-first-protocol.md` for full protocol and checklists.
 - `docs/project-reference/frontend-patterns-reference.md`
 - `docs/project-reference/scss-styling-guide.md` — Styling/BEM guide (read when task involves frontend/UI)
 - `docs/project-reference/design-system/README.md` — Design system tokens (read when task involves frontend/UI)
@@ -157,13 +157,6 @@ Present summary (3-5 bullets): what implemented, tests passed, code review outco
 - Step 5: User must explicitly approve
 
 Do not skip steps. Do not proceed if validation fails. Do not assume approval without user response. One plan phase per command run.
-
----
-
-**IMPORTANT Task Planning Notes (MUST FOLLOW)**
-
-- Always plan and break work into many small todo tasks
-- Always add a final review todo task to verify work quality and identify fixes/enhancements
 
 ---
 

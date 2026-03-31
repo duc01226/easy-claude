@@ -70,3 +70,12 @@ After all 3 scans complete, report:
 - Design System: {X} tokens, {Y} components found → docs/project-reference/design-system/README.md
 - Styling: {approach} detected, {Z} variables/mixins → docs/project-reference/scss-styling-guide.md
 - Frontend Patterns: {framework} detected, {N} base classes → docs/project-reference/frontend-patterns-reference.md"
+
+---
+
+## Closing Reminders
+
+- **MUST** break work into small todo tasks using `TaskCreate` BEFORE starting
+- **MUST** search codebase for 3+ similar patterns before creating new code
+- **MUST** cite `file:line` evidence for every claim (confidence >80% to act)
+- **MUST** add a final review todo task to verify work quality

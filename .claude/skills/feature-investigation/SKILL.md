@@ -525,7 +525,9 @@ Present findings in clear format with: Answer, How It Works (with code refs), Ke
 
 ## Anti-Hallucination Protocols (Investigation-Specific)
 
-**Prerequisites:** **MUST READ** `.claude/skills/shared/understand-code-first-protocol.md` and `.claude/skills/shared/evidence-based-reasoning-protocol.md` before executing.
+**Prerequisites:** > **Understand Code First** — Search codebase for 3+ similar implementations BEFORE writing any code. Read existing files, validate assumptions with grep evidence, map dependencies via graph trace. Never invent new patterns when existing ones work.
+> MUST READ `.claude/skills/shared/understand-code-first-protocol.md` for full protocol and checklists.
+> and `.claude/skills/shared/evidence-based-reasoning-protocol.md` before executing.
 
 ---
 
