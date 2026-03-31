@@ -1,6 +1,6 @@
 ---
 name: review-changes
-description: '[Code Quality] Review all uncommitted changes before commit'
+description: "[Code Quality] Review all uncommitted changes before commit"
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
@@ -125,6 +125,21 @@ Before starting, call TaskCreate with:
 - [ ] Record in report: changed files count, impacted files count, untested changes, risk level
 - [ ] Use blast radius output to prioritize which files to review most carefully in Phase 2
 - [ ] If `.code-graph/graph.db` does not exist, note "Graph not available — skipping blast radius" and proceed to Phase 1
+
+**Phase 0.5: Plan Compliance Check (CONDITIONAL — only when active plan exists)**
+
+Check `## Plan Context` in injected context:
+
+- If "Plan: none" → skip, log "No active plan — skipping plan compliance"
+- If "Plan: {path}" → load plan and verify:
+
+1. Read `{plan-path}/plan.md` — get phase list and scope
+2. Read relevant `phase-*.md` files — extract files to modify, test specifications (TC IDs), success criteria
+3. Verify:
+   - [ ] **Scope match** — changed files listed in plan phases (warn on unplanned files)
+   - [ ] **TC evidence** — TCs mapped to completed phases have evidence (file:line), not "TBD"
+   - [ ] **Success criteria met** — phase success criteria satisfied by changes
+4. Add "Plan Compliance" section to review report
 
 **Phase 1: Get Changes and Create Report File**
 

@@ -1,7 +1,7 @@
 ---
 name: cook-auto-parallel
 version: 1.0.0
-description: '[Implementation] Plan parallel phases & execute with fullstack-developer agents'
+description: "[Implementation] Plan parallel phases & execute with fullstack-developer agents"
 disable-model-invocation: false
 ---
 
@@ -11,6 +11,7 @@ disable-model-invocation: false
 
 - `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
 - `docs/test-specs/` — Test specifications by module (read existing TCs; generate/update test specs via `/tdd-spec` after implementation)
+- `.claude/skills/shared/plan-quality-protocol.md` — Test spec integration in plans and attention anchoring for long workflows
 
 > **Process Discipline:** MUST READ `.claude/skills/shared/rationalization-prevention-protocol.md` — counter "too simple for a plan" and "I'll refactor later" evasions.
 
@@ -58,9 +59,9 @@ disable-model-invocation: false
 
 - Read `plan.md` for dependency graph
 - Launch multiple `fullstack-developer` agents in PARALLEL for concurrent phases
-    - Example: "Phases 1-3 parallel" → launch 3 agents simultaneously
-    - Pass phase file path: `{plan-dir}/phase-XX-*.md`
-    - Include environment info
+  - Example: "Phases 1-3 parallel" → launch 3 agents simultaneously
+  - Pass phase file path: `{plan-dir}/phase-XX-*.md`
+  - Include environment info
 - Wait for all parallel phases complete before dependent phases
 - Sequential phases: launch one agent at a time
 

@@ -1,13 +1,15 @@
 ---
 name: plan-validate
 version: 1.0.0
-description: '[Planning] Validate plan with critical questions interview'
+description: "[Planning] Validate plan with critical questions interview"
 allowed-tools: Read, Glob, Grep, TaskCreate, AskUserQuestion, Bash
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
 
 **Prerequisites:** **MUST READ** `.claude/skills/shared/understand-code-first-protocol.md` before executing.
+
+- `.claude/skills/shared/plan-quality-protocol.md` — Test spec integration in plans and attention anchoring for long workflows
 
 > **External Memory:** For complex or lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report file in `plans/reports/` — prevents context loss and serves as deliverable.
 
@@ -74,6 +76,7 @@ Scan plan content for:
 | **Risks**        | "risk", "might", "could fail", "dependency", "blocker", "concern"                                       |
 | **Scope**        | "phase", "MVP", "future", "out of scope", "nice to have"                                                |
 | **New Tech/Lib** | "install", "add package", "new dependency", "npm install", "dotnet add", framework names not in project |
+| **Test Specs**   | "TC-", "test case", "coverage", "TDD", "test specification", "test spec"                                |
 
 ### Step 3: Generate Questions
 
@@ -154,8 +157,8 @@ After validation completes, provide summary:
 - Always plan and break work into many small todo tasks using `TaskCreate`
 - Always add a final review todo task to verify work quality and identify fixes/enhancements
 - **MANDATORY FINAL TASKS:** After creating all planning todo tasks, ALWAYS add these two final tasks:
-    1. **Task: "Run /plan-validate"** — Trigger `/plan-validate` skill to interview the user with critical questions and validate plan assumptions
-    2. **Task: "Run /plan-review"** — Trigger `/plan-review` skill to auto-review plan for validity, correctness, and best practices
+  1. **Task: "Run /plan-validate"** — Trigger `/plan-validate` skill to interview the user with critical questions and validate plan assumptions
+  2. **Task: "Run /plan-review"** — Trigger `/plan-review` skill to auto-review plan for validity, correctness, and best practices
 
 ## Important Notes
 

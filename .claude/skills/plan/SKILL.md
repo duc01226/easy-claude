@@ -1,7 +1,7 @@
 ---
 name: plan
 version: 1.0.0
-description: '[Planning] Intelligent plan creation with prompt enhancement'
+description: "[Planning] Intelligent plan creation with prompt enhancement"
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
@@ -12,6 +12,7 @@ description: '[Planning] Intelligent plan creation with prompt enhancement'
 - `.claude/skills/shared/rationalization-prevention-protocol.md` — Anti-evasion rebuttals (prevents "too simple for a plan" shortcuts)
 - `.claude/skills/shared/estimation-framework.md` — Story points, complexity scale, splitting rules (plans MUST include `story_points` and `effort` in frontmatter)
 - `docs/test-specs/` — Test specifications by module (read existing TCs to include test strategy in plan)
+- `.claude/skills/shared/plan-quality-protocol.md` — Test spec integration in plans and attention anchoring for long workflows
 
 > **Iterative Quality Gate:** **MUST READ** `.claude/skills/shared/iterative-phase-quality-protocol.md`.
 > Before routing, assess complexity score. Score ≥3 → plan MUST produce multiple phases with per-phase quality cycles.
@@ -46,8 +47,8 @@ description: '[Planning] Intelligent plan creation with prompt enhancement'
 4. Delegate architecture decisions to `solution-architect` agent
 5. Increase user interview frequency (AskUserQuestion at each major decision)
 6. If `/greenfield` workflow is not already active, suggest it via AskUserQuestion:
-    - "Activate Greenfield Project Init workflow (Recommended)" — full waterfall inception
-    - "Continue with standalone /plan-hard" — planning only, no full workflow
+   - "Activate Greenfield Project Init workflow (Recommended)" — full waterfall inception
+   - "Continue with standalone /plan-hard" — planning only, no full workflow
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
@@ -100,8 +101,8 @@ Check the `## Plan Context` section in the injected context:
 - Always plan and break work into many small todo tasks using `TaskCreate`
 - Always add a final review todo task to verify work quality and identify fixes/enhancements
 - **MANDATORY FINAL TASKS:** After creating all planning todo tasks, ALWAYS add these two final tasks:
-    1. **Task: "Run /plan-validate"** — Trigger `/plan-validate` skill to interview the user with critical questions and validate plan assumptions
-    2. **Task: "Run /plan-review"** — Trigger `/plan-review` skill to auto-review plan for validity, correctness, and best practices
+  1. **Task: "Run /plan-validate"** — Trigger `/plan-validate` skill to interview the user with critical questions and validate plan assumptions
+  2. **Task: "Run /plan-review"** — Trigger `/plan-review` skill to auto-review plan for validity, correctness, and best practices
 
 ## Important Notes
 

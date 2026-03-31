@@ -1,7 +1,7 @@
 ---
 name: plan-review
 version: 1.0.0
-description: '[Planning] Auto-review plan for validity, correctness, and best practices before implementation'
+description: "[Planning] Auto-review plan for validity, correctness, and best practices before implementation"
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
@@ -77,6 +77,8 @@ Read the plan directory:
 - [ ] No conflicting or duplicate steps
 - [ ] Dependencies between steps are clear
 - [ ] **New Tech/Lib Gate:** If plan introduces new packages/libraries/frameworks not in the project, verify alternatives were evaluated (top 3 compared) and user confirmed the choice. FAIL if new tech is added without evaluation.
+- [ ] **Test spec coverage** — Every phase has `## Test Specifications` section with TC mappings per `.claude/skills/shared/plan-quality-protocol.md`. "TBD" is valid for TDD-first mode.
+- [ ] **TC-requirement mapping** — Every functional requirement maps to ≥1 TC (or explicit "TBD" with rationale)
 
 #### Best Practices (Required - all must pass)
 
@@ -162,10 +164,10 @@ After completing Round 1 checklist evaluation, execute a **second full review ro
 2. **Re-evaluate** ALL checklist items — do NOT rely on Round 1 memory
 3. **Challenge** Round 1 PASS items: "Is this really PASS? Did I verify with evidence?"
 4. **Focus on** what Round 1 typically misses:
-    - Implicit assumptions that weren't validated
-    - Missing acceptance criteria coverage
-    - Edge cases not addressed in the artifact
-    - Cross-references that weren't verified
+   - Implicit assumptions that weren't validated
+   - Missing acceptance criteria coverage
+   - Edge cases not addressed in the artifact
+   - Cross-references that weren't verified
 5. **Update verdict** if Round 2 found new issues
 6. **Final verdict** must incorporate findings from BOTH rounds
 
@@ -180,8 +182,8 @@ After completing Round 1 checklist evaluation, execute a **second full review ro
 - Always plan and break work into many small todo tasks using `TaskCreate`
 - Always add a final review todo task to verify work quality and identify fixes/enhancements
 - **MANDATORY FINAL TASKS:** After creating all planning todo tasks, ALWAYS add these two final tasks:
-    1. **Task: "Run /plan-validate"** — Trigger `/plan-validate` skill to interview the user with critical questions and validate plan assumptions
-    2. **Task: "Run /plan-review"** — Trigger `/plan-review` skill to auto-review plan for validity, correctness, and best practices
+  1. **Task: "Run /plan-validate"** — Trigger `/plan-validate` skill to interview the user with critical questions and validate plan assumptions
+  2. **Task: "Run /plan-review"** — Trigger `/plan-review` skill to auto-review plan for validity, correctness, and best practices
 
 ## Important Notes
 

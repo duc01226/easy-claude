@@ -1,7 +1,7 @@
 ---
 name: cook
 version: 1.0.0
-description: '[Implementation] Implement a feature [step by step]'
+description: "[Implementation] Implement a feature [step by step]"
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
@@ -10,6 +10,7 @@ description: '[Implementation] Implement a feature [step by step]'
 
 - `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
 - `docs/test-specs/` — Test specifications by module (read existing TCs; generate/update test specs via `/tdd-spec` after implementation)
+- `.claude/skills/shared/plan-quality-protocol.md` — Test spec integration in plans and attention anchoring for long workflows
 
 > **Evidence Gate:** MANDATORY IMPORTANT MUST — every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% must verify first).
 
@@ -57,6 +58,17 @@ Each plan phase = one quality cycle (plan→implement→review→fix→verify).
 DO NOT start next phase until current phase passes VERIFY.
 After each phase: re-assess remaining phases for scope changes.
 </HARD-GATE>
+
+## TC Satisfaction Verification (Per Phase)
+
+> Per `.claude/skills/shared/plan-quality-protocol.md`
+
+After implementing each phase, before marking it complete:
+
+1. Read the phase's `## Test Specifications` section
+2. For each mapped TC: verify evidence exists (file:line, not TBD), grep-verify the file
+3. If any TC lacks evidence → phase is NOT complete
+4. Update phase file's TC table with actual evidence references
 
 ## Greenfield Mode
 
@@ -156,8 +168,8 @@ mistakes compound through later tasks.
 ### Code Review
 
 - **Two-stage review** (see `.claude/skills/shared/two-stage-task-review-protocol.md`):
-    1. First: dispatch `spec-compliance-reviewer` to verify implementation matches spec
-    2. Only after spec passes: dispatch `code-reviewer` for quality review
+  1. First: dispatch `spec-compliance-reviewer` to verify implementation matches spec
+  2. Only after spec passes: dispatch `code-reviewer` for quality review
 - If critical issues: fix and re-run `tester`.
 - Repeat until all tests pass and code is reviewed.
 - Report summary to user and ask for approval.

@@ -1,7 +1,7 @@
 ---
 name: cook-auto
 version: 1.0.0
-description: '[Implementation] Implement a feature automatically (trust me bro)'
+description: "[Implementation] Implement a feature automatically (trust me bro)"
 disable-model-invocation: false
 ---
 
@@ -11,6 +11,7 @@ disable-model-invocation: false
 
 - `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
 - `docs/test-specs/` — Test specifications by module (read existing TCs; generate/update test specs via `/tdd-spec` after implementation)
+- `.claude/skills/shared/plan-quality-protocol.md` — Test spec integration in plans and attention anchoring for long workflows
 
 > **Process Discipline:** MUST READ `.claude/skills/shared/rationalization-prevention-protocol.md` — counter "too simple for a plan" and "I'll refactor later" evasions.
 
@@ -46,7 +47,7 @@ disable-model-invocation: false
 ## Workflow:
 
 1. Trigger slash command `/plan <detailed-instruction-prompt>` to create an implementation plan based on the given tasks.
-    - **External Memory**: Ensure `/plan` writes analysis to `.ai/workspace/analysis/`. Re-read before `/code`.
+   - **External Memory**: Ensure `/plan` writes analysis to `.ai/workspace/analysis/`. Re-read before `/code`.
 2. Trigger slash command `/code <plan>` to implement the plan.
 3. Finally use `AskUserQuestion` tool to ask user if he wants to commit to git repository, if yes trigger `/commit` slash command to create a commit.
 
