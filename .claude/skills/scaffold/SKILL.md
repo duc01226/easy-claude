@@ -8,7 +8,7 @@ description: '[Architecture] Scaffold project architecture with OOP/SOLID base c
 
 > **Understand Code First** — Search codebase for 3+ similar implementations BEFORE writing any code. Read existing files, validate assumptions with grep evidence, map dependencies via graph trace. Never invent new patterns when existing ones work.
 > MUST READ `.claude/skills/shared/understand-code-first-protocol.md` for full protocol and checklists.
-**Prerequisites:** > **Scaffold Production Readiness** — Production scaffold checklist: health endpoints, structured logging, graceful shutdown, config validation, CI pipeline, Dockerfile, env separation. Verify each item exists before marking scaffold complete.
+> **Prerequisites:** > **Scaffold Production Readiness** — Production scaffold checklist: health endpoints, structured logging, graceful shutdown, config validation, CI pipeline, Dockerfile, env separation. Verify each item exists before marking scaffold complete.
 > MUST READ `.claude/skills/shared/scaffold-production-readiness-protocol.md` for full protocol and checklists.
 > before executing — defines production readiness requirements for all 4 concern areas.
 

@@ -170,7 +170,7 @@ Combine grep + graph results into a **numbered, prioritized file list** (see Res
 ## Graph Intelligence (MANDATORY when graph.db exists)
 
 > > **Graph-Assisted Investigation** — When `.code-graph/graph.db` exists, MUST run at least ONE graph command on key files before concluding. Pattern: Grep finds files → `trace --direction both` reveals full system flow → Grep verifies details. Use `connections` for 1-hop, `callers_of`/`tests_for` for specific queries, `batch-query` for multiple files.
-> MUST READ `.claude/skills/shared/graph-assisted-investigation-protocol.md` for full protocol and checklists.
+> > MUST READ `.claude/skills/shared/graph-assisted-investigation-protocol.md` for full protocol and checklists.
 
 If `.code-graph/graph.db` exists, **orchestrate grep ↔ graph ↔ glob** to find files faster:
 

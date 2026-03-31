@@ -81,4 +81,3 @@ Analyze the skills catalog and activate the skills that are needed for the task 
 - **MUST** cite `file:line` evidence for every claim (confidence >80% to act)
 - **MUST** add a final review todo task to verify work quality
 - **MUST** STOP after 3 failed fix attempts — report outcomes, ask user before #4
-

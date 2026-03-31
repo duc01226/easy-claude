@@ -8,6 +8,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Task, WebFetch, WebSearch, T
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
 
 **Prerequisites:** > **Understand Code First** — Search codebase for 3+ similar implementations BEFORE writing any code. Read existing files, validate assumptions with grep evidence, map dependencies via graph trace. Never invent new patterns when existing ones work.
+
 > MUST READ `.claude/skills/shared/understand-code-first-protocol.md` for full protocol and checklists.
 > and `.claude/skills/shared/evidence-based-reasoning-protocol.md` before executing.
 

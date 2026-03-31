@@ -32,8 +32,8 @@ allowed-tools: Read, Write, Grep, Glob, AskUserQuestion, Bash
 - Design system tokens: `docs/project-reference/design-system/README.md`
 
 - > **UI Wireframe Protocol** — Wireframe-to-implementation flow: parse layout structure, map to components, extract design tokens, generate responsive breakpoints.
-> MUST READ `.claude/skills/shared/ui-wireframe-protocol.md` for full protocol and checklists.
-> before generating output
+  > MUST READ `.claude/skills/shared/ui-wireframe-protocol.md` for full protocol and checklists.
+  > before generating output
 - Always require human review — wireframe analysis is 70-80% accurate
 - Route to other skills when appropriate (Figma URL → `figma-design`, app screenshot → `design-screenshot`)
 

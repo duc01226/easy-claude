@@ -1,7 +1,7 @@
 ---
 name: template-skill
 version: 1.0.0
-description: "[Category] Replace with description and trigger keywords."
+description: '[Category] Replace with description and trigger keywords.'
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.

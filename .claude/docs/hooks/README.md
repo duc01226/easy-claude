@@ -77,16 +77,16 @@ Lessons are managed via `/learn` skill. See `.claude/skills/learn/SKILL.md`.
 
 ### Workflow Automation
 
-| Hook                           | Event                                             | Purpose                                                           |
-| ------------------------------ | ------------------------------------------------- | ----------------------------------------------------------------- |
-| `init-prompt-gate.cjs`         | UserPromptSubmit                                  | Block prompts until project config is populated (exit 2 = block)  |
-| `workflow-router.cjs`          | SessionStart, UserPromptSubmit                    | Detect intent, inject matching workflow from 45-workflow catalog  |
-| `prompt-context-assembler.cjs` | SessionStart, UserPromptSubmit                    | Assemble dev rules, lessons, and lesson-learned reminder          |
-| `session-init-docs.cjs`        | SessionStart:`startup`                            | Config skeleton + reference doc placeholder creation              |
-| `workflow-step-tracker.cjs`    | PostToolUse:`Skill`                               | Track workflow step completion                                    |
-| `edit-enforcement.cjs`         | PreToolUse:`Edit\|Write\|MultiEdit\|NotebookEdit` | Track edits, plan warnings at 4/8 files, block without TaskCreate |
-| `skill-enforcement.cjs`        | PreToolUse:`Skill`                                | Block implementation skills without TaskCreate                    |
-| `todo-tracker.cjs`             | PostToolUse:`TaskCreate\|TaskUpdate`              | Persist todo state to disk for cross-compaction recovery          |
+| Hook                           | Event                                             | Purpose                                                             |
+| ------------------------------ | ------------------------------------------------- | ------------------------------------------------------------------- |
+| `init-prompt-gate.cjs`         | UserPromptSubmit                                  | Block prompts until config populated + graph built (exit 2 = block) |
+| `workflow-router.cjs`          | SessionStart, UserPromptSubmit                    | Detect intent, inject matching workflow from 45-workflow catalog    |
+| `prompt-context-assembler.cjs` | SessionStart, UserPromptSubmit                    | Assemble dev rules, lessons, and lesson-learned reminder            |
+| `session-init-docs.cjs`        | SessionStart:`startup`                            | Config skeleton + reference doc placeholder creation                |
+| `workflow-step-tracker.cjs`    | PostToolUse:`Skill`                               | Track workflow step completion                                      |
+| `edit-enforcement.cjs`         | PreToolUse:`Edit\|Write\|MultiEdit\|NotebookEdit` | Track edits, plan warnings at 4/8 files, block without TaskCreate   |
+| `skill-enforcement.cjs`        | PreToolUse:`Skill`                                | Block implementation skills without TaskCreate                      |
+| `todo-tracker.cjs`             | PostToolUse:`TaskCreate\|TaskUpdate`              | Persist todo state to disk for cross-compaction recovery            |
 
 ### Safety & Privacy
 
@@ -226,13 +226,13 @@ Hooks receive JSON via stdin with event-specific payload:
 
 ```json
 {
-    "tool_name": "Edit",
-    "tool_input": {
-        "file_path": "/path/to/file.ts",
-        "old_string": "...",
-        "new_string": "..."
-    },
-    "session_id": "abc123"
+  "tool_name": "Edit",
+  "tool_input": {
+    "file_path": "/path/to/file.ts",
+    "old_string": "...",
+    "new_string": "..."
+  },
+  "session_id": "abc123"
 }
 ```
 
@@ -259,19 +259,19 @@ Hooks are registered in `settings.json` under `hooks.{EventName}[].hooks[]`. Eac
 
 ```json
 {
-    "hooks": {
-        "PreToolUse": [
-            {
-                "hooks": [
-                    {
-                        "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/privacy-block.cjs",
-                        "type": "command"
-                    }
-                ],
-                "matcher": "Bash|Glob|Grep|Read|Edit|Write|NotebookEdit"
-            }
-        ]
-    }
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/privacy-block.cjs",
+            "type": "command"
+          }
+        ],
+        "matcher": "Bash|Glob|Grep|Read|Edit|Write|NotebookEdit"
+      }
+    ]
+  }
 }
 ```
 
@@ -279,11 +279,11 @@ Hooks are registered in `settings.json` under `hooks.{EventName}[].hooks[]`. Eac
 
 ```json
 {
-    "privacyBlock": true,
-    "codeReview": {
-        "enabled": true,
-        "rulesPath": "docs/project-reference/code-review-rules.md"
-    }
+  "privacyBlock": true,
+  "codeReview": {
+    "enabled": true,
+    "rulesPath": "docs/project-reference/code-review-rules.md"
+  }
 }
 ```
 

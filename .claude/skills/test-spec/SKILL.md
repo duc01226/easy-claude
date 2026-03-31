@@ -14,8 +14,8 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Task, TaskCreate
 > **MANDATORY IMPORTANT MUST** Plan ToDo Task to READ the following project-specific reference doc:
 >
 > - `project-structure-reference.md` -- project patterns and structure
-> > **Graph Impact Analysis** — Use `trace --direction downstream` on changed files to find all impacted consumers, bus message handlers, event subscribers. Verify each needs updating.
-> MUST READ `.claude/skills/shared/graph-impact-analysis-protocol.md` for full protocol and checklists.
+>     > **Graph Impact Analysis** — Use `trace --direction downstream` on changed files to find all impacted consumers, bus message handlers, event subscribers. Verify each needs updating.
+>     > MUST READ `.claude/skills/shared/graph-impact-analysis-protocol.md` for full protocol and checklists.
 > - `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models) (content auto-injected by hook — check for [Injected: ...] header before reading)
 > - `docs/test-specs/` — Test specifications by module (read existing TCs before generating new to avoid duplicates and maintain TC ID continuity)
 >
@@ -42,8 +42,8 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Task, TaskCreate
 
 - **⚠️ MUST READ** `.claude/skills/shared/references/module-codes.md` for TC ID formats and module codes
 - > **Evidence-Based Reasoning** — Speculation is FORBIDDEN. Every claim needs `file:line` proof. Confidence: >95% recommend freely, 80-94% with caveats, <80% DO NOT recommend — gather more evidence. Cross-service validation required for architectural changes.
-> MUST READ `.claude/skills/shared/evidence-based-reasoning-protocol.md` for full protocol and checklists.
-> before executing
+  > MUST READ `.claude/skills/shared/evidence-based-reasoning-protocol.md` for full protocol and checklists.
+  > before executing
 - **⚠️ INVESTIGATE FIRST** — NEVER generate test specs without completing Phase 0 (Business & Code Investigation). You must understand the business logic and code paths before writing any test case.
 - **⚠️ ALWAYS PLAN TASKS** — Use `TaskCreate` to break work into granular todo items BEFORE starting. Must include a final review task.
 - Every test case must have `Evidence: {FilePath}:{LineNumber}`

@@ -201,4 +201,3 @@ plans/
 - **MUST** cite `file:line` evidence for every claim (confidence >80% to act)
 - **MUST** add a final review todo task to verify work quality
 - **MUST** include Test Specifications section and story_points in plan frontmatter
-

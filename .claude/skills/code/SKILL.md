@@ -10,6 +10,7 @@ description: '[Implementation] Start coding & testing an existing plan'
 
 > **Understand Code First** — Search codebase for 3+ similar implementations BEFORE writing any code. Read existing files, validate assumptions with grep evidence, map dependencies via graph trace. Never invent new patterns when existing ones work.
 > MUST READ `.claude/skills/shared/understand-code-first-protocol.md` for full protocol and checklists.
+
 - `docs/project-reference/frontend-patterns-reference.md` (content auto-injected by hook — check for [Injected: ...] header before reading)
 - `docs/project-reference/scss-styling-guide.md` — Styling/BEM guide (read when task involves frontend/UI)
 - `docs/project-reference/design-system/README.md` — Design system tokens (read when task involves frontend/UI)

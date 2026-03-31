@@ -47,11 +47,11 @@ allowed-tools: Read, Write, Edit, Grep, Glob, TaskCreate, WebSearch, AskUserQues
 - MUST include `story_points` and `complexity` in PBI output (see `.claude/skills/shared/estimation-framework.md`)
 - `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
 - > **Scaffold Production Readiness** — Production scaffold checklist: health endpoints, structured logging, graceful shutdown, config validation, CI pipeline, Dockerfile, env separation. Verify each item exists before marking scaffold complete.
-> MUST READ `.claude/skills/shared/scaffold-production-readiness-protocol.md` for full protocol and checklists.
-> — for Production Readiness Concerns table in PBI output
+  > MUST READ `.claude/skills/shared/scaffold-production-readiness-protocol.md` for full protocol and checklists.
+  > — for Production Readiness Concerns table in PBI output
 - > **Cross-Cutting Quality** — Check: error handling consistency, logging standards, security headers, input validation, rate limiting, CORS config, health checks across all services.
-> MUST READ `.claude/skills/shared/cross-cutting-quality-concerns-protocol.md` for full protocol and checklists.
-> — for Authorization, Seed Data, Data Migration concerns in PBI output
+  > MUST READ `.claude/skills/shared/cross-cutting-quality-concerns-protocol.md` for full protocol and checklists.
+  > — for Authorization, Seed Data, Data Migration concerns in PBI output
 
 ## Greenfield Mode
 
@@ -287,8 +287,8 @@ Document in PBI under `## Testability Assessment`.
 ## Phase 6: Prioritization & Estimation
 
 > > **Estimation Framework** — SP scale: 1(trivial) → 2(small) → 3(medium) → 5(large) → 8(very large, high risk) → 13(epic, SHOULD split) → 21(MUST split). MUST provide `story_points` and `complexity` estimate after investigation.
-> MUST READ `.claude/skills/shared/estimation-framework.md` for full protocol and checklists.
-> for story point scale and complexity definitions.
+> > MUST READ `.claude/skills/shared/estimation-framework.md` for full protocol and checklists.
+> > for story point scale and complexity definitions.
 
 Apply RICE score or MoSCoW for priority. Estimate using **Story Points (Modified Fibonacci 1-21)** for complexity measurement.
 

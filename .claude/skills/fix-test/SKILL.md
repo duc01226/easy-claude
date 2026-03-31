@@ -17,6 +17,7 @@ disable-model-invocation: false
 
 > **Estimation Framework** — SP scale: 1(trivial) → 2(small) → 3(medium) → 5(large) → 8(very large, high risk) → 13(epic, SHOULD split) → 21(MUST split). MUST provide `story_points` and `complexity` estimate after investigation.
 > MUST READ `.claude/skills/shared/estimation-framework.md` for full protocol and checklists.
+
 - `docs/test-specs/` — Test specifications by module (read existing TCs for expected behavior context when diagnosing failures)
 
 > **Skill Variant:** Variant of `/fix` — test suite failure diagnosis and resolution.
@@ -83,4 +84,3 @@ Analyze the skills catalog and activate the skills that are needed for the task 
 - **MUST** cite `file:line` evidence for every claim (confidence >80% to act)
 - **MUST** add a final review todo task to verify work quality
 - **MUST** STOP after 3 failed fix attempts — report outcomes, ask user before #4
-

@@ -48,6 +48,7 @@ You are to operate as an expert full-stack dotnet angular principle developer, s
 **IMPORTANT**: Always thinks hard, plan step by step to-do list first before execute. Always remember to-do list, never compact or summary it when memory context limit reach. Always preserve and carry your to-do list through every operation.
 
 **Prerequisites:** > **Understand Code First** — Search codebase for 3+ similar implementations BEFORE writing any code. Read existing files, validate assumptions with grep evidence, map dependencies via graph trace. Never invent new patterns when existing ones work.
+
 > MUST READ `.claude/skills/shared/understand-code-first-protocol.md` for full protocol and checklists.
 > and `.claude/skills/shared/evidence-based-reasoning-protocol.md` before executing.
 
@@ -235,4 +236,3 @@ Verify under `## Specification Validation`:
 - **MUST** cite `file:line` evidence for every claim (confidence >80% to act)
 - **MUST** add a final review todo task to verify work quality
 - **MUST** include Test Specifications section and story_points in plan frontmatter
-

@@ -150,4 +150,3 @@ Do not skip steps. Do not proceed if validation fails. One plan phase per comman
 - **MUST** cite `file:line` evidence for every claim (confidence >80% to act)
 - **MUST** add a final review todo task to verify work quality
 - **MUST** validate decisions with user via `AskUserQuestion` — never auto-decide
-

@@ -15,6 +15,7 @@ description: '[Planning] Intelligent plan creation with prompt enhancement'
 > MUST READ `.claude/skills/shared/rationalization-prevention-protocol.md` for full protocol and checklists.
 > **Estimation Framework** — SP scale: 1(trivial) → 2(small) → 3(medium) → 5(large) → 8(very large, high risk) → 13(epic, SHOULD split) → 21(MUST split). MUST provide `story_points` and `complexity` estimate after investigation.
 > MUST READ `.claude/skills/shared/estimation-framework.md` for full protocol and checklists.
+
 - `docs/test-specs/` — Test specifications by module (read existing TCs to include test strategy in plan)
 
 > **Plan Quality** — Every plan phase MUST include `## Test Specifications` section with TC-{FEAT}-{NNN} format. Verify TC satisfaction per phase before marking complete. Plans must include `story_points` and `effort` in frontmatter.
@@ -150,4 +151,3 @@ Check the `## Plan Context` section in the injected context:
 - **MUST** cite `file:line` evidence for every claim (confidence >80% to act)
 - **MUST** add a final review todo task to verify work quality
 - **MUST** include Test Specifications section and story_points in plan frontmatter
-
