@@ -1,7 +1,7 @@
 ---
 name: plan-hard
 version: 1.0.0
-description: '[Planning] Research, analyze, and create an implementation plan'
+description: "[Planning] Research, analyze, and create an implementation plan"
 disable-model-invocation: false
 ---
 
@@ -78,12 +78,12 @@ Activate `planning` skill.
 
 1. Active workflow is `greenfield-init` OR `big-feature`
 2. AI MUST self-investigate for existing base/foundational abstractions using these patterns:
-    - Abstract/base classes: `abstract class.*Base|Base[A-Z]\w+|Abstract[A-Z]\w+`
-    - Generic interfaces: `interface I\w+<|IGeneric|IBase`
-    - Infrastructure abstractions: `IRepository|IUnitOfWork|IService|IHandler`
-    - Utility/extension layers: `Extensions|Helpers|Utils|Common` (directories or classes)
-    - Frontend foundations: `base.*component|base.*service|base.*store|abstract.*component` (case-insensitive)
-    - DI/IoC registration: `AddScoped|AddSingleton|providers:|NgModule|@Injectable`
+   - Abstract/base classes: `abstract class.*Base|Base[A-Z]\w+|Abstract[A-Z]\w+`
+   - Generic interfaces: `interface I\w+<|IGeneric|IBase`
+   - Infrastructure abstractions: `IRepository|IUnitOfWork|IService|IHandler`
+   - Utility/extension layers: `Extensions|Helpers|Utils|Common` (directories or classes)
+   - Frontend foundations: `base.*component|base.*service|base.*store|abstract.*component` (case-insensitive)
+   - DI/IoC registration: `AddScoped|AddSingleton|providers:|NgModule|@Injectable`
 3. If existing scaffolding found → **SKIP.** Log: "Existing scaffolding detected at {file:line}. Skipping Phase 1 scaffolding."
 4. If NO foundational abstractions found → **PROCEED** with scaffolding phase.
 
@@ -171,19 +171,19 @@ After plan creation, offer validation interview to confirm decisions before impl
 
 - Every `plan.md` MUST start with YAML frontmatter:
 
-    ```yaml
-    ---
-    title: '{Brief title}'
-    description: '{One sentence for card preview}'
-    status: pending
-    priority: P2
-    effort: { sum of phases, e.g., 4h }
-    story_points: { sum of phase SPs, e.g., 8 }
-    branch: { current git branch }
-    tags: [relevant, tags]
-    created: { YYYY-MM-DD }
-    ---
-    ```
+  ```yaml
+  ---
+  title: "{Brief title}"
+  description: "{One sentence for card preview}"
+  status: pending
+  priority: P2
+  effort: { sum of phases, e.g., 4h }
+  story_points: { sum of phase SPs, e.g., 8 }
+  branch: { current git branch }
+  tags: [relevant, tags]
+  created: { YYYY-MM-DD }
+  ---
+  ```
 
 - Save overview at `{plan-dir}/plan.md` (<80 lines): list each phase with status, progress, and links to phase files.
 - For each phase, create `{plan-dir}/phase-XX-phase-name-here.md` with sections: Context links, Overview, Key Insights, Requirements, **Alternatives Considered** (minimum 2 approaches with pros/cons), **Design Rationale** (WHY chosen approach), Architecture, **UI Layout** (see below), Related code files, Implementation Steps, Todo list, Success Criteria, Risk Assessment, Security Considerations, Next steps.
@@ -194,8 +194,8 @@ After plan creation, offer validation interview to confirm decisions before impl
 - Always plan and break work into many small todo tasks using `TaskCreate`
 - Always add a final review todo task to verify work quality and identify fixes/enhancements
 - **MANDATORY FINAL TASKS:** After creating all planning todo tasks, ALWAYS add these two final tasks:
-    1. **Task: "Run /plan-validate"** — Trigger `/plan-validate` skill to interview the user with critical questions and validate plan assumptions
-    2. **Task: "Run /plan-review"** — Trigger `/plan-review` skill to auto-review plan for validity, correctness, and best practices
+  1. **Task: "Run /plan-validate"** — Trigger `/plan-validate` skill to interview the user with critical questions and validate plan assumptions
+  2. **Task: "Run /plan-review"** — Trigger `/plan-review` skill to auto-review plan for validity, correctness, and best practices
 
 ## Important Notes
 
@@ -228,8 +228,27 @@ After plan creation, offer validation interview to confirm decisions before impl
 - **"/plan-validate"** — Interview user to confirm plan decisions
 - **"Skip, continue manually"** — user decides
 
+## Post-Plan Granularity Self-Check (MANDATORY)
+
+> Per `.claude/skills/shared/plan-granularity-protocol.md`
+
+After creating all phase files, run the **recursive decomposition loop** from `plan-granularity-protocol.md`:
+
+1. Score each phase against the 5-point criteria (file paths, no planning verbs, ≤30min steps, ≤5 files, no open decisions)
+2. For each FAILING phase → create task to decompose it into a sub-plan (with its own /plan → /plan-review → /plan-validate → fix cycle)
+3. Re-score new phases. Repeat until ALL leaf phases pass (max depth: 3)
+4. **Self-question:** "For each phase, can I start coding RIGHT NOW? If any needs 'figuring out' → sub-plan it."
+
 ## Closing Reminders
 
 **MANDATORY IMPORTANT MUST** break work into small todo tasks using `TaskCreate` BEFORE starting.
 **MANDATORY IMPORTANT MUST** validate decisions with user via `AskUserQuestion` — never auto-decide.
 **MANDATORY IMPORTANT MUST** add a final review todo task to verify work quality.
+**MANDATORY IMPORTANT MUST** verify all phases pass granularity check per `plan-granularity-protocol.md`.
+**MANDATORY IMPORTANT MUST** READ the following files before starting:
+
+- **MUST** READ `.claude/skills/shared/understand-code-first-protocol.md` before starting
+- **MUST** READ `.claude/skills/shared/estimation-framework.md` before starting
+- **MUST** READ `.claude/skills/shared/plan-quality-protocol.md` before starting
+- **MUST** READ `.claude/skills/shared/iterative-phase-quality-protocol.md` before starting
+- **MUST** READ `.claude/skills/shared/plan-granularity-protocol.md` before starting

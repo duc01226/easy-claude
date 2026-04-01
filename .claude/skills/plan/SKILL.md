@@ -1,7 +1,7 @@
 ---
 name: plan
 version: 1.0.0
-description: '[Planning] Intelligent plan creation with prompt enhancement'
+description: "[Planning] Intelligent plan creation with prompt enhancement"
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
@@ -55,8 +55,8 @@ description: '[Planning] Intelligent plan creation with prompt enhancement'
 4. Delegate architecture decisions to `solution-architect` agent
 5. Increase user interview frequency (AskUserQuestion at each major decision)
 6. If `/greenfield` workflow is not already active, suggest it via AskUserQuestion:
-    - "Activate Greenfield Project Init workflow (Recommended)" — full waterfall inception
-    - "Continue with standalone /plan-hard" — planning only, no full workflow
+   - "Activate Greenfield Project Init workflow (Recommended)" — full waterfall inception
+   - "Continue with standalone /plan-hard" — planning only, no full workflow
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
@@ -109,8 +109,8 @@ Check the `## Plan Context` section in the injected context:
 - Always plan and break work into many small todo tasks using `TaskCreate`
 - Always add a final review todo task to verify work quality and identify fixes/enhancements
 - **MANDATORY FINAL TASKS:** After creating all planning todo tasks, ALWAYS add these two final tasks:
-    1. **Task: "Run /plan-validate"** — Trigger `/plan-validate` skill to interview the user with critical questions and validate plan assumptions
-    2. **Task: "Run /plan-review"** — Trigger `/plan-review` skill to auto-review plan for validity, correctness, and best practices
+  1. **Task: "Run /plan-validate"** — Trigger `/plan-validate` skill to interview the user with critical questions and validate plan assumptions
+  2. **Task: "Run /plan-review"** — Trigger `/plan-review` skill to auto-review plan for validity, correctness, and best practices
 
 ## Important Notes
 
@@ -144,6 +144,17 @@ Check the `## Plan Context` section in the injected context:
 
 ---
 
+## Post-Plan Granularity Self-Check (MANDATORY)
+
+> Per `.claude/skills/shared/plan-granularity-protocol.md`
+
+After creating all phase files, run the **recursive decomposition loop** from `plan-granularity-protocol.md`:
+
+1. Score each phase against the 5-point criteria (file paths, no planning verbs, ≤30min steps, ≤5 files, no open decisions)
+2. For each FAILING phase → create task to decompose it into a sub-plan (with its own /plan → /plan-review → /plan-validate → fix cycle)
+3. Re-score new phases. Repeat until ALL leaf phases pass (max depth: 3)
+4. **Self-question:** "For each phase, can I start coding RIGHT NOW? If any needs 'figuring out' → sub-plan it."
+
 ## Closing Reminders
 
 - **MUST** break work into small todo tasks using `TaskCreate` BEFORE starting
@@ -151,3 +162,11 @@ Check the `## Plan Context` section in the injected context:
 - **MUST** cite `file:line` evidence for every claim (confidence >80% to act)
 - **MUST** add a final review todo task to verify work quality
 - **MUST** include Test Specifications section and story_points in plan frontmatter
+- **MUST** verify all phases pass granularity check per `plan-granularity-protocol.md`
+  **MANDATORY IMPORTANT MUST** READ the following files before starting:
+- **MUST** READ `.claude/skills/shared/understand-code-first-protocol.md` before starting
+- **MUST** READ `.claude/skills/shared/rationalization-prevention-protocol.md` before starting
+- **MUST** READ `.claude/skills/shared/estimation-framework.md` before starting
+- **MUST** READ `.claude/skills/shared/plan-quality-protocol.md` before starting
+- **MUST** READ `.claude/skills/shared/iterative-phase-quality-protocol.md` before starting
+- **MUST** READ `.claude/skills/shared/plan-granularity-protocol.md` before starting

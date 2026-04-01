@@ -1,7 +1,7 @@
 ---
 name: plan-fast
 version: 1.0.0
-description: '[Planning] No research. Only analyze and create an implementation plan'
+description: "[Planning] No research. Only analyze and create an implementation plan"
 disable-model-invocation: false
 ---
 
@@ -106,19 +106,19 @@ Use `planner` subagent to:
 
 - Every `plan.md` MUST start with YAML frontmatter:
 
-    ```yaml
-    ---
-    title: '{Brief title}'
-    description: '{One sentence for card preview}'
-    status: pending
-    priority: P2
-    effort: { sum of phases, e.g., 4h }
-    story_points: { sum of phase SPs, e.g., 8 }
-    branch: { current git branch }
-    tags: [relevant, tags]
-    created: { YYYY-MM-DD }
-    ---
-    ```
+  ```yaml
+  ---
+  title: "{Brief title}"
+  description: "{One sentence for card preview}"
+  status: pending
+  priority: P2
+  effort: { sum of phases, e.g., 4h }
+  story_points: { sum of phase SPs, e.g., 8 }
+  branch: { current git branch }
+  tags: [relevant, tags]
+  created: { YYYY-MM-DD }
+  ---
+  ```
 
 - Save the overview access point at `{plan-dir}/plan.md`. Keep it generic, under 80 lines, and list each implementation phase with status and progress plus links to phase files.
 - For each phase, create `{plan-dir}/phase-XX-phase-name-here.md` containing the following sections in order: Context links (reference parent plan, dependencies, docs), Overview (date, description, priority, implementation status, review status), Key Insights, Requirements, Architecture, **UI Layout** (see below), Related code files, Implementation Steps, Todo list, Success Criteria, Risk Assessment, Security Considerations, Next steps.
@@ -129,8 +129,8 @@ Use `planner` subagent to:
 - Always plan and break work into many small todo tasks using `TaskCreate`
 - Always add a final review todo task to verify work quality and identify fixes/enhancements
 - **MANDATORY FINAL TASKS:** After creating all planning todo tasks, ALWAYS add these two final tasks:
-    1. **Task: "Run /plan-validate"** — Trigger `/plan-validate` skill to interview the user with critical questions and validate plan assumptions
-    2. **Task: "Run /plan-review"** — Trigger `/plan-review` skill to auto-review plan for validity, correctness, and best practices
+  1. **Task: "Run /plan-validate"** — Trigger `/plan-validate` skill to interview the user with critical questions and validate plan assumptions
+  2. **Task: "Run /plan-review"** — Trigger `/plan-review` skill to auto-review plan for validity, correctness, and best practices
 
 ## Post-Plan Validation
 
@@ -156,6 +156,17 @@ After plan creation, use the `AskUserQuestion` tool to ask: "Want me to run `/pl
 
 ---
 
+## Post-Plan Granularity Self-Check (MANDATORY)
+
+> Per `.claude/skills/shared/plan-granularity-protocol.md`
+
+After creating all phase files, run the **recursive decomposition loop** from `plan-granularity-protocol.md`:
+
+1. Score each phase against the 5-point criteria (file paths, no planning verbs, ≤30min steps, ≤5 files, no open decisions)
+2. For each FAILING phase → create task to decompose it into a sub-plan (with its own /plan → /plan-review → /plan-validate → fix cycle)
+3. Re-score new phases. Repeat until ALL leaf phases pass (max depth: 3)
+4. **Self-question:** "For each phase, can I start coding RIGHT NOW? If any needs 'figuring out' → sub-plan it."
+
 ## Closing Reminders
 
 - **MUST** break work into small todo tasks using `TaskCreate` BEFORE starting
@@ -163,3 +174,10 @@ After plan creation, use the `AskUserQuestion` tool to ask: "Want me to run `/pl
 - **MUST** cite `file:line` evidence for every claim (confidence >80% to act)
 - **MUST** add a final review todo task to verify work quality
 - **MUST** include Test Specifications section and story_points in plan frontmatter
+- **MUST** verify all phases pass granularity check per `plan-granularity-protocol.md`
+  **MANDATORY IMPORTANT MUST** READ the following files before starting:
+- **MUST** READ `.claude/skills/shared/understand-code-first-protocol.md` before starting
+- **MUST** READ `.claude/skills/shared/estimation-framework.md` before starting
+- **MUST** READ `.claude/skills/shared/plan-quality-protocol.md` before starting
+- **MUST** READ `.claude/skills/shared/iterative-phase-quality-protocol.md` before starting
+- **MUST** READ `.claude/skills/shared/plan-granularity-protocol.md` before starting

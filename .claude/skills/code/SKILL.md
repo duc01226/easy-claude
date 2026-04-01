@@ -1,7 +1,7 @@
 ---
 name: code
 version: 1.0.0
-description: '[Implementation] Start coding & testing an existing plan'
+description: "[Implementation] Start coding & testing an existing plan"
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
@@ -49,6 +49,21 @@ description: '[Implementation] Start coding & testing an existing plan'
 
 ---
 
+## Pre-Implementation Granularity Gate (MANDATORY)
+
+<HARD-GATE>
+Per `.claude/skills/shared/plan-granularity-protocol.md` — before implementing ANY phase:
+1. Verify every step names specific files (not generic "implement X")
+2. Verify no step uses planning verbs: "research", "determine", "figure out", "decide", "evaluate", "explore"
+3. Verify each step ≤30 min, phase total ≤5 files and ≤3h
+4. Verify no unresolved decisions or TBDs in approach
+
+If ANY check fails → STOP. Ask user: "Phase needs more detail before implementation. Refine with /plan? [Y/n]"
+DO NOT implement a phase that contains planning verbs, unnamed files, or unresolved decisions.
+</HARD-GATE>
+
+---
+
 ## Step 0: Plan Detection & Phase Selection
 
 **If `$ARGUMENTS` is empty:**
@@ -77,9 +92,9 @@ Read plan file completely. Map dependencies. List ambiguities. Identify required
 - Initialize TaskCreate with `Step 0: [Plan Name] - [Phase Name]` and all steps (1-6)
 - Read phase file, look for tasks/steps/phases/sections/numbered/bulleted lists
 - Convert to TaskCreate tasks with UNIQUE names:
-    - Phase Implementation tasks → Step 2.X (Step 2.1, Step 2.2, etc.)
-    - Phase Testing tasks → Step 3.X
-    - Phase Code Review tasks → Step 4.X
+  - Phase Implementation tasks → Step 2.X (Step 2.1, Step 2.2, etc.)
+  - Phase Testing tasks → Step 3.X
+  - Phase Code Review tasks → Step 4.X
 
 **Output:** `✓ Step 1: Found [N] tasks across [M] phases - Ambiguities: [list or "none"]`
 
@@ -132,8 +147,8 @@ Present summary (3-5 bullets): what implemented, tests passed, code review outco
 **Prerequisites:** User approved in Step 5.
 
 1. **STATUS UPDATE (PARALLEL):**
-    - Call `project-manager` subagent to update plan status
-    - Call `docs-manager` subagent to update documentation
+   - Call `project-manager` subagent to update plan status
+   - Call `docs-manager` subagent to update documentation
 
 2. **ONBOARDING CHECK:** Detect onboarding requirements + generate summary.
 
@@ -189,3 +204,7 @@ Do not skip steps. Do not proceed if validation fails. Do not assume approval wi
 **MANDATORY IMPORTANT MUST** break work into small todo tasks using `TaskCreate` BEFORE starting.
 **MANDATORY IMPORTANT MUST** validate decisions with user via `AskUserQuestion` — never auto-decide.
 **MANDATORY IMPORTANT MUST** add a final review todo task to verify work quality.
+**MANDATORY IMPORTANT MUST** READ the following files before starting:
+
+- **MUST** READ `.claude/skills/shared/understand-code-first-protocol.md` before starting
+- **MUST** READ `CLAUDE.md` before starting

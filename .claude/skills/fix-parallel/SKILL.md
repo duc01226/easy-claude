@@ -1,7 +1,7 @@
 ---
 name: fix-parallel
 version: 1.0.0
-description: '[Implementation] Analyze & fix issues with parallel fullstack-developer agents'
+description: "[Implementation] Analyze & fix issues with parallel fullstack-developer agents"
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
@@ -39,6 +39,8 @@ description: '[Implementation] Analyze & fix issues with parallel fullstack-deve
 - Issues MUST be independent (no overlapping file modifications)
 - Each subagent owns specific files; no cross-boundary edits
 
+> **[MANDATORY]** Read `.claude/skills/shared/root-cause-debugging-protocol.md` BEFORE proposing any fix. Responsibility attribution and data lifecycle tracing are required.
+
 ### Frontend/UI Context (if applicable)
 
 > When this task involves frontend or UI changes,
@@ -66,6 +68,8 @@ description: '[Implementation] Analyze & fix issues with parallel fullstack-deve
 **MANDATORY IMPORTANT MUST** declare `Confidence: X%` with evidence list + `file:line` proof for EVERY claim.
 **95%+** recommend freely | **80-94%** with caveats | **60-79%** list unknowns | **<60% STOP — gather more evidence.**
 
+> **⚠️ Validate Before Fix (NON-NEGOTIABLE):** After root cause analysis + plan creation, MUST present findings + proposed fix plan to user via `AskUserQuestion` and get explicit approval BEFORE any code changes. No silent fixes.
+
 **Ultrathink parallel** to fix: <issues>$ARGUMENTS</issues>
 
 **IMPORTANT:** Activate needed skills. Ensure token efficiency. Sacrifice grammar for concision.
@@ -86,14 +90,15 @@ description: '[Implementation] Analyze & fix issues with parallel fullstack-deve
 - Wait for plan with dependency graph, execution strategy, file ownership matrix
 - Group independent fixes for parallel execution
 - Sequential fixes for dependent issues
+- **🛑 Present root cause + fix plan → `AskUserQuestion` → wait for user approval before launching agents.**
 
 ### 3. Parallel Fix Implementation
 
 - Read `plan.md` for dependency graph
 - Launch multiple `fullstack-developer` agents in PARALLEL for independent fixes
-    - Example: "Fix auth + Fix payments + Fix UI" → launch 3 agents simultaneously
-    - Pass phase file path: `{plan-dir}/phase-XX-*.md`
-    - Include environment info
+  - Example: "Fix auth + Fix payments + Fix UI" → launch 3 agents simultaneously
+  - Pass phase file path: `{plan-dir}/phase-XX-*.md`
+  - Include environment info
 - Wait for all parallel fixes complete before dependent fixes
 - Sequential fixes: launch one agent at a time
 
@@ -113,8 +118,8 @@ description: '[Implementation] Analyze & fix issues with parallel fullstack-deve
 ### 5. Code Review
 
 - **Two-stage review** (see `.claude/skills/shared/two-stage-task-review-protocol.md`):
-    1. First: dispatch `spec-compliance-reviewer` to verify each fix matches its spec
-    2. Only after spec passes: dispatch `code-reviewer` for quality review
+  1. First: dispatch `spec-compliance-reviewer` to verify each fix matches its spec
+  2. Only after spec passes: dispatch `code-reviewer` for quality review
 - Verify fixes don't introduce regressions
 - If critical issues: fix, retest
 
@@ -147,3 +152,9 @@ description: '[Implementation] Analyze & fix issues with parallel fullstack-deve
 - **MUST** cite `file:line` evidence for every claim (confidence >80% to act)
 - **MUST** add a final review todo task to verify work quality
 - **MUST** STOP after 3 failed fix attempts — report outcomes, ask user before #4
+  **MANDATORY IMPORTANT MUST** READ the following files before starting:
+- **MUST** READ `.claude/skills/shared/understand-code-first-protocol.md` before starting
+- **MUST** READ `.claude/skills/shared/evidence-based-reasoning-protocol.md` before starting
+- **MUST** READ `.claude/skills/shared/estimation-framework.md` before starting
+- **MUST** READ `.claude/skills/shared/red-flag-stop-conditions-protocol.md` before starting
+- **MUST** READ `.claude/skills/shared/ui-system-context.md` before starting

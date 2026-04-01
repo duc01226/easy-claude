@@ -1,7 +1,7 @@
 ---
 name: plan-review
 version: 1.0.0
-description: '[Planning] Auto-review plan for validity, correctness, and best practices before implementation'
+description: "[Planning] Auto-review plan for validity, correctness, and best practices before implementation"
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
@@ -75,6 +75,25 @@ Read the plan directory:
 #### Correctness (Required - all must pass)
 
 - [ ] Steps are specific and actionable (not vague)
+- [ ] **Implementation-Readiness Granularity Check (5-Point)** — FAIL if any phase fails ANY criterion:
+
+| #   | Criterion                  | How to Measure                                                                                | PASS                            | FAIL                               |
+| --- | -------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------- | ---------------------------------- |
+| 1   | Steps name specific files  | Every step includes a file path                                                               | "Modify `src/auth/login.ts`"    | "Implement authentication"         |
+| 2   | No planning verbs in steps | Absent: "research", "determine", "figure out", "decide", "evaluate", "explore", "investigate" | "Add `validateToken()` method"  | "Determine the best auth approach" |
+| 3   | Each step ≤30 min effort   | No single step is a mini-project                                                              | "Add error handler to endpoint" | "Build the entire auth module"     |
+| 4   | Phase totals within limits | ≤5 files AND ≤3h effort                                                                       | 3 files, 2h                     | 12 files, 8h                       |
+| 5   | No unresolved decisions    | Zero open questions / TBDs in approach                                                        | All approaches decided          | "TBD: which library to use"        |
+
+**Tiered action on failure:**
+
+- Complexity 6-9 → Refine vague phases in-place (expand steps, split into sibling phases)
+- Complexity 10+ → Create sub-plan directory `{plan-dir}/sub-plans/phase-{XX}-{name}/plan.md`
+
+**Worked example of FAIL → PASS:**
+FAILS: `"Phase 2: Data Layer — Set up database models, Create repositories, Implement data access patterns. Effort: 4h, Files: ~8"`
+PASSES after split: `"Phase 2A: Database Schema (1h, 3 files) — Create src/models/user.entity.ts, Create src/models/session.entity.ts, Create migrations/001-create-users-sessions.ts"` + `"Phase 2B: Repository Layer (1.5h, 3 files) — Create src/repos/user.repository.ts, Create src/repos/session.repository.ts, Register in src/app.module.ts"`
+
 - [ ] File paths follow project patterns
 - [ ] No conflicting or duplicate steps
 - [ ] Dependencies between steps are clear
@@ -167,10 +186,10 @@ After completing Round 1 checklist evaluation, execute a **second full review ro
 2. **Re-evaluate** ALL checklist items — do NOT rely on Round 1 memory
 3. **Challenge** Round 1 PASS items: "Is this really PASS? Did I verify with evidence?"
 4. **Focus on** what Round 1 typically misses:
-    - Implicit assumptions that weren't validated
-    - Missing acceptance criteria coverage
-    - Edge cases not addressed in the artifact
-    - Cross-references that weren't verified
+   - Implicit assumptions that weren't validated
+   - Missing acceptance criteria coverage
+   - Edge cases not addressed in the artifact
+   - Cross-references that weren't verified
 5. **Update verdict** if Round 2 found new issues
 6. **Final verdict** must incorporate findings from BOTH rounds
 
@@ -185,8 +204,8 @@ After completing Round 1 checklist evaluation, execute a **second full review ro
 - Always plan and break work into many small todo tasks using `TaskCreate`
 - Always add a final review todo task to verify work quality and identify fixes/enhancements
 - **MANDATORY FINAL TASKS:** After creating all planning todo tasks, ALWAYS add these two final tasks:
-    1. **Task: "Run /plan-validate"** — Trigger `/plan-validate` skill to interview the user with critical questions and validate plan assumptions
-    2. **Task: "Run /plan-review"** — Trigger `/plan-review` skill to auto-review plan for validity, correctness, and best practices
+  1. **Task: "Run /plan-validate"** — Trigger `/plan-validate` skill to interview the user with critical questions and validate plan assumptions
+  2. **Task: "Run /plan-review"** — Trigger `/plan-review` skill to auto-review plan for validity, correctness, and best practices
 
 ## Important Notes
 
@@ -210,3 +229,8 @@ After completing Round 1 checklist evaluation, execute a **second full review ro
 **MANDATORY IMPORTANT MUST** break work into small todo tasks using `TaskCreate` BEFORE starting.
 **MANDATORY IMPORTANT MUST** validate decisions with user via `AskUserQuestion` — never auto-decide.
 **MANDATORY IMPORTANT MUST** add a final review todo task to verify work quality.
+**MANDATORY IMPORTANT MUST** READ the following files before starting:
+
+- **MUST** READ `.claude/skills/shared/understand-code-first-protocol.md` before starting
+- **MUST** READ `.claude/skills/shared/double-round-trip-review-protocol.md` before starting
+- **MUST** READ `.claude/skills/shared/graph-assisted-investigation-protocol.md` before starting

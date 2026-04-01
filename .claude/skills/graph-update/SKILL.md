@@ -1,6 +1,6 @@
 ---
 name: graph-update
-description: "[Code Intelligence] Update the knowledge graph with uncommitted working tree changes. Detects staged/unstaged file changes and re-parses them into the graph. Use mid-session after editing files, or when graph-sync reports no committed changes but working tree has modifications."
+description: '[Code Intelligence] Update the knowledge graph with uncommitted working tree changes. Detects staged/unstaged file changes and re-parses them into the graph. Use mid-session after editing files, or when graph-sync reports no committed changes but working tree has modifications.'
 version: 1.0.0
 allowed-tools: Bash, Read, AskUserQuestion
 ---
@@ -26,9 +26,9 @@ Update the knowledge graph with **uncommitted** working tree changes (staged + u
 ## Steps
 
 1. **Run update** via Bash:
-   ```bash
-   python .claude/scripts/code_graph update --json
-   ```
+    ```bash
+    python .claude/scripts/code_graph update --json
+    ```
 2. **Report results:** Files updated, added, deleted
 3. If no changes detected, report "Working tree clean — graph already up to date"
 

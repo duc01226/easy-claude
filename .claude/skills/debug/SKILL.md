@@ -38,6 +38,8 @@ description: "[Fix & Debug] Systematic debugging with root cause investigation. 
 - Output: confirmed root cause OR "hypothesis, not confirmed" with evidence gaps
 - This is investigation-only — hand off to /fix for implementation
 
+> **[MANDATORY]** Read `.claude/skills/shared/root-cause-debugging-protocol.md` BEFORE proposing any fix. Responsibility attribution and data lifecycle tracing are required.
+
 ## Debug Mindset (NON-NEGOTIABLE)
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
@@ -161,3 +163,8 @@ If you're thinking:
 **MANDATORY IMPORTANT MUST** break work into small todo tasks using `TaskCreate` BEFORE starting.
 **MANDATORY IMPORTANT MUST** validate decisions with user via `AskUserQuestion` — never auto-decide.
 **MANDATORY IMPORTANT MUST** add a final review todo task to verify work quality.
+**MANDATORY IMPORTANT MUST** READ the following files before starting:
+- **MUST** READ `.claude/skills/shared/understand-code-first-protocol.md` before starting
+- **MUST** READ `.claude/skills/shared/evidence-based-reasoning-protocol.md` before starting
+- **MUST** READ `.claude/skills/shared/estimation-framework.md` before starting
+- **MUST** READ `.claude/skills/shared/red-flag-stop-conditions-protocol.md` before starting

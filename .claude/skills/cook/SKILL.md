@@ -1,7 +1,7 @@
 ---
 name: cook
 version: 1.0.0
-description: '[Implementation] Implement a feature [step by step]'
+description: "[Implementation] Implement a feature [step by step]"
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
@@ -55,6 +55,19 @@ description: '[Implementation] Implement a feature [step by step]'
 Do NOT start coding until you have a plan (approved or self-created) and have searched
 the codebase for 3+ similar implementations. This applies to EVERY feature regardless
 of perceived simplicity. "Simple" features have hidden complexity.
+</HARD-GATE>
+
+## Pre-Implementation Granularity Gate (MANDATORY)
+
+<HARD-GATE>
+Per `.claude/skills/shared/plan-granularity-protocol.md` — before implementing ANY phase:
+1. Verify every step names specific files (not generic "implement X")
+2. Verify no step uses planning verbs: "research", "determine", "figure out", "decide", "evaluate", "explore"
+3. Verify each step ≤30 min, phase total ≤5 files and ≤3h
+4. Verify no unresolved decisions or TBDs in approach
+
+If ANY check fails → STOP. Ask user: "Phase needs more detail before implementation. Refine with /plan? [Y/n]"
+DO NOT implement a phase that contains planning verbs, unnamed files, or unresolved decisions.
 </HARD-GATE>
 
 ## Per-Phase Quality Cycle (MANDATORY)
@@ -176,8 +189,8 @@ mistakes compound through later tasks.
 ### Code Review
 
 - **Two-stage review** (see `.claude/skills/shared/two-stage-task-review-protocol.md`):
-    1. First: dispatch `spec-compliance-reviewer` to verify implementation matches spec
-    2. Only after spec passes: dispatch `code-reviewer` for quality review
+  1. First: dispatch `spec-compliance-reviewer` to verify implementation matches spec
+  2. Only after spec passes: dispatch `code-reviewer` for quality review
 - If critical issues: fix and re-run `tester`.
 - Repeat until all tests pass and code is reviewed.
 - Report summary to user and ask for approval.
@@ -251,3 +264,11 @@ When graph DB is available, BEFORE writing code, trace to understand the blast r
 **MANDATORY IMPORTANT MUST** break work into small todo tasks using `TaskCreate` BEFORE starting.
 **MANDATORY IMPORTANT MUST** validate decisions with user via `AskUserQuestion` — never auto-decide.
 **MANDATORY IMPORTANT MUST** add a final review todo task to verify work quality.
+**MANDATORY IMPORTANT MUST** READ the following files before starting:
+
+- **MUST** READ `.claude/skills/shared/understand-code-first-protocol.md` before starting
+- **MUST** READ `.claude/skills/shared/plan-quality-protocol.md` before starting
+- **MUST** READ `.claude/skills/shared/rationalization-prevention-protocol.md` before starting
+- **MUST** READ `.claude/skills/shared/ui-system-context.md` before starting
+- **MUST** READ `.claude/skills/shared/iterative-phase-quality-protocol.md` before starting
+- **MUST** READ `.claude/skills/shared/graph-assisted-investigation-protocol.md` before starting
