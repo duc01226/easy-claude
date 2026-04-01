@@ -1,8 +1,10 @@
 ---
 name: why-review
 version: 1.0.0
-description: '[Code Quality] Validate design rationale completeness in plan files before implementation'
+description: "[Code Quality] Validate design rationale completeness in plan files before implementation"
 ---
+
+> **[BLOCKING]** This is a validation gate. MUST use `AskUserQuestion` to present review findings and get user confirmation. Completing without asking at least one question is a violation.
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
 
@@ -113,10 +115,10 @@ After completing Round 1 checklist evaluation, execute a **second full review ro
 2. **Re-evaluate** ALL checklist items — do NOT rely on Round 1 memory
 3. **Challenge** Round 1 PASS items: "Is this really PASS? Did I verify with evidence?"
 4. **Focus on** what Round 1 typically misses:
-    - Implicit assumptions that weren't validated
-    - Missing acceptance criteria coverage
-    - Edge cases not addressed in the artifact
-    - Cross-references that weren't verified
+   - Implicit assumptions that weren't validated
+   - Missing acceptance criteria coverage
+   - Edge cases not addressed in the artifact
+   - Cross-references that weren't verified
 5. **Update verdict** if Round 2 found new issues
 6. **Final verdict** must incorporate findings from BOTH rounds
 
@@ -148,6 +150,7 @@ After completing Round 1 checklist evaluation, execute a **second full review ro
 **MANDATORY IMPORTANT MUST** validate decisions with user via `AskUserQuestion` — never auto-decide.
 **MANDATORY IMPORTANT MUST** add a final review todo task to verify work quality.
 **MANDATORY IMPORTANT MUST** READ the following files before starting:
+
 - **MUST** READ `.claude/skills/shared/evidence-based-reasoning-protocol.md` before starting
 - **MUST** READ `.claude/skills/shared/double-round-trip-review-protocol.md` before starting
 - **MUST** READ `.claude/skills/shared/graph-impact-analysis-protocol.md` before starting
