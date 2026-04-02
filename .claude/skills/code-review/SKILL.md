@@ -1,7 +1,7 @@
 ---
 name: code-review
 version: 2.1.0
-description: '[Code Quality] Use when receiving code review feedback (especially if unclear or technically questionable), when completing tasks requiring review before proceeding, or before making completion claims. Covers receiving feedback with technical rigor, requesting reviews via code-reviewer subagent, and verification gates requiring evidence before status claims.'
+description: "[Code Quality] Use when receiving code review feedback (especially if unclear or technically questionable), when completing tasks requiring review before proceeding, or before making completion claims. Covers receiving feedback with technical rigor, requesting reviews via code-reviewer subagent, and verification gates requiring evidence before status claims."
 allowed-tools: Read, Grep, Glob, Bash, Write, TaskCreate, Edit, AskUserQuestion
 ---
 
@@ -25,6 +25,12 @@ allowed-tools: Read, Grep, Glob, Bash, Write, TaskCreate, Edit, AskUserQuestion
 
 > **Rationalization Prevention** — AI consistently skips steps via: "too simple for a plan", "I'll test after", "already searched", "code is self-explanatory". These are EVASIONS — not valid reasons. Plan anyway. Test first. Show grep evidence with file:line. Never combine steps to "save time".
 > MUST READ `.claude/skills/shared/rationalization-prevention-protocol.md` for full protocol and checklists.
+> **Logic & Intention Review** — Verify WHAT the code does matches WHY it was changed. Every changed line must serve stated purpose. Trace at least one happy path + one error path. Clean code can be wrong code.
+> MUST READ `.claude/skills/shared/logic-and-intention-review-protocol.md` for full protocol and checklists.
+> **Bug Detection** — Systematically hunt for potential bugs: null safety, boundary conditions (off-by-one, empty collections), error handling (silent failures, swallowed exceptions), resource leaks, concurrency issues (missing await, race conditions). Check categories 1-4 for EVERY review.
+> MUST READ `.claude/skills/shared/bug-detection-protocol.md` for full protocol and checklists.
+> **Test Spec Verification** — Cross-reference changes against TC-{FEAT}-{NNN} test specifications. Flag untested code paths, new functions without TCs, stale evidence in existing TCs. If no specs exist, recommend /tdd-spec.
+> MUST READ `.claude/skills/shared/test-spec-verification-protocol.md` for full protocol and checklists.
 
 > **OOP & DRY Enforcement:** MANDATORY IMPORTANT MUST — flag duplicated patterns that should be extracted to a base class, generic, or helper. Classes in the same group or suffix (ex *Entity, *Dto, \*Service, etc...) MUST inherit a common base (even if empty now — enables future shared logic and child overrides). Verify project has code linting/analyzer configured for the stack.
 
@@ -200,12 +206,12 @@ After completing Phase 3 (Round 1), execute a **second full review round**:
 1. **Re-read** the Round 1 report to understand what was already caught
 2. **Re-scan** ALL reviewed files — do NOT rely on Round 1 memory
 3. **Focus on** what Round 1 typically misses:
-    - Cross-cutting concerns spanning multiple files
-    - Subtle edge cases (null, empty, boundary, off-by-one)
-    - Naming inconsistencies across files
-    - Missing pieces (error handling, validation, tests)
-    - Convention drift (grep to verify against codebase patterns)
-    - Over-engineering that seemed justified in Round 1
+   - Cross-cutting concerns spanning multiple files
+   - Subtle edge cases (null, empty, boundary, off-by-one)
+   - Naming inconsistencies across files
+   - Missing pieces (error handling, validation, tests)
+   - Convention drift (grep to verify against codebase patterns)
+   - Over-engineering that seemed justified in Round 1
 4. **Update report** with `## Round 2 Findings` section
 5. **Final verdict** must incorporate findings from BOTH rounds
 
@@ -216,20 +222,20 @@ After completing Phase 3 (Round 1), execute a **second full review round**:
 3. **Single Responsibility** - One reason to change per method/class. **For event handlers, consumers, and background jobs: one handler = one independent concern.** Never bundle unrelated operations — if one fails, platform silently swallows the exception and the rest never execute.
 4. **DRY** - No code duplication; extract shared logic
 5. **Naming** - Clear, specific names that reveal intent:
-    - Specific not generic: `employeeRecords` not `data`
-    - Methods: Verb+Noun: `getEmployee()`, `validateInput()`
-    - Booleans: is/has/can/should prefix: `isActive`, `hasPermission`
-    - No cryptic abbreviations: `employeeCount` not `empCnt`
+   - Specific not generic: `employeeRecords` not `data`
+   - Methods: Verb+Noun: `getEmployee()`, `validateInput()`
+   - Booleans: is/has/can/should prefix: `isActive`, `hasPermission`
+   - No cryptic abbreviations: `employeeCount` not `empCnt`
 6. **Performance** - Efficient data access patterns:
-    - No O(n²): use dictionary lookup instead of nested loops
-    - Project in query: don't load all then `.Select(x.Id)`
-    - Always paginate: never get all data without pagination (search for: pagination pattern)
-    - Batch load: use batch-by-IDs pattern, not N+1 queries (search for: batch load pattern)
+   - No O(n²): use dictionary lookup instead of nested loops
+   - Project in query: don't load all then `.Select(x.Id)`
+   - Always paginate: never get all data without pagination (search for: pagination pattern)
+   - Batch load: use batch-by-IDs pattern, not N+1 queries (search for: batch load pattern)
 7. **Entity Indexes** - Database queries have matching indexes:
-    - Database collections: index management methods (search for: index setup pattern)
-    - EF Core: Composite indexes in migrations for filter columns
-    - Expression fields match index field order (leftmost prefix)
-    - Text search queries have text indexes configured
+   - Database collections: index management methods (search for: index setup pattern)
+   - EF Core: Composite indexes in migrations for filter columns
+   - Expression fields match index field order (leftmost prefix)
+   - Text search queries have text indexes configured
 
 ## Data Lifecycle Rules (MUST CHECK)
 
@@ -458,8 +464,12 @@ If `architectureRules` is not present in project-config.json, skip this check si
 **MANDATORY IMPORTANT MUST** validate decisions with user via `AskUserQuestion` — never auto-decide.
 **MANDATORY IMPORTANT MUST** add a final review todo task to verify work quality.
 **MANDATORY IMPORTANT MUST** READ the following files before starting:
+
 - **MUST** READ `.claude/skills/shared/evidence-based-reasoning-protocol.md` before starting
 - **MUST** READ `.claude/skills/shared/design-patterns-quality-checklist.md` before starting
 - **MUST** READ `.claude/skills/shared/double-round-trip-review-protocol.md` before starting
 - **MUST** READ `.claude/skills/shared/rationalization-prevention-protocol.md` before starting
 - **MUST** READ `.claude/skills/shared/graph-assisted-investigation-protocol.md` before starting
+- **MUST** READ `.claude/skills/shared/logic-and-intention-review-protocol.md` before starting
+- **MUST** READ `.claude/skills/shared/bug-detection-protocol.md` before starting
+- **MUST** READ `.claude/skills/shared/test-spec-verification-protocol.md` before starting

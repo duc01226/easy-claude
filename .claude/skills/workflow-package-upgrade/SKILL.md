@@ -1,14 +1,14 @@
 ---
 name: workflow-package-upgrade
 version: 1.0.0
-description: '[Workflow] Trigger Package Upgrade workflow — upgrade dependencies, npm update, NuGet upgrade with testing.'
+description: "[Workflow] Trigger Package Upgrade workflow — upgrade dependencies, npm update, NuGet upgrade with testing."
 ---
 
 > **[BLOCKING]** Each step MUST invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
 Activate the `package-upgrade` workflow. Run `/workflow-start package-upgrade` with the user's prompt as context.
 
-**Steps:** /scout → /feature-investigation → /plan → /plan-review → /plan-validate → /code → /test → /review-changes → /review-architecture → /code-review → /watzup → /workflow-end
+**Steps:** /scout → /investigate → /plan → /plan-review → /plan-validate → /code → /test → /workflow-review-changes → /watzup → /workflow-end
 
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: review-post-task
 version: 1.0.0
-description: '[Code Quality] Two-pass code review for task completion'
+description: "[Code Quality] Two-pass code review for task completion"
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
@@ -16,6 +16,12 @@ description: '[Code Quality] Two-pass code review for task completion'
 > MUST READ `.claude/skills/shared/double-round-trip-review-protocol.md` for full protocol and checklists.
 > **Graph Impact Analysis** — Use `trace --direction downstream` on changed files to find all impacted consumers, bus message handlers, event subscribers. Verify each needs updating.
 > MUST READ `.claude/skills/shared/graph-impact-analysis-protocol.md` for full protocol and checklists.
+> **Logic & Intention Review** — Verify WHAT the code does matches WHY it was changed. Every changed line must serve stated purpose. Trace at least one happy path + one error path. Clean code can be wrong code.
+> MUST READ `.claude/skills/shared/logic-and-intention-review-protocol.md` for full protocol and checklists.
+> **Bug Detection** — Systematically hunt for potential bugs: null safety, boundary conditions (off-by-one, empty collections), error handling (silent failures, swallowed exceptions), resource leaks, concurrency issues (missing await, race conditions). Check categories 1-4 for EVERY review.
+> MUST READ `.claude/skills/shared/bug-detection-protocol.md` for full protocol and checklists.
+> **Test Spec Verification** — Cross-reference changes against TC-{FEAT}-{NNN} test specifications. Flag untested code paths, new functions without TCs, stale evidence in existing TCs. If no specs exist, recommend /tdd-spec.
+> MUST READ `.claude/skills/shared/test-spec-verification-protocol.md` for full protocol and checklists.
 
 > **Critical Purpose:** Ensure quality — no flaws, no bugs, no missing updates, no stale content. Verify both code AND documentation.
 
@@ -105,6 +111,12 @@ Fix issues found.
 
 **Pass 2 (MANDATORY — Round 2):** Re-review ALL changes (original + corrections) with fresh eyes. Do NOT skip even if Pass 1 made no changes. Focus on what Pass 1 missed: cross-cutting concerns, subtle edge cases, naming inconsistencies, missing pieces, convention drift, over-engineering. Update report with Round 2 findings. See `.claude/skills/shared/double-round-trip-review-protocol.md`.
 
+**Round 2 Additional Focus:**
+
+- Logic errors that Round 1 accepted at face value
+- Bug patterns that only emerge when viewing cross-file interactions
+- Test spec gaps visible only after seeing the full change set
+
 **Final Report:** Task description, Pass 1/2 results, changes summary, issues fixed, remaining concerns.
 
 ## Integration Notes
@@ -129,8 +141,11 @@ Fix issues found.
 - **MUST** cite `file:line` evidence for every claim (confidence >80% to act)
 - **MUST** add a final review todo task to verify work quality
 - **MUST** execute two review rounds (Round 1: understand, Round 2: catch missed issues)
-**MANDATORY IMPORTANT MUST** READ the following files before starting:
+  **MANDATORY IMPORTANT MUST** READ the following files before starting:
 - **MUST** READ `.claude/skills/shared/understand-code-first-protocol.md` before starting
 - **MUST** READ `.claude/skills/shared/design-patterns-quality-checklist.md` before starting
 - **MUST** READ `.claude/skills/shared/double-round-trip-review-protocol.md` before starting
 - **MUST** READ `.claude/skills/shared/graph-impact-analysis-protocol.md` before starting
+- **MUST** READ `.claude/skills/shared/logic-and-intention-review-protocol.md` before starting
+- **MUST** READ `.claude/skills/shared/bug-detection-protocol.md` before starting
+- **MUST** READ `.claude/skills/shared/test-spec-verification-protocol.md` before starting
