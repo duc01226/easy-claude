@@ -1,7 +1,7 @@
 ---
 name: review-post-task
 version: 1.0.0
-description: "[Code Quality] Two-pass code review for task completion"
+description: '[Code Quality] Two-pass code review for task completion'
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
@@ -133,6 +133,16 @@ Fix issues found.
 > **When the changeset is large (10+ files), categorize files by concern, fire parallel `code-reviewer` sub-agents per category, then synchronize findings into a holistic report.** See `review-changes/SKILL.md` § "Systematic Review Protocol" for the full 4-step protocol (Categorize → Parallel Sub-Agents → Synchronize → Holistic Assessment).
 
 ---
+
+## AI Agent Integrity Gate (NON-NEGOTIABLE)
+
+> **Completion ≠ Correctness.** Before reporting ANY work done, prove it:
+>
+> 1. **Grep every removed name.** Extraction/rename/delete touched N files? Grep confirms 0 dangling refs across ALL file types.
+> 2. **Ask WHY before changing.** Existing values are intentional until proven otherwise. No "fix" without traced rationale.
+> 3. **Verify ALL outputs.** One build passing ≠ all builds passing. Check every affected stack.
+> 4. **Evaluate pattern fit.** Copying nearby code? Verify preconditions match — same scope, lifetime, base class, constraints.
+> 5. **New artifact = wired artifact.** Created something? Prove it's registered, imported, and reachable by all consumers.
 
 ## Closing Reminders
 

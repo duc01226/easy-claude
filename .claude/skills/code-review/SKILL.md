@@ -1,7 +1,7 @@
 ---
 name: code-review
 version: 2.1.0
-description: "[Code Quality] Use when receiving code review feedback (especially if unclear or technically questionable), when completing tasks requiring review before proceeding, or before making completion claims. Covers receiving feedback with technical rigor, requesting reviews via code-reviewer subagent, and verification gates requiring evidence before status claims."
+description: '[Code Quality] Use when receiving code review feedback (especially if unclear or technically questionable), when completing tasks requiring review before proceeding, or before making completion claims. Covers receiving feedback with technical rigor, requesting reviews via code-reviewer subagent, and verification gates requiring evidence before status claims.'
 allowed-tools: Read, Grep, Glob, Bash, Write, TaskCreate, Edit, AskUserQuestion
 ---
 
@@ -206,12 +206,12 @@ After completing Phase 3 (Round 1), execute a **second full review round**:
 1. **Re-read** the Round 1 report to understand what was already caught
 2. **Re-scan** ALL reviewed files — do NOT rely on Round 1 memory
 3. **Focus on** what Round 1 typically misses:
-   - Cross-cutting concerns spanning multiple files
-   - Subtle edge cases (null, empty, boundary, off-by-one)
-   - Naming inconsistencies across files
-   - Missing pieces (error handling, validation, tests)
-   - Convention drift (grep to verify against codebase patterns)
-   - Over-engineering that seemed justified in Round 1
+    - Cross-cutting concerns spanning multiple files
+    - Subtle edge cases (null, empty, boundary, off-by-one)
+    - Naming inconsistencies across files
+    - Missing pieces (error handling, validation, tests)
+    - Convention drift (grep to verify against codebase patterns)
+    - Over-engineering that seemed justified in Round 1
 4. **Update report** with `## Round 2 Findings` section
 5. **Final verdict** must incorporate findings from BOTH rounds
 
@@ -222,20 +222,20 @@ After completing Phase 3 (Round 1), execute a **second full review round**:
 3. **Single Responsibility** - One reason to change per method/class. **For event handlers, consumers, and background jobs: one handler = one independent concern.** Never bundle unrelated operations — if one fails, platform silently swallows the exception and the rest never execute.
 4. **DRY** - No code duplication; extract shared logic
 5. **Naming** - Clear, specific names that reveal intent:
-   - Specific not generic: `employeeRecords` not `data`
-   - Methods: Verb+Noun: `getEmployee()`, `validateInput()`
-   - Booleans: is/has/can/should prefix: `isActive`, `hasPermission`
-   - No cryptic abbreviations: `employeeCount` not `empCnt`
+    - Specific not generic: `employeeRecords` not `data`
+    - Methods: Verb+Noun: `getEmployee()`, `validateInput()`
+    - Booleans: is/has/can/should prefix: `isActive`, `hasPermission`
+    - No cryptic abbreviations: `employeeCount` not `empCnt`
 6. **Performance** - Efficient data access patterns:
-   - No O(n²): use dictionary lookup instead of nested loops
-   - Project in query: don't load all then `.Select(x.Id)`
-   - Always paginate: never get all data without pagination (search for: pagination pattern)
-   - Batch load: use batch-by-IDs pattern, not N+1 queries (search for: batch load pattern)
+    - No O(n²): use dictionary lookup instead of nested loops
+    - Project in query: don't load all then `.Select(x.Id)`
+    - Always paginate: never get all data without pagination (search for: pagination pattern)
+    - Batch load: use batch-by-IDs pattern, not N+1 queries (search for: batch load pattern)
 7. **Entity Indexes** - Database queries have matching indexes:
-   - Database collections: index management methods (search for: index setup pattern)
-   - EF Core: Composite indexes in migrations for filter columns
-   - Expression fields match index field order (leftmost prefix)
-   - Text search queries have text indexes configured
+    - Database collections: index management methods (search for: index setup pattern)
+    - EF Core: Composite indexes in migrations for filter columns
+    - Expression fields match index field order (leftmost prefix)
+    - Text search queries have text indexes configured
 
 ## Data Lifecycle Rules (MUST CHECK)
 
@@ -457,6 +457,16 @@ If `architectureRules` is not present in project-config.json, skip this check si
 - **"/fix (Recommended)"** — If review found issues that need fixing
 - **"/watzup"** — If review is clean, wrap up session
 - **"Skip, continue manually"** — user decides
+
+## AI Agent Integrity Gate (NON-NEGOTIABLE)
+
+> **Completion ≠ Correctness.** Before reporting ANY work done, prove it:
+>
+> 1. **Grep every removed name.** Extraction/rename/delete touched N files? Grep confirms 0 dangling refs across ALL file types.
+> 2. **Ask WHY before changing.** Existing values are intentional until proven otherwise. No "fix" without traced rationale.
+> 3. **Verify ALL outputs.** One build passing ≠ all builds passing. Check every affected stack.
+> 4. **Evaluate pattern fit.** Copying nearby code? Verify preconditions match — same scope, lifetime, base class, constraints.
+> 5. **New artifact = wired artifact.** Created something? Prove it's registered, imported, and reachable by all consumers.
 
 ## Closing Reminders
 

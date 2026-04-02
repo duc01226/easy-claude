@@ -126,6 +126,16 @@ After completing Round 1 evaluation, execute a **second full review round**:
 
 ---
 
+## AI Agent Integrity Gate (NON-NEGOTIABLE)
+
+> **Completion ≠ Correctness.** Before reporting ANY work done, prove it:
+>
+> 1. **Grep every removed name.** Extraction/rename/delete touched N files? Grep confirms 0 dangling refs across ALL file types.
+> 2. **Ask WHY before changing.** Existing values are intentional until proven otherwise. No "fix" without traced rationale.
+> 3. **Verify ALL outputs.** One build passing ≠ all builds passing. Check every affected stack.
+> 4. **Evaluate pattern fit.** Copying nearby code? Verify preconditions match — same scope, lifetime, base class, constraints.
+> 5. **New artifact = wired artifact.** Created something? Prove it's registered, imported, and reachable by all consumers.
+
 ## Closing Reminders
 
 - **MUST** break work into small todo tasks using `TaskCreate` BEFORE starting
@@ -133,6 +143,6 @@ After completing Round 1 evaluation, execute a **second full review round**:
 - **MUST** cite `file:line` evidence for every claim (confidence >80% to act)
 - **MUST** add a final review todo task to verify work quality
 - **MUST** execute two review rounds (Round 1: understand, Round 2: catch missed issues)
-**MANDATORY IMPORTANT MUST** READ the following files before starting:
+  **MANDATORY IMPORTANT MUST** READ the following files before starting:
 - **MUST** READ `.claude/skills/shared/understand-code-first-protocol.md` before starting
 - **MUST** READ `.claude/skills/shared/graph-impact-analysis-protocol.md` before starting
