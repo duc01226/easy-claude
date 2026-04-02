@@ -29,10 +29,10 @@ Skipping logic review because "the code looks clean" is a VIOLATION — clean co
 - [ ] **Happy path trace:** Pick the primary use case. Trace data flow from entry point through each changed function to the output. Does the result match the requirement?
 - [ ] **Error path trace:** Pick one failure scenario. Trace what happens when input is invalid, service is down, or data is missing. Does the error handling produce the correct behavior?
 - [ ] **Semantic correctness questions** (ask for each changed function):
-  - Is the filter/query logic correct? (wrong `AND`/`OR`, missing conditions, inverted checks)
-  - Is the sort order right? (ascending vs descending, wrong comparison key)
-  - Are boundary conditions matching the spec? (`<` vs `<=`, inclusive vs exclusive ranges)
-  - Are business rules correctly encoded? (discount calculation, permission checks, state transitions)
+    - Is the filter/query logic correct? (wrong `AND`/`OR`, missing conditions, inverted checks)
+    - Is the sort order right? (ascending vs descending, wrong comparison key)
+    - Are boundary conditions matching the spec? (`<` vs `<=`, inclusive vs exclusive ranges)
+    - Are business rules correctly encoded? (discount calculation, permission checks, state transitions)
 
 ## 3. Acceptance Criteria Mapping (when plan/PBI context available)
 

@@ -1,7 +1,7 @@
 ---
 name: workflow-feature-with-integration-test
 version: 1.0.0
-description: "[Workflow] Trigger Feature with Integration Test workflow — implement a well-defined feature with spec-first integration testing: spec writing before implementation, plan refinement, and test verification."
+description: '[Workflow] Trigger Feature with Integration Test workflow — implement a well-defined feature with spec-first integration testing: spec writing before implementation, plan refinement, and test verification.'
 ---
 
 > **[BLOCKING]** Each step MUST invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.

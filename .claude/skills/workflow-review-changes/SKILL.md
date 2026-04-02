@@ -1,7 +1,7 @@
 ---
 name: workflow-review-changes
 version: 3.0.0
-description: "[Workflow] Trigger Review Current Changes workflow — review, fix, and re-review recursively until all issues resolved."
+description: '[Workflow] Trigger Review Current Changes workflow — review, fix, and re-review recursively until all issues resolved.'
 ---
 
 > **[BLOCKING]** Each step MUST invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
@@ -80,8 +80,8 @@ This workflow is **self-recursive**. After fixing issues, it calls itself to re-
 3. **PASS = exit** — when all review steps report no Critical/Major issues, skip plan/cook/recursive-call and proceed to `/watzup`
 4. **Diminishing scope** — each iteration should find FEWER issues. If iteration N finds MORE issues than N-1, STOP and escalate to user
 5. **Skip conditions for plan/cook/recursive-call:**
-   - All reviews PASS with no Critical or Major findings
-   - Only Minor/cosmetic findings remain (log them, don't fix)
+    - All reviews PASS with no Critical or Major findings
+    - Only Minor/cosmetic findings remain (log them, don't fix)
 
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: fix-fast
 version: 1.0.0
-description: "[Implementation] Analyze and fix small issues [FAST]"
+description: '[Implementation] Analyze and fix small issues [FAST]'
 disable-model-invocation: false
 ---
 

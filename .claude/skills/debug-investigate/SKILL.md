@@ -1,7 +1,7 @@
 ---
 name: debug
 version: 1.0.0
-description: "[Fix & Debug] Systematic debugging with root cause investigation. Use when bugfix workflow reaches debug step."
+description: '[Fix & Debug] Systematic debugging with root cause investigation. Use when bugfix workflow reaches debug step.'
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
@@ -76,10 +76,10 @@ description: "[Fix & Debug] Systematic debugging with root cause investigation. 
 ### Step 3: Trace
 
 - For each hypothesis, trace the code path:
-  - Find entry point (API, UI, job, event)
-  - Follow through handlers/services
-  - Check data transformations and state changes
-  - Verify error handling paths
+    - Find entry point (API, UI, job, event)
+    - Follow through handlers/services
+    - Check data transformations and state changes
+    - Verify error handling paths
 - Use grep/read to collect `file:line` evidence
 
 ### Step 4: Confirm
@@ -102,6 +102,7 @@ If `.code-graph/graph.db` exists, you MUST use structural queries to trace depen
 ### Graph-Assisted Debugging
 
 After identifying suspect files, use graph trace to understand the full context:
+
 1. `python .claude/scripts/code_graph trace <suspect-file> --direction both --json` — see what calls this code AND what it triggers downstream
 2. `python .claude/scripts/code_graph trace <suspect-file> --direction upstream --json` — find all callers that could trigger the bug
 3. This reveals implicit connections (MESSAGE_BUS, event handlers) that may propagate the issue across services
@@ -164,6 +165,7 @@ If you're thinking:
 **MANDATORY IMPORTANT MUST** validate decisions with user via `AskUserQuestion` — never auto-decide.
 **MANDATORY IMPORTANT MUST** add a final review todo task to verify work quality.
 **MANDATORY IMPORTANT MUST** READ the following files before starting:
+
 - **MUST** READ `.claude/skills/shared/understand-code-first-protocol.md` before starting
 - **MUST** READ `.claude/skills/shared/evidence-based-reasoning-protocol.md` before starting
 - **MUST** READ `.claude/skills/shared/estimation-framework.md` before starting

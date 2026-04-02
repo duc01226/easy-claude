@@ -493,9 +493,9 @@ I can explain further:
 ### Phase 1A: Initialize & Discover
 
 1. **Create analysis file** at `.ai/workspace/analysis/[feature-name]-investigation.analysis.md`
-   - **Use the Analysis File Structure template** above
+    - **Use the Analysis File Structure template** above
 2. **Search for all related files** using grep patterns organized by priority
-   - **Use the File Discovery Search Patterns** above
+    - **Use the File Discovery Search Patterns** above
 3. **Save all discovered paths** as numbered list under `## File List`, organized by priority
 4. Update `Total Items` count in `## Progress`
 
@@ -504,7 +504,7 @@ I can explain further:
 1. Count total files, split into batches of 10 (priority order)
 2. Insert batch analysis tasks into todo list
 3. For each file, document in `## Knowledge Graph`
-   - **Use the Knowledge Graph Entry Template** above
+    - **Use the Knowledge Graph Entry Template** above
 4. **Every 10 files**: Update progress, run CONTEXT_ANCHOR_CHECK
 
 ### Phase 1C: Overall Analysis

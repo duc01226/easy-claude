@@ -1,7 +1,7 @@
 ---
 name: workflow-feature
 version: 1.0.0
-description: "[Workflow] Trigger Feature Implementation workflow — implement a well-defined feature with investigation, planning, implementation, and review."
+description: '[Workflow] Trigger Feature Implementation workflow — implement a well-defined feature with investigation, planning, implementation, and review.'
 ---
 
 > **[BLOCKING]** Each step MUST invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.

@@ -1,7 +1,7 @@
 ---
 name: workflow-quality-audit
 version: 1.0.0
-description: "[Workflow] Trigger Quality Audit workflow — audit code quality, review for best practices, find flaws and suggest enhancements."
+description: '[Workflow] Trigger Quality Audit workflow — audit code quality, review for best practices, find flaws and suggest enhancements.'
 ---
 
 > **[BLOCKING]** Each step MUST invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.

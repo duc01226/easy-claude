@@ -1,7 +1,7 @@
 ---
 name: fix-ci
 version: 1.0.0
-description: "[Implementation] Analyze Github Actions logs and fix issues"
+description: '[Implementation] Analyze Github Actions logs and fix issues'
 disable-model-invocation: false
 ---
 

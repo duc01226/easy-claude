@@ -1,7 +1,7 @@
 ---
 name: workflow-batch-operation
 version: 1.0.0
-description: "[Workflow] Trigger Batch Operation workflow — bulk modifications across multiple files with planning and review."
+description: '[Workflow] Trigger Batch Operation workflow — bulk modifications across multiple files with planning and review.'
 ---
 
 > **[BLOCKING]** Each step MUST invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.

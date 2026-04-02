@@ -106,7 +106,7 @@ Before saving any lesson, critically evaluate whether a doc update alone is suff
 | Prevention Layer                            | When to use                                                                   | Example                                                                                     |
 | ------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
 | **Doc update only**                         | One-off awareness, rare edge case, team convention                            | "Always use fluent validation API" → `docs/project-reference/backend-patterns-reference.md` |
-| **Prompt rule** (`development-rules.md`)    | Rule that ALL agents must follow on every task (injected on UserPromptSubmit) | "Grep after bulk edits" → `.claude/workflows/development-rules.md`                          |
+| **Prompt rule** (`development-rules.md`)    | Rule that ALL agents must follow on every task (injected on UserPromptSubmit) | "Grep after bulk edits" → `.claude/docs/development-rules.md`                               |
 | **System Lesson** (`prompt-injections.cjs`) | Universal AI mistake, high recurrence, silent failure, any project            | "Re-read files after context compaction" → `.claude/hooks/lib/prompt-injections.cjs`        |
 | **Hook** (`.claude/hooks/`)                 | Automated enforcement, must never be forgotten                                | "Dedup markers must match" → `lib/dedup-constants.cjs` + consistency test                   |
 | **Test** (`.claude/hooks/tests/`)           | Regression prevention, verifiable invariant                                   | "All hooks import from shared module" → test in `test-all-hooks.cjs`                        |
@@ -119,10 +119,10 @@ Before saving any lesson, critically evaluate whether a doc update alone is suff
 3. **Ask:** "Can this be caught automatically by a test or hook?" If yes → recommend hook/test
 4. **Evaluate System Lesson promotion** (see below)
 5. **Present options to user** with `AskUserQuestion`:
-   - "Doc update only" — save to the best-fit reference file (default for most lessons)
-   - "Doc + prompt rule" — also add to `development-rules.md` so all agents see it
-   - "Doc + System Lesson" — also add to `prompt-injections.cjs` System Lessons (see criteria below)
-   - "Full prevention" — plan a hook, test, or shared module to enforce it automatically
+    - "Doc update only" — save to the best-fit reference file (default for most lessons)
+    - "Doc + prompt rule" — also add to `development-rules.md` so all agents see it
+    - "Doc + System Lesson" — also add to `prompt-injections.cjs` System Lessons (see criteria below)
+    - "Full prevention" — plan a hook, test, or shared module to enforce it automatically
 6. **Execute** the chosen option. For "Full prevention", create a plan via `/plan` instead of just saving.
 
 ### System Lesson Promotion (MANDATORY evaluation)
@@ -199,8 +199,8 @@ Every lesson MUST be **generic and reusable across any project**. Before saving:
 
 1. Display all current lessons with char count each
 2. Evaluate each lesson on two axes:
-   - **Universality** — How often does this apply? (every session vs rare edge case)
-   - **Recurrence risk** — How likely is the AI to repeat this mistake without the reminder?
+    - **Universality** — How often does this apply? (every session vs rare edge case)
+    - **Recurrence risk** — How likely is the AI to repeat this mistake without the reminder?
 3. Score each: **HIGH** (keep as-is), **MEDIUM** (candidate to condense), **LOW** (candidate to remove)
 4. Present to user with `AskUserQuestion`: "Budget exceeded. Recommend removing/condensing these LOW/MEDIUM items: [list]. Approve?"
 5. On approval: condense MEDIUM items (shorten wording), remove LOW items, then save new lesson

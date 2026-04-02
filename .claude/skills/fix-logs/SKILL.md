@@ -1,7 +1,7 @@
 ---
 name: fix-logs
 version: 1.0.0
-description: "[Implementation] Analyze logs and fix issues"
+description: '[Implementation] Analyze logs and fix issues'
 disable-model-invocation: false
 ---
 
@@ -65,14 +65,14 @@ disable-model-invocation: false
 ## Workflow
 
 1. Check if `./logs.txt` exists:
-   - If missing, set up permanent log piping in project's script config (`package.json`, `Makefile`, `pyproject.toml`, etc.):
-     - **Bash/Unix**: append `2>&1 | tee logs.txt`
-     - **PowerShell**: append `*>&1 | Tee-Object logs.txt`
-   - Run the command to generate logs
+    - If missing, set up permanent log piping in project's script config (`package.json`, `Makefile`, `pyproject.toml`, etc.):
+        - **Bash/Unix**: append `2>&1 | tee logs.txt`
+        - **PowerShell**: append `*>&1 | Tee-Object logs.txt`
+    - Run the command to generate logs
 2. Use `debugger` subagent to analyze `./logs.txt` and find root causes:
-   - Use `Grep` with `head_limit: 30` to read only last 30 lines (avoid loading entire file)
-   - If insufficient context, increase `head_limit` as needed
-   - **External Memory**: Write log analysis to `.ai/workspace/analysis/{issue-name}.analysis.md`. Re-read before fixing.
+    - Use `Grep` with `head_limit: 30` to read only last 30 lines (avoid loading entire file)
+    - If insufficient context, increase `head_limit` as needed
+    - **External Memory**: Write log analysis to `.ai/workspace/analysis/{issue-name}.analysis.md`. Re-read before fixing.
 3. Use `scout` subagent to analyze the codebase and find the exact location of the issues, then report back to main agent.
 4. Use `planner` subagent to create an implementation plan based on the reports, then report back to main agent.
 5. **🛑 Present root cause + fix plan → `AskUserQuestion` → wait for user approval.**

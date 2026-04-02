@@ -607,6 +607,7 @@ When test code and spec disagree, determine which is correct:
 **MANDATORY IMPORTANT MUST** validate decisions with user via `AskUserQuestion` — never auto-decide.
 **MANDATORY IMPORTANT MUST** add a final review todo task to verify work quality.
 **MANDATORY IMPORTANT MUST** READ the following files before starting:
+
 - **MUST** READ `.claude/skills/shared/understand-code-first-protocol.md` before starting
 - **MUST** READ `.claude/skills/shared/graph-impact-analysis-protocol.md` before starting
 - **MUST** READ `.claude/skills/shared/red-flag-stop-conditions-protocol.md` before starting

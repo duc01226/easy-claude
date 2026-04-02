@@ -1,7 +1,7 @@
 ---
 name: fix-issue
 version: 1.0.0
-description: "[Implementation] Debug and fix GitHub issues with systematic investigation"
+description: '[Implementation] Debug and fix GitHub issues with systematic investigation'
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.

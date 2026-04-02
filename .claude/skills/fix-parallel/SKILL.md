@@ -1,7 +1,7 @@
 ---
 name: fix-parallel
 version: 1.0.0
-description: "[Implementation] Analyze & fix issues with parallel fullstack-developer agents"
+description: '[Implementation] Analyze & fix issues with parallel fullstack-developer agents'
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
@@ -96,9 +96,9 @@ description: "[Implementation] Analyze & fix issues with parallel fullstack-deve
 
 - Read `plan.md` for dependency graph
 - Launch multiple `fullstack-developer` agents in PARALLEL for independent fixes
-  - Example: "Fix auth + Fix payments + Fix UI" → launch 3 agents simultaneously
-  - Pass phase file path: `{plan-dir}/phase-XX-*.md`
-  - Include environment info
+    - Example: "Fix auth + Fix payments + Fix UI" → launch 3 agents simultaneously
+    - Pass phase file path: `{plan-dir}/phase-XX-*.md`
+    - Include environment info
 - Wait for all parallel fixes complete before dependent fixes
 - Sequential fixes: launch one agent at a time
 
@@ -118,8 +118,8 @@ description: "[Implementation] Analyze & fix issues with parallel fullstack-deve
 ### 5. Code Review
 
 - **Two-stage review** (see `.claude/skills/shared/two-stage-task-review-protocol.md`):
-  1. First: dispatch `spec-compliance-reviewer` to verify each fix matches its spec
-  2. Only after spec passes: dispatch `code-reviewer` for quality review
+    1. First: dispatch `spec-compliance-reviewer` to verify each fix matches its spec
+    2. Only after spec passes: dispatch `code-reviewer` for quality review
 - Verify fixes don't introduce regressions
 - If critical issues: fix, retest
 

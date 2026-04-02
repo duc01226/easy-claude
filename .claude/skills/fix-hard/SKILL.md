@@ -1,7 +1,7 @@
 ---
 name: fix-hard
 version: 1.0.0
-description: "[Implementation] Use subagents to plan and fix hard issues"
+description: '[Implementation] Use subagents to plan and fix hard issues'
 disable-model-invocation: false
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: workflow-greenfield-init
 version: 1.0.0
-description: "[Workflow] Trigger Greenfield Project Init workflow — full waterfall project inception from idea through implementation with integration testing."
+description: '[Workflow] Trigger Greenfield Project Init workflow — full waterfall project inception from idea through implementation with integration testing.'
 ---
 
 > **[BLOCKING]** Each step MUST invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.

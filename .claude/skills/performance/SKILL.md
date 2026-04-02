@@ -107,6 +107,7 @@ When graph DB is available, use `trace` to map execution paths for performance a
 **MANDATORY IMPORTANT MUST** validate decisions with user via `AskUserQuestion` — never auto-decide.
 **MANDATORY IMPORTANT MUST** add a final review todo task to verify work quality.
 **MANDATORY IMPORTANT MUST** READ the following files before starting:
+
 - **MUST** READ `.claude/skills/shared/understand-code-first-protocol.md` before starting
 - **MUST** READ `.claude/skills/shared/evidence-based-reasoning-protocol.md` before starting
 - **MUST** READ `.claude/skills/shared/graph-assisted-investigation-protocol.md` before starting

@@ -1,7 +1,7 @@
 ---
 name: code
 version: 1.0.0
-description: "[Implementation] Start coding & testing an existing plan"
+description: '[Implementation] Start coding & testing an existing plan'
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
@@ -92,9 +92,9 @@ Read plan file completely. Map dependencies. List ambiguities. Identify required
 - Initialize TaskCreate with `Step 0: [Plan Name] - [Phase Name]` and all steps (1-6)
 - Read phase file, look for tasks/steps/phases/sections/numbered/bulleted lists
 - Convert to TaskCreate tasks with UNIQUE names:
-  - Phase Implementation tasks → Step 2.X (Step 2.1, Step 2.2, etc.)
-  - Phase Testing tasks → Step 3.X
-  - Phase Code Review tasks → Step 4.X
+    - Phase Implementation tasks → Step 2.X (Step 2.1, Step 2.2, etc.)
+    - Phase Testing tasks → Step 3.X
+    - Phase Code Review tasks → Step 4.X
 
 **Output:** `✓ Step 1: Found [N] tasks across [M] phases - Ambiguities: [list or "none"]`
 
@@ -147,8 +147,8 @@ Present summary (3-5 bullets): what implemented, tests passed, code review outco
 **Prerequisites:** User approved in Step 5.
 
 1. **STATUS UPDATE (PARALLEL):**
-   - Call `project-manager` subagent to update plan status
-   - Call `docs-manager` subagent to update documentation
+    - Call `project-manager` subagent to update plan status
+    - Call `docs-manager` subagent to update documentation
 
 2. **ONBOARDING CHECK:** Detect onboarding requirements + generate summary.
 

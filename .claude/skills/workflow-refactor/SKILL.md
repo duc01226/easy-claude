@@ -1,7 +1,7 @@
 ---
 name: workflow-refactor
 version: 1.0.0
-description: "[Workflow] Trigger Code Refactoring workflow — restructure and improve existing code without changing behavior."
+description: '[Workflow] Trigger Code Refactoring workflow — restructure and improve existing code without changing behavior.'
 ---
 
 > **[BLOCKING]** Each step MUST invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.

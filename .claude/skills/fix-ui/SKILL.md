@@ -1,7 +1,7 @@
 ---
 name: fix-ui
 version: 1.0.0
-description: "[Implementation] Analyze and fix UI issues"
+description: '[Implementation] Analyze and fix UI issues'
 disable-model-invocation: false
 ---
 
@@ -92,11 +92,11 @@ If the user provides a screenshots or videos, use `ai-multimodal` skill to descr
 
 5. Project Management & Documentation:
    **If user approves the changes:** Use `project-manager` and `docs-manager` subagents in parallel to update the project progress and documentation:
-   - Use `project-manager` subagent to update the project progress and task status in the given plan file.
-   - Use `docs-manager` subagent to update the docs in `./docs` directory if needed.
-   - Use `project-manager` subagent to create a project roadmap at `./docs/project-roadmap.md` file.
-   - **IMPORTANT:** Sacrifice grammar for the sake of concision when writing outputs.
-     **If user rejects the changes:** Ask user to explain the issues and ask main agent to fix all of them and repeat the process.
+    - Use `project-manager` subagent to update the project progress and task status in the given plan file.
+    - Use `docs-manager` subagent to update the docs in `./docs` directory if needed.
+    - Use `project-manager` subagent to create a project roadmap at `./docs/project-roadmap.md` file.
+    - **IMPORTANT:** Sacrifice grammar for the sake of concision when writing outputs.
+      **If user rejects the changes:** Ask user to explain the issues and ask main agent to fix all of them and repeat the process.
 6. Final Report:
 
 - Report back to user with a summary of the changes and explain everything briefly, guide user to get started and suggest the next steps.

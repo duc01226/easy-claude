@@ -1,7 +1,7 @@
 ---
 name: fix-test
 version: 1.0.0
-description: "[Implementation] Run test suite and fix issues"
+description: '[Implementation] Run test suite and fix issues'
 disable-model-invocation: false
 ---
 
@@ -68,7 +68,7 @@ Analyze the skills catalog and activate the skills that are needed for the task 
 
 1. Use `tester` subagent to compile the code and fix all syntax errors if any.
 2. Use `tester` subagent to run the tests and report back to main agent.
-   - **External Memory**: Write test failure analysis to `.ai/workspace/analysis/{test-issue}.analysis.md`. Re-read before fixing.
+    - **External Memory**: Write test failure analysis to `.ai/workspace/analysis/{test-issue}.analysis.md`. Re-read before fixing.
 3. If there are issues or failed tests, use `debugger` subagent to find the root cause of the issues, then report back to main agent.
 4. Use `planner` subagent to create an implementation plan based on the reports, then report back to main agent.
 5. **🛑 Present root cause + fix plan → `AskUserQuestion` → wait for user approval.**

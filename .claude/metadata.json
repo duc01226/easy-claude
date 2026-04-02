@@ -3551,7 +3551,7 @@
           "installedVersion": "v2.1.0"
         },
         {
-          "path": "workflows/development-rules.md",
+          "path": "docs/development-rules.md",
           "checksum": "a44d4971435f80f1b6b9cd37b7def764bb8c8f19b065a6fcd59984e2f7619fcf",
           "ownership": "user",
           "installedVersion": "v2.1.0"

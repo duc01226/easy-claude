@@ -1,7 +1,7 @@
 ---
 name: workflow-test-spec-update
 version: 1.0.0
-description: "[Workflow] Trigger Test Spec Update (Post-Change) workflow — update test specs and feature docs after code changes, bug fixes, or pr reviews."
+description: '[Workflow] Trigger Test Spec Update (Post-Change) workflow — update test specs and feature docs after code changes, bug fixes, or pr reviews.'
 ---
 
 > **[BLOCKING]** Each step MUST invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
