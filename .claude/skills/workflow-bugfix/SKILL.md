@@ -1,7 +1,7 @@
 ---
 name: workflow-bugfix
 version: 1.0.0
-description: '[Workflow] Trigger Bug Fix workflow — systematic debugging with root cause investigation, fix, and verification.'
+description: "[Workflow] Trigger Bug Fix workflow — systematic debugging with root cause investigation, fix, and verification."
 ---
 
 > **[BLOCKING]** Each step MUST invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
@@ -10,4 +10,4 @@ description: '[Workflow] Trigger Bug Fix workflow — systematic debugging with 
 
 Activate the `bugfix` workflow. Run `/workflow-start bugfix` with the user's prompt as context.
 
-**Steps:** /scout → /investigate → /debug → /plan → /plan-review → /plan-validate → /why-review → /fix → /prove-fix → /tdd-spec → /tdd-spec-review → /test-specs-docs → /workflow-review-changes → /changelog → /test → /docs-update → /watzup → /workflow-end
+**Steps:** /scout → /investigate → /debug-investigate → /plan → /plan-review → /plan-validate → /why-review → /fix → /prove-fix → /tdd-spec → /tdd-spec-review → /test-specs-docs → /workflow-review-changes → /changelog → /test → /docs-update → /watzup → /workflow-end

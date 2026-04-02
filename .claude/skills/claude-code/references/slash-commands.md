@@ -33,7 +33,7 @@ Research, analyze, and create implementation plans.
 
 **When to use**: Before starting complex implementations
 
-### /debug [issue]
+### /debug-investigate [issue]
 Debug technical issues and provide solutions.
 
 ```bash

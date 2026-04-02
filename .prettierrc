@@ -1,0 +1,23 @@
+{
+    "arrowParens": "avoid",
+    "overrides": [
+        {
+            "files": "**/*.yaml",
+            "options": {
+                "singleQuote": false,
+                "tabWidth": 2
+            }
+        },
+        {
+            "files": "**/*.json",
+            "options": {
+                "singleQuote": false,
+                "tabWidth": 2
+            }
+        }
+    ],
+    "printWidth": 160,
+    "singleQuote": true,
+    "tabWidth": 4,
+    "trailingComma": "none"
+}

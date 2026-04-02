@@ -7,21 +7,21 @@
 
 - **File Naming**: Use kebab-case for file names with a meaningful name that describes the purpose of the file, doesn't matter if the file name is long, just make sure when LLMs read the file names while using Grep or other tools, they can understand the purpose of the file right away without reading the file content.
 - **File Size Management**: Keep individual code files under 200 lines for optimal context management
-    - Split large files into smaller, focused components/modules
-    - Use composition over inheritance for complex widgets
-    - Extract utility functions into separate modules
-    - Create dedicated service classes for business logic
+  - Split large files into smaller, focused components/modules
+  - Use composition over inheritance for complex widgets
+  - Extract utility functions into separate modules
+  - Create dedicated service classes for business logic
 - Use `docs-seeker` skill for fetching latest documentation of libraries/packages via Context7 MCP
 - Use `gh` bash command to interact with Github features if needed
 - Use `ai-multimodal` skill for describing, generating, or editing images, videos, documents, etc. if needed
-- Use `sequential-thinking` skill and `debug` skills for sequential thinking, analyzing code, debugging, etc. if needed
+- Use `sequential-thinking` skill and `debug-investigate` skills for sequential thinking, analyzing code, debugging, etc. if needed
 - **[IMPORTANT]** Follow the codebase structure and code standards in `./docs` during implementation.
 - **[IMPORTANT]** Do not just simulate the implementation or mocking them, always implement the real code.
 - **[CRITICAL] Class Responsibility Rule:**
-    - Logic belongs in LOWEST layer: Entity/Model > Service > Component/Handler
-    - Backend: Entity mapping → Command.UpdateEntity() or DTO.MapToEntity(), NOT in Handler
-    - Frontend: Constants, column arrays, role lists → static properties in Model class, NOT in Component
-    - Frontend: Display logic (CSS class, status text) → instance getter in Model, NOT switch in Component
+  - Logic belongs in LOWEST layer: Entity/Model > Service > Component/Handler
+  - Backend: Entity mapping → Command.UpdateEntity() or DTO.MapToEntity(), NOT in Handler
+  - Frontend: Constants, column arrays, role lists → static properties in Model class, NOT in Component
+  - Frontend: Display logic (CSS class, status text) → instance getter in Model, NOT switch in Component
 
 ## Understand Code First (MANDATORY)
 
@@ -78,9 +78,9 @@ When performing bulk find/replace across 3+ files:
 1. **Preserve syntax integrity** — Never insert comments that break language syntax (e.g., `ClassName // comment<T>` breaks C# generics). Comments go AFTER complete type expressions: `ClassName<T>  // comment`.
 2. **Grep verification** — After ALL replacements, grep the entire repo for the old term to catch missed references in docs, configs, catalog tables, and tests.
 3. **Doc cascade check** — When deleting/renaming components (agents, skills, hooks), map to affected docs:
-    - `.claude/agents/**` → `.claude/docs/agents/README.md`, `.claude/docs/agents/agent-patterns.md`
-    - `.claude/skills/**` → `.claude/docs/skills/README.md`
-    - `.claude/hooks/**` → `.claude/docs/hooks/README.md`
+   - `.claude/agents/**` → `.claude/docs/agents/README.md`, `.claude/docs/agents/agent-patterns.md`
+   - `.claude/skills/**` → `.claude/docs/skills/README.md`
+   - `.claude/hooks/**` → `.claude/docs/hooks/README.md`
 
 ## Doc Review (MANDATORY at session wrap-up)
 
@@ -88,10 +88,10 @@ After completing any code changes, check for stale documentation before closing 
 
 1. Run `git diff --name-only` to list changed files.
 2. Map changed files to relevant docs:
-    - Hook/skill/workflow files → `.claude/docs/` reference docs (check counts, tables, file lists)
-    - Backend service code → `docs/business-features/` for the affected module (see docs/project-config.json for service paths)
-    - Frontend app code → `docs/project-reference/frontend-patterns-reference.md` + business-feature docs (see docs/project-config.json for app paths)
-    - `CLAUDE.md` structural changes → `.claude/docs/README.md`
+   - Hook/skill/workflow files → `.claude/docs/` reference docs (check counts, tables, file lists)
+   - Backend service code → `docs/business-features/` for the affected module (see docs/project-config.json for service paths)
+   - Frontend app code → `docs/project-reference/frontend-patterns-reference.md` + business-feature docs (see docs/project-config.json for app paths)
+   - `CLAUDE.md` structural changes → `.claude/docs/README.md`
 3. For each potentially stale doc: flag it in the final review task or update it immediately.
 4. Output `No doc updates needed` if no mapping applies.
 

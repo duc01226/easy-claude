@@ -1,6 +1,6 @@
 ---
 name: investigate
-description: '[Fix & Debug] Investigate and explain how existing features or logic work. READ-ONLY exploration with no code changes.'
+description: "[Fix & Debug] Investigate and explain how existing features or logic work. READ-ONLY exploration with no code changes."
 version: 2.1.0
 allowed-tools: Read, Grep, Glob, Bash, Task, WebFetch, WebSearch, TodoWrite
 ---
@@ -93,18 +93,18 @@ READ-ONLY exploration skill for understanding existing features. No code changes
 
 1. **Discovery** - Search codebase for all files related to the feature/question. Prioritize: Entities > Commands/Queries > EventHandlers > Controllers > Consumers > Components.
 2. **Graph Expand (MANDATORY — DO NOT SKIP)** - **YOU (the main agent) MUST run graph queries YOURSELF** on key files found in Step 1. This step is NOT optional — without graph, your understanding is incomplete. Sub-agents CANNOT use graph — only you can. Pick 2-3 key files (entities, commands, bus messages) and run:
-    ```bash
-    python .claude/scripts/code_graph connections <key_file> --json
-    python .claude/scripts/code_graph query callers_of <FunctionName> --json
-    python .claude/scripts/code_graph query importers_of <file_path> --json
-    # If "ambiguous" → search to disambiguate, then retry with qualified name
-    python .claude/scripts/code_graph search <keyword> --kind Function --json
-    # Trace how two nodes connect
-    python .claude/scripts/code_graph find-path <source> <target> --json
-    # Filter by service, limit results
-    python .claude/scripts/code_graph query callers_of <name> --limit 5 --filter "ServiceName" --json
-    ```
-    Graph reveals the complete dependency network (callers, importers, tests, inheritance) that grep alone misses. This is essential for understanding features and workflows fully. Also run `/graph-connect-api` for frontend-to-backend API mapping.
+   ```bash
+   python .claude/scripts/code_graph connections <key_file> --json
+   python .claude/scripts/code_graph query callers_of <FunctionName> --json
+   python .claude/scripts/code_graph query importers_of <file_path> --json
+   # If "ambiguous" → search to disambiguate, then retry with qualified name
+   python .claude/scripts/code_graph search <keyword> --kind Function --json
+   # Trace how two nodes connect
+   python .claude/scripts/code_graph find-path <source> <target> --json
+   # Filter by service, limit results
+   python .claude/scripts/code_graph query callers_of <name> --limit 5 --filter "ServiceName" --json
+   ```
+   Graph reveals the complete dependency network (callers, importers, tests, inheritance) that grep alone misses. This is essential for understanding features and workflows fully. Also run `/graph-connect-api` for frontend-to-backend API mapping.
 3. **Knowledge Graph** - Read and analyze each file (from grep + graph results). Document purpose, symbols, dependencies, data flow. Batch in groups of 10, update progress after each batch.
 4. **Flow Mapping** - Trace entry points through processing pipeline to exit points. Map data transformations, persistence, side effects, cross-service boundaries.
 5. **Analysis** - Extract business rules, validation logic, authorization, error handling. Document happy path and edge cases.
@@ -424,7 +424,7 @@ python .claude/scripts/code_graph batch-query <f1> <f2> --json
 ## Related Skills
 
 - `feature` - Implementing new features (code changes)
-- `debug` - Debugging and fixing issues
+- `debug-investigate` - Debugging and fixing issues
 - `scout` - Quick codebase discovery (run before investigation)
 - `graph-query` - Natural language graph queries for code relationships
 

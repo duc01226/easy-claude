@@ -38,7 +38,7 @@ allowed-tools: Read, Grep, Glob, Task, WebFetch, WebSearch, TaskCreate, Bash
 - Use anti-hallucination protocols: validate assumptions, chain evidence, anchor to original question
 - Re-read original question every 10 operations to prevent context drift
 
-> **Skill Variant:** READ-ONLY exploration - no code changes. For implementing features, use `feature-implementation`. For debugging, use `debug`.
+> **Skill Variant:** READ-ONLY exploration - no code changes. For implementing features, use `feature-implementation`. For debugging, use `debug-investigate`.
 
 # Feature Investigation & Logic Exploration
 
@@ -493,9 +493,9 @@ I can explain further:
 ### Phase 1A: Initialize & Discover
 
 1. **Create analysis file** at `.ai/workspace/analysis/[feature-name]-investigation.analysis.md`
-    - **Use the Analysis File Structure template** above
+   - **Use the Analysis File Structure template** above
 2. **Search for all related files** using grep patterns organized by priority
-    - **Use the File Discovery Search Patterns** above
+   - **Use the File Discovery Search Patterns** above
 3. **Save all discovered paths** as numbered list under `## File List`, organized by priority
 4. Update `Total Items` count in `## Progress`
 
@@ -504,7 +504,7 @@ I can explain further:
 1. Count total files, split into batches of 10 (priority order)
 2. Insert batch analysis tasks into todo list
 3. For each file, document in `## Knowledge Graph`
-    - **Use the Knowledge Graph Entry Template** above
+   - **Use the Knowledge Graph Entry Template** above
 4. **Every 10 files**: Update progress, run CONTEXT_ANCHOR_CHECK
 
 ### Phase 1C: Overall Analysis
@@ -561,7 +561,7 @@ When graph DB is available, use `trace` to understand the complete feature flow:
 ## See Also
 
 - `feature-implementation` - For implementing new features (code changes)
-- `debug` - For debugging and fixing issues
+- `debug-investigate` - For debugging and fixing issues
 - `planning` - For creating implementation plans
 - `graph-query` - Natural language graph queries for code relationships
 
@@ -598,4 +598,5 @@ When graph DB is available, use `trace` to understand the complete feature flow:
 **MANDATORY IMPORTANT MUST** validate decisions with user via `AskUserQuestion` — never auto-decide.
 **MANDATORY IMPORTANT MUST** add a final review todo task to verify work quality.
 **MANDATORY IMPORTANT MUST** READ the following files before starting:
+
 - **MUST** READ `.claude/skills/shared/understand-code-first-protocol.md` before starting

@@ -408,7 +408,7 @@ claude /git-cp
 
 ```bash
 # 1. Debug
-claude /debug "login button not working"
+claude /debug-investigate "login button not working"
 
 # 2. Fix
 claude /fix-fast "fix login button issue"
