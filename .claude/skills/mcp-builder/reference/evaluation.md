@@ -44,11 +44,11 @@ Create 10 human-readable questions requiring ONLY READ-ONLY, INDEPENDENT, NON-DE
 
 ### Core Requirements
 
-1. **Questions MUST be independent**
+1. **Questions MUST ATTENTION be independent**
    - Each question should NOT depend on the answer to any other question
    - Should not assume prior write operations from processing another question
 
-2. **Questions MUST require ONLY NON-DESTRUCTIVE AND IDEMPOTENT tool use**
+2. **Questions MUST ATTENTION require ONLY NON-DESTRUCTIVE AND IDEMPOTENT tool use**
    - Should not instruct or require modifying state to arrive at the correct answer
 
 3. **Questions must be REALISTIC, CLEAR, CONCISE, and COMPLEX**

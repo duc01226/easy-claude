@@ -7,10 +7,6 @@ allowed-tools: Read, Write, Edit, TaskCreate, Bash
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting.
 
-**Prerequisites:** **MUST READ** before executing:
-
-- `.claude/skills/shared/web-research-protocol.md`
-
 ## Quick Summary
 
 **Goal:** Synthesize evidence base into final structured report using enforced template.
@@ -18,14 +14,14 @@ allowed-tools: Read, Write, Edit, TaskCreate, Bash
 **Workflow:**
 
 1. **Load evidence** — Read evidence base from deep-research
-2. **Load template** — Read enforced template from docs/templates/
+2. **Load template** — Read enforced template from .claude/templates/
 3. **Synthesize** — Write report following template structure
 4. **Citation check** — Verify every claim has citation
 5. **Confidence summary** — Aggregate scores, flag gaps
 
 **Key Rules:**
 
-- MUST use enforced template structure — all sections required
+- MUST ATTENTION use enforced template structure — all sections required
 - Every factual claim inline-cited: `[N]` referencing source table
 - Knowledge gaps section mandatory
 
@@ -45,9 +41,9 @@ Inventory:
 
 ## Step 2: Load Template
 
-Read the enforced template: `docs/templates/research-report-template.md`
+Read the enforced template: `.claude/templates/research-report-template.md`
 
-Every section in the template MUST appear in the final report.
+Every section in the template MUST ATTENTION appear in the final report.
 
 ## Step 3: Synthesize Report
 
@@ -86,7 +82,7 @@ Clean up working files from `.claude/tmp/` after successful synthesis.
 
 ## Closing Reminders
 
-- **MUST** break work into small todo tasks using `TaskCreate` BEFORE starting
-- **MUST** search codebase for 3+ similar patterns before creating new code
-- **MUST** cite `file:line` evidence for every claim (confidence >80% to act)
-- **MUST** add a final review todo task to verify work quality
+- **IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
+- **IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
+- **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
+- **IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality

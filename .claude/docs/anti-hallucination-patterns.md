@@ -1,6 +1,6 @@
 # Anti-Hallucination Patterns
 
-> **Note**: The mandatory protocol has been consolidated into `.claude/skills/shared/evidence-based-reasoning-protocol.md`.
+> **Note**: The mandatory protocol is inlined via SYNC:evidence-based-reasoning blocks in skills.
 > This file remains as an optional deep-dive reference with comprehensive examples and verification commands.
 >
 > **Purpose**: Prevent AI speculation by requiring evidence before claims.
@@ -10,7 +10,7 @@
 
 ## CRITICAL: Evidence-Based Reasoning (MANDATORY)
 
-Before making ANY claim about code behavior, you MUST complete this checklist:
+Before making ANY claim about code behavior, you MUST ATTENTION complete this checklist:
 
 ### Pre-Claim Verification Checklist
 
@@ -52,8 +52,8 @@ Would you like me to investigate further?
 
 These phrases indicate speculation:
 
-| Forbidden Phrase                  | Why It's Dangerous          | Evidence-Based Alternative                                             |
-| --------------------------------- | --------------------------- | ---------------------------------------------------------------------- |
+| Forbidden Phrase                 | Why It's Dangerous          | Evidence-Based Alternative                                            |
+| -------------------------------- | --------------------------- | --------------------------------------------------------------------- |
 | ❌ "should be public"             | Assumes visibility issue    | ✅ "Grep shows 12 similar private methods work fine at [files]"        |
 | ❌ "the order matters"            | Assumes framework behavior  | ✅ "Framework docs at [URL] specify order requirements"                |
 | ❌ "need to configure both sides" | Assumes ORM requirement     | ✅ "Grep search of 20 FK configs shows single-side pattern at [files]" |

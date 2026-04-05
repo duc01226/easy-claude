@@ -40,7 +40,7 @@
 
 ## SYNC:estimation-framework
 
-> **Estimation** — Modified Fibonacci: 1(trivial) → 2(small) → 3(medium) → 5(large) → 8(very large) → 13(epic, SHOULD split) → 21(MUST split). Output `story_points` and `complexity` in plan frontmatter. Complexity auto-derived: 1-2=Low, 3-5=Medium, 8=High, 13+=Critical.
+> **Estimation** — Modified Fibonacci: 1(trivial) → 2(small) → 3(medium) → 5(large) → 8(very large) → 13(epic, SHOULD split) → 21(MUST ATTENTION split). Output `story_points` and `complexity` in plan frontmatter. Complexity auto-derived: 1-2=Low, 3-5=Medium, 8=High, 13+=Critical.
 
 ---
 
@@ -48,7 +48,8 @@
 
 > **UI System Context** — For ANY task touching `.ts`, `.html`, `.scss`, or `.css` files:
 >
-> **MUST READ before implementing:**
+> **MUST ATTENTION READ before implementing:**
+>
 > 1. `docs/project-reference/frontend-patterns-reference.md` — component base classes, stores, forms
 > 2. `docs/project-reference/scss-styling-guide.md` — BEM methodology, SCSS variables, mixins, responsive
 > 3. `docs/project-reference/design-system/README.md` — design tokens, component inventory, icons
@@ -59,7 +60,7 @@
 
 ## SYNC:plan-quality
 
-> **Plan Quality** — Every plan phase MUST include test specifications.
+> **Plan Quality** — Every plan phase MUST ATTENTION include test specifications.
 >
 > 1. Add `## Test Specifications` section with TC-{FEAT}-{NNN} IDs to every phase file
 > 2. Map every functional requirement to ≥1 TC (or explicit `TBD` with rationale)
@@ -76,15 +77,15 @@
 
 > **Rationalization Prevention** — AI skips steps via these evasions. Recognize and reject:
 >
-> | Evasion | Rebuttal |
-> |---------|----------|
-> | "Too simple for a plan" | Simple + wrong assumptions = wasted time. Plan anyway. |
-> | "I'll test after" | RED before GREEN. Write/verify test first. |
-> | "Already searched" | Show grep evidence with `file:line`. No proof = no search. |
-> | "Just do it" | Still need TaskCreate. Skip depth, never skip tracking. |
-> | "Just a small fix" | Small fix in wrong location cascades. Verify file:line first. |
-> | "Code is self-explanatory" | Future readers need evidence trail. Document anyway. |
-> | "Combine steps to save time" | Combined steps dilute focus. Each step has distinct purpose. |
+> | Evasion                      | Rebuttal                                                      |
+> | ---------------------------- | ------------------------------------------------------------- |
+> | "Too simple for a plan"      | Simple + wrong assumptions = wasted time. Plan anyway.        |
+> | "I'll test after"            | RED before GREEN. Write/verify test first.                    |
+> | "Already searched"           | Show grep evidence with `file:line`. No proof = no search.    |
+> | "Just do it"                 | Still need TaskCreate. Skip depth, never skip tracking.       |
+> | "Just a small fix"           | Small fix in wrong location cascades. Verify file:line first. |
+> | "Code is self-explanatory"   | Future readers need evidence trail. Document anyway.          |
+> | "Combine steps to save time" | Combined steps dilute focus. Each step has distinct purpose.  |
 
 ---
 
@@ -106,17 +107,17 @@
 
 > **Graph-Assisted Investigation** — MANDATORY when `.code-graph/graph.db` exists.
 >
-> **HARD-GATE:** MUST run at least ONE graph command on key files before concluding any investigation.
+> **HARD-GATE:** MUST ATTENTION run at least ONE graph command on key files before concluding any investigation.
 >
 > **Pattern:** Grep finds files → `trace --direction both` reveals full system flow → Grep verifies details
 >
-> | Task | Minimum Graph Action |
-> |------|---------------------|
-> | Investigation/Scout | `trace --direction both` on 2-3 entry files |
-> | Fix/Debug | `callers_of` on buggy function + `tests_for` |
-> | Feature/Enhancement | `connections` on files to be modified |
-> | Code Review | `tests_for` on changed functions |
-> | Blast Radius | `trace --direction downstream` |
+> | Task                | Minimum Graph Action                         |
+> | ------------------- | -------------------------------------------- |
+> | Investigation/Scout | `trace --direction both` on 2-3 entry files  |
+> | Fix/Debug           | `callers_of` on buggy function + `tests_for` |
+> | Feature/Enhancement | `connections` on files to be modified        |
+> | Code Review         | `tests_for` on changed functions             |
+> | Blast Radius        | `trace --direction downstream`               |
 >
 > **CLI:** `python .claude/scripts/code_graph {command} --json`. Use `--node-mode file` first (10-30x less noise), then `--node-mode function` for detail.
 
@@ -169,17 +170,25 @@
 
 ## SYNC:double-round-trip-review
 
-> **Double Round-Trip Review** — TWO mandatory independent rounds. NEVER combine.
+> **Deep Multi-Round Review** — THREE mandatory escalating-depth rounds. NEVER combine. NEVER PASS after Round 1 alone.
 >
 > **Round 1:** Normal review building understanding. Read all files, note issues.
 > **Round 2:** MANDATORY re-read ALL files from scratch. Focus on:
+>
 > - Cross-cutting concerns missed in Round 1
 > - Interaction bugs between changed files
 > - Convention drift (new code vs existing patterns)
 > - Missing pieces (what should exist but doesn't)
 >
-> **Rules:** NEVER rely on Round 1 memory for Round 2. Final verdict must incorporate BOTH rounds.
-> **Report must include `## Round 2 Findings` section.**
+> **Round 3:** MANDATORY adversarial simulation (for >3 files or cross-cutting changes). Pretend you are using/running this code RIGHT NOW:
+>
+> - "What input causes failure? What error do I get?"
+> - "1000 concurrent users — what breaks?"
+> - "After deployment rollback — backward compatible?"
+> - "Can I debug issues from logs/monitoring output?"
+>
+> **Rules:** NEVER rely on prior round memory — re-read everything. NEVER declare PASS after Round 1. Final verdict must incorporate ALL rounds.
+> **Report must include `## Round 2 Findings` and `## Round 3 Findings` sections.**
 
 ---
 
@@ -187,7 +196,7 @@
 
 > **Logic & Intention Review** — Verify WHAT code does matches WHY it was changed.
 >
-> 1. **Change Intention Check:** Every changed file MUST serve the stated purpose. Flag unrelated changes as scope creep.
+> 1. **Change Intention Check:** Every changed file MUST ATTENTION serve the stated purpose. Flag unrelated changes as scope creep.
 > 2. **Happy Path Trace:** Walk through one complete success scenario through changed code
 > 3. **Error Path Trace:** Walk through one failure/edge case scenario through changed code
 > 4. **Acceptance Mapping:** If plan context available, map every acceptance criterion to a code change
@@ -198,7 +207,7 @@
 
 ## SYNC:bug-detection
 
-> **Bug Detection** — MUST check categories 1-4 for EVERY review. Never skip.
+> **Bug Detection** — MUST ATTENTION check categories 1-4 for EVERY review. Never skip.
 >
 > 1. **Null Safety:** Can params/returns be null? Are they guarded? Optional chaining gaps? `.find()` returns checked?
 > 2. **Boundary Conditions:** Off-by-one (`<` vs `<=`)? Empty collections handled? Zero/negative values? Max limits?
@@ -216,7 +225,7 @@
 > **Test Spec Verification** — Map changed code to test specifications.
 >
 > 1. From changed files → find TC-{FEAT}-{NNN} in `docs/business-features/{Service}/detailed-features/{Feature}.md` Section 17
-> 2. Every changed code path MUST map to a corresponding TC (or flag as "needs TC")
+> 2. Every changed code path MUST ATTENTION map to a corresponding TC (or flag as "needs TC")
 > 3. New functions/endpoints/handlers → flag for test spec creation
 > 4. Verify TC evidence fields point to actual code (`file:line`, not stale references)
 > 5. Auth changes → TC-{FEAT}-02x exist? Data changes → TC-{FEAT}-01x exist?
@@ -231,7 +240,8 @@
 > **Iterative Phase Quality** — Score complexity BEFORE planning.
 >
 > **Complexity signals:** >5 files +2, cross-service +3, new pattern +2, DB migration +2
-> **Score >=6 →** MUST decompose into phases. Each phase:
+> **Score >=6 →** MUST ATTENTION decompose into phases. Each phase:
+>
 > - ≤5 files modified
 > - ≤3h effort
 > - Follows cycle: plan → implement → review → fix → verify
@@ -245,7 +255,7 @@
 
 > **Design Patterns Quality** — Priority checks for every code change:
 >
-> 1. **DRY via OOP:** Same-suffix classes (`*Entity`, `*Dto`, `*Service`) MUST share base class. 3+ similar patterns → extract to shared abstraction.
+> 1. **DRY via OOP:** Same-suffix classes (`*Entity`, `*Dto`, `*Service`) MUST ATTENTION share base class. 3+ similar patterns → extract to shared abstraction.
 > 2. **Right Responsibility:** Logic in LOWEST layer (Entity > Domain Service > Application Service > Controller). Never business logic in controllers.
 > 3. **SOLID:** Single responsibility (one reason to change). Open-closed (extend, don't modify). Liskov (subtypes substitutable). Interface segregation (small interfaces). Dependency inversion (depend on abstractions).
 > 4. **After extraction/move/rename:** Grep ENTIRE scope for dangling references. Zero tolerance.
@@ -284,7 +294,7 @@
 
 ## SYNC:scaffold-production-readiness
 
-> **Scaffold Production Readiness** — Every scaffolded project MUST include 4 foundations:
+> **Scaffold Production Readiness** — Every scaffolded project MUST ATTENTION include 4 foundations:
 >
 > 1. **Code Quality Tooling** — linting, formatting, pre-commit hooks, CI gates
 > 2. **Error Handling Foundation** — HTTP error interception, classification, user notification patterns
@@ -297,12 +307,14 @@
 
 ## SYNC:two-stage-task-review
 
-> **Two-Stage Task Review** — Both stages MUST complete before marking task done.
+> **Two-Stage Task Review** — Both stages MUST ATTENTION complete before marking task done.
 >
 > **Stage 1: Self-review** — Immediately after implementation:
+>
 > - Requirements met? No regressions? Code quality acceptable?
 >
 > **Stage 2: Cross-review** — Via `code-reviewer` subagent:
+>
 > - Catches blind spots, convention drift, missed edge cases
 >
 > **NEVER skip Stage 2.** Self-review alone misses 40%+ of issues.
@@ -344,6 +356,72 @@
 ## SYNC:knowledge-graph-template
 
 > **Knowledge Graph Template** — For each analyzed file, document: filePath, type (Entity/Command/Query/EventHandler/Controller/Consumer/Component/Store/Service), architecturalPattern, content summary, symbols, dependencies, businessContext, referenceFiles, relevanceScore (1-10), evidenceLevel (verified/inferred), frameworkAbstractions, serviceContext. Investigation fields: entryPoints, outputPoints, dataTransformations, errorScenarios. Consumer/bus fields: messageBusMessage, messageBusProducers, crossServiceIntegration. Frontend fields: componentHierarchy, stateManagementStores, dataBindingPatterns, validationStrategies.
+
+---
+
+## SYNC:module-detection
+
+> **Module Detection** — Detect target module from PBI/idea keywords. Match against `docs/business-features/` directory names. Load `docs/business-features/{module}/` context for domain rules. If ambiguous, ask user. Module list derived from codebase — do NOT hardcode.
+
+---
+
+## SYNC:ba-team-decision-model
+
+> **BA Team Decision Model** — 2/3 majority vote: Dev BA PIC + UX BA + Designer BA per squad. 2 of 3 agree = decision final. 3-way split = escalate to full squad + Tech Leads + Engineering Manager.
+>
+> **Technical Veto:** Dev BA PIC can unilaterally veto on: architecture feasibility, dependency correctness, cross-service impact, performance, security. CANNOT veto: UI/UX design, visual design, business value, user research.
+>
+> **Rules:** Disagree-and-commit after vote. Grooming override requires >75% non-BA squad vote. Record decisions in PBI Validation Summary (member, role, vote, notes).
+>
+> **Escalation:** Tech uncertainty → Engineering Manager. Business value → PO. Design feasibility → UX BA + Designer BA consensus.
+
+---
+
+## SYNC:refinement-dor-checklist
+
+> **Refinement DoR Checklist** — ALL 7 criteria MUST ATTENTION pass before grooming:
+>
+> 1. **User story template** — "As a {role}, I want {goal}, so that {benefit}" format
+> 2. **AC testable & unambiguous** — GIVEN/WHEN/THEN. No "should/might/TBD/various/appropriate". Min 3 scenarios (happy, edge, error) + 1 auth scenario
+> 3. **Wireframes attached** — UI features: `## UI Layout` with wireframe + components + states + tokens. Backend-only: explicit "N/A"
+> 4. **UI design ready** — Visual design + component decomposition tree. Backend-only: "N/A"
+> 5. **AI pre-review passed** — `/refine-review` or `/pbi-challenge` returned PASS or WARN (not FAIL)
+> 6. **Story points estimated** — Fibonacci 1-21 + complexity (Low/Medium/High). >13 SP → recommend split
+> 7. **Dependencies table complete** — Dependency, Type (must-before/can-parallel/blocked-by/independent), Status
+>
+> **Failure fixes:** Vague AC → specify exact CRUD + roles. Missing auth → add roles × CRUD table. No wireframes → UX BA creates. TBD in AC → replace with decision.
+
+---
+
+## SYNC:graph-intelligence-queries
+
+> **Graph Intelligence Queries** — CLI: `python .claude/scripts/code_graph {cmd} --json`. Use `--node-mode file` first (less noise), then `function` for detail.
+>
+> | Find                    | Command                                      |
+> | ----------------------- | -------------------------------------------- |
+> | All callers of function | `query callers_of <fn>`                      |
+> | All importers of module | `query importers_of <mod>`                   |
+> | Tests covering function | `query tests_for <fn>`                       |
+> | Class hierarchy         | `query inheritors_of <class>`                |
+> | Full connection network | `connections <file>`                         |
+> | Multi-file batch        | `batch-query <f1> <f2>`                      |
+> | Full system flow (BFS)  | `trace <file> --direction both --depth 3`    |
+> | Find node by keyword    | `search <keyword> --kind Function --limit 5` |
+> | Shortest path           | `find-path <source> <target>`                |
+>
+> **Orchestration:** grep → graph → grep (find files → expand network → verify). Iterative grep↔graph is encouraged.
+
+---
+
+## SYNC:design-system-check
+
+> **Design System Check** — Before ANY frontend work, read docs relevant to task type:
+>
+> 1. `docs/project-reference/design-system/README.md` — tokens, components, icons, themes
+> 2. `docs/project-reference/frontend-patterns-reference.md` — base classes, stores, forms, API services
+> 3. `docs/project-reference/scss-styling-guide.md` — BEM, SCSS vars, mixins, responsive
+>
+> App-specific paths: check `docs/project-config.json` → `designSystem.appMappings[]` and `contextGroups[]`.
 
 ---
 

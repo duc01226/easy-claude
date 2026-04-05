@@ -4,27 +4,35 @@ version: 1.0.0
 description: '[Code Quality] Review PBI artifact for completeness, missing concerns, and quality before proceeding to story creation. AI self-review gate after /refine.'
 ---
 
-> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
+> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
 
-> **Evidence Gate:** MANDATORY IMPORTANT MUST — every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% must verify first).
+> **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION — every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% must verify first).
 
-> **OOP & DRY Enforcement:** MANDATORY IMPORTANT MUST — flag duplicated patterns that should be extracted to a base class, generic, or helper. Classes in the same group or suffix (ex *Entity, *Dto, \*Service, etc...) MUST inherit a common base (even if empty now — enables future shared logic and child overrides). Verify project has code linting/analyzer configured for the stack.
+> **OOP & DRY Enforcement:** MANDATORY IMPORTANT MUST ATTENTION — flag duplicated patterns that should be extracted to a base class, generic, or helper. Classes in the same group or suffix (ex *Entity, *Dto, \*Service, etc...) MUST ATTENTION inherit a common base (even if empty now — enables future shared logic and child overrides). Verify project has code linting/analyzer configured for the stack.
 
 > **External Memory:** For complex or lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report file in `plans/reports/` — prevents context loss and serves as deliverable.
 
 <!-- SYNC:double-round-trip-review -->
 
-> **Double Round-Trip Review** — TWO mandatory independent rounds. NEVER combine.
+> **Deep Multi-Round Review** — THREE mandatory escalating-depth rounds. NEVER combine. NEVER PASS after Round 1 alone.
 >
 > **Round 1:** Normal review building understanding. Read all files, note issues.
 > **Round 2:** MANDATORY re-read ALL files from scratch. Focus on:
+>
 > - Cross-cutting concerns missed in Round 1
 > - Interaction bugs between changed files
 > - Convention drift (new code vs existing patterns)
 > - Missing pieces (what should exist but doesn't)
 >
-> **Rules:** NEVER rely on Round 1 memory for Round 2. Final verdict must incorporate BOTH rounds.
-> **Report must include `## Round 2 Findings` section.**
+> **Round 3:** MANDATORY adversarial simulation (for >3 files or cross-cutting changes). Pretend you are using/running this code RIGHT NOW:
+>
+> - "What input causes failure? What error do I get?"
+> - "1000 concurrent users — what breaks?"
+> - "After deployment rollback — backward compatible?"
+> - "Can I debug issues from logs/monitoring output?"
+>
+> **Rules:** NEVER rely on prior round memory — re-read everything. NEVER declare PASS after Round 1. Final verdict must incorporate ALL rounds.
+> **Report must include `## Round 2 Findings` and `## Round 3 Findings` sections.**
 
 <!-- /SYNC:double-round-trip-review -->
 
@@ -50,7 +58,8 @@ description: '[Code Quality] Review PBI artifact for completeness, missing conce
 
 > **UI System Context** — For ANY task touching `.ts`, `.html`, `.scss`, or `.css` files:
 >
-> **MUST READ before implementing:**
+> **MUST ATTENTION READ before implementing:**
+>
 > 1. `docs/project-reference/frontend-patterns-reference.md` — component base classes, stores, forms
 > 2. `docs/project-reference/scss-styling-guide.md` — BEM methodology, SCSS variables, mixins, responsive
 > 3. `docs/project-reference/design-system/README.md` — design tokens, component inventory, icons
@@ -81,8 +90,8 @@ description: '[Code Quality] Review PBI artifact for completeness, missing conce
 - [ ] **Stakeholder validation** — User interview was conducted (validation section present)
 - [ ] **No vague language** — No "should work", "might need", "TBD" in acceptance criteria
 - [ ] **Scope boundary** — Clear "out of scope" or "not included" section
-- [ ] **Authorization defined** — PBI has "Authorization & Access Control" section with roles × CRUD table (ref: `.claude/skills/shared/cross-cutting-quality-concerns-protocol.md` §1)
-- [ ] **UI Layout section** — If PBI involves UI changes: has `## UI Layout` section per `ui-wireframe-protocol.md` (wireframe + components with tiers + states + design tokens). If backend-only: explicit "N/A"
+- [ ] **Authorization defined** — PBI has "Authorization & Access Control" section with roles × CRUD table
+- [ ] **UI Layout section** — If PBI involves UI changes: has `## UI Layout` section per UI wireframe protocol (wireframe + components with tiers + states + design tokens). If backend-only: explicit "N/A"
 
 ### Recommended (>=50% should pass)
 
@@ -90,9 +99,9 @@ description: '[Code Quality] Review PBI artifact for completeness, missing conce
 - [ ] **Domain vocabulary** — Uses project-specific terms from domain-entities-reference.md
 - [ ] **Risk assessment** — Risks identified with mitigations
 - [ ] **Non-functional requirements** — Performance, security, accessibility considered
-- [ ] **Production readiness concerns** — PBI includes "Production Readiness Concerns" table with Yes/No/Existing for: code linting, error handling, loading indicators, Docker integration, CI/CD quality gates (ref: `.claude/skills/shared/scaffold-production-readiness-protocol.md`)
-- [ ] **Seed data assessed** — PBI addresses seed data needs (reference data, config data, test data) or explicitly states "N/A" (ref: `.claude/skills/shared/cross-cutting-quality-concerns-protocol.md` §2)
-- [ ] **Data migration assessed** — PBI addresses schema changes and data migration needs or explicitly states "N/A" (ref: `.claude/skills/shared/cross-cutting-quality-concerns-protocol.md` §5)
+- [ ] **Production readiness concerns** — PBI includes "Production Readiness Concerns" table with Yes/No/Existing for: code linting, error handling, loading indicators, Docker integration, CI/CD quality gates
+- [ ] **Seed data assessed** — PBI addresses seed data needs (reference data, config data, test data) or explicitly states "N/A"
+- [ ] **Data migration assessed** — PBI addresses schema changes and data migration needs or explicitly states "N/A"
 
 ## Output
 
@@ -122,7 +131,7 @@ description: '[Code Quality] Review PBI artifact for completeness, missing conce
 
 ## Round 2: Focused Re-Review (MANDATORY)
 
-> **Protocol:** `.claude/skills/shared/double-round-trip-review-protocol.md`
+> **Protocol:** Deep Multi-Round Review (inlined via SYNC:double-round-trip-review above)
 
 After completing Round 1 checklist evaluation, execute a **second full review round**:
 
@@ -148,7 +157,7 @@ After completing Round 1 checklist evaluation, execute a **second full review ro
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST — NO EXCEPTIONS** after completing this skill, you MUST use `AskUserQuestion` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use `AskUserQuestion` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
 
 - **"/story (Recommended)"** — Create user stories from validated PBI
 - **"/refine"** — Re-refine if FAIL verdict
@@ -156,18 +165,18 @@ After completing Round 1 checklist evaluation, execute a **second full review ro
 
 ## Closing Reminders
 
-**MANDATORY IMPORTANT MUST** break work into small todo tasks using `TaskCreate` BEFORE starting.
-**MANDATORY IMPORTANT MUST** validate decisions with user via `AskUserQuestion` — never auto-decide.
-**MANDATORY IMPORTANT MUST** add a final review todo task to verify work quality.
-**MANDATORY IMPORTANT MUST** READ the following files before starting:
+**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting.
+**MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — never auto-decide.
+**MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.
+**MANDATORY IMPORTANT MUST ATTENTION** READ the following files before starting:
 
 <!-- SYNC:double-round-trip-review:reminder -->
 
-- **MUST** execute TWO review rounds. Round 2 re-reads from scratch — never skip or combine with Round 1.
+- **IMPORTANT MUST ATTENTION** execute TWO review rounds. Round 2 re-reads from scratch — never skip or combine with Round 1.
     <!-- /SYNC:double-round-trip-review:reminder -->
     <!-- SYNC:graph-impact-analysis:reminder -->
-- **MUST** run `blast-radius` when graph.db exists. Flag impacted files NOT in changeset as potentially stale.
+- **IMPORTANT MUST ATTENTION** run `blast-radius` when graph.db exists. Flag impacted files NOT in changeset as potentially stale.
     <!-- /SYNC:graph-impact-analysis:reminder -->
     <!-- SYNC:ui-system-context:reminder -->
-- **MUST** read frontend-patterns-reference, scss-styling-guide, design-system/README before any UI change.
+- **IMPORTANT MUST ATTENTION** read frontend-patterns-reference, scss-styling-guide, design-system/README before any UI change.
   <!-- /SYNC:ui-system-context:reminder -->

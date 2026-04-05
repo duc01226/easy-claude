@@ -33,8 +33,8 @@ license: Complete terms in LICENSE.txt
 **Key Rules:**
 
 - SKILL.md under 500 lines; reference files under 100 lines each (progressive disclosure)
-- Shared protocols MUST be inlined via `<!-- SYNC:tag -->` blocks, NEVER file references
-- MUST call `/prompt-enhance` on new/updated skills as final quality pass
+- Shared protocols MUST ATTENTION be inlined via `<!-- SYNC:tag -->` blocks, NEVER file references
+- MUST ATTENTION call `/prompt-enhance` on new/updated skills as final quality pass
 - Attention structure: SYNC blocks at top, Quick Summary, detailed steps, Closing Reminders with `:reminder` blocks at bottom
 - Skills are practical instructions, not documentation
 
@@ -84,7 +84,7 @@ Every skill consists of a required SKILL.md file and optional bundled resources:
 
 #### Requirements (**IMPORTANT**)
 
-- **MANDATORY:** Every generated SKILL.md MUST include a `## Quick Summary` block (Goal/Workflow/Key Rules) within the first 30 lines, after frontmatter and prerequisites. See `_templates/template-skill/SKILL.md` for the standard template.
+- **MANDATORY:** Every generated SKILL.md MUST ATTENTION include a `## Quick Summary` block (Goal/Workflow/Key Rules) within the first 30 lines, after frontmatter and prerequisites. See `_templates/template-skill/SKILL.md` for the standard template.
 - **MANDATORY:** Always break implementation into small todo tasks using TaskCreate.
 - **MANDATORY:** Always create a final self-review todo task to verify work quality.
 - Skill should be combined into specific topics, for example: `cloudflare`, `cloudflare-r2`, `cloudflare-workers`, `docker`, `gcloud` should be combined into `devops`
@@ -270,17 +270,18 @@ If the skill needs shared protocol enforcement (most skills do), inline them via
 
 1. Read `.claude/skills/shared/sync-inline-versions.md` — canonical source for all protocol checklists
 2. Identify which protocols the skill needs. Common ones:
-   - `understand-code-first` — for any skill that reads/modifies code
-   - `evidence-based-reasoning` — for investigation/review/planning skills
-   - `output-quality-principles` — for skills that produce reports/docs
-   - `graph-assisted-investigation` — for skills that analyze code relationships
+    - `understand-code-first` — for any skill that reads/modifies code
+    - `evidence-based-reasoning` — for investigation/review/planning skills
+    - `output-quality-principles` — for skills that produce reports/docs
+    - `graph-assisted-investigation` — for skills that analyze code relationships
 3. Copy the checklist between `<!-- SYNC:tag -->` open/close tags at the TOP of the skill (after frontmatter)
 4. Add 1-line `:reminder` versions at the BOTTOM inside Closing Reminders
-5. NEVER use `MUST READ .claude/skills/shared/` file references — always inline
+5. NEVER use `MUST ATTENTION READ .claude/skills/shared/` file references — always inline
 
 ### Step 4c: Run `/prompt-enhance`
 
 Call `/prompt-enhance` on the finished SKILL.md to verify and apply AI attention anchoring:
+
 - Primacy-recency: critical rules at top AND bottom
 - Inline summaries for any remaining READ references
 - Token optimization pass
@@ -333,11 +334,11 @@ After testing the skill, users may request improvements. Often this happens righ
 
 ## Closing Reminders
 
-- **MUST** break work into small todo tasks using `TaskCreate` BEFORE starting
-- **MUST** inline shared protocols via `<!-- SYNC:tag -->` blocks — NEVER use `MUST READ shared/` file references
-- **MUST** call `/prompt-enhance` on new/updated skills as final attention-anchoring quality pass
-- **MUST** include `## Quick Summary` within first 30 lines of every SKILL.md
-- **MUST** add Closing Reminders with `:reminder` SYNC blocks at bottom of every skill
-  <!-- SYNC:shared-protocol-duplication-policy:reminder -->
-- **MUST** follow duplication policy: inline protocols are INTENTIONAL, never extract to file references
-  <!-- /SYNC:shared-protocol-duplication-policy:reminder -->
+- **IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
+- **IMPORTANT MUST ATTENTION** inline shared protocols via `<!-- SYNC:tag -->` blocks — NEVER use `MUST ATTENTION READ shared/` file references
+- **IMPORTANT MUST ATTENTION** call `/prompt-enhance` on new/updated skills as final attention-anchoring quality pass
+- **IMPORTANT MUST ATTENTION** include `## Quick Summary` within first 30 lines of every SKILL.md
+- **IMPORTANT MUST ATTENTION** add Closing Reminders with `:reminder` SYNC blocks at bottom of every skill
+      <!-- SYNC:shared-protocol-duplication-policy:reminder -->
+- **IMPORTANT MUST ATTENTION** follow duplication policy: inline protocols are INTENTIONAL, never extract to file references
+      <!-- /SYNC:shared-protocol-duplication-policy:reminder -->

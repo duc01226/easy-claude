@@ -4,27 +4,35 @@ version: 1.0.0
 description: '[Code Quality] Review user stories for completeness, coverage, dependencies, and quality before implementation. AI self-review gate after /story.'
 ---
 
-> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
+> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
 
-> **Evidence Gate:** MANDATORY IMPORTANT MUST — every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% must verify first).
+> **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION — every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% must verify first).
 
-> **OOP & DRY Enforcement:** MANDATORY IMPORTANT MUST — flag duplicated patterns that should be extracted to a base class, generic, or helper. Classes in the same group or suffix (ex *Entity, *Dto, \*Service, etc...) MUST inherit a common base (even if empty now — enables future shared logic and child overrides). Verify project has code linting/analyzer configured for the stack.
+> **OOP & DRY Enforcement:** MANDATORY IMPORTANT MUST ATTENTION — flag duplicated patterns that should be extracted to a base class, generic, or helper. Classes in the same group or suffix (ex *Entity, *Dto, \*Service, etc...) MUST ATTENTION inherit a common base (even if empty now — enables future shared logic and child overrides). Verify project has code linting/analyzer configured for the stack.
 
 > **External Memory:** For complex or lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report file in `plans/reports/` — prevents context loss and serves as deliverable.
 
 <!-- SYNC:double-round-trip-review -->
 
-> **Double Round-Trip Review** — TWO mandatory independent rounds. NEVER combine.
+> **Deep Multi-Round Review** — THREE mandatory escalating-depth rounds. NEVER combine. NEVER PASS after Round 1 alone.
 >
 > **Round 1:** Normal review building understanding. Read all files, note issues.
 > **Round 2:** MANDATORY re-read ALL files from scratch. Focus on:
+>
 > - Cross-cutting concerns missed in Round 1
 > - Interaction bugs between changed files
 > - Convention drift (new code vs existing patterns)
 > - Missing pieces (what should exist but doesn't)
 >
-> **Rules:** NEVER rely on Round 1 memory for Round 2. Final verdict must incorporate BOTH rounds.
-> **Report must include `## Round 2 Findings` section.**
+> **Round 3:** MANDATORY adversarial simulation (for >3 files or cross-cutting changes). Pretend you are using/running this code RIGHT NOW:
+>
+> - "What input causes failure? What error do I get?"
+> - "1000 concurrent users — what breaks?"
+> - "After deployment rollback — backward compatible?"
+> - "Can I debug issues from logs/monitoring output?"
+>
+> **Rules:** NEVER rely on prior round memory — re-read everything. NEVER declare PASS after Round 1. Final verdict must incorporate ALL rounds.
+> **Report must include `## Round 2 Findings` and `## Round 3 Findings` sections.**
 
 <!-- /SYNC:double-round-trip-review -->
 
@@ -50,7 +58,8 @@ description: '[Code Quality] Review user stories for completeness, coverage, dep
 
 > **UI System Context** — For ANY task touching `.ts`, `.html`, `.scss`, or `.css` files:
 >
-> **MUST READ before implementing:**
+> **MUST ATTENTION READ before implementing:**
+>
 > 1. `docs/project-reference/frontend-patterns-reference.md` — component base classes, stores, forms
 > 2. `docs/project-reference/scss-styling-guide.md` — BEM methodology, SCSS variables, mixins, responsive
 > 3. `docs/project-reference/design-system/README.md` — design tokens, component inventory, icons
@@ -82,17 +91,17 @@ description: '[Code Quality] Review user stories for completeness, coverage, dep
 - [ ] **Dependency table** — Story set includes dependency ordering table (must-after, can-parallel, independent)
 - [ ] **No overlapping scope** — Stories don't duplicate functionality
 - [ ] **Vertical slices** — Each story delivers end-to-end value (not horizontal layers)
-- [ ] **Authorization scenarios** — Every story includes at least 1 authorization scenario (unauthorized access → rejection) per PBI roles table (ref: `.claude/skills/shared/cross-cutting-quality-concerns-protocol.md` §1)
-- [ ] **UI Wireframe section** — If story involves UI: has `## UI Wireframe` section per `ui-wireframe-protocol.md` (wireframe + component tree + interaction flow + states + responsive). If backend-only: explicit "N/A"
+- [ ] **Authorization scenarios** — Every story includes at least 1 authorization scenario (unauthorized access → rejection) per PBI roles table
+- [ ] **UI Wireframe section** — If story involves UI: has `## UI Wireframe` section per UI wireframe protocol (wireframe + component tree + interaction flow + states + responsive). If backend-only: explicit "N/A"
 
 ### Recommended (>=50% should pass)
 
 - [ ] **Edge cases** — Boundary values, empty states, max limits addressed
 - [ ] **Error scenarios** — Failure paths explicitly covered in stories
 - [ ] **API contract** — If API changes needed, story specifies contract
-- [ ] **UI/UX visualization** — Frontend stories have component decomposition tree with EXISTING/NEW classification, design token mapping, and responsive breakpoint behavior per `ui-wireframe-protocol.md`
-- [ ] **Seed data stories** — If PBI has seed data requirements, Sprint 0 seed data story exists (ref: `.claude/skills/shared/cross-cutting-quality-concerns-protocol.md` §2)
-- [ ] **Data migration stories** — If PBI has schema changes, data migration story exists (ref: `.claude/skills/shared/cross-cutting-quality-concerns-protocol.md` §5)
+- [ ] **UI/UX visualization** — Frontend stories have component decomposition tree with EXISTING/NEW classification, design token mapping, and responsive breakpoint behavior per UI wireframe protocol
+- [ ] **Seed data stories** — If PBI has seed data requirements, Sprint 0 seed data story exists
+- [ ] **Data migration stories** — If PBI has schema changes, data migration story exists
 
 ## Output
 
@@ -131,7 +140,7 @@ description: '[Code Quality] Review user stories for completeness, coverage, dep
 
 ## Round 2: Focused Re-Review (MANDATORY)
 
-> **Protocol:** `.claude/skills/shared/double-round-trip-review-protocol.md`
+> **Protocol:** Deep Multi-Round Review (inlined via SYNC:double-round-trip-review above)
 
 After completing Round 1 checklist evaluation, execute a **second full review round**:
 
@@ -149,7 +158,7 @@ After completing Round 1 checklist evaluation, execute a **second full review ro
 ## Key Rules
 
 - **FAIL blocks workflow** — If FAIL, do NOT proceed. List specific fixes.
-- **Cross-reference PBI** — Every check against stories MUST trace back to PBI acceptance criteria.
+- **Cross-reference PBI** — Every check against stories MUST ATTENTION trace back to PBI acceptance criteria.
 - **No guessing** — Reference specific story content as evidence.
 - **Flag missing stories** — If a PBI acceptance criterion has no covering story, that's a FAIL.
 
@@ -157,7 +166,7 @@ After completing Round 1 checklist evaluation, execute a **second full review ro
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST — NO EXCEPTIONS** after completing this skill, you MUST use `AskUserQuestion` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use `AskUserQuestion` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
 
 - **"/plan (Recommended)"** — Create implementation plan from validated stories
 - **"/story"** — Re-create stories if FAIL verdict
@@ -166,17 +175,18 @@ After completing Round 1 checklist evaluation, execute a **second full review ro
 
 ## Closing Reminders
 
-**MANDATORY IMPORTANT MUST** break work into small todo tasks using `TaskCreate` BEFORE starting.
-**MANDATORY IMPORTANT MUST** validate decisions with user via `AskUserQuestion` — never auto-decide.
-**MANDATORY IMPORTANT MUST** add a final review todo task to verify work quality.
-**MANDATORY IMPORTANT MUST** READ the following files before starting:
+**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting.
+**MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — never auto-decide.
+**MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.
+**MANDATORY IMPORTANT MUST ATTENTION** READ the following files before starting:
 
 <!-- SYNC:double-round-trip-review:reminder -->
-- **MUST** execute TWO independent review rounds. Report must include `## Round 2 Findings`.
+
+- **IMPORTANT MUST ATTENTION** execute TWO independent review rounds. Report must include `## Round 2 Findings`.
   <!-- /SYNC:double-round-trip-review:reminder -->
   <!-- SYNC:graph-impact-analysis:reminder -->
-- **MUST** run graph blast-radius on changed files to find potentially stale consumers/handlers (when graph.db exists).
+- **IMPORTANT MUST ATTENTION** run graph blast-radius on changed files to find potentially stale consumers/handlers (when graph.db exists).
   <!-- /SYNC:graph-impact-analysis:reminder -->
   <!-- SYNC:ui-system-context:reminder -->
-- **MUST** read frontend-patterns-reference, scss-styling-guide, design-system/README before any UI change.
+- **IMPORTANT MUST ATTENTION** read frontend-patterns-reference, scss-styling-guide, design-system/README before any UI change.
   <!-- /SYNC:ui-system-context:reminder -->

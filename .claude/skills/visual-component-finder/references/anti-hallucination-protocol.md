@@ -14,7 +14,7 @@ NEVER assume a single match. Search the `selectorIndex` for duplicate selectors.
 
 ### R3: Confidence Declaration
 
-EVERY output MUST include `Confidence: X%` with an evidence list showing which signals matched and which missed. No exceptions.
+EVERY output MUST ATTENTION include `Confidence: X%` with an evidence list showing which signals matched and which missed. No exceptions.
 
 ### R4: Category Diversity
 

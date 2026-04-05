@@ -7,10 +7,6 @@ allowed-tools: Read, Write, Edit, WebSearch, WebFetch, TaskCreate, Bash
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting.
 
-**Prerequisites:** **MUST READ** before executing:
-
-- `.claude/skills/shared/web-research-protocol.md`
-
 ## Quick Summary
 
 **Goal:** Build structured course material with learning objectives, modules, lessons, exercises, and assessments.
@@ -28,7 +24,7 @@ allowed-tools: Read, Write, Edit, WebSearch, WebFetch, TaskCreate, Bash
 
 - Every objective mapped to Bloom's taxonomy level
 - Progressive complexity (each module builds on previous)
-- Use enforced template from `docs/templates/course-outline-template.md`
+- Use enforced template from `.claude/templates/course-outline-template.md`
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
@@ -95,13 +91,13 @@ Final:
 
 ## Output
 
-Write to `docs/knowledge/courses/{descriptive-slug}.md` using enforced template from `docs/templates/course-outline-template.md`.
+Write to `docs/knowledge/courses/{descriptive-slug}.md` using enforced template from `.claude/templates/course-outline-template.md`.
 
 ---
 
 ## Closing Reminders
 
-- **MUST** break work into small todo tasks using `TaskCreate` BEFORE starting
-- **MUST** search codebase for 3+ similar patterns before creating new code
-- **MUST** cite `file:line` evidence for every claim (confidence >80% to act)
-- **MUST** add a final review todo task to verify work quality
+- **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
+- **MANDATORY IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
+- **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
+- **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality

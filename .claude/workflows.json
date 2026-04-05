@@ -278,13 +278,7 @@
       "preActions": {
         "injectContext": "Role: QC Specialist\nRELEASE PREPARATION PROTOCOL:\n1. SRE review for production readiness (service-layer/API changes)\n2. Run pre-release quality gate  --  check:\n   - Open PRs awaiting merge\n   - Failing tests or builds\n   - Code review completeness\n   - CHANGELOG.md up-to-date\n   - No known critical/major bugs\n3. Generate status report with pass/fail per criterion\n4. Output: PASS (clear to release) or FAIL with blocking items listed"
       },
-      "sequence": [
-        "sre-review",
-        "quality-gate",
-        "status",
-        "docs-update",
-        "workflow-end"
-      ],
+      "sequence": ["sre-review", "quality-gate", "status", "docs-update", "workflow-end"],
       "whenNotToUse": "Rollbacks, hotfixes, release notes writing, release branch operations",
       "whenToUse": "User wants to verify release readiness, run pre-release quality gate, or check if ready to deploy/ship"
     },
@@ -323,10 +317,8 @@
       "description": "Business feature documentation with 26-section template enforcement, plan validation, and mandatory test coverage",
       "name": "Business Feature Documentation",
       "preActions": {
-        "readFiles": [
-          "docs/templates/detailed-feature-docs-template.md"
-        ],
-        "injectContext": "Role: Documentation Specialist\nBUSINESS FEATURE DOC PROTOCOL:\n- 26 sections mandatory (see template)\n- Quick Navigation with Audience column\n- TC-XX-XXX test case format with GIVEN/WHEN/THEN\n- Evidence field with file:line format\n- Cross-reference parent features if sub-feature\n\nMANDATORY UPDATE CHECKLIST (when updating existing docs):\n- ALWAYS update test sections 17-20 (Test Specifications, Test Data, Edge Cases, Regression Impact) when documenting new functionality\n- ALWAYS update CHANGELOG.md with feature entry\n- ALWAYS update Version History (Section 26) with new version entry\n- Plan MUST include all impacted sections identified from diff analysis\n- Plan MUST be validated via /plan-review and /plan-validate before any edits begin\n\nOUTPUT: Complete 26-section README.{Feature}.md + AI companion README.{Feature}.ai.md (300-500 lines)"
+        "readFiles": ["docs/templates/detailed-feature-docs-template.md"],
+        "injectContext": "Role: Documentation Specialist\nBUSINESS FEATURE DOC PROTOCOL:\n- 26 sections mandatory (see template)\n- Quick Navigation with Audience column\n- TC-XX-XXX test case format with GIVEN/WHEN/THEN\n- Evidence field with file:line format\n- Cross-reference parent features if sub-feature\n\nMANDATORY UPDATE CHECKLIST (when updating existing docs):\n- ALWAYS update test sections 17-20 (Test Specifications, Test Data, Edge Cases, Regression Impact) when documenting new functionality\n- ALWAYS update CHANGELOG.md with feature entry\n- ALWAYS update Version History (Section 26) with new version entry\n- Plan MUST ATTENTION include all impacted sections identified from diff analysis\n- Plan MUST ATTENTION be validated via /plan-review and /plan-validate before any edits begin\n\nOUTPUT: Complete 26-section README.{Feature}.md + AI companion README.{Feature}.ai.md (300-500 lines)"
       },
       "sequence": [
         "scout",
@@ -437,7 +429,7 @@
       "description": "Research-driven feature development for large, complex, or ambiguous features in an existing project — includes idea refinement, market research, business evaluation, domain analysis, tech stack research, and full implementation",
       "name": "Big Feature (Research + Implement)",
       "preActions": {
-        "injectContext": "BIG FEATURE PROTOCOL (Research-Driven):\nFor large/ambiguous features in an existing codebase that need research before implementation.\n\nMANDATORY IMPORTANT MUST RULES:\n1. EVERY research stage requires AskUserQuestion validation before proceeding\n2. Save artifacts to plan directory at EVERY step\n3. Present 2-4 options for every major decision with confidence %\n4. New Tech/Lib Gate: evaluate top 3 alternatives before adding any new dependency\n\nSTEP SELECTION GATE:\nAfter user confirms workflow activation, present the full step list and let user deselect irrelevant ones:\n- [x] Discovery Interview (idea)\n- [x] Market Research (web-research)\n- [x] Deep Research (deep-research)\n- [x] Business Evaluation (business-evaluation)\n- [x] Refine to PBI (refine)\n- [x] Domain Analysis & ERD (domain-analysis)\n- [x] Tech Stack Research (tech-stack-research)\n- [x] User Stories (story)\n- [x] Test Specifications (tdd-spec)\n- [x] Test Spec Review (tdd-spec-review)\n- [x] Implementation Plan (plan)\n- [x] Plan Review (plan-review)\n- [x] Plan Validation (plan-validate)\n- [x] Design Rationale Review (why-review)\n- [x] Implementation (cook)\n- [x] Integration Tests (integration-test)\n- [x] Review Changes (workflow-review-changes) — consolidated review + fix loop\n- [x] SRE Review (sre-review)\n- [x] Changelog (changelog)\n- [x] Tests (test)\n- [x] Documentation (docs-update)\n- [x] Summary (watzup)\n\nUser can deselect steps (e.g., skip market research for internal features, skip business-evaluation for tech-only features).\nSkipped steps should be marked as completed immediately.\n\nPLAN PHASES (quick reference):\n- PLAN₁ (after architecture-design): High-level architecture plan. Scope: system design, component boundaries, data flow, tech choices. Based on: research findings + domain analysis.\n- PLAN₂ (after tdd-spec-review): Sprint-ready implementation plan. Scope: concrete tasks, file changes, test infrastructure, phased steps. Based on: stories + test specs + dependency tables.\nThe two plans serve different purposes — PLAN₁ is strategic, PLAN₂ is tactical.\n\nSECOND PLANNING ROUND:\nAfter stories + reviews are complete, a second /plan + /plan-review cycle runs.\nThe first /plan (after architecture-design) is high-level architecture based on research + domain analysis.\nThe second /plan (after tdd-spec-review) incorporates the concrete stories, test specifications, dependency tables, and refinement details into a sprint-ready implementation plan with phased steps.\nThis ensures the implementation plan reflects all discovered requirements, test strategy, and story dependencies.\n\nTEST SPECIFICATIONS (after story-review, BEFORE second plan):\nAfter stories are reviewed, write TDD specs (/tdd-spec) based on story acceptance criteria.\nReview specs (/tdd-spec-review) for coverage and correctness.\nThe second /plan then incorporates test strategy alongside implementation tasks.\n\nARCHITECTURE SCAFFOLDING (after second plan-review, CONDITIONAL):\nThe /scaffold step is CONDITIONAL — AI must first self-investigate for existing base abstractions.\nGrep for: abstract/base classes, generic interfaces, infrastructure abstractions (IRepository, IUnitOfWork), utility layers (Extensions, Helpers, Utils), frontend foundations (base component/service/store), DI registrations.\nIf existing scaffolding found → SKIP /scaffold step, mark completed.\nIf NO foundational abstractions found → PROCEED: create all base abstract classes, generic interfaces, infrastructure abstractions, and shared utilities with OOP/SOLID principles BEFORE any feature story implementation.\nAll infrastructure behind interfaces with at least one concrete implementation (Dependency Inversion).\nFor existing projects adding a new module, adapt scaffolding to extend existing base classes rather than creating duplicates."
+        "injectContext": "BIG FEATURE PROTOCOL (Research-Driven):\nFor large/ambiguous features in an existing codebase that need research before implementation.\n\nMANDATORY IMPORTANT MUST ATTENTION RULES:\n1. EVERY research stage requires AskUserQuestion validation before proceeding\n2. Save artifacts to plan directory at EVERY step\n3. Present 2-4 options for every major decision with confidence %\n4. New Tech/Lib Gate: evaluate top 3 alternatives before adding any new dependency\n\nSTEP SELECTION GATE:\nAfter user confirms workflow activation, present the full step list and let user deselect irrelevant ones:\n- [x] Discovery Interview (idea)\n- [x] Market Research (web-research)\n- [x] Deep Research (deep-research)\n- [x] Business Evaluation (business-evaluation)\n- [x] Refine to PBI (refine)\n- [x] Domain Analysis & ERD (domain-analysis)\n- [x] Tech Stack Research (tech-stack-research)\n- [x] User Stories (story)\n- [x] Test Specifications (tdd-spec)\n- [x] Test Spec Review (tdd-spec-review)\n- [x] Implementation Plan (plan)\n- [x] Plan Review (plan-review)\n- [x] Plan Validation (plan-validate)\n- [x] Design Rationale Review (why-review)\n- [x] Implementation (cook)\n- [x] Integration Tests (integration-test)\n- [x] Review Changes (workflow-review-changes) — consolidated review + fix loop\n- [x] SRE Review (sre-review)\n- [x] Changelog (changelog)\n- [x] Tests (test)\n- [x] Documentation (docs-update)\n- [x] Summary (watzup)\n\nUser can deselect steps (e.g., skip market research for internal features, skip business-evaluation for tech-only features).\nSkipped steps should be marked as completed immediately.\n\nPLAN PHASES (quick reference):\n- PLAN₁ (after architecture-design): High-level architecture plan. Scope: system design, component boundaries, data flow, tech choices. Based on: research findings + domain analysis.\n- PLAN₂ (after tdd-spec-review): Sprint-ready implementation plan. Scope: concrete tasks, file changes, test infrastructure, phased steps. Based on: stories + test specs + dependency tables.\nThe two plans serve different purposes — PLAN₁ is strategic, PLAN₂ is tactical.\n\nSECOND PLANNING ROUND:\nAfter stories + reviews are complete, a second /plan + /plan-review cycle runs.\nThe first /plan (after architecture-design) is high-level architecture based on research + domain analysis.\nThe second /plan (after tdd-spec-review) incorporates the concrete stories, test specifications, dependency tables, and refinement details into a sprint-ready implementation plan with phased steps.\nThis ensures the implementation plan reflects all discovered requirements, test strategy, and story dependencies.\n\nTEST SPECIFICATIONS (after story-review, BEFORE second plan):\nAfter stories are reviewed, write TDD specs (/tdd-spec) based on story acceptance criteria.\nReview specs (/tdd-spec-review) for coverage and correctness.\nThe second /plan then incorporates test strategy alongside implementation tasks.\n\nARCHITECTURE SCAFFOLDING (after second plan-review, CONDITIONAL):\nThe /scaffold step is CONDITIONAL — AI must first self-investigate for existing base abstractions.\nGrep for: abstract/base classes, generic interfaces, infrastructure abstractions (IRepository, IUnitOfWork), utility layers (Extensions, Helpers, Utils), frontend foundations (base component/service/store), DI registrations.\nIf existing scaffolding found → SKIP /scaffold step, mark completed.\nIf NO foundational abstractions found → PROCEED: create all base abstract classes, generic interfaces, infrastructure abstractions, and shared utilities with OOP/SOLID principles BEFORE any feature story implementation.\nAll infrastructure behind interfaces with at least one concrete implementation (Dependency Inversion).\nFor existing projects adding a new module, adapt scaffolding to extend existing base classes rather than creating duplicates."
       },
       "sequence": [
         "idea",
@@ -482,11 +474,7 @@
       "preActions": {
         "injectContext": "INVESTIGATION PROTOCOL:\n1. Scout: Find relevant files, entry points, and related code\n2. Investigate: Trace code paths, understand architecture and data flow\n- Output findings as structured analysis with file:line references\n- Include architecture diagrams where helpful\n- Identify patterns, dependencies, and potential concerns\n\nGUARDRAIL: This is a READ-ONLY workflow. DO NOT modify any files. Only read, analyze, and report."
       },
-      "sequence": [
-        "scout",
-        "investigate",
-        "workflow-end"
-      ],
+      "sequence": ["scout", "investigate", "workflow-end"],
       "whenNotToUse": "Any action that modifies code (implement, fix, create, refactor, test, review, document, design, plan)",
       "whenToUse": "User wants to understand how code works, find where logic lives, explore architecture, trace code paths, or get explanations"
     },
@@ -495,7 +483,7 @@
       "description": "Code improvement and restructuring workflow with search-first approach",
       "name": "Code Refactoring",
       "preActions": {
-        "injectContext": "Role: Refactoring Specialist\nREFACTORING PROTOCOL:\n⚠️ MANDATORY: Search existing code BEFORE planning\n1. Scout: Find similar refactoring patterns, identify target architecture examples using Grep/Glob\n2. Investigate: Study existing patterns - validate with 3+ codebase examples (NOT generic framework docs)\n3. Plan: Identify code smells, define target architecture following discovered project patterns\n4. Validate plan  --  ensure no behavioral changes, only structural\n5. Validate design rationale with /why-review (features/refactors)\n6. Implement incrementally  --  small, verifiable steps\n7. Verify test specs still match after refactoring with /tdd-spec update mode. Review with /tdd-spec-review. Sync dashboard with /test-specs-docs.\n8. Simplify: Remove dead code, flatten nesting, extract duplicates\n   CRITICAL: Before removing any code:\n   - Use /investigate skill for 'unused' code verification\n   - Require evidence: grep results + confidence ≥80% + cross-service validation\n   - See Investigation Protocol (CLAUDE.md)\n9. Code review: Verify no functional regressions\n10. SRE review for production readiness (service-layer/API changes)\n11. Update changelog with refactoring summary\n12. Run tests  --  all existing tests MUST pass\n13. Summary report of structural improvements\n\nGUARDRAILS:\n- Refactoring MUST NOT change observable behavior\n- Follow project patterns: CQRS, state management, CSS methodology, validation, etc.\n- Apply Code Responsibility Hierarchy: Entity > Service > Component\n- Provide file:line evidence of pattern search in plan"
+        "injectContext": "Role: Refactoring Specialist\nREFACTORING PROTOCOL:\n⚠️ MANDATORY: Search existing code BEFORE planning\n1. Scout: Find similar refactoring patterns, identify target architecture examples using Grep/Glob\n2. Investigate: Study existing patterns - validate with 3+ codebase examples (NOT generic framework docs)\n3. Plan: Identify code smells, define target architecture following discovered project patterns\n4. Validate plan  --  ensure no behavioral changes, only structural\n5. Validate design rationale with /why-review (features/refactors)\n6. Implement incrementally  --  small, verifiable steps\n7. Verify test specs still match after refactoring with /tdd-spec update mode. Review with /tdd-spec-review. Sync dashboard with /test-specs-docs.\n8. Simplify: Remove dead code, flatten nesting, extract duplicates\n   CRITICAL: Before removing any code:\n   - Use /investigate skill for 'unused' code verification\n   - Require evidence: grep results + confidence ≥80% + cross-service validation\n   - See Investigation Protocol (CLAUDE.md)\n9. Code review: Verify no functional regressions\n10. SRE review for production readiness (service-layer/API changes)\n11. Update changelog with refactoring summary\n12. Run tests  --  all existing tests MUST ATTENTION pass\n13. Summary report of structural improvements\n\nGUARDRAILS:\n- Refactoring MUST ATTENTION NOT change observable behavior\n- Follow project patterns: CQRS, state management, CSS methodology, validation, etc.\n- Apply Code Responsibility Hierarchy: Entity > Service > Component\n- Provide file:line evidence of pattern search in plan"
       },
       "sequence": [
         "scout",
@@ -573,11 +561,7 @@
       "preActions": {
         "injectContext": "TEST EXECUTION:\n- Run relevant test suites for the current context\n- Report results with pass/fail counts and failure details\n- For failing tests, include file:line and error message\n- Suggest fixes for failures when root cause is clear"
       },
-      "sequence": [
-        "test",
-        "docs-update",
-        "workflow-end"
-      ],
+      "sequence": ["test", "docs-update", "workflow-end"],
       "whenNotToUse": "Test specification creation (use pbi-to-tests), test case generation from PBI",
       "whenToUse": "User wants to write tests, run test suites, check test coverage, or execute tests"
     },
@@ -586,19 +570,10 @@
       "description": "Generate Playwright E2E tests from Chrome DevTools recordings",
       "name": "E2E from Recording",
       "preActions": {
-        "readFiles": [
-          ".claude/skills/e2e-test/SKILL.md"
-        ],
+        "readFiles": [".claude/skills/e2e-test/SKILL.md"],
         "injectContext": "E2E FROM RECORDING PROTOCOL:\n1. Validate recording file exists (JSON format)\n2. Identify target app and feature from user context\n3. Run convert-recording.ts to generate initial test file\n4. Load test specifications from feature docs Section 17\n5. Map TC-XXX-XXX test cases to recording steps\n6. Enhance generated code with BEM selectors\n7. Add screenshot assertions at key states\n8. Generate Page Object if complex flow\n9. Run test to verify it passes\n10. Report generated files and any manual steps needed"
       },
-      "sequence": [
-        "scout",
-        "e2e-test",
-        "test",
-        "docs-update",
-        "watzup",
-        "workflow-end"
-      ],
+      "sequence": ["scout", "e2e-test", "test", "docs-update", "watzup", "workflow-end"],
       "whenNotToUse": "Updating existing tests, writing tests from scratch, running existing tests",
       "whenToUse": "User has a Chrome DevTools recording JSON and wants to generate a Playwright E2E test file"
     },
@@ -607,19 +582,10 @@
       "description": "Update E2E screenshot baselines after UI changes",
       "name": "E2E Update UI",
       "preActions": {
-        "readFiles": [
-          ".claude/skills/e2e-test/SKILL.md"
-        ],
+        "readFiles": [".claude/skills/e2e-test/SKILL.md"],
         "injectContext": "E2E UPDATE UI PROTOCOL:\n1. Identify visual changes from git diff (SCSS, HTML, TS)\n2. Map changed files to affected page objects\n3. Find E2E specs using those page objects\n4. Run affected tests to generate new screenshots\n5. Update screenshot baselines with --update-snapshots\n6. Visual review: diff old vs new baselines\n7. Confirm changes are intentional with user\n8. Report updated files and visual changes"
       },
-      "sequence": [
-        "scout",
-        "e2e-test",
-        "test",
-        "docs-update",
-        "watzup",
-        "workflow-end"
-      ],
+      "sequence": ["scout", "e2e-test", "test", "docs-update", "watzup", "workflow-end"],
       "whenNotToUse": "Generating new tests, fixing test logic, non-visual changes",
       "whenToUse": "User made UI changes and needs to update E2E screenshot baselines"
     },
@@ -628,19 +594,10 @@
       "description": "Update E2E tests based on code or spec changes",
       "name": "E2E from Changes",
       "preActions": {
-        "readFiles": [
-          ".claude/skills/e2e-test/SKILL.md"
-        ],
+        "readFiles": [".claude/skills/e2e-test/SKILL.md"],
         "injectContext": "E2E FROM CHANGES PROTOCOL:\n1. Detect change type from git diff:\n   - Test spec changes in feature docs -> Generate new test cases\n   - Code changes -> Update existing test assertions\n   - API changes -> Update test data and API mocks\n2. Load affected test specifications (TC-XXX-XXX)\n3. Update or generate test implementations\n4. Ensure traceability: each TC has corresponding test\n5. Run tests to verify changes work\n6. Report updated test coverage"
       },
-      "sequence": [
-        "scout",
-        "e2e-test",
-        "test",
-        "docs-update",
-        "watzup",
-        "workflow-end"
-      ],
+      "sequence": ["scout", "e2e-test", "test", "docs-update", "watzup", "workflow-end"],
       "whenNotToUse": "New recordings (use e2e-from-recording), visual-only changes (use e2e-update-ui)",
       "whenToUse": "User updated test specifications or source code and needs to sync E2E tests"
     },
@@ -677,18 +634,7 @@
       "preActions": {
         "injectContext": "Role: Product Owner\nIDEA-TO-PBI WORKFLOW:\n1. Capture idea with problem statement\n2. Refine into PBI with acceptance criteria\n3. Break into user stories (GIVEN/WHEN/THEN)\n4. Dev BA PIC collaborative review via /pbi-challenge\n5. DoR gate validation via /dor-gate\n6. Prioritize using RICE or MoSCoW"
       },
-      "sequence": [
-        "idea",
-        "refine",
-        "refine-review",
-        "story",
-        "story-review",
-        "pbi-challenge",
-        "dor-gate",
-        "pbi-mockup",
-        "prioritize",
-        "workflow-end"
-      ],
+      "sequence": ["idea", "refine", "refine-review", "story", "story-review", "pbi-challenge", "dor-gate", "pbi-mockup", "prioritize", "workflow-end"],
       "whenNotToUse": "Bug fixes, direct implementation (use feature workflow)",
       "whenToUse": "User has a new idea, feature request, or wants to add to backlog; wants to refine idea into PBI with stories"
     },
@@ -699,12 +645,7 @@
       "preActions": {
         "injectContext": "Role: Product Owner\nSPRINT PLANNING:\n1. /prioritize - Review and prioritize backlog\n2. /dependency - Check blockers and dependencies\n3. /team-sync - Generate planning meeting agenda"
       },
-      "sequence": [
-        "prioritize",
-        "dependency",
-        "team-sync",
-        "workflow-end"
-      ],
+      "sequence": ["prioritize", "dependency", "team-sync", "workflow-end"],
       "whenNotToUse": "Sprint reviews, sprint status reports, sprint retrospectives",
       "whenToUse": "User wants to plan a sprint, run backlog grooming/refinement, or kick off a new sprint"
     },
@@ -715,13 +656,7 @@
       "preActions": {
         "injectContext": "Role: QC Specialist\nPRE-DEVELOPMENT CHECK:\n1. Verify PBI/story acceptance criteria clear\n2. Check design specs available\n3. Verify dependencies identified\n4. If PASS  ->  proceed to planning\n5. Validate plan before implementation"
       },
-      "sequence": [
-        "quality-gate",
-        "plan",
-        "plan-review",
-        "plan-validate",
-        "workflow-end"
-      ],
+      "sequence": ["quality-gate", "plan", "plan-review", "plan-validate", "workflow-end"],
       "whenNotToUse": "QA checks, release prep, production readiness",
       "whenToUse": "User wants to verify readiness before starting development: check prerequisites, quality gate, start dev"
     },
@@ -732,12 +667,7 @@
       "preActions": {
         "injectContext": "PBI-TO-TESTS WORKFLOW:\n1. Read PBI acceptance criteria\n2. Generate test specifications with TC-{FEATURE}-{NNN} IDs using /tdd-spec\n3. Write TCs to feature doc Section 17 (canonical registry)\n4. Run pre-QA quality gate"
       },
-      "sequence": [
-        "tdd-spec",
-        "tdd-spec-review",
-        "quality-gate",
-        "workflow-end"
-      ],
+      "sequence": ["tdd-spec", "tdd-spec-review", "quality-gate", "workflow-end"],
       "whenNotToUse": "Running existing tests, checking test results",
       "whenToUse": "User wants to generate test specs or test cases from a PBI, feature, story, or acceptance criteria"
     },
@@ -746,19 +676,10 @@
       "description": "Designer workflow: create design specification and implement UI (product, marketing, creative) from requirements or screenshots",
       "name": "Design Workflow",
       "preActions": {
-        "readFiles": [
-          "docs/project-reference/design-system/README.md"
-        ],
+        "readFiles": ["docs/project-reference/design-system/README.md"],
         "injectContext": "Role: UX Designer\nDESIGN WORKFLOW:\n1. Read requirements/PBI\n2. Create design spec with component inventory, states, tokens, accessibility\n3. DESIGN IMPLEMENTATION GATE (pick ONE, skip the other):\n   - Product UIs (dashboards, admin panels, SaaS apps, data interfaces) → /interface-design (skip frontend-design)\n   - Marketing pages, landing pages, creative UIs, screenshot replication → /frontend-design (skip interface-design)\n   Mark the skipped step as completed immediately.\n4. Review with code-review agent"
       },
-      "sequence": [
-        "design-spec",
-        "interface-design",
-        "frontend-design",
-        "workflow-review-changes",
-        "docs-update",
-        "workflow-end"
-      ],
+      "sequence": ["design-spec", "interface-design", "frontend-design", "workflow-review-changes", "docs-update", "workflow-end"],
       "whenNotToUse": "Implementing an existing design in code",
       "whenToUse": "User wants to create a UI/UX design spec, mockup, wireframe, or component specification, design a product interface (dashboard, admin panel, SaaS app), build a landing page, create a marketing page, replicate a screenshot/design, or build a creative/distinctive frontend interface"
     },
@@ -769,11 +690,7 @@
       "preActions": {
         "injectContext": "Role: Project Manager\nPM REPORTING WORKFLOW:\n1. Gather sprint/project data\n2. Generate status report with metrics\n3. Analyze dependencies and blockers\n4. Output to plans/reports/"
       },
-      "sequence": [
-        "status",
-        "dependency",
-        "workflow-end"
-      ],
+      "sequence": ["status", "dependency", "workflow-end"],
       "whenNotToUse": "Git status, build status, PR status, commit status",
       "whenToUse": "User wants a status report, sprint update, project progress report, or weekly summary"
     },
@@ -933,12 +850,7 @@
       "preActions": {
         "injectContext": "Role: Security Architect\nSECURITY AUDIT WORKFLOW:\n1. Scan for OWASP Top 10 vulnerabilities\n2. Review authentication and authorization patterns\n3. Check input validation and sanitization\n4. Assess data protection and encryption\n5. Report findings with severity ratings\n\nGUARDRAILS:\n- Read-only analysis unless fix is approved\n- Use CVSS scoring for severity\n- Check both frontend and backend attack surfaces"
       },
-      "sequence": [
-        "scout",
-        "security",
-        "watzup",
-        "workflow-end"
-      ],
+      "sequence": ["scout", "security", "watzup", "workflow-end"],
       "whenNotToUse": "Implementing new security features, fixing known security bugs (use bugfix workflow)",
       "whenToUse": "User wants a security audit: vulnerability assessment, OWASP check, security review, penetration test analysis, or security compliance check"
     },
@@ -972,15 +884,7 @@
       "preActions": {
         "injectContext": "Role: Business Analyst\nBA-DEV HANDOFF:\n1. Review artifact completeness with /review-artifact\n2. Run quality gate with /quality-gate\n3. Create handoff record with /handoff\n4. Proceed to planning with /plan\n5. Validate plan before implementation"
       },
-      "sequence": [
-        "review-artifact",
-        "quality-gate",
-        "handoff",
-        "plan",
-        "plan-review",
-        "plan-validate",
-        "workflow-end"
-      ],
+      "sequence": ["review-artifact", "quality-gate", "handoff", "plan", "plan-review", "plan-validate", "workflow-end"],
       "whenNotToUse": "Unrefined ideas, missing acceptance criteria, design-first features",
       "whenToUse": "BA hands off refined stories to development team, pre-dev quality gate"
     },
@@ -991,11 +895,7 @@
       "preActions": {
         "injectContext": "DEV-QA HANDOFF:\n1. Create handoff record with /handoff\n2. Generate test spec and test cases with /test-spec"
       },
-      "sequence": [
-        "handoff",
-        "test-spec",
-        "workflow-end"
-      ],
+      "sequence": ["handoff", "test-spec", "workflow-end"],
       "whenNotToUse": "Incomplete features, missing unit tests, untested code",
       "whenToUse": "Development complete, handoff to QA for testing"
     },
@@ -1006,12 +906,7 @@
       "preActions": {
         "injectContext": "Role: QC Specialist\nQA-PO ACCEPTANCE:\n1. Run quality gate with /quality-gate\n2. Create handoff record with /handoff\n3. PO acceptance decision with /acceptance"
       },
-      "sequence": [
-        "quality-gate",
-        "handoff",
-        "acceptance",
-        "workflow-end"
-      ],
+      "sequence": ["quality-gate", "handoff", "acceptance", "workflow-end"],
       "whenNotToUse": "Incomplete testing, known defects, missing test coverage",
       "whenToUse": "Testing complete, QA hands off to PO for acceptance and sign-off"
     },
@@ -1022,15 +917,7 @@
       "preActions": {
         "injectContext": "Role: UX Designer\nDESIGN-DEV HANDOFF:\n1. Create design spec with /design-spec\n2. Review artifact with /review-artifact\n3. Create handoff record with /handoff\n4. Proceed to planning with /plan\n5. Validate plan before implementation"
       },
-      "sequence": [
-        "design-spec",
-        "review-artifact",
-        "handoff",
-        "plan",
-        "plan-review",
-        "plan-validate",
-        "workflow-end"
-      ],
+      "sequence": ["design-spec", "review-artifact", "handoff", "plan", "plan-review", "plan-validate", "workflow-end"],
       "whenNotToUse": "Incomplete designs, missing specs, design exploration",
       "whenToUse": "Designer hands off design spec to developer for implementation"
     },
@@ -1041,11 +928,7 @@
       "preActions": {
         "injectContext": "SPRINT RETRO:\n1. Generate status report with /status\n2. Run retrospective with /retro\n- Gather what went well, what didn't, action items\n- Output to plans/reports/"
       },
-      "sequence": [
-        "status",
-        "retro",
-        "workflow-end"
-      ],
+      "sequence": ["status", "retro", "workflow-end"],
       "whenNotToUse": "Mid-sprint, planning activities, status reporting",
       "whenToUse": "End of sprint, gather feedback, identify improvements, create action items"
     },
@@ -1115,18 +998,10 @@
       "description": "Research a topic on the web, deep-dive into sources, synthesize findings into a structured report, and review quality",
       "name": "Research & Synthesis",
       "preActions": {
-        "readFiles": [
-          ".claude/skills/shared/web-research-protocol.md"
-        ],
-        "injectContext": "RESEARCH & SYNTHESIS PROTOCOL:\n1. Web Research: Broad search (max 10 WebSearch), collect sources, validate credibility, build source map\n2. Deep Research: Fetch top sources (max 8 WebFetch), extract key findings, cross-validate claims, build evidence base\n3. Knowledge Synthesis: Load evidence + template, write structured report with inline citations, citation audit\n4. Knowledge Review: 7-point quality check (template, citations, confidence, sources, gaps, cross-validation, actionability)\n\nGUARDRAILS:\n- Every factual claim requires 2+ independent sources\n- Never fabricate sources or citations\n- Confidence scoring mandatory for all findings\n- Working files in .claude/tmp/, final output in docs/knowledge/research/\n- Use enforced template: docs/templates/research-report-template.md"
+        "readFiles": [],
+        "injectContext": "RESEARCH & SYNTHESIS PROTOCOL:\n1. Web Research: Broad search (max 10 WebSearch), collect sources, validate credibility, build source map\n2. Deep Research: Fetch top sources (max 8 WebFetch), extract key findings, cross-validate claims, build evidence base\n3. Knowledge Synthesis: Load evidence + template, write structured report with inline citations, citation audit\n4. Knowledge Review: 7-point quality check (template, citations, confidence, sources, gaps, cross-validation, actionability)\n\nGUARDRAILS:\n- Every factual claim requires 2+ independent sources\n- Never fabricate sources or citations\n- Confidence scoring mandatory for all findings\n- Working files in .claude/tmp/, final output in docs/knowledge/research/\n- Use enforced template: .claude/templates/research-report-template.md"
       },
-      "sequence": [
-        "web-research",
-        "deep-research",
-        "knowledge-synthesis",
-        "knowledge-review",
-        "workflow-end"
-      ],
+      "sequence": ["web-research", "deep-research", "knowledge-synthesis", "knowledge-review", "workflow-end"],
       "whenNotToUse": "Codebase investigation (use investigation), course building, marketing strategy, business evaluation",
       "whenToUse": "User wants to research a topic, synthesize knowledge, create a research report, learn about a subject, gather information from the web"
     },
@@ -1135,19 +1010,10 @@
       "description": "Research a topic and build structured learning/teaching course material with Bloom taxonomy objectives",
       "name": "Course Material Builder",
       "preActions": {
-        "readFiles": [
-          ".claude/skills/shared/web-research-protocol.md",
-          "docs/templates/course-outline-template.md"
-        ],
-        "injectContext": "COURSE BUILDING PROTOCOL:\n1. Web Research: Research the topic broadly (max 10 WebSearch)\n2. Deep Research: Deep-dive into pedagogical sources and subject matter (max 8 WebFetch)\n3. Course Builder: Build structured course with Bloom taxonomy objectives, modules, lessons, exercises, assessments\n4. Knowledge Review: Quality review of course material\n\nGUARDRAILS:\n- Learning objectives must use Bloom taxonomy verbs (Remember→Understand→Apply→Analyze→Evaluate→Create)\n- Each module needs clear prerequisites and outcomes\n- Include practical exercises and assessments\n- Working files in .claude/tmp/, final output in docs/knowledge/courses/\n- Use enforced template: docs/templates/course-outline-template.md"
+        "readFiles": [".claude/templates/course-outline-template.md"],
+        "injectContext": "COURSE BUILDING PROTOCOL:\n1. Web Research: Research the topic broadly (max 10 WebSearch)\n2. Deep Research: Deep-dive into pedagogical sources and subject matter (max 8 WebFetch)\n3. Course Builder: Build structured course with Bloom taxonomy objectives, modules, lessons, exercises, assessments\n4. Knowledge Review: Quality review of course material\n\nGUARDRAILS:\n- Learning objectives must use Bloom taxonomy verbs (Remember→Understand→Apply→Analyze→Evaluate→Create)\n- Each module needs clear prerequisites and outcomes\n- Include practical exercises and assessments\n- Working files in .claude/tmp/, final output in docs/knowledge/courses/\n- Use enforced template: .claude/templates/course-outline-template.md"
       },
-      "sequence": [
-        "web-research",
-        "deep-research",
-        "course-builder",
-        "knowledge-review",
-        "workflow-end"
-      ],
+      "sequence": ["web-research", "deep-research", "course-builder", "knowledge-review", "workflow-end"],
       "whenNotToUse": "Research reports, marketing strategy, business evaluation, code documentation",
       "whenToUse": "User wants to build a course, create learning material, design a curriculum, prepare teaching content, training program"
     },
@@ -1156,20 +1022,10 @@
       "description": "Research market landscape and build a comprehensive marketing strategy with positioning, channels, campaigns, and KPIs",
       "name": "Marketing Strategy",
       "preActions": {
-        "readFiles": [
-          ".claude/skills/shared/web-research-protocol.md",
-          "docs/templates/marketing-strategy-template.md"
-        ],
-        "injectContext": "MARKETING STRATEGY PROTOCOL:\n1. Web Research: Research market landscape, competitors, trends (max 10 WebSearch)\n2. Deep Research: Deep-dive into competitor strategies, market data, customer insights (max 8 WebFetch)\n3. Market Analysis: Competitor analysis, TAM/SAM/SOM sizing, SWOT, customer segmentation\n4. Strategy Builder: Positioning, channels, messaging, campaigns, budget, KPIs\n5. Knowledge Review: Quality review of strategy document\n\nGUARDRAILS:\n- Market sizing must use verifiable data with source citations\n- Competitor analysis needs evidence-based comparisons\n- Campaign recommendations need budget estimates and KPI targets\n- Working files in .claude/tmp/, final output in docs/knowledge/strategy/marketing/\n- Use enforced template: docs/templates/marketing-strategy-template.md"
+        "readFiles": [".claude/templates/marketing-strategy-template.md"],
+        "injectContext": "MARKETING STRATEGY PROTOCOL:\n1. Web Research: Research market landscape, competitors, trends (max 10 WebSearch)\n2. Deep Research: Deep-dive into competitor strategies, market data, customer insights (max 8 WebFetch)\n3. Market Analysis: Competitor analysis, TAM/SAM/SOM sizing, SWOT, customer segmentation\n4. Strategy Builder: Positioning, channels, messaging, campaigns, budget, KPIs\n5. Knowledge Review: Quality review of strategy document\n\nGUARDRAILS:\n- Market sizing must use verifiable data with source citations\n- Competitor analysis needs evidence-based comparisons\n- Campaign recommendations need budget estimates and KPI targets\n- Working files in .claude/tmp/, final output in docs/knowledge/strategy/marketing/\n- Use enforced template: .claude/templates/marketing-strategy-template.md"
       },
-      "sequence": [
-        "web-research",
-        "deep-research",
-        "market-analysis",
-        "strategy-builder",
-        "knowledge-review",
-        "workflow-end"
-      ],
+      "sequence": ["web-research", "deep-research", "market-analysis", "strategy-builder", "knowledge-review", "workflow-end"],
       "whenNotToUse": "Research reports, course building, business evaluation, code tasks",
       "whenToUse": "User wants to build a marketing strategy, analyze market landscape, plan campaigns, competitive analysis, go-to-market strategy"
     },
@@ -1178,20 +1034,10 @@
       "description": "Research market, evaluate business idea viability with BMC, financials, risk matrix, and execution plan",
       "name": "Business Idea Evaluation",
       "preActions": {
-        "readFiles": [
-          ".claude/skills/shared/web-research-protocol.md",
-          "docs/templates/business-evaluation-template.md"
-        ],
-        "injectContext": "BUSINESS EVALUATION PROTOCOL:\n1. Web Research: Research market, competitors, industry trends (max 10 WebSearch)\n2. Deep Research: Deep-dive into market data, business models, financial benchmarks (max 8 WebFetch)\n3. Market Analysis: TAM/SAM/SOM, competitor landscape, customer segments\n4. Business Evaluation: BMC (9 blocks), 3-year financials, risk matrix (min 5 risks), execution plan (3 phases), verdict (1-10 + Pursue/Pivot/Pause/Pass)\n5. Knowledge Review: Quality review of evaluation document\n\nGUARDRAILS:\n- Financial projections need stated assumptions and sensitivity analysis\n- Risk matrix must include likelihood × impact scoring\n- BMC must cover all 9 building blocks\n- Verdict must be evidence-based with clear reasoning\n- Working files in .claude/tmp/, final output in docs/knowledge/strategy/business/\n- Use enforced template: docs/templates/business-evaluation-template.md"
+        "readFiles": [".claude/templates/business-evaluation-template.md"],
+        "injectContext": "BUSINESS EVALUATION PROTOCOL:\n1. Web Research: Research market, competitors, industry trends (max 10 WebSearch)\n2. Deep Research: Deep-dive into market data, business models, financial benchmarks (max 8 WebFetch)\n3. Market Analysis: TAM/SAM/SOM, competitor landscape, customer segments\n4. Business Evaluation: BMC (9 blocks), 3-year financials, risk matrix (min 5 risks), execution plan (3 phases), verdict (1-10 + Pursue/Pivot/Pause/Pass)\n5. Knowledge Review: Quality review of evaluation document\n\nGUARDRAILS:\n- Financial projections need stated assumptions and sensitivity analysis\n- Risk matrix must include likelihood × impact scoring\n- BMC must cover all 9 building blocks\n- Verdict must be evidence-based with clear reasoning\n- Working files in .claude/tmp/, final output in docs/knowledge/strategy/business/\n- Use enforced template: .claude/templates/business-evaluation-template.md"
       },
-      "sequence": [
-        "web-research",
-        "deep-research",
-        "market-analysis",
-        "business-evaluation",
-        "knowledge-review",
-        "workflow-end"
-      ],
+      "sequence": ["web-research", "deep-research", "market-analysis", "business-evaluation", "knowledge-review", "workflow-end"],
       "whenNotToUse": "Research reports, course building, marketing strategy only, code tasks",
       "whenToUse": "User wants to evaluate a business idea, assess viability, create a business plan, analyze opportunity and risk, startup validation"
     },
@@ -1202,15 +1048,7 @@
       "preActions": {
         "injectContext": "IDEA-TO-TDD WORKFLOW:\n1. Capture idea interactively with discovery interview (AskUserQuestion)\n2. Refine into PBI with testability assessment\n3. Generate TDD test specs in feature docs Section 17 using /tdd-spec\n\nThis workflow supports TDD-first development: write test specs BEFORE implementation."
       },
-      "sequence": [
-        "idea",
-        "refine",
-        "refine-review",
-        "tdd-spec",
-        "tdd-spec-review",
-        "pbi-mockup",
-        "workflow-end"
-      ],
+      "sequence": ["idea", "refine", "refine-review", "tdd-spec", "tdd-spec-review", "pbi-mockup", "workflow-end"],
       "whenNotToUse": "Direct implementation, bug fixes, existing PBIs that already have test specs",
       "whenToUse": "User wants to go from idea to test-driven specifications, TDD approach, spec-first development, write tests before code"
     },
@@ -1250,16 +1088,7 @@
       "preActions": {
         "injectContext": "TEST SPEC UPDATE WORKFLOW:\nUse after code changes, bug fixes, or PR reviews to keep test specs in sync.\n1. Review what changed (git diff or PR diff)\n2. Update test specs in feature doc Section 17 using /tdd-spec update mode\n3. Sync dashboard (docs/test-specs/) via /test-specs-docs\n4. Generate/update integration tests for changed TCs\n5. Run tests to verify\n\nKey: /tdd-spec uses UPDATE mode — diffs existing TCs against current code, adds regression TCs for bugfixes."
       },
-      "sequence": [
-        "workflow-review-changes",
-        "tdd-spec",
-        "tdd-spec-review",
-        "test-specs-docs",
-        "integration-test",
-        "test",
-        "docs-update",
-        "workflow-end"
-      ],
+      "sequence": ["workflow-review-changes", "tdd-spec", "tdd-spec-review", "test-specs-docs", "integration-test", "test", "docs-update", "workflow-end"],
       "whenNotToUse": "New feature implementation (use tdd-feature), no code changes yet, idea refinement",
       "whenToUse": "After fixing a bug update test specs, after code changes update test specs, after PR review update test specs, sync test specs after changes, update test documentation after implementation"
     },
@@ -1270,14 +1099,7 @@
       "preActions": {
         "injectContext": "TEST-TO-INTEGRATION WORKFLOW:\nGenerate integration tests from existing test specifications.\n1. Scout: Find the relevant test spec documents and existing test files\n2. Integration Test: Generate test files from TCs in feature doc Section 17\n   - Each test gets test spec annotation linking to TC-{FEATURE}-{NNN}\n   - Tests use real DI, no mocks (subcutaneous testing pattern)\n3. Test: Build and run the generated tests\n4. Verify: Check bidirectional traceability (every TC has a test, every test has a TC)"
       },
-      "sequence": [
-        "scout",
-        "integration-test",
-        "test",
-        "docs-update",
-        "watzup",
-        "workflow-end"
-      ],
+      "sequence": ["scout", "integration-test", "test", "docs-update", "watzup", "workflow-end"],
       "whenNotToUse": "No test specs exist yet (use tdd-spec first), test planning phase, documentation-only",
       "whenToUse": "Generate integration tests from test specs, create tests from feature docs, implement test cases from specifications, test specs to code"
     },
@@ -1288,15 +1110,7 @@
       "preActions": {
         "injectContext": "TEST VERIFICATION WORKFLOW:\nComprehensive test quality verification covering 4 concerns:\n1. Scout: Find all integration test files and related specs\n2. Integration Test (review mode): Audit test quality — flaky patterns, missing polling for async assertions, non-unique test data, best practice violations\n3. Integration Test (verify mode): Check bidirectional traceability — every test has a TC in feature docs, every TC has a matching test, no orphans\n4. Test: Run tests to identify actual failures\n5. Integration Test (diagnose mode): For any failures — determine root cause: test bug vs code bug vs infrastructure issue\n6. Review: Summarize findings and recommended fixes\n\nKEY FLAKY PATTERNS TO DETECT:\n- DB assertions without WaitUntilAsync/polling after async event handlers\n- Hardcoded delays instead of condition-based polling\n- Non-unique test data causing cross-test interference\n- Race conditions from shared mutable state\n\nMISMATCH RESOLUTION:\n- Test passes but spec says different behavior → update spec\n- Test fails but spec describes expected behavior → update test\n- Test exists without spec → create spec from test\n- Spec exists without test → generate test from spec"
       },
-      "sequence": [
-        "scout",
-        "integration-test",
-        "test",
-        "integration-test",
-        "docs-update",
-        "watzup",
-        "workflow-end"
-      ],
+      "sequence": ["scout", "integration-test", "test", "integration-test", "docs-update", "watzup", "workflow-end"],
       "whenNotToUse": "Writing new tests (use test-to-integration), creating test specs (use tdd-spec), new feature implementation",
       "whenToUse": "Review test quality, fix flaky tests, diagnose test failures, verify test traceability, test audit, test health check, integration test review, why tests fail, tests not matching specs"
     },
@@ -1305,7 +1119,7 @@
       "description": "Full waterfall project inception from idea through implementation with integration testing",
       "name": "Greenfield Project Init",
       "preActions": {
-        "injectContext": "GREENFIELD PROJECT INCEPTION PROTOCOL:\nYou are acting as a Solution Architect for a brand-new project.\n\nMANDATORY IMPORTANT MUST RULES:\n1. EVERY stage requires AskUserQuestion validation before proceeding\n2. Save artifacts to plan directory at EVERY step\n3. All tech recommendations include confidence % and evidence\n4. Present 2-4 options for every major decision\n5. Delegate architecture decisions to solution-architect agent\n6. After confirmFirst, present ALL steps and let user deselect irrelevant ones\n7. NEVER ask tech stack upfront — business analysis first, tech stack research after domain analysis\n8. Domain analysis produces ERD + bounded contexts BEFORE tech stack research\n9. Tech stack research compares top 3 options per layer with detailed pros/cons\n\nSTEP SELECTION GATE:\nAfter user confirms workflow activation, immediately present the full step list and ask which steps to include. Example:\n- [x] Discovery Interview (idea)\n- [x] Market Research (web-research)\n- [x] Deep Research (deep-research)\n- [x] Business Evaluation (business-evaluation)\n- [x] Refine to PBI (refine)\n- [x] Domain Analysis & ERD (domain-analysis) — NEW\n- [x] Tech Stack Research (tech-stack-research) — NEW\n- [x] Implementation Plan (plan)\n- [x] Plan Validation (plan-validate)\n- [x] Test Strategy (tdd-spec) — includes integration test strategy\n- [x] User Stories (story)\n- [x] Final Review (plan-review)\n\nUser can deselect steps that don't apply (e.g., skip market research for internal tools).\nSkipped steps should be marked as completed immediately in the workflow.\n\nPLAN PHASES (quick reference):\n- PLAN₁ (after architecture-design): High-level architecture plan. Scope: system design, layer boundaries, component responsibilities, tech choices. Followed by /security + /performance review of the architecture.\n- PLAN₂ (after tdd-spec-review): Sprint-ready implementation plan. Scope: concrete tasks, file changes, scaffolding needs, test infrastructure. Based on: stories + test specs from TDD-SPEC₁.\n- PLAN₃ (after TDD-SPEC₂ post-implementation): Integration test architecture plan. Scope: test file structure, test data setup, CI integration. Based on: implementation code + updated test specs.\nThe three plans serve progressively detailed purposes — architecture → implementation → test infrastructure.\n\nSECOND PLANNING ROUND:\nAfter stories + TDD specs are generated and reviewed, a second /plan + /plan-review cycle runs.\nThis second plan incorporates the concrete stories, test specs, and dependency tables into a detailed implementation plan.\nThe first plan is high-level architecture; the second plan is sprint-ready with phased implementation steps.\n\nARCHITECTURE SCAFFOLDING (after second plan-review, CONDITIONAL):\nThe /scaffold step is CONDITIONAL — AI must first self-investigate for existing base abstractions.\nGrep for: abstract/base classes, generic interfaces, infrastructure abstractions (IRepository, IUnitOfWork), utility layers (Extensions, Helpers, Utils), frontend foundations (base component/service/store), DI registrations.\nIf existing scaffolding found → SKIP /scaffold step, mark completed.\nIf NO foundational abstractions found → PROCEED: create all base abstract classes, generic interfaces, infrastructure abstractions, and shared utilities with OOP/SOLID principles BEFORE any feature story implementation.\nAll infrastructure behind interfaces with at least one concrete implementation (Dependency Inversion).\nThe scaffolded project should be copy-ready as a starter template for similar projects.\n\nIMPLEMENTATION & INTEGRATION TESTING (after scaffold):\nAfter scaffolding, the workflow continues with full implementation and integration testing:\n1. /why-review validates design rationale before coding\n2. /cook implements the feature (backend + frontend)\n3. /tdd-spec writes test specifications (feature doc Section 17)\n4. /tdd-spec-review validates spec coverage and correctness\n5. Third /plan + /plan-review cycle plans integration test architecture\n6. /integration-test generates integration tests from specs\n7. /test runs all tests to verify TCs pass\n8. /workflow-review-changes for quality (consolidated review: code-simplifier + review-changes + review-architecture + code-review + performance, then plan + fix + re-review recursively)\n9. /sre-review + /security for production readiness\n10. /changelog + final /test + /docs-update + /watzup to close\nThis ensures greenfield projects ship with integration test coverage from day one."
+        "injectContext": "GREENFIELD PROJECT INCEPTION PROTOCOL:\nYou are acting as a Solution Architect for a brand-new project.\n\nMANDATORY IMPORTANT MUST ATTENTION RULES:\n1. EVERY stage requires AskUserQuestion validation before proceeding\n2. Save artifacts to plan directory at EVERY step\n3. All tech recommendations include confidence % and evidence\n4. Present 2-4 options for every major decision\n5. Delegate architecture decisions to solution-architect agent\n6. After confirmFirst, present ALL steps and let user deselect irrelevant ones\n7. NEVER ask tech stack upfront — business analysis first, tech stack research after domain analysis\n8. Domain analysis produces ERD + bounded contexts BEFORE tech stack research\n9. Tech stack research compares top 3 options per layer with detailed pros/cons\n\nSTEP SELECTION GATE:\nAfter user confirms workflow activation, immediately present the full step list and ask which steps to include. Example:\n- [x] Discovery Interview (idea)\n- [x] Market Research (web-research)\n- [x] Deep Research (deep-research)\n- [x] Business Evaluation (business-evaluation)\n- [x] Refine to PBI (refine)\n- [x] Domain Analysis & ERD (domain-analysis) — NEW\n- [x] Tech Stack Research (tech-stack-research) — NEW\n- [x] Implementation Plan (plan)\n- [x] Plan Validation (plan-validate)\n- [x] Test Strategy (tdd-spec) — includes integration test strategy\n- [x] User Stories (story)\n- [x] Final Review (plan-review)\n\nUser can deselect steps that don't apply (e.g., skip market research for internal tools).\nSkipped steps should be marked as completed immediately in the workflow.\n\nPLAN PHASES (quick reference):\n- PLAN₁ (after architecture-design): High-level architecture plan. Scope: system design, layer boundaries, component responsibilities, tech choices. Followed by /security + /performance review of the architecture.\n- PLAN₂ (after tdd-spec-review): Sprint-ready implementation plan. Scope: concrete tasks, file changes, scaffolding needs, test infrastructure. Based on: stories + test specs from TDD-SPEC₁.\n- PLAN₃ (after TDD-SPEC₂ post-implementation): Integration test architecture plan. Scope: test file structure, test data setup, CI integration. Based on: implementation code + updated test specs.\nThe three plans serve progressively detailed purposes — architecture → implementation → test infrastructure.\n\nSECOND PLANNING ROUND:\nAfter stories + TDD specs are generated and reviewed, a second /plan + /plan-review cycle runs.\nThis second plan incorporates the concrete stories, test specs, and dependency tables into a detailed implementation plan.\nThe first plan is high-level architecture; the second plan is sprint-ready with phased implementation steps.\n\nARCHITECTURE SCAFFOLDING (after second plan-review, CONDITIONAL):\nThe /scaffold step is CONDITIONAL — AI must first self-investigate for existing base abstractions.\nGrep for: abstract/base classes, generic interfaces, infrastructure abstractions (IRepository, IUnitOfWork), utility layers (Extensions, Helpers, Utils), frontend foundations (base component/service/store), DI registrations.\nIf existing scaffolding found → SKIP /scaffold step, mark completed.\nIf NO foundational abstractions found → PROCEED: create all base abstract classes, generic interfaces, infrastructure abstractions, and shared utilities with OOP/SOLID principles BEFORE any feature story implementation.\nAll infrastructure behind interfaces with at least one concrete implementation (Dependency Inversion).\nThe scaffolded project should be copy-ready as a starter template for similar projects.\n\nIMPLEMENTATION & INTEGRATION TESTING (after scaffold):\nAfter scaffolding, the workflow continues with full implementation and integration testing:\n1. /why-review validates design rationale before coding\n2. /cook implements the feature (backend + frontend)\n3. /tdd-spec writes test specifications (feature doc Section 17)\n4. /tdd-spec-review validates spec coverage and correctness\n5. Third /plan + /plan-review cycle plans integration test architecture\n6. /integration-test generates integration tests from specs\n7. /test runs all tests to verify TCs pass\n8. /workflow-review-changes for quality (consolidated review: code-simplifier + review-changes + review-architecture + code-review + performance, then plan + fix + re-review recursively)\n9. /sre-review + /security for production readiness\n10. /changelog + final /test + /docs-update + /watzup to close\nThis ensures greenfield projects ship with integration test coverage from day one."
       },
       "sequence": [
         "idea",
@@ -1355,14 +1169,9 @@
       "description": "Create visual Excalidraw diagrams from codebase investigation or web research",
       "name": "Visual Diagram",
       "preActions": {
-        "injectContext": "VISUAL DIAGRAM PROTOCOL:\nThis workflow creates Excalidraw diagrams. Two paths based on source:\n\nPATH A — Codebase Visualization (default if topic is about this project):\n1. Scout: Find relevant files, architecture, and code patterns\n2. Investigate: Trace code paths, understand relationships and data flow\n3. Diagram: Generate .excalidraw file visualizing the findings\n\nPATH B — Knowledge Visualization (if topic requires web research):\n1. Web Research: Research the topic broadly (max 10 WebSearch)\n2. Deep Research: Deep-dive into top sources (max 8 WebFetch)\n3. Diagram: Generate .excalidraw file visualizing the synthesized knowledge\n\nGUARDRAILS:\n- Ask user which path (A or B) if ambiguous\n- Output .excalidraw files to docs/diagrams/ (create dir if needed)\n- Use kebab-case filenames describing the diagram subject\n- MUST render and validate diagram (render-view-fix loop)\n- Read references/color-palette.md and references/element-templates.md before generating"
+        "injectContext": "VISUAL DIAGRAM PROTOCOL:\nThis workflow creates Excalidraw diagrams. Two paths based on source:\n\nPATH A — Codebase Visualization (default if topic is about this project):\n1. Scout: Find relevant files, architecture, and code patterns\n2. Investigate: Trace code paths, understand relationships and data flow\n3. Diagram: Generate .excalidraw file visualizing the findings\n\nPATH B — Knowledge Visualization (if topic requires web research):\n1. Web Research: Research the topic broadly (max 10 WebSearch)\n2. Deep Research: Deep-dive into top sources (max 8 WebFetch)\n3. Diagram: Generate .excalidraw file visualizing the synthesized knowledge\n\nGUARDRAILS:\n- Ask user which path (A or B) if ambiguous\n- Output .excalidraw files to docs/diagrams/ (create dir if needed)\n- Use kebab-case filenames describing the diagram subject\n- MUST ATTENTION render and validate diagram (render-view-fix loop)\n- Read references/color-palette.md and references/element-templates.md before generating"
       },
-      "sequence": [
-        "scout",
-        "investigate",
-        "excalidraw-diagram",
-        "workflow-end"
-      ],
+      "sequence": ["scout", "investigate", "excalidraw-diagram", "workflow-end"],
       "whenNotToUse": "Text-only documentation, code implementation, bug fixes, non-visual outputs",
       "whenToUse": "User wants to visualize, diagram, draw, or create visual representation of workflows, architectures, concepts, systems, or research findings"
     }

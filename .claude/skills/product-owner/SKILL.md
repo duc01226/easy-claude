@@ -5,13 +5,13 @@ description: '[Project Management] Capture ideas, manage product backlogs, apply
 allowed-tools: Read, Write, Edit, Grep, Glob, TaskCreate, WebSearch, Bash
 ---
 
-> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
+> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
 
 ## Quick Summary
 
 **Goal:** Help Product Owners capture ideas, manage backlogs, and prioritize using RICE, MoSCoW, and Value/Effort frameworks.
 
-> **MANDATORY IMPORTANT MUST** Plan ToDo Task to READ the following project-specific reference doc:
+> **MANDATORY IMPORTANT MUST ATTENTION** Plan ToDo Task to READ the following project-specific reference doc:
 >
 > - `project-structure-reference.md` -- project patterns and structure
 > - `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models) (content auto-injected by hook — check for [Injected: ...] header before reading)
@@ -50,7 +50,7 @@ When working on domain ideas, automatically detect and load business feature con
 
 1. Run: `Glob("docs/business-features/*/README.md")`
 2. Extract module names from paths
-3. Match keywords using `.claude/skills/shared/module-detection-keywords.md`
+3. Match keywords (detect module from docs/business-features/ directory names)
 
 **Detection Approach (silent auto-detect):**
 
@@ -112,7 +112,7 @@ RICE = (Reach × Impact × Confidence) / Effort
 Reach: # users affected per quarter
 Impact: 0.25 (minimal) | 0.5 (low) | 1 (medium) | 2 (high) | 3 (massive)
 Confidence: 0.5 (low) | 0.8 (medium) | 1.0 (high)
-Effort: Story points (1, 2, 3, 5, 8, 13, 21) — see .claude/skills/shared/estimation-framework.md
+Effort: Story points (1, 2, 3, 5, 8, 13, 21)
 ```
 
 #### MoSCoW
@@ -363,7 +363,7 @@ Add to idea/PBI:
 
 ## Closing Reminders
 
-- **MUST** break work into small todo tasks using `TaskCreate` BEFORE starting
-- **MUST** search codebase for 3+ similar patterns before creating new code
-- **MUST** cite `file:line` evidence for every claim (confidence >80% to act)
-- **MUST** add a final review todo task to verify work quality
+- **IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
+- **IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
+- **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
+- **IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality

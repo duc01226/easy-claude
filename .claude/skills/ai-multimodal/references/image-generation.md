@@ -78,13 +78,13 @@ Comprehensive guide for image creation, editing, and composition using Imagen 4 
 
 ## Model Comparison
 
-| Model | Quality | Speed | Cost | Best For |
-|-------|---------|-------|------|----------|
-| gemini-2.5-flash-image | ⭐⭐⭐⭐ | 🚀 Fast | 💵 Low | **DEFAULT** - General use |
-| gemini-3-pro-image | ⭐⭐⭐⭐⭐ | 💡 Medium | 💰 Medium | Text/reasoning |
-| imagen-4.0-generate | ⭐⭐⭐⭐ | 💡 Medium | 💰 Medium | Production (alternative) |
-| imagen-4.0-ultra | ⭐⭐⭐⭐⭐ | 🐢 Slow | 💰💰 High | Marketing assets |
-| imagen-4.0-fast | ⭐⭐⭐ | 🚀 Fast | 💵 Low | Bulk generation |
+| Model                  | Quality | Speed    | Cost     | Best For                  |
+| ---------------------- | ------- | -------- | -------- | ------------------------- |
+| gemini-2.5-flash-image | ⭐⭐⭐⭐    | 🚀 Fast   | 💵 Low    | **DEFAULT** - General use |
+| gemini-3-pro-image     | ⭐⭐⭐⭐⭐   | 💡 Medium | 💰 Medium | Text/reasoning            |
+| imagen-4.0-generate    | ⭐⭐⭐⭐    | 💡 Medium | 💰 Medium | Production (alternative)  |
+| imagen-4.0-ultra       | ⭐⭐⭐⭐⭐   | 🐢 Slow   | 💰💰 High  | Marketing assets          |
+| imagen-4.0-fast        | ⭐⭐⭐     | 🚀 Fast   | 💵 Low    | Bulk generation           |
 
 **Selection Guide**:
 - **Default/General**: Use `gemini-2.5-flash-image` (fast, cost-effective)
@@ -256,20 +256,20 @@ response3 = chat.send_message('Change the color palette to warm earth tones')
 
 ### Imagen 4 vs Nano Banana (Gemini Native)
 
-| Feature | Imagen 4 | Nano Banana (Gemini) |
-|---------|----------|---------------------|
-| Method | `generate_images()` | `generate_content()` |
-| Config | `GenerateImagesConfig` | `GenerateContentConfig` |
-| Prompt param | `prompt` (string) | `contents` (string/list) |
-| Image count | `numberOfImages` (camelCase) | N/A (single per request) |
-| Aspect ratio | `aspectRatio` (camelCase) | `aspect_ratio` (snake_case) |
-| Size | `imageSize` | `image_size` |
-| Response | `generated_images[i].image.image_bytes` | `candidates[0].content.parts[i].inline_data.data` |
-| Multi-image input | ❌ | ✅ Up to 14 references |
-| Multi-turn chat | ❌ | ✅ Conversational |
-| Search grounding | ❌ | ✅ (Pro only) |
-| Thinking mode | ❌ | ✅ (Pro only) |
-| Text rendering | Limited | 4K (Pro) |
+| Feature           | Imagen 4                                | Nano Banana (Gemini)                              |
+| ----------------- | --------------------------------------- | ------------------------------------------------- |
+| Method            | `generate_images()`                     | `generate_content()`                              |
+| Config            | `GenerateImagesConfig`                  | `GenerateContentConfig`                           |
+| Prompt param      | `prompt` (string)                       | `contents` (string/list)                          |
+| Image count       | `numberOfImages` (camelCase)            | N/A (single per request)                          |
+| Aspect ratio      | `aspectRatio` (camelCase)               | `aspect_ratio` (snake_case)                       |
+| Size              | `imageSize`                             | `image_size`                                      |
+| Response          | `generated_images[i].image.image_bytes` | `candidates[0].content.parts[i].inline_data.data` |
+| Multi-image input | ❌                                       | ✅ Up to 14 references                             |
+| Multi-turn chat   | ❌                                       | ✅ Conversational                                  |
+| Search grounding  | ❌                                       | ✅ (Pro only)                                      |
+| Thinking mode     | ❌                                       | ✅ (Pro only)                                      |
+| Text rendering    | Limited                                 | 4K (Pro)                                          |
 
 **Imagen 4** uses `generate_images()`:
 ```python
@@ -302,24 +302,24 @@ response = client.models.generate_content(
 ```
 
 **Critical Notes**:
-1. `response_modalities` values MUST be uppercase: `'IMAGE'`, `'TEXT'`
-2. `image_size` value MUST have uppercase K: `'1K'`, `'2K'`, `'4K'`
+1. `response_modalities` values MUST ATTENTION be uppercase: `'IMAGE'`, `'TEXT'`
+2. `image_size` value MUST ATTENTION have uppercase K: `'1K'`, `'2K'`, `'4K'`
 3. Imagen 4 Fast model doesn't support `imageSize` parameter
 
 ## Aspect Ratios
 
-| Ratio | Resolution (1K) | Use Case | Token Cost |
-|-------|----------------|----------|------------|
-| 1:1 | 1024×1024 | Social media, avatars, icons | 1290 |
-| 2:3 | 682×1024 | Vertical portraits | 1290 |
-| 3:2 | 1024×682 | Horizontal portraits | 1290 |
-| 3:4 | 768×1024 | Vertical posters | 1290 |
-| 4:3 | 1024×768 | Traditional media | 1290 |
-| 4:5 | 819×1024 | Instagram portrait | 1290 |
-| 5:4 | 1024×819 | Horizontal photos | 1290 |
-| 9:16 | 576×1024 | Mobile/stories/reels | 1290 |
-| 16:9 | 1024×576 | Landscapes, banners, YouTube | 1290 |
-| 21:9 | 1024×438 | Ultrawide/cinematic | 1290 |
+| Ratio | Resolution (1K) | Use Case                     | Token Cost |
+| ----- | --------------- | ---------------------------- | ---------- |
+| 1:1   | 1024×1024       | Social media, avatars, icons | 1290       |
+| 2:3   | 682×1024        | Vertical portraits           | 1290       |
+| 3:2   | 1024×682        | Horizontal portraits         | 1290       |
+| 3:4   | 768×1024        | Vertical posters             | 1290       |
+| 4:3   | 1024×768        | Traditional media            | 1290       |
+| 4:5   | 819×1024        | Instagram portrait           | 1290       |
+| 5:4   | 1024×819        | Horizontal photos            | 1290       |
+| 9:16  | 576×1024        | Mobile/stories/reels         | 1290       |
+| 16:9  | 1024×576        | Landscapes, banners, YouTube | 1290       |
+| 21:9  | 1024×438        | Ultrawide/cinematic          | 1290       |
 
 All ratios cost the same: 1,290 tokens per image (Gemini models).
 
@@ -553,14 +553,14 @@ response = client.models.generate_content(
 
 ### Nano Banana Prompt Techniques
 
-| Technique | Example | Purpose |
-|-----------|---------|---------|
-| ALL CAPS emphasis | `The logo MUST be centered` | Force attention to critical requirements |
-| Hex colors | `#9F2B68` instead of "dark magenta" | Exact color control |
-| Negative constraints | `NEVER include text/watermarks. DO NOT add labels.` | Explicit exclusions |
-| Realism trigger | `Natural lighting, DOF. Captured with Canon EOS 90D DSLR.` | Photography authenticity |
-| Structured edits | `Make ALL edits: - [1] - [2] - [3]` | Multi-step changes |
-| Complex logic | `Kittens MUST have heterochromatic eyes matching fur colors` | Precise conditions |
+| Technique            | Example                                                                | Purpose                                  |
+| -------------------- | ---------------------------------------------------------------------- | ---------------------------------------- |
+| ALL CAPS emphasis    | `The logo MUST ATTENTION be centered`                                  | Force attention to critical requirements |
+| Hex colors           | `#9F2B68` instead of "dark magenta"                                    | Exact color control                      |
+| Negative constraints | `NEVER include text/watermarks. DO NOT add labels.`                    | Explicit exclusions                      |
+| Realism trigger      | `Natural lighting, DOF. Captured with Canon EOS 90D DSLR.`             | Photography authenticity                 |
+| Structured edits     | `Make ALL edits: - [1] - [2] - [3]`                                    | Multi-step changes                       |
+| Complex logic        | `Kittens MUST ATTENTION have heterochromatic eyes matching fur colors` | Precise conditions                       |
 
 **Prompt Templates**:
 

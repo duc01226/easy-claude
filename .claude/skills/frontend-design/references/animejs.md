@@ -322,7 +322,7 @@ const timeline: Timeline = createTimeline({ defaults: { duration: 0.8 } } as Tim
    ```javascript
    // ✅ Good - uses transform
    animate('.element', { x: 100 });
-   
+
    // ❌ Avoid - triggers layout
    animate('.element', { left: 100 });
    ```
@@ -332,7 +332,7 @@ const timeline: Timeline = createTimeline({ defaults: { duration: 0.8 } } as Tim
    // ✅ Good - single timeline
    const tl = createTimeline();
    elements.forEach(el => tl.add(el, { x: 100 }));
-   
+
    // ❌ Avoid - multiple animations
    elements.forEach(el => animate(el, { x: 100 }));
    ```
@@ -346,7 +346,7 @@ const timeline: Timeline = createTimeline({ defaults: { duration: 0.8 } } as Tim
 
 ## 🚫 How to Identify V3 Code (DON'T USE)
 
-If you see ANY of these patterns, it's v3 and MUST be updated:
+If you see ANY of these patterns, it's v3 and MUST ATTENTION be updated:
 
 ```javascript
 // All of these are V3 - NEVER USE:

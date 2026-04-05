@@ -672,7 +672,7 @@ if __name__ == "__main__":
 
 ### Code Composability and Reusability
 
-Your implementation MUST prioritize composability and code reuse:
+Your implementation MUST ATTENTION prioritize composability and code reuse:
 
 1. **Extract Common Functionality**:
    - Create reusable helper functions for operations used across multiple tools

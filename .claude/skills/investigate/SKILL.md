@@ -5,9 +5,9 @@ version: 2.1.0
 allowed-tools: Read, Grep, Glob, Bash, Task, WebFetch, WebSearch, TodoWrite
 ---
 
-> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ask user whether to skip.
+> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
 
-**Prerequisites:** **MUST READ** before executing:
+**Prerequisites:** **MUST ATTENTION READ** before executing:
 
 <!-- SYNC:understand-code-first -->
 
@@ -28,17 +28,17 @@ allowed-tools: Read, Grep, Glob, Bash, Task, WebFetch, WebSearch, TodoWrite
 
 > **Graph-Assisted Investigation** — MANDATORY when `.code-graph/graph.db` exists.
 >
-> **HARD-GATE:** MUST run at least ONE graph command on key files before concluding any investigation.
+> **HARD-GATE:** MUST ATTENTION run at least ONE graph command on key files before concluding any investigation.
 >
 > **Pattern:** Grep finds files → `trace --direction both` reveals full system flow → Grep verifies details
 >
-> | Task | Minimum Graph Action |
-> |------|---------------------|
-> | Investigation/Scout | `trace --direction both` on 2-3 entry files |
-> | Fix/Debug | `callers_of` on buggy function + `tests_for` |
-> | Feature/Enhancement | `connections` on files to be modified |
-> | Code Review | `tests_for` on changed functions |
-> | Blast Radius | `trace --direction downstream` |
+> | Task                | Minimum Graph Action                         |
+> | ------------------- | -------------------------------------------- |
+> | Investigation/Scout | `trace --direction both` on 2-3 entry files  |
+> | Fix/Debug           | `callers_of` on buggy function + `tests_for` |
+> | Feature/Enhancement | `connections` on files to be modified        |
+> | Code Review         | `tests_for` on changed functions             |
+> | Blast Radius        | `trace --direction downstream`               |
 >
 > **CLI:** `python .claude/scripts/code_graph {command} --json`. Use `--node-mode file` first (10-30x less noise), then `--node-mode function` for detail.
 
@@ -50,7 +50,7 @@ allowed-tools: Read, Grep, Glob, Bash, Task, WebFetch, WebSearch, TodoWrite
 
 **Goal:** READ-ONLY exploration of existing features and logic — understand how code works without making changes.
 
-> **MANDATORY IMPORTANT MUST** Plan ToDo Task to READ the following project-specific reference doc:
+> **MANDATORY IMPORTANT MUST ATTENTION** Plan ToDo Task to READ the following project-specific reference doc:
 >
 > - `project-structure-reference.md` -- project patterns and structure
 >
@@ -92,8 +92,8 @@ allowed-tools: Read, Grep, Glob, Bash, Task, WebFetch, WebSearch, TodoWrite
 
 **Be skeptical. Every claim needs `file:line` traced proof. Confidence >80% to act.**
 
-- NEVER assume code works as named — MUST verify by reading actual implementations
-- MUST include `file:line` evidence for every finding; unproven claims MUST be marked "inferred" with low confidence
+- NEVER assume code works as named — MUST ATTENTION verify by reading actual implementations
+- MUST ATTENTION include `file:line` evidence for every finding; unproven claims MUST ATTENTION be marked "inferred" with low confidence
 - ALWAYS grep for related usages, consumers, and cross-service references — NEVER assume completeness
 - ALWAYS trace actual call paths with evidence — NEVER rely on signatures alone
 
@@ -102,7 +102,7 @@ allowed-tools: Read, Grep, Glob, Bash, Task, WebFetch, WebSearch, TodoWrite
 ## Workflow
 
 1. **Discovery** - Search codebase for all files related to the feature/question. Prioritize: Entities > Commands/Queries > EventHandlers > Controllers > Consumers > Components.
-2. **Graph Expand (MANDATORY — DO NOT SKIP)** - **YOU (the main agent) MUST run graph queries YOURSELF** on key files found in Step 1. This step is NOT optional — without graph, your understanding is incomplete. Sub-agents CANNOT use graph — only you can. Pick 2-3 key files (entities, commands, bus messages) and run:
+2. **Graph Expand (MANDATORY — DO NOT SKIP)** - **YOU (the main agent) MUST ATTENTION run graph queries YOURSELF** on key files found in Step 1. This step is NOT optional — without graph, your understanding is incomplete. Sub-agents CANNOT use graph — only you can. Pick 2-3 key files (entities, commands, bus messages) and run:
     ```bash
     python .claude/scripts/code_graph connections <key_file> --json
     python .claude/scripts/code_graph query callers_of <FunctionName> --json
@@ -121,13 +121,13 @@ allowed-tools: Read, Grep, Glob, Bash, Task, WebFetch, WebSearch, TodoWrite
 6. **Synthesis** - Write executive summary answering the original question. Include key files, patterns used, and text-based flow diagrams.
 7. **Present** - Deliver findings using the structured output format. Offer deeper dives on subtopics.
 
-## ⚠️ MUST READ Before Investigation
+## ⚠️ MUST ATTENTION READ Before Investigation
 
-**IMPORTANT: You MUST read these files before starting. Do NOT skip.**
+**IMPORTANT: You MUST ATTENTION read these files before starting. Do NOT skip.**
 
 - <!-- SYNC:knowledge-graph-template -->
     > **Knowledge Graph Template** — For each analyzed file, document: filePath, type (Entity/Command/Query/EventHandler/Controller/Consumer/Component/Store/Service), architecturalPattern, content summary, symbols, dependencies, businessContext, referenceFiles, relevanceScore (1-10), evidenceLevel (verified/inferred), frameworkAbstractions, serviceContext. Investigation fields: entryPoints, outputPoints, dataTransformations, errorScenarios. Consumer/bus fields: messageBusMessage, messageBusProducers, crossServiceIntegration. Frontend fields: componentHierarchy, stateManagementStores, dataBindingPatterns, validationStrategies.
-    <!-- /SYNC:knowledge-graph-template -->
+                    <!-- /SYNC:knowledge-graph-template -->
 
 **If preceded by `/scout`:** Use Scout's numbered file list as analysis targets. Skip redundant discovery. Prioritize HIGH PRIORITY files first.
 
@@ -149,15 +149,15 @@ Grep `{FeatureName}` combined with: `EventHandler`, `BackgroundJob`, `Consumer`,
 
 Document as: `[Entry] → [Validation] → [Processing] → [Persistence] → [Side Effects]`
 
-**MUST trace:** (1) Entry points, (2) Processing pipeline, (3) Data transformations, (4) Persistence points, (5) Exit points/responses, (6) Cross-service message bus boundaries.
+**MUST ATTENTION trace:** (1) Entry points, (2) Processing pipeline, (3) Data transformations, (4) Persistence points, (5) Exit points/responses, (6) Cross-service message bus boundaries.
 
 ### Common Investigation Scenarios
 
-| Question Type | Steps |
-|---|---|
-| "How does X work?" | Entry points → command/query handlers → entity changes → side effects |
-| "Where is logic for Y?" | Keywords in commands/queries/entities → event handlers → helpers → frontend stores |
-| "What happens when Z?" | Identify trigger → trace handler chain → document side effects + error handling |
+| Question Type               | Steps                                                                                   |
+| --------------------------- | --------------------------------------------------------------------------------------- |
+| "How does X work?"          | Entry points → command/query handlers → entity changes → side effects                   |
+| "Where is logic for Y?"     | Keywords in commands/queries/entities → event handlers → helpers → frontend stores      |
+| "What happens when Z?"      | Identify trigger → trace handler chain → document side effects + error handling         |
 | "Why does A behave like B?" | Find code path → identify decision points → check config/feature flags → document rules |
 
 ### Project Pattern Recognition
@@ -168,9 +168,9 @@ Document as: `[Entry] → [Validation] → [Processing] → [Persistence] → [S
 
 ## Evidence Collection
 
-**MANDATORY:** Write analysis to `.ai/workspace/analysis/[feature-name]-investigation.md`. MUST re-read ENTIRE file before presenting findings. Structure: Metadata (original question) → Progress → File List → Knowledge Graph (per-file entries per SYNC:knowledge-graph-template) → Data Flow → Findings.
+**MANDATORY:** Write analysis to `.ai/workspace/analysis/[feature-name]-investigation.md`. MUST ATTENTION re-read ENTIRE file before presenting findings. Structure: Metadata (original question) → Progress → File List → Knowledge Graph (per-file entries per SYNC:knowledge-graph-template) → Data Flow → Findings.
 
-**Rule:** After every 10 files, MUST update progress and re-check alignment with original question.
+**Rule:** After every 10 files, MUST ATTENTION update progress and re-check alignment with original question.
 
 ### Analysis Phases
 
@@ -180,20 +180,18 @@ Document as: `[Entry] → [Validation] → [Processing] → [Persistence] → [S
 
 ### Output Format
 
-MUST include: (1) Direct answer (1-2 paragraphs), (2) Step-by-step "How It Works" with `file:line` refs, (3) Key Files table, (4) Data Flow diagram, (5) "Want to Know More?" subtopics.
+MUST ATTENTION include: (1) Direct answer (1-2 paragraphs), (2) Step-by-step "How It Works" with `file:line` refs, (3) Key Files table, (4) Data Flow diagram, (5) "Want to Know More?" subtopics.
 
 ### Guidelines
 
-- **Evidence-based**: Every claim needs code evidence. MUST mark unverified as "inferred".
+- **Evidence-based**: Every claim needs code evidence. MUST ATTENTION mark unverified as "inferred".
 - **Question-focused**: ALWAYS tie findings back to original question.
 - **Read-only**: NEVER suggest changes unless explicitly asked.
 - **Layered**: Start simple, offer deeper detail on request.
 
 ### Graph Intelligence (MANDATORY when graph.db exists)
 
-> See `.claude/skills/shared/graph-assisted-investigation-protocol.md` and `graph-intelligence-queries.md` for full reference.
-
-**MUST orchestrate grep -> graph -> grep dynamically:** (1) Grep key terms to find entry files, (2) Use `connections`/`batch-query`/`trace --direction both` to expand dependency network, (3) Grep again to verify content. The `trace` command follows ALL edge types including MESSAGE_BUS and TRIGGERS_EVENT.
+**MUST ATTENTION orchestrate grep -> graph -> grep dynamically:** (1) Grep key terms to find entry files, (2) Use `connections`/`batch-query`/`trace --direction both` to expand dependency network, (3) Grep again to verify content. The `trace` command follows ALL edge types including MESSAGE_BUS and TRIGGERS_EVENT.
 
 ```bash
 python .claude/scripts/code_graph connections <file> --json     # Full picture
@@ -211,7 +209,7 @@ python .claude/scripts/code_graph batch-query <f1> <f2> --json
 
 ## Investigation & Recommendation Protocol
 
-Applies when recommending code changes (removal, refactoring, replacement). MUST complete full validation chain.
+Applies when recommending code changes (removal, refactoring, replacement). MUST ATTENTION complete full validation chain.
 
 ### Validation Chain (NEVER skip steps)
 
@@ -223,13 +221,13 @@ Applies when recommending code changes (removal, refactoring, replacement). MUST
 
 ### Breaking Change Risk Matrix
 
-| Risk | Criteria | Required Evidence |
-|---|---|---|
-| **HIGH** | Removing registrations, deleting classes, changing interfaces | Full usage trace + impact + cross-service check (all services) |
-| **MEDIUM** | Refactoring methods, changing signatures | Usage trace + test verification + cross-service check |
-| **LOW** | Renaming variables, formatting, comments | Code review only |
+| Risk       | Criteria                                                      | Required Evidence                                              |
+| ---------- | ------------------------------------------------------------- | -------------------------------------------------------------- |
+| **HIGH**   | Removing registrations, deleting classes, changing interfaces | Full usage trace + impact + cross-service check (all services) |
+| **MEDIUM** | Refactoring methods, changing signatures                      | Usage trace + test verification + cross-service check          |
+| **LOW**    | Renaming variables, formatting, comments                      | Code review only                                               |
 
-### Removal Checklist (ALL MUST pass)
+### Removal Checklist (ALL MUST ATTENTION pass)
 
 - [ ] No static references (`grep -r "ClassName" --include="*.cs"` = 0)
 - [ ] No string literals / dynamic invocations (reflection, factory, message bus)
@@ -242,7 +240,7 @@ Applies when recommending code changes (removal, refactoring, replacement). MUST
 
 ### Evidence Hierarchy
 
-(1) Code evidence (grep/read) → (2) Test evidence → (3) Documentation → (4) Inference. Recommendations based on inference alone are FORBIDDEN — MUST upgrade to code evidence.
+(1) Code evidence (grep/read) → (2) Test evidence → (3) Documentation → (4) Inference. Recommendations based on inference alone are FORBIDDEN — MUST ATTENTION upgrade to code evidence.
 
 ### Confidence Levels
 
@@ -258,20 +256,20 @@ Find working reference → compare implementations → identify differences → 
 
 ## Closing Reminders
 
-- **MUST** break work into small todo tasks using `TaskCreate` BEFORE starting
-- **MUST** search codebase for 3+ similar patterns before creating new code
-- **MUST** cite `file:line` evidence for every claim (confidence >80% to act)
-- **MUST** add a final review todo task to verify work quality
-- **MANDATORY IMPORTANT MUST** READ the following files before starting:
-  <!-- SYNC:understand-code-first:reminder -->
-- **MUST** search 3+ existing patterns and read code BEFORE any modification. Run graph trace when graph.db exists.
-    <!-- /SYNC:understand-code-first:reminder -->
-    <!-- SYNC:graph-assisted-investigation:reminder -->
-- **MUST** run at least ONE graph command on key files when graph.db exists. Pattern: grep → graph trace → grep verify.
-    <!-- /SYNC:graph-assisted-investigation:reminder -->
-    <!-- SYNC:evidence-based-reasoning:reminder -->
-- **MUST** cite `file:line` evidence for every claim. Confidence >80% to act, <60% = do NOT recommend.
-    <!-- /SYNC:evidence-based-reasoning:reminder -->
-    <!-- SYNC:knowledge-graph-template:reminder -->
-- **MUST** document per-file: type, pattern, symbols, dependencies, relevanceScore, evidenceLevel.
-  <!-- /SYNC:knowledge-graph-template:reminder -->
+- **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
+- **MANDATORY IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
+- **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
+- **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
+- **MANDATORY IMPORTANT MUST ATTENTION** READ the following files before starting:
+      <!-- SYNC:understand-code-first:reminder -->
+- **MANDATORY IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE any modification. Run graph trace when graph.db exists.
+  <!-- /SYNC:understand-code-first:reminder -->
+  <!-- SYNC:graph-assisted-investigation:reminder -->
+- **MANDATORY IMPORTANT MUST ATTENTION** run at least ONE graph command on key files when graph.db exists. Pattern: grep → graph trace → grep verify.
+  <!-- /SYNC:graph-assisted-investigation:reminder -->
+  <!-- SYNC:evidence-based-reasoning:reminder -->
+- **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% = do NOT recommend.
+  <!-- /SYNC:evidence-based-reasoning:reminder -->
+  <!-- SYNC:knowledge-graph-template:reminder -->
+- **MANDATORY IMPORTANT MUST ATTENTION** document per-file: type, pattern, symbols, dependencies, relevanceScore, evidenceLevel.
+      <!-- /SYNC:knowledge-graph-template:reminder -->

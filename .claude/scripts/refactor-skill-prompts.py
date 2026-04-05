@@ -3,7 +3,7 @@
 Refactor skill SKILL.md files for AI attention anchoring best practices.
 
 Two transformations:
-1. Replace bare "MUST READ" references with inline summary + read instruction
+1. Replace bare "MUST ATTENTION READ" references with inline summary + read instruction
 2. Add "Closing Reminders" bottom anchoring section if missing
 
 Usage:
@@ -21,131 +21,29 @@ from pathlib import Path
 
 # Inline summary map: protocol filename → (short_label, inline_summary)
 INLINE_SUMMARIES = {
-    "understand-code-first-protocol.md": (
-        "Understand Code First",
-        "Search codebase for 3+ similar implementations BEFORE writing any code. "
-        "Read existing files, validate assumptions with grep evidence, map dependencies via graph trace. "
-        "Never invent new patterns when existing ones work."
-    ),
-    "evidence-based-reasoning-protocol.md": (
-        "Evidence-Based Reasoning",
-        "Speculation is FORBIDDEN. Every claim needs `file:line` proof. "
-        "Confidence: >95% recommend freely, 80-94% with caveats, <80% DO NOT recommend — gather more evidence. "
-        "Cross-service validation required for architectural changes."
-    ),
-    "rationalization-prevention-protocol.md": (
-        "Rationalization Prevention",
-        'AI consistently skips steps via: "too simple for a plan", "I\'ll test after", "already searched", '
-        '"code is self-explanatory". These are EVASIONS — not valid reasons. '
-        "Plan anyway. Test first. Show grep evidence with file:line. Never combine steps to \"save time\"."
-    ),
-    "red-flag-stop-conditions-protocol.md": (
-        "Red Flag STOP Conditions",
-        "STOP current approach when: 3+ fix attempts on same issue (root cause not identified), "
-        "each fix reveals NEW problems (upstream root cause), fix requires 5+ files for \"simple\" change "
-        "(wrong abstraction layer), using \"should work\"/\"probably fixed\" without verification evidence. "
-        "After 3 failed attempts, report all outcomes and ask user before attempt #4."
-    ),
-    "graph-assisted-investigation-protocol.md": (
-        "Graph-Assisted Investigation",
-        "When `.code-graph/graph.db` exists, MUST run at least ONE graph command on key files before concluding. "
-        "Pattern: Grep finds files → `trace --direction both` reveals full system flow → Grep verifies details. "
-        "Use `connections` for 1-hop, `callers_of`/`tests_for` for specific queries, `batch-query` for multiple files."
-    ),
-    "ui-system-context.md": (
-        "UI System Context",
-        "For frontend/UI/styling tasks, MUST READ these BEFORE implementing: "
-        "`frontend-patterns-reference.md` (component base classes, stores, forms), "
-        "`scss-styling-guide.md` (BEM methodology, SCSS vars, responsive), "
-        "`design-system/README.md` (design tokens, component inventory, icons)."
-    ),
-    "iterative-phase-quality-protocol.md": (
-        "Iterative Phase Quality",
-        "Assess complexity BEFORE planning (signals: >5 files +2, cross-service +3, new pattern +2). "
-        "Score ≥6 → MUST decompose into phases. Each phase: plan → implement → review → fix → verify. "
-        "No phase >5 files or >3h effort. DO NOT start next phase until current passes VERIFY."
-    ),
-    "plan-quality-protocol.md": (
-        "Plan Quality",
-        "Every plan phase MUST include `## Test Specifications` section with TC-{FEAT}-{NNN} format. "
-        "Verify TC satisfaction per phase before marking complete. "
-        "Plans must include `story_points` and `effort` in frontmatter."
-    ),
-    "two-stage-task-review-protocol.md": (
-        "Two-Stage Review",
-        "Every task review has two stages IN ORDER: (1) Spec Compliance — does implementation match requirements? "
-        "(2) Code Quality — is implementation well-built? "
-        "Stage 2 is BLOCKED until Stage 1 passes with zero FAIL items. No exceptions."
-    ),
-    "estimation-framework.md": (
-        "Estimation Framework",
-        "SP scale: 1(trivial) → 2(small) → 3(medium) → 5(large) → 8(very large, high risk) → "
-        "13(epic, SHOULD split) → 21(MUST split). "
-        "MUST provide `story_points` and `complexity` estimate after investigation."
-    ),
-    "design-patterns-quality-checklist.md": (
-        "Design Patterns Quality",
-        "Priority checks: (1) DRY via OOP — same-suffix classes MUST share base class, "
-        "3+ similar patterns → extract. (2) Right Responsibility — logic in LOWEST layer "
-        "(Entity > Service > Component). (3) SOLID principles."
-    ),
-    "double-round-trip-review-protocol.md": (
-        "Double Round-Trip Review",
-        "Every review executes TWO full rounds: Round 1 builds understanding (normal review), "
-        "Round 2 leverages accumulated context to catch what Round 1 missed. "
-        "Round 2 is MANDATORY — never skip, never combine into single pass."
-    ),
-    "scaffold-production-readiness-protocol.md": (
-        "Scaffold Production Readiness",
-        "Production scaffold checklist: health endpoints, structured logging, graceful shutdown, "
-        "config validation, CI pipeline, Dockerfile, env separation. "
-        "Verify each item exists before marking scaffold complete."
-    ),
-    "cross-cutting-quality-concerns-protocol.md": (
-        "Cross-Cutting Quality",
-        "Check: error handling consistency, logging standards, security headers, "
-        "input validation, rate limiting, CORS config, health checks across all services."
-    ),
-    "ba-team-decision-model-protocol.md": (
-        "BA Team Decision Model",
-        "Structured decision-making: identify options, score criteria (impact, effort, risk, alignment), "
-        "present comparison matrix, recommend with confidence level."
-    ),
-    "refinement-dor-checklist-protocol.md": (
-        "Refinement DoR Checklist",
-        "Definition of Ready gates: clear acceptance criteria, estimated story points, "
-        "dependencies identified, design artifacts available, testable requirements."
-    ),
-    "design-system-check.md": (
-        "Design System Check",
-        "Verify UI implementations use design system tokens (colors, spacing, typography), "
-        "follow component inventory, match icon library, respect theme variants."
-    ),
-    "ui-wireframe-protocol.md": (
-        "UI Wireframe Protocol",
-        "Wireframe-to-implementation flow: parse layout structure, map to components, "
-        "extract design tokens, generate responsive breakpoints."
-    ),
-    "web-research-protocol.md": (
-        "Web Research Protocol",
-        "Structured web research: define search queries, validate source credibility, "
-        "cross-reference claims across 3+ sources, track evidence provenance."
-    ),
-    "scan-and-update-reference-doc-protocol.md": (
-        "Scan & Update Reference Doc",
-        "Read existing doc first, scan codebase for current state, diff against doc content, "
-        "update only changed sections, preserve manual annotations."
-    ),
-    "graph-intelligence-queries.md": (
-        "Graph Intelligence Queries",
-        "Quick graph query reference: `connections` (1-hop), `trace` (full flow), "
-        "`callers_of`/`tests_for` (specific), `batch-query` (multiple files), `search` (by keyword)."
-    ),
-    "graph-impact-analysis-protocol.md": (
-        "Graph Impact Analysis",
-        "Use `trace --direction downstream` on changed files to find all impacted consumers, "
-        "bus message handlers, event subscribers. Verify each needs updating."
-    ),
+    # --- All shared protocol files deleted, content now inlined via SYNC tags ---
+    # understand-code-first-protocol.md — removed (inlined via SYNC:understand-code-first)
+    # evidence-based-reasoning-protocol.md — removed (inlined via SYNC:evidence-based-reasoning)
+    # rationalization-prevention-protocol.md — removed (inlined via SYNC:rationalization-prevention)
+    # red-flag-stop-conditions-protocol.md — removed (inlined via SYNC:red-flag-stop-conditions)
+    # graph-assisted-investigation-protocol.md — removed (inlined via SYNC:graph-assisted-investigation)
+    # ui-system-context.md — removed (inlined via SYNC:ui-system-context)
+    # iterative-phase-quality-protocol.md — removed (inlined via SYNC:iterative-phase-quality)
+    # plan-quality-protocol.md — removed (inlined via SYNC:plan-quality)
+    # two-stage-task-review-protocol.md — removed (inlined via SYNC:two-stage-task-review)
+    # estimation-framework.md — removed (inlined via SYNC:estimation-framework)
+    # design-patterns-quality-checklist.md — removed (inlined via SYNC:design-patterns-quality)
+    # double-round-trip-review-protocol.md — removed (inlined via SYNC:double-round-trip-review)
+    # scaffold-production-readiness-protocol.md — removed (inlined via SYNC:scaffold-production-readiness)
+    # cross-cutting-quality-concerns-protocol.md — removed (content inlined in consuming skills)
+    # ba-team-decision-model-protocol.md — removed (inlined via SYNC:ba-team-decision-model)
+    # refinement-dor-checklist-protocol.md — removed (inlined via SYNC:refinement-dor-checklist)
+    # design-system-check.md — removed (inlined via SYNC:design-system-check)
+    # ui-wireframe-protocol.md — removed (content inlined in consuming skills)
+    # web-research-protocol.md — removed (content inlined in consuming skills)
+    # scan-and-update-reference-doc-protocol.md — removed (content inlined in consuming skills)
+    # graph-intelligence-queries.md — removed (inlined via SYNC:graph-intelligence-queries)
+    # graph-impact-analysis-protocol.md — removed (inlined via SYNC:graph-impact-analysis)
 }
 
 # Standard Closing Reminders text
@@ -154,19 +52,19 @@ CLOSING_REMINDERS = """
 
 ## Closing Reminders
 
-- **MUST** break work into small todo tasks using `TaskCreate` BEFORE starting
-- **MUST** search codebase for 3+ similar patterns before creating new code
-- **MUST** cite `file:line` evidence for every claim (confidence >80% to act)
-- **MUST** add a final review todo task to verify work quality
+- **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
+- **MANDATORY IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
+- **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
+- **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
 """
 
 # Skill-type-specific closing reminders additions
 CLOSING_EXTRAS_BY_TYPE = {
-    "review": "- **MUST** execute two review rounds (Round 1: understand, Round 2: catch missed issues)\n",
-    "fix": "- **MUST** STOP after 3 failed fix attempts — report outcomes, ask user before #4\n",
-    "cook": "- **MUST** validate decisions with user via `AskUserQuestion` — never auto-decide\n",
-    "plan": "- **MUST** include Test Specifications section and story_points in plan frontmatter\n",
-    "implementation": "- **MUST** validate decisions with user via `AskUserQuestion` — never auto-decide\n",
+    "review": "- **MANDATORY IMPORTANT MUST ATTENTION** execute two review rounds (Round 1: understand, Round 2: catch missed issues)\n",
+    "fix": "- **MANDATORY IMPORTANT MUST ATTENTION** STOP after 3 failed fix attempts — report outcomes, ask user before #4\n",
+    "cook": "- **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — never auto-decide\n",
+    "plan": "- **MANDATORY IMPORTANT MUST ATTENTION** include Test Specifications section and story_points in plan frontmatter\n",
+    "implementation": "- **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — never auto-decide\n",
 }
 
 
@@ -186,7 +84,7 @@ def get_skill_type(skill_name):
 
 
 def find_protocol_filename(text):
-    """Extract protocol filename from a MUST READ reference line."""
+    """Extract protocol filename from a MUST ATTENTION READ reference line."""
     # Match patterns like `.claude/skills/shared/filename.md` or `shared/filename.md`
     match = re.search(r'(?:\.claude/skills/)?shared/([a-z0-9-]+\.md)', text)
     if match:
@@ -199,7 +97,7 @@ def build_inline_reference(protocol_filename, original_path):
     if protocol_filename not in INLINE_SUMMARIES:
         return None
     label, summary = INLINE_SUMMARIES[protocol_filename]
-    return f"> **{label}** — {summary}\n> MUST READ `{original_path}` for full protocol and checklists."
+    return f"> **{label}** — {summary}\n> MUST ATTENTION READ `{original_path}` for full protocol and checklists."
 
 
 def has_closing_reminders(content):
@@ -219,10 +117,10 @@ def is_workflow_redirect(content):
 
 
 def transform_must_read_references(content):
-    """Transform bare MUST READ references into inline summary + read instructions."""
+    """Transform bare MUST ATTENTION READ references into inline summary + read instructions."""
     changes = 0
 
-    # Pattern 1: **Prerequisites:** **MUST READ** `path` before executing.
+    # Pattern 1: **Prerequisites:** **MUST ATTENTION READ** `path` before executing.
     # This is usually a standalone line or combined with AND
     def replace_prereq_line(match):
         nonlocal changes
@@ -245,14 +143,14 @@ def transform_must_read_references(content):
 
         return "\n\n".join(replacements)
 
-    # Match prerequisite lines with MUST READ shared protocol references
+    # Match prerequisite lines with MUST ATTENTION READ shared protocol references
     content = re.sub(
-        r'\*\*Prerequisites:\*\*\s*\*\*(?:MUST READ|⚠️ MUST READ)\*\*\s*`\.claude/skills/shared/[^`]+`(?:\s*AND\s*`\.claude/skills/shared/[^`]+`)*\s*before executing\.',
+        r'\*\*Prerequisites:\*\*\s*\*\*(?:MUST ATTENTION READ|⚠️ MUST ATTENTION READ)\*\*\s*`\.claude/skills/shared/[^`]+`(?:\s*AND\s*`\.claude/skills/shared/[^`]+`)*\s*before executing\.',
         replace_prereq_line,
         content
     )
 
-    # Pattern 2: > **Process Discipline:** MUST READ `path` — description
+    # Pattern 2: > **Process Discipline:** MUST ATTENTION READ `path` — description
     def replace_process_line(match):
         nonlocal changes
         full_line = match.group(0)
@@ -267,12 +165,12 @@ def transform_must_read_references(content):
         return full_line
 
     content = re.sub(
-        r'>\s*\*\*Process Discipline:\*\*\s*MUST READ\s*`\.claude/skills/shared/[^`]+`\s*[^\n]*',
+        r'>\s*\*\*Process Discipline:\*\*\s*MUST ATTENTION READ\s*`\.claude/skills/shared/[^`]+`\s*[^\n]*',
         replace_process_line,
         content
     )
 
-    # Pattern 3: > **Graph Intelligence (MANDATORY when graph.db exists):** MUST READ `path`. ...rest
+    # Pattern 3: > **Graph Intelligence (MANDATORY when graph.db exists):** MUST ATTENTION READ `path`. ...rest
     def replace_graph_line(match):
         nonlocal changes
         full_line = match.group(0)
@@ -282,7 +180,7 @@ def transform_must_read_references(content):
         path, filename = path_match.group(1), path_match.group(2)
         inline = build_inline_reference(filename, path)
         if inline:
-            # Preserve any additional instructions after the MUST READ
+            # Preserve any additional instructions after the MUST ATTENTION READ
             after_read = re.search(r'\.md`[.\s]*((?:Run|After|Use)[^\n]*)', full_line)
             extra = ""
             if after_read:
@@ -292,12 +190,12 @@ def transform_must_read_references(content):
         return full_line
 
     content = re.sub(
-        r'>\s*\*\*Graph Intelligence[^:]*:\*\*\s*MUST READ\s*`\.claude/skills/shared/[^`]+`[^\n]*',
+        r'>\s*\*\*Graph Intelligence[^:]*:\*\*\s*MUST ATTENTION READ\s*`\.claude/skills/shared/[^`]+`[^\n]*',
         replace_graph_line,
         content
     )
 
-    # Pattern 4: > **Iterative Quality Gate:** **MUST READ** `path`.
+    # Pattern 4: > **Iterative Quality Gate:** **MUST ATTENTION READ** `path`.
     def replace_quality_gate_line(match):
         nonlocal changes
         full_line = match.group(0)
@@ -317,7 +215,7 @@ def transform_must_read_references(content):
         return full_line
 
     content = re.sub(
-        r'>\s*\*\*Iterative Quality Gate:\*\*\s*\*\*MUST READ\*\*\s*`\.claude/skills/shared/[^`]+`[^\n]*',
+        r'>\s*\*\*Iterative Quality Gate:\*\*\s*\*\*MUST ATTENTION READ\*\*\s*`\.claude/skills/shared/[^`]+`[^\n]*',
         replace_quality_gate_line,
         content
     )
@@ -350,7 +248,7 @@ def transform_must_read_references(content):
         content
     )
 
-    # Pattern 6: **⚠️ MUST READ:** path for ... (standalone warning blocks)
+    # Pattern 6: **⚠️ MUST ATTENTION READ:** path for ... (standalone warning blocks)
     def replace_warning_read(match):
         nonlocal changes
         full_line = match.group(0)
@@ -365,7 +263,7 @@ def transform_must_read_references(content):
         return full_line
 
     content = re.sub(
-        r'\*\*⚠️ MUST READ:\*\*\s*`\.claude/skills/shared/[^`]+`[^\n]*',
+        r'\*\*⚠️ MUST ATTENTION READ:\*\*\s*`\.claude/skills/shared/[^`]+`[^\n]*',
         replace_warning_read,
         content
     )
@@ -390,7 +288,7 @@ def transform_must_read_references(content):
         content
     )
 
-    # Pattern 8: When ... **MUST READ** `shared/path` and ... (standalone MUST READ in sentences)
+    # Pattern 8: When ... **MUST ATTENTION READ** `shared/path` and ... (standalone MUST ATTENTION READ in sentences)
     def replace_standalone_must_read(match):
         nonlocal changes
         full_line = match.group(0)
@@ -410,12 +308,12 @@ def transform_must_read_references(content):
         return full_line
 
     content = re.sub(
-        r'(?:When|If)\s+[^*\n]*\*\*MUST READ\*\*\s*`\.claude/skills/shared/[^`]+`[^\n]*',
+        r'(?:When|If)\s+[^*\n]*\*\*MUST ATTENTION READ\*\*\s*`\.claude/skills/shared/[^`]+`[^\n]*',
         replace_standalone_must_read,
         content
     )
 
-    # Pattern 9: **⚠️ MUST READ:** `shared/path` for ... (with backtick path)
+    # Pattern 9: **⚠️ MUST ATTENTION READ:** `shared/path` for ... (with backtick path)
     def replace_warning_read2(match):
         nonlocal changes
         full_line = match.group(0)
@@ -436,14 +334,14 @@ def transform_must_read_references(content):
             return f"{inline}{extra}"
         return full_line
 
-    # Broader pattern for ⚠️ MUST READ with shared protocol refs
+    # Broader pattern for ⚠️ MUST ATTENTION READ with shared protocol refs
     content = re.sub(
-        r'\*\*⚠️\s*MUST READ:?\*\*\s*`\.claude/skills/shared/[^`]+`[^\n]*',
+        r'\*\*⚠️\s*MUST ATTENTION READ:?\*\*\s*`\.claude/skills/shared/[^`]+`[^\n]*',
         replace_warning_read2,
         content
     )
 
-    # Pattern 10: **MUST READ** `shared/path` then ... (at start of line or in blockquote)
+    # Pattern 10: **MUST ATTENTION READ** `shared/path` then ... (at start of line or in blockquote)
     def replace_bold_must_read(match):
         nonlocal changes
         full_line = match.group(0)
@@ -465,7 +363,7 @@ def transform_must_read_references(content):
         return full_line
 
     content = re.sub(
-        r'\*\*MUST READ\*\*\s*`\.claude/skills/shared/[^`]+`[^\n]*',
+        r'\*\*MUST ATTENTION READ\*\*\s*`\.claude/skills/shared/[^`]+`[^\n]*',
         replace_bold_must_read,
         content
     )
@@ -497,7 +395,7 @@ def strip_old_task_planning_notes(content):
     """Remove old 'IMPORTANT Task Planning Notes' sections that are superseded by Closing Reminders."""
     # Pattern: standalone IMPORTANT Task Planning Notes block (with --- separator)
     pattern1 = re.compile(
-        r'\n---\s*\n+\*\*IMPORTANT Task Planning Notes \(MUST FOLLOW\)\*\*\s*\n+'
+        r'\n---\s*\n+\*\*IMPORTANT Task Planning Notes \(MUST ATTENTION FOLLOW\)\*\*\s*\n+'
         r'[-*]\s*Always plan and break work into many small todo tasks[^\n]*\n'
         r'[-*]\s*Always add a final review todo task[^\n]*\n*',
         re.DOTALL
@@ -506,7 +404,7 @@ def strip_old_task_planning_notes(content):
 
     # Pattern: without --- separator
     pattern2 = re.compile(
-        r'\n\*\*IMPORTANT Task Planning Notes \(MUST FOLLOW\)\*\*\s*\n+'
+        r'\n\*\*IMPORTANT Task Planning Notes \(MUST ATTENTION FOLLOW\)\*\*\s*\n+'
         r'[-*]\s*Always plan and break work into many small todo tasks[^\n]*\n'
         r'[-*]\s*Always add a final review todo task[^\n]*\n*',
         re.DOTALL
@@ -551,7 +449,7 @@ def process_skill(skill_path, dry_run=False):
     skill_name = skill_path.parent.name
     content = original
 
-    # Transform 1: Inline summaries for MUST READ references
+    # Transform 1: Inline summaries for MUST ATTENTION READ references
     content, read_changes = transform_must_read_references(content)
 
     # Transform 2: Add Closing Reminders
@@ -583,14 +481,14 @@ def verify_skills(skills_dir):
         if skill_name == "_templates":
             continue
 
-        # Check for bare MUST READ without inline summary (shared protocols only)
-        # Find all lines with MUST READ references to shared protocols
+        # Check for bare MUST ATTENTION READ without inline summary (shared protocols only)
+        # Find all lines with MUST ATTENTION READ references to shared protocols
         for line_num, line in enumerate(content.split('\n')):
-            if 'MUST READ' not in line or '.claude/skills/shared/' not in line:
+            if 'MUST ATTENTION READ' not in line or '.claude/skills/shared/' not in line:
                 continue
-            # Skip lines that ARE the inline reference (start with "> MUST READ")
+            # Skip lines that ARE the inline reference (start with "> MUST ATTENTION READ")
             stripped = line.strip()
-            if stripped.startswith('> MUST READ'):
+            if stripped.startswith('> MUST ATTENTION READ'):
                 continue
             # Skip lines in our new inline format (contain "for full protocol")
             if 'for full protocol' in line:
@@ -603,7 +501,7 @@ def verify_skills(skills_dir):
                 # If previous line has inline summary marker, this is part of the block
                 if re.search(r'> \*\*[A-Z][^*]+\*\*\s', prev_prev):
                     continue
-            issues.append(f"  {skill_name}: bare MUST READ without inline summary (line {line_num+1})")
+            issues.append(f"  {skill_name}: bare MUST ATTENTION READ without inline summary (line {line_num+1})")
 
         # Check for Closing Reminders (skip workflow redirects)
         if not is_workflow_redirect(content) and not has_closing_reminders(content):
@@ -669,7 +567,7 @@ def main():
     print(f"Total skills processed: {len(results)}")
     print(f"Skills changed: {len(changed)}")
     print(f"Skills unchanged: {len(unchanged)}")
-    print(f"MUST READ -> inline summary: {total_read_changes} replacements")
+    print(f"MUST ATTENTION READ -> inline summary: {total_read_changes} replacements")
     print(f"Closing Reminders added: {total_reminders}")
     print()
 

@@ -23,15 +23,18 @@ description: '[Skill Management] Sync SYNC-tagged protocol content from canonica
 ### Step 1: Identify What Changed
 
 If user specifies a tag name (e.g., `sync-protocols understand-code-first`):
+
 - Sync only that tag
 
 If no tag specified:
+
 - Read `sync-inline-versions.md`
 - Ask user which tag(s) to sync, or "all"
 
 ### Step 2: Read Canonical Content
 
 For each tag to sync:
+
 1. Read `.claude/skills/shared/sync-inline-versions.md`
 2. Extract content under `## SYNC:{tag-name}` heading (everything between that heading and the next `---` or `## SYNC:`)
 
@@ -44,6 +47,7 @@ grep -rl "SYNC:{tag-name}" .claude/skills/*/SKILL.md
 ### Step 4: Replace Content in Each Skill
 
 For each file found:
+
 1. Find `<!-- SYNC:{tag-name} -->` open tag
 2. Find `<!-- /SYNC:{tag-name} -->` close tag
 3. Replace everything between them with the canonical content
@@ -60,6 +64,7 @@ Run these checks after all replacements:
 ```
 
 Report:
+
 - Tags synced
 - Files updated (count)
 - Any balance issues
@@ -89,10 +94,10 @@ Report:
 
 ## Closing Reminders
 
-- **MUST** edit `sync-inline-versions.md` FIRST before syncing to skills
-- **MUST** verify SYNC tag balance after every sync run
-- **MUST** NEVER modify content outside `<!-- SYNC:tag -->` boundaries
-- **MUST** skip files with missing close tags and report as errors
-  <!-- SYNC:shared-protocol-duplication-policy:reminder -->
-- **MUST** follow duplication policy: inline protocols are INTENTIONAL, never extract to file references
-  <!-- /SYNC:shared-protocol-duplication-policy:reminder -->
+- **IMPORTANT MUST ATTENTION** edit `sync-inline-versions.md` FIRST before syncing to skills
+- **IMPORTANT MUST ATTENTION** verify SYNC tag balance after every sync run
+- **IMPORTANT MUST ATTENTION** NEVER modify content outside `<!-- SYNC:tag -->` boundaries
+- **IMPORTANT MUST ATTENTION** skip files with missing close tags and report as errors
+      <!-- SYNC:shared-protocol-duplication-policy:reminder -->
+- **IMPORTANT MUST ATTENTION** follow duplication policy: inline protocols are INTENTIONAL, never extract to file references
+      <!-- /SYNC:shared-protocol-duplication-policy:reminder -->
