@@ -339,6 +339,6 @@ After testing the skill, users may request improvements. Often this happens righ
 - **IMPORTANT MUST ATTENTION** call `/prompt-enhance` on new/updated skills as final attention-anchoring quality pass
 - **IMPORTANT MUST ATTENTION** include `## Quick Summary` within first 30 lines of every SKILL.md
 - **IMPORTANT MUST ATTENTION** add Closing Reminders with `:reminder` SYNC blocks at bottom of every skill
-      <!-- SYNC:shared-protocol-duplication-policy:reminder -->
+  <!-- SYNC:shared-protocol-duplication-policy:reminder -->
 - **IMPORTANT MUST ATTENTION** follow duplication policy: inline protocols are INTENTIONAL, never extract to file references
-      <!-- /SYNC:shared-protocol-duplication-policy:reminder -->
+  <!-- /SYNC:shared-protocol-duplication-policy:reminder -->

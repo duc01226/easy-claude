@@ -127,5 +127,5 @@ After the doc staleness check, review the entire session for AI mistakes and les
   <!-- SYNC:evidence-based-reasoning:reminder -->
 
 - **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act). NEVER speculate without proof.
-      <!-- /SYNC:evidence-based-reasoning:reminder -->
+  <!-- /SYNC:evidence-based-reasoning:reminder -->
 - **IMPORTANT MUST ATTENTION** READ `CLAUDE.md` before starting

@@ -108,6 +108,6 @@ Each action item must have:
 - **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 - **IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
   **MANDATORY IMPORTANT MUST ATTENTION** READ the following files before starting:
-      <!-- SYNC:understand-code-first:reminder -->
+  <!-- SYNC:understand-code-first:reminder -->
 - **IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE any modification. Run graph trace when graph.db exists.
-      <!-- /SYNC:understand-code-first:reminder -->
+  <!-- /SYNC:understand-code-first:reminder -->

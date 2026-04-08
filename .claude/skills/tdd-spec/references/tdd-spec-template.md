@@ -1,12 +1,12 @@
-# TDD Spec Template — Feature Doc Section 17
+# TDD Spec Template — Feature Doc Section 15
 
-> Template for test case entries in business feature docs Section 17.
+> Template for test case entries in business feature docs Section 15.
 > Used by: `/tdd-spec` skill.
 > TC format: `TC-{FEATURE}-{NNN}` (feature codes in `docs/project-reference/feature-docs-reference.md`).
 
 ---
 
-## Section 17 Header
+## Section 15 Header
 
 ```markdown
 ## Test Specifications
@@ -68,12 +68,12 @@ And {additional verification}
 **Evidence:** `{FilePath}:{LineRange}` or `TBD (pre-implementation)`
 
 **Related Files:**
-| Layer  | Type          | File                                                                                  |
+| Layer | Type | File |
 | ------ | ------------- | ------------------------------------------------------------------------------------- |
-| API    | Controller    | `src/Services/{service}/{Service}.Service/Controllers/{Feature}Controller.cs`         |
-| App    | Command/Query | `src/Services/{service}/{Service}.Application/UseCaseCommands/{Feature}/{Command}.cs` |
-| Domain | Entity        | `src/Services/{service}/{Service}.Domain/Entities/{Feature}/{Entity}.cs`              |
-| Test   | Integration   | `src/Services/{service}/{Service}.IntegrationTests/{Feature}/{TestClass}.cs`          |
+| API | Controller | `src/Services/{service}/{Service}.Service/Controllers/{Feature}Controller.cs` |
+| App | Command/Query | `src/Services/{service}/{Service}.Application/UseCaseCommands/{Feature}/{Command}.cs` |
+| Domain | Entity | `src/Services/{service}/{Service}.Domain/Entities/{Feature}/{Entity}.cs` |
+| Test | Integration | `src/Services/{service}/{Service}.IntegrationTests/{Feature}/{TestClass}.cs` |
 ```
 
 ---

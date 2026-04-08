@@ -143,6 +143,6 @@ Save to `team-artifacts/design-specs/{YYMMDD}-figma-extract-{slug}.md`:
 - **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 - **IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
   **MANDATORY IMPORTANT MUST ATTENTION** READ the following files before starting:
-  <!-- SYNC:ui-system-context:reminder -->
+    <!-- SYNC:ui-system-context:reminder -->
 - **IMPORTANT MUST ATTENTION** read frontend-patterns-reference, scss-styling-guide, design-system/README before any UI change.
-      <!-- /SYNC:ui-system-context:reminder -->
+  <!-- /SYNC:ui-system-context:reminder -->

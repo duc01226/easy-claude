@@ -52,8 +52,8 @@ Would you like me to investigate further?
 
 These phrases indicate speculation:
 
-| Forbidden Phrase                 | Why It's Dangerous          | Evidence-Based Alternative                                            |
-| -------------------------------- | --------------------------- | --------------------------------------------------------------------- |
+| Forbidden Phrase                  | Why It's Dangerous          | Evidence-Based Alternative                                             |
+| --------------------------------- | --------------------------- | ---------------------------------------------------------------------- |
 | ❌ "should be public"             | Assumes visibility issue    | ✅ "Grep shows 12 similar private methods work fine at [files]"        |
 | ❌ "the order matters"            | Assumes framework behavior  | ✅ "Framework docs at [URL] specify order requirements"                |
 | ❌ "need to configure both sides" | Assumes ORM requirement     | ✅ "Grep search of 20 FK configs shows single-side pattern at [files]" |

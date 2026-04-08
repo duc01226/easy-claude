@@ -174,4 +174,4 @@ description: '[Code Quality] AI-assisted Dev BA PIC review of PBI drafts. Genera
 <!-- SYNC:ui-system-context:reminder -->
 
 - **MANDATORY IMPORTANT MUST ATTENTION** read frontend-patterns-reference, scss-styling-guide, design-system/README before any UI change.
-      <!-- /SYNC:ui-system-context:reminder -->
+  <!-- /SYNC:ui-system-context:reminder -->

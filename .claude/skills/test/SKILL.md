@@ -81,5 +81,5 @@ Use the `tester` subagent to run tests locally and analyze the summary report.
   <!-- SYNC:evidence-based-reasoning:reminder -->
 
 - **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act). NEVER speculate without proof.
-      <!-- /SYNC:evidence-based-reasoning:reminder -->
+  <!-- /SYNC:evidence-based-reasoning:reminder -->
 - **IMPORTANT MUST ATTENTION** READ `CLAUDE.md` before starting

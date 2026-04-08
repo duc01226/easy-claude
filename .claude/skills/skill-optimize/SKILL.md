@@ -85,6 +85,6 @@ Optimize skill at `.claude/skills/${SKILL}` directory.
 - **IMPORTANT MUST ATTENTION** inline shared protocols via `<!-- SYNC:tag -->` — NEVER use file references
 - **IMPORTANT MUST ATTENTION** call `/prompt-enhance` on optimized skill as final quality pass
 - **IMPORTANT MUST ATTENTION** verify SYNC tag balance and content matches canonical source
-  <!-- SYNC:shared-protocol-duplication-policy:reminder -->
+    <!-- SYNC:shared-protocol-duplication-policy:reminder -->
 - **IMPORTANT MUST ATTENTION** follow duplication policy: inline protocols are INTENTIONAL, never extract to file references
-  <!-- /SYNC:shared-protocol-duplication-policy:reminder -->
+    <!-- /SYNC:shared-protocol-duplication-policy:reminder -->

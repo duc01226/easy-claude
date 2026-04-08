@@ -94,6 +94,6 @@ Run linting: $ARGUMENTS
 - **IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
 - **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 - **IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
-      <!-- SYNC:understand-code-first:reminder -->
+  <!-- SYNC:understand-code-first:reminder -->
 - **IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE any modification. Run graph trace when graph.db exists.
-      <!-- /SYNC:understand-code-first:reminder -->
+  <!-- /SYNC:understand-code-first:reminder -->

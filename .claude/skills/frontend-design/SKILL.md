@@ -161,8 +161,8 @@ Remember: Claude is capable of extraordinary creative work. Don't hold back, sho
 - **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 - **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
   **MANDATORY IMPORTANT MUST ATTENTION** READ the following files before starting:
-      <!-- SYNC:ui-system-context:reminder -->
+  <!-- SYNC:ui-system-context:reminder -->
 - **MANDATORY IMPORTANT MUST ATTENTION** read frontend-patterns-reference, scss-styling-guide, design-system/README before any UI change.
-    <!-- /SYNC:ui-system-context:reminder -->
+      <!-- /SYNC:ui-system-context:reminder -->
 - **MANDATORY IMPORTANT MUST ATTENTION** READ `references/design-extraction-overview.md` before starting
 - **MANDATORY IMPORTANT MUST ATTENTION** READ `references/asset-generation.md` before starting

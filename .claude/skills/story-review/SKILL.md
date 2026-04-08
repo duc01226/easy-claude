@@ -183,10 +183,10 @@ After completing Round 1 checklist evaluation, execute a **second full review ro
 <!-- SYNC:double-round-trip-review:reminder -->
 
 - **IMPORTANT MUST ATTENTION** execute TWO independent review rounds. Report must include `## Round 2 Findings`.
-  <!-- /SYNC:double-round-trip-review:reminder -->
-  <!-- SYNC:graph-impact-analysis:reminder -->
+    <!-- /SYNC:double-round-trip-review:reminder -->
+    <!-- SYNC:graph-impact-analysis:reminder -->
 - **IMPORTANT MUST ATTENTION** run graph blast-radius on changed files to find potentially stale consumers/handlers (when graph.db exists).
-  <!-- /SYNC:graph-impact-analysis:reminder -->
-  <!-- SYNC:ui-system-context:reminder -->
+    <!-- /SYNC:graph-impact-analysis:reminder -->
+    <!-- SYNC:ui-system-context:reminder -->
 - **IMPORTANT MUST ATTENTION** read frontend-patterns-reference, scss-styling-guide, design-system/README before any UI change.
-  <!-- /SYNC:ui-system-context:reminder -->
+    <!-- /SYNC:ui-system-context:reminder -->

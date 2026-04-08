@@ -151,7 +151,7 @@ with sync_playwright() as p:
 - **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 - **IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
   **MANDATORY IMPORTANT MUST ATTENTION** READ the following files before starting:
-      <!-- SYNC:evidence-based-reasoning:reminder -->
+  <!-- SYNC:evidence-based-reasoning:reminder -->
 - **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act). NEVER speculate without proof.
-      <!-- /SYNC:evidence-based-reasoning:reminder -->
+  <!-- /SYNC:evidence-based-reasoning:reminder -->
 - **IMPORTANT MUST ATTENTION** READ `CLAUDE.md` before starting

@@ -235,15 +235,15 @@ mistakes compound through later tasks.
 - **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
 - **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — never auto-decide
   **MANDATORY IMPORTANT MUST ATTENTION** READ the following files before starting:
-      <!-- SYNC:understand-code-first:reminder -->
+  <!-- SYNC:understand-code-first:reminder -->
 - **MANDATORY IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE any modification. Run graph trace when graph.db exists.
-      <!-- /SYNC:understand-code-first:reminder -->
-      <!-- SYNC:plan-quality:reminder -->
+  <!-- /SYNC:understand-code-first:reminder -->
+  <!-- SYNC:plan-quality:reminder -->
 - **MANDATORY IMPORTANT MUST ATTENTION** include `## Test Specifications` with TC IDs per phase. Call `TaskList` before creating new tasks.
-      <!-- /SYNC:plan-quality:reminder -->
-      <!-- SYNC:ui-system-context:reminder -->
+  <!-- /SYNC:plan-quality:reminder -->
+  <!-- SYNC:ui-system-context:reminder -->
 - **MANDATORY IMPORTANT MUST ATTENTION** read frontend-patterns-reference, scss-styling-guide, design-system/README before any UI change.
-      <!-- /SYNC:ui-system-context:reminder -->
-      <!-- SYNC:graph-assisted-investigation:reminder -->
+  <!-- /SYNC:ui-system-context:reminder -->
+  <!-- SYNC:graph-assisted-investigation:reminder -->
 - **MANDATORY IMPORTANT MUST ATTENTION** run at least ONE graph command on key files when graph.db exists. Pattern: grep → graph trace → grep verify.
-    <!-- /SYNC:graph-assisted-investigation:reminder -->
+      <!-- /SYNC:graph-assisted-investigation:reminder -->

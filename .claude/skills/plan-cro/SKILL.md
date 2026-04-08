@@ -197,15 +197,15 @@ Activate `planning` skill.
 - **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 - **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
 - **MANDATORY IMPORTANT MUST ATTENTION** include Test Specifications section and story_points in plan frontmatter
-    <!-- SYNC:plan-quality:reminder -->
+      <!-- SYNC:plan-quality:reminder -->
 - **MANDATORY IMPORTANT MUST ATTENTION** include `## Test Specifications` with TC IDs per phase. Call `TaskList` before creating new tasks.
-      <!-- /SYNC:plan-quality:reminder -->
-      <!-- SYNC:evidence-based-reasoning:reminder -->
+  <!-- /SYNC:plan-quality:reminder -->
+  <!-- SYNC:evidence-based-reasoning:reminder -->
 - **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% = do NOT recommend.
-      <!-- /SYNC:evidence-based-reasoning:reminder -->
-      <!-- SYNC:estimation-framework:reminder -->
+  <!-- /SYNC:evidence-based-reasoning:reminder -->
+  <!-- SYNC:estimation-framework:reminder -->
 - **MANDATORY IMPORTANT MUST ATTENTION** include `story_points` and `complexity` in plan frontmatter. SP > 8 = split.
-    <!-- /SYNC:estimation-framework:reminder -->
-    <!-- SYNC:iterative-phase-quality:reminder -->
+      <!-- /SYNC:estimation-framework:reminder -->
+      <!-- SYNC:iterative-phase-quality:reminder -->
 - **MANDATORY IMPORTANT MUST ATTENTION** score complexity first. Score >=6 → decompose. Each phase: plan → implement → review → fix → verify. No skipping.
-    <!-- /SYNC:iterative-phase-quality:reminder -->
+      <!-- /SYNC:iterative-phase-quality:reminder -->

@@ -216,7 +216,7 @@ After validation completes, provide summary:
 <!-- SYNC:understand-code-first:reminder -->
 
 - **IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE any modification. Run graph trace when graph.db exists.
-  <!-- /SYNC:understand-code-first:reminder -->
-  <!-- SYNC:plan-quality:reminder -->
+    <!-- /SYNC:understand-code-first:reminder -->
+    <!-- SYNC:plan-quality:reminder -->
 - **IMPORTANT MUST ATTENTION** include `## Test Specifications` with TC IDs per phase. Call `TaskList` before creating new tasks.
-      <!-- /SYNC:plan-quality:reminder -->
+  <!-- /SYNC:plan-quality:reminder -->

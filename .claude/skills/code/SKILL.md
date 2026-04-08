@@ -233,10 +233,10 @@ Do not skip steps. Do not proceed if validation fails. Do not assume approval wi
 <!-- SYNC:plan-granularity:reminder -->
 
 - **IMPORTANT MUST ATTENTION** verify all phases pass 5-point granularity check. Failing phases → sub-plan. "Can I start coding RIGHT NOW?"
-    <!-- /SYNC:plan-granularity:reminder -->
+      <!-- /SYNC:plan-granularity:reminder -->
 
-            <!-- SYNC:understand-code-first:reminder -->
+              <!-- SYNC:understand-code-first:reminder -->
 
 - **IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE any modification. Run graph trace when graph.db exists.
-      <!-- /SYNC:understand-code-first:reminder -->
+  <!-- /SYNC:understand-code-first:reminder -->
 - **IMPORTANT MUST ATTENTION** READ `CLAUDE.md` before starting

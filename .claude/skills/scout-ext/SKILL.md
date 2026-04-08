@@ -83,6 +83,6 @@ RELEVANT_FILE_OUTPUT_DIR: Use `Report:` from `## Naming` section
 - **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 - **IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
   **MANDATORY IMPORTANT MUST ATTENTION** READ the following before starting:
-      <!-- SYNC:evidence-based-reasoning:reminder -->
+  <!-- SYNC:evidence-based-reasoning:reminder -->
 - **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% = do NOT recommend.
-  <!-- /SYNC:evidence-based-reasoning:reminder -->
+    <!-- /SYNC:evidence-based-reasoning:reminder -->

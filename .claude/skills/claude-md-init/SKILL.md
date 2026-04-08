@@ -170,6 +170,6 @@ node .claude/skills/claude-md-init/scripts/test-generate-claude-md.cjs
 - **IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
 - **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 - **IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
-      <!-- SYNC:output-quality-principles:reminder -->
+  <!-- SYNC:output-quality-principles:reminder -->
 - **IMPORTANT MUST ATTENTION** maintain >=8 rules per 100 lines. Critical rules in first+last 5 lines. Tables over prose.
-      <!-- /SYNC:output-quality-principles:reminder -->
+  <!-- /SYNC:output-quality-principles:reminder -->

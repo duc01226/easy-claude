@@ -252,10 +252,10 @@ For each `.claude/` protocol reference:
 - **IMPORTANT MUST ATTENTION** keep all meaningful content — only restructure/compress, never delete rules or code examples
 - **IMPORTANT MUST ATTENTION** verify no YAML frontmatter corruption after changes
   **MANDATORY IMPORTANT MUST ATTENTION** READ the following files before starting:
-  <!-- SYNC:output-quality-principles:reminder -->
+    <!-- SYNC:output-quality-principles:reminder -->
 - **IMPORTANT MUST ATTENTION** follow output quality principles: token efficiency, lead with answer, no trailing summaries
-  <!-- /SYNC:output-quality-principles:reminder -->
-  <!-- SYNC:evidence-based-reasoning:reminder -->
+    <!-- /SYNC:output-quality-principles:reminder -->
+    <!-- SYNC:evidence-based-reasoning:reminder -->
 - **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act). NEVER speculate without proof.
-  <!-- /SYNC:evidence-based-reasoning:reminder -->
+    <!-- /SYNC:evidence-based-reasoning:reminder -->
 - **IMPORTANT MUST ATTENTION** READ `CLAUDE.md` before starting

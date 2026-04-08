@@ -58,7 +58,7 @@
         "contextPrefix": "Focus: Backend CQRS development. Read docs/project-reference/backend-patterns-reference.md for patterns."
       },
       "integration-tester": {
-        "contextPrefix": "Focus: Integration tests. Read docs/project-reference/integration-test-reference.md for patterns. Use TC-{MOD}-XXX format."
+        "contextPrefix": "Focus: Integration tests. Read docs/project-reference/integration-test-reference.md for patterns. Use TC-{FEATURE}-{NNN} format."
       },
       "researcher": {
         "contextPrefix": "Focus: Technology research. Check codebase for existing implementations first."

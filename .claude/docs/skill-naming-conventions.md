@@ -22,11 +22,11 @@ Reference guide for naming Claude Code skills consistently in YourProject.
 - Design patterns and decisions
 
 **Project Examples:**
-| Skill                            | Purpose                         |
+| Skill | Purpose |
 | -------------------------------- | ------------------------------- |
-| `arch-security-review`           | Security vulnerability analysis |
-| `arch-performance-optimization`  | System-wide performance         |
-| `arch-cross-service-integration` | Service boundary design         |
+| `arch-security-review` | Security vulnerability analysis |
+| `arch-performance-optimization` | System-wide performance |
+| `arch-cross-service-integration` | Service boundary design |
 
 **When to Use:**
 

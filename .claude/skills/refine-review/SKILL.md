@@ -173,10 +173,10 @@ After completing Round 1 checklist evaluation, execute a **second full review ro
 <!-- SYNC:double-round-trip-review:reminder -->
 
 - **IMPORTANT MUST ATTENTION** execute TWO review rounds. Round 2 re-reads from scratch — never skip or combine with Round 1.
-    <!-- /SYNC:double-round-trip-review:reminder -->
-    <!-- SYNC:graph-impact-analysis:reminder -->
+      <!-- /SYNC:double-round-trip-review:reminder -->
+      <!-- SYNC:graph-impact-analysis:reminder -->
 - **IMPORTANT MUST ATTENTION** run `blast-radius` when graph.db exists. Flag impacted files NOT in changeset as potentially stale.
-    <!-- /SYNC:graph-impact-analysis:reminder -->
-    <!-- SYNC:ui-system-context:reminder -->
+      <!-- /SYNC:graph-impact-analysis:reminder -->
+      <!-- SYNC:ui-system-context:reminder -->
 - **IMPORTANT MUST ATTENTION** read frontend-patterns-reference, scss-styling-guide, design-system/README before any UI change.
-  <!-- /SYNC:ui-system-context:reminder -->
+    <!-- /SYNC:ui-system-context:reminder -->

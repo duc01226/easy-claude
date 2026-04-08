@@ -131,7 +131,7 @@ When graph DB is available, use `trace` to analyze data flow paths for security 
   <!-- SYNC:evidence-based-reasoning:reminder -->
 
 - **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% = do NOT recommend.
-  <!-- /SYNC:evidence-based-reasoning:reminder -->
-  <!-- SYNC:graph-assisted-investigation:reminder -->
+    <!-- /SYNC:evidence-based-reasoning:reminder -->
+    <!-- SYNC:graph-assisted-investigation:reminder -->
 - **IMPORTANT MUST ATTENTION** run at least ONE graph command on key files when graph.db exists. Pattern: grep → trace → verify.
-  <!-- /SYNC:graph-assisted-investigation:reminder -->
+    <!-- /SYNC:graph-assisted-investigation:reminder -->

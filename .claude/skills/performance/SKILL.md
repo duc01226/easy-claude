@@ -153,10 +153,10 @@ When graph DB is available, use `trace` to map execution paths for performance a
 <!-- SYNC:understand-code-first:reminder -->
 
 - **MANDATORY IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE any modification. Run graph trace when graph.db exists.
-  <!-- /SYNC:understand-code-first:reminder -->
-  <!-- SYNC:evidence-based-reasoning:reminder -->
+    <!-- /SYNC:understand-code-first:reminder -->
+    <!-- SYNC:evidence-based-reasoning:reminder -->
 - **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% = do NOT recommend.
-  <!-- /SYNC:evidence-based-reasoning:reminder -->
-  <!-- SYNC:graph-assisted-investigation:reminder -->
+    <!-- /SYNC:evidence-based-reasoning:reminder -->
+    <!-- SYNC:graph-assisted-investigation:reminder -->
 - **MANDATORY IMPORTANT MUST ATTENTION** run at least ONE graph command on key files when graph.db exists. Pattern: grep → graph trace → grep verify.
-      <!-- /SYNC:graph-assisted-investigation:reminder -->
+  <!-- /SYNC:graph-assisted-investigation:reminder -->

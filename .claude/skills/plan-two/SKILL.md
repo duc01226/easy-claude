@@ -180,15 +180,15 @@ After plan creation, use the `AskUserQuestion` tool to ask: "Want me to run `/pl
 - **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 - **IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
 - **IMPORTANT MUST ATTENTION** include Test Specifications section and story_points in plan frontmatter
-      <!-- SYNC:understand-code-first:reminder -->
+  <!-- SYNC:understand-code-first:reminder -->
 - **IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE any modification. Run graph trace when graph.db exists.
-  <!-- /SYNC:understand-code-first:reminder -->
-  <!-- SYNC:estimation-framework:reminder -->
+    <!-- /SYNC:understand-code-first:reminder -->
+    <!-- SYNC:estimation-framework:reminder -->
 - **IMPORTANT MUST ATTENTION** include `story_points` and `complexity` in plan frontmatter. SP > 8 = split.
-  <!-- /SYNC:estimation-framework:reminder -->
-  <!-- SYNC:plan-quality:reminder -->
+    <!-- /SYNC:estimation-framework:reminder -->
+    <!-- SYNC:plan-quality:reminder -->
 - **IMPORTANT MUST ATTENTION** include `## Test Specifications` with TC IDs per phase. Call `TaskList` before creating new tasks.
-      <!-- /SYNC:plan-quality:reminder -->
-      <!-- SYNC:iterative-phase-quality:reminder -->
+  <!-- /SYNC:plan-quality:reminder -->
+  <!-- SYNC:iterative-phase-quality:reminder -->
 - **IMPORTANT MUST ATTENTION** score complexity first. Score >=6 → decompose. Each phase: plan → implement → review → fix → verify. No skipping.
-      <!-- /SYNC:iterative-phase-quality:reminder -->
+  <!-- /SYNC:iterative-phase-quality:reminder -->

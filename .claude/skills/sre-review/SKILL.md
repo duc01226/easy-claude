@@ -285,10 +285,10 @@ After completing Round 1 scoring, execute a **second full review round**:
 <!-- SYNC:evidence-based-reasoning:reminder -->
 
 - **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% do NOT recommend.
-  <!-- /SYNC:evidence-based-reasoning:reminder -->
-  <!-- SYNC:double-round-trip-review:reminder -->
+    <!-- /SYNC:evidence-based-reasoning:reminder -->
+    <!-- SYNC:double-round-trip-review:reminder -->
 - **IMPORTANT MUST ATTENTION** execute TWO independent review rounds. Report must include `## Round 2 Findings`.
-  <!-- /SYNC:double-round-trip-review:reminder -->
-  <!-- SYNC:graph-assisted-investigation:reminder -->
+    <!-- /SYNC:double-round-trip-review:reminder -->
+    <!-- SYNC:graph-assisted-investigation:reminder -->
 - **IMPORTANT MUST ATTENTION** run at least ONE graph command on key files before concluding (when graph.db exists).
-  <!-- /SYNC:graph-assisted-investigation:reminder -->
+    <!-- /SYNC:graph-assisted-investigation:reminder -->

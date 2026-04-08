@@ -159,9 +159,9 @@ After completing Round 1 evaluation, execute a **second full review round**:
 - **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 - **IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
 - **IMPORTANT MUST ATTENTION** execute two review rounds (Round 1: understand, Round 2: catch missed issues)
-  <!-- SYNC:understand-code-first:reminder -->
+    <!-- SYNC:understand-code-first:reminder -->
 - **IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE any modification. Run graph trace when graph.db exists.
-    <!-- /SYNC:understand-code-first:reminder -->
-    <!-- SYNC:graph-impact-analysis:reminder -->
+      <!-- /SYNC:understand-code-first:reminder -->
+      <!-- SYNC:graph-impact-analysis:reminder -->
 - **IMPORTANT MUST ATTENTION** run `blast-radius` when graph.db exists. Flag impacted files NOT in changeset as potentially stale.
-  <!-- /SYNC:graph-impact-analysis:reminder -->
+    <!-- /SYNC:graph-impact-analysis:reminder -->

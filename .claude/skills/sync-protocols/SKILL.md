@@ -98,6 +98,6 @@ Report:
 - **IMPORTANT MUST ATTENTION** verify SYNC tag balance after every sync run
 - **IMPORTANT MUST ATTENTION** NEVER modify content outside `<!-- SYNC:tag -->` boundaries
 - **IMPORTANT MUST ATTENTION** skip files with missing close tags and report as errors
-      <!-- SYNC:shared-protocol-duplication-policy:reminder -->
+  <!-- SYNC:shared-protocol-duplication-policy:reminder -->
 - **IMPORTANT MUST ATTENTION** follow duplication policy: inline protocols are INTENTIONAL, never extract to file references
-      <!-- /SYNC:shared-protocol-duplication-policy:reminder -->
+  <!-- /SYNC:shared-protocol-duplication-policy:reminder -->

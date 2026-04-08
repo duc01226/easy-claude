@@ -151,12 +151,12 @@ description: '[Code Quality] Run quality gate checklist. Use for pre-release, pr
 - **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 - **IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
   **MANDATORY IMPORTANT MUST ATTENTION** READ the following files before starting:
-  <!-- SYNC:understand-code-first:reminder -->
+    <!-- SYNC:understand-code-first:reminder -->
 - **IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE any modification. Run graph trace when graph.db exists.
-  <!-- /SYNC:understand-code-first:reminder -->
-  <!-- SYNC:graph-impact-analysis:reminder -->
+    <!-- /SYNC:understand-code-first:reminder -->
+    <!-- SYNC:graph-impact-analysis:reminder -->
 - **IMPORTANT MUST ATTENTION** run graph impact analysis on changed files. Compute gap: impacted minus changed = potentially stale.
-  <!-- /SYNC:graph-impact-analysis:reminder -->
-  <!-- SYNC:ui-system-context:reminder -->
+    <!-- /SYNC:graph-impact-analysis:reminder -->
+    <!-- SYNC:ui-system-context:reminder -->
 - **IMPORTANT MUST ATTENTION** read frontend-patterns-reference, scss-styling-guide, and design-system/README before any UI work.
-  <!-- /SYNC:ui-system-context:reminder -->
+    <!-- /SYNC:ui-system-context:reminder -->

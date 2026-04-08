@@ -150,9 +150,9 @@ Read the report. Build these sections:
 - **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 - **IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
 - **IMPORTANT MUST ATTENTION** execute two review rounds (Round 1: understand, Round 2: catch missed issues)
-      <!-- SYNC:scan-and-update-reference-doc:reminder -->
+  <!-- SYNC:scan-and-update-reference-doc:reminder -->
 - **IMPORTANT MUST ATTENTION** read existing doc first, scan codebase, diff, surgical update only. Never rewrite entire doc.
-      <!-- /SYNC:scan-and-update-reference-doc:reminder -->
-      <!-- SYNC:output-quality-principles:reminder -->
+  <!-- /SYNC:scan-and-update-reference-doc:reminder -->
+  <!-- SYNC:output-quality-principles:reminder -->
 - **IMPORTANT MUST ATTENTION** follow output quality rules: no counts/trees/TOCs, rules > descriptions, 1 example per pattern, primacy-recency anchoring.
-      <!-- /SYNC:output-quality-principles:reminder -->
+  <!-- /SYNC:output-quality-principles:reminder -->
