@@ -5,3 +5,4 @@
 plans/
 .claude-md.backup
 tmp/
+.claude/scheduled_tasks.lock
