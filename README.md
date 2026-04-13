@@ -4,7 +4,7 @@
 
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **~37 hooks** (53 files), **258 skills**, **48 workflows**, and **28 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **~37 hooks** (53 files), **258 skills**, **32 workflows**, and **28 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -115,9 +115,9 @@ Runtime Node.js scripts that fire on Claude Code lifecycle events.
 | **Workflow**           | `workflow-router` (3 files), `workflow-step-tracker`, `todo-tracker`                                         | Detect intent, route to workflows, track step progress                  |
 | **Freshness Gates**    | `graph-build` gate, reference-docs staleness gate                                                            | Block investigations when code graph or reference docs are stale        |
 
-**Context re-injection:** The framework re-injects CLAUDE.md rules, project config, and project-reference patterns at every `UserPromptSubmit` via `mindset-injector` and `prompt-context-assembler` (4 part-files). This stateless-per-turn design prevents context drift over long sessions. `dedup-constants.cjs` ensures each injection fires exactly once per session.
+**Context re-injection:** The framework re-injects CLAUDE.md rules, project config, and project-reference patterns at every `UserPromptSubmit` via `mindset-injector` and `prompt-context-assembler` (6 part-files). This stateless-per-turn design prevents context drift over long sessions. `dedup-constants.cjs` ensures each injection fires exactly once per session.
 
-**Hook part-file architecture:** Large hooks are split into chained part-files (`-p2`, `-p3`) for maintainability. The harness chains them at runtime. Affected: `prompt-context-assembler` (4 files), `workflow-router` (3 files).
+**Hook part-file architecture:** Large hooks are split into chained part-files (`-p2`, `-p3`) for maintainability. The harness chains them at runtime. Affected: `prompt-context-assembler` (6 files), `workflow-router` (3 files).
 
 ### Skills (258 definitions)
 
@@ -136,7 +136,7 @@ Markdown-based prompts with YAML frontmatter that guide AI behavior.
 | **Scanning**       | `/scan-project-structure`, `/scan-codebase-health`, `/scan-docs-index`                                         | Generate reference docs for hooks to auto-inject        |
 | **Documents**      | `/markdown-to-pdf`, `/markdown-to-docx`, `/pdf-to-markdown`                                                    | Document format conversion                              |
 
-### Workflows (48 definitions)
+### Workflows (32 definitions)
 
 End-to-end process orchestration with step enforcement.
 
@@ -177,7 +177,7 @@ easy-claude/
 │   │   ├── notifications/    # Multi-channel notification system
 │   │   ├── scout-block/      # Broad search prevention
 │   │   └── tests/            # Hook test suites
-│   ├── skills/               # 234 skill definitions
+│   ├── skills/               # 258 skill definitions
 │   │   ├── <skill>/          # Each skill directory contains:
 │   │   │   ├── SKILL.md      # Entry point (prompt + frontmatter)
 │   │   │   ├── scripts/      # Optional automation scripts
@@ -206,7 +206,7 @@ The entire framework is **project-agnostic**. All project-specific knowledge liv
 ```
 ┌─────────────────────────────────────┐
 │     Generic Framework (reusable)    │
-│  ~37 Hooks + 258 Skills + 48 Flows │
+│  ~37 Hooks + 258 Skills + 32 Flows │
 └──────────────┬──────────────────────┘
                │
         ┌──────┴──────┐

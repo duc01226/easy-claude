@@ -1,6 +1,6 @@
 # Skills Reference
 
-> 246 skills across 15+ domains + 25 shared modules for context-aware AI assistance
+> 258 skills across 15+ domains + 25 shared modules for context-aware AI assistance
 
 ## Overview
 
@@ -327,4 +327,4 @@ Use `/skill/create` to create a new skill:
 
 ---
 
-_Source: `.claude/skills/` | 246 skills across 15+ domains + 25 shared modules_
+_Source: `.claude/skills/` | 258 skills across 15+ domains + 25 shared modules_

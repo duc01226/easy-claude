@@ -1,6 +1,6 @@
 # Hooks Reference
 
-> 44 hook files + 27 lib modules for context-aware AI behavior (some hooks register on multiple events)
+> 53 hook files + 27 lib modules for context-aware AI behavior (some hooks register on multiple events)
 
 ## Overview
 
@@ -91,7 +91,7 @@ Lessons are managed via `/learn` skill. See `.claude/skills/learn/SKILL.md`.
 | ----------------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------- |
 | `init-prompt-gate.cjs`                                                  | UserPromptSubmit                                  | Block prompts until config populated + graph built (exit 2 = block) |
 | `workflow-router.cjs` (+ p2, p3)                                        | SessionStart, UserPromptSubmit                    | Inject 32-workflow catalog in three parts (split for size safety)   |
-| `prompt-context-assembler.cjs` (+ p2, docs, docs-p2, claude, claude-p2) | SessionStart, UserPromptSubmit                    | Assemble all session context in 5 parts (split for size safety)     |
+| `prompt-context-assembler.cjs` (+ p2, docs, docs-p2, claude, claude-p2) | SessionStart, UserPromptSubmit                    | Assemble all session context in 6 parts (split for size safety)     |
 | `session-init-docs.cjs`                                                 | SessionStart:`startup`                            | Config skeleton + reference doc placeholder creation                |
 | `workflow-step-tracker.cjs`                                             | PostToolUse:`Skill`                               | Track workflow step completion                                      |
 | `edit-enforcement.cjs`                                                  | PreToolUse:`Edit\|Write\|MultiEdit\|NotebookEdit` | Track edits, plan warnings at 4/8 files, block without TaskCreate   |
