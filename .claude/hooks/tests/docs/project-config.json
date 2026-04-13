@@ -41,5 +41,16 @@
   "api": {},
   "infrastructure": {},
   "referenceDocs": [],
+  "workflowPatterns": {
+    "_description": "Project-specific context consumed by AI at workflow start. Fill in for your project.",
+    "architectureStyle": "",
+    "codeHierarchy": "",
+    "cssMethodology": "",
+    "stateManagement": "",
+    "crossModuleValidation": "",
+    "featureDocPath": "docs/business-features/",
+    "featureDocTemplate": "",
+    "reviewRulesDoc": ""
+  },
   "custom": {}
 }

@@ -12,8 +12,8 @@
 | Component      | Count                     | Location                     | Format                          |
 | -------------- | ------------------------- | ---------------------------- | ------------------------------- |
 | Hooks          | 37                        | `.claude/hooks/*.cjs/.js`    | CommonJS Node.js scripts        |
-| Hook Libraries | 25                        | `.claude/hooks/lib/*.cjs`    | CommonJS utility modules        |
-| Skills         | 237                       | `.claude/skills/*/SKILL.md`  | Markdown + YAML frontmatter     |
+| Hook Libraries | 27                        | `.claude/hooks/lib/*.cjs`    | CommonJS utility modules        |
+| Skills         | 258                       | `.claude/skills/*/SKILL.md`  | Markdown + YAML frontmatter     |
 | Agents         | 28                        | `.claude/agents/*.md`        | Markdown definitions            |
 | Workflows      | 48                        | `.claude/workflows.json`     | JSON workflow definitions       |
 | Output Styles  | 6                         | `.claude/output-styles/*.md` | Coding level presets (ELI5→God) |
@@ -84,7 +84,7 @@ easy-claude/
 │   │   │   └── swap-config.json
 │   │   ├── docs/                     # Hook documentation
 │   │   │   └── README.md
-│   │   ├── lib/                      # 25 shared utility modules
+│   │   ├── lib/                      # 27 shared utility modules
 │   │   │   ├── __tests__/            # Lib unit tests
 │   │   │   ├── ck-config-loader.cjs
 │   │   │   ├── ck-config-utils.cjs
@@ -197,7 +197,7 @@ easy-claude/
 │   │   ├── skills_data.yaml          # Skills catalog data
 │   │   ├── requirements.txt          # Python dependencies
 │   │   └── README.md
-│   ├── skills/                       # 237 skill definitions
+│   ├── skills/                       # 258 skill definitions
 │   │   ├── INSTALLATION.md           # Dependency installation guide
 │   │   ├── README.md                 # Skills overview
 │   │   ├── TESTING.md                # Testing guide
@@ -217,7 +217,7 @@ easy-claude/
 │   │   ├── mcp-builder/              # MCP server builder
 │   │   ├── workflow-*/               # Workflow trigger skills (51)
 │   │   ├── scan-*/                   # Project scanning skills (11)
-│   │   └── ... (237 total SKILL.md files)
+│   │   └── ... (258 total SKILL.md files)
 │   ├── tests/                        # Framework-level tests
 │   │   └── workflow-routing-test.cjs
 │   ├── tmp/                          # Temporary files (gitignored)
@@ -269,8 +269,8 @@ easy-claude/
 | Code | Module         | Location                       | Description                                       |
 | ---- | -------------- | ------------------------------ | ------------------------------------------------- |
 | HK   | Hooks          | `.claude/hooks/`               | 37 runtime enforcement & context injection hooks  |
-| HL   | Hook Libraries | `.claude/hooks/lib/`           | 25 shared utility modules for hooks               |
-| SK   | Skills         | `.claude/skills/`              | 237 task automation skill definitions             |
+| HL   | Hook Libraries | `.claude/hooks/lib/`           | 27 shared utility modules for hooks               |
+| SK   | Skills         | `.claude/skills/`              | 258 task automation skill definitions             |
 | AG   | Agents         | `.claude/agents/`              | 28 specialized subagent role definitions          |
 | WF   | Workflows      | `.claude/workflows.json`       | 48 end-to-end process orchestrations              |
 | SC   | Scripts        | `.claude/scripts/`             | 15 utility scripts (catalog gen, audit, worktree) |
