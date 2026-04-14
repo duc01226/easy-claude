@@ -4,7 +4,7 @@
 
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **~37 hooks** (53 files), **258 skills**, **32 workflows**, and **28 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **~37 hooks** (53 files), **258 skills**, **34 workflows**, and **28 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 

@@ -15,7 +15,7 @@
 | Hook Libraries | 27                        | `.claude/hooks/lib/*.cjs`    | CommonJS utility modules        |
 | Skills         | 258                       | `.claude/skills/*/SKILL.md`  | Markdown + YAML frontmatter     |
 | Agents         | 28                        | `.claude/agents/*.md`        | Markdown definitions            |
-| Workflows      | 48                        | `.claude/workflows.json`     | JSON workflow definitions       |
+| Workflows      | 34                        | `.claude/workflows.json`     | JSON workflow definitions       |
 | Output Styles  | 6                         | `.claude/output-styles/*.md` | Coding level presets (ELI5→God) |
 | Scripts        | 15                        | `.claude/scripts/*`          | CJS + Python utilities          |
 | Hook Tests     | 14 suites + 13 standalone | `.claude/hooks/tests/`       | CJS test files                  |
@@ -39,7 +39,7 @@ easy-claude/
 │   ├── statusline.cjs                # Status line (Node.js)
 │   ├── statusline.ps1               # Status line (PowerShell)
 │   ├── statusline.sh                # Status line (Bash)
-│   ├── workflows.json               # 48 workflow definitions
+│   ├── workflows.json               # 34 workflow definitions
 │   ├── workflows.schema.json        # Workflow JSON schema
 │   ├── agent-memory/                 # Persistent agent memory
 │   │   ├── backend-developer/
@@ -272,7 +272,7 @@ easy-claude/
 | HL   | Hook Libraries | `.claude/hooks/lib/`           | 27 shared utility modules for hooks               |
 | SK   | Skills         | `.claude/skills/`              | 258 task automation skill definitions             |
 | AG   | Agents         | `.claude/agents/`              | 28 specialized subagent role definitions          |
-| WF   | Workflows      | `.claude/workflows.json`       | 48 end-to-end process orchestrations              |
+| WF   | Workflows      | `.claude/workflows.json`       | 34 end-to-end process orchestrations              |
 | SC   | Scripts        | `.claude/scripts/`             | 15 utility scripts (catalog gen, audit, worktree) |
 | OS   | Output Styles  | `.claude/output-styles/`       | 6 coding level presets                            |
 | NT   | Notifications  | `.claude/hooks/notifications/` | Multi-channel notification providers (5)          |
@@ -348,19 +348,23 @@ easy-claude/
 | `subagent-init`            | SubagentStart     | Initialize subagent context          |
 | `notify-waiting`           | Stop/Notification | Cross-platform desktop notifications |
 
-## Workflows (48)
+## Workflows (34)
 
-| Category          | Workflows                                                                                                                                                                                      |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Development**   | `feature`, `bugfix`, `hotfix`, `refactor`, `big-feature`, `batch-operation`, `migration`, `package-upgrade`, `performance`, `deployment`                                                       |
-| **Testing**       | `testing`, `tdd-feature`, `feature-with-integration-test`, `test-verify`, `test-to-integration`, `test-spec-update`, `e2e-from-changes`, `e2e-from-recording`, `e2e-update-ui`, `pbi-to-tests` |
-| **Planning**      | `idea-to-pbi`, `idea-to-tdd`, `pre-development`, `greenfield-init`                                                                                                                             |
-| **Review**        | `review`, `review-changes`, `quality-audit`, `security-audit`, `verification`                                                                                                                  |
-| **Documentation** | `documentation`, `feature-docs`                                                                                                                                                                |
-| **Research**      | `research`, `business-evaluation`, `course-building`, `marketing-strategy`                                                                                                                     |
-| **Design**        | `design-workflow`, `visualize`                                                                                                                                                                 |
-| **Handoffs**      | `po-ba-handoff`, `ba-dev-handoff`, `design-dev-handoff`, `dev-qa-handoff`, `qa-po-acceptance`                                                                                                  |
-| **Management**    | `sprint-planning`, `sprint-retro`, `pm-reporting`, `release-prep`, `full-feature-lifecycle`, `investigation`                                                                                   |
+| Category          | Workflows                                                                                                                                                                                     |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Development**   | `feature`, `bugfix`, `refactor`, `big-feature`, `batch-operation`, `migration`, `package-upgrade`, `performance`, `deployment`                                                                |
+| **Testing**       | `tdd-feature`, `feature-with-integration-test`, `test-verify`, `test-to-integration`, `test-spec-update`, `e2e-from-changes`, `e2e-from-recording`, `e2e-update-ui`, `write-integration-test` |
+| **Planning**      | `idea-to-pbi`, `pre-development`, `greenfield-init`                                                                                                                                           |
+| **Review**        | `review`, `review-changes`, `quality-audit`, `security-audit`, `verification`                                                                                                                 |
+| **Documentation** | `documentation`, `feature-docs`                                                                                                                                                               |
+| **Design**        | `design-workflow`, `visualize`                                                                                                                                                                |
+| **Handoffs**      | `po-ba-handoff`                                                                                                                                                                               |
+| **Management**    | `release-prep`, `full-feature-lifecycle`, `investigation`                                                                                                                                     |
+
+> **Also available as workflow skills** (invokeable via `/workflow-<name>` but not registered in `workflows.json`):
+> `ba-dev-handoff`, `business-evaluation`, `course-building`, `design-dev-handoff`, `dev-qa-handoff`,
+> `idea-to-tdd`, `marketing-strategy`, `pbi-to-tests`, `pm-reporting`, `qa-po-acceptance`,
+> `research`, `sprint-planning`, `sprint-retro`, `testing`
 
 ## Agents (28)
 
@@ -403,7 +407,7 @@ easy-claude/
 | `.claude/hooks/session-init.cjs`             | Session startup — loads config, sets state |
 | `.claude/hooks/workflow-router.cjs`          | Intent matching — routes to workflows      |
 | `.claude/hooks/prompt-context-assembler.cjs` | Assembles full prompt context              |
-| `.claude/workflows.json`                     | All 48 workflow definitions                |
+| `.claude/workflows.json`                     | All 34 workflow definitions                |
 | `docs/project-config.json`                   | Project-specific runtime configuration     |
 | `.claude/hooks/tests/test-all-hooks.cjs`     | Main test runner                           |
 | `CLAUDE.md`                                  | Project instructions for Claude            |

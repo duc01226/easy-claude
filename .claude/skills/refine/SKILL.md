@@ -639,7 +639,8 @@ For domain PBIs: detect module from `docs/business-features/` directory names, e
 
 **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use `AskUserQuestion` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
 
-- **"/story (Recommended)"** — Break PBI into implementable user stories
+- **"/why-review (Recommended)"** — Validate design rationale, alternatives considered, and risk assessment in the PBI before moving to story or implementation
+- **"/story"** — Break PBI into implementable user stories
 - **"/pbi-mockup"** — Generate HTML mockup report from PBI
 - **"/tdd-spec"** — If using TDD approach
 - **"Skip, continue manually"** — user decides
@@ -649,6 +650,8 @@ For domain PBIs: detect module from `docs/business-features/` directory names, e
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting.
 **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — never auto-decide.
 **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.
+**MANDATORY IMPORTANT MUST ATTENTION** add a final todo task: **"Run /why-review"** — validate PBI design rationale (Problem Hypothesis, alternatives, risk) before proceeding to /story or /tdd-spec.
+**MANDATORY IMPORTANT MUST ATTENTION** add a final todo task: **"Run /pbi-challenge"** — Dev BA PIC collaborative review of the drafted PBI (challenge prompts, AC quality, feasibility) before proceeding to /dor-gate or /story.
 **MANDATORY IMPORTANT MUST ATTENTION** READ the following files before starting:
 
 <!-- SYNC:ui-system-context:reminder -->
