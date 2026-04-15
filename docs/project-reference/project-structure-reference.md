@@ -363,7 +363,7 @@ easy-claude/
 | **Review**        | `review`, `review-changes`, `quality-audit`, `security-audit`, `verification`                                                                                                                 |
 | **Documentation** | `documentation`, `feature-docs`                                                                                                                                                               |
 | **Design**        | `design-workflow`, `visualize`                                                                                                                                                                |
-| **Handoffs**      | `po-ba-handoff`                                                                                                                                                                               |
+| **Handoffs**      | `ba-dev-handoff`, `design-dev-handoff`, `dev-qa-handoff`, `qa-po-acceptance`                                                                                                                  |
 | **Management**    | `release-prep`, `full-feature-lifecycle`, `investigation`                                                                                                                                     |
 
 > **Also available as workflow skills** (invokeable via `/workflow-<name>` but not registered in `workflows.json`):

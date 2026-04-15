@@ -701,7 +701,7 @@ Three new review skills create quality checkpoints between artifact-producing st
 | `story-review`    | `/story` (stories)  | Vertical slicing quality, dependency tables, SPIDR      |
 | `tdd-spec-review` | `/tdd-spec` (specs) | TC coverage, traceability to ACs, boundary cases        |
 
-**Added to workflows:** idea-to-pbi, po-ba-handoff, full-feature-lifecycle, idea-to-tdd, pbi-to-tests, big-feature, greenfield-init
+**Added to workflows:** idea-to-pbi, full-feature-lifecycle, idea-to-tdd, pbi-to-tests, big-feature, greenfield-init
 
 **Why this matters:** Without review gates, artifacts flow through workflows unchecked. A vague PBI becomes vague stories which become vague tests. Review gates catch quality issues early when they're cheapest to fix.
 
@@ -833,9 +833,8 @@ WORKFLOW CATALOG
 │   ├── sprint-retro ────── status→retro
 │   └── pm-reporting ────── status→dependency
 │
-├── PROCESS & HANDOFFS (7)
+├── PROCESS & HANDOFFS (6)
 │   ├── full-feature-lifecycle ── idea→refine→design→plan→cook→test→accept (21 steps)
-│   ├── po-ba-handoff ─── idea→review→handoff→refine→story
 │   ├── ba-dev-handoff ── review→quality-gate→handoff→plan
 │   ├── design-dev-handoff ── design→review→handoff→plan
 │   ├── dev-qa-handoff ── handoff→test-spec

@@ -1033,32 +1033,10 @@
     },
     "idea-to-pbi": {
       "confirmFirst": true,
-      "description": "PO/BA workflow: capture idea, refine to PBI, create user stories, challenge review, DoR gate, mockup, prioritize",
+      "description": "PO/BA workflow: capture or review idea/artifact, optional PO→BA handoff, refine to PBI, create user stories, challenge review, DoR gate, mockup, prioritize",
       "name": "Idea to PBI",
       "preActions": {
-        "injectContext": "IDEA TO PBI PROTOCOL:\nCapture and refine a raw idea into a grooming-ready PBI with stories, Dev BA PIC review, and DoR validation.\n\nMANDATORY IMPORTANT MUST ATTENTION RULES:\n1. Each step must invoke its Skill tool — never batch-complete or skip steps\n2. pbi-challenge is run by Dev BA PIC (not the drafter) — confirm reviewer identity before that step\n3. dor-gate must pass before pbi-mockup is finalized\n4. Save artifacts at every step to plans/ or team-artifacts/pbis/"
-      },
-      "sequence": [
-        "idea",
-        "refine",
-        "refine-review",
-        "story",
-        "story-review",
-        "pbi-challenge",
-        "dor-gate",
-        "pbi-mockup",
-        "prioritize",
-        "workflow-end"
-      ],
-      "whenNotToUse": "Already have a drafted PBI (use pbi-challenge standalone), implementing a feature (use feature or big-feature), PO handing off to BA (use po-ba-handoff)",
-      "whenToUse": "PO or BA wants to take a raw idea through to a grooming-ready PBI with user stories, Dev BA PIC challenge review, DoR validation, wireframes, and backlog prioritization"
-    },
-    "po-ba-handoff": {
-      "confirmFirst": true,
-      "description": "PO hands off idea or draft PBI to BA team for refinement, story creation, challenge review, and DoR validation",
-      "name": "PO to BA Handoff",
-      "preActions": {
-        "injectContext": "PO TO BA HANDOFF PROTOCOL:\nFormalized handoff from Product Owner to Business Analyst team — review existing artifact, refine to full PBI, create stories, challenge review by Dev BA PIC, DoR gate.\n\nMANDATORY IMPORTANT MUST ATTENTION RULES:\n1. review-artifact reads PO's input (ticket, PRD, Slack brief, email) before refinement\n2. handoff step documents what PO provided and what BA owns going forward\n3. pbi-challenge is run by Dev BA PIC (not the drafter BA)\n4. dor-gate must pass before pbi-mockup is finalized\n5. Save artifacts at every step"
+        "injectContext": "IDEA TO PBI PROTOCOL:\nCapture and refine a raw idea — or a PO-handed artifact/ticket/brief — into a grooming-ready PBI with stories, Dev BA PIC review, and DoR validation.\n\nMANDATORY IMPORTANT MUST ATTENTION RULES:\n1. Each step must invoke its Skill tool — never batch-complete or skip steps\n2. review-artifact and handoff are CONDITIONAL — skip both if no existing PO artifact or no formal handoff needed; proceed straight to refine\n3. pbi-challenge is run by Dev BA PIC (not the drafter) — confirm reviewer identity before that step\n4. dor-gate must pass before pbi-mockup is finalized\n5. Save artifacts at every step to plans/ or team-artifacts/pbis/"
       },
       "sequence": [
         "idea",
@@ -1071,10 +1049,11 @@
         "pbi-challenge",
         "dor-gate",
         "pbi-mockup",
+        "prioritize",
         "workflow-end"
       ],
-      "whenNotToUse": "BA working autonomously without PO handoff (use idea-to-pbi), implementing feature (use feature), no existing artifact to review",
-      "whenToUse": "PO has an idea, ticket, or draft that needs formal BA handoff — review PO artifact, refine to full PBI, create stories, Dev BA PIC challenge review, DoR gate, wireframe mockup"
+      "whenNotToUse": "Already have a drafted PBI (use pbi-challenge standalone), implementing a feature (use feature or big-feature)",
+      "whenToUse": "PO or BA wants to take a raw idea — OR PO is handing off an existing artifact/ticket/brief to BA — through to a grooming-ready PBI with user stories, Dev BA PIC challenge review, DoR validation, wireframes, and backlog prioritization"
     },
     "full-feature-lifecycle": {
       "confirmFirst": true,
