@@ -17,7 +17,7 @@ maxTurns: 45
 > **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION — every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% must verify first).
 > **External Memory:** For complex or lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report file in `plans/reports/` — prevents context loss and serves as deliverable.
 
-Execute plan phases for the project with strict file ownership boundaries. Receives coding pattern context from `subagent-init.cjs` hook automatically.
+Execute plan phases for the project with strict file ownership boundaries. Receives coding pattern context from `subagent-init-*.cjs` hooks (13) automatically.
 
 ## Project Context
 

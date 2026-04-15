@@ -20,11 +20,11 @@ Hooks are standalone Node.js CJS scripts triggered by Claude Code at specific li
 
 ### 1.2 Exit Code Convention
 
-| Exit Code | Meaning                        | Used By                                                       |
-| --------- | ------------------------------ | ------------------------------------------------------------- |
-| `0`       | Allow / success (non-blocking) | All hooks (default)                                           |
-| `1`       | Soft block with message        | `edit-enforcement`, `search-before-code`, `skill-enforcement` |
-| `2`       | Hard block (action rejected)   | `privacy-block`, `path-boundary-block`, `scout-block`         |
+| Exit Code | Meaning                        | Used By                                               |
+| --------- | ------------------------------ | ----------------------------------------------------- |
+| `0`       | Allow / success (non-blocking) | All hooks (default)                                   |
+| `1`       | Soft block with message        | `edit-enforcement`, `skill-enforcement`               |
+| `2`       | Hard block (action rejected)   | `privacy-block`, `path-boundary-block`, `scout-block` |
 
 **Fail-open principle:** On uncaught errors, hooks exit `0` to avoid blocking Claude. Errors log to stderr.
 
@@ -35,7 +35,7 @@ Hooks are standalone Node.js CJS scripts triggered by Claude Code at specific li
 | `SessionStart`     | startup, resume, clear, compact | `session-init`, `workflow-router`                                              |
 | `SessionEnd`       | Session closing                 | `session-end`                                                                  |
 | `UserPromptSubmit` | Each user message               | `workflow-router`, `prompt-context-assembler`                                  |
-| `SubagentStart`    | Subagent spawn                  | `subagent-init`                                                                |
+| `SubagentStart`    | Subagent spawn                  | `subagent-init-identity`, `subagent-init-*.cjs` (13 hooks)                     |
 | `PreToolUse`       | Before tool execution           | `privacy-block`, `path-boundary-block`, `edit-enforcement`, `frontend-context` |
 | `PostToolUse`      | After tool execution            | `tool-output-swap`, `todo-tracker`                                             |
 | `PreCompact`       | Before context compaction       | `write-compact-marker`                                                         |
@@ -65,16 +65,16 @@ Hooks are standalone Node.js CJS scripts triggered by Claude Code at specific li
 Uses `lib/hook-runner.cjs` for automatic stdin parsing, timeout protection, and error handling.
 
 ```js
-const { runHook } = require("./lib/hook-runner.cjs");
+const { runHook } = require('./lib/hook-runner.cjs');
 
 runHook(
-  "my-hook",
-  async (event) => {
-    const { toolName, toolInput, sessionId } = event;
-    // ... logic ...
-    console.log("Context to inject"); // stdout → conversation
-  },
-  { outputResult: false },
+    'my-hook',
+    async event => {
+        const { toolName, toolInput, sessionId } = event;
+        // ... logic ...
+        console.log('Context to inject'); // stdout → conversation
+    },
+    { outputResult: false }
 );
 ```
 
@@ -86,15 +86,15 @@ Used by security-critical hooks (`privacy-block`, `path-boundary-block`) that ne
 
 ```js
 async function main() {
-  let input = "";
-  for await (const chunk of process.stdin) input += chunk;
-  const hookData = JSON.parse(input);
-  // ... validation logic ...
-  if (blocked) {
-    console.error(message);
-    process.exit(2);
-  }
-  process.exit(0);
+    let input = '';
+    for await (const chunk of process.stdin) input += chunk;
+    const hookData = JSON.parse(input);
+    // ... validation logic ...
+    if (blocked) {
+        console.error(message);
+        process.exit(2);
+    }
+    process.exit(0);
 }
 main().catch(() => process.exit(0)); // Fail-open
 ```
@@ -104,10 +104,7 @@ main().catch(() => process.exit(0)); // Fail-open
 Used by context injection hooks (`frontend-context`, `backend-context`, `scss-styling-context`, `knowledge-context`) via `lib/context-injector-base.cjs`.
 
 ```js
-const {
-  parsePreToolUseInput,
-  wasRecentlyInjected,
-} = require("./lib/context-injector-base.cjs");
+const { parsePreToolUseInput, wasRecentlyInjected } = require('./lib/context-injector-base.cjs');
 
 const input = parsePreToolUseInput(); // Returns null if wrong tool/no path
 if (!input) process.exit(0);
@@ -123,7 +120,7 @@ Hooks that export functions for testing and for use by other hooks use this guar
 ```js
 module.exports = { buildCatalog, buildInjection };
 if (require.main === module) {
-  main();
+    main();
 }
 ```
 
@@ -159,9 +156,9 @@ Deep merge with "local wins" semantics. Arrays replace entirely (not concatenate
 ```js
 let _cache = null;
 function loadProjectConfig() {
-  if (_cache) return _cache;
-  _cache = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf-8"));
-  return _cache;
+    if (_cache) return _cache;
+    _cache = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+    return _cache;
 }
 ```
 
@@ -184,13 +181,10 @@ All temp files go under `/tmp/ck/` via `ck-paths.cjs`:
 `dedup-constants.cjs` provides centralized markers and dynamically computed transcript window sizes to prevent duplicate context injection. Each hook checks whether its marker string appears in the last N lines of the transcript before injecting.
 
 ```js
-const {
-  FRONTEND_CONTEXT: MARKER,
-  DEDUP_LINES,
-} = require("./lib/dedup-constants.cjs");
+const { FRONTEND_CONTEXT: MARKER, DEDUP_LINES } = require('./lib/dedup-constants.cjs');
 
 if (wasRecentlyInjected(transcriptPath, MARKER, DEDUP_LINES.FRONTEND_CONTEXT)) {
-  process.exit(0); // Already injected, skip
+    process.exit(0); // Already injected, skip
 }
 ```
 
@@ -206,10 +200,10 @@ State modules use write-to-temp-then-rename for crash safety:
 
 ```js
 function saveState(sessionId, state) {
-  const statePath = getPath(sessionId);
-  const tmpFile = statePath + "." + Math.random().toString(36).slice(2);
-  fs.writeFileSync(tmpFile, JSON.stringify(state, null, 2));
-  fs.renameSync(tmpFile, statePath); // Atomic on same filesystem
+    const statePath = getPath(sessionId);
+    const tmpFile = statePath + '.' + Math.random().toString(36).slice(2);
+    fs.writeFileSync(tmpFile, JSON.stringify(state, null, 2));
+    fs.renameSync(tmpFile, statePath); // Atomic on same filesystem
 }
 ```
 
@@ -218,7 +212,7 @@ function saveState(sessionId, state) {
 `swap-engine.cjs` uses exclusive file creation for cross-process locking:
 
 ```js
-fs.writeFileSync(lockPath, String(process.pid), { flag: "wx" }); // Fails if exists
+fs.writeFileSync(lockPath, String(process.pid), { flag: 'wx' }); // Fails if exists
 // ... critical section ...
 fs.unlinkSync(lockPath); // Release
 ```
@@ -239,10 +233,10 @@ All hooks default to exit `0` on error to avoid blocking Claude:
 
 ```js
 try {
-  // Hook logic
+    // Hook logic
 } catch (error) {
-  console.error(`[hook-name] Error: ${error.message}`);
-  process.exit(0); // Allow operation to proceed
+    console.error(`[hook-name] Error: ${error.message}`);
+    process.exit(0); // Allow operation to proceed
 }
 ```
 
@@ -261,10 +255,7 @@ All debug output goes to **stderr** to avoid contaminating stdout (which is inje
 `hook-runner.cjs` wraps async handlers with `Promise.race` against a 15-second timeout:
 
 ```js
-const result =
-  timeout > 0
-    ? await Promise.race([handlerPromise, timeoutPromise(timeout, name)])
-    : await handlerPromise;
+const result = timeout > 0 ? await Promise.race([handlerPromise, timeoutPromise(timeout, name)]) : await handlerPromise;
 ```
 
 On timeout, hooks exit `0` (fail-open).
@@ -292,10 +283,6 @@ Blocks access to sensitive files (`.env`, credentials, private keys) with user-o
 
 Restricts file access to project root. No user override (security-critical). Handles URI decoding, MSYS path conversion, symlink resolution, and configurable allowlist.
 
-### 6.3 Search Before Code (`search-before-code.cjs`)
-
-Enforces "search existing patterns first" by checking transcript for recent Grep/Glob calls before allowing Edit/Write on code files implementing new patterns.
-
 ---
 
 ## 7. Testing Patterns
@@ -313,12 +300,9 @@ Enforces "search existing patterns first" by checking transcript for recent Grep
 Tests spawn hooks as child processes with JSON piped to stdin, then assert on exit code and output:
 
 ```js
-const result = await runHook(
-  hookPath,
-  createPreToolUseInput("Read", { file_path: ".env" }),
-);
-assertBlocked(result.code, "Should block .env access");
-assertContains(result.stderr, "PRIVACY BLOCK");
+const result = await runHook(hookPath, createPreToolUseInput('Read', { file_path: '.env' }));
+assertBlocked(result.code, 'Should block .env access');
+assertContains(result.stderr, 'PRIVACY BLOCK');
 ```
 
 ### 7.3 Test Isolation
@@ -338,8 +322,8 @@ const results = await runHookSequence([PRIVACY_BLOCK, SCOUT_BLOCK], input);
 
 // Parallel: runs all, checks consistency
 const results = await runHooksParallel([
-  { hookPath: PRIVACY_BLOCK, input: legitInput },
-  { hookPath: PRIVACY_BLOCK, input: blockedInput },
+    { hookPath: PRIVACY_BLOCK, input: legitInput },
+    { hookPath: PRIVACY_BLOCK, input: blockedInput }
 ]);
 ```
 

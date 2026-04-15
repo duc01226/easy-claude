@@ -119,7 +119,7 @@ Claude Code intercepts 9 event types:
 | `PreToolUse`            | Before tool execution     | `privacy-block.cjs`            |
 | `PreCompact`            | Before context compaction | `write-compact-marker.cjs`     |
 | `SessionStart` (resume) | After compaction recovery | `post-compact-recovery.cjs`    |
-| `SubagentStart`         | Subagent initialization   | `subagent-init.cjs`            |
+| `SubagentStart`         | Subagent initialization   | `subagent-init-*.cjs` (13 hooks) |
 | `Stop`                  | Response complete         | `notify-waiting.js`            |
 | `Notification`          | Idle/waiting events       | `notify-waiting.js`            |
 

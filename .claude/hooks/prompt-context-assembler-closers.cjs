@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * Prompt Context Assembler - Part 2 (Closers) - UserPromptSubmit Hook
+ * Prompt Context Assembler - Closing Gates (UserPromptSubmit Hook)
  *
- * Injects the "closing gates" that must appear AFTER main context (part 1):
+ * Injects the "closing gates" that must appear AFTER main context:
  *   1. Graph protocol tier 1 — full reference with dedup (deduped per session)
  *   2. Graph compact mandatory reminder — always injected, no dedup (~30 tokens)
  *   3. Workflow gate compact reminder — always injected, no dedup (~40 tokens)
@@ -23,15 +23,7 @@ const fs = require('fs');
 const path = require('path');
 const { loadConfig } = require('./lib/ck-config-loader.cjs');
 const { injectLessonReminder } = require('./lib/prompt-injections.cjs');
-
-const TOP_DEDUP_LINES = 50;
-
-function isMarkerInContext(lines, marker, bottomWindow, topWindow = TOP_DEDUP_LINES) {
-    if (!lines || lines.length === 0) return false;
-    if (lines.slice(-bottomWindow).some(l => l.includes(marker))) return true;
-    if (lines.slice(0, topWindow).some(l => l.includes(marker))) return true;
-    return false;
-}
+const { isMarkerInContext, loadTranscriptLines } = require('./lib/transcript-utils.cjs');
 
 async function main() {
     try {
@@ -45,12 +37,7 @@ async function main() {
         if (!userPrompt.trim()) process.exit(0);
 
         // Load transcript lines once for all dedup checks
-        let transcriptLines = null;
-        try {
-            if (payload.transcript_path && fs.existsSync(payload.transcript_path)) {
-                transcriptLines = fs.readFileSync(payload.transcript_path, 'utf-8').split('\n');
-            }
-        } catch { /* non-blocking */ }
+        const transcriptLines = loadTranscriptLines(payload.transcript_path);
 
         // Read confirmation mode for workflow gate
         const wfConfig = loadConfig({ includeProject: false, includeAssertions: false });
@@ -118,7 +105,7 @@ async function main() {
 
         process.exit(0);
     } catch (error) {
-        console.error(`<!-- Assembler p2 error: ${error.message} -->`);
+        console.error(`<!-- Assembler closers error: ${error.message} -->`);
         process.exit(0);
     }
 }

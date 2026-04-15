@@ -41,7 +41,7 @@ A CJS module that intercepts Claude Code lifecycle events. Hooks read JSON from 
 
 - Hooks read configuration from **Context Groups** and **Modules** via `project-config-loader.cjs`
 - Hooks may reference **Skills** (e.g., `skill-enforcement.cjs` validates skill activation)
-- `subagent-init.cjs` injects context into **Agents** at spawn time
+- `subagent-init-*.cjs` (13 hooks) inject context into **Agents** at spawn time
 
 ---
 
@@ -87,32 +87,32 @@ A reusable task automation capability. Each skill is a directory with a `SKILL.m
 
 ## 3. Agent
 
-A markdown file defining a specialized subagent role. Agents are spawned via the `Task` tool and receive injected context from the `subagent-init.cjs` hook. Each agent has a focused responsibility (review, test, debug, manage docs, etc.).
+A markdown file defining a specialized subagent role. Agents are spawned via the `Task` tool and receive injected context from the `subagent-init-*.cjs` hooks (13). Each agent has a focused responsibility (review, test, debug, manage docs, etc.).
 
 **Location:** `.claude/agents/<agent-name>.md`
 
 ### Agent Definition Structure
 
 - **Frontmatter** (YAML):
-  - `name` — Agent identifier
-  - `description` — When to use this agent
-  - `tools` — Allowed tools (e.g., `Read, Grep, Glob, Bash, Write, TaskCreate`)
-  - `model` — Model selection (`inherit` to use parent's model)
-  - `memory` — Memory scope (`project`)
-  - `skills` — Skills the agent can activate
-  - `maxTurns` — Maximum conversation turns
+    - `name` — Agent identifier
+    - `description` — When to use this agent
+    - `tools` — Allowed tools (e.g., `Read, Grep, Glob, Bash, Write, TaskCreate`)
+    - `model` — Model selection (`inherit` to use parent's model)
+    - `memory` — Memory scope (`project`)
+    - `skills` — Skills the agent can activate
+    - `maxTurns` — Maximum conversation turns
 - **Body** (Markdown): Role description, workflow, rules, output format, checklists
 
 ### Key Properties
 
 - **Evidence Gate:** Most agents require `file:line` proof for claims
 - **External Memory:** Agents write reports to `plans/reports/` to survive context loss
-- **Fail-open subagent injection:** The `subagent-init.cjs` hook injects CLAUDE.md, lessons, and rules into every spawned agent since subagents don't inherit parent context
+- **Fail-open subagent injection:** The `subagent-init-*.cjs` hooks (13) inject CLAUDE.md, lessons, and rules into every spawned agent since subagents don't inherit parent context
 
 ### Relationships
 
 - Agents are spawned by **Skills** during workflow execution
-- Agents receive context injection from **Hooks** (`subagent-init.cjs`)
+- Agents receive context injection from **Hooks** (`subagent-init-*.cjs` (13 hooks))
 - Agents may activate **Skills** listed in their frontmatter
 - Agent types are classified for pattern-aware injection (e.g., `fullstack-developer`, `code-reviewer` get coding pattern context)
 
@@ -158,14 +158,14 @@ A configuration entry in `docs/project-config.json` that maps file path patterns
 
 ```json
 {
-  "name": "hooks-context",
-  "pathRegexes": ["\\\\.claude\\\\/hooks\\\\/.*\\.cjs$"],
-  "fileExtensions": [".cjs"],
-  "guideDoc": ".claude/docs/hooks/README.md",
-  "patternsDoc": "docs/project-reference/frontend-patterns-reference.md",
-  "stylingDoc": "docs/project-reference/scss-styling-guide.md",
-  "designSystemDoc": "docs/project-reference/design-system/README.md",
-  "rules": ["Rule text injected into context when editing matching files"]
+    "name": "hooks-context",
+    "pathRegexes": ["\\\\.claude\\\\/hooks\\\\/.*\\.cjs$"],
+    "fileExtensions": [".cjs"],
+    "guideDoc": ".claude/docs/hooks/README.md",
+    "patternsDoc": "docs/project-reference/frontend-patterns-reference.md",
+    "stylingDoc": "docs/project-reference/scss-styling-guide.md",
+    "designSystemDoc": "docs/project-reference/design-system/README.md",
+    "rules": ["Rule text injected into context when editing matching files"]
 }
 ```
 
@@ -196,12 +196,12 @@ A registry entry in `docs/project-config.json` that describes a project componen
 
 ```json
 {
-  "name": "hooks",
-  "kind": "library",
-  "pathRegex": "\\\\.claude\\\\/hooks\\\\/",
-  "description": "Runtime hooks for context injection, enforcement, and session management",
-  "tags": ["core", "cjs"],
-  "meta": {}
+    "name": "hooks",
+    "kind": "library",
+    "pathRegex": "\\\\.claude\\\\/hooks\\\\/",
+    "description": "Runtime hooks for context injection, enforcement, and session management",
+    "tags": ["core", "cjs"],
+    "meta": {}
 }
 ```
 

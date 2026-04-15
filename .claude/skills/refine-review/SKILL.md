@@ -386,6 +386,7 @@ After sub-agent returns:
 - **WARN allows proceeding** — Note gaps but continue.
 - **No guessing** — Every check must reference specific content in the PBI artifact.
 - **Constructive** — Focus on implementation-blocking issues, not pedantic details.
+- **Production Readiness** — When reviewing production readiness concerns in a PBI, verify coverage of: Code Quality Tooling, Error Handling Foundation, Loading State Management, Docker Development Environment, Integration Points (see `SYNC:scaffold-production-readiness` for definitions).
 
 ---
 

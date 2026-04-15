@@ -41,7 +41,6 @@ Suites export `module.exports = { name: string, tests: Array<{ name, fn, skip? }
 | Notification           | `suites/notification.test.cjs`                  | Notification providers                  |
 | Production Readiness   | `suites/production-readiness-protocol.test.cjs` | Quality gates                           |
 | Quality Audit          | `suites/quality-audit.test.cjs`                 | Audit logic                             |
-| Search Before Code     | `suites/search-before-code.test.cjs`            | Search enforcement                      |
 | Security               | `suites/security.test.cjs`                      | Security hooks                          |
 | Swap Engine            | `suites/swap-engine.test.cjs`                   | Output compression                      |
 | Workflow               | `suites/workflow.test.cjs`                      | Workflow routing/tracking               |
@@ -178,37 +177,29 @@ Test docs fixture: `.claude/hooks/tests/docs/project-config.json` -- empty-shell
 4. Export `module.exports = { name: 'Suite Name', tests: [...] }`
 
 ```javascript
-const {
-  runHook,
-  getHookPath,
-  createPreToolUseInput,
-} = require("../lib/hook-runner.cjs");
-const {
-  assertEqual,
-  assertContains,
-  assertAllowed,
-} = require("../lib/assertions.cjs");
-const { createTempDir, cleanupTempDir } = require("../lib/test-utils.cjs");
+const { runHook, getHookPath, createPreToolUseInput } = require('../lib/hook-runner.cjs');
+const { assertEqual, assertContains, assertAllowed } = require('../lib/assertions.cjs');
+const { createTempDir, cleanupTempDir } = require('../lib/test-utils.cjs');
 
-const HOOK = getHookPath("my-hook.cjs");
+const HOOK = getHookPath('my-hook.cjs');
 
 const tests = [
-  {
-    name: "[my-hook] does something",
-    fn: async () => {
-      const tmpDir = createTempDir();
-      try {
-        const input = createPreToolUseInput("Bash", { command: "echo hi" });
-        const result = await runHook(HOOK, input, { cwd: tmpDir });
-        assertAllowed(result.code);
-      } finally {
-        cleanupTempDir(tmpDir);
-      }
-    },
-  },
+    {
+        name: '[my-hook] does something',
+        fn: async () => {
+            const tmpDir = createTempDir();
+            try {
+                const input = createPreToolUseInput('Bash', { command: 'echo hi' });
+                const result = await runHook(HOOK, input, { cwd: tmpDir });
+                assertAllowed(result.code);
+            } finally {
+                cleanupTempDir(tmpDir);
+            }
+        }
+    }
 ];
 
-module.exports = { name: "My Hook Tests", tests };
+module.exports = { name: 'My Hook Tests', tests };
 ```
 
 The suite is auto-discovered by `run-all-tests.cjs` -- no registration needed.

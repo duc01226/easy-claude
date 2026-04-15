@@ -4,7 +4,7 @@
 
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **~37 hooks** (53 files), **258 skills**, **34 workflows**, and **28 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **64 hooks**, **269 skills**, **34 workflows**, and **28 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -102,14 +102,14 @@ Optional scans (run if applicable):
 
 ## What's Inside
 
-### Hooks (~37 modules, 53 files)
+### Hooks (64 files, 28 lib modules)
 
 Runtime Node.js scripts that fire on Claude Code lifecycle events.
 
 | Category               | Hooks                                                                                                        | Purpose                                                                 |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
 | **Safety**             | `path-boundary-block`, `privacy-block`, `scout-block`                                                        | Prevent out-of-scope access, block secrets, limit broad searches        |
-| **Quality**            | `edit-enforcement`, `skill-enforcement`, `search-before-code`                                                | Force task tracking, enforce skill usage, require search before edits   |
+| **Quality**            | `edit-enforcement`, `skill-enforcement`                                                                      | Force task tracking, enforce skill usage                                |
 | **Context Injection**  | `backend-context`, `frontend-context`, `design-system-context`, `code-patterns-injector`, `lessons-injector` | Auto-inject relevant patterns when editing specific file types          |
 | **Session Management** | `session-init`, `session-end`, `session-resume`, `post-compact-recovery`                                     | Initialize state, persist across compactions, recover after memory loss |
 | **Workflow**           | `workflow-router` (3 files), `workflow-step-tracker`, `todo-tracker`                                         | Detect intent, route to workflows, track step progress                  |
@@ -119,7 +119,7 @@ Runtime Node.js scripts that fire on Claude Code lifecycle events.
 
 **Hook part-file architecture:** Large hooks are split into chained part-files (`-p2`, `-p3`) for maintainability. The harness chains them at runtime. Affected: `prompt-context-assembler` (6 files), `workflow-router` (3 files).
 
-### Skills (258 definitions)
+### Skills (269 definitions)
 
 Markdown-based prompts with YAML frontmatter that guide AI behavior.
 
@@ -136,7 +136,7 @@ Markdown-based prompts with YAML frontmatter that guide AI behavior.
 | **Scanning**       | `/scan-project-structure`, `/scan-codebase-health`, `/scan-docs-index`                                         | Generate reference docs for hooks to auto-inject        |
 | **Documents**      | `/markdown-to-pdf`, `/markdown-to-docx`, `/pdf-to-markdown`                                                    | Document format conversion                              |
 
-### Workflows (32 definitions)
+### Workflows (34 definitions)
 
 End-to-end process orchestration with step enforcement.
 
@@ -177,7 +177,7 @@ easy-claude/
 │   │   ├── notifications/    # Multi-channel notification system
 │   │   ├── scout-block/      # Broad search prevention
 │   │   └── tests/            # Hook test suites
-│   ├── skills/               # 258 skill definitions
+│   ├── skills/               # 269 skill definitions
 │   │   ├── <skill>/          # Each skill directory contains:
 │   │   │   ├── SKILL.md      # Entry point (prompt + frontmatter)
 │   │   │   ├── scripts/      # Optional automation scripts
@@ -225,17 +225,17 @@ The entire framework is **project-agnostic**. All project-specific knowledge liv
 
 Hooks fire on 9 Claude Code events:
 
-| Event              | When                      | Example Hook                                     |
-| ------------------ | ------------------------- | ------------------------------------------------ |
-| `SessionStart`     | Claude Code starts        | `session-init.cjs` — load config, inject context |
-| `SessionEnd`       | Claude Code exits         | `session-end.cjs` — persist final state          |
-| `UserPromptSubmit` | Before each user message  | `prompt-context-assembler.cjs` — inject rules    |
-| `PreToolUse`       | Before tool execution     | `privacy-block.cjs` — block secrets access       |
-| `PostToolUse`      | After tool execution      | `tool-output-swap.cjs` — compress large outputs  |
-| `PreCompact`       | Before context compaction | `write-compact-marker.cjs` — save state          |
-| `SubagentStart`    | Subagent init             | `subagent-init.cjs` — inject agent context       |
-| `Notification`     | Desktop notify event      | `notify-waiting.js` — send system notification   |
-| `Stop`             | Response complete         | `notify-waiting.js` — desktop notification       |
+| Event              | When                      | Example Hook                                                    |
+| ------------------ | ------------------------- | --------------------------------------------------------------- |
+| `SessionStart`     | Claude Code starts        | `session-init.cjs` — load config, inject context                |
+| `SessionEnd`       | Claude Code exits         | `session-end.cjs` — persist final state                         |
+| `UserPromptSubmit` | Before each user message  | `prompt-context-assembler.cjs` — inject rules                   |
+| `PreToolUse`       | Before tool execution     | `privacy-block.cjs` — block secrets access                      |
+| `PostToolUse`      | After tool execution      | `tool-output-swap.cjs` — compress large outputs                 |
+| `PreCompact`       | Before context compaction | `write-compact-marker.cjs` — save state                         |
+| `SubagentStart`    | Subagent init             | `subagent-init-*.cjs` (13 hooks) — inject agent context (paged) |
+| `Notification`     | Desktop notify event      | `notify-waiting.js` — send system notification                  |
+| `Stop`             | Response complete         | `notify-waiting.js` — desktop notification                      |
 
 ### Workflow Detection
 
