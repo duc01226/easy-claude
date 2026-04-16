@@ -449,24 +449,24 @@ After sub-agent returns:
 - **IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
 - **IMPORTANT MUST ATTENTION** execute two review rounds (Round 1: understand, Round 2: catch missed issues)
   **MANDATORY IMPORTANT MUST ATTENTION** READ the following files before starting:
-      <!-- SYNC:understand-code-first:reminder -->
+  <!-- SYNC:understand-code-first:reminder -->
 - **IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE any modification. Run graph trace when graph.db exists.
-      <!-- /SYNC:understand-code-first:reminder -->
-      <!-- SYNC:design-patterns-quality:reminder -->
+  <!-- /SYNC:understand-code-first:reminder -->
+  <!-- SYNC:design-patterns-quality:reminder -->
 - **IMPORTANT MUST ATTENTION** check DRY via OOP, right responsibility layer, SOLID. Grep for dangling refs after moves.
-      <!-- /SYNC:design-patterns-quality:reminder -->
-      <!-- SYNC:double-round-trip-review:reminder -->
+  <!-- /SYNC:design-patterns-quality:reminder -->
+  <!-- SYNC:double-round-trip-review:reminder -->
 - **IMPORTANT MUST ATTENTION** execute TWO review rounds. Round 2 delegates to fresh code-reviewer sub-agent (zero prior context).
-      <!-- /SYNC:double-round-trip-review:reminder -->
-      <!-- SYNC:graph-impact-analysis:reminder -->
+  <!-- /SYNC:double-round-trip-review:reminder -->
+  <!-- SYNC:graph-impact-analysis:reminder -->
 - **IMPORTANT MUST ATTENTION** run graph impact analysis on changed files. Compute gap: impacted minus changed = potentially stale.
-      <!-- /SYNC:graph-impact-analysis:reminder -->
-      <!-- SYNC:logic-and-intention-review:reminder -->
+  <!-- /SYNC:graph-impact-analysis:reminder -->
+  <!-- SYNC:logic-and-intention-review:reminder -->
 - **IMPORTANT MUST ATTENTION** verify WHAT code does matches WHY it changed. Trace happy + error paths.
-      <!-- /SYNC:logic-and-intention-review:reminder -->
-      <!-- SYNC:bug-detection:reminder -->
+  <!-- /SYNC:logic-and-intention-review:reminder -->
+  <!-- SYNC:bug-detection:reminder -->
 - **IMPORTANT MUST ATTENTION** check null safety, boundaries, error handling, resource management for every review.
-      <!-- /SYNC:bug-detection:reminder -->
-      <!-- SYNC:test-spec-verification:reminder -->
+  <!-- /SYNC:bug-detection:reminder -->
+  <!-- SYNC:test-spec-verification:reminder -->
 - **IMPORTANT MUST ATTENTION** map changed code paths to TC-{FEAT}-{NNN}. Flag untested paths.
-      <!-- /SYNC:test-spec-verification:reminder -->
+  <!-- /SYNC:test-spec-verification:reminder -->

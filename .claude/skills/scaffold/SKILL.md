@@ -297,7 +297,7 @@ Run ALL verification checklists from the production readiness protocol:
   <!-- SYNC:understand-code-first:reminder -->
 
 - **IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE any modification. Run graph trace when graph.db exists.
-    <!-- /SYNC:understand-code-first:reminder -->
-    <!-- SYNC:scaffold-production-readiness:reminder -->
+      <!-- /SYNC:understand-code-first:reminder -->
+      <!-- SYNC:scaffold-production-readiness:reminder -->
 - **IMPORTANT MUST ATTENTION** verify all 4 production readiness foundations (quality tooling, error handling, loading state, Docker) before marking scaffold complete.
-    <!-- /SYNC:scaffold-production-readiness:reminder -->
+      <!-- /SYNC:scaffold-production-readiness:reminder -->

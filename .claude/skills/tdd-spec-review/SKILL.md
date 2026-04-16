@@ -290,27 +290,27 @@ If any box is unchecked → adversarial review incomplete. Go back.
 
 ### Required (all must pass)
 
-| #  | Check | Presence | Quality Depth |
-|----|-------|----------|---------------|
-| 1  | **TC ID format** — All TCs follow `TC-{FEATURE}-{NNN}` format | Do all TCs use the `TC-{FEATURE}-{NNN}` pattern? | Are IDs unique per TC? Does the FEATURE code match the actual feature? |
-| 2  | **Story coverage** — Every user story has at least one corresponding TC | Does every story ID appear in at least one TC? | Does each TC actually test the story behavior, or does it just reference the story ID in a comment? |
-| 3  | **AC coverage** — Every acceptance criterion has a test case | Is every AC traceable to at least one TC? | Does each AC have a TC that would FAIL if the AC is violated? |
-| 4  | **Happy path** — Each story has at least one happy path TC | Is a happy path TC present per story? | Does the happy path TC verify the full end-to-end scenario, or just a happy-path stub? |
-| 5  | **Error path** — Each story has at least one error/failure TC | Is an error/failure TC present per story? | Does the error TC verify the exact error response (code + message), not just that an error occurred? |
-| 6  | **No duplicates** — No duplicate TCs testing the same scenario | Are all TC IDs unique with distinct scenarios? | Are there TCs that test the same scenario with slightly different input? Flag near-duplicates. |
-| 7  | **Testable assertions** — Each TC has clear expected result (not vague "should work") | Does each TC have a specific expected result? | Is each assertion specific enough to catch regressions? Would it pass if the return value is wrong? |
-| 8  | **Authorization TCs** — At least 1 TC per story verifying unauthorized access is rejected | Is an authorization TC present per story? | Does the authorization TC test a realistic access scenario, not just "wrong role → 403 without body check"? |
+| #   | Check                                                                                     | Presence                                         | Quality Depth                                                                                               |
+| --- | ----------------------------------------------------------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| 1   | **TC ID format** — All TCs follow `TC-{FEATURE}-{NNN}` format                             | Do all TCs use the `TC-{FEATURE}-{NNN}` pattern? | Are IDs unique per TC? Does the FEATURE code match the actual feature?                                      |
+| 2   | **Story coverage** — Every user story has at least one corresponding TC                   | Does every story ID appear in at least one TC?   | Does each TC actually test the story behavior, or does it just reference the story ID in a comment?         |
+| 3   | **AC coverage** — Every acceptance criterion has a test case                              | Is every AC traceable to at least one TC?        | Does each AC have a TC that would FAIL if the AC is violated?                                               |
+| 4   | **Happy path** — Each story has at least one happy path TC                                | Is a happy path TC present per story?            | Does the happy path TC verify the full end-to-end scenario, or just a happy-path stub?                      |
+| 5   | **Error path** — Each story has at least one error/failure TC                             | Is an error/failure TC present per story?        | Does the error TC verify the exact error response (code + message), not just that an error occurred?        |
+| 6   | **No duplicates** — No duplicate TCs testing the same scenario                            | Are all TC IDs unique with distinct scenarios?   | Are there TCs that test the same scenario with slightly different input? Flag near-duplicates.              |
+| 7   | **Testable assertions** — Each TC has clear expected result (not vague "should work")     | Does each TC have a specific expected result?    | Is each assertion specific enough to catch regressions? Would it pass if the return value is wrong?         |
+| 8   | **Authorization TCs** — At least 1 TC per story verifying unauthorized access is rejected | Is an authorization TC present per story?        | Does the authorization TC test a realistic access scenario, not just "wrong role → 403 without body check"? |
 
 ### Recommended (>=50% should pass)
 
-| #  | Check | Presence | Quality Depth |
-|----|-------|----------|---------------|
-| 1  | **Edge cases** — Boundary values, empty inputs, max limits tested | Are edge case TCs listed? | Are these the RIGHT edge cases? Do they cover the 3 most likely production failure modes for this feature? |
-| 2  | **Integration points** — Cross-service scenarios covered | Are cross-service TCs present where applicable? | Do integration TCs verify actual data flow across services, or just that a downstream call was made? |
-| 3  | **Performance TCs** — Response time or throughput expectations where relevant; production-like data volume TCs if >1000 records expected (ref: protocol §4) | Are performance TCs present where data volume or SLA expectations exist? | Do performance TCs use production-like data volumes, not toy datasets that trivially pass? |
-| 4  | **Security TCs** — Auth, authorization, input validation tested | Are security TCs present for auth, authz, and input validation? | Do security TCs attempt realistic attack vectors (SQLi, over-posting, privilege escalation) not just "invalid token → 401"? |
-| 5  | **Seed data TCs** — If feature needs reference data, TCs verify data exists and seeder runs correctly (ref: protocol §2) | If reference data is needed, does a seed data TC exist (or N/A)? | If present, does the TC assert the exact seeded data shape, not just that the seeder ran without error? |
-| 6  | **Data migration TCs** — If schema changes exist, TCs verify data transforms correctly, rollback works, no data loss (ref: protocol §5) | If schema changes exist, does a migration TC exist (or N/A)? | If present, does the TC verify rollback behavior and zero data loss, not just forward migration success? |
+| #   | Check                                                                                                                                                       | Presence                                                                 | Quality Depth                                                                                                               |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Edge cases** — Boundary values, empty inputs, max limits tested                                                                                           | Are edge case TCs listed?                                                | Are these the RIGHT edge cases? Do they cover the 3 most likely production failure modes for this feature?                  |
+| 2   | **Integration points** — Cross-service scenarios covered                                                                                                    | Are cross-service TCs present where applicable?                          | Do integration TCs verify actual data flow across services, or just that a downstream call was made?                        |
+| 3   | **Performance TCs** — Response time or throughput expectations where relevant; production-like data volume TCs if >1000 records expected (ref: protocol §4) | Are performance TCs present where data volume or SLA expectations exist? | Do performance TCs use production-like data volumes, not toy datasets that trivially pass?                                  |
+| 4   | **Security TCs** — Auth, authorization, input validation tested                                                                                             | Are security TCs present for auth, authz, and input validation?          | Do security TCs attempt realistic attack vectors (SQLi, over-posting, privilege escalation) not just "invalid token → 401"? |
+| 5   | **Seed data TCs** — If feature needs reference data, TCs verify data exists and seeder runs correctly (ref: protocol §2)                                    | If reference data is needed, does a seed data TC exist (or N/A)?         | If present, does the TC assert the exact seeded data shape, not just that the seeder ran without error?                     |
+| 6   | **Data migration TCs** — If schema changes exist, TCs verify data transforms correctly, rollback works, no data loss (ref: protocol §5)                     | If schema changes exist, does a migration TC exist (or N/A)?             | If present, does the TC verify rollback behavior and zero data loss, not just forward migration success?                    |
 
 ## Output
 
@@ -392,7 +392,7 @@ After sub-agent returns:
 <!-- SYNC:double-round-trip-review:reminder -->
 
 - **MANDATORY IMPORTANT MUST ATTENTION** execute TWO review rounds. Round 2 delegates to fresh code-reviewer sub-agent (zero prior context) — never skip or combine with Round 1.
-      <!-- /SYNC:double-round-trip-review:reminder -->
-            <!-- SYNC:graph-impact-analysis:reminder -->
+  <!-- /SYNC:double-round-trip-review:reminder -->
+  <!-- SYNC:graph-impact-analysis:reminder -->
 - **IMPORTANT MUST ATTENTION** run graph blast-radius on changed files to find potentially stale consumers/handlers (when graph.db exists).
-    <!-- /SYNC:graph-impact-analysis:reminder -->
+      <!-- /SYNC:graph-impact-analysis:reminder -->

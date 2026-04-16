@@ -76,14 +76,14 @@ Generate a detailed, narrative release document by analyzing git history over a 
 
 ## Differences from `/release-notes` and `/changelog`
 
-| Feature | `/release-doc` | `/release-notes` | `/changelog` |
-|---------|---------------|-----------------|-------------|
-| Time-based ranges | ✅ `--days N` / `--since` | ❌ ref-to-ref only | ❌ PR/commit only |
-| AI thematic analysis | ✅ Groups by framework area | ❌ Commit-type categories | ❌ File-by-file |
-| Dumps artifacts to files | ✅ Mandatory before analysis | ❌ Pipes in memory | ❌ In memory |
-| Custom focus prompt | ✅ `--focus "..."` | ❌ | ❌ |
-| Narrative sections | ✅ Context + rationale | ❌ Bullet list only | ❌ Bullet list only |
-| Framework-level docs | ✅ hooks/skills/agents | ❌ App features | ❌ App features |
+| Feature                  | `/release-doc`               | `/release-notes`          | `/changelog`        |
+| ------------------------ | ---------------------------- | ------------------------- | ------------------- |
+| Time-based ranges        | ✅ `--days N` / `--since`    | ❌ ref-to-ref only        | ❌ PR/commit only   |
+| AI thematic analysis     | ✅ Groups by framework area  | ❌ Commit-type categories | ❌ File-by-file     |
+| Dumps artifacts to files | ✅ Mandatory before analysis | ❌ Pipes in memory        | ❌ In memory        |
+| Custom focus prompt      | ✅ `--focus "..."`           | ❌                        | ❌                  |
+| Narrative sections       | ✅ Context + rationale       | ❌ Bullet list only       | ❌ Bullet list only |
+| Framework-level docs     | ✅ hooks/skills/agents       | ❌ App features           | ❌ App features     |
 
 ## Step 1: Resolve Range
 
@@ -159,19 +159,19 @@ grep -c "^[AMD]\s*CLAUDE.md" docs/release/diff-file-status-{PERIOD}.txt
 
 **Standard category map for easy-claude projects:**
 
-| File Path Pattern | Category |
-|-----------------|---------|
-| `.claude/hooks/**` | Hook Enhancements |
-| `.claude/hooks/lib/**` | Hook Library |
-| `.claude/skills/**` | Skills |
-| `.claude/agents/**` | Agent Definitions |
-| `.claude/workflows/**` | Workflow Orchestration |
-| `.claude/workflows.json` | Workflow Registry |
-| `.claude/docs/**` | Framework Documentation |
-| `.claude/scripts/**` | Tooling & Scripts |
-| `docs/project-reference/**` | Project Reference Docs |
-| `CLAUDE.md` | Principles & Core Rules |
-| `.claude/.ck.json` / `settings.json` | Configuration |
+| File Path Pattern                    | Category                |
+| ------------------------------------ | ----------------------- |
+| `.claude/hooks/**`                   | Hook Enhancements       |
+| `.claude/hooks/lib/**`               | Hook Library            |
+| `.claude/skills/**`                  | Skills                  |
+| `.claude/agents/**`                  | Agent Definitions       |
+| `.claude/workflows/**`               | Workflow Orchestration  |
+| `.claude/workflows.json`             | Workflow Registry       |
+| `.claude/docs/**`                    | Framework Documentation |
+| `.claude/scripts/**`                 | Tooling & Scripts       |
+| `docs/project-reference/**`          | Project Reference Docs  |
+| `CLAUDE.md`                          | Principles & Core Rules |
+| `.claude/.ck.json` / `settings.json` | Configuration           |
 
 **For non-easy-claude projects**, derive categories from the file path patterns actually present.
 
@@ -220,6 +220,7 @@ Write to `docs/release/release-notes-{PERIOD}.md` (or `--output` path).
 
 ```markdown
 # Release Notes — {Project Name}
+
 **Period:** {START} → {END}
 **Commits:** {N} commits | **Files changed:** {N} | **Insertions:** +{N} | **Deletions:** −{N}
 **Status:** Draft
@@ -245,7 +246,7 @@ Write to `docs/release/release-notes-{PERIOD}.md` (or `--output` path).
 ### Key Additions / Modifications
 
 | Item | Type | Effect |
-|------|------|--------|
+| ---- | ---- | ------ |
 
 ---
 
@@ -258,37 +259,37 @@ Write to `docs/release/release-notes-{PERIOD}.md` (or `--output` path).
 ## New Skills Added
 
 | Skill | Command | Purpose |
-|-------|---------|---------|
+| ----- | ------- | ------- |
 
 ## Skills Removed or Merged
 
 | Skill | Reason |
-|-------|--------|
+| ----- | ------ |
 
 ## Principles & Rules Updated
 
 | Rule | Before | After | Reason |
-|------|--------|-------|--------|
+| ---- | ------ | ----- | ------ |
 
 ---
 
 ## Summary Statistics
 
-| Category | Count |
-|----------|-------|
-| Commits | {N} |
-| Files changed | {N} |
-| New skills | {N} |
-| Skills removed | {N} |
-| New hooks | {N} |
-| Hooks modified | {N} |
-| Agents updated | {N} |
-| Net lines | +{N} |
+| Category       | Count |
+| -------------- | ----- |
+| Commits        | {N}   |
+| Files changed  | {N}   |
+| New skills     | {N}   |
+| Skills removed | {N}   |
+| New hooks      | {N}   |
+| Hooks modified | {N}   |
+| Agents updated | {N}   |
+| Net lines      | +{N}  |
 
 ---
 
-*Generated: {DATE} | Branch: {BRANCH} | Range: {OLDEST_HASH}..{HEAD_HASH}*
-*Artifacts: `docs/release/git-log-{PERIOD}.txt`, `docs/release/diff-file-status-{PERIOD}.txt`*
+_Generated: {DATE} | Branch: {BRANCH} | Range: {OLDEST_HASH}..{HEAD_HASH}_
+_Artifacts: `docs/release/git-log-{PERIOD}.txt`, `docs/release/diff-file-status-{PERIOD}.txt`_
 ```
 
 ## Step 7: Validate
@@ -308,15 +309,15 @@ For projects with custom directory structures, override the category map via `pr
 
 ```json
 {
-  "releaseDoc": {
-    "categoryMap": {
-      "src/api/**": "API Layer",
-      "src/ui/**": "Frontend",
-      "migrations/**": "Database Schema"
-    },
-    "outputDir": "docs/release",
-    "focusAreas": ["hooks", "skills", "agents"]
-  }
+    "releaseDoc": {
+        "categoryMap": {
+            "src/api/**": "API Layer",
+            "src/ui/**": "Frontend",
+            "migrations/**": "Database Schema"
+        },
+        "outputDir": "docs/release",
+        "focusAreas": ["hooks", "skills", "agents"]
+    }
 }
 ```
 

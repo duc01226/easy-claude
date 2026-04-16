@@ -42,12 +42,12 @@ When the prompt doesn't cleanly match a single catalog workflow — or combining
 
 ### When to propose
 
-| Condition | Example |
-| --------- | ------- |
-| No catalog workflow matches well | "Review hook changes and update skill docs" — spans review + docs |
+| Condition                                    | Example                                                                     |
+| -------------------------------------------- | --------------------------------------------------------------------------- |
+| No catalog workflow matches well             | "Review hook changes and update skill docs" — spans review + docs           |
 | Best-match has significant unnecessary steps | Quick investigate + fix, but `bugfix` includes full TDD + integration cycle |
-| Prompt combines 2+ workflow domains | "Audit performance and write integration tests for the slow query" |
-| User explicitly requests a step sequence | "Just run scout, plan, and cook — nothing else" |
+| Prompt combines 2+ workflow domains          | "Audit performance and write integration tests for the slow query"          |
+| User explicitly requests a step sequence     | "Just run scout, plan, and cook — nothing else"                             |
 
 **Do NOT propose** when a catalog workflow is a strong match (>80% of its steps are relevant). Catalog workflows encode validated best-practice sequences — prefer them.
 
@@ -74,6 +74,7 @@ Option C — Execute directly without workflow
 ```
 
 **Rules:**
+
 - Always show full step list per option
 - One-sentence AI rationale for the custom pipeline
 - Catalog workflow = "(Recommended)" unless custom pipeline confidence is clearly higher
@@ -159,13 +160,13 @@ slashCmd = commandMapping[stepId].claude   // commandMapping["scout"].claude →
 
 **WorkflowEntry fields:**
 
-| Field | Type | Notes |
-| ----- | ---- | ----- |
-| `name` | string | Display name |
-| `confirmFirst` | boolean | Prompt user before starting |
-| `sequence` | string[] | Ordered step IDs — SOLE source of truth |
-| `whenToUse` / `whenNotToUse` | string | Natural language intent matching |
-| `preActions` | object | Optional `injectContext` / `readFiles` |
+| Field                        | Type     | Notes                                   |
+| ---------------------------- | -------- | --------------------------------------- |
+| `name`                       | string   | Display name                            |
+| `confirmFirst`               | boolean  | Prompt user before starting             |
+| `sequence`                   | string[] | Ordered step IDs — SOLE source of truth |
+| `whenToUse` / `whenNotToUse` | string   | Natural language intent matching        |
+| `preActions`                 | object   | Optional `injectContext` / `readFiles`  |
 
 **FORBIDDEN (common mistakes):**
 

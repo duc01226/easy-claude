@@ -726,7 +726,7 @@ Bottom of each skill has condensed `:reminder` variants:
 <!-- SYNC:understand-code-first:reminder -->
 
 - **MANDATORY IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE any modification.
-  <!-- /SYNC:understand-code-first:reminder -->
+    <!-- /SYNC:understand-code-first:reminder -->
 ```
 
 **Update workflow:** Edit `sync-inline-versions.md` (canonical) → `grep SYNC:tag-name` → update all copies. The `SYNC:shared-protocol-duplication-policy` tag in `code-simplifier` and `development-rules.md` prevents AI from "helpfully" extracting inline content back to file references.
@@ -3231,45 +3231,45 @@ flowchart TB
 
 ### AI Best Practice → Framework Mapping
 
-| AI Agent Best Practice                         | Framework Mechanism                                        | Layer     |
-| ---------------------------------------------- | ---------------------------------------------------------- | --------- |
-| **Context injection at decision points**       | 10 context injector hooks, auto-triggered by file path     | Hooks     |
-| **Reminder rules prevent forgetting**          | 3 UserPromptSubmit hooks re-inject on every prompt         | Hooks     |
-| **Generic & configurable via config**          | project-config.json drives all context injection           | Config    |
-| **Prompt engineering quality**                 | 258 skills with YAML frontmatter + behavior protocols      | Skills    |
-| **Confirm workflow before acting**             | workflow-router.cjs → AskUserQuestion → confirm            | Workflows |
-| **Confirm plan with questions**                | /plan-validate asks 3-8 questions before implementation    | Skills    |
-| **Sequential thinking for complex problems**   | /sequential-thinking skill + /debug-investigate skill      | Skills    |
-| **Code proof tracing prevents hallucination**  | evidence-based-reasoning-protocol + /prove-fix             | Skills    |
-| **State survives context compaction**          | Swap engine + todo-tracker + compact-recovery              | State     |
-| **Lessons persist across sessions**            | docs/project-reference/lessons.md + lessons-injector.cjs   | Hooks     |
-| **Subagents inherit project context**          | 13 subagent-init-*.cjs part-hooks inject CLAUDE.md + lessons | Hooks   |
-| **Safety boundaries**                          | path-boundary, privacy, scout blocks (exit code 2)         | Hooks     |
-| **Task-gated edits**                           | edit-enforcement.cjs requires TaskCreate before edits      | Hooks     |
-| **Auto-formatting**                            | post-edit-prettier.cjs runs formatter after every edit     | Hooks     |
-| **Doc staleness detection**                    | /watzup skill cross-references changes vs. docs/           | Skills    |
-| **Unified test specification**                 | /tdd-spec writes TCs to feature doc Section 15             | Skills    |
-| **TDD-first workflow**                         | tdd-feature: spec→plan→implement→test→verify               | Workflows |
-| **Interactive requirement capture**            | /idea discovery interview + /refine testability check      | Skills    |
-| **Test-to-code traceability**                  | TC-{FEATURE}-{NNN} → test annotation linking to TC ID      | Skills    |
-| **E2E from browser recordings**                | /e2e-test + Chrome DevTools Recorder → Playwright          | Skills    |
-| **Screenshot assertion baselines**             | e2e-update-ui workflow + toHaveScreenshot()                | Workflows |
-| **Greenfield project inception**               | isGreenfieldProject() detection → solution-architect agent | Hooks     |
-| **AI as solution architect**                   | /greenfield skill + greenfield-init workflow (waterfall)   | Workflows |
-| **Research-driven big features**               | big-feature workflow with step-selection gate              | Workflows |
-| **DDD domain modeling**                        | /domain-analysis skill: bounded contexts, ERD, aggregates  | Skills    |
-| **Tech stack comparison with evidence**        | /tech-stack-research: top 3 per layer, confidence %        | Skills    |
-| **Step-selection gate for long workflows**     | big-feature + greenfield preActions let user deselect      | Workflows |
-| **Workflow trigger shortcuts**                 | 19 workflow-\* skills for instant activation via /command  | Skills    |
-| **Prompt engineering (role + CoT + evidence)** | Skills use role prompting, chain-of-thought, few-shot      | Skills    |
-| **Context engineering (JIT + dedup + budget)** | Hooks manage context window with precision injection       | Hooks     |
-| **Skill chain navigation (Next Steps)**        | AskUserQuestion recommends logical next skill per step     | Skills    |
-| **Plan-aware skills (Step 0)**                 | Skills read prior workflow outputs before starting work    | Skills    |
-| **Review gates between artifacts**             | refine-review, story-review, tdd-spec-review checkpoints   | Skills    |
-| **Agent negative-prompting guardrails**        | NEVER/ALWAYS rules per agent prevent role overstepping     | Agents    |
-| **Dual-tool knowledge sharing**                | .github/instructions/\*.md syncs to GitHub Copilot         | Config    |
-| **Dual planning rounds**                       | High-level arch plan → sprint-ready plan after stories     | Workflows |
-| **Conditional architecture scaffolding**       | /scaffold auto-skips when existing abstractions found      | Skills    |
+| AI Agent Best Practice                         | Framework Mechanism                                           | Layer     |
+| ---------------------------------------------- | ------------------------------------------------------------- | --------- |
+| **Context injection at decision points**       | 10 context injector hooks, auto-triggered by file path        | Hooks     |
+| **Reminder rules prevent forgetting**          | 3 UserPromptSubmit hooks re-inject on every prompt            | Hooks     |
+| **Generic & configurable via config**          | project-config.json drives all context injection              | Config    |
+| **Prompt engineering quality**                 | 258 skills with YAML frontmatter + behavior protocols         | Skills    |
+| **Confirm workflow before acting**             | workflow-router.cjs → AskUserQuestion → confirm               | Workflows |
+| **Confirm plan with questions**                | /plan-validate asks 3-8 questions before implementation       | Skills    |
+| **Sequential thinking for complex problems**   | /sequential-thinking skill + /debug-investigate skill         | Skills    |
+| **Code proof tracing prevents hallucination**  | evidence-based-reasoning-protocol + /prove-fix                | Skills    |
+| **State survives context compaction**          | Swap engine + todo-tracker + compact-recovery                 | State     |
+| **Lessons persist across sessions**            | docs/project-reference/lessons.md + lessons-injector.cjs      | Hooks     |
+| **Subagents inherit project context**          | 13 subagent-init-\*.cjs part-hooks inject CLAUDE.md + lessons | Hooks     |
+| **Safety boundaries**                          | path-boundary, privacy, scout blocks (exit code 2)            | Hooks     |
+| **Task-gated edits**                           | edit-enforcement.cjs requires TaskCreate before edits         | Hooks     |
+| **Auto-formatting**                            | post-edit-prettier.cjs runs formatter after every edit        | Hooks     |
+| **Doc staleness detection**                    | /watzup skill cross-references changes vs. docs/              | Skills    |
+| **Unified test specification**                 | /tdd-spec writes TCs to feature doc Section 15                | Skills    |
+| **TDD-first workflow**                         | tdd-feature: spec→plan→implement→test→verify                  | Workflows |
+| **Interactive requirement capture**            | /idea discovery interview + /refine testability check         | Skills    |
+| **Test-to-code traceability**                  | TC-{FEATURE}-{NNN} → test annotation linking to TC ID         | Skills    |
+| **E2E from browser recordings**                | /e2e-test + Chrome DevTools Recorder → Playwright             | Skills    |
+| **Screenshot assertion baselines**             | e2e-update-ui workflow + toHaveScreenshot()                   | Workflows |
+| **Greenfield project inception**               | isGreenfieldProject() detection → solution-architect agent    | Hooks     |
+| **AI as solution architect**                   | /greenfield skill + greenfield-init workflow (waterfall)      | Workflows |
+| **Research-driven big features**               | big-feature workflow with step-selection gate                 | Workflows |
+| **DDD domain modeling**                        | /domain-analysis skill: bounded contexts, ERD, aggregates     | Skills    |
+| **Tech stack comparison with evidence**        | /tech-stack-research: top 3 per layer, confidence %           | Skills    |
+| **Step-selection gate for long workflows**     | big-feature + greenfield preActions let user deselect         | Workflows |
+| **Workflow trigger shortcuts**                 | 19 workflow-\* skills for instant activation via /command     | Skills    |
+| **Prompt engineering (role + CoT + evidence)** | Skills use role prompting, chain-of-thought, few-shot         | Skills    |
+| **Context engineering (JIT + dedup + budget)** | Hooks manage context window with precision injection          | Hooks     |
+| **Skill chain navigation (Next Steps)**        | AskUserQuestion recommends logical next skill per step        | Skills    |
+| **Plan-aware skills (Step 0)**                 | Skills read prior workflow outputs before starting work       | Skills    |
+| **Review gates between artifacts**             | refine-review, story-review, tdd-spec-review checkpoints      | Skills    |
+| **Agent negative-prompting guardrails**        | NEVER/ALWAYS rules per agent prevent role overstepping        | Agents    |
+| **Dual-tool knowledge sharing**                | .github/instructions/\*.md syncs to GitHub Copilot            | Config    |
+| **Dual planning rounds**                       | High-level arch plan → sprint-ready plan after stories        | Workflows |
+| **Conditional architecture scaffolding**       | /scaffold auto-skips when existing abstractions found         | Skills    |
 
 ### File Structure
 

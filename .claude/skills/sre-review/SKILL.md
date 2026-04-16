@@ -421,10 +421,10 @@ After completing Round 1 scoring, execute a **second full review round**:
 
 ### Database Performance ({X}/4)
 
-| #   | Criterion         | Score | Evidence |
-| --- | ----------------- | ----- | -------- |
-| 11  | Pagination        | 0/1/2 | ...      |
-| 12  | Database Indexes  | 0/1/2 | ...      |
+| #   | Criterion        | Score | Evidence |
+| --- | ---------------- | ----- | -------- |
+| 11  | Pagination       | 0/1/2 | ...      |
+| 12  | Database Indexes | 0/1/2 | ...      |
 
 ### Gaps to Address
 
@@ -471,10 +471,10 @@ After completing Round 1 scoring, execute a **second full review round**:
 <!-- SYNC:evidence-based-reasoning:reminder -->
 
 - **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% do NOT recommend.
-  <!-- /SYNC:evidence-based-reasoning:reminder -->
-  <!-- SYNC:double-round-trip-review:reminder -->
+    <!-- /SYNC:evidence-based-reasoning:reminder -->
+    <!-- SYNC:double-round-trip-review:reminder -->
 - **MANDATORY IMPORTANT MUST ATTENTION** execute TWO review rounds. Round 2 delegates to fresh code-reviewer sub-agent (zero prior context) — never skip or combine with Round 1.
-      <!-- /SYNC:double-round-trip-review:reminder -->
-          <!-- SYNC:graph-assisted-investigation:reminder -->
+  <!-- /SYNC:double-round-trip-review:reminder -->
+  <!-- SYNC:graph-assisted-investigation:reminder -->
 - **IMPORTANT MUST ATTENTION** run at least ONE graph command on key files before concluding (when graph.db exists).
-  <!-- /SYNC:graph-assisted-investigation:reminder -->
+    <!-- /SYNC:graph-assisted-investigation:reminder -->

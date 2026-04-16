@@ -333,21 +333,21 @@ After creating all phase files, run the **recursive decomposition loop**:
 <!-- SYNC:plan-granularity:reminder -->
 
 - **IMPORTANT MUST ATTENTION** verify all phases pass 5-point granularity check. Failing phases → sub-plan. "Can I start coding RIGHT NOW?"
-      <!-- /SYNC:plan-granularity:reminder -->
+  <!-- /SYNC:plan-granularity:reminder -->
 
-                    <!-- SYNC:understand-code-first:reminder -->
+                      <!-- SYNC:understand-code-first:reminder -->
 
 - **IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE any modification. Run graph trace when graph.db exists.
-    <!-- /SYNC:understand-code-first:reminder -->
-    <!-- SYNC:estimation-framework:reminder -->
+      <!-- /SYNC:understand-code-first:reminder -->
+      <!-- SYNC:estimation-framework:reminder -->
 - **IMPORTANT MUST ATTENTION** include `story_points` and `complexity` in plan frontmatter. SP > 8 = split.
-    <!-- /SYNC:estimation-framework:reminder -->
-    <!-- SYNC:plan-quality:reminder -->
+      <!-- /SYNC:estimation-framework:reminder -->
+      <!-- SYNC:plan-quality:reminder -->
 - **IMPORTANT MUST ATTENTION** include `## Test Specifications` with TC IDs per phase. Call `TaskList` before creating new tasks.
-    <!-- /SYNC:plan-quality:reminder -->
-    <!-- SYNC:iterative-phase-quality:reminder -->
+      <!-- /SYNC:plan-quality:reminder -->
+      <!-- SYNC:iterative-phase-quality:reminder -->
 - **IMPORTANT MUST ATTENTION** score complexity first. Score >=6 → decompose. Each phase: plan → implement → review → fix → verify. No skipping.
-  <!-- /SYNC:iterative-phase-quality:reminder -->
-  <!-- SYNC:fix-layer-accountability:reminder -->
+    <!-- /SYNC:iterative-phase-quality:reminder -->
+    <!-- SYNC:fix-layer-accountability:reminder -->
 - **IMPORTANT MUST ATTENTION** trace full data flow and fix at the owning layer, not the crash site. Audit all access sites before adding `?.`.
-  <!-- /SYNC:fix-layer-accountability:reminder -->
+    <!-- /SYNC:fix-layer-accountability:reminder -->

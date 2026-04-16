@@ -316,12 +316,12 @@ Read the plan directory:
 
 #### Validity (Required - all must pass)
 
-| #  | Check | Presence | Quality Depth |
-|----|-------|----------|---------------|
-| 1  | **Has executive summary** — clear 1-2 sentence description | Does a summary section exist? | Is it accurate? Does it scope the work or conceal complexity? |
-| 2  | **Has defined requirements section** — explicit requirements listed | Does a requirements section exist? | Are requirements concrete user needs or vague technical goals? |
-| 3  | **Has implementation steps** — actionable tasks | Are implementation steps present? | Are steps specific (file names, method names) or vague actions? |
-| 4  | **Has files to create/modify listing** — file inventory present | Is a file listing present? | Are file paths real (verified via glob/grep)? Do they follow project conventions? |
+| #   | Check                                                               | Presence                           | Quality Depth                                                                     |
+| --- | ------------------------------------------------------------------- | ---------------------------------- | --------------------------------------------------------------------------------- |
+| 1   | **Has executive summary** — clear 1-2 sentence description          | Does a summary section exist?      | Is it accurate? Does it scope the work or conceal complexity?                     |
+| 2   | **Has defined requirements section** — explicit requirements listed | Does a requirements section exist? | Are requirements concrete user needs or vague technical goals?                    |
+| 3   | **Has implementation steps** — actionable tasks                     | Are implementation steps present?  | Are steps specific (file names, method names) or vague actions?                   |
+| 4   | **Has files to create/modify listing** — file inventory present     | Is a file listing present?         | Are file paths real (verified via glob/grep)? Do they follow project conventions? |
 
 #### Correctness (Required - all must pass)
 
@@ -380,22 +380,22 @@ PASSES after split: `"Phase 2A: Database Schema (1h, 3 files) — Create src/mod
 
 #### Best Practices (Required - all must pass)
 
-| #  | Check | Presence | Quality Depth |
-|----|-------|----------|---------------|
-| 1  | **YAGNI** — No unnecessary features or over-engineering | Is every planned component traceable to a stated requirement? | Flag anything described as "might be useful" or added for future flexibility without a current requirement. |
-| 2  | **KISS** — Simplest viable solution chosen | Is there a stated approach for each major step? | Could any planned abstraction be simpler with the same effect? Are there unnecessary layers, indirections, or framework choices? |
-| 3  | **DRY** — No planned duplication of logic | Are there similar patterns described more than once? | Does the plan introduce new patterns when existing ones work? Are there repeated steps that suggest duplication at implementation time? |
-| 4  | **Architecture** — Follows project patterns from `.claude/docs/` | Does the plan reference or align with `.claude/docs/` patterns? | Does it follow established patterns or deviate? Any deviations need explicit justification with rationale. |
+| #   | Check                                                            | Presence                                                        | Quality Depth                                                                                                                           |
+| --- | ---------------------------------------------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **YAGNI** — No unnecessary features or over-engineering          | Is every planned component traceable to a stated requirement?   | Flag anything described as "might be useful" or added for future flexibility without a current requirement.                             |
+| 2   | **KISS** — Simplest viable solution chosen                       | Is there a stated approach for each major step?                 | Could any planned abstraction be simpler with the same effect? Are there unnecessary layers, indirections, or framework choices?        |
+| 3   | **DRY** — No planned duplication of logic                        | Are there similar patterns described more than once?            | Does the plan introduce new patterns when existing ones work? Are there repeated steps that suggest duplication at implementation time? |
+| 4   | **Architecture** — Follows project patterns from `.claude/docs/` | Does the plan reference or align with `.claude/docs/` patterns? | Does it follow established patterns or deviate? Any deviations need explicit justification with rationale.                              |
 
 #### Completeness (Recommended - ≥50% should pass)
 
-| #  | Check | Presence | Quality Depth |
-|----|-------|----------|---------------|
-| 1  | **Risk assessment present with mitigations** — risks identified with responses | Is there a risk section with at least one item? | Are mitigations specific actions (who, when, triggered by what) or vague intentions ("monitor closely")? |
-| 2  | **Testing strategy defined** — test approach outlined | Is there a testing section or test references per phase? | Does it cover unit, integration, and edge case paths, or just "write tests"? Is the approach traceable to acceptance criteria? |
-| 3  | **Success criteria per phase** — measurable outcomes defined | Does each phase have stated success criteria? | Are criteria measurable? Would failing them trigger a rollback, or are they aspirational targets? |
-| 4  | **Security considerations addressed** — security concerns noted | Is there a security section or inline security notes? | Are security concerns specific to this feature's attack surface, or generic boilerplate (e.g., "use HTTPS", "validate inputs")? |
-| 5  | **Graph dependency check** — importers of modified files are checked | If `.code-graph/graph.db` exists: are `importers_of` queries run for each modified file? | Are ALL importers checked, not just direct callers? Is the graph.db prerequisite explicitly stated? Are missed dependents flagged? |
+| #   | Check                                                                          | Presence                                                                                 | Quality Depth                                                                                                                      |
+| --- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Risk assessment present with mitigations** — risks identified with responses | Is there a risk section with at least one item?                                          | Are mitigations specific actions (who, when, triggered by what) or vague intentions ("monitor closely")?                           |
+| 2   | **Testing strategy defined** — test approach outlined                          | Is there a testing section or test references per phase?                                 | Does it cover unit, integration, and edge case paths, or just "write tests"? Is the approach traceable to acceptance criteria?     |
+| 3   | **Success criteria per phase** — measurable outcomes defined                   | Does each phase have stated success criteria?                                            | Are criteria measurable? Would failing them trigger a rollback, or are they aspirational targets?                                  |
+| 4   | **Security considerations addressed** — security concerns noted                | Is there a security section or inline security notes?                                    | Are security concerns specific to this feature's attack surface, or generic boilerplate (e.g., "use HTTPS", "validate inputs")?    |
+| 5   | **Graph dependency check** — importers of modified files are checked           | If `.code-graph/graph.db` exists: are `importers_of` queries run for each modified file? | Are ALL importers checked, not just direct callers? Is the graph.db prerequisite explicitly stated? Are missed dependents flagged? |
 
 ### Step 3: Score and Classify
 
@@ -605,10 +605,10 @@ After the sub-agent returns:
 <!-- SYNC:understand-code-first:reminder -->
 
 - **IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE any modification. Run graph trace when graph.db exists.
-    <!-- /SYNC:understand-code-first:reminder -->
-    <!-- SYNC:double-round-trip-review:reminder -->
+      <!-- /SYNC:understand-code-first:reminder -->
+      <!-- SYNC:double-round-trip-review:reminder -->
 - **IMPORTANT MUST ATTENTION** execute THREE review rounds per deep-plan-review-protocol. R1=checklist, R2=code-proof, R3=adversarial simulation. Never PASS after R1 alone. Note: Round 3 (adversarial simulation) is MANDATORY even on PASS — it is not triggered only by FAIL. The SYNC:double-round-trip-review protocol describes a 2-round minimum; plan-review extends this to 3 rounds. Round 3 = the adversarial sub-agent from the Adversarial Review Mindset section above.
-    <!-- /SYNC:double-round-trip-review:reminder -->
-    <!-- SYNC:graph-assisted-investigation:reminder -->
+      <!-- /SYNC:double-round-trip-review:reminder -->
+      <!-- SYNC:graph-assisted-investigation:reminder -->
 - **IMPORTANT MUST ATTENTION** run at least ONE graph command on key files when graph.db exists. Pattern: grep → graph trace → grep verify.
-  <!-- /SYNC:graph-assisted-investigation:reminder -->
+    <!-- /SYNC:graph-assisted-investigation:reminder -->

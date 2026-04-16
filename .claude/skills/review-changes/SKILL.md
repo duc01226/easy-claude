@@ -837,22 +837,22 @@ If `architectureRules` is not present in project-config.json, skip this check si
   <!-- SYNC:understand-code-first:reminder -->
 
 - **IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE any modification. Run graph trace when graph.db exists.
-    <!-- /SYNC:understand-code-first:reminder -->
-    <!-- SYNC:design-patterns-quality:reminder -->
+      <!-- /SYNC:understand-code-first:reminder -->
+      <!-- SYNC:design-patterns-quality:reminder -->
 - **IMPORTANT MUST ATTENTION** check DRY via OOP, right responsibility layer, SOLID. Grep for dangling refs after moves.
-    <!-- /SYNC:design-patterns-quality:reminder -->
-    <!-- SYNC:graph-assisted-investigation:reminder -->
+      <!-- /SYNC:design-patterns-quality:reminder -->
+      <!-- SYNC:graph-assisted-investigation:reminder -->
 - **IMPORTANT MUST ATTENTION** run at least ONE graph command on key files when graph.db exists. Pattern: grep → trace → verify.
-    <!-- /SYNC:graph-assisted-investigation:reminder -->
-    <!-- SYNC:logic-and-intention-review:reminder -->
+      <!-- /SYNC:graph-assisted-investigation:reminder -->
+      <!-- SYNC:logic-and-intention-review:reminder -->
 - **IMPORTANT MUST ATTENTION** verify WHAT code does matches WHY it changed. Trace happy + error paths.
-    <!-- /SYNC:logic-and-intention-review:reminder -->
-    <!-- SYNC:bug-detection:reminder -->
+      <!-- /SYNC:logic-and-intention-review:reminder -->
+      <!-- SYNC:bug-detection:reminder -->
 - **IMPORTANT MUST ATTENTION** check null safety, boundaries, error handling, resource management for every review.
-    <!-- /SYNC:bug-detection:reminder -->
-    <!-- SYNC:test-spec-verification:reminder -->
+      <!-- /SYNC:bug-detection:reminder -->
+      <!-- SYNC:test-spec-verification:reminder -->
 - **IMPORTANT MUST ATTENTION** map changed code paths to TC-{FEAT}-{NNN}. Flag untested paths.
-    <!-- /SYNC:test-spec-verification:reminder -->
-    <!-- SYNC:integration-test-sync-check:reminder -->
+      <!-- /SYNC:test-spec-verification:reminder -->
+      <!-- SYNC:integration-test-sync-check:reminder -->
 - **IMPORTANT MUST ATTENTION** check changed handlers for matching integration tests. Flag missing tests as advisory.
-    <!-- /SYNC:integration-test-sync-check:reminder -->
+      <!-- /SYNC:integration-test-sync-check:reminder -->

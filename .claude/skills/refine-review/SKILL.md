@@ -309,29 +309,29 @@ If any box is unchecked — you have NOT completed the adversarial review. Go ba
 
 ### Required (all must pass)
 
-| #  | Check | Presence | Quality Depth |
-|----|-------|----------|---------------|
-| 1  | **Problem statement** — Clear problem defined (not just solution description) | Is a problem statement section present? | Is the problem scoped correctly? Does it confuse symptoms with root cause? Is it framed to lead to only one solution, or is the solution space left open? |
-| 2  | **Acceptance criteria** — Minimum 3 GIVEN/WHEN/THEN scenarios | Are at least 3 GIVEN/WHEN/THEN ACs present? | Are they realistic scenarios, not trivial? Do they cover error paths? Are edge cases specified, or only the happy path? |
-| 3  | **Story points + complexity** — Both fields present with valid values | Are story points and complexity both filled in? | Do both values match the scope of work? Is complexity above 5 justified with a rationale, or just assigned arbitrarily? |
-| 4  | **Dependencies table** — Has dependency table with must-before/can-parallel/blocked-by types | Is a dependencies table present with typed rows? | Are ALL dependencies captured (technical, data, service)? Are "can-parallel" items truly safe to parallelize, or do they share a resource? |
-| 5  | **Stakeholder validation** — User interview was conducted (validation section present) | Is a stakeholder/validation section present? | Was the interview substantive? Does the validation section show actual user responses and insights, or just "interviewed on [date]"? |
-| 6  | **No vague language** — No "should work", "might need", "TBD" in acceptance criteria | Are all ACs free of vague terms? | Are "should work"/"TBD"/"might need" absent from ALL acceptance criteria, including edge cases and error paths? |
-| 7  | **Scope boundary** — Clear "out of scope" or "not included" section | Is an out-of-scope section present? | Are out-of-scope items specific enough to prevent scope creep during implementation? Is anything ambiguously in/out? |
-| 8  | **Authorization defined** — PBI has "Authorization & Access Control" section with roles × CRUD table | Is an authorization section with a CRUD table present? | Does the CRUD table cover ALL PBI-relevant roles? Are there roles (admin, support, service account) that are missing or not addressed? |
-| 9  | **UI Layout section** — If UI: has `## UI Layout` section per wireframe protocol. If backend-only: explicit "N/A" | Is a UI Layout section or explicit N/A present? | If UI: does the wireframe have component tree + states + design tokens? If backend-only: is the N/A explicit and justified, not just omitted? |
+| #   | Check                                                                                                             | Presence                                               | Quality Depth                                                                                                                                             |
+| --- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Problem statement** — Clear problem defined (not just solution description)                                     | Is a problem statement section present?                | Is the problem scoped correctly? Does it confuse symptoms with root cause? Is it framed to lead to only one solution, or is the solution space left open? |
+| 2   | **Acceptance criteria** — Minimum 3 GIVEN/WHEN/THEN scenarios                                                     | Are at least 3 GIVEN/WHEN/THEN ACs present?            | Are they realistic scenarios, not trivial? Do they cover error paths? Are edge cases specified, or only the happy path?                                   |
+| 3   | **Story points + complexity** — Both fields present with valid values                                             | Are story points and complexity both filled in?        | Do both values match the scope of work? Is complexity above 5 justified with a rationale, or just assigned arbitrarily?                                   |
+| 4   | **Dependencies table** — Has dependency table with must-before/can-parallel/blocked-by types                      | Is a dependencies table present with typed rows?       | Are ALL dependencies captured (technical, data, service)? Are "can-parallel" items truly safe to parallelize, or do they share a resource?                |
+| 5   | **Stakeholder validation** — User interview was conducted (validation section present)                            | Is a stakeholder/validation section present?           | Was the interview substantive? Does the validation section show actual user responses and insights, or just "interviewed on [date]"?                      |
+| 6   | **No vague language** — No "should work", "might need", "TBD" in acceptance criteria                              | Are all ACs free of vague terms?                       | Are "should work"/"TBD"/"might need" absent from ALL acceptance criteria, including edge cases and error paths?                                           |
+| 7   | **Scope boundary** — Clear "out of scope" or "not included" section                                               | Is an out-of-scope section present?                    | Are out-of-scope items specific enough to prevent scope creep during implementation? Is anything ambiguously in/out?                                      |
+| 8   | **Authorization defined** — PBI has "Authorization & Access Control" section with roles × CRUD table              | Is an authorization section with a CRUD table present? | Does the CRUD table cover ALL PBI-relevant roles? Are there roles (admin, support, service account) that are missing or not addressed?                    |
+| 9   | **UI Layout section** — If UI: has `## UI Layout` section per wireframe protocol. If backend-only: explicit "N/A" | Is a UI Layout section or explicit N/A present?        | If UI: does the wireframe have component tree + states + design tokens? If backend-only: is the N/A explicit and justified, not just omitted?             |
 
 ### Recommended (>=50% should pass)
 
-| #  | Check | Presence | Quality Depth |
-|----|-------|----------|---------------|
-| 1  | **RICE/MoSCoW score** — Prioritization applied | Is a RICE or MoSCoW prioritization score present? | Is the scoring justified with data or reasoning, or assigned arbitrarily without rationale? |
-| 2  | **Domain vocabulary** — Uses project-specific terms from domain-entities-reference.md | Are domain-specific terms used in the PBI? | Is domain language consistent with `domain-entities-reference.md`, or are new terms introduced without definition? |
-| 3  | **Risk assessment** — Risks identified with mitigations | Is a risk section present with at least one item? | Are risks specific to this PBI, or generic "technical risk"? Are mitigations actionable (who does what, when triggered)? |
-| 4  | **Non-functional requirements** — Performance, security, accessibility considered | Is an NFR section or NFR notes present? | Are perf/security/accessibility numbers specified (e.g., "< 200ms response time", "WCAG AA"), not just "considered" or "addressed"? |
-| 5  | **Production readiness concerns** — PBI includes "Production Readiness Concerns" table with Yes/No/Existing | Is the Production Readiness Concerns table present with all 5 rows? | Are all 5 table rows meaningfully filled — not just "Yes" for all? Are gaps called out with rationale? |
-| 6  | **Seed data assessed** — PBI addresses seed data needs or explicitly states "N/A" | Is seed data addressed or explicitly marked N/A? | If "N/A" is used, is it justified? Is it the right N/A (no new reference data needed), or is seed data actually required and skipped? |
-| 7  | **Data migration assessed** — PBI addresses schema changes and data migration needs or explicitly states "N/A" | Is data migration addressed or explicitly marked N/A? | If "N/A" is used, is it justified? Are there hidden schema implications (added columns, changed constraints) that require migration even if "no new tables"? |
+| #   | Check                                                                                                          | Presence                                                            | Quality Depth                                                                                                                                                |
+| --- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | **RICE/MoSCoW score** — Prioritization applied                                                                 | Is a RICE or MoSCoW prioritization score present?                   | Is the scoring justified with data or reasoning, or assigned arbitrarily without rationale?                                                                  |
+| 2   | **Domain vocabulary** — Uses project-specific terms from domain-entities-reference.md                          | Are domain-specific terms used in the PBI?                          | Is domain language consistent with `domain-entities-reference.md`, or are new terms introduced without definition?                                           |
+| 3   | **Risk assessment** — Risks identified with mitigations                                                        | Is a risk section present with at least one item?                   | Are risks specific to this PBI, or generic "technical risk"? Are mitigations actionable (who does what, when triggered)?                                     |
+| 4   | **Non-functional requirements** — Performance, security, accessibility considered                              | Is an NFR section or NFR notes present?                             | Are perf/security/accessibility numbers specified (e.g., "< 200ms response time", "WCAG AA"), not just "considered" or "addressed"?                          |
+| 5   | **Production readiness concerns** — PBI includes "Production Readiness Concerns" table with Yes/No/Existing    | Is the Production Readiness Concerns table present with all 5 rows? | Are all 5 table rows meaningfully filled — not just "Yes" for all? Are gaps called out with rationale?                                                       |
+| 6   | **Seed data assessed** — PBI addresses seed data needs or explicitly states "N/A"                              | Is seed data addressed or explicitly marked N/A?                    | If "N/A" is used, is it justified? Is it the right N/A (no new reference data needed), or is seed data actually required and skipped?                        |
+| 7   | **Data migration assessed** — PBI addresses schema changes and data migration needs or explicitly states "N/A" | Is data migration addressed or explicitly marked N/A?               | If "N/A" is used, is it justified? Are there hidden schema implications (added columns, changed constraints) that require migration even if "no new tables"? |
 
 ## Output
 
@@ -408,10 +408,10 @@ After sub-agent returns:
 <!-- SYNC:double-round-trip-review:reminder -->
 
 - **MANDATORY IMPORTANT MUST ATTENTION** execute TWO review rounds. Round 2 delegates to fresh code-reviewer sub-agent (zero prior context) — never skip or combine with Round 1.
-      <!-- /SYNC:double-round-trip-review:reminder -->
-            <!-- SYNC:graph-impact-analysis:reminder -->
+  <!-- /SYNC:double-round-trip-review:reminder -->
+  <!-- SYNC:graph-impact-analysis:reminder -->
 - **IMPORTANT MUST ATTENTION** run `blast-radius` when graph.db exists. Flag impacted files NOT in changeset as potentially stale.
-    <!-- /SYNC:graph-impact-analysis:reminder -->
-    <!-- SYNC:ui-system-context:reminder -->
+      <!-- /SYNC:graph-impact-analysis:reminder -->
+      <!-- SYNC:ui-system-context:reminder -->
 - **IMPORTANT MUST ATTENTION** read frontend-patterns-reference, scss-styling-guide, design-system/README before any UI change.
-  <!-- /SYNC:ui-system-context:reminder -->
+    <!-- /SYNC:ui-system-context:reminder -->

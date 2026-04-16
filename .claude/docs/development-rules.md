@@ -31,10 +31,10 @@
 - **[IMPORTANT]** Follow codebase structure and code standards in `./docs` during implementation
 - **[IMPORTANT]** Always implement real code — never simulate or mock implementations
 - **[CRITICAL] Class Responsibility Rule:**
-  - Logic belongs in LOWEST layer: Entity/Model > Service > Component/Handler
-  - Backend: Entity mapping → Command.UpdateEntity() or DTO.MapToEntity(), NOT in Handler
-  - Frontend: Constants, column arrays, role lists → static properties in Model class, NOT in Component
-  - Frontend: Display logic (CSS class, status text) → instance getter in Model, NOT switch in Component
+    - Logic belongs in LOWEST layer: Entity/Model > Service > Component/Handler
+    - Backend: Entity mapping → Command.UpdateEntity() or DTO.MapToEntity(), NOT in Handler
+    - Frontend: Constants, column arrays, role lists → static properties in Model class, NOT in Component
+    - Frontend: Display logic (CSS class, status text) → instance getter in Model, NOT switch in Component
 
 ## Understand Code First (MANDATORY)
 
@@ -116,7 +116,7 @@ var a2 = GetInput2().Pipe(x => Process(x));
 var result = Combine(a1, a2);
 ```
 
-*(Same pattern: TypeScript/RxJS → `.pipe(map(...))`, Python → single-expression calls)*
+_(Same pattern: TypeScript/RxJS → `.pipe(map(...))`, Python → single-expression calls)_
 
 ### Decision: Extract vs Chain
 
@@ -151,8 +151,8 @@ The step rule naturally tells you when extraction is needed:
 - **Match existing style** — Match existing quote style, spacing, naming conventions even if you'd do it differently. Style drift in a diff is noise that obscures the real change.
 - **Orphan cleanup** — When your changes create unused imports/variables/functions, remove them. But do NOT remove pre-existing dead code unless asked. The distinction: YOU made it unused → remove it. It was already dead → mention it, don't touch it.
 - **Scope discipline** — Two modes, same transparency rule:
-  - **Bug fix context:** "Fix the bug" ≠ "improve the function." If you see a related improvement, announce it — don't silently implement it.
-  - **Review / enhancement context:** If you see improvement opportunities, **implement them AND explicitly announce** what was enhanced beyond the main request. Never leave visible quality improvements unfixed when the task gives you license to improve. The rule either way: **never silently scope-creep**. Always declare what you did beyond the stated request.
+    - **Bug fix context:** "Fix the bug" ≠ "improve the function." If you see a related improvement, announce it — don't silently implement it.
+    - **Review / enhancement context:** If you see improvement opportunities, **implement them AND explicitly announce** what was enhanced beyond the main request. Never leave visible quality improvements unfixed when the task gives you license to improve. The rule either way: **never silently scope-creep**. Always declare what you did beyond the stated request.
 
 ### Anti-Pattern: Drive-By Refactoring
 
