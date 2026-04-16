@@ -2,7 +2,6 @@
 name: plan-validate
 version: 1.0.0
 description: '[Planning] Validate plan with critical questions interview'
-allowed-tools: Read, Glob, Grep, TaskCreate, AskUserQuestion, Bash
 ---
 
 > **[BLOCKING]** This skill MUST ATTENTION use `AskUserQuestion` to interview the user. Completing without asking at least one question is a violation.

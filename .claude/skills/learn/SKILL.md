@@ -3,7 +3,6 @@ name: learn
 version: 4.0.0
 description: "[Utilities] Teach Claude lessons that persist across sessions. Triggers on 'remember this', 'always do', 'never do', 'learn this', 'from now on'. Smart routing to all 12 project-reference docs with /prompt-enhance finalization."
 disable-model-invocation: false
-allowed-tools: Read, Write, Edit, Glob, Bash
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.

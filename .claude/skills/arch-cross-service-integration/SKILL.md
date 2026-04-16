@@ -2,7 +2,6 @@
 name: arch-cross-service-integration
 version: 1.1.0
 description: '[Architecture] Use when designing or implementing cross-service communication, data synchronization, or service boundary patterns.'
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash, Task
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.

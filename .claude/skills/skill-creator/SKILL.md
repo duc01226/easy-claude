@@ -3,7 +3,6 @@ name: skill-creator
 version: 2.0.0
 description: "[Skill Management] Guide for creating effective skills, adding skill references, skill scripts or optimizing existing skills. This skill should be used when users want to create a new skill (or update an existing skill) that extends Claude's capabilities with specialized knowledge, workflows, frameworks, libraries or plugins usage, or API and tool integrations. Formerly also known as 'skill-share'."
 
-allowed-tools: NONE
 license: Complete terms in LICENSE.txt
 ---
 
@@ -339,6 +338,6 @@ After testing the skill, users may request improvements. Often this happens righ
 - **IMPORTANT MUST ATTENTION** call `/prompt-enhance` on new/updated skills as final attention-anchoring quality pass
 - **IMPORTANT MUST ATTENTION** include `## Quick Summary` within first 30 lines of every SKILL.md
 - **IMPORTANT MUST ATTENTION** add Closing Reminders with `:reminder` SYNC blocks at bottom of every skill
-  <!-- SYNC:shared-protocol-duplication-policy:reminder -->
+      <!-- SYNC:shared-protocol-duplication-policy:reminder -->
 - **IMPORTANT MUST ATTENTION** follow duplication policy: inline protocols are INTENTIONAL, never extract to file references
-  <!-- /SYNC:shared-protocol-duplication-policy:reminder -->
+      <!-- /SYNC:shared-protocol-duplication-policy:reminder -->

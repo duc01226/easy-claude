@@ -68,7 +68,6 @@ user-invocable: true # false = hidden from / menu, Claude-only auto-invoke
 context: inline # inline (default) or fork (isolated subagent)
 agent: general-purpose # Subagent type when context: fork
 model: opus-4-5 # Model override. Default: session model
-allowed-tools: 'Read, Grep, Glob' # Comma-separated tool restrictions
 version: 1.0.0 # Project convention (non-official)
 ---
 ```

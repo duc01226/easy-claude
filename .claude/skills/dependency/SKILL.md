@@ -2,7 +2,6 @@
 name: dependency
 version: 2.0.0
 description: '[Project Management] Map and visualize feature dependencies between modules, services, and work items. Triggers on dependency map, dependency graph, what blocks, blockers, critical path, feature sequencing.'
-allowed-tools: Read, Write, Grep, Glob, Bash, Edit
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.

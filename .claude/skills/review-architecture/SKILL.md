@@ -2,7 +2,6 @@
 name: review-architecture
 version: 1.1.0
 description: '[Code Quality] Review architecture compliance — clean architecture layers, messaging patterns, service boundaries, CQRS, v1/v2 service patterns, repository usage, entity event handlers. Default: changed files only.'
-allowed-tools: Read, Grep, Glob, Bash, Write, TaskCreate, TaskUpdate, Agent, AskUserQuestion
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.

@@ -2,7 +2,6 @@
 name: story
 version: 1.2.0
 description: "[Project Management] Break PBIs into user stories using vertical slicing, SPIDR splitting, and INVEST criteria. Use when creating user stories from PBIs, slicing features, or breaking down requirements. Triggers on keywords like "user story", "create stories", "slice pbi", "story breakdown", "vertical slice", "split story"."
-allowed-tools: Read, Write, Edit, Grep, Glob, TaskCreate, AskUserQuestion, Bash
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.

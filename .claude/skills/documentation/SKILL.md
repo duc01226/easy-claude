@@ -2,7 +2,6 @@
 name: documentation
 version: 2.2.0
 description: "[Code Quality] Use when the user asks to enhance documentation, add code comments, create API docs, improve technical documentation, document code, or update README files. Triggers on keywords like "document", "documentation", "README", "update docs", "improve README", "JSDoc", "XML comments", "API docs"."
-allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Task, TaskCreate
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
