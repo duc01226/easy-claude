@@ -73,7 +73,6 @@ model: inherit # inherit | sonnet | opus | haiku
 # OPTIONAL — Permissions
 permissionMode: default # default | acceptEdits | dontAsk | bypassPermissions | plan
 
-
 # OPTIONAL — Skills (content injected at startup)
 skills:
     - skill-name

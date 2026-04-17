@@ -184,6 +184,7 @@ If you're thinking:
 - "The error message is misleading" — Read it again carefully. Error messages are usually right.
 - "It works on my machine" — Reproduce in the failing environment. Your environment hides bugs.
 - "This can't be the cause" — Verify with evidence, not intuition. Unlikely causes are still causes.
+- "It's OOM, must be a large object" — For memory exhaustion, check row count BEFORE row size. An unbounded query loading thousands of records is the more common cause. Triage: (1) Is there a missing DB-level filter for the triggering condition? (2) Is each row excessively large?
 
 ## IMPORTANT Task Planning Notes (MUST ATTENTION FOLLOW)
 

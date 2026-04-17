@@ -56,7 +56,7 @@ description: "[Project Management] Transform ideas into Product Backlog Items us
 - Use project domain-specific vocabulary when available
 - MUST ATTENTION include `story_points` and `complexity` in PBI output
 - `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
-  <!-- SYNC:scaffold-production-readiness -->
+    <!-- SYNC:scaffold-production-readiness -->
 
 > **Scaffold Production Readiness** — Every scaffolded project MUST ATTENTION include 5 foundations:
 >
@@ -80,7 +80,7 @@ description: "[Project Management] Transform ideas into Product Backlog Items us
     > 4. **Performance** — no N+1 queries, unnecessary allocations, or blocking calls in async paths
     > 5. **Observability** — health checks, metrics, tracing spans for new endpoints
 
-                    <!-- /SYNC:cross-cutting-quality -->
+                      <!-- /SYNC:cross-cutting-quality -->
 
     — for Authorization, Seed Data, Data Migration concerns in PBI output
 
@@ -656,13 +656,13 @@ For domain PBIs: detect module from `docs/business-features/` directory names, e
 <!-- SYNC:ui-system-context:reminder -->
 
 - **IMPORTANT MUST ATTENTION** read frontend-patterns-reference, scss-styling-guide, design-system/README before any UI change.
-    <!-- /SYNC:ui-system-context:reminder -->
-    <!-- SYNC:scaffold-production-readiness:reminder -->
+      <!-- /SYNC:ui-system-context:reminder -->
+      <!-- SYNC:scaffold-production-readiness:reminder -->
 - **IMPORTANT MUST ATTENTION** verify 4 production-readiness foundations (code quality, error handling, loading state, Docker) for scaffold PBIs.
-  <!-- /SYNC:scaffold-production-readiness:reminder -->
-  <!-- SYNC:cross-cutting-quality:reminder -->
+    <!-- /SYNC:scaffold-production-readiness:reminder -->
+    <!-- SYNC:cross-cutting-quality:reminder -->
 - **IMPORTANT MUST ATTENTION** check error handling, logging, security, performance, and observability across changed files.
-  <!-- /SYNC:cross-cutting-quality:reminder -->
-  <!-- SYNC:estimation-framework:reminder -->
+    <!-- /SYNC:cross-cutting-quality:reminder -->
+    <!-- SYNC:estimation-framework:reminder -->
 - **IMPORTANT MUST ATTENTION** estimate story points using Modified Fibonacci (1-21). SP >8 MUST ATTENTION split, >5 SHOULD split.
-  <!-- /SYNC:estimation-framework:reminder -->
+    <!-- /SYNC:estimation-framework:reminder -->

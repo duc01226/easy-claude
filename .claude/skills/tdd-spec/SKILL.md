@@ -400,13 +400,13 @@ Based on mode, suggest via `AskUserQuestion`:
 <!-- SYNC:rationalization-prevention:reminder -->
 
 - **IMPORTANT MUST ATTENTION** never skip steps via "too simple" or "already searched" evasions. Plan anyway, test first, show grep evidence.
-    <!-- /SYNC:rationalization-prevention:reminder -->
-    <!-- SYNC:evidence-based-reasoning:reminder -->
+      <!-- /SYNC:rationalization-prevention:reminder -->
+      <!-- SYNC:evidence-based-reasoning:reminder -->
 - **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% do NOT recommend.
-    <!-- /SYNC:evidence-based-reasoning:reminder -->
-    <!-- SYNC:cross-cutting-quality:reminder -->
+      <!-- /SYNC:evidence-based-reasoning:reminder -->
+      <!-- SYNC:cross-cutting-quality:reminder -->
 - **IMPORTANT MUST ATTENTION** check error handling, logging, security, performance, and observability across changed files.
-    <!-- /SYNC:cross-cutting-quality:reminder -->
-    <!-- SYNC:ui-system-context:reminder -->
+      <!-- /SYNC:cross-cutting-quality:reminder -->
+      <!-- SYNC:ui-system-context:reminder -->
 - **IMPORTANT MUST ATTENTION** read frontend-patterns-reference, scss-styling-guide, design-system/README before any UI change.
-    <!-- /SYNC:ui-system-context:reminder -->
+      <!-- /SYNC:ui-system-context:reminder -->

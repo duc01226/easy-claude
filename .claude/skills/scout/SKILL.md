@@ -371,13 +371,13 @@ Use naming pattern: `plans/reports/scout-{date}-{slug}.md`
   <!-- SYNC:evidence-based-reasoning:reminder -->
 
 - **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% = do NOT recommend.
-  <!-- /SYNC:evidence-based-reasoning:reminder -->
-  <!-- SYNC:rationalization-prevention:reminder -->
+    <!-- /SYNC:evidence-based-reasoning:reminder -->
+    <!-- SYNC:rationalization-prevention:reminder -->
 - **IMPORTANT MUST ATTENTION** never skip steps via evasions. Plan anyway. Test first. Show grep evidence with `file:line`.
-  <!-- /SYNC:rationalization-prevention:reminder -->
-  <!-- SYNC:graph-assisted-investigation:reminder -->
+    <!-- /SYNC:rationalization-prevention:reminder -->
+    <!-- SYNC:graph-assisted-investigation:reminder -->
 - **IMPORTANT MUST ATTENTION** run at least ONE graph command on key files before concluding when `.code-graph/graph.db` exists.
-  <!-- /SYNC:graph-assisted-investigation:reminder -->
-  <!-- SYNC:fix-layer-accountability:reminder -->
+    <!-- /SYNC:graph-assisted-investigation:reminder -->
+    <!-- SYNC:fix-layer-accountability:reminder -->
 - **IMPORTANT MUST ATTENTION** trace full data flow and fix at the owning layer, not the crash site. Audit all access sites before adding `?.`.
-  <!-- /SYNC:fix-layer-accountability:reminder -->
+    <!-- /SYNC:fix-layer-accountability:reminder -->

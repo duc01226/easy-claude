@@ -86,10 +86,10 @@ Each `docs/project-reference/` file is auto-initialized by `session-init-docs.cj
 
 ### Lesson Triage Gate (MANDATORY — run FIRST, before routing or saving)
 
-| Gate | Question | Pass | Fail → Action |
-|------|----------|------|---------------|
-| **Recurrence** | "Would this mistake recur in a future session WITHOUT this reminder?" | Yes → continue | No → skip `/learn`; mistake is situational |
-| **Auto-fix** | "Could `/code-review`, `/simplify`, `/security`, or `/lint` catch this automatically?" | No → continue | Yes → skip `/learn`; update the review skill instead |
+| Gate           | Question                                                                               | Pass           | Fail → Action                                        |
+| -------------- | -------------------------------------------------------------------------------------- | -------------- | ---------------------------------------------------- |
+| **Recurrence** | "Would this mistake recur in a future session WITHOUT this reminder?"                  | Yes → continue | No → skip `/learn`; mistake is situational           |
+| **Auto-fix**   | "Could `/code-review`, `/simplify`, `/security`, or `/lint` catch this automatically?" | No → continue  | Yes → skip `/learn`; update the review skill instead |
 
 **Both gates must pass.** A lesson review skills already catch adds noise without value. A one-off situational mistake won't be prevented by a persisted rule.
 

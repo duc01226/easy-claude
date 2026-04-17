@@ -23,15 +23,17 @@ This skill is the **last step of every workflow sequence**. It runs automaticall
 ## What To Do
 
 1. **Integration test coverage check** (skip if workflow is docs/design/investigation/e2e-only, or project has no test suite):
+
     ```bash
     git diff --name-only HEAD && git ls-files --others --exclude-standard
     ```
+
     (The second command lists untracked files not yet staged — catches brand-new handler files before first git add)
     - Scan changed files for those likely requiring integration test coverage: **business logic files** such as handlers, commands, queries, services, controllers, resolvers, event processors. Naming varies by stack — infer from the project's existing file patterns (e.g., `*Service.*`, `*Handler.*`, `*Controller.*`, `*Command.*`, `*Query.*`).
     - For each identified file → search for a corresponding test file. Infer the project's test naming convention from existing tests (e.g., `*.test.ts`, `*Tests.java`, `*_test.py`, `*.spec.js`, `*Tests.cs`). Check standard test directories (`tests/`, `spec/`, `__tests__/`, or adjacent test projects).
     - If ANY identified file lacks a corresponding test → **MANDATORY**: use `AskUserQuestion`:
-      - Option A: "Run `/integration-test` now" (Recommended)
-      - Option B: "Tests already written/updated — proceed"
+        - Option A: "Run `/integration-test` now" (Recommended)
+        - Option B: "Tests already written/updated — proceed"
     - **No silent skip.** Business logic changes without test coverage MUST be surfaced to the user.
     - If no business logic files changed, or all have matching tests → skip silently
 

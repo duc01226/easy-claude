@@ -590,6 +590,6 @@ await DeleteAllUsers();
 - **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
 - **MANDATORY IMPORTANT MUST ATTENTION** execute multi-round review per `SYNC:double-round-trip-review`: Round 1 in main session, Round 2+ via fresh `code-reviewer` sub-agent spawned per `SYNC:fresh-context-review` + `SYNC:review-protocol-injection`
   **MANDATORY IMPORTANT MUST ATTENTION** READ the following files before starting:
-      <!-- SYNC:evidence-based-reasoning:reminder -->
+  <!-- SYNC:evidence-based-reasoning:reminder -->
 - **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% = do NOT recommend.
-    <!-- /SYNC:evidence-based-reasoning:reminder -->
+      <!-- /SYNC:evidence-based-reasoning:reminder -->

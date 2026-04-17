@@ -17,11 +17,11 @@ description: "[Project Management] Break PBIs into user stories using vertical s
 > **MANDATORY IMPORTANT MUST ATTENTION** Plan ToDo Task to READ the following project-specific reference docs:
 >
 > - `project-structure-reference.md` -- project patterns and structure
->       <!-- SYNC:estimation-framework -->
+>   <!-- SYNC:estimation-framework -->
 >
 >     > **Estimation** — Modified Fibonacci: 1(trivial) → 2(small) → 3(medium) → 5(large) → 8(very large) → 13(epic, SHOULD split) → 21(MUST ATTENTION split). Output `story_points` and `complexity` in plan frontmatter. Complexity auto-derived: 1-2=Low, 3-5=Medium, 8=High, 13+=Critical.
 >
->                   <!-- /SYNC:estimation-framework -->
+>                     <!-- /SYNC:estimation-framework -->
 >
 > - `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models) (content auto-injected by hook — check for [Injected: ...] header before reading)
 > - `docs/test-specs/` — Test specifications by module (read existing TCs for related features; include test story/acceptance criteria for new stories)
@@ -568,7 +568,7 @@ Example for a "Create Goal" story:
 <!-- SYNC:estimation-framework:reminder -->
 
 - **IMPORTANT MUST ATTENTION** estimate story points using Modified Fibonacci (1-21). SP >8 MUST ATTENTION split, >5 SHOULD split.
-    <!-- /SYNC:estimation-framework:reminder -->
-    <!-- SYNC:ui-system-context:reminder -->
+      <!-- /SYNC:estimation-framework:reminder -->
+      <!-- SYNC:ui-system-context:reminder -->
 - **IMPORTANT MUST ATTENTION** read frontend-patterns-reference, scss-styling-guide, design-system/README before any UI change.
-    <!-- /SYNC:ui-system-context:reminder -->
+      <!-- /SYNC:ui-system-context:reminder -->

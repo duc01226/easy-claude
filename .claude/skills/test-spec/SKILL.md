@@ -45,7 +45,7 @@ description: '[Testing] Generate test specifications, test cases, and coverage a
 **Key Rules:**
 
 - **TC format:** `TC-{FEATURE}-{NNN}` — feature codes defined in `docs/project-reference/feature-docs-reference.md` and each feature doc's Section 15
-    <!-- SYNC:evidence-based-reasoning -->
+      <!-- SYNC:evidence-based-reasoning -->
 
 > **Evidence-Based Reasoning** — Speculation is FORBIDDEN. Every claim needs proof.
 >
@@ -377,10 +377,10 @@ Before completing test artifacts:
 - **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 - **IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
   **MANDATORY IMPORTANT MUST ATTENTION** READ the following files before starting:
-      <!-- SYNC:graph-impact-analysis:reminder -->
+  <!-- SYNC:graph-impact-analysis:reminder -->
 - **IMPORTANT MUST ATTENTION** run graph impact analysis on changed files when `.code-graph/graph.db` exists. Compute stale file gap.
-      <!-- /SYNC:graph-impact-analysis:reminder -->
-      <!-- SYNC:evidence-based-reasoning:reminder -->
+  <!-- /SYNC:graph-impact-analysis:reminder -->
+  <!-- SYNC:evidence-based-reasoning:reminder -->
 - **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act). NEVER speculate without proof.
-      <!-- /SYNC:evidence-based-reasoning:reminder -->
+  <!-- /SYNC:evidence-based-reasoning:reminder -->
 - **IMPORTANT MUST ATTENTION** READ `CLAUDE.md` before starting

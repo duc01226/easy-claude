@@ -29,23 +29,23 @@ Activate the `review-changes` workflow. Run `/workflow-start review-changes` wit
 
 Create one task per row in the table below — source of truth is `workflows.json` → `review-changes.sequence` (currently 15 steps; verify count matches if you suspect drift):
 
-| #   | Task Subject                                                                                                        | Conditional?                |
-| --- | ------------------------------------------------------------------------------------------------------------------- | --------------------------- |
-| 1   | `[Workflow] /review-changes — Review all uncommitted changes (includes integration test sync check)`                | No                          |
-| 2   | `[Workflow] /review-architecture — Architecture compliance review`                                                  | No                          |
-| 3   | `[Workflow] /code-simplifier — Simplify and refine code`                                                            | No                          |
-| 4   | `[Workflow] /code-review — Comprehensive code review`                                                               | No                          |
-| 5   | `[Workflow] /performance — Performance analysis`                                                                    | No                          |
-| 6   | `[Workflow] /integration-test-review — Integration test quality review (assertions, repeatability, bug protection)` | No                          |
-| 7   | `[Workflow] /integration-test-verify — Verify integration tests pass`                                               | No                          |
-| 8   | `[Workflow] /plan — Consolidate review findings into fix plan`                                                      | Skip if all reviews PASS    |
-| 9   | `[Workflow] /plan-validate — Critical questions on fix plan`                                                        | Skip if all reviews PASS    |
-| 10  | `[Workflow] /why-review — Sanity-check that proposed fixes are warranted`                                           | Skip if all reviews PASS    |
-| 11  | `[Workflow] /cook — Implement fixes from plan`                                                                      | Skip if all reviews PASS    |
-| 12  | `[Workflow] Fresh sub-agent re-review gate — spawn new Agent per SYNC:fresh-context-review`                         | Skip if all reviews PASS    |
+| #   | Task Subject                                                                                                        | Conditional?                                                                                  |
+| --- | ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| 1   | `[Workflow] /review-changes — Review all uncommitted changes (includes integration test sync check)`                | No                                                                                            |
+| 2   | `[Workflow] /review-architecture — Architecture compliance review`                                                  | No                                                                                            |
+| 3   | `[Workflow] /code-simplifier — Simplify and refine code`                                                            | No                                                                                            |
+| 4   | `[Workflow] /code-review — Comprehensive code review`                                                               | No                                                                                            |
+| 5   | `[Workflow] /performance — Performance analysis`                                                                    | No                                                                                            |
+| 6   | `[Workflow] /integration-test-review — Integration test quality review (assertions, repeatability, bug protection)` | No                                                                                            |
+| 7   | `[Workflow] /integration-test-verify — Verify integration tests pass`                                               | No                                                                                            |
+| 8   | `[Workflow] /plan — Consolidate review findings into fix plan`                                                      | Skip if all reviews PASS                                                                      |
+| 9   | `[Workflow] /plan-validate — Critical questions on fix plan`                                                        | Skip if all reviews PASS                                                                      |
+| 10  | `[Workflow] /why-review — Sanity-check that proposed fixes are warranted`                                           | Skip if all reviews PASS                                                                      |
+| 11  | `[Workflow] /cook — Implement fixes from plan`                                                                      | Skip if all reviews PASS                                                                      |
+| 12  | `[Workflow] Fresh sub-agent re-review gate — spawn new Agent per SYNC:fresh-context-review`                         | Skip if all reviews PASS                                                                      |
 | 13  | `[Workflow] /docs-update — Update impacted documentation`                                                           | Always run — /docs-update triages internally (fast-exits when only config/tool files changed) |
-| 14  | `[Workflow] /watzup — Wrap up and summarize`                                                                        | No                          |
-| 15  | `[Workflow] /workflow-end — End workflow`                                                                           | No                          |
+| 14  | `[Workflow] /watzup — Wrap up and summarize`                                                                        | No                                                                                            |
+| 15  | `[Workflow] /workflow-end — End workflow`                                                                           | No                                                                                            |
 
 NEVER consolidate, rename, or omit steps. If reviews PASS, mark conditional tasks `completed` with note "Skipped — all reviews passed".
 

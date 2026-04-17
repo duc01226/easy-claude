@@ -12,7 +12,6 @@ triggers:
     - release notes last
     - changes last 30 days
     - last N days
-
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting. This prevents context loss during large diff analysis. Always dump git artifacts to external files before reading.

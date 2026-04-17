@@ -674,28 +674,28 @@ If `architectureRules` is not present in project-config.json, skip this check si
 <!-- SYNC:evidence-based-reasoning:reminder -->
 
 - **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% = do NOT recommend.
-      <!-- /SYNC:evidence-based-reasoning:reminder -->
-      <!-- SYNC:design-patterns-quality:reminder -->
+  <!-- /SYNC:evidence-based-reasoning:reminder -->
+  <!-- SYNC:design-patterns-quality:reminder -->
 - **MANDATORY IMPORTANT MUST ATTENTION** check DRY via OOP (same-suffix → base class), right responsibility (lowest layer), SOLID. Grep for dangling refs after changes.
-      <!-- /SYNC:design-patterns-quality:reminder -->
-      <!-- SYNC:double-round-trip-review:reminder -->
+  <!-- /SYNC:design-patterns-quality:reminder -->
+  <!-- SYNC:double-round-trip-review:reminder -->
 - **MANDATORY IMPORTANT MUST ATTENTION** execute TWO review rounds. Round 2 delegates to fresh code-reviewer sub-agent (zero prior context) — never skip or combine with Round 1.
-      <!-- /SYNC:double-round-trip-review:reminder -->
-      <!-- SYNC:rationalization-prevention:reminder -->
+  <!-- /SYNC:double-round-trip-review:reminder -->
+  <!-- SYNC:rationalization-prevention:reminder -->
 - **MANDATORY IMPORTANT MUST ATTENTION** follow ALL steps regardless of perceived simplicity. "Too simple to plan" is an evasion, not a reason.
-      <!-- /SYNC:rationalization-prevention:reminder -->
-      <!-- SYNC:graph-assisted-investigation:reminder -->
+  <!-- /SYNC:rationalization-prevention:reminder -->
+  <!-- SYNC:graph-assisted-investigation:reminder -->
 - **MANDATORY IMPORTANT MUST ATTENTION** run at least ONE graph command on key files when graph.db exists. Pattern: grep → graph trace → grep verify.
-      <!-- /SYNC:graph-assisted-investigation:reminder -->
-      <!-- SYNC:logic-and-intention-review:reminder -->
+  <!-- /SYNC:graph-assisted-investigation:reminder -->
+  <!-- SYNC:logic-and-intention-review:reminder -->
 - **MANDATORY IMPORTANT MUST ATTENTION** verify every changed file serves stated purpose. Trace happy + error paths. Flag scope creep.
-      <!-- /SYNC:logic-and-intention-review:reminder -->
-      <!-- SYNC:bug-detection:reminder -->
+  <!-- /SYNC:logic-and-intention-review:reminder -->
+  <!-- SYNC:bug-detection:reminder -->
 - **MANDATORY IMPORTANT MUST ATTENTION** check null safety, boundary conditions, error handling, resource management for every review.
-      <!-- /SYNC:bug-detection:reminder -->
-      <!-- SYNC:test-spec-verification:reminder -->
+  <!-- /SYNC:bug-detection:reminder -->
+  <!-- SYNC:test-spec-verification:reminder -->
 - **MANDATORY IMPORTANT MUST ATTENTION** map every changed function/endpoint to a TC-{FEAT}-{NNN}. Flag gaps, recommend `/tdd-spec`.
-    <!-- /SYNC:test-spec-verification:reminder -->
-    <!-- SYNC:fix-layer-accountability:reminder -->
+      <!-- /SYNC:test-spec-verification:reminder -->
+      <!-- SYNC:fix-layer-accountability:reminder -->
 - **IMPORTANT MUST ATTENTION** trace full data flow and fix at the owning layer, not the crash site. Audit all access sites before adding `?.`.
-      <!-- /SYNC:fix-layer-accountability:reminder -->
+  <!-- /SYNC:fix-layer-accountability:reminder -->
