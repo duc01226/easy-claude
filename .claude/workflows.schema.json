@@ -92,6 +92,26 @@
       "title": "Global Settings",
       "type": "object"
     },
+    "StepMeta": {
+      "additionalProperties": false,
+      "description": "Optional runtime hints for a specific workflow step. Read by workflow-step-tracker.cjs to decide sub-agent vs inline execution. Overrides values in the skill's SKILL.md front matter.",
+      "properties": {
+        "contextBudget": {
+          "description": "Expected context consumption of this step. 'critical' = always run as sub-agent. 'high' = recommend sub-agent. 'medium' = optional sub-agent. 'low' = inline safe.",
+          "enum": ["low", "medium", "high", "critical"],
+          "title": "Context Budget",
+          "type": "string"
+        },
+        "executionMode": {
+          "description": "Explicit execution mode override. 'subagent' = MUST run via Agent tool. 'inline' = safe to run as Skill tool call.",
+          "enum": ["subagent", "inline"],
+          "title": "Execution Mode",
+          "type": "string"
+        }
+      },
+      "title": "Step Metadata",
+      "type": "object"
+    },
     "WorkflowEntry": {
       "additionalProperties": false,
       "description": "Defines a workflow selected by AI-native intent detection. Contains natural language descriptions for when to use/not use, an ordered sequence of commands, and optional pre-actions.",
@@ -126,6 +146,14 @@
           "minItems": 1,
           "title": "Command Sequence",
           "type": "array"
+        },
+        "stepMeta": {
+          "additionalProperties": {
+            "$ref": "#/definitions/StepMeta"
+          },
+          "description": "Optional per-step metadata overrides keyed by command key (must match a value in sequence). Overrides execution-mode or context-budget from the skill's SKILL.md front matter. workflow-step-tracker.cjs reads this at runtime.",
+          "title": "Step Metadata Overrides",
+          "type": "object"
         },
         "whenNotToUse": {
           "description": "Natural language description of when NOT to select this workflow. Used for disambiguation when multiple workflows could match.",
