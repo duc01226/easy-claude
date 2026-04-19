@@ -8,13 +8,37 @@ description: '[Workflow] Trigger Review Current Changes workflow — review, fix
 > **[FRESH SUB-AGENT RE-REVIEW]** After fixes in `/cook`, spawn a fresh sub-agent per `SYNC:fresh-context-review` for unbiased re-review. Max 3 fresh rounds per conversation.
 > **[ITERATION CAP]** Max 3 fresh-subagent re-review rounds per conversation (tracked in conversation context, not persistent files). PASS = zero Critical/High without fixes.
 
+<!-- SYNC:critical-thinking-mindset -->
+
+> **Critical Thinking Mindset** — Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
+> **Anti-hallucination:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
+
+<!-- /SYNC:critical-thinking-mindset -->
+
+<!-- SYNC:ai-mistake-prevention -->
+
+> **AI Mistake Prevention** — Failure modes to avoid on every task:
+>
+> - **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
+> - **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
+> - **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
+> - **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
+> - **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
+> - **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
+> - **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
+> - **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
+> - **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
+> - **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
+
+<!-- /SYNC:ai-mistake-prevention -->
+
 Activate the `review-changes` workflow. Run `/workflow-start review-changes` with the user's prompt as context.
 
 ## Quick Summary
 
 **Goal:** Review all uncommitted changes, fix issues found, then spawn a **fresh code-reviewer sub-agent** for unbiased re-review — repeat until clean.
 
-**Sequence:** /review-changes → /review-architecture → /code-simplifier → /code-review → /performance → /integration-test-review → /integration-test-verify → /plan → /plan-validate → /why-review → /cook → **fresh sub-agent re-review gate** → /docs-update → /watzup → /workflow-end
+**Sequence:** /review-changes → /review-architecture → /review-domain-entities (if entity changes) → /code-simplifier → /code-review → /performance → /integration-test-review → /integration-test-verify → /plan → /plan-validate → /why-review → /cook → **fresh sub-agent re-review gate** → /docs-update → /watzup → /workflow-end
 
 **Key Rules:**
 
@@ -27,25 +51,26 @@ Activate the `review-changes` workflow. Run `/workflow-start review-changes` wit
 
 ## Mandatory Task Creation (ZERO TOLERANCE)
 
-Create one task per row in the table below — source of truth is `workflows.json` → `review-changes.sequence` (currently 15 steps; verify count matches if you suspect drift):
+Create one task per row in the table below — source of truth is `workflows.json` → `review-changes.sequence` (currently 16 steps; verify count matches if you suspect drift):
 
 | #   | Task Subject                                                                                                        | Conditional?                                                                                  |
 | --- | ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | 1   | `[Workflow] /review-changes — Review all uncommitted changes (includes integration test sync check)`                | No                                                                                            |
 | 2   | `[Workflow] /review-architecture — Architecture compliance review`                                                  | No                                                                                            |
-| 3   | `[Workflow] /code-simplifier — Simplify and refine code`                                                            | No                                                                                            |
-| 4   | `[Workflow] /code-review — Comprehensive code review`                                                               | No                                                                                            |
-| 5   | `[Workflow] /performance — Performance analysis`                                                                    | No                                                                                            |
-| 6   | `[Workflow] /integration-test-review — Integration test quality review (assertions, repeatability, bug protection)` | No                                                                                            |
-| 7   | `[Workflow] /integration-test-verify — Verify integration tests pass`                                               | No                                                                                            |
-| 8   | `[Workflow] /plan — Consolidate review findings into fix plan`                                                      | Skip if all reviews PASS                                                                      |
-| 9   | `[Workflow] /plan-validate — Critical questions on fix plan`                                                        | Skip if all reviews PASS                                                                      |
-| 10  | `[Workflow] /why-review — Sanity-check that proposed fixes are warranted`                                           | Skip if all reviews PASS                                                                      |
-| 11  | `[Workflow] /cook — Implement fixes from plan`                                                                      | Skip if all reviews PASS                                                                      |
-| 12  | `[Workflow] Fresh sub-agent re-review gate — spawn new Agent per SYNC:fresh-context-review`                         | Skip if all reviews PASS                                                                      |
-| 13  | `[Workflow] /docs-update — Update impacted documentation`                                                           | Always run — /docs-update triages internally (fast-exits when only config/tool files changed) |
-| 14  | `[Workflow] /watzup — Wrap up and summarize`                                                                        | No                                                                                            |
-| 15  | `[Workflow] /workflow-end — End workflow`                                                                           | No                                                                                            |
+| 3   | `[Workflow] /review-domain-entities — DDD quality review of changed domain entity files`                            | Yes — skip if no domain entity files (Domain/, Entities/, ValueObjects/) in git diff          |
+| 4   | `[Workflow] /code-simplifier — Simplify and refine code`                                                            | No                                                                                            |
+| 5   | `[Workflow] /code-review — Comprehensive code review`                                                               | No                                                                                            |
+| 6   | `[Workflow] /performance — Performance analysis`                                                                    | No                                                                                            |
+| 7   | `[Workflow] /integration-test-review — Integration test quality review (assertions, repeatability, bug protection)` | No                                                                                            |
+| 8   | `[Workflow] /integration-test-verify — Verify integration tests pass`                                               | No                                                                                            |
+| 9   | `[Workflow] /plan — Consolidate review findings into fix plan`                                                      | Skip if all reviews PASS                                                                      |
+| 10  | `[Workflow] /plan-validate — Critical questions on fix plan`                                                        | Skip if all reviews PASS                                                                      |
+| 11  | `[Workflow] /why-review — Sanity-check that proposed fixes are warranted`                                           | Skip if all reviews PASS                                                                      |
+| 12  | `[Workflow] /cook — Implement fixes from plan`                                                                      | Skip if all reviews PASS                                                                      |
+| 13  | `[Workflow] Fresh sub-agent re-review gate — spawn new Agent per SYNC:fresh-context-review`                         | Skip if all reviews PASS                                                                      |
+| 14  | `[Workflow] /docs-update — Update impacted documentation`                                                           | Always run — /docs-update triages internally (fast-exits when only config/tool files changed) |
+| 15  | `[Workflow] /watzup — Wrap up and summarize`                                                                        | No                                                                                            |
+| 16  | `[Workflow] /workflow-end — End workflow`                                                                           | No                                                                                            |
 
 NEVER consolidate, rename, or omit steps. If reviews PASS, mark conditional tasks `completed` with note "Skipped — all reviews passed".
 
@@ -132,9 +157,15 @@ Main Session: Review → Issues? → Plan → Fix (/cook) → Spawn fresh sub-ag
 
 ## Closing Reminders
 
-- **IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting — create ALL 15 tasks immediately
+- **IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting — create ALL 16 tasks immediately
 - **IMPORTANT MUST ATTENTION** after fixes in `/cook`, spawn a NEW `code-reviewer` sub-agent via the `Agent` tool per `SYNC:fresh-context-review` — NEVER re-review with the main agent
 - **IMPORTANT MUST ATTENTION** track fresh-subagent round count in conversation context (session-scoped, no persistent files) — max 3 rounds, escalate via `AskUserQuestion` if exceeded
 - **IMPORTANT MUST ATTENTION** PASS means a fresh sub-agent round finds ZERO Critical/High issues WITHOUT needing fixes — only then are changes ready to commit
 - **IMPORTANT MUST ATTENTION** skip steps 8-12 when all reviews PASS and tests pass (no fixes needed)
 - **IMPORTANT MUST ATTENTION** each step MUST invoke its `Skill` tool — marking completed without invocation is a violation
+    <!-- SYNC:critical-thinking-mindset:reminder -->
+- **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+    <!-- /SYNC:critical-thinking-mindset:reminder -->
+    <!-- SYNC:ai-mistake-prevention:reminder -->
+- **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+    <!-- /SYNC:ai-mistake-prevention:reminder -->

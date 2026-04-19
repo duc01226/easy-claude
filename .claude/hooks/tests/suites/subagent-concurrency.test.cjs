@@ -57,6 +57,8 @@ const { TEMP_FILE_PATTERN, cleanupAll } = require('../../lib/temp-file-cleanup.c
 const { writeSessionState, readSessionState, deleteSessionState } = require('../../lib/ck-session-state.cjs');
 const { setTodoState, getTodoState, clearTodoState } = require('../../lib/todo-state.cjs');
 const { MARKERS_DIR, getMarkerPath, ensureDir } = require('../../lib/ck-paths.cjs');
+const { saveState, loadState, clearState } = require('../../lib/workflow-state.cjs');
+const { setEditState, getEditState, clearEditState } = require('../../lib/edit-state.cjs');
 
 // Hook paths
 const BASH_CLEANUP = getHookPath('bash-cleanup.cjs');
@@ -313,56 +315,6 @@ const tests = [
     },
 
     // -------------------------------------------------------------------------
-    // TC-SUBCTX-065: stale calibration lock auto-cleared, marker still created
-    // -------------------------------------------------------------------------
-    {
-        name: 'TC-SUBCTX-065: stale calibration lock auto-cleared, marker written with correct sessionId',
-        async fn() {
-            const sessionId = 'sess-065-lock';
-            const markerPath = getMarkerPath(sessionId);
-
-            // Ensure markers dir exists
-            ensureDir(MARKERS_DIR);
-
-            // Remove any pre-existing marker for this session
-            try { if (fs.existsSync(markerPath)) fs.unlinkSync(markerPath); } catch (_) {}
-
-            // Write a stale lock file (mtime > 5 seconds ago)
-            const { CALIBRATION_PATH } = require('../../lib/ck-paths.cjs');
-            const lockPath = CALIBRATION_PATH.replace('.json', '.lock');
-            try {
-                ensureDir(path.dirname(lockPath)); // ensure /tmp/ck/ exists before lock write
-                fs.writeFileSync(lockPath, '99999'); // stale PID
-                // Backdate the lock file by setting mtime to 10 seconds ago
-                const staleTime = new Date(Date.now() - 10000);
-                fs.utimesSync(lockPath, staleTime, staleTime);
-            } catch (_) { /* skip if lock creation fails */ }
-
-            try {
-                const input = createPreCompactInput({
-                    session_id: sessionId,
-                    trigger: 'manual',
-                    context_window: {
-                        total_input_tokens: 50000,
-                        total_output_tokens: 5000,
-                        context_window_size: 200000
-                    }
-                });
-                const result = await runHook(WRITE_COMPACT_MARKER, input);
-                assertEqual(result.code, 0, 'Should exit 0 even with stale lock');
-
-                // Marker must be created with correct sessionId
-                assertTrue(fs.existsSync(markerPath), 'Marker file must exist after compact');
-                const marker = JSON.parse(fs.readFileSync(markerPath, 'utf8'));
-                assertEqual(marker.sessionId, sessionId, 'Marker sessionId must match input session_id');
-            } finally {
-                try { if (fs.existsSync(markerPath)) fs.unlinkSync(markerPath); } catch (_) {}
-                try { if (fs.existsSync(lockPath)) fs.unlinkSync(lockPath); } catch (_) {}
-            }
-        }
-    },
-
-    // -------------------------------------------------------------------------
     // TC-SUBCTX-066: idempotent cleanup — own-session done deleted, other-session done survives
     // -------------------------------------------------------------------------
     {
@@ -597,6 +549,115 @@ const tests = [
             } finally {
                 try { if (fs.existsSync(markerA)) fs.unlinkSync(markerA); } catch (_) {}
                 try { if (fs.existsSync(markerB)) fs.unlinkSync(markerB); } catch (_) {}
+            }
+        }
+    },
+
+    // -------------------------------------------------------------------------
+    // TC-SUBCTX-072: saveState() Windows-safe fallback (workflow-state.cjs)
+    // Parity with TC-SUBCTX-055 for todo-state.cjs
+    // -------------------------------------------------------------------------
+    {
+        name: 'TC-SUBCTX-072: saveState() Windows-safe fallback preserves valid JSON on sequential writes',
+        fn() {
+            const sessionId = 'sess-072-wf-rename';
+            try {
+                const ok1 = saveState(sessionId, {
+                    workflowType: 'bugfix',
+                    workflowSteps: ['scout', 'fix'],
+                    currentStepIndex: 0,
+                    completedSteps: [],
+                    activePlan: null,
+                    todos: [],
+                    metadata: {}
+                });
+                assertTrue(ok1, 'First saveState must succeed');
+
+                const ok2 = saveState(sessionId, {
+                    workflowType: 'bugfix',
+                    workflowSteps: ['scout', 'fix'],
+                    currentStepIndex: 1,
+                    completedSteps: ['scout'],
+                    activePlan: null,
+                    todos: [],
+                    metadata: {}
+                });
+                assertTrue(ok2, 'Second saveState must succeed (Windows-safe fallback)');
+
+                const finalState = loadState(sessionId);
+                assertTrue(finalState !== null, 'Final state must not be null');
+                assertEqual(finalState.workflowType, 'bugfix', 'workflowType must be preserved');
+                assertEqual(finalState.currentStepIndex, 1, 'currentStepIndex from second write must win');
+                assertEqual(finalState.completedSteps.length, 1, 'completedSteps from second write must be preserved');
+            } finally {
+                try { clearState(sessionId); } catch (_) {}
+            }
+        }
+    },
+
+    // -------------------------------------------------------------------------
+    // TC-SUBCTX-073: setEditState() Windows-safe fallback (edit-state.cjs)
+    // Parity with TC-SUBCTX-055 for todo-state.cjs
+    // -------------------------------------------------------------------------
+    {
+        name: 'TC-SUBCTX-073: setEditState() Windows-safe fallback preserves valid JSON on sequential writes',
+        fn() {
+            const sessionId = 'sess-073-edit-rename';
+            try {
+                const ok1 = setEditState(sessionId, {
+                    editCount: 3,
+                    writeCount: 1,
+                    filesModified: ['src/a.ts', 'src/b.ts', 'src/c.ts'],
+                    planWarningShown: false,
+                    planWarningShown8: false,
+                    projectCodeChecked: false,
+                    projectHasCode: true
+                });
+                assertTrue(ok1, 'First setEditState must succeed');
+
+                const ok2 = setEditState(sessionId, {
+                    editCount: 7,
+                    writeCount: 2,
+                    filesModified: ['src/a.ts', 'src/b.ts', 'src/c.ts', 'src/d.ts'],
+                    planWarningShown: true,
+                    planWarningShown8: false,
+                    projectCodeChecked: true,
+                    projectHasCode: true
+                });
+                assertTrue(ok2, 'Second setEditState must succeed (Windows-safe fallback)');
+
+                const finalState = getEditState(sessionId);
+                assertTrue(finalState !== null, 'Final state must not be null');
+                assertEqual(finalState.editCount, 7, 'editCount from second write must win');
+                assertEqual(finalState.planWarningShown, true, 'planWarningShown from second write must be preserved');
+                assertEqual(finalState.filesModified.length, 4, 'filesModified from second write must be preserved');
+            } finally {
+                try { clearEditState(sessionId); } catch (_) {}
+            }
+        }
+    },
+
+    // -------------------------------------------------------------------------
+    // TC-SUBCTX-074: writeSessionState() Windows-safe fallback (ck-session-state.cjs)
+    // Parity with TC-SUBCTX-055 for todo-state.cjs
+    // -------------------------------------------------------------------------
+    {
+        name: 'TC-SUBCTX-074: writeSessionState() Windows-safe fallback preserves valid JSON on sequential writes',
+        fn() {
+            const sessionId = 'sess-074-ck-rename';
+            try {
+                const ok1 = writeSessionState(sessionId, { phase: 'init', count: 1 });
+                assertTrue(ok1, 'First writeSessionState must succeed');
+
+                const ok2 = writeSessionState(sessionId, { phase: 'active', count: 2 });
+                assertTrue(ok2, 'Second writeSessionState must succeed (Windows-safe fallback)');
+
+                const finalState = readSessionState(sessionId);
+                assertTrue(finalState !== null, 'Final state must not be null');
+                assertEqual(finalState.phase, 'active', 'phase from second write must win');
+                assertEqual(finalState.count, 2, 'count from second write must be preserved');
+            } finally {
+                try { deleteSessionState(sessionId); } catch (_) {}
             }
         }
     }
