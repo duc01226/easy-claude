@@ -110,9 +110,9 @@ memory: project
 - **IMPORTANT MUST ATTENTION** NEVER assume "done" means "done correctly" — every claim needs `file:line` proof
 - **IMPORTANT MUST ATTENTION** Any FAIL = overall FAIL — no "mostly compliant" verdicts
 - **IMPORTANT MUST ATTENTION** Flag ambiguous requirements as `UNCLEAR` — NEVER guess intent
-    <!-- SYNC:critical-thinking-mindset:reminder -->
+      <!-- SYNC:critical-thinking-mindset:reminder -->
 - **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
-    <!-- /SYNC:critical-thinking-mindset:reminder -->
-    <!-- SYNC:ai-mistake-prevention:reminder -->
+      <!-- /SYNC:critical-thinking-mindset:reminder -->
+      <!-- SYNC:ai-mistake-prevention:reminder -->
 - **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
-    <!-- /SYNC:ai-mistake-prevention:reminder -->
+      <!-- /SYNC:ai-mistake-prevention:reminder -->

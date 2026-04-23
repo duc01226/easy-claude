@@ -150,9 +150,9 @@ Summary of changes made:
 - **IMPORTANT MUST ATTENTION** ALWAYS verify no tests break after simplification
 - **IMPORTANT MUST ATTENTION** PREFER project patterns over custom solutions — check backend/frontend references first
 - **IMPORTANT MUST ATTENTION** only recommend design patterns with evidence of 3+ occurrences — KISS > pattern purity
-    <!-- SYNC:critical-thinking-mindset:reminder -->
+      <!-- SYNC:critical-thinking-mindset:reminder -->
 - **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
-    <!-- /SYNC:critical-thinking-mindset:reminder -->
-    <!-- SYNC:ai-mistake-prevention:reminder -->
+      <!-- /SYNC:critical-thinking-mindset:reminder -->
+      <!-- SYNC:ai-mistake-prevention:reminder -->
 - **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
-    <!-- /SYNC:ai-mistake-prevention:reminder -->
+      <!-- /SYNC:ai-mistake-prevention:reminder -->

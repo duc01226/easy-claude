@@ -110,9 +110,9 @@ Report path: `plans/reports/` with naming from `## Naming` hook injection. Conci
 - **MANDATORY IMPORTANT MUST ATTENTION** acceptance criteria MUST use GIVEN/WHEN/THEN — no vague language
 - **MANDATORY IMPORTANT MUST ATTENTION** always include testability criteria and dependencies explicitly in every PBI
 - **MANDATORY IMPORTANT MUST ATTENTION** every claim needs `file:line` proof — NEVER fabricate paths or behavior
-    <!-- SYNC:critical-thinking-mindset:reminder -->
+      <!-- SYNC:critical-thinking-mindset:reminder -->
 - **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
-    <!-- /SYNC:critical-thinking-mindset:reminder -->
-    <!-- SYNC:ai-mistake-prevention:reminder -->
+      <!-- /SYNC:critical-thinking-mindset:reminder -->
+      <!-- SYNC:ai-mistake-prevention:reminder -->
 - **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
-    <!-- /SYNC:ai-mistake-prevention:reminder -->
+      <!-- /SYNC:ai-mistake-prevention:reminder -->

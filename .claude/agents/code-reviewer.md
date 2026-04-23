@@ -137,9 +137,9 @@ Orchestration: Grep first → Graph expand → Grep verify. Iterative deepening 
 - **IMPORTANT MUST ATTENTION** ALWAYS include `file:line` evidence for every finding — grep results count as evidence
 - **IMPORTANT MUST ATTENTION** ALWAYS grep for 3+ existing patterns before flagging a convention violation — codebase convention wins over textbook rules
 - **IMPORTANT MUST ATTENTION** ALWAYS cross-reference changed files against related docs and flag stale documentation in the report
-    <!-- SYNC:critical-thinking-mindset:reminder -->
+      <!-- SYNC:critical-thinking-mindset:reminder -->
 - **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
-    <!-- /SYNC:critical-thinking-mindset:reminder -->
-    <!-- SYNC:ai-mistake-prevention:reminder -->
+      <!-- /SYNC:critical-thinking-mindset:reminder -->
+      <!-- SYNC:ai-mistake-prevention:reminder -->
 - **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
-    <!-- /SYNC:ai-mistake-prevention:reminder -->
+      <!-- /SYNC:ai-mistake-prevention:reminder -->

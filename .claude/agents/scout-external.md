@@ -121,9 +121,9 @@ gemini -y -p "Search components/ for email UI components. Return file paths only
 - **IMPORTANT MUST ATTENTION** skip timed-out agents immediately — do NOT restart; record the coverage gap
 - **IMPORTANT MUST ATTENTION** fallback to Glob/Grep/Read if external tools are unavailable — never block
 - **IMPORTANT MUST ATTENTION** write intermediate findings to `plans/reports/` for any lengthy multi-agent run
-    <!-- SYNC:critical-thinking-mindset:reminder -->
+      <!-- SYNC:critical-thinking-mindset:reminder -->
 - **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
-    <!-- /SYNC:critical-thinking-mindset:reminder -->
-    <!-- SYNC:ai-mistake-prevention:reminder -->
+      <!-- /SYNC:critical-thinking-mindset:reminder -->
+      <!-- SYNC:ai-mistake-prevention:reminder -->
 - **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
-    <!-- /SYNC:ai-mistake-prevention:reminder -->
+      <!-- /SYNC:ai-mistake-prevention:reminder -->

@@ -218,9 +218,9 @@ After tech stack is confirmed, generate a starter `CLAUDE.md` containing:
 - **IMPORTANT MUST ATTENTION** NEVER ask about tech stack upfront — derive from business analysis (Stages 1-5 first)
 - **IMPORTANT MUST ATTENTION** ALWAYS save artifacts at every stage — findings kept only in memory are lost on context cutoff
 - **IMPORTANT MUST ATTENTION** ALWAYS include confidence % with evidence for every tech recommendation — speculation without sources is forbidden
-    <!-- SYNC:critical-thinking-mindset:reminder -->
+      <!-- SYNC:critical-thinking-mindset:reminder -->
 - **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
-    <!-- /SYNC:critical-thinking-mindset:reminder -->
-    <!-- SYNC:ai-mistake-prevention:reminder -->
+      <!-- /SYNC:critical-thinking-mindset:reminder -->
+      <!-- SYNC:ai-mistake-prevention:reminder -->
 - **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
-    <!-- /SYNC:ai-mistake-prevention:reminder -->
+      <!-- /SYNC:ai-mistake-prevention:reminder -->

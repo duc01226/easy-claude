@@ -92,9 +92,9 @@ Report path: `plans/reports/` with naming from `## Naming` hook injection. Conci
 - **MANDATORY IMPORTANT MUST ATTENTION** always include concrete next steps with dependencies in every status update
 - **MANDATORY IMPORTANT MUST ATTENTION** always delegate doc updates to `docs-manager` when features complete or APIs change
 - **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim — never guess or fabricate paths
-    <!-- SYNC:critical-thinking-mindset:reminder -->
+      <!-- SYNC:critical-thinking-mindset:reminder -->
 - **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
-    <!-- /SYNC:critical-thinking-mindset:reminder -->
-    <!-- SYNC:ai-mistake-prevention:reminder -->
+      <!-- /SYNC:critical-thinking-mindset:reminder -->
+      <!-- SYNC:ai-mistake-prevention:reminder -->
 - **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
-    <!-- /SYNC:ai-mistake-prevention:reminder -->
+      <!-- /SYNC:ai-mistake-prevention:reminder -->

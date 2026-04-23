@@ -98,9 +98,9 @@ memory: project
 - **IMPORTANT MUST ATTENTION** — Every factual claim requires 2+ independent sources and an inline `[N]` citation. No exceptions.
 - **IMPORTANT MUST ATTENTION** — Use `TaskCreate` to break research into small tasks BEFORE starting. Mark done immediately.
 - **IMPORTANT MUST ATTENTION** — Declare confidence per finding (95/80/60/<60%) — omitting confidence is a quality failure.
-    <!-- SYNC:critical-thinking-mindset:reminder -->
+      <!-- SYNC:critical-thinking-mindset:reminder -->
 - **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
-    <!-- /SYNC:critical-thinking-mindset:reminder -->
-    <!-- SYNC:ai-mistake-prevention:reminder -->
+      <!-- /SYNC:critical-thinking-mindset:reminder -->
+      <!-- SYNC:ai-mistake-prevention:reminder -->
 - **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
-    <!-- /SYNC:ai-mistake-prevention:reminder -->
+      <!-- /SYNC:ai-mistake-prevention:reminder -->

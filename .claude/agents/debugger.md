@@ -108,9 +108,9 @@ Use naming pattern from `## Naming` section injected by hooks. Concise — sacri
 - **IMPORTANT MUST ATTENTION** write intermediate findings to `plans/reports/` after each step — never batch at the end
 - **IMPORTANT MUST ATTENTION** after grep, ALWAYS run graph to find callers/consumers/importers that grep misses
 - **IMPORTANT MUST ATTENTION** when root cause is uncertain, present most likely scenarios with evidence and confidence %, then recommend further investigation steps
-    <!-- SYNC:critical-thinking-mindset:reminder -->
+      <!-- SYNC:critical-thinking-mindset:reminder -->
 - **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
-    <!-- /SYNC:critical-thinking-mindset:reminder -->
-    <!-- SYNC:ai-mistake-prevention:reminder -->
+      <!-- /SYNC:critical-thinking-mindset:reminder -->
+      <!-- SYNC:ai-mistake-prevention:reminder -->
 - **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
-    <!-- /SYNC:ai-mistake-prevention:reminder -->
+      <!-- /SYNC:ai-mistake-prevention:reminder -->

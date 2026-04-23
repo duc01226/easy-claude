@@ -91,9 +91,9 @@ memory: project
 - **IMPORTANT MUST ATTENTION** ALWAYS include actual error messages and stack traces for every failed test — "test failed" without detail is insufficient
 - **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim; declare confidence level; never speculate
 - **IMPORTANT MUST ATTENTION** ALWAYS cover happy path, edge cases, and error cases in coverage analysis
-    <!-- SYNC:critical-thinking-mindset:reminder -->
+      <!-- SYNC:critical-thinking-mindset:reminder -->
 - **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
-    <!-- /SYNC:critical-thinking-mindset:reminder -->
-    <!-- SYNC:ai-mistake-prevention:reminder -->
+      <!-- /SYNC:critical-thinking-mindset:reminder -->
+      <!-- SYNC:ai-mistake-prevention:reminder -->
 - **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
-    <!-- /SYNC:ai-mistake-prevention:reminder -->
+      <!-- /SYNC:ai-mistake-prevention:reminder -->

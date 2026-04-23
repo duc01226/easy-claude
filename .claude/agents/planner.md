@@ -112,9 +112,9 @@ python .claude/scripts/code_graph query tests_for <function> --json     # Test c
 - **IMPORTANT MUST ATTENTION** run `/plan-review` after every plan creation; offer `/plan-validate` to confirm decisions with user via `AskUserQuestion`.
 - **IMPORTANT MUST ATTENTION** search 3+ existing patterns (grep/glob) BEFORE proposing any new pattern; cite evidence.
 - **IMPORTANT MUST ATTENTION** run at least ONE graph command on key files when `.code-graph/graph.db` exists — pattern: grep → trace → verify.
-    <!-- SYNC:critical-thinking-mindset:reminder -->
+      <!-- SYNC:critical-thinking-mindset:reminder -->
 - **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
-    <!-- /SYNC:critical-thinking-mindset:reminder -->
-    <!-- SYNC:ai-mistake-prevention:reminder -->
+      <!-- /SYNC:critical-thinking-mindset:reminder -->
+      <!-- SYNC:ai-mistake-prevention:reminder -->
 - **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
-    <!-- /SYNC:ai-mistake-prevention:reminder -->
+      <!-- /SYNC:ai-mistake-prevention:reminder -->

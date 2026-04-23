@@ -111,9 +111,9 @@ Pattern: Grep first → Graph expand → Grep verify. Iterative deepening encour
 - **IMPORTANT MUST ATTENTION** NEVER throw exceptions for validation — use project fluent API (`.And()`, `.AndAsync()`)
 - **IMPORTANT MUST ATTENTION** side effects belong in Entity Event Handlers (`UseCaseEvents/`) — NEVER in command handlers
 - **IMPORTANT MUST ATTENTION** DTOs own mapping — NEVER map in handlers; cross-service via message bus ONLY
-    <!-- SYNC:critical-thinking-mindset:reminder -->
+      <!-- SYNC:critical-thinking-mindset:reminder -->
 - **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
-    <!-- /SYNC:critical-thinking-mindset:reminder -->
-    <!-- SYNC:ai-mistake-prevention:reminder -->
+      <!-- /SYNC:critical-thinking-mindset:reminder -->
+      <!-- SYNC:ai-mistake-prevention:reminder -->
 - **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
-    <!-- /SYNC:ai-mistake-prevention:reminder -->
+      <!-- /SYNC:ai-mistake-prevention:reminder -->

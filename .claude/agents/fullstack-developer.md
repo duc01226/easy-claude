@@ -178,9 +178,9 @@ Orchestration: Grep first → Graph expand → Grep verify. Iterative deepening 
 - **IMPORTANT MUST ATTENTION** NEVER use generic repositories — use service-specific `I{ServiceName}PlatformRootRepository<T>` only
 - **IMPORTANT MUST ATTENTION** ALWAYS use `.pipe(this.untilDestroyed())` for subscriptions — never manual Subject/takeUntil pattern
 - **IMPORTANT MUST ATTENTION** NEVER skip BEM class naming — all template elements must have block\_\_element--modifier classes
-    <!-- SYNC:critical-thinking-mindset:reminder -->
+      <!-- SYNC:critical-thinking-mindset:reminder -->
 - **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
-    <!-- /SYNC:critical-thinking-mindset:reminder -->
-    <!-- SYNC:ai-mistake-prevention:reminder -->
+      <!-- /SYNC:critical-thinking-mindset:reminder -->
+      <!-- SYNC:ai-mistake-prevention:reminder -->
 - **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
-    <!-- /SYNC:ai-mistake-prevention:reminder -->
+      <!-- /SYNC:ai-mistake-prevention:reminder -->

@@ -141,9 +141,9 @@ Reports go to the path from `## Naming` section injected by hooks.
 - **IMPORTANT MUST ATTENTION** ALWAYS include `file:line` evidence for codebase claims — grep first, then cite
 - **IMPORTANT MUST ATTENTION** ALWAYS check if the project already implements the pattern before recommending a new one
 - **IMPORTANT MUST ATTENTION** NEVER write production code — research only; respond with summary + report file path
-    <!-- SYNC:critical-thinking-mindset:reminder -->
+      <!-- SYNC:critical-thinking-mindset:reminder -->
 - **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
-    <!-- /SYNC:critical-thinking-mindset:reminder -->
-    <!-- SYNC:ai-mistake-prevention:reminder -->
+      <!-- /SYNC:critical-thinking-mindset:reminder -->
+      <!-- SYNC:ai-mistake-prevention:reminder -->
 - **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
-    <!-- /SYNC:ai-mistake-prevention:reminder -->
+      <!-- /SYNC:ai-mistake-prevention:reminder -->

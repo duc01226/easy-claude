@@ -277,9 +277,9 @@ Keep output concise (<1k chars). No explanations of what you did.
 - **IMPORTANT MUST ATTENTION** NEVER skip pre-commit hooks (--no-verify) — hooks exist for a reason; fix the underlying issue
 - **IMPORTANT MUST ATTENTION** NEVER include AI attribution in commit messages — no "Generated with Claude", no "Co-Authored-By"
 - **IMPORTANT MUST ATTENTION** NEVER push unless user explicitly requested it — "commit" and "commit and push" are different instructions
-    <!-- SYNC:critical-thinking-mindset:reminder -->
+      <!-- SYNC:critical-thinking-mindset:reminder -->
 - **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
-    <!-- /SYNC:critical-thinking-mindset:reminder -->
-    <!-- SYNC:ai-mistake-prevention:reminder -->
+      <!-- /SYNC:critical-thinking-mindset:reminder -->
+      <!-- SYNC:ai-mistake-prevention:reminder -->
 - **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
-    <!-- /SYNC:ai-mistake-prevention:reminder -->
+      <!-- /SYNC:ai-mistake-prevention:reminder -->

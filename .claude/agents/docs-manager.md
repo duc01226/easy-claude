@@ -99,9 +99,9 @@ Concise — sacrifice grammar for brevity. List unresolved questions at end.
 - **IMPORTANT MUST ATTENTION** NEVER auto-fix stale docs without verifying the code change; NEVER remove sections without checking downstream references
 - **IMPORTANT MUST ATTENTION** Always cross-reference changed files against section-impact mapping before editing any doc
 - **IMPORTANT MUST ATTENTION** Write intermediate findings to `plans/reports/` after each phase to prevent context loss
-    <!-- SYNC:critical-thinking-mindset:reminder -->
+      <!-- SYNC:critical-thinking-mindset:reminder -->
 - **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
-    <!-- /SYNC:critical-thinking-mindset:reminder -->
-    <!-- SYNC:ai-mistake-prevention:reminder -->
+      <!-- /SYNC:critical-thinking-mindset:reminder -->
+      <!-- SYNC:ai-mistake-prevention:reminder -->
 - **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
-    <!-- /SYNC:ai-mistake-prevention:reminder -->
+      <!-- /SYNC:ai-mistake-prevention:reminder -->

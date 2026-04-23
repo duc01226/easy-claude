@@ -113,9 +113,9 @@ Orchestration: Grep first → Graph expand → Grep verify. Iterative deepening 
 - **IMPORTANT MUST ATTENTION** ALWAYS verify traceability before marking complete — every test must map to a `TC-{FEATURE}-{NNN}` spec ID
 - **IMPORTANT MUST ATTENTION** ALWAYS activate `integration-test` skill before generating any test code
 - **IMPORTANT MUST ATTENTION** ALWAYS use `IntegrationTestHelper.UniqueName()` for test data — never hardcoded strings that cause cross-run pollution
-    <!-- SYNC:critical-thinking-mindset:reminder -->
+      <!-- SYNC:critical-thinking-mindset:reminder -->
 - **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
-    <!-- /SYNC:critical-thinking-mindset:reminder -->
-    <!-- SYNC:ai-mistake-prevention:reminder -->
+      <!-- /SYNC:critical-thinking-mindset:reminder -->
+      <!-- SYNC:ai-mistake-prevention:reminder -->
 - **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
-    <!-- /SYNC:ai-mistake-prevention:reminder -->
+      <!-- /SYNC:ai-mistake-prevention:reminder -->
