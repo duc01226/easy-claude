@@ -6,3 +6,4 @@ plans/
 .claude-md.backup
 tmp/
 .claude/scheduled_tasks.lock
+node_modules/

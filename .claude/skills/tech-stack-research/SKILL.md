@@ -247,6 +247,13 @@ After user confirms, update report with final decisions and mark as `status: con
 - **"/plan"** — If architecture already decided
 - **"Skip, continue manually"** — user decides
 
+### Council escalation (always-offer, second prompt)
+
+After the existing `## Next Steps` prompt above resolves, present a **second**, independent `AskUserQuestion` call:
+
+- **"Skip council — proceed with chosen stack (Recommended)"** — Continue with the selected tech stack as-is.
+- **"Escalate to /llm-council"** — Run 11 sub-agent council. Best applied when 2+ stacks score within 15% on the comparison matrix or you have unfamiliar/strategic dependencies. Cheaper alternatives: `/why-review`, `/plan-validate`.
+
 ## Closing Reminders
 
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting.

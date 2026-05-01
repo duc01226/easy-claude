@@ -1,7 +1,7 @@
 # Release Notes Skill
 
-<!-- AUTO-GENERATED from .claude/config/release-notes-template.yaml -->
-<!-- Do not edit directly. Run: node scripts/release-notes/generate-skills.cjs -->
+<!-- Hand-synced from .claude/config/release-notes-template.yaml — keep in step when YAML changes -->
+<!-- No generator script exists; edit this file directly when commit_mapping or sections drift -->
 
 Generate or update release notes for project features.
 
@@ -58,6 +58,8 @@ Generate or update release notes for project features.
 | `insights` | features |
 | `accounts` | features |
 
+`docs`, `chore`, `style`, `test`, `ci`, `build`, `devtools` map to `null` (excluded from release notes).
+
 ## Guidelines
 
 | Principle | Practice |
@@ -71,8 +73,8 @@ Generate or update release notes for project features.
 ## Integration
 
 This skill integrates with:
-- `scripts/release-notes/parse-commits.cjs` - Commit parser
-- `scripts/release-notes/generate-note.cjs` - Note generator
+- `.claude/skills/release-notes/lib/parse-commits.cjs` - Commit parser
+- `.claude/skills/release-notes/lib/render-template.cjs` - Note renderer
 - `.claude/config/release-notes-template.yaml` - Template source
 
 ---

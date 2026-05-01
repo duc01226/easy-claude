@@ -187,6 +187,22 @@ Order backlog items using data-driven prioritization frameworks to produce a ran
 - **Could Have:** Admin dashboard redesign (improves efficiency but current works)
 - **Won't Have:** User avatars (nice-to-have, defer to Q2)
 
+## Optional Escalation: /llm-council on Ties
+
+**Gate evaluation:** After producing the prioritized backlog (per `## Workflow` step output), inspect the ranking output:
+
+- Top-2 RICE scores within 15% of each other → gate fires
+- Explicit MoSCoW tie (≥2 items in same Must/Should/Could band with material scope overlap) → gate fires
+- Multi-stakeholder disagreement flagged in input → gate fires
+- None of the above → gate does NOT fire; skill ends without prompting
+
+**MANDATORY ATTENTION** — when the gate fires, you MUST use `AskUserQuestion` to present these options (identical preamble pattern to architecture-design's `## Next Steps` MANDATORY ATTENTION block):
+
+- **"Escalate to /llm-council (Recommended)"** — Tie/disagreement detected. Run 11 sub-agent council (5 advisors + 5 reviewers + chairman). Council's Contrarian + Outsider lenses are well-suited to multi-PBI ranking ties. Cheaper alternatives: `/why-review`, `/plan-validate` (use these instead if the tie is narrow but stakes are routine).
+- **"Skip — accept current ranking"** — Acknowledge the tie; proceed with current ranking.
+
+If gate does NOT fire, the prioritization decision stands; do NOT prompt.
+
 ## Related Skills
 
 | Skill             | When to use instead                |

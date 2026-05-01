@@ -606,6 +606,13 @@ Validate architecture against these principles — flag violations in report:
 - **"/refine"** — If need to create PBIs first
 - **"Skip, continue manually"** — user decides
 
+### Council escalation (always-offer, second prompt)
+
+After the existing `## Next Steps` prompt above resolves, present a **second**, independent `AskUserQuestion` call (do NOT merge into the first):
+
+- **"Skip council — proceed (Recommended)"** — Continue with the architecture decision as-is. Recommended default.
+- **"Escalate to /llm-council"** — Run 11 sub-agent council (5 advisors + 5 reviewers + chairman). Use when this architecture pick is hard to reverse and you need adversarial framing. Cheaper alternatives: `/why-review`, `/plan-validate` (run these first if you haven't).
+
 ## Closing Reminders
 
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting.
