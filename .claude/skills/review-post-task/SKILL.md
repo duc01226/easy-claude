@@ -80,30 +80,37 @@ description: '[Code Quality] Two-pass code review for task completion'
 
 <!-- SYNC:double-round-trip-review -->
 
-> **Deep Multi-Round Review** — Escalating rounds. Round 1 in main session. Round 2+ and EVERY recursive re-review iteration MUST use a fresh sub-agent.
+> **Fix-Triggered Re-Review Loop** — Re-review is triggered by a FIX CYCLE, not by a round number. Review purpose: `review → if issues → fix → re-review` until a round finds no issues. **A clean review ENDS the loop — no further rounds required.**
 >
-> **Round 1:** Main-session review. Read target files, build understanding, note issues. Output baseline findings.
+> **Round 1:** Main-session review. Read target files, build understanding, note issues. Output findings + verdict (PASS / FAIL).
 >
-> **Round 2:** MANDATORY fresh sub-agent review — see `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. The sub-agent re-reads ALL files from scratch with ZERO Round 1 memory. It must catch:
+> **Decision after Round 1:**
 >
-> - Cross-cutting concerns missed in Round 1
+> - **No issues found (PASS, zero findings)** → review ENDS. Do NOT spawn a fresh sub-agent for confirmation.
+> - **Issues found (FAIL, or any non-zero findings)** → fix the issues, then spawn a fresh sub-agent for Round 2 re-review.
+>
+> **Fresh sub-agent re-review (after every fix cycle):** Spawn a NEW `Agent` tool call — never reuse a prior agent. Sub-agent re-reads ALL files from scratch with ZERO memory of prior rounds. See `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. Each fresh round must catch:
+>
+> - Cross-cutting concerns missed in the prior round
 > - Interaction bugs between changed files
 > - Convention drift (new code vs existing patterns)
 > - Missing pieces that should exist but don't
-> - Subtle edge cases the main session rationalized away
+> - Subtle edge cases the prior round rationalized away
+> - Regressions introduced by the fixes themselves
 >
-> **Round 3+ (recursive after fixes):** After ANY fix cycle, MANDATORY fresh sub-agent re-review. Spawn a **NEW** Agent tool call each iteration — never reuse Round 2's agent. Each new agent re-reads ALL files from scratch with full protocol injection. Continue until PASS or **3 fresh-subagent rounds max**, then escalate to user via `AskUserQuestion`.
+> **Loop termination:** After each fresh round, repeat the same decision: clean → END; issues → fix → next fresh round. Continue until a round finds zero issues, or **3 fresh-subagent rounds max**, then escalate to user via `AskUserQuestion`.
 >
 > **Rules:**
 >
-> - NEVER declare PASS after Round 1 alone
+> - A clean Round 1 ENDS the review — no mandatory Round 2
+> - NEVER skip the fresh sub-agent re-review after a fix cycle (every fix invalidates the prior verdict)
 > - NEVER reuse a sub-agent across rounds — every iteration spawns a NEW Agent call
 > - Main agent READS sub-agent reports but MUST NOT filter, reinterpret, or override findings
 > - Max 3 fresh-subagent rounds per review — if still FAIL, escalate via `AskUserQuestion` (do NOT silently loop)
 > - Track round count in conversation context (session-scoped)
-> - Final verdict must incorporate ALL rounds
+> - Final verdict must incorporate ALL rounds executed
 >
-> **Report must include `## Round N Findings (Fresh Sub-Agent)` for every round N≥2.**
+> **Report must include `## Round N Findings (Fresh Sub-Agent)` for every round N≥2 that was executed.**
 
 <!-- /SYNC:double-round-trip-review -->
 
@@ -113,7 +120,7 @@ description: '[Code Quality] Two-pass code review for task completion'
 >
 > **Why:** The main agent knows what it (or `/cook`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
 >
-> **When:** Round 2 of ANY review AND every recursive re-review iteration after fixes. NOT needed when Round 1 already PASSes with zero issues.
+> **When:** ONLY after a fix cycle. A review round that finds zero issues ENDS the loop — do NOT spawn a confirmation sub-agent. A review round that finds issues triggers: fix → fresh sub-agent re-review.
 >
 > **How:**
 >
@@ -125,8 +132,9 @@ description: '[Code Quality] Two-pass code review for task completion'
 >
 > **Rules:**
 >
-> - NEVER reuse a sub-agent across rounds — every iteration spawns a NEW `Agent` call
-> - NEVER skip fresh-subagent review because "last round was clean" — every fix triggers a fresh round
+> - SKIP fresh sub-agent when the prior round found zero issues (no fixes = nothing new to verify)
+> - NEVER skip fresh sub-agent after a fix cycle — every fix invalidates the prior verdict
+> - NEVER reuse a sub-agent across rounds — every fresh round spawns a NEW `Agent` call
 > - Max 3 fresh-subagent rounds per review — escalate via `AskUserQuestion` if still failing; do NOT silently loop or fall back to any prior protocol
 > - Track iteration count in conversation context (session-scoped, no persistent files)
 
@@ -487,7 +495,7 @@ After sub-agent returns:
 <!-- /SYNC:design-patterns-quality:reminder -->
 <!-- SYNC:double-round-trip-review:reminder -->
 
-**IMPORTANT MUST ATTENTION** execute TWO review rounds. Round 2 delegates to fresh code-reviewer sub-agent (zero prior context).
+**IMPORTANT MUST ATTENTION** execute the review loop: review → if issues → fix → fresh sub-agent re-review. A round that finds zero issues ENDS the review.
 
 <!-- /SYNC:double-round-trip-review:reminder -->
 <!-- SYNC:graph-impact-analysis:reminder -->
@@ -543,7 +551,7 @@ After sub-agent returns:
 **IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 **IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
-**IMPORTANT MUST ATTENTION** execute two review rounds (Round 1: understand, Round 2: catch missed issues)
+**IMPORTANT MUST ATTENTION** execute the review loop: review → if issues → fix → fresh sub-agent re-review. If a round finds no issues, the review ENDS.
 **MANDATORY IMPORTANT MUST ATTENTION** READ the following files before starting:
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.

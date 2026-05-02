@@ -225,7 +225,7 @@ Report: PASS or FAIL with file:line for each finding.
 ```
 
 **Round 2:** If FAIL → fix → new fresh sub-agent. Max 3 rounds → escalate to user.
-NEVER reuse sub-agent across rounds. NEVER declare PASS after Round 1 alone.
+NEVER reuse sub-agent across rounds. A clean round ENDS the review; a round with issues triggers fix → fresh sub-agent re-review.
 
 ---
 
@@ -303,7 +303,7 @@ NEVER reuse sub-agent across rounds. NEVER declare PASS after Round 1 alone.
 **IMPORTANT MUST ATTENTION** ALWAYS gate by environment FIRST; ALWAYS check count before seeding
 **IMPORTANT MUST ATTENTION** loop from `existing_count` to `target_count` — NEVER from 0
 **IMPORTANT MUST ATTENTION** scoped DI per iteration — shared DI scope = silent DbContext corruption
-**IMPORTANT MUST ATTENTION** NEVER declare PASS after Round 1 alone — fresh sub-agent Round 2 required
+**IMPORTANT MUST ATTENTION** fresh sub-agent re-review required ONLY after a fix cycle. Clean Round 1 ENDS the review.
 
 **Anti-Rationalization:**
 

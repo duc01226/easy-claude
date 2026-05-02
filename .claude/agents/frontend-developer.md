@@ -84,15 +84,15 @@ memory: project
 
 ## Key Rules
 
-| Rule             | Requirement (consult `frontend-patterns-reference.md` for project-specific names)                  |
-| ---------------- | -------------------------------------------------------------------------------------------------- |
-| Component base   | Extend the project's base component / hook / composable as documented                              |
-| State management | Use the project's documented state primitive (store class, signal wrapper, hook, observable, etc.) |
-| API services    | Extend the project's HTTP wrapper / API service base — never call raw HTTP clients directly        |
-| Lifecycle teardown | Subscriptions / effects / listeners torn down per the project's documented pattern               |
-| Styling methodology | Follow the project's documented class-naming convention (BEM, utility-first, CSS modules, etc.) |
-| Logic placement  | Constants, columns, roles → model / data layer, NOT component                                      |
-| Search first     | Find 3+ existing examples before creating new patterns                                              |
+| Rule                | Requirement (consult `frontend-patterns-reference.md` for project-specific names)                  |
+| ------------------- | -------------------------------------------------------------------------------------------------- |
+| Component base      | Extend the project's base component / hook / composable as documented                              |
+| State management    | Use the project's documented state primitive (store class, signal wrapper, hook, observable, etc.) |
+| API services        | Extend the project's HTTP wrapper / API service base — never call raw HTTP clients directly        |
+| Lifecycle teardown  | Subscriptions / effects / listeners torn down per the project's documented pattern                 |
+| Styling methodology | Follow the project's documented class-naming convention (BEM, utility-first, CSS modules, etc.)    |
+| Logic placement     | Constants, columns, roles → model / data layer, NOT component                                      |
+| Search first        | Find 3+ existing examples before creating new patterns                                             |
 
 ## Output
 

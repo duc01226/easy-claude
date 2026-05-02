@@ -226,7 +226,7 @@ Read full report. Apply fresh-eyes protocol:
 **IMPORTANT MUST ATTENTION** detect framework in Phase 0 — agent patterns depend on framework
 **IMPORTANT MUST ATTENTION** cite `file:line` for every code example — NEVER fabricate class or method names
 **IMPORTANT MUST ATTENTION** sub-agents write findings incrementally after each category — NEVER batch at end
-**IMPORTANT MUST ATTENTION** Round 2 fresh-eyes is non-negotiable — NEVER declare PASS after Round 1
+**IMPORTANT MUST ATTENTION** if Round 1 finds issues, Round 2 fresh-eyes is non-negotiable after fixing. Clean Round 1 ENDS the scan.
 
 **Anti-Rationalization:**
 
@@ -235,7 +235,7 @@ Read full report. Apply fresh-eyes protocol:
 | "Framework obvious, skip Phase 0 detection"    | Phase 0 is BLOCKING — grep patterns and agent scope depend on detected framework |
 | "Base class names look right"                  | Grep-verify ALL base class names — AI hallucinates class hierarchies             |
 | "Store method names are standard"              | Every store method name must be grep-verified against actual source              |
-| "Round 2 not needed for frontend scan"         | Main agent rationalizes own fabricated examples. Fresh-eyes mandatory.           |
+| "Skip Round 2 even when Round 1 found issues" | Clean Round 1 ends the scan. When issues exist, fresh-eyes mandatory after fixing — main agent rationalizes own fabricated examples. |
 | "Cleanup pattern documented, 1 example enough" | Cleanup is the most project-specific pattern — verify with 3+ grep hits          |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and break into small todo tasks and sub-tasks using TaskCreate.

@@ -262,7 +262,7 @@ Read report. Apply evidence confidence to classify each rule:
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 **IMPORTANT MUST ATTENTION** derive rules from ACTUAL patterns — generic best practices are forbidden
 **IMPORTANT MUST ATTENTION** sub-agents write findings incrementally — NEVER batch at end
-**IMPORTANT MUST ATTENTION** two review rounds — Round 2 fresh sub-agent catches what main agent missed
+**IMPORTANT MUST ATTENTION** when Round 1 finds issues, Round 2 fresh sub-agent after fixing catches what main agent missed. Clean Round 1 ENDS the scan.
 
 **Anti-Rationalization:**
 

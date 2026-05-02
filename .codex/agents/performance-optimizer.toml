@@ -94,16 +94,16 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 > Stack-agnostic categories. Substitute project-specific symbols (ORM names, framework-specific calls, render-cycle hooks) per the reference docs above.
 
-| Area              | What to Check                                                                                | Tool                   |
-| ----------------- | -------------------------------------------------------------------------------------------- | ---------------------- |
-| N+1 queries       | Loops containing repository / data-access calls                                              | Grep + graph trace     |
-| Missing indexes   | Database index definitions vs frequent query filters                                         | Grep index definitions |
-| Unbounded lists   | Queries returning all rows / docs without pagination or limit — flag every occurrence        | Grep                   |
-| Large payloads    | Response size, missing projections/select-only, over-fetching                                | Grep + code trace      |
-| Bundle size       | Large imports, missing tree-shaking, eager-loaded modules                                    | Glob + read            |
-| Render perf       | Missing change-detection optimizations, unnecessary re-renders, synchronous heavy ops on UI  | Grep                   |
+| Area               | What to Check                                                                               | Tool                   |
+| ------------------ | ------------------------------------------------------------------------------------------- | ---------------------- |
+| N+1 queries        | Loops containing repository / data-access calls                                             | Grep + graph trace     |
+| Missing indexes    | Database index definitions vs frequent query filters                                        | Grep index definitions |
+| Unbounded lists    | Queries returning all rows / docs without pagination or limit — flag every occurrence       | Grep                   |
+| Large payloads     | Response size, missing projections/select-only, over-fetching                               | Grep + code trace      |
+| Bundle size        | Large imports, missing tree-shaking, eager-loaded modules                                   | Glob + read            |
+| Render perf        | Missing change-detection optimizations, unnecessary re-renders, synchronous heavy ops on UI | Grep                   |
 | Subscription leaks | Subscriptions/listeners not torn down on destroy/unmount                                    | Grep                   |
-| Memory allocation | Unnecessary allocations, large in-memory collections, leaking caches                         | Code trace             |
+| Memory allocation  | Unnecessary allocations, large in-memory collections, leaking caches                        | Code trace             |
 
 ## Output Format
 

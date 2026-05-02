@@ -9,18 +9,18 @@
 
 ## Component Architecture
 
-| Component      | Count                     | Location                     | Format                          |
-| -------------- | ------------------------- | ---------------------------- | ------------------------------- |
-| Hooks          | 75                        | `.claude/hooks/*.cjs/.js`    | CommonJS Node.js scripts        |
-| Hook Libraries | 29                        | `.claude/hooks/lib/*.cjs`    | CommonJS utility modules        |
-| Skills         | 266                       | `.claude/skills/*/SKILL.md`  | Markdown + YAML frontmatter     |
-| Agents         | 28                        | `.claude/agents/*.md`        | Markdown definitions            |
-| Workflows      | 37                        | `.claude/workflows.json`     | JSON workflow definitions       |
-| Output Styles  | 6                         | `.claude/output-styles/*.md` | Coding level presets (ELI5→God) |
-| Scripts        | 15                        | `.claude/scripts/*`          | CJS + Python utilities          |
-| Codex Scripts  | 7                         | `scripts/codex/*.mjs`        | ESM sync and verification tools |
-| Hook Tests     | 14 suites + 13 standalone | `.claude/hooks/tests/`       | CJS test files                  |
-| Codex Mirrors  | 266 skills, 28 agents     | `.agents/`, `.codex/`        | Generated Codex-compatible copy |
+| Component      | Count                     | Location                     | Format                                                                             |
+| -------------- | ------------------------- | ---------------------------- | ---------------------------------------------------------------------------------- |
+| Hooks          | 75                        | `.claude/hooks/*.cjs/.js`    | CommonJS Node.js scripts                                                           |
+| Hook Libraries | 29                        | `.claude/hooks/lib/*.cjs`    | CommonJS utility modules                                                           |
+| Skills         | 266                       | `.claude/skills/*/SKILL.md`  | Markdown + YAML frontmatter                                                        |
+| Agents         | 28                        | `.claude/agents/*.md`        | Markdown definitions                                                               |
+| Workflows      | 37                        | `.claude/workflows.json`     | JSON workflow definitions                                                          |
+| Output Styles  | 6                         | `.claude/output-styles/*.md` | Coding level presets (ELI5→God)                                                    |
+| Scripts        | 11                        | `.claude/scripts/*`          | CJS + Python utilities (top-level; excludes code_graph package internals + tests/) |
+| Codex Scripts  | 7                         | `scripts/codex/*.mjs`        | ESM sync and verification tools                                                    |
+| Hook Tests     | 14 suites + 13 standalone | `.claude/hooks/tests/`       | CJS test files                                                                     |
+| Codex Mirrors  | 266 skills, 28 agents     | `.agents/`, `.codex/`        | Generated Codex-compatible copy                                                    |
 
 ## Project Directory Tree
 
@@ -47,9 +47,6 @@ easy-claude/
 │   ├── metadata.json                 # Framework metadata (large)
 │   ├── settings.json                 # Hook registration & features
 │   ├── settings.local.json.example   # Local settings template
-│   ├── statusline.cjs                # Status line (Node.js)
-│   ├── statusline.ps1               # Status line (PowerShell)
-│   ├── statusline.sh                # Status line (Bash)
 │   ├── workflows.json               # 37 workflow definitions
 │   ├── workflows.schema.json        # Workflow JSON schema
 │   ├── agent-memory/                 # Persistent agent memory
@@ -197,6 +194,7 @@ easy-claude/
 │   │   ├── sync-copilot-workflows.cjs
 │   │   ├── sync-hooks-to-skills.py   # SYNC-block propagation across skills
 │   │   ├── set-active-plan.cjs       # Active plan state for plan-* skills
+│   │   ├── statusline-tps.cjs        # Tokens-per-second estimator for statusline widget
 │   │   ├── worktree.cjs              # Git worktree management
 │   │   ├── worktree.test.cjs         # Worktree tests
 │   │   ├── code_graph/               # Code graph CLI + library
@@ -288,20 +286,20 @@ easy-claude/
 
 ## Module Codes
 
-| Code | Module         | Location                       | Description                                       |
-| ---- | -------------- | ------------------------------ | ------------------------------------------------- |
-| HK   | Hooks          | `.claude/hooks/`               | 75 runtime enforcement & context injection hooks  |
-| HL   | Hook Libraries | `.claude/hooks/lib/`           | 29 shared utility modules for hooks               |
-| SK   | Skills         | `.claude/skills/`              | 266 task automation skill definitions             |
-| AG   | Agents         | `.claude/agents/`              | 28 specialized subagent role definitions          |
-| WF   | Workflows      | `.claude/workflows.json`       | 37 end-to-end process orchestrations              |
-| SC   | Scripts        | `.claude/scripts/`             | 15 utility scripts (catalog gen, audit, worktree) |
-| CX   | Codex Tooling  | `scripts/codex/`               | 7 sync, migration, and verification scripts       |
-| CM   | Codex Mirrors  | `.agents/`, `.codex/`          | Generated Codex-compatible skills, agents, hooks  |
-| OS   | Output Styles  | `.claude/output-styles/`       | 6 coding level presets                            |
-| NT   | Notifications  | `.claude/hooks/notifications/` | Multi-channel notification providers (5)          |
-| SB   | Scout Block    | `.claude/hooks/scout-block/`   | Broad search prevention subsystem (4 modules)     |
-| HT   | Hook Tests     | `.claude/hooks/tests/`         | 14 test suites + 13 standalone tests              |
+| Code | Module         | Location                       | Description                                                                                                                 |
+| ---- | -------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| HK   | Hooks          | `.claude/hooks/`               | 75 runtime enforcement & context injection hooks                                                                            |
+| HL   | Hook Libraries | `.claude/hooks/lib/`           | 29 shared utility modules for hooks                                                                                         |
+| SK   | Skills         | `.claude/skills/`              | 266 task automation skill definitions                                                                                       |
+| AG   | Agents         | `.claude/agents/`              | 28 specialized subagent role definitions                                                                                    |
+| WF   | Workflows      | `.claude/workflows.json`       | 37 end-to-end process orchestrations                                                                                        |
+| SC   | Scripts        | `.claude/scripts/`             | 11 top-level utility scripts (catalog gen, audit, worktree, statusline-tps); excludes code_graph package internals + tests/ |
+| CX   | Codex Tooling  | `scripts/codex/`               | 7 sync, migration, and verification scripts                                                                                 |
+| CM   | Codex Mirrors  | `.agents/`, `.codex/`          | Generated Codex-compatible skills, agents, hooks                                                                            |
+| OS   | Output Styles  | `.claude/output-styles/`       | 6 coding level presets                                                                                                      |
+| NT   | Notifications  | `.claude/hooks/notifications/` | Multi-channel notification providers (5)                                                                                    |
+| SB   | Scout Block    | `.claude/hooks/scout-block/`   | Broad search prevention subsystem (4 modules)                                                                               |
+| HT   | Hook Tests     | `.claude/hooks/tests/`         | 14 test suites + 13 standalone tests                                                                                        |
 
 ## Hooks (75)
 

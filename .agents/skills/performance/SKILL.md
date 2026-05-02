@@ -280,7 +280,7 @@ Route based on detected bottleneck type:
 2. **Round 2 (Challenge):** Spawn NEW fresh `performance-optimizer` sub-agent — ZERO memory of Round 1. Challenges Round 1 findings: missed bottlenecks, wrong root cause, premature optimization.
 3. Issues found → fix → Round 3 with NEW fresh `performance-optimizer` sub-agent
 4. Max 3 rounds → escalate to user via a direct user question
-5. **NEVER declare PASS after Round 1 alone** — main agent rationalizes own work
+5. **Clean Round 1 ENDS the review.** When issues are found, fix and spawn a fresh sub-agent for Round 2 — main agent rationalizes own work, fresh eyes catch what was dismissed.
 
 <!-- SYNC:sub-agent-selection -->
 
@@ -357,7 +357,7 @@ Route based on detected bottleneck type:
 - **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` + profiling data for EVERY claim — `Confidence: X%` required
 - **MANDATORY IMPORTANT MUST ATTENTION** run graph trace before concluding — `callers_of` + `trace --direction downstream` for hot paths
 - **MANDATORY IMPORTANT MUST ATTENTION** wait for explicit user approval before applying changes
-- **MANDATORY IMPORTANT MUST ATTENTION** recursive quality loop — NEVER declare PASS after Round 1 alone
+- **MANDATORY IMPORTANT MUST ATTENTION** recursive quality loop — review → if issues → fix → fresh sub-agent re-review. Clean round ENDS the loop.
 
 **Anti-Rationalization:**
 

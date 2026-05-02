@@ -6,10 +6,10 @@
   },
   "autoMemoryEnabled": false,
   "cleanupPeriodDays": 30,
-  "disabledMcpjsonServers": ["chrome-devtools", "mongodb", "postgres", "figma", "memory", "sequential-thinking"],
+  "disabledMcpjsonServers": ["chrome-devtools", "figma", "memory"],
   "effortLevel": "high",
   "enableAllProjectMcpServers": false,
-  "enabledMcpjsonServers": ["context7", "github"],
+  "enabledMcpjsonServers": ["context7", "github", "sequential-thinking", "mongodb", "postgres"],
   "enabledPlugins": {
     "code-review@claude-plugins-official": false,
     "code-simplifier@claude-plugins-official": false,

@@ -127,15 +127,15 @@ Use `/preview` for quick access:
 
 ## CLI Options
 
-| Option            | Description                         | Default   |
-| ----------------- | ----------------------------------- | --------- |
-| `--file <path>`   | Markdown file to view               | -         |
-| `--dir <path>`    | Directory to browse                 | -         |
-| `--port <number>` | Server port                         | 3456      |
-| `--host <addr>`   | Host to bind | localhost |
-| `--open`          | Auto-open browser                   | false     |
-| `--background`    | Run in background                   | false     |
-| `--stop`          | Stop all servers                    | -         |
+| Option            | Description           | Default   |
+| ----------------- | --------------------- | --------- |
+| `--file <path>`   | Markdown file to view | -         |
+| `--dir <path>`    | Directory to browse   | -         |
+| `--port <number>` | Server port           | 3456      |
+| `--host <addr>`   | Host to bind          | localhost |
+| `--open`          | Auto-open browser     | false     |
+| `--background`    | Run in background     | false     |
+| `--stop`          | Stop all servers      | -         |
 
 ## Architecture
 

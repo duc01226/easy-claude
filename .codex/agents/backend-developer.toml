@@ -101,12 +101,12 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | **Repositories**      | Use the project's repository abstractions as documented. NEVER bypass the abstraction or invent a generic root repository. |
 | **Validation**        | Use the project's validation pattern (e.g. fluent API, validators, result types). NEVER throw exceptions if not the norm.  |
-| **Side Effects**      | Entity event handlers / domain event listeners — directory location per project convention. NEVER in command handlers.    |
-| **DTO Mapping**       | DTOs own mapping per project conventions. NEVER map in handlers.                                                            |
+| **Side Effects**      | Entity event handlers / domain event listeners — directory location per project convention. NEVER in command handlers.     |
+| **DTO Mapping**       | DTOs own mapping per project conventions. NEVER map in handlers.                                                           |
 | **Command Structure** | Follow the project's command/query/handler file layout as documented (e.g. one-file-per-command, separate files, etc.).    |
 | **Cross-Service**     | Message bus ONLY for cross-service calls. NEVER direct DB access across service boundaries.                                |
-| **Pattern Search**    | Search 3+ existing examples before writing new code.                                                                        |
-| **No Guessing**       | Do NOT fabricate file paths, function names, or behavior. Investigate first.                                                |
+| **Pattern Search**    | Search 3+ existing examples before writing new code.                                                                       |
+| **No Guessing**       | Do NOT fabricate file paths, function names, or behavior. Investigate first.                                               |
 
 ## Output
 

@@ -1015,6 +1015,13 @@ MANDATORY REVIEW GATES:
 Protocol:
 ```text
 PRE-COMMIT REVIEW (RECURSIVE):
+
+[BLOCKING] SEQUENCING RULE — review-changes (step 1) MUST run FIRST and complete before any other reviewer.
+- Step 1 (`review-changes`) establishes the baseline: surface analysis (BE/FE/SCSS file counts), review mode (DIMENSIONAL/BE-ONLY/FE-ONLY/FE-SPLIT/TOOLING), integration test sync gaps, multilingual translation gaps. Steps 2–6 depend on this baseline summary.
+- Steps 2–6 (`review-architecture`, `review-domain-entities`, `performance`, `integration-test-review`, `security`) form a PARALLEL BATCH and MUST be spawned together in a single message via `spawn_agent` tool calls (agent_type=code-reviewer). They are read-only and independent — no shared mutable state, no ordering dependency between them.
+- NEVER start steps 2–6 before step 1 completes. NEVER serialize steps 2–6 (burns 50K+ tokens absorbing five inline reports). NEVER start `code-simplifier` (step 7) until ALL parallel sub-agents return — step 7 modifies code and must operate on the consolidated review snapshot.
+- After parallel batch returns: TaskUpdate steps 2–6 to completed, read all sub-agent reports, synthesize Critical/High findings into a consolidation summary, then proceed to step 7 sequentially.
+
 - Review all staged and unstaged changes
 - Check for: security issues, debug artifacts (console.log, debugger), incomplete code, style violations
 - Verify no sensitive files (.env, credentials) are staged

@@ -258,7 +258,7 @@ Read full report. Apply fresh-eyes protocol:
 **IMPORTANT MUST ATTENTION** NEVER invent variable values, hex colors, or mixin signatures — grep declarations
 **IMPORTANT MUST ATTENTION** sub-agents write findings incrementally after each category — NEVER batch at end
 **IMPORTANT MUST ATTENTION** declarations only for variables/mixins — NOT usages — in the catalog
-**IMPORTANT MUST ATTENTION** Round 2 fresh-eyes is non-negotiable — validates variable names and values
+**IMPORTANT MUST ATTENTION** when Round 1 finds issues, Round 2 fresh-eyes after fixing validates variable names and values. Clean Round 1 ENDS the scan.
 
 **Anti-Rationalization:**
 
@@ -269,7 +269,7 @@ Read full report. Apply fresh-eyes protocol:
 | "Breakpoints are probably 768px/1024px"            | Read breakpoint declarations — NEVER assume common values                                       |
 | "Color values look right"                          | ALL color values must come from grep of actual declarations                                     |
 | "Usages and declarations are the same thing"       | NEVER mix them — document only declarations as authoritative                                    |
-| "Round 2 not needed for styling docs"              | Main agent rationalizes fabricated variable values. Fresh-eyes mandatory.                       |
+| "Skip Round 2 even when Round 1 found issues" | Clean Round 1 ends the scan. When issues exist, fresh-eyes mandatory after fixing — main agent rationalizes fabricated variable values. |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and break into small todo tasks and sub-tasks using task tracking.
 

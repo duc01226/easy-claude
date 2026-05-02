@@ -82,7 +82,7 @@ NEVER consolidate, rename, or omit steps. If reviews PASS, mark conditional task
 >
 > **Why:** The main agent knows what it (or `/cook`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
 >
-> **When:** Round 2 of ANY review AND every recursive re-review iteration after fixes. NOT needed when Round 1 already PASSes with zero issues.
+> **When:** ONLY after a fix cycle. A review round that finds zero issues ENDS the loop — do NOT spawn a confirmation sub-agent. A review round that finds issues triggers: fix → fresh sub-agent re-review.
 >
 > **How:**
 >
@@ -94,8 +94,9 @@ NEVER consolidate, rename, or omit steps. If reviews PASS, mark conditional task
 >
 > **Rules:**
 >
-> - NEVER reuse a sub-agent across rounds — every iteration spawns a NEW `Agent` call
-> - NEVER skip fresh-subagent review because "last round was clean" — every fix triggers a fresh round
+> - SKIP fresh sub-agent when the prior round found zero issues (no fixes = nothing new to verify)
+> - NEVER skip fresh sub-agent after a fix cycle — every fix invalidates the prior verdict
+> - NEVER reuse a sub-agent across rounds — every fresh round spawns a NEW `Agent` call
 > - Max 3 fresh-subagent rounds per review — escalate via `AskUserQuestion` if still failing; do NOT silently loop or fall back to any prior protocol
 > - Track iteration count in conversation context (session-scoped, no persistent files)
 

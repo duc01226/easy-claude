@@ -2,6 +2,7 @@
 name: llm-council
 description: "[Decision Support] Run an irreversible, high-stakes decision through a council of 5 adversarial AI advisors who independently analyze, peer-review anonymously, and synthesize a final verdict. Expensive: 11 sub-agent calls; reserve for costly wrong decisions. Triggers: 'council this', 'run the council', 'war room this', 'pressure-test this', 'stress-test this', 'debate this'. Also use for real multi-option hard-to-reverse choices like 'should I X or Y', 'which option', 'is this the right move', or 'I'm torn between'. Do not trigger on simple facts, yes/no questions, single-option validation, plan/PBI reviews, reversible choices, or issues decidable with one grep. Decision ladder: /why-review → /plan-validate → /llm-council."
 ---
+
 > **[IMPORTANT]** MUST ATTENTION use council only for multi-option, hard-to-reverse, high-stakes decisions. NEVER council trivial, factual, reversible, or single-option questions.
 > **[IMPORTANT]** MUST ATTENTION spawn 5 advisors in parallel, then 5 fresh peer reviewers in parallel, then chairman synthesis.
 > **[IMPORTANT]** MUST ATTENTION require evidence for code/architecture claims: `file:line`, graph trace, or explicit "insufficient evidence."
@@ -15,6 +16,7 @@ description: "[Decision Support] Run an irreversible, high-stakes decision throu
 **Workflow:** Gate → Frame → 5 parallel advisors → anonymized 5-reviewer peer review → chairman synthesis → paired HTML/MD reports.
 
 **Key Rules:**
+
 - MUST ATTENTION use cheaper ladder first: `/why-review` → `/plan-validate` → `/llm-council`.
 - MUST ATTENTION graph-trace code/architecture questions when `.code-graph/graph.db` exists.
 - NEVER let earlier advisor responses bleed into later advisors; parallel spawn required.
@@ -27,11 +29,11 @@ description: "[Decision Support] Run an irreversible, high-stakes decision throu
 
 Run before advisors.
 
-| Gate | Required | Route if false |
-|---|---|---|
-| Multi-option | >=2 viable paths | Single-option rationale → `/why-review` |
-| Hard to reverse | Architecture, stack, pricing, hiring, irreversible refactor | Reversible choice → answer directly |
-| Real stakes | Wrong call costs >=1 week, money, trust, or strategic position | Low stakes → answer directly |
+| Gate              | Required                                                                 | Route if false                          |
+| ----------------- | ------------------------------------------------------------------------ | --------------------------------------- |
+| Multi-option      | >=2 viable paths                                                         | Single-option rationale → `/why-review` |
+| Hard to reverse   | Architecture, stack, pricing, hiring, irreversible refactor              | Reversible choice → answer directly     |
+| Real stakes       | Wrong call costs >=1 week, money, trust, or strategic position           | Low stakes → answer directly            |
 | Multi-angle value | Contrarian/first-principles/upside/outside/execution views change answer | Factual/single-domain → answer directly |
 
 If any gate fails, state failed gate + lighter route. NEVER council "should I use markdown."
@@ -45,13 +47,13 @@ Bad prompts: factual lookup, simple yes/no, content generation, summarization, b
 
 Each advisor = thinking dimension, not persona costume. One strong angle each.
 
-| Advisor | Think |
-|---|---|
-| Contrarian | What fails? What assumption kills plan? |
-| First Principles Thinker | What problem are we solving? Which assumptions need rebuild? |
-| Expansionist | What upside, adjacent opportunity, undervalued path is missing? |
-| Outsider | What confuses someone with no context? What jargon hides value? |
-| Executor | What can happen Monday morning? Fastest validated path? |
+| Advisor                  | Think                                                           |
+| ------------------------ | --------------------------------------------------------------- |
+| Contrarian               | What fails? What assumption kills plan?                         |
+| First Principles Thinker | What problem are we solving? Which assumptions need rebuild?    |
+| Expansionist             | What upside, adjacent opportunity, undervalued path is missing? |
+| Outsider                 | What confuses someone with no context? What jargon hides value? |
+| Executor                 | What can happen Monday morning? Fastest validated path?         |
 
 Tensions: Contrarian vs Expansionist, First Principles vs Executor, Outsider grounds both.
 
@@ -210,27 +212,27 @@ First action: [single next step]
 
 Opt-in escalation hook from host skills. NEVER wire into bugfix, refactor, migration, package-upgrade, or `test-*` workflows.
 
-| Host skill | Mode | Default | Gate |
-|---|---|---|---|
-| `architecture-design` | Always-offer after `## Next Steps` | Skip | User chooses |
-| `tech-stack-research` | Always-offer after `## Next Steps` | Skip | User chooses |
-| `why-review` | Conditional on active plan/PBI frontmatter | Escalate when gate fires | 8-OR gate |
-| `prioritize` | Conditional on ranking output | Escalate when gate fires | RICE top-2 within 15%, MoSCoW tie, or stakeholder disagreement |
+| Host skill            | Mode                                       | Default                  | Gate                                                           |
+| --------------------- | ------------------------------------------ | ------------------------ | -------------------------------------------------------------- |
+| `architecture-design` | Always-offer after `## Next Steps`         | Skip                     | User chooses                                                   |
+| `tech-stack-research` | Always-offer after `## Next Steps`         | Skip                     | User chooses                                                   |
+| `why-review`          | Conditional on active plan/PBI frontmatter | Escalate when gate fires | 8-OR gate                                                      |
+| `prioritize`          | Conditional on ranking output              | Escalate when gate fires | RICE top-2 within 15%, MoSCoW tie, or stakeholder disagreement |
 
 ### `why-review` Gate Schema
 
 Gate fires when ANY field true. Absent fields default no-fire; gate opt-in via frontmatter, never opt-out.
 
-| Field | Convention | Fires when |
-|---|---|---|
-| `cross_service_impact` | `NONE` / `PARTIAL` / `FULL` | value != `NONE` |
-| `breaking_changes` | bool | true |
-| `complexity` | `low` / `medium` / `high` / `critical` | `high`, `critical`, or `story_points >= 13` |
-| `new_framework` | bool | true |
-| `irreversible` | bool | true |
-| `security_critical` | bool | true |
-| `performance_critical` | bool | true |
-| `cost_high` | bool | true |
+| Field                  | Convention                             | Fires when                                  |
+| ---------------------- | -------------------------------------- | ------------------------------------------- |
+| `cross_service_impact` | `NONE` / `PARTIAL` / `FULL`            | value != `NONE`                             |
+| `breaking_changes`     | bool                                   | true                                        |
+| `complexity`           | `low` / `medium` / `high` / `critical` | `high`, `critical`, or `story_points >= 13` |
+| `new_framework`        | bool                                   | true                                        |
+| `irreversible`         | bool                                   | true                                        |
+| `security_critical`    | bool                                   | true                                        |
+| `performance_critical` | bool                                   | true                                        |
+| `cost_high`            | bool                                   | true                                        |
 
 Host prompt copy MUST cite cheaper rungs: `/why-review`, `/plan-validate`, `/llm-council`.
 
@@ -247,10 +249,10 @@ Host prompt copy MUST cite cheaper rungs: `/why-review`, `/plan-validate`, `/llm
 
 **Anti-Rationalization:**
 
-| Evasion | Rebuttal |
-|---|---|
-| "This decision feels important" | Gate it: multi-option, hard-to-reverse, real stakes, multi-angle value. |
-| "One advisor can handle it" | Council value comes from independent angles + anonymous peer review. |
-| "Sequential spawn is simpler" | Sequential spawn contaminates independence. Parallel spawn required. |
-| "Four advisors is close enough" | Missing angle changes verdict quality. Mark degraded. |
-| "Evidence would slow us down" | Unsupported code/architecture claims are speculation. Use graph/file proof or say insufficient evidence. |
+| Evasion                         | Rebuttal                                                                                                 |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| "This decision feels important" | Gate it: multi-option, hard-to-reverse, real stakes, multi-angle value.                                  |
+| "One advisor can handle it"     | Council value comes from independent angles + anonymous peer review.                                     |
+| "Sequential spawn is simpler"   | Sequential spawn contaminates independence. Parallel spawn required.                                     |
+| "Four advisors is close enough" | Missing angle changes verdict quality. Mark degraded.                                                    |
+| "Evidence would slow us down"   | Unsupported code/architecture claims are speculation. Use graph/file proof or say insufficient evidence. |

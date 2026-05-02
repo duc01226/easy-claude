@@ -250,7 +250,7 @@ Note: stats use grep expressions, NOT hardcoded counts.
 **IMPORTANT MUST ATTENTION** cite `file:line` for every code example — NEVER fabricate class names
 **IMPORTANT MUST ATTENTION** sub-agents write findings incrementally after each file — NEVER batch at end
 **IMPORTANT MUST ATTENTION** NEVER hardcode file counts — use grep expressions in project-config.json stats
-**IMPORTANT MUST ATTENTION** Round 2 fresh-eyes is non-negotiable — NEVER declare PASS after Round 1
+**IMPORTANT MUST ATTENTION** if Round 1 finds issues, Round 2 fresh-eyes is non-negotiable after fixing. Clean Round 1 ENDS the scan.
 
 **Anti-Rationalization:**
 
@@ -258,7 +258,7 @@ Note: stats use grep expressions, NOT hardcoded counts.
 | --------------------------------------------- | ------------------------------------------------------------------------------ |
 | "Framework obvious, skip Phase 0 detection"   | Phase 0 is BLOCKING — BDD vs non-BDD detection determines which agents run     |
 | "BDD agent not needed (probably non-BDD)"     | Confirm non-BDD from Phase 0 evidence before skipping Agent 3                  |
-| "Examples look right, skip Round 2"           | NEVER declare PASS after Round 1. Main agent rationalizes fabricated examples. |
+| "Skip Round 2 even when Round 1 found issues" | Clean Round 1 ends the scan. When issues exist, fresh-eyes mandatory after fixing — main agent rationalizes fabricated examples. |
 | "File counts in project-config.json are fine" | NEVER hardcode counts — use grep expressions to avoid instant staleness        |
 | "Conditional sections not needed"             | Only add conditional sections if corresponding code evidence found in scan     |
 

@@ -119,7 +119,7 @@ Activate `arch-security-review` skill and follow its workflow.
 2. **Round 2:** Spawn fresh `security-auditor` sub-agent (`agent_type: "security-auditor"`) — ZERO memory of Round 1. Include in prompt: OWASP Top 10 checklist, auth flows, injection risks, dependency CVEs, microservices boundary security.
 3. Issues found → fix → Round 3 with NEW fresh `security-auditor` sub-agent
 4. Max 3 rounds → escalate to user via a direct user question
-5. **NEVER declare PASS after Round 1 alone** — main agent rationalizes own work
+5. **Clean Round 1 ENDS the review.** When issues are found, fix and spawn a fresh sub-agent for Round 2 — main agent rationalizes own work, fresh eyes catch what was dismissed.
 
 <!-- SYNC:sub-agent-selection -->
 

@@ -71,30 +71,30 @@ grep -rn "kubernetes\\|k8s\\|helm\\|istio" . --include="*.yaml" --include="*.yml
 
 Build **Tech Stack Inventory** table before proceeding (rows below are illustrative — replace with the project's actual detected stack):
 
-| Layer     | Technology (example) | Version | Notes                  |
-| --------- | -------------------- | ------- | ---------------------- |
-| Backend   | _detect from repo_   | —       | runtime, framework     |
-| Frontend  | _detect from repo_   | —       | UI framework + tooling |
-| Auth      | _detect from repo_   | —       | JWT / OIDC / sessions  |
-| Datastore | _detect from repo_   | —       | RDBMS / NoSQL / cache  |
-| Bus       | _detect from repo_   | —       | broker / queue / none  |
+| Layer     | Technology (example) | Version | Notes                     |
+| --------- | -------------------- | ------- | ------------------------- |
+| Backend   | _detect from repo_   | —       | runtime, framework        |
+| Frontend  | _detect from repo_   | —       | UI framework + tooling    |
+| Auth      | _detect from repo_   | —       | JWT / OIDC / sessions     |
+| Datastore | _detect from repo_   | —       | RDBMS / NoSQL / cache     |
+| Bus       | _detect from repo_   | —       | broker / queue / none     |
 | Infra     | _detect from repo_   | —       | Docker / K8s / serverless |
 
 ### Phase 2: Research CVEs & Attack Patterns Per Stack (SECOND)
 
 For each detected component, synthesize known high-impact attack classes. Use training knowledge + WebSearch verify current CVEs if internet access available. **Rows below are EXAMPLES across common stacks — include only those matching detected components from Phase 1, and add equivalents for any stack not listed (Express, Spring, Django, Rails, Go, etc.).**
 
-| Component class                | Example technologies                  | Research Target                                                                                                                       |
-| ------------------------------ | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| **HTTP framework**             | ASP.NET Core, Express, Spring, Django, Rails, Gin | Mass assignment, model binding bypass, CORS misconfig, CSRF gaps, middleware ordering bugs, route auth gaps             |
-| **ORM / data driver**          | EF Core, Hibernate, Sequelize, SQLAlchemy, ActiveRecord, MongoDB driver | (No)SQL operator injection, raw query injection, unintended full-collection / full-table scans      |
-| **JWT / Bearer Auth**          | any JWT library                       | Algorithm confusion (`none`, RS256→HS256), missing claim validation (`aud`, `iss`, `exp`), token sidejacking, JWT in localStorage     |
-| **SPA frontend**               | Angular, React, Vue, Svelte           | Template/HTML injection (sanitizer-bypass APIs), XSS via dangerous-HTML APIs, CSRF on non-SameSite cookies, supply chain via plugins  |
-| **Message broker**             | RabbitMQ, Kafka, NATS, SQS, Azure Service Bus | Default credentials, missing TLS, poison-message DoS, permission/topic scope, untrusted-payload deserialization               |
-| **Database**                   | MongoDB, Postgres, MySQL, SQL Server  | Operator/SQL injection, excessive service-account privilege, no field-level PII encryption, weak/disabled cluster auth                |
-| **Cache / KV**                 | Redis, Memcached                      | Unauthenticated access, command/eval injection, persistence/config rewrite attacks                                                    |
-| **Container / orchestration**  | Docker, Kubernetes, ECS               | Privileged containers, exposed daemon socket, default SA token auto-mount, RBAC overpermission, secrets in ENV vs mounted            |
-| **Package ecosystem**          | npm, NuGet, Maven, PyPI, RubyGems, Go modules | Run ecosystem CVE scanner (`npm audit`, `dotnet list package --vulnerable`, `pip-audit`, `bundle audit`, `govulncheck`, etc.) |
+| Component class               | Example technologies                                                    | Research Target                                                                                                                      |
+| ----------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **HTTP framework**            | ASP.NET Core, Express, Spring, Django, Rails, Gin                       | Mass assignment, model binding bypass, CORS misconfig, CSRF gaps, middleware ordering bugs, route auth gaps                          |
+| **ORM / data driver**         | EF Core, Hibernate, Sequelize, SQLAlchemy, ActiveRecord, MongoDB driver | (No)SQL operator injection, raw query injection, unintended full-collection / full-table scans                                       |
+| **JWT / Bearer Auth**         | any JWT library                                                         | Algorithm confusion (`none`, RS256→HS256), missing claim validation (`aud`, `iss`, `exp`), token sidejacking, JWT in localStorage    |
+| **SPA frontend**              | Angular, React, Vue, Svelte                                             | Template/HTML injection (sanitizer-bypass APIs), XSS via dangerous-HTML APIs, CSRF on non-SameSite cookies, supply chain via plugins |
+| **Message broker**            | RabbitMQ, Kafka, NATS, SQS, Azure Service Bus                           | Default credentials, missing TLS, poison-message DoS, permission/topic scope, untrusted-payload deserialization                      |
+| **Database**                  | MongoDB, Postgres, MySQL, SQL Server                                    | Operator/SQL injection, excessive service-account privilege, no field-level PII encryption, weak/disabled cluster auth               |
+| **Cache / KV**                | Redis, Memcached                                                        | Unauthenticated access, command/eval injection, persistence/config rewrite attacks                                                   |
+| **Container / orchestration** | Docker, Kubernetes, ECS                                                 | Privileged containers, exposed daemon socket, default SA token auto-mount, RBAC overpermission, secrets in ENV vs mounted            |
+| **Package ecosystem**         | npm, NuGet, Maven, PyPI, RubyGems, Go modules                           | Run ecosystem CVE scanner (`npm audit`, `dotnet list package --vulnerable`, `pip-audit`, `bundle audit`, `govulncheck`, etc.)        |
 
 > If WebSearch available: `site:nvd.nist.gov {technology} {version} CVE` + `{technology} security advisory {current_year}` per major component.
 
@@ -197,12 +197,12 @@ python .claude/scripts/code_graph query tests_for <function> --json             
 
 > **Stack-agnostic checklist.** The grep examples below assume a .NET/Angular stack as a worked example. For every detected stack, **substitute equivalent regex + file-include patterns** before running:
 >
-> | Concept (stack-agnostic)         | .NET example                        | Node/TS example                              | Python example                            | Java example                            |
-> | -------------------------------- | ----------------------------------- | -------------------------------------------- | ----------------------------------------- | --------------------------------------- |
-> | Controller / route file          | `--include="*Controller.cs"`        | `--include="*.controller.ts"` / `routes/**`  | `views.py`, FastAPI router files          | `*Controller.java`, `*Resource.java`    |
-> | Config file                      | `appsettings*.json`                 | `*.env`, `config/*.json`, `*.config.ts`      | `settings.py`, `*.env`, `*.yaml`          | `application.properties`, `*.yml`       |
-> | DI / startup                     | `Program.cs`, `Startup.cs`          | `main.ts`, `app.module.ts`, `server.ts`      | `wsgi.py`, `asgi.py`, `manage.py`         | `Application.java`, `@Configuration`    |
-> | Auth/authorization decorator     | `[Authorize]`, `[AllowAnonymous]`   | guards, `@UseGuards`, middleware             | `@login_required`, DRF permissions        | `@PreAuthorize`, `@RolesAllowed`        |
+> | Concept (stack-agnostic)     | .NET example                      | Node/TS example                             | Python example                     | Java example                         |
+> | ---------------------------- | --------------------------------- | ------------------------------------------- | ---------------------------------- | ------------------------------------ |
+> | Controller / route file      | `--include="*Controller.cs"`      | `--include="*.controller.ts"` / `routes/**` | `views.py`, FastAPI router files   | `*Controller.java`, `*Resource.java` |
+> | Config file                  | `appsettings*.json`               | `*.env`, `config/*.json`, `*.config.ts`     | `settings.py`, `*.env`, `*.yaml`   | `application.properties`, `*.yml`    |
+> | DI / startup                 | `Program.cs`, `Startup.cs`        | `main.ts`, `app.module.ts`, `server.ts`     | `wsgi.py`, `asgi.py`, `manage.py`  | `Application.java`, `@Configuration` |
+> | Auth/authorization decorator | `[Authorize]`, `[AllowAnonymous]` | guards, `@UseGuards`, middleware            | `@login_required`, DRF permissions | `@PreAuthorize`, `@RolesAllowed`     |
 >
 > Rule: **detect first, then substitute.** Running .NET regex against a Python repo produces zero findings AND false confidence.
 

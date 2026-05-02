@@ -15,6 +15,8 @@ description: '[Workflow] Trigger Review Current Changes workflow — review, fix
 
 **IMPORTANT MANDATORY Steps:** /review-changes -> /review-architecture -> /review-domain-entities -> /performance -> /integration-test-review -> /security -> /code-simplifier -> /code-review -> /integration-test-verify -> /plan -> /why-review -> /plan-validate -> /why-review -> /cook -> /workflow-review-changes -> /docs-update -> /watzup -> /workflow-end
 
+> **[BLOCKING SEQUENCING]** Step 1 `/review-changes` is SEQUENTIAL and MUST run FIRST — it produces the baseline (surface analysis + integration-test/translation gap detection) consumed by all downstream reviewers. Steps 2–6 (`/review-architecture`, `/review-domain-entities`, `/performance`, `/integration-test-review`, `/security`) form a PARALLEL BATCH — spawn all in ONE message via `Agent` tool calls (`subagent_type: "code-reviewer"`). Step 7 `/code-simplifier` is SEQUENTIAL and waits until ALL parallel batch sub-agents return + consolidation summary is built. Steps 8+ proceed sequentially as listed.
+
 > **[WORKFLOW-IN-WORKFLOW: MUST RUN AS SUB-AGENT when inside another workflow]** This skill activates the full `review-changes` workflow (16 steps). When invoked as a step inside a parent workflow (e.g., `feature`, `bugfix`, `refactor`), it MUST execute via `Agent` tool (`subagent_type: "code-reviewer"`) — NEVER as an inline `Skill` tool call. Inline execution absorbs 16 steps of context into the parent session.
 >
 > **Sub-agent prompt must include:** current git diff, feature/task description, instruction to return SYNC:subagent-return-contract summary and write full findings to `plans/reports/`.
@@ -107,7 +109,7 @@ NEVER consolidate, rename, or omit steps. If reviews PASS, mark conditional task
 
 ---
 
-## Parallel Review Phase (Steps 2–5) — EXECUTION PROTOCOL
+## Parallel Review Phase (Steps 2–6) — EXECUTION PROTOCOL
 
 > **Note:** Steps 2–6 are ARCHITECTURAL/SECURITY reviewers (architecture compliance, DDD entities,
 > performance, integration test quality, security vulnerabilities). They are separate from the
@@ -203,7 +205,7 @@ All four feed into the consolidation summary alongside steps 2–5 architectural
 >
 > **Why:** The main agent knows what it (or `/cook`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
 >
-> **When:** Round 2 of ANY review AND every recursive re-review iteration after fixes. NOT needed when Round 1 already PASSes with zero issues.
+> **When:** ONLY after a fix cycle. A review round that finds zero issues ENDS the loop — do NOT spawn a confirmation sub-agent. A review round that finds issues triggers: fix → fresh sub-agent re-review.
 >
 > **How:**
 >
@@ -215,8 +217,9 @@ All four feed into the consolidation summary alongside steps 2–5 architectural
 >
 > **Rules:**
 >
-> - NEVER reuse a sub-agent across rounds — every iteration spawns a NEW `Agent` call
-> - NEVER skip fresh-subagent review because "last round was clean" — every fix triggers a fresh round
+> - SKIP fresh sub-agent when the prior round found zero issues (no fixes = nothing new to verify)
+> - NEVER skip fresh sub-agent after a fix cycle — every fix invalidates the prior verdict
+> - NEVER reuse a sub-agent across rounds — every fresh round spawns a NEW `Agent` call
 > - Max 3 fresh-subagent rounds per review — escalate via `AskUserQuestion` if still failing; do NOT silently loop or fall back to any prior protocol
 > - Track iteration count in conversation context (session-scoped, no persistent files)
 
@@ -316,6 +319,8 @@ Main Session: Review → Issues? → Plan → Fix (/cook) → Spawn fresh sub-ag
 ---
 
 **IMPORTANT MANDATORY Steps:** /review-changes -> /review-architecture -> /review-domain-entities -> /performance -> /integration-test-review -> /security -> /code-simplifier -> /code-review -> /integration-test-verify -> /plan -> /why-review -> /plan-validate -> /why-review -> /cook -> /workflow-review-changes -> /docs-update -> /watzup -> /workflow-end
+
+> **[BLOCKING SEQUENCING]** Step 1 `/review-changes` is SEQUENTIAL and MUST run FIRST — it produces the baseline (surface analysis + integration-test/translation gap detection) consumed by all downstream reviewers. Steps 2–6 (`/review-architecture`, `/review-domain-entities`, `/performance`, `/integration-test-review`, `/security`) form a PARALLEL BATCH — spawn all in ONE message via `Agent` tool calls (`subagent_type: "code-reviewer"`). Step 7 `/code-simplifier` is SEQUENTIAL and waits until ALL parallel batch sub-agents return + consolidation summary is built. Steps 8+ proceed sequentially as listed.
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
 

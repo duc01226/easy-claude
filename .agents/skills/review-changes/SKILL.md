@@ -46,7 +46,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 > **[CRITICAL — TOP 3 RULES]**
 >
 > 1. **MUST ATTENTION Phase 0 graph blast-radius FIRST** — NEVER skip; informs entire review order
-> 2. **NEVER declare PASS after Round 1 alone** — fresh sub-agent review mandatory (Round 2+)
+> 2. **Clean Round 1 ENDS the review.** When issues found, fresh sub-agent re-review mandatory after fixing.
 > 3. **MUST ATTENTION task tracking ALL phases** before starting; missing tests MUST surface via a direct user question — NOT silently logged
 
 > **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. Prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
@@ -146,6 +146,18 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 > 11. **Premature vs delayed abstraction** — rule-of-three. First occurrence: write it. Second: notice duplication. Third: extract. Don't build generic frameworks before real variation; don't copy-paste for the 4th time.
 > 12. **Embedded utility logic not extracted to helpers** — inline paging loops (`while (hasMore) { skip += take; ... }`), ad-hoc datetime math, string parsing/formatting, collection partitioning, retry/backoff loops, URL/query-string building. If the algorithm is non-trivial AND stack-generic (not business-specific), extract to `util`/`helper`/`extensions` and let consumers call one line. Inline duplicates → duplicated bug surface.
 > 13. **Logic in wrong (higher) layer — downshift to callee** — business/derivation logic written in the caller when the callee owns the data. Defaults: Controller code that should be App Service. App Service code that should be Domain Service or Entity. Component code that should be ViewModel/Store/Service. Caller reaching into callee's data shape to compute something → move the computation behind an intent-revealing method on the callee. Lowest responsible layer wins (Entity > Domain Service > App Service > Controller · Model/VM > Store > Component). Higher-layer placement = duplicated logic when a sibling caller needs the same thing.
+> 14. **Owner owns the rule — extract on first write** — if a caller inlines logic that derives, normalizes, validates, or computes from another type's data, MOVE it to the owning type. Single use is sufficient — the trigger is wrong responsibility, not duplication. Sibling callers always arrive; inline copies drift silently with no compile error and no name to grep. **Common offenders:** _Backend_ — inlined rules in application-layer handlers / commands / queries / services / controllers that belong on the domain entity / value object / domain service. _Frontend_ — inlined derivations / formatting / validation in components that belong on the model / store / view-model / API service. **Fix:** name the rule once as a method (static or instance) on the owning type; callers invoke by name. Future variant → SECOND named method on the owner, never an inline near-duplicate. **Right responsibility first; reuse is the consequence.**
+>
+> **Extraction target — where the named rule lives:**
+>
+> | Shape of the rule                             | Goes to                       |
+> | --------------------------------------------- | ----------------------------- |
+> | Pure function over an entity's own data       | static method on the entity   |
+> | Behavior that mutates / guards entity state   | instance method on the entity |
+> | Always-true invariant on a primitive value    | value object constructor      |
+> | Needs DI (repo / settings / clock)            | helper class registered in DI |
+> | Domain-agnostic algorithm reused across types | util / extension method       |
+> | Pure shape / projection conversion            | DTO mapping                   |
 >
 > **Pre-commit edit-site test (reject if answer is "many"):**
 >
@@ -179,30 +191,37 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 <!-- SYNC:double-round-trip-review -->
 
-> **Deep Multi-Round Review** — Escalating rounds. Round 1 in main session. Round 2+ and EVERY recursive re-review iteration MUST use a fresh sub-agent.
+> **Fix-Triggered Re-Review Loop** — Re-review is triggered by a FIX CYCLE, not by a round number. Review purpose: `review → if issues → fix → re-review` until a round finds no issues. **A clean review ENDS the loop — no further rounds required.**
 >
-> **Round 1:** Main-session review. Read target files, build understanding, note issues. Output baseline findings.
+> **Round 1:** Main-session review. Read target files, build understanding, note issues. Output findings + verdict (PASS / FAIL).
 >
-> **Round 2:** MANDATORY fresh sub-agent review — see `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. The sub-agent re-reads ALL files from scratch with ZERO Round 1 memory. It must catch:
+> **Decision after Round 1:**
 >
-> - Cross-cutting concerns missed in Round 1
+> - **No issues found (PASS, zero findings)** → review ENDS. Do NOT spawn a fresh sub-agent for confirmation.
+> - **Issues found (FAIL, or any non-zero findings)** → fix the issues, then spawn a fresh sub-agent for Round 2 re-review.
+>
+> **Fresh sub-agent re-review (after every fix cycle):** Spawn a NEW `spawn_agent` tool call — never reuse a prior agent. Sub-agent re-reads ALL files from scratch with ZERO memory of prior rounds. See `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. Each fresh round must catch:
+>
+> - Cross-cutting concerns missed in the prior round
 > - Interaction bugs between changed files
 > - Convention drift (new code vs existing patterns)
 > - Missing pieces that should exist but don't
-> - Subtle edge cases the main session rationalized away
+> - Subtle edge cases the prior round rationalized away
+> - Regressions introduced by the fixes themselves
 >
-> **Round 3+ (recursive after fixes):** After ANY fix cycle, MANDATORY fresh sub-agent re-review. Spawn a **NEW** `spawn_agent` tool call each iteration — never reuse Round 2's agent. Each new agent re-reads ALL files from scratch with full protocol injection. Continue until PASS or **3 fresh-subagent rounds max**, then escalate to user via a direct user question.
+> **Loop termination:** After each fresh round, repeat the same decision: clean → END; issues → fix → next fresh round. Continue until a round finds zero issues, or **3 fresh-subagent rounds max**, then escalate to user via a direct user question.
 >
 > **Rules:**
 >
-> - NEVER declare PASS after Round 1 alone
+> - A clean Round 1 ENDS the review — no mandatory Round 2
+> - NEVER skip the fresh sub-agent re-review after a fix cycle (every fix invalidates the prior verdict)
 > - NEVER reuse a sub-agent across rounds — every iteration spawns a NEW Agent call
 > - Main agent READS sub-agent reports but MUST NOT filter, reinterpret, or override findings
 > - Max 3 fresh-subagent rounds per review — if still FAIL, escalate via a direct user question (do NOT silently loop)
 > - Track round count in conversation context (session-scoped)
-> - Final verdict must incorporate ALL rounds
+> - Final verdict must incorporate ALL rounds executed
 >
-> **Report must include `## Round N Findings (Fresh Sub-Agent)` for every round N≥2.**
+> **Report must include `## Round N Findings (Fresh Sub-Agent)` for every round N≥2 that was executed.**
 
 <!-- /SYNC:double-round-trip-review -->
 
@@ -212,11 +231,11 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 >
 > **Why:** The main agent knows what it (or `$cook`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
 >
-> **When:** Round 2 of ANY review AND every recursive re-review iteration after fixes. NOT needed when Round 1 already PASSes with zero issues.
+> **When:** ONLY after a fix cycle. A review round that finds zero issues ENDS the loop — do NOT spawn a confirmation sub-agent. A review round that finds issues triggers: fix → fresh sub-agent re-review.
 >
 > **How:**
 >
-> 1. Spawn a NEW `spawn_agent` tool call — choose `subagent_type` based on the review's dominant concern (see Sub-Agent Type Selection in `SYNC:review-protocol-injection`)
+> 1. Spawn a NEW `spawn_agent` tool call — use `code-reviewer` subagent_type for code reviews, `general-purpose` for plan/doc/artifact reviews
 > 2. Inject ALL required review protocols VERBATIM into the prompt — see `SYNC:review-protocol-injection` for the full list and template. Never reference protocols by file path; AI compliance drops behind file-read indirection (see `SYNC:shared-protocol-duplication-policy`)
 > 3. Sub-agent re-reads ALL target files from scratch via its own tool calls — never pass file contents inline in the prompt
 > 4. Sub-agent writes structured report to `plans/reports/{review-type}-round{N}-{date}.md`
@@ -224,8 +243,9 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 >
 > **Rules:**
 >
-> - NEVER reuse a sub-agent across rounds — every iteration spawns a NEW `spawn_agent` call
-> - NEVER skip fresh-subagent review because "last round was clean" — every fix triggers a fresh round
+> - SKIP fresh sub-agent when the prior round found zero issues (no fixes = nothing new to verify)
+> - NEVER skip fresh sub-agent after a fix cycle — every fix invalidates the prior verdict
+> - NEVER reuse a sub-agent across rounds — every fresh round spawns a NEW `spawn_agent` call
 > - Max 3 fresh-subagent rounds per review — escalate via a direct user question if still failing; do NOT silently loop or fall back to any prior protocol
 > - Track iteration count in conversation context (session-scoped, no persistent files)
 
@@ -824,7 +844,7 @@ For EACH changed file, read and **immediately update report** with:
 **Phase 3: Second-Round Review (Conditional Protocol — branch on Phase 0.7 surface)**
 
 > **Protocol:** `SYNC:double-round-trip-review` + `SYNC:fresh-context-review` + `SYNC:review-protocol-injection` (all inlined above).
-> **INVARIANT:** Phase 3 ALWAYS fires a fresh sub-agent. NEVER declare PASS after Phase 2 alone.
+> **INVARIANT:** Phase 3 fires a fresh sub-agent ONLY after a fix cycle. If Phase 2 finds zero issues, the review ENDS — no Phase 3 needed. If Phase 2 finds issues, fix them, then Phase 3 fresh sub-agent re-review is mandatory.
 
 Check categories from Phase 0.7 — if multiple distinct domains changed (e.g., server-side + client-side), run **Synthesis Mode**. Otherwise run **Holistic Mode**.
 
@@ -1290,7 +1310,7 @@ review-changes (you are here)
 > **[CRITICAL — TOP 3 RULES REPEATED]**
 >
 > 1. **MUST ATTENTION Phase 0 graph blast-radius FIRST** — NEVER skip; informs entire review priority order
-> 2. **NEVER declare PASS after Round 1 alone** — fresh sub-agent review mandatory (Round 2+)
+> 2. **Clean Round 1 ENDS the review.** When issues found, fresh sub-agent re-review mandatory after fixing.
 > 3. **MUST ATTENTION task tracking ALL phases** before starting; missing tests MUST surface via a direct user question
 
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting
@@ -1298,7 +1318,7 @@ review-changes (you are here)
 - **MANDATORY IMPORTANT MUST ATTENTION** add final review todo task to verify work quality
 - **MANDATORY IMPORTANT MUST ATTENTION** discover and READ project-specific reference docs before starting
 - **MANDATORY IMPORTANT MUST ATTENTION** Phase 0 graph blast-radius is FIRST step — NEVER skip it
-- **MANDATORY IMPORTANT MUST ATTENTION** NEVER declare PASS after Round 1 alone — fresh sub-agent review is mandatory
+- **MANDATORY IMPORTANT MUST ATTENTION** fresh sub-agent re-review is mandatory ONLY after a fix cycle. Clean Round 1 ENDS the review.
 - **MANDATORY IMPORTANT MUST ATTENTION** documentation staleness check is REQUIRED in every review — flag stale docs even if not auto-fixing
 - **MANDATORY IMPORTANT MUST ATTENTION** missing tests for changed business logic MUST surface to user via a direct user question — NOT silently logged
 - **MANDATORY IMPORTANT MUST ATTENTION** run `$why-review` after completing this review to validate design rationale, alternatives considered, and risk assessment

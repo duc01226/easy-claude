@@ -118,14 +118,14 @@ Use `/kanban` for quick access:
 
 ## CLI Options
 
-| Option            | Description                         | Default   |
-| ----------------- | ----------------------------------- | --------- |
-| `--dir <path>`    | Plans directory                     | -         |
-| `--port <number>` | Server port                         | 3500      |
-| `--host <addr>`   | Host to bind | localhost |
-| `--open`          | Auto-open browser                   | false     |
-| `--background`    | Run in background                   | false     |
-| `--stop`          | Stop all servers                    | -         |
+| Option            | Description       | Default   |
+| ----------------- | ----------------- | --------- |
+| `--dir <path>`    | Plans directory   | -         |
+| `--port <number>` | Server port       | 3500      |
+| `--host <addr>`   | Host to bind      | localhost |
+| `--open`          | Auto-open browser | false     |
+| `--background`    | Run in background | false     |
+| `--stop`          | Stop all servers  | -         |
 
 ## Architecture
 

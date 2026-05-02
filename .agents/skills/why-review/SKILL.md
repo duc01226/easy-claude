@@ -89,30 +89,37 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 <!-- SYNC:double-round-trip-review -->
 
-> **Deep Multi-Round Review** — Escalating rounds. Round 1 in main session. Round 2+ and EVERY recursive re-review iteration MUST use a fresh sub-agent.
+> **Fix-Triggered Re-Review Loop** — Re-review is triggered by a FIX CYCLE, not by a round number. Review purpose: `review → if issues → fix → re-review` until a round finds no issues. **A clean review ENDS the loop — no further rounds required.**
 >
-> **Round 1:** Main-session review. Read target files, build understanding, note issues. Output baseline findings.
+> **Round 1:** Main-session review. Read target files, build understanding, note issues. Output findings + verdict (PASS / FAIL).
 >
-> **Round 2:** MANDATORY fresh sub-agent review — see `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. The sub-agent re-reads ALL files from scratch with ZERO Round 1 memory. It must catch:
+> **Decision after Round 1:**
 >
-> - Cross-cutting concerns missed in Round 1
+> - **No issues found (PASS, zero findings)** → review ENDS. Do NOT spawn a fresh sub-agent for confirmation.
+> - **Issues found (FAIL, or any non-zero findings)** → fix the issues, then spawn a fresh sub-agent for Round 2 re-review.
+>
+> **Fresh sub-agent re-review (after every fix cycle):** Spawn a NEW `spawn_agent` tool call — never reuse a prior agent. Sub-agent re-reads ALL files from scratch with ZERO memory of prior rounds. See `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. Each fresh round must catch:
+>
+> - Cross-cutting concerns missed in the prior round
 > - Interaction bugs between changed files
 > - Convention drift (new code vs existing patterns)
 > - Missing pieces that should exist but don't
-> - Subtle edge cases the main session rationalized away
+> - Subtle edge cases the prior round rationalized away
+> - Regressions introduced by the fixes themselves
 >
-> **Round 3+ (recursive after fixes):** After ANY fix cycle, MANDATORY fresh sub-agent re-review. Spawn a **NEW** `spawn_agent` tool call each iteration — never reuse Round 2's agent. Each new agent re-reads ALL files from scratch with full protocol injection. Continue until PASS or **3 fresh-subagent rounds max**, then escalate to user via a direct user question.
+> **Loop termination:** After each fresh round, repeat the same decision: clean → END; issues → fix → next fresh round. Continue until a round finds zero issues, or **3 fresh-subagent rounds max**, then escalate to user via a direct user question.
 >
 > **Rules:**
 >
-> - NEVER declare PASS after Round 1 alone
+> - A clean Round 1 ENDS the review — no mandatory Round 2
+> - NEVER skip the fresh sub-agent re-review after a fix cycle (every fix invalidates the prior verdict)
 > - NEVER reuse a sub-agent across rounds — every iteration spawns a NEW Agent call
 > - Main agent READS sub-agent reports but MUST NOT filter, reinterpret, or override findings
 > - Max 3 fresh-subagent rounds per review — if still FAIL, escalate via a direct user question (do NOT silently loop)
 > - Track round count in conversation context (session-scoped)
-> - Final verdict must incorporate ALL rounds
+> - Final verdict must incorporate ALL rounds executed
 >
-> **Report must include `## Round N Findings (Fresh Sub-Agent)` for every round N≥2.**
+> **Report must include `## Round N Findings (Fresh Sub-Agent)` for every round N≥2 that was executed.**
 
 <!-- /SYNC:double-round-trip-review -->
 
@@ -122,7 +129,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 >
 > **Why:** The main agent knows what it (or `$cook`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
 >
-> **When:** Round 2 of ANY review AND every recursive re-review iteration after fixes. NOT needed when Round 1 already PASSes with zero issues.
+> **When:** ONLY after a fix cycle. A review round that finds zero issues ENDS the loop — do NOT spawn a confirmation sub-agent. A review round that finds issues triggers: fix → fresh sub-agent re-review.
 >
 > **How:**
 >
@@ -134,8 +141,9 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 >
 > **Rules:**
 >
-> - NEVER reuse a sub-agent across rounds — every iteration spawns a NEW `spawn_agent` call
-> - NEVER skip fresh-subagent review because "last round was clean" — every fix triggers a fresh round
+> - SKIP fresh sub-agent when the prior round found zero issues (no fixes = nothing new to verify)
+> - NEVER skip fresh sub-agent after a fix cycle — every fix invalidates the prior verdict
+> - NEVER reuse a sub-agent across rounds — every fresh round spawns a NEW `spawn_agent` call
 > - Max 3 fresh-subagent rounds per review — escalate via a direct user question if still failing; do NOT silently loop or fall back to any prior protocol
 > - Track iteration count in conversation context (session-scoped, no persistent files)
 
@@ -545,14 +553,14 @@ After the existing `## Next Steps` ask the user directly call completes, **evalu
 **MANDATORY IMPORTANT MUST ATTENTION** READ the following files before starting:
 
 - **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% do NOT recommend.
-- **MANDATORY IMPORTANT MUST ATTENTION** execute TWO review rounds. Round 2 delegates to fresh code-reviewer sub-agent (zero prior context) — never skip or combine with Round 1.
+- **MANDATORY IMPORTANT MUST ATTENTION** execute the review loop: review → if issues → fix → fresh sub-agent re-review. A round that finds zero issues ENDS the review.
 - **MANDATORY IMPORTANT MUST ATTENTION** run graph blast-radius on changed files to find potentially stale consumers/handlers (when graph.db exists).
-  <!-- SYNC:critical-thinking-mindset:reminder -->
+    <!-- SYNC:critical-thinking-mindset:reminder -->
 - **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
-  <!-- /SYNC:critical-thinking-mindset:reminder -->
-  <!-- SYNC:ai-mistake-prevention:reminder -->
+    <!-- /SYNC:critical-thinking-mindset:reminder -->
+    <!-- SYNC:ai-mistake-prevention:reminder -->
 - **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
-  <!-- /SYNC:ai-mistake-prevention:reminder -->
+    <!-- /SYNC:ai-mistake-prevention:reminder -->
 
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
 

@@ -78,6 +78,18 @@ description: '[Code Quality] Simplifies and refines code for clarity, consistenc
 > 11. **Premature vs delayed abstraction** — rule-of-three. First occurrence: write it. Second: notice duplication. Third: extract. Don't build generic frameworks before real variation; don't copy-paste for the 4th time.
 > 12. **Embedded utility logic not extracted to helpers** — inline paging loops (`while (hasMore) { skip += take; ... }`), ad-hoc datetime math, string parsing/formatting, collection partitioning, retry/backoff loops, URL/query-string building. If the algorithm is non-trivial AND stack-generic (not business-specific), extract to `util`/`helper`/`extensions` and let consumers call one line. Inline duplicates → duplicated bug surface.
 > 13. **Logic in wrong (higher) layer — downshift to callee** — business/derivation logic written in the caller when the callee owns the data. Defaults: Controller code that should be App Service. App Service code that should be Domain Service or Entity. Component code that should be ViewModel/Store/Service. Caller reaching into callee's data shape to compute something → move the computation behind an intent-revealing method on the callee. Lowest responsible layer wins (Entity > Domain Service > App Service > Controller · Model/VM > Store > Component). Higher-layer placement = duplicated logic when a sibling caller needs the same thing.
+> 14. **Owner owns the rule — extract on first write** — if a caller inlines logic that derives, normalizes, validates, or computes from another type's data, MOVE it to the owning type. Single use is sufficient — the trigger is wrong responsibility, not duplication. Sibling callers always arrive; inline copies drift silently with no compile error and no name to grep. **Common offenders:** _Backend_ — inlined rules in application-layer handlers / commands / queries / services / controllers that belong on the domain entity / value object / domain service. _Frontend_ — inlined derivations / formatting / validation in components that belong on the model / store / view-model / API service. **Fix:** name the rule once as a method (static or instance) on the owning type; callers invoke by name. Future variant → SECOND named method on the owner, never an inline near-duplicate. **Right responsibility first; reuse is the consequence.**
+>
+> **Extraction target — where the named rule lives:**
+>
+> | Shape of the rule                             | Goes to                       |
+> | --------------------------------------------- | ----------------------------- |
+> | Pure function over an entity's own data       | static method on the entity   |
+> | Behavior that mutates / guards entity state   | instance method on the entity |
+> | Always-true invariant on a primitive value    | value object constructor      |
+> | Needs DI (repo / settings / clock)            | helper class registered in DI |
+> | Domain-agnostic algorithm reused across types | util / extension method       |
+> | Pure shape / projection conversion            | DTO mapping                   |
 >
 > **Pre-commit edit-site test (reject if answer is "many"):**
 >
@@ -317,30 +329,37 @@ After simplifications applied, verification requires **fresh sub-agent review** 
 
 <!-- SYNC:double-round-trip-review -->
 
-> **Deep Multi-Round Review** — Escalating rounds. Round 1 in main session. Round 2+ and EVERY recursive re-review iteration MUST use a fresh sub-agent.
+> **Fix-Triggered Re-Review Loop** — Re-review is triggered by a FIX CYCLE, not by a round number. Review purpose: `review → if issues → fix → re-review` until a round finds no issues. **A clean review ENDS the loop — no further rounds required.**
 >
-> **Round 1:** Main-session review. Read target files, build understanding, note issues. Output baseline findings.
+> **Round 1:** Main-session review. Read target files, build understanding, note issues. Output findings + verdict (PASS / FAIL).
 >
-> **Round 2:** MANDATORY fresh sub-agent review — see `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. The sub-agent re-reads ALL files from scratch with ZERO Round 1 memory. It must catch:
+> **Decision after Round 1:**
 >
-> - Cross-cutting concerns missed in Round 1
+> - **No issues found (PASS, zero findings)** → review ENDS. Do NOT spawn a fresh sub-agent for confirmation.
+> - **Issues found (FAIL, or any non-zero findings)** → fix the issues, then spawn a fresh sub-agent for Round 2 re-review.
+>
+> **Fresh sub-agent re-review (after every fix cycle):** Spawn a NEW `Agent` tool call — never reuse a prior agent. Sub-agent re-reads ALL files from scratch with ZERO memory of prior rounds. See `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. Each fresh round must catch:
+>
+> - Cross-cutting concerns missed in the prior round
 > - Interaction bugs between changed files
 > - Convention drift (new code vs existing patterns)
 > - Missing pieces that should exist but don't
-> - Subtle edge cases the main session rationalized away
+> - Subtle edge cases the prior round rationalized away
+> - Regressions introduced by the fixes themselves
 >
-> **Round 3+ (recursive after fixes):** After ANY fix cycle, MANDATORY fresh sub-agent re-review. Spawn a **NEW** Agent tool call each iteration — never reuse Round 2's agent. Each new agent re-reads ALL files from scratch with full protocol injection. Continue until PASS or **3 fresh-subagent rounds max**, then escalate to user via `AskUserQuestion`.
+> **Loop termination:** After each fresh round, repeat the same decision: clean → END; issues → fix → next fresh round. Continue until a round finds zero issues, or **3 fresh-subagent rounds max**, then escalate to user via `AskUserQuestion`.
 >
 > **Rules:**
 >
-> - NEVER declare PASS after Round 1 alone
+> - A clean Round 1 ENDS the review — no mandatory Round 2
+> - NEVER skip the fresh sub-agent re-review after a fix cycle (every fix invalidates the prior verdict)
 > - NEVER reuse a sub-agent across rounds — every iteration spawns a NEW Agent call
 > - Main agent READS sub-agent reports but MUST NOT filter, reinterpret, or override findings
 > - Max 3 fresh-subagent rounds per review — if still FAIL, escalate via `AskUserQuestion` (do NOT silently loop)
 > - Track round count in conversation context (session-scoped)
-> - Final verdict must incorporate ALL rounds
+> - Final verdict must incorporate ALL rounds executed
 >
-> **Report must include `## Round N Findings (Fresh Sub-Agent)` for every round N≥2.**
+> **Report must include `## Round N Findings (Fresh Sub-Agent)` for every round N≥2 that was executed.**
 
 <!-- /SYNC:double-round-trip-review -->
 
@@ -350,7 +369,7 @@ After simplifications applied, verification requires **fresh sub-agent review** 
 >
 > **Why:** The main agent knows what it (or `/cook`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
 >
-> **When:** Round 2 of ANY review AND every recursive re-review iteration after fixes. NOT needed when Round 1 already PASSes with zero issues.
+> **When:** ONLY after a fix cycle. A review round that finds zero issues ENDS the loop — do NOT spawn a confirmation sub-agent. A review round that finds issues triggers: fix → fresh sub-agent re-review.
 >
 > **How:**
 >
@@ -362,8 +381,9 @@ After simplifications applied, verification requires **fresh sub-agent review** 
 >
 > **Rules:**
 >
-> - NEVER reuse a sub-agent across rounds — every iteration spawns a NEW `Agent` call
-> - NEVER skip fresh-subagent review because "last round was clean" — every fix triggers a fresh round
+> - SKIP fresh sub-agent when the prior round found zero issues (no fixes = nothing new to verify)
+> - NEVER skip fresh sub-agent after a fix cycle — every fix invalidates the prior verdict
+> - NEVER reuse a sub-agent across rounds — every fresh round spawns a NEW `Agent` call
 > - Max 3 fresh-subagent rounds per review — escalate via `AskUserQuestion` if still failing; do NOT silently loop or fall back to any prior protocol
 > - Track iteration count in conversation context (session-scoped, no persistent files)
 
@@ -618,7 +638,7 @@ When used standalone (outside a review workflow), run `/workflow-review-changes`
 - **MANDATORY IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE modification. Run graph trace when graph.db exists.
 - **MANDATORY IMPORTANT MUST ATTENTION** check DRY via OOP (same-suffix → base class), right responsibility (lowest layer), SOLID. Grep dangling refs after changes.
 - **MANDATORY IMPORTANT MUST ATTENTION** NEVER simplify generated code, migrations, vendor files
-- **MANDATORY IMPORTANT MUST ATTENTION** spawn fresh sub-agent for Round 2 review — NEVER declare PASS after Round 1 alone
+- **MANDATORY IMPORTANT MUST ATTENTION** spawn fresh sub-agent for re-review ONLY after a fix cycle. A clean Round 1 ENDS the review.
 
 **Anti-Rationalization:**
 
@@ -629,6 +649,6 @@ When used standalone (outside a review workflow), run `/workflow-review-changes`
 | "Just a small simplification"     | Small change at wrong layer cascades. Verify consumers first.    |
 | "Code is self-explanatory"        | Future readers need evidence trail. Document non-obvious intent. |
 | "Simplification is safe"          | NEVER assume safe without grepping all usages first.             |
-| "Round 1 was clean, skip Round 2" | Every fix triggers fresh sub-agent round. No exceptions.         |
+| "Skip Round 2 even after fixing" | Every fix triggers fresh sub-agent round. Clean Round 1 (zero issues) does end the review — but ANY fix invalidates the prior verdict. |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break into small todo tasks using TaskCreate.

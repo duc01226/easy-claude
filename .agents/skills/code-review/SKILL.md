@@ -106,6 +106,18 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 > 11. **Premature vs delayed abstraction** — rule-of-three. First occurrence: write it. Second: notice duplication. Third: extract. Don't build generic frameworks before real variation; don't copy-paste for the 4th time.
 > 12. **Embedded utility logic not extracted to helpers** — inline paging loops (`while (hasMore) { skip += take; ... }`), ad-hoc datetime math, string parsing/formatting, collection partitioning, retry/backoff loops, URL/query-string building. If the algorithm is non-trivial AND stack-generic (not business-specific), extract to `util`/`helper`/`extensions` and let consumers call one line. Inline duplicates → duplicated bug surface.
 > 13. **Logic in wrong (higher) layer — downshift to callee** — business/derivation logic written in the caller when the callee owns the data. Defaults: Controller code that should be App Service. App Service code that should be Domain Service or Entity. Component code that should be ViewModel/Store/Service. Caller reaching into callee's data shape to compute something → move the computation behind an intent-revealing method on the callee. Lowest responsible layer wins (Entity > Domain Service > App Service > Controller · Model/VM > Store > Component). Higher-layer placement = duplicated logic when a sibling caller needs the same thing.
+> 14. **Owner owns the rule — extract on first write** — if a caller inlines logic that derives, normalizes, validates, or computes from another type's data, MOVE it to the owning type. Single use is sufficient — the trigger is wrong responsibility, not duplication. Sibling callers always arrive; inline copies drift silently with no compile error and no name to grep. **Common offenders:** _Backend_ — inlined rules in application-layer handlers / commands / queries / services / controllers that belong on the domain entity / value object / domain service. _Frontend_ — inlined derivations / formatting / validation in components that belong on the model / store / view-model / API service. **Fix:** name the rule once as a method (static or instance) on the owning type; callers invoke by name. Future variant → SECOND named method on the owner, never an inline near-duplicate. **Right responsibility first; reuse is the consequence.**
+>
+> **Extraction target — where the named rule lives:**
+>
+> | Shape of the rule                             | Goes to                       |
+> | --------------------------------------------- | ----------------------------- |
+> | Pure function over an entity's own data       | static method on the entity   |
+> | Behavior that mutates / guards entity state   | instance method on the entity |
+> | Always-true invariant on a primitive value    | value object constructor      |
+> | Needs DI (repo / settings / clock)            | helper class registered in DI |
+> | Domain-agnostic algorithm reused across types | util / extension method       |
+> | Pure shape / projection conversion            | DTO mapping                   |
 >
 > **Pre-commit edit-site test (reject if answer is "many"):**
 >
@@ -139,30 +151,37 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 <!-- SYNC:double-round-trip-review -->
 
-> **Deep Multi-Round Review** — Escalating rounds. Round 1 in main session. Round 2+ and EVERY recursive re-review iteration MUST use a fresh sub-agent.
+> **Fix-Triggered Re-Review Loop** — Re-review is triggered by a FIX CYCLE, not by a round number. Review purpose: `review → if issues → fix → re-review` until a round finds no issues. **A clean review ENDS the loop — no further rounds required.**
 >
-> **Round 1:** Main-session review. Read target files, build understanding, note issues. Output baseline findings.
+> **Round 1:** Main-session review. Read target files, build understanding, note issues. Output findings + verdict (PASS / FAIL).
 >
-> **Round 2:** MANDATORY fresh sub-agent review — see `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. The sub-agent re-reads ALL files from scratch with ZERO Round 1 memory. It must catch:
+> **Decision after Round 1:**
 >
-> - Cross-cutting concerns missed in Round 1
+> - **No issues found (PASS, zero findings)** → review ENDS. Do NOT spawn a fresh sub-agent for confirmation.
+> - **Issues found (FAIL, or any non-zero findings)** → fix the issues, then spawn a fresh sub-agent for Round 2 re-review.
+>
+> **Fresh sub-agent re-review (after every fix cycle):** Spawn a NEW `spawn_agent` tool call — never reuse a prior agent. Sub-agent re-reads ALL files from scratch with ZERO memory of prior rounds. See `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. Each fresh round must catch:
+>
+> - Cross-cutting concerns missed in the prior round
 > - Interaction bugs between changed files
 > - Convention drift (new code vs existing patterns)
 > - Missing pieces that should exist but don't
-> - Subtle edge cases the main session rationalized away
+> - Subtle edge cases the prior round rationalized away
+> - Regressions introduced by the fixes themselves
 >
-> **Round 3+ (recursive after fixes):** After ANY fix cycle, MANDATORY fresh sub-agent re-review. Spawn a **NEW** `spawn_agent` tool call each iteration — never reuse Round 2's agent. Each new agent re-reads ALL files from scratch with full protocol injection. Continue until PASS or **3 fresh-subagent rounds max**, then escalate to user via a direct user question.
+> **Loop termination:** After each fresh round, repeat the same decision: clean → END; issues → fix → next fresh round. Continue until a round finds zero issues, or **3 fresh-subagent rounds max**, then escalate to user via a direct user question.
 >
 > **Rules:**
 >
-> - NEVER declare PASS after Round 1 alone
+> - A clean Round 1 ENDS the review — no mandatory Round 2
+> - NEVER skip the fresh sub-agent re-review after a fix cycle (every fix invalidates the prior verdict)
 > - NEVER reuse a sub-agent across rounds — every iteration spawns a NEW Agent call
 > - Main agent READS sub-agent reports but MUST NOT filter, reinterpret, or override findings
 > - Max 3 fresh-subagent rounds per review — if still FAIL, escalate via a direct user question (do NOT silently loop)
 > - Track round count in conversation context (session-scoped)
-> - Final verdict must incorporate ALL rounds
+> - Final verdict must incorporate ALL rounds executed
 >
-> **Report must include `## Round N Findings (Fresh Sub-Agent)` for every round N≥2.**
+> **Report must include `## Round N Findings (Fresh Sub-Agent)` for every round N≥2 that was executed.**
 
 <!-- /SYNC:double-round-trip-review -->
 
@@ -172,7 +191,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 >
 > **Why:** The main agent knows what it (or `$cook`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
 >
-> **When:** Round 2 of ANY review AND every recursive re-review iteration after fixes. NOT needed when Round 1 already PASSes with zero issues.
+> **When:** ONLY after a fix cycle. A review round that finds zero issues ENDS the loop — do NOT spawn a confirmation sub-agent. A review round that finds issues triggers: fix → fresh sub-agent re-review.
 >
 > **How:**
 >
@@ -184,8 +203,9 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 >
 > **Rules:**
 >
-> - NEVER reuse a sub-agent across rounds — every iteration spawns a NEW `spawn_agent` call
-> - NEVER skip fresh-subagent review because "last round was clean" — every fix triggers a fresh round
+> - SKIP fresh sub-agent when the prior round found zero issues (no fixes = nothing new to verify)
+> - NEVER skip fresh sub-agent after a fix cycle — every fix invalidates the prior verdict
+> - NEVER reuse a sub-agent across rounds — every fresh round spawns a NEW `spawn_agent` call
 > - Max 3 fresh-subagent rounds per review — escalate via a direct user question if still failing; do NOT silently loop or fall back to any prior protocol
 > - Track iteration count in conversation context (session-scoped, no persistent files)
 
@@ -464,7 +484,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **Detect First**: Classify changeset type before any review — route auth/perf files to specialized sub-agents
 - **No Performative Agreement**: Technical evaluation only ("You're right!" banned)
 - **Verification Gates**: Evidence required before completion claims
-- **NEVER declare PASS after Round 1 alone** — always spawn fresh sub-agent for Round 2
+- **A clean Round 1 ENDS the review.** Spawn a fresh sub-agent for Round 2 ONLY after a fix cycle.
 
 # Code Review
 
@@ -857,35 +877,35 @@ If `architectureRules` absent in project-config.json → skip silently.
 <!-- SYNC:evidence-based-reasoning:reminder -->
 
 - **MANDATORY MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% = do NOT recommend.
-    <!-- /SYNC:evidence-based-reasoning:reminder -->
-    <!-- SYNC:design-patterns-quality:reminder -->
+      <!-- /SYNC:evidence-based-reasoning:reminder -->
+      <!-- SYNC:design-patterns-quality:reminder -->
 - **MANDATORY MUST ATTENTION** check DRY via OOP (same-suffix → base class), right responsibility (lowest layer), SOLID. Grep for dangling refs after changes.
-    <!-- /SYNC:design-patterns-quality:reminder -->
-    <!-- SYNC:complexity-prevention:reminder -->
+      <!-- /SYNC:design-patterns-quality:reminder -->
+      <!-- SYNC:complexity-prevention:reminder -->
 - **MANDATORY MUST ATTENTION** apply complexity prevention — one business change = one code change. Flag change amplification (>3 edit sites for future change), scattered type-switches, anemic models, primitive obsession, leaked technology through abstractions, shallow modules, un-extracted utility logic (paging/datetime/string/retry → helpers), and logic in the wrong higher layer (downshift to callee/entity/VM). Don't rationalize silent duplication with pure YAGNI.
-    <!-- /SYNC:complexity-prevention:reminder -->
-    <!-- SYNC:double-round-trip-review:reminder -->
-- **MANDATORY MUST ATTENTION** execute TWO review rounds. Round 2 delegates to fresh code-reviewer sub-agent (zero prior context) — never skip or combine with Round 1.
-    <!-- /SYNC:double-round-trip-review:reminder -->
-    <!-- SYNC:rationalization-prevention:reminder -->
+      <!-- /SYNC:complexity-prevention:reminder -->
+      <!-- SYNC:double-round-trip-review:reminder -->
+- **MANDATORY MUST ATTENTION** execute the review loop: review → if issues → fix → fresh sub-agent re-review. A round that finds zero issues ENDS the review.
+      <!-- /SYNC:double-round-trip-review:reminder -->
+      <!-- SYNC:rationalization-prevention:reminder -->
 - **MANDATORY MUST ATTENTION** follow ALL steps regardless of perceived simplicity. "Too simple to plan" is evasion, not reason.
-    <!-- /SYNC:rationalization-prevention:reminder -->
-    <!-- SYNC:graph-assisted-investigation:reminder -->
+      <!-- /SYNC:rationalization-prevention:reminder -->
+      <!-- SYNC:graph-assisted-investigation:reminder -->
 - **MANDATORY MUST ATTENTION** run at least ONE graph command on key files when graph.db exists. Pattern: grep → graph trace → grep verify.
-    <!-- /SYNC:graph-assisted-investigation:reminder -->
-    <!-- SYNC:logic-and-intention-review:reminder -->
+      <!-- /SYNC:graph-assisted-investigation:reminder -->
+      <!-- SYNC:logic-and-intention-review:reminder -->
 - **MANDATORY MUST ATTENTION** verify every changed file serves stated purpose. Trace happy + error paths. Flag scope creep.
-    <!-- /SYNC:logic-and-intention-review:reminder -->
-    <!-- SYNC:bug-detection:reminder -->
+      <!-- /SYNC:logic-and-intention-review:reminder -->
+      <!-- SYNC:bug-detection:reminder -->
 - **MANDATORY MUST ATTENTION** check null safety, boundary conditions, error handling, resource management for every review.
-    <!-- /SYNC:bug-detection:reminder -->
-    <!-- SYNC:test-spec-verification:reminder -->
+      <!-- /SYNC:bug-detection:reminder -->
+      <!-- SYNC:test-spec-verification:reminder -->
 - **MANDATORY MUST ATTENTION** map every changed function/endpoint to a test. Search for project's test spec format near changed files. Flag coverage gaps, recommend test creation.
-    <!-- /SYNC:test-spec-verification:reminder -->
-    <!-- SYNC:translation-sync-check:reminder -->
+      <!-- /SYNC:test-spec-verification:reminder -->
+      <!-- SYNC:translation-sync-check:reminder -->
 - **MANDATORY MUST ATTENTION** for multilingual frontend/UI text changes, verify translation updates are present (or explicitly accepted by user as risk) before PASS.
-    <!-- /SYNC:translation-sync-check:reminder -->
-    <!-- SYNC:fix-layer-accountability:reminder -->
+      <!-- /SYNC:translation-sync-check:reminder -->
+      <!-- SYNC:fix-layer-accountability:reminder -->
 
 **IMPORTANT MUST ATTENTION** trace full data flow and fix at owning layer, not crash site. Audit all access sites before adding `?.`.
 

@@ -244,7 +244,7 @@ When init mode detected (canonical doc missing or placeholder):
 **IMPORTANT MUST ATTENTION** NEVER invent variable values, hex colors, or mixin signatures — Grep to confirm
 **IMPORTANT MUST ATTENTION** sub-agents write findings incrementally after each category — NEVER batch at end
 **IMPORTANT MUST ATTENTION** Gap Analysis section is mandatory — document what's missing, not just what exists
-**IMPORTANT MUST ATTENTION** Round 2 fresh-eyes is non-negotiable — validates paths and token values
+**IMPORTANT MUST ATTENTION** when Round 1 finds issues, Round 2 fresh-eyes after fixing validates paths and token values. Clean Round 1 ENDS the scan.
 
 **Anti-Rationalization:**
 
@@ -254,7 +254,7 @@ When init mode detected (canonical doc missing or placeholder):
 | "Only 2 agents needed, skip token discovery agent"   | Token discovery is separate from component inventory — NEVER merge             |
 | "Token values look correct"                          | Grep-verify ALL token values against declarations — "looks correct" ≠ verified |
 | "Gap Analysis not needed"                            | Gap Analysis is a required section — documents what's missing for future work  |
-| "Round 2 verification not needed for small scan"     | Main agent rationalizes own mistakes. Fresh-eyes mandatory.                    |
+| "Skip Round 2 even when Round 1 found issues" | Clean Round 1 (zero issues) does end the scan. But when issues exist, fresh-eyes is mandatory after fixing — main agent rationalizes own mistakes. |
 | "Verified 3 paths, that's enough"                    | Glob-verify ALL paths in inventory — spot-check is insufficient                |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and break into small todo tasks and sub-tasks using TaskCreate.

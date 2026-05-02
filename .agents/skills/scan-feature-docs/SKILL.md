@@ -99,12 +99,12 @@ test -f docs/project-reference/feature-docs-reference.md && echo "SYNC mode" || 
 
 Detect documentation structure type:
 
-| Signal                                      | Type                            | Scan Approach                       |
-| ------------------------------------------- | ------------------------------- | ----------------------------------- |
-| `docs/business-features/{App}/` directories | App-bucketed feature docs       | Scan per-app, map to services       |
-| `docs/features/{Feature}.md` flat structure | Feature-per-file                | Scan each file, derive categories   |
-| `wiki/` or external doc system links        | Wiki-based                      | Scan wiki references, note external |
-| README.md embedded in service dirs          | Source-embedded                 | Scan `src/**/*.md` files            |
+| Signal                                      | Type                      | Scan Approach                       |
+| ------------------------------------------- | ------------------------- | ----------------------------------- |
+| `docs/business-features/{App}/` directories | App-bucketed feature docs | Scan per-app, map to services       |
+| `docs/features/{Feature}.md` flat structure | Feature-per-file          | Scan each file, derive categories   |
+| `wiki/` or external doc system links        | Wiki-based                | Scan wiki references, note external |
+| README.md embedded in service dirs          | Source-embedded           | Scan `src/**/*.md` files            |
 
 **Path:** INIT → Phase 1 → Phase 2 (full scan) → Phase 3 (full write) → Phase 4 (verify)
 **Path:** SYNC → Phase 0 read existing → Phase 1 → Phase 2 (diff scan, new/changed only) → Phase 3 (targeted update) → Phase 4 (verify)
@@ -206,8 +206,8 @@ Read report. Apply fresh-eyes protocol:
 <!-- SYNC:scan-and-update-reference-doc:reminder -->
 
 - **[REQUIRED]** read existing doc first, scan codebase, diff, surgical update only. Never rewrite entire doc.
-    <!-- /SYNC:scan-and-update-reference-doc:reminder -->
-    <!-- SYNC:ai-mistake-prevention -->
+      <!-- /SYNC:scan-and-update-reference-doc:reminder -->
+      <!-- SYNC:ai-mistake-prevention -->
 
 > **AI Mistake Prevention** — Failure modes to avoid:
 >
@@ -245,7 +245,7 @@ Read report. Apply fresh-eyes protocol:
 | "Coverage Gaps not needed"                  | Coverage Gaps is a required section — omitting it hides maintenance debt     |
 | "Template paths probably exist"             | Verify all 3 template paths exist before writing — "probably" ≠ verified     |
 | "App-service mapping looks right"           | Verify mappings match actual directory structure via glob                    |
-| "Round 2 not needed for documentation scan" | Main agent rationalizes own section extractions. Fresh-eyes mandatory.       |
+| "Skip Round 2 even when Round 1 found issues" | Clean Round 1 ends the scan. When issues exist, fresh-eyes mandatory after fixing — main agent rationalizes own section extractions. |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and break into small todo tasks and sub-tasks using task tracking.
 

@@ -3457,7 +3457,7 @@ flowchart TB
 ```
 .claude/
 ├── settings.json ──────── Hook registration (9 events, ~47 hooks)
-├── ccstatusline.json ──── Status line display config (model, context, tokens, git-changes)
+├── ccstatusline.json ──── Status line display config (model, context, tokens, tok/s estimator)
 ├── .ck.json ──────────── Hook-specific config
 ├── .ckignore ─────────── Scout block patterns
 ├── workflows.json ─────── 48 workflow definitions
