@@ -177,8 +177,8 @@ Read report. Apply fresh-eyes protocol:
 <!-- SYNC:scan-and-update-reference-doc:reminder -->
 
 - **[REQUIRED]** read existing doc first, scan codebase, diff, surgical update only. Never rewrite entire doc.
-      <!-- /SYNC:scan-and-update-reference-doc:reminder -->
-      <!-- SYNC:ai-mistake-prevention -->
+  <!-- /SYNC:scan-and-update-reference-doc:reminder -->
+  <!-- SYNC:ai-mistake-prevention -->
 
 > **AI Mistake Prevention** — Failure modes to avoid:
 >
@@ -210,12 +210,12 @@ Read report. Apply fresh-eyes protocol:
 
 **Anti-Rationalization:**
 
-| Evasion                                     | Rebuttal                                                                     |
-| ------------------------------------------- | ---------------------------------------------------------------------------- |
-| "Mode obvious, skip Phase 0 detection"      | Phase 0 mode detection is BLOCKING — INIT vs SYNC paths differ significantly |
-| "Coverage Gaps not needed"                  | Coverage Gaps is a required section — omitting it hides maintenance debt     |
-| "Template paths probably exist"             | Verify all 3 template paths exist before writing — "probably" ≠ verified     |
-| "App-service mapping looks right"           | Verify mappings match actual directory structure via glob                    |
+| Evasion                                       | Rebuttal                                                                                                                             |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| "Mode obvious, skip Phase 0 detection"        | Phase 0 mode detection is BLOCKING — INIT vs SYNC paths differ significantly                                                         |
+| "Coverage Gaps not needed"                    | Coverage Gaps is a required section — omitting it hides maintenance debt                                                             |
+| "Template paths probably exist"               | Verify all 3 template paths exist before writing — "probably" ≠ verified                                                             |
+| "App-service mapping looks right"             | Verify mappings match actual directory structure via glob                                                                            |
 | "Skip Round 2 even when Round 1 found issues" | Clean Round 1 ends the scan. When issues exist, fresh-eyes mandatory after fixing — main agent rationalizes own section extractions. |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and break into small todo tasks and sub-tasks using TaskCreate.

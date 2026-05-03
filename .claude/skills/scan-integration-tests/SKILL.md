@@ -233,13 +233,13 @@ Read full report. Apply fresh-eyes protocol:
 
 **Anti-Rationalization:**
 
-| Evasion                                      | Rebuttal                                                                            |
-| -------------------------------------------- | ----------------------------------------------------------------------------------- |
-| "Framework obvious, skip Phase 0 detection"  | Phase 0 is BLOCKING — infrastructure approach determines which patterns to scan     |
-| "Smoke-only test assertions are fine"        | NEVER document smoke-only as acceptable unless infrastructure is truly unobservable |
-| "Base class looks right from memory"         | Grep-verify every base class name — AI hallucinates class hierarchies               |
-| "Coverage stats obvious from directory scan" | NEVER hardcode counts — use grep expressions that stay accurate as tests are added  |
+| Evasion                                       | Rebuttal                                                                                                                             |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| "Framework obvious, skip Phase 0 detection"   | Phase 0 is BLOCKING — infrastructure approach determines which patterns to scan                                                      |
+| "Smoke-only test assertions are fine"         | NEVER document smoke-only as acceptable unless infrastructure is truly unobservable                                                  |
+| "Base class looks right from memory"          | Grep-verify every base class name — AI hallucinates class hierarchies                                                                |
+| "Coverage stats obvious from directory scan"  | NEVER hardcode counts — use grep expressions that stay accurate as tests are added                                                   |
 | "Skip Round 2 even when Round 1 found issues" | Clean Round 1 ends the scan. When issues exist, fresh-eyes mandatory after fixing — main agent rationalizes own fabricated examples. |
-| "Credential security flag not needed"        | Hardcoded test creds are a CRITICAL security issue — ALWAYS flag if found           |
+| "Credential security flag not needed"         | Hardcoded test creds are a CRITICAL security issue — ALWAYS flag if found                                                            |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and break into small todo tasks and sub-tasks using TaskCreate.

@@ -642,13 +642,13 @@ When used standalone (outside a review workflow), run `/workflow-review-changes`
 
 **Anti-Rationalization:**
 
-| Evasion                           | Rebuttal                                                         |
-| --------------------------------- | ---------------------------------------------------------------- |
-| "Too simple for graph trace"      | Wrong assumptions waste more time. Run trace anyway.             |
-| "Already searched"                | Show `file:line` evidence. No proof = no search.                 |
-| "Just a small simplification"     | Small change at wrong layer cascades. Verify consumers first.    |
-| "Code is self-explanatory"        | Future readers need evidence trail. Document non-obvious intent. |
-| "Simplification is safe"          | NEVER assume safe without grepping all usages first.             |
+| Evasion                          | Rebuttal                                                                                                                               |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| "Too simple for graph trace"     | Wrong assumptions waste more time. Run trace anyway.                                                                                   |
+| "Already searched"               | Show `file:line` evidence. No proof = no search.                                                                                       |
+| "Just a small simplification"    | Small change at wrong layer cascades. Verify consumers first.                                                                          |
+| "Code is self-explanatory"       | Future readers need evidence trail. Document non-obvious intent.                                                                       |
+| "Simplification is safe"         | NEVER assume safe without grepping all usages first.                                                                                   |
 | "Skip Round 2 even after fixing" | Every fix triggers fresh sub-agent round. Clean Round 1 (zero issues) does end the review — but ANY fix invalidates the prior verdict. |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break into small todo tasks using TaskCreate.

@@ -240,12 +240,12 @@ Write to `docs/project-reference/docs-index-reference.md` with sections:
 
 **Anti-Rationalization:**
 
-| Evasion                                             | Rebuttal                                                           |
-| --------------------------------------------------- | ------------------------------------------------------------------ |
-| "Count looks right from existing doc, skip glob"    | EVERY count requires fresh glob verification — no exceptions       |
-| "Only need to check 3 paths"                        | Phase 5 has 6 specific checks — sample across all categories       |
-| "All files fit into existing categories"            | Run the uncategorized discovery diff — NEVER assume full coverage  |
-| "Skip Round 2 even when Round 1 found issues" | Clean Round 1 ends the scan. When issues exist, fresh-eyes mandatory after fixing — main agent's counts carry confirmation bias. |
-| "Lookup table doesn't need all keywords"            | Map keywords for EVERY documented category, not just top-level     |
+| Evasion                                          | Rebuttal                                                                                                                         |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| "Count looks right from existing doc, skip glob" | EVERY count requires fresh glob verification — no exceptions                                                                     |
+| "Only need to check 3 paths"                     | Phase 5 has 6 specific checks — sample across all categories                                                                     |
+| "All files fit into existing categories"         | Run the uncategorized discovery diff — NEVER assume full coverage                                                                |
+| "Skip Round 2 even when Round 1 found issues"    | Clean Round 1 ends the scan. When issues exist, fresh-eyes mandatory after fixing — main agent's counts carry confirmation bias. |
+| "Lookup table doesn't need all keywords"         | Map keywords for EVERY documented category, not just top-level                                                                   |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and break into small todo tasks and sub-tasks using TaskCreate.

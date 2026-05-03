@@ -246,13 +246,13 @@ Read full report. Apply fresh-eyes protocol:
 
 **Anti-Rationalization:**
 
-| Evasion                                          | Rebuttal                                                                     |
-| ------------------------------------------------ | ---------------------------------------------------------------------------- |
-| "Framework obvious, skip Phase 0 detection"      | Phase 0 is BLOCKING — entity patterns depend on detected framework           |
-| "Architecture type obvious from directory names" | Verify from actual service structure — names are not evidence                |
-| "Verified 5 paths, that's enough"                | Glob-verify ALL entity paths — 5 is insufficient                             |
-| "Cross-service agent not needed (monolith)"      | Confirm monolith from Phase 0 evidence before skipping Agent 4               |
-| "Coverage report not needed"                     | Coverage report is a required section — list services with no entities found |
-| "Skip Round 2 even when Round 1 found issues" | Clean Round 1 ends the scan. When issues exist, fresh-eyes mandatory after fixing — main agent rationalizes own entity discoveries. |
+| Evasion                                          | Rebuttal                                                                                                                            |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| "Framework obvious, skip Phase 0 detection"      | Phase 0 is BLOCKING — entity patterns depend on detected framework                                                                  |
+| "Architecture type obvious from directory names" | Verify from actual service structure — names are not evidence                                                                       |
+| "Verified 5 paths, that's enough"                | Glob-verify ALL entity paths — 5 is insufficient                                                                                    |
+| "Cross-service agent not needed (monolith)"      | Confirm monolith from Phase 0 evidence before skipping Agent 4                                                                      |
+| "Coverage report not needed"                     | Coverage report is a required section — list services with no entities found                                                        |
+| "Skip Round 2 even when Round 1 found issues"    | Clean Round 1 ends the scan. When issues exist, fresh-eyes mandatory after fixing — main agent rationalizes own entity discoveries. |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and break into small todo tasks and sub-tasks using TaskCreate.

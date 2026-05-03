@@ -7,6 +7,7 @@ Customize and extend Claude Code behavior with hooks and plugins.
 Hooks are shell commands that execute in response to events.
 
 ### Detailed documentation
+
 https:/$code.claude.com/docs/en/hooks.md
 
 ### Hook Types
@@ -21,17 +22,17 @@ Hooks are configured in `.claude/hooks.json`:
 
 ```json
 {
-  "hooks": {
-    "pre-tool": {
-      "bash": "echo 'Running: $TOOL_ARGS'",
-      "write": "./scripts/validate-write.sh"
-    },
-    "post-tool": {
-      "write": "./scripts/format-code.sh",
-      "edit": "prettier --write $FILE_PATH"
-    },
-    "user-prompt-submit": "./scripts/validate-request.sh"
-  }
+    "hooks": {
+        "pre-tool": {
+            "bash": "echo 'Running: $TOOL_ARGS'",
+            "write": "./scripts/validate-write.sh"
+        },
+        "post-tool": {
+            "write": "./scripts/format-code.sh",
+            "edit": "prettier --write $FILE_PATH"
+        },
+        "user-prompt-submit": "./scripts/validate-request.sh"
+    }
 }
 ```
 
@@ -40,18 +41,22 @@ Hooks are configured in `.claude/hooks.json`:
 Available in hook scripts:
 
 **All hooks:**
+
 - `$TOOL_NAME`: Name of the tool being called
 - `$TOOL_ARGS`: JSON string of tool arguments
 
 **Post-tool only:**
+
 - `$TOOL_RESULT`: Tool execution result
 
 **User-prompt-submit only:**
+
 - `$USER_PROMPT`: User's prompt text
 
 ### Hook Examples
 
 #### Pre-tool: Security Validation
+
 ```bash
 #!/bin/bash
 # .claude/scripts/validate-bash.sh
@@ -66,17 +71,19 @@ echo "✓ Command validated"
 ```
 
 **Configuration:**
+
 ```json
 {
-  "hooks": {
-    "pre-tool": {
-      "bash": "./.claude/scripts/validate-bash.sh"
+    "hooks": {
+        "pre-tool": {
+            "bash": "./.claude/scripts/validate-bash.sh"
+        }
     }
-  }
 }
 ```
 
 #### Post-tool: Auto-format
+
 ```bash
 #!/bin/bash
 # .claude/scripts/format-code.sh
@@ -99,18 +106,20 @@ esac
 ```
 
 **Configuration:**
+
 ```json
 {
-  "hooks": {
-    "post-tool": {
-      "write": "./.claude/scripts/format-code.sh",
-      "edit": "./.claude/scripts/format-code.sh"
+    "hooks": {
+        "post-tool": {
+            "write": "./.claude/scripts/format-code.sh",
+            "edit": "./.claude/scripts/format-code.sh"
+        }
     }
-  }
 }
 ```
 
 #### User-prompt-submit: Cost Tracking
+
 ```bash
 #!/bin/bash
 # .claude/scripts/track-usage.sh
@@ -124,11 +133,12 @@ echo "Estimated tokens: $TOKEN_COUNT"
 ```
 
 **Configuration:**
+
 ```json
 {
-  "hooks": {
-    "user-prompt-submit": "./.claude/scripts/track-usage.sh"
-  }
+    "hooks": {
+        "user-prompt-submit": "./.claude/scripts/track-usage.sh"
+    }
 }
 ```
 
@@ -143,6 +153,7 @@ echo "Estimated tokens: $TOKEN_COUNT"
 ### Hook Errors
 
 When a hook fails:
+
 - Pre-tool hook failure blocks tool execution
 - Post-tool hook failure is logged but doesn't block
 - User can configure strict mode to block on all failures
@@ -174,43 +185,47 @@ my-plugin/
 
 ```json
 {
-  "name": "my-plugin",
-  "version": "1.0.0",
-  "description": "Plugin description",
-  "author": "Your Name",
-  "homepage": "https://github.com/user/plugin",
-  "license": "MIT",
-  "commands": ["commands/*.md"],
-  "skills": ["skills/*/"],
-  "hooks": "hooks/hooks.json",
-  "mcpServers": "mcp/mcp.json",
-  "dependencies": {
-    "node": ">=18.0.0"
-  }
+    "name": "my-plugin",
+    "version": "1.0.0",
+    "description": "Plugin description",
+    "author": "Your Name",
+    "homepage": "https://github.com/user/plugin",
+    "license": "MIT",
+    "commands": ["commands/*.md"],
+    "skills": ["skills/*/"],
+    "hooks": "hooks/hooks.json",
+    "mcpServers": "mcp/mcp.json",
+    "dependencies": {
+        "node": ">=18.0.0"
+    }
 }
 ```
 
 ### Installing Plugins
 
 #### From GitHub
+
 ```bash
 claude plugin install gh:username/repo
 claude plugin install gh:username/repo@v1.0.0
 ```
 
 #### From npm
+
 ```bash
 claude plugin install npm:package-name
 claude plugin install npm:@scope/package-name
 ```
 
 #### From Local Path
+
 ```bash
 claude plugin install ./path/to/plugin
 claude plugin install ~/plugins/my-plugin
 ```
 
 #### From URL
+
 ```bash
 claude plugin install https://example.com/plugin.zip
 ```
@@ -218,22 +233,26 @@ claude plugin install https://example.com/plugin.zip
 ### Managing Plugins
 
 #### List Installed Plugins
+
 ```bash
 claude plugin list
 ```
 
 #### Update Plugin
+
 ```bash
 claude plugin update my-plugin
 claude plugin update --all
 ```
 
 #### Uninstall Plugin
+
 ```bash
 claude plugin uninstall my-plugin
 ```
 
 #### Enable/Disable Plugin
+
 ```bash
 claude plugin disable my-plugin
 claude plugin enable my-plugin
@@ -242,24 +261,27 @@ claude plugin enable my-plugin
 ### Creating Plugins
 
 #### Initialize Plugin
+
 ```bash
 mkdir my-plugin
 cd my-plugin
 ```
 
 #### Create plugin.json
+
 ```json
 {
-  "name": "my-plugin",
-  "version": "1.0.0",
-  "description": "My awesome plugin",
-  "author": "Your Name",
-  "commands": ["commands/*.md"],
-  "skills": ["skills/*/"]
+    "name": "my-plugin",
+    "version": "1.0.0",
+    "description": "My awesome plugin",
+    "author": "Your Name",
+    "commands": ["commands/*.md"],
+    "skills": ["skills/*/"]
 }
 ```
 
 #### Add Components
+
 ```bash
 # Add slash command
 mkdir -p commands
@@ -280,6 +302,7 @@ EOF
 ```
 
 #### Package Plugin
+
 ```bash
 # Create archive
 tar -czf my-plugin.tar.gz .
@@ -291,6 +314,7 @@ zip -r my-plugin.zip .
 ### Publishing Plugins
 
 #### To GitHub
+
 ```bash
 git init
 git add .
@@ -300,6 +324,7 @@ git push origin main --tags
 ```
 
 #### To npm
+
 ```bash
 npm init
 npm publish
@@ -310,37 +335,40 @@ npm publish
 Organizations can create private plugin marketplaces.
 
 #### Configure Marketplace
+
 ```json
 {
-  "marketplaces": [
-    {
-      "name": "company-internal",
-      "url": "https://plugins.company.com/catalog.json",
-      "auth": {
-        "type": "bearer",
-        "token": "${COMPANY_PLUGIN_TOKEN}"
-      }
-    }
-  ]
+    "marketplaces": [
+        {
+            "name": "company-internal",
+            "url": "https://plugins.company.com/catalog.json",
+            "auth": {
+                "type": "bearer",
+                "token": "${COMPANY_PLUGIN_TOKEN}"
+            }
+        }
+    ]
 }
 ```
 
 #### Marketplace Catalog Format
+
 ```json
 {
-  "plugins": [
-    {
-      "name": "company-plugin",
-      "version": "1.0.0",
-      "description": "Internal plugin",
-      "downloadUrl": "https://plugins.company.com/company-plugin-1.0.0.zip",
-      "checksum": "sha256:abc123..."
-    }
-  ]
+    "plugins": [
+        {
+            "name": "company-plugin",
+            "version": "1.0.0",
+            "description": "Internal plugin",
+            "downloadUrl": "https://plugins.company.com/company-plugin-1.0.0.zip",
+            "checksum": "sha256:abc123..."
+        }
+    ]
 }
 ```
 
 #### Install from Marketplace
+
 ```bash
 claude plugin install company-internal:company-plugin
 ```
@@ -348,6 +376,7 @@ claude plugin install company-internal:company-plugin
 ## Example Plugin: Code Quality
 
 ### Structure
+
 ```
 code-quality-plugin/
 ├── plugin.json
@@ -364,18 +393,20 @@ code-quality-plugin/
 ```
 
 ### plugin.json
+
 ```json
 {
-  "name": "code-quality",
-  "version": "1.0.0",
-  "description": "Code quality tools and automation",
-  "commands": ["commands/*.md"],
-  "skills": ["skills/*/"],
-  "hooks": "hooks/hooks.json"
+    "name": "code-quality",
+    "version": "1.0.0",
+    "description": "Code quality tools and automation",
+    "commands": ["commands/*.md"],
+    "skills": ["skills/*/"],
+    "hooks": "hooks/hooks.json"
 }
 ```
 
 ### commands/lint.md
+
 ```markdown
 # Lint
 
@@ -383,19 +414,21 @@ Run linter on {{files}} and fix all issues automatically.
 ```
 
 ### hooks/hooks.json
+
 ```json
 {
-  "hooks": {
-    "post-tool": {
-      "write": "./scripts/auto-lint.sh"
+    "hooks": {
+        "post-tool": {
+            "write": "./scripts/auto-lint.sh"
+        }
     }
-  }
 }
 ```
 
 ## Security Considerations
 
 ### Hook Security
+
 - Validate all inputs
 - Use whitelists for allowed commands
 - Implement timeouts
@@ -403,6 +436,7 @@ Run linter on {{files}} and fix all issues automatically.
 - Review hook scripts regularly
 
 ### Plugin Security
+
 - Verify plugin sources
 - Review code before installation
 - Use signed packages when available
@@ -410,6 +444,7 @@ Run linter on {{files}} and fix all issues automatically.
 - Keep plugins updated
 
 ### Best Practices
+
 - Install plugins from trusted sources only
 - Review plugin permissions
 - Use plugin sandboxing when available
@@ -419,18 +454,21 @@ Run linter on {{files}} and fix all issues automatically.
 ## Troubleshooting
 
 ### Hooks Not Running
+
 - Check hooks.json syntax
 - Verify script permissions (`chmod +x`)
 - Check script paths
 - Review logs in `.claude/logs/`
 
 ### Plugin Installation Failures
+
 - Verify internet connectivity
 - Check plugin URL/path
 - Review error messages
 - Clear cache: `claude plugin cache clear`
 
 ### Plugin Conflicts
+
 - Check for conflicting commands
 - Review plugin load order
 - Disable conflicting plugins

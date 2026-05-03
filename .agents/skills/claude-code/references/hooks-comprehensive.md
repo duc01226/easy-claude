@@ -12,18 +12,18 @@ Event-driven automation framework for Claude Code with deterministic shell comma
 
 ## Hook Events (10 Total)
 
-| Event | Trigger Point | Common Use Cases |
-|-------|---------------|------------------|
-| **PreToolUse** | Before tool processing | Validation, blocking operations |
-| **PermissionRequest** | Permission dialog display | Custom permission logic |
-| **PostToolUse** | After tool completion | Post-processing, auto-formatting, logging |
-| **Notification** | Notification sent | Desktop alerts, custom notifications |
-| **UserPromptSubmit** | User prompt submission | Input validation, filtering |
-| **Stop** | Main agent response complete | Session cleanup, logging |
-| **SubagentStop** | Subagent completion | Subagent monitoring |
-| **PreCompact** | Before compaction | Pre-compaction validation |
-| **SessionStart** | Session init/resume | Environment setup |
-| **SessionEnd** | Session termination | Cleanup operations |
+| Event                 | Trigger Point                | Common Use Cases                          |
+| --------------------- | ---------------------------- | ----------------------------------------- |
+| **PreToolUse**        | Before tool processing       | Validation, blocking operations           |
+| **PermissionRequest** | Permission dialog display    | Custom permission logic                   |
+| **PostToolUse**       | After tool completion        | Post-processing, auto-formatting, logging |
+| **Notification**      | Notification sent            | Desktop alerts, custom notifications      |
+| **UserPromptSubmit**  | User prompt submission       | Input validation, filtering               |
+| **Stop**              | Main agent response complete | Session cleanup, logging                  |
+| **SubagentStop**      | Subagent completion          | Subagent monitoring                       |
+| **PreCompact**        | Before compaction            | Pre-compaction validation                 |
+| **SessionStart**      | Session init/resume          | Environment setup                         |
+| **SessionEnd**        | Session termination          | Cleanup operations                        |
 
 ## Configuration Structure
 
@@ -38,40 +38,44 @@ Event-driven automation framework for Claude Code with deterministic shell comma
 
 ```json
 {
-  "hooks": {
-    "EventName": [
-      {
-        "matcher": "ToolPattern",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash script command"
-          }
+    "hooks": {
+        "EventName": [
+            {
+                "matcher": "ToolPattern",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "bash script command"
+                    }
+                ]
+            }
         ]
-      }
-    ]
-  }
+    }
 }
 ```
 
 ## Tool Matchers
 
 **Exact matching**:
+
 ```json
 "matcher": "Bash"
 ```
 
 **Regex patterns**:
+
 ```json
 "matcher": "Edit|Write"
 ```
 
 **Wildcard (all tools)**:
+
 ```json
 "matcher": "*"
 ```
 
 **MCP tools**:
+
 ```json
 "matcher": "mcp__servername__toolname"
 ```
@@ -85,14 +89,16 @@ Event-driven automation framework for Claude Code with deterministic shell comma
 Execute bash scripts with full shell capabilities.
 
 **Configuration**:
+
 ```json
 {
-  "type": "command",
-  "command": "jq -r '.tool_parameters.command' | tee -a .claude/commands.log"
+    "type": "command",
+    "command": "jq -r '.tool_parameters.command' | tee -a .claude/commands.log"
 }
 ```
 
 **Input**: JSON via stdin with fields:
+
 - `session_id`: Current session identifier
 - `transcript_path`: Path to session transcript
 - `cwd`: Current working directory
@@ -101,16 +107,17 @@ Execute bash scripts with full shell capabilities.
 - Event-specific fields (varies by hook)
 
 **Output Control**:
+
 - Exit code 0: Success, continue execution
 - Exit code 2: Blocking error, halt execution
 - Optional JSON output:
-  ```json
-  {
-    "continue": false,
-    "stopReason": "Reason for blocking",
-    "decision": {}
-  }
-  ```
+    ```json
+    {
+        "continue": false,
+        "stopReason": "Reason for blocking",
+        "decision": {}
+    }
+    ```
 
 ### 2. Prompt-Based Hooks
 
@@ -119,11 +126,12 @@ Leverage LLM evaluation for context-aware decisions.
 **Supported Events**: Stop, SubagentStop only
 
 **Configuration**:
+
 ```json
 {
-  "type": "prompt",
-  "prompt": "Analyze the session transcript and determine if...",
-  "model": "sonnet"
+    "type": "prompt",
+    "prompt": "Analyze the session transcript and determine if...",
+    "model": "sonnet"
 }
 ```
 
@@ -137,23 +145,24 @@ Automatically format code after edits.
 
 ```json
 {
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "FILE=$(echo \"$INPUT\" | jq -r '.tool_parameters.file_path'); case \"$FILE\" in *.ts|*.js) npx prettier --write \"$FILE\" ;; *.go) gofmt -w \"$FILE\" ;; esac"
-          }
+    "hooks": {
+        "PostToolUse": [
+            {
+                "matcher": "Edit|Write",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "FILE=$(echo \"$INPUT\" | jq -r '.tool_parameters.file_path'); case \"$FILE\" in *.ts|*.js) npx prettier --write \"$FILE\" ;; *.go) gofmt -w \"$FILE\" ;; esac"
+                    }
+                ]
+            }
         ]
-      }
-    ]
-  }
+    }
 }
 ```
 
 **Script version** (`scripts/format-code.sh`):
+
 ```bash
 #!/bin/bash
 FILE=$(jq -r '.tool_parameters.file_path')
@@ -177,19 +186,19 @@ Block modifications to sensitive files.
 
 ```json
 {
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "FILE=$(echo \"$INPUT\" | jq -r '.tool_parameters.file_path'); case \"$FILE\" in .env|*package-lock.json|.git/*) echo '{\"continue\":false,\"stopReason\":\"Protected file\"}'; exit 2 ;; esac"
-          }
+    "hooks": {
+        "PreToolUse": [
+            {
+                "matcher": "Edit|Write",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "FILE=$(echo \"$INPUT\" | jq -r '.tool_parameters.file_path'); case \"$FILE\" in .env|*package-lock.json|.git/*) echo '{\"continue\":false,\"stopReason\":\"Protected file\"}'; exit 2 ;; esac"
+                    }
+                ]
+            }
         ]
-      }
-    ]
-  }
+    }
 }
 ```
 
@@ -199,19 +208,19 @@ Custom alerts when Claude needs input.
 
 ```json
 {
-  "hooks": {
-    "Notification": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "MESSAGE=$(jq -r '.message'); notify-send 'Claude Code' \"$MESSAGE\""
-          }
+    "hooks": {
+        "Notification": [
+            {
+                "matcher": "*",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "MESSAGE=$(jq -r '.message'); notify-send 'Claude Code' \"$MESSAGE\""
+                    }
+                ]
+            }
         ]
-      }
-    ]
-  }
+    }
 }
 ```
 
@@ -221,19 +230,19 @@ Track bash commands for compliance.
 
 ```json
 {
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "jq -r '.tool_parameters | \"\\(.command) - \\(.description)\"' >> .claude/commands.log"
-          }
+    "hooks": {
+        "PreToolUse": [
+            {
+                "matcher": "Bash",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "jq -r '.tool_parameters | \"\\(.command) - \\(.description)\"' >> .claude/commands.log"
+                    }
+                ]
+            }
         ]
-      }
-    ]
-  }
+    }
 }
 ```
 
@@ -241,7 +250,7 @@ Track bash commands for compliance.
 
 Auto-detect code block languages.
 
-```bash
+````bash
 #!/usr/bin/env python3
 # scripts/enhance-markdown.py
 import json, sys, re
@@ -265,34 +274,37 @@ enhanced = re.sub(
 
 with open(file_path, 'w') as f:
     f.write(enhanced)
-```
+````
 
 **Configuration**:
+
 ```json
 {
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 scripts/enhance-markdown.py"
-          }
+    "hooks": {
+        "PostToolUse": [
+            {
+                "matcher": "Edit|Write",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "python3 scripts/enhance-markdown.py"
+                    }
+                ]
+            }
         ]
-      }
-    ]
-  }
+    }
 }
 ```
 
 ## Environment Variables
 
 **Available in all hooks**:
+
 - `$CLAUDE_PROJECT_DIR`: Project root path
 - `${CLAUDE_PLUGIN_ROOT}`: Plugin directory path
 
 **SessionStart only**:
+
 - `CLAUDE_ENV_FILE`: Persist environment variables across session
 
 **Hook input via stdin**: All data passed as JSON (parse with `jq`)
@@ -308,6 +320,7 @@ with open(file_path, 'w') as f:
 ### Best Practices
 
 **Input Validation**:
+
 ```bash
 # Validate file paths
 FILE=$(jq -r '.tool_parameters.file_path')
@@ -317,6 +330,7 @@ fi
 ```
 
 **Proper Quoting**:
+
 ```bash
 # Always quote variables
 FILE=$(jq -r '.tool_parameters.file_path')
@@ -325,6 +339,7 @@ prettier --write $FILE    # Wrong - vulnerable to injection
 ```
 
 **Path Traversal Prevention**:
+
 ```bash
 # Use absolute paths and validate
 REALPATH=$(realpath "$FILE")
@@ -334,6 +349,7 @@ fi
 ```
 
 **Command Whitelisting**:
+
 ```bash
 # Whitelist allowed commands
 COMMAND=$(jq -r '.tool_parameters.command')
@@ -384,11 +400,13 @@ echo '{"session_id":"test","tool_parameters":{"command":"ls"}}' | bash scripts/t
 ### Debugging
 
 **Check logs**:
+
 ```bash
 cat .claude/logs/hooks.log
 ```
 
 **Common issues**:
+
 - Verify script permissions: `chmod +x scripts/*.sh`
 - Check JSON syntax in settings
 - Validate script paths (relative to project root)
@@ -399,6 +417,7 @@ cat .claude/logs/hooks.log
 Hooks can be bundled in plugins for distribution.
 
 **Plugin structure**:
+
 ```
 my-plugin/
 ├── plugin.json
@@ -409,31 +428,33 @@ my-plugin/
 ```
 
 **plugin.json**:
+
 ```json
 {
-  "name": "my-plugin",
-  "version": "1.0.0",
-  "description": "Plugin with hooks",
-  "hooks": "hooks/settings.json"
+    "name": "my-plugin",
+    "version": "1.0.0",
+    "description": "Plugin with hooks",
+    "hooks": "hooks/settings.json"
 }
 ```
 
 **hooks/settings.json**:
+
 ```json
 {
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/hook-script.sh"
-          }
+    "hooks": {
+        "PostToolUse": [
+            {
+                "matcher": "Write",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "${CLAUDE_PLUGIN_ROOT}/scripts/hook-script.sh"
+                    }
+                ]
+            }
         ]
-      }
-    ]
-  }
+    }
 }
 ```
 
@@ -504,6 +525,7 @@ prettier --write "$FILE" || {
 **Keep hooks fast**: <100ms execution time ideal
 
 **Async operations**:
+
 ```bash
 #!/bin/bash
 # Run in background for long operations
@@ -514,6 +536,7 @@ prettier --write "$FILE" || {
 ```
 
 **Caching**:
+
 ```bash
 #!/bin/bash
 CACHE_FILE=".claude/cache/format-cache"
@@ -536,73 +559,73 @@ echo "$FILE_HASH" >> "$CACHE_FILE"
 
 ```json
 {
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash .claude/scripts/validate-bash.sh"
-          }
+    "hooks": {
+        "PreToolUse": [
+            {
+                "matcher": "Bash",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "bash .claude/scripts/validate-bash.sh"
+                    }
+                ]
+            },
+            {
+                "matcher": "Edit|Write",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "bash .claude/scripts/protect-files.sh"
+                    }
+                ]
+            }
+        ],
+        "PostToolUse": [
+            {
+                "matcher": "Edit|Write",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "bash .claude/scripts/auto-format.sh"
+                    }
+                ]
+            }
+        ],
+        "Notification": [
+            {
+                "matcher": "*",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "bash .claude/scripts/desktop-notify.sh"
+                    }
+                ]
+            }
+        ],
+        "UserPromptSubmit": [
+            {
+                "matcher": "*",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "bash .claude/scripts/log-usage.sh"
+                    }
+                ]
+            }
+        ],
+        "Stop": [
+            {
+                "matcher": "*",
+                "hooks": [
+                    {
+                        "type": "prompt",
+                        "prompt": "Review the session and log key accomplishments.",
+                        "model": "sonnet"
+                    }
+                ]
+            }
         ]
-      },
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash .claude/scripts/protect-files.sh"
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash .claude/scripts/auto-format.sh"
-          }
-        ]
-      }
-    ],
-    "Notification": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash .claude/scripts/desktop-notify.sh"
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash .claude/scripts/log-usage.sh"
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "matcher": "*",
-        "hooks": [
-          {
-            "type": "prompt",
-            "prompt": "Review the session and log key accomplishments.",
-            "model": "sonnet"
-          }
-        ]
-      }
-    ]
-  }
+    }
 }
 ```
 

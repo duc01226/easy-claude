@@ -254,12 +254,12 @@ Note: stats use grep expressions, NOT hardcoded counts.
 
 **Anti-Rationalization:**
 
-| Evasion                                       | Rebuttal                                                                       |
-| --------------------------------------------- | ------------------------------------------------------------------------------ |
-| "Framework obvious, skip Phase 0 detection"   | Phase 0 is BLOCKING — BDD vs non-BDD detection determines which agents run     |
-| "BDD agent not needed (probably non-BDD)"     | Confirm non-BDD from Phase 0 evidence before skipping Agent 3                  |
+| Evasion                                       | Rebuttal                                                                                                                         |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| "Framework obvious, skip Phase 0 detection"   | Phase 0 is BLOCKING — BDD vs non-BDD detection determines which agents run                                                       |
+| "BDD agent not needed (probably non-BDD)"     | Confirm non-BDD from Phase 0 evidence before skipping Agent 3                                                                    |
 | "Skip Round 2 even when Round 1 found issues" | Clean Round 1 ends the scan. When issues exist, fresh-eyes mandatory after fixing — main agent rationalizes fabricated examples. |
-| "File counts in project-config.json are fine" | NEVER hardcode counts — use grep expressions to avoid instant staleness        |
-| "Conditional sections not needed"             | Only add conditional sections if corresponding code evidence found in scan     |
+| "File counts in project-config.json are fine" | NEVER hardcode counts — use grep expressions to avoid instant staleness                                                          |
+| "Conditional sections not needed"             | Only add conditional sections if corresponding code evidence found in scan                                                       |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and break into small todo tasks and sub-tasks using TaskCreate.

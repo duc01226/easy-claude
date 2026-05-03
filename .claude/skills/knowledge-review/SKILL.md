@@ -420,8 +420,8 @@ After completing Round 1 evaluation, execute a **second full review round**:
 <!-- SYNC:double-round-trip-review:reminder -->
 
 - **MANDATORY IMPORTANT MUST ATTENTION** execute the review loop: review → if issues → fix → fresh sub-agent re-review. A round that finds zero issues ENDS the review.
-    <!-- /SYNC:double-round-trip-review:reminder -->
-    <!-- SYNC:ai-mistake-prevention -->
+      <!-- /SYNC:double-round-trip-review:reminder -->
+      <!-- SYNC:ai-mistake-prevention -->
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >

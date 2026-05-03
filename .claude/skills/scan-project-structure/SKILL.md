@@ -230,13 +230,13 @@ Read full report. Apply fresh-eyes protocol:
 
 **Anti-Rationalization:**
 
-| Evasion                                               | Rebuttal                                                                            |
-| ----------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| "Architecture type obvious from directory names"      | Verify from actual project files — names are not evidence                           |
-| "Port numbers are standard (5000, 8080, etc.)"        | Read config files — NEVER infer ports from framework conventions                    |
-| "Checked 3 Dockerfile paths, that's enough"           | Glob-verify ALL paths — partial verification hides missing services                 |
-| "Framework versions obvious from project type"        | Read `package.json`/`.csproj` for exact versions — never assume                     |
-| "Skip Round 2 even when Round 1 found issues" | Clean Round 1 ends the scan. When issues exist, fresh-eyes mandatory after fixing — port numbers and paths are the most hallucination-prone data. |
-| "project-config.json not needed if repo looks clear"  | Config file provides expected service catalog — use it to detect missing services   |
+| Evasion                                              | Rebuttal                                                                                                                                          |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "Architecture type obvious from directory names"     | Verify from actual project files — names are not evidence                                                                                         |
+| "Port numbers are standard (5000, 8080, etc.)"       | Read config files — NEVER infer ports from framework conventions                                                                                  |
+| "Checked 3 Dockerfile paths, that's enough"          | Glob-verify ALL paths — partial verification hides missing services                                                                               |
+| "Framework versions obvious from project type"       | Read `package.json`/`.csproj` for exact versions — never assume                                                                                   |
+| "Skip Round 2 even when Round 1 found issues"        | Clean Round 1 ends the scan. When issues exist, fresh-eyes mandatory after fixing — port numbers and paths are the most hallucination-prone data. |
+| "project-config.json not needed if repo looks clear" | Config file provides expected service catalog — use it to detect missing services                                                                 |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and break into small todo tasks and sub-tasks using TaskCreate.

@@ -23,18 +23,20 @@ MCP is JSON-RPC 2.0 based protocol for AI-tool integration.
 Tools are functions that servers expose for execution.
 
 **List Tools**:
+
 ```json
-{"method": "tools/list"}
+{ "method": "tools/list" }
 ```
 
 **Call Tool**:
+
 ```json
 {
-  "method": "tools/call",
-  "params": {
-    "name": "tool_name",
-    "arguments": {}
-  }
+    "method": "tools/call",
+    "params": {
+        "name": "tool_name",
+        "arguments": {}
+    }
 }
 ```
 
@@ -43,18 +45,20 @@ Tools are functions that servers expose for execution.
 Prompts are reusable templates for LLM interactions.
 
 **List Prompts**:
+
 ```json
-{"method": "prompts/list"}
+{ "method": "prompts/list" }
 ```
 
 **Get Prompt**:
+
 ```json
 {
-  "method": "prompts/get",
-  "params": {
-    "name": "prompt_name",
-    "arguments": {}
-  }
+    "method": "prompts/get",
+    "params": {
+        "name": "prompt_name",
+        "arguments": {}
+    }
 }
 ```
 
@@ -63,15 +67,17 @@ Prompts are reusable templates for LLM interactions.
 Resources expose read-only data to clients.
 
 **List Resources**:
+
 ```json
-{"method": "resources/list"}
+{ "method": "resources/list" }
 ```
 
 **Read Resource**:
+
 ```json
 {
-  "method": "resources/read",
-  "params": {"uri": "resource://path"}
+    "method": "resources/read",
+    "params": { "uri": "resource://path" }
 }
 ```
 
@@ -83,8 +89,8 @@ Server runs as subprocess. Messages via stdin/stdout.
 
 ```typescript
 const transport = new StdioClientTransport({
-  command: 'node',
-  args: ['server.js']
+    command: 'node',
+    args: ['server.js']
 });
 ```
 
@@ -94,7 +100,7 @@ POST for requests, GET for server events.
 
 ```typescript
 const transport = new StreamableHTTPClientTransport({
-  url: 'http://localhost:3000/mcp'
+    url: 'http://localhost:3000/mcp'
 });
 ```
 

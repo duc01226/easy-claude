@@ -233,13 +233,13 @@ Read full report. Apply fresh-eyes protocol:
 
 **Anti-Rationalization:**
 
-| Evasion                                            | Rebuttal                                                                                        |
-| -------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| "Styling approach obvious, skip Phase 0 detection" | Phase 0 is BLOCKING — SCSS vs Tailwind vs CSS-in-JS require completely different agent patterns |
-| "Variable names look standard (`$primary-color`)"  | Grep-verify every variable name against actual declarations — AI hallucinates variable names    |
-| "Breakpoints are probably 768px/1024px"            | Read breakpoint declarations — NEVER assume common values                                       |
-| "Color values look right"                          | ALL color values must come from grep of actual declarations                                     |
-| "Usages and declarations are the same thing"       | NEVER mix them — document only declarations as authoritative                                    |
-| "Skip Round 2 even when Round 1 found issues" | Clean Round 1 ends the scan. When issues exist, fresh-eyes mandatory after fixing — main agent rationalizes fabricated variable values. |
+| Evasion                                            | Rebuttal                                                                                                                                |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| "Styling approach obvious, skip Phase 0 detection" | Phase 0 is BLOCKING — SCSS vs Tailwind vs CSS-in-JS require completely different agent patterns                                         |
+| "Variable names look standard (`$primary-color`)"  | Grep-verify every variable name against actual declarations — AI hallucinates variable names                                            |
+| "Breakpoints are probably 768px/1024px"            | Read breakpoint declarations — NEVER assume common values                                                                               |
+| "Color values look right"                          | ALL color values must come from grep of actual declarations                                                                             |
+| "Usages and declarations are the same thing"       | NEVER mix them — document only declarations as authoritative                                                                            |
+| "Skip Round 2 even when Round 1 found issues"      | Clean Round 1 ends the scan. When issues exist, fresh-eyes mandatory after fixing — main agent rationalizes fabricated variable values. |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and break into small todo tasks and sub-tasks using TaskCreate.

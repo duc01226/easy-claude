@@ -11,25 +11,25 @@ let passed = 0;
 let failed = 0;
 
 function assert(condition, message) {
-  if (condition) {
-    console.log(`✓ ${message}`);
-    passed++;
-  } else {
-    console.error(`✗ ${message}`);
-    failed++;
-  }
+    if (condition) {
+        console.log(`✓ ${message}`);
+        passed++;
+    } else {
+        console.error(`✗ ${message}`);
+        failed++;
+    }
 }
 
 function assertEqual(actual, expected, message) {
-  if (actual === expected) {
-    console.log(`✓ ${message}`);
-    passed++;
-  } else {
-    console.error(`✗ ${message}`);
-    console.error(`  Expected: ${expected}`);
-    console.error(`  Actual: ${actual}`);
-    failed++;
-  }
+    if (actual === expected) {
+        console.log(`✓ ${message}`);
+        passed++;
+    } else {
+        console.error(`✗ ${message}`);
+        console.error(`  Expected: ${expected}`);
+        console.error(`  Actual: ${actual}`);
+        failed++;
+    }
 }
 
 console.log('Running detect-topic.js tests...\n');
@@ -60,8 +60,8 @@ const topicQuery2 = detectTopic('Next.js caching strategies');
 assert(topicQuery2 !== null, 'Detect topic-specific query 2');
 assert(topicQuery2 && topicQuery2.isTopicSpecific === true, 'Query 2 is topic-specific');
 if (topicQuery2) {
-  assertEqual(topicQuery2.topic, 'caching', 'Query 2 topic is "caching"');
-  assertEqual(topicQuery2.library, 'next.js', 'Query 2 library is "next.js"');
+    assertEqual(topicQuery2.topic, 'caching', 'Query 2 topic is "caching"');
+    assertEqual(topicQuery2.library, 'next.js', 'Query 2 library is "next.js"');
 }
 
 const topicQuery3 = detectTopic('Better Auth OAuth setup');

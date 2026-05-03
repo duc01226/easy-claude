@@ -531,8 +531,8 @@ When Round 1 finds issues, Round 2 MUST spawn a fresh sub-agent with ZERO Round 
 <!-- SYNC:double-round-trip-review:reminder -->
 
 - **MANDATORY IMPORTANT MUST ATTENTION** execute the review loop: review → if issues → fix → fresh sub-agent re-review. A round that finds zero issues ENDS the review.
-    <!-- /SYNC:double-round-trip-review:reminder -->
-    <!-- SYNC:graph-assisted-investigation:reminder -->
+      <!-- /SYNC:double-round-trip-review:reminder -->
+      <!-- SYNC:graph-assisted-investigation:reminder -->
 
 **IMPORTANT MUST ATTENTION** run at least ONE graph command on key files before concluding (when graph.db exists).
 

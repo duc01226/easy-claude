@@ -248,13 +248,13 @@ When init mode detected (canonical doc missing or placeholder):
 
 **Anti-Rationalization:**
 
-| Evasion                                              | Rebuttal                                                                       |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------ |
-| "Design system type obvious, skip Phase 0 detection" | Phase 0 is BLOCKING — agent emphasis depends on detected type                  |
-| "Only 2 agents needed, skip token discovery agent"   | Token discovery is separate from component inventory — NEVER merge             |
-| "Token values look correct"                          | Grep-verify ALL token values against declarations — "looks correct" ≠ verified |
-| "Gap Analysis not needed"                            | Gap Analysis is a required section — documents what's missing for future work  |
-| "Skip Round 2 even when Round 1 found issues" | Clean Round 1 (zero issues) does end the scan. But when issues exist, fresh-eyes is mandatory after fixing — main agent rationalizes own mistakes. |
-| "Verified 3 paths, that's enough"                    | Glob-verify ALL paths in inventory — spot-check is insufficient                |
+| Evasion                                              | Rebuttal                                                                                                                                           |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "Design system type obvious, skip Phase 0 detection" | Phase 0 is BLOCKING — agent emphasis depends on detected type                                                                                      |
+| "Only 2 agents needed, skip token discovery agent"   | Token discovery is separate from component inventory — NEVER merge                                                                                 |
+| "Token values look correct"                          | Grep-verify ALL token values against declarations — "looks correct" ≠ verified                                                                     |
+| "Gap Analysis not needed"                            | Gap Analysis is a required section — documents what's missing for future work                                                                      |
+| "Skip Round 2 even when Round 1 found issues"        | Clean Round 1 (zero issues) does end the scan. But when issues exist, fresh-eyes is mandatory after fixing — main agent rationalizes own mistakes. |
+| "Verified 3 paths, that's enough"                    | Glob-verify ALL paths in inventory — spot-check is insufficient                                                                                    |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and break into small todo tasks and sub-tasks using TaskCreate.
