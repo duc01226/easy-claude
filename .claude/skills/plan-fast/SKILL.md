@@ -5,6 +5,233 @@ description: '[Planning] No research. Only analyze and create an implementation 
 disable-model-invocation: false
 ---
 
+## Quick Summary
+
+**Goal:** Analyze codebase and create a structured implementation plan without writing any code.
+
+**Workflow:**
+
+1. **Check Plan Context** — Reuse active plan or create new directory per naming convention
+2. **Analyze Codebase** — Read `backend-patterns-reference.md`, `frontend-patterns-reference.md`, `project-structure-reference.md`
+3. **Create Plan** — Generate `plan.md` + `phase-XX-*.md` files with YAML frontmatter
+4. **Validate** — Run `/plan-review` and ask user to confirm before implementation
+
+**Key Rules:**
+
+- Do NOT use `EnterPlanMode` tool; do NOT implement any code
+- Collaborate with user: ask decision questions, present options with recommendations
+- Always validate plan with `/plan-review` after creation
+
+## Greenfield Mode
+
+> **Auto-detected:** If no existing codebase is found (no code directories like `src/`, `app/`, `lib/`, `server/`, `packages/`, etc., no manifest files like `package.json`/`*.sln`/`go.mod`, no populated `project-config.json`), this skill redirects to `/plan-hard`. Planning artifacts (docs/, plans/, .claude/) don't count — the project must have actual code directories with content.
+
+**When greenfield is detected:**
+
+1. **REDIRECT to `/plan-hard`** — greenfield inception requires deep research, not quick plans
+2. Inform user: "Greenfield project detected. Redirecting to /plan-hard for thorough research and planning."
+3. Rationale: Fast planning skips research, but greenfield projects need market research, tech evaluation, and domain modeling — all impossible without deep analysis
+
+**Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
+
+Activate `planning` skill.
+
+## PLANNING-ONLY — Collaboration Required
+
+> **DO NOT** use the `EnterPlanMode` tool — you are ALREADY in a planning workflow.
+> **DO NOT** implement or execute any code changes.
+> **COLLABORATE** with the user: ask decision questions, present options with recommendations.
+> After plan creation, ALWAYS run `/plan-review` to validate the plan.
+> ASK user to confirm the plan before any next step.
+
+## Your mission
+
+<task>
+$ARGUMENTS
+</task>
+
+## Pre-Creation Check (Active vs Suggested Plan)
+
+Check the `## Plan Context` section in the injected context:
+
+- If "Plan:" shows a path → Active plan exists. Ask user: "Continue with this? [Y/n]"
+- If "Suggested:" shows a path → Branch-matched hint only. Ask if they want to activate or create new.
+- If "Plan: none" → Create new plan using naming from `## Naming` section.
+
+## Workflow
+
+Use `planner` subagent to:
+
+1. If creating new: Create directory using `Plan dir:` from `## Naming` section, then run `node .claude/scripts/set-active-plan.cjs {plan-dir}`
+   If reusing: Use the active plan path from Plan Context.
+   Make sure you pass the directory path to every subagent during the process.
+2. Follow strictly to the "Plan Creation & Organization" rules of `planning` skill.
+3. Analyze the codebase by reading `backend-patterns-reference.md`, `frontend-patterns-reference.md`, and `project-structure-reference.md` file.
+   3.5. **External Memory**: Write analysis findings to `.ai/workspace/analysis/{task-name}.analysis.md`. Re-read this file before creating the plan.
+4. Gathers all information and create an implementation plan of this task.
+5. Ask user to review the plan.
+
+## Output Requirements
+
+**Plan Directory Structure** (use `Plan dir:` from `## Naming` section)
+
+```
+{plan-dir}/
+├── reports/
+│   ├── XX-report.md
+│   └── ...
+├── plan.md
+├── phase-XX-phase-name-here.md
+└── ...
+```
+
+**Plan File Specification**
+
+- Every `plan.md` MUST ATTENTION start with YAML frontmatter:
+
+    ```yaml
+    ---
+    title: '{Brief title}'
+    description: '{One sentence for card preview}'
+    status: pending
+    priority: P2
+    effort: { sum of phases, e.g., 4h }
+    story_points: { sum of phase SPs, e.g., 8 }
+    man_days_traditional: '{ total e.g., 6d (4d code + 2d test) }'
+    man_days_ai: '{ total with AI e.g., 3d (2d code + 1d test) }'
+    branch: { current git branch }
+    tags: [relevant, tags]
+    created: { YYYY-MM-DD }
+    ---
+    ```
+
+- Save the overview access point at `{plan-dir}/plan.md`. Keep it generic, under 80 lines, and list each implementation phase with status and progress plus links to phase files.
+- For each phase, create `{plan-dir}/phase-XX-phase-name-here.md` containing the following sections in order: Context links (reference parent plan, dependencies, docs), Overview (date, description, priority, implementation status, review status), Key Insights, Requirements, Architecture, **UI Layout** (see below), Related code files, Implementation Steps, Todo list, Success Criteria, Risk Assessment, Security Considerations, Next steps.
+- **UI Layout**: For frontend-facing phases, include ASCII wireframe. Classify components by tier (common/domain-shared/page-app). For backend-only phases: `## UI Layout` → `N/A — Backend-only change.`
+
+## **IMPORTANT Task Planning Notes (MUST ATTENTION FOLLOW)**
+
+- Always plan and break work into many small todo tasks using `TaskCreate`
+- Always add a final review todo task to verify work quality and identify fixes/enhancements
+- **MANDATORY FINAL TASKS:** After creating all planning todo tasks, ALWAYS add these final tasks:
+    1. **Task: "Write test specifications for each phase"** — Add `## Test Specifications` with TC-{FEAT}-{NNN} IDs to every phase file. Use `/tdd-spec` if feature docs exist. Use `Evidence: TBD` for TDD-first mode.
+    2. **Task: "Run /plan-validate"** — Trigger `/plan-validate` skill to interview the user with critical questions and validate plan assumptions
+    3. **Task: "Run /plan-review"** — Trigger `/plan-review` skill to auto-review plan for validity, correctness, and best practices
+    4. **Task: "Re-evaluate estimation against finalized plan"** — Pre-completion estimates anchor on scope guesses; finalized phases reveal true cost. After phases/TCs/decisions are locked: (a) re-derive `bottom_up_hours = Σ phase_hours` from finalized phase files; (b) recompute `likely_days`, `risk_margin_pct`, `min-max range` per `SYNC:estimation-framework`; (c) compare to current frontmatter `man_days_traditional` / `story_points`. If `|delta| > 20%` → UPDATE frontmatter, add `reestimate_delta_pct: <signed>` + 1-line `reestimate_reason`. If `|delta| > 50%` → flag `SHOULD-RESCOPE` and surface to user via `AskUserQuestion` before implementation.
+
+## Post-Plan Validation
+
+After plan creation, use the `AskUserQuestion` tool to ask: "Want me to run `/plan-review` to validate, or proceed to implementation?" with options:
+
+- "Run /plan-review (Recommended)" — Execute `/plan-review` to validate the plan
+- "Proceed to implementation" — Skip validation and start implementing
+
+## Important Notes
+
+- **IMPORTANT:** Ensure token consumption efficiency while maintaining high quality.
+- **IMPORTANT:** Analyze the skills catalog and activate the skills that are needed for the task during the process.
+- **IMPORTANT:** Sacrifice grammar for the sake of concision when writing reports.
+- **IMPORTANT:** In reports, list any unresolved questions at the end, if any.
+
+## REMINDER — Planning-Only Command
+
+> **DO NOT** use `EnterPlanMode` tool.
+> **DO NOT** start implementing.
+> **ALWAYS** validate with `/plan-review` after plan creation.
+> **ASK** user to confirm the plan before any implementation begins.
+> **ASK** user decision questions with your recommendations when multiple approaches exist.
+
+---
+
+## Post-Plan Granularity Self-Check (MANDATORY)
+
+<!-- SYNC:plan-granularity -->
+
+> **Plan Granularity** — Every phase must pass 5-point check before implementation:
+>
+> 1. Lists exact file paths to modify (not generic "implement X")
+> 2. No planning verbs (research, investigate, analyze, determine, figure out)
+> 3. Steps ≤30min each, phase total ≤3h
+> 4. ≤5 files per phase
+> 5. No open decisions or TBDs in approach
+>
+> **Failing phases →** create sub-plan. Repeat until ALL leaf phases pass (max depth: 3).
+> **Self-question:** "Can I start coding RIGHT NOW? If any step needs 'figuring out' → sub-plan it."
+
+<!-- /SYNC:plan-granularity -->
+
+## Preservation Inventory (MANDATORY for bugfixes)
+
+<!-- SYNC:preservation-inventory -->
+
+> **Preservation Inventory** — MANDATORY for bugfix plans. Trigger keywords in plan title/frontmatter: `fix`, `bug`, `regression`, `broken`, `defect`. Author MUST produce this table BEFORE writing implementation steps.
+>
+> **Columns:** `Invariant | file:line | Why (data consequence if broken) | Verification (TC-ID or grep)`
+>
+> **BLOCKED until:** ≥3 rows · every File cell has `file:line` · every Verification cell has TC-ID or grep (not "manually verify")
+
+<!-- /SYNC:preservation-inventory -->
+
+After creating all phase files, run the **recursive decomposition loop**:
+
+1. Score each phase against the 5-point criteria (file paths, no planning verbs, ≤30min steps, ≤5 files, no open decisions)
+2. For each FAILING phase → create task to decompose it into a sub-plan (with its own /plan → /plan-review → /plan-validate → fix cycle)
+3. Re-score new phases. Repeat until ALL leaf phases pass (max depth: 3)
+4. **Self-question:** "For each phase, can I start coding RIGHT NOW? If any needs 'figuring out' → sub-plan it."
+
+## Next Steps (Standalone: MUST ATTENTION ask user via `AskUserQuestion`. Skip if inside workflow.)
+
+> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If this skill was called **outside a workflow**, you MUST ATTENTION use `AskUserQuestion` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
+
+- **"Proceed with full workflow (Recommended)"** — I'll detect the best workflow to continue from here (plan created). This ensures review, validation, implementation, and testing steps aren't skipped.
+- **"/plan-review"** — Auto-review plan for validity and best practices
+- **"/plan-validate"** — Interview user to confirm plan decisions
+- **"Skip, continue manually"** — user decides
+
+> If already inside a workflow, skip — the workflow handles sequencing.
+
+<!-- SYNC:nested-task-creation -->
+
+> **Nested Task Expansion Contract** — For workflow-step invocation, the `[Workflow] ...` row is only a parent container; the child skill still creates visible phase tasks.
+>
+> 1. Call `TaskList` first. If a matching active parent workflow row exists, set `nested=true` and record `parentTaskId`; otherwise run standalone.
+> 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] $skill-name — phase`.
+> 3. When nested, link the parent with `TaskUpdate(parentTaskId, addBlockedBy: [childIds])`.
+> 4. Orchestrators must pre-expand a child skill's phase list and link the workflow row before invoking that child skill or sub-agent.
+> 5. Mark exactly one child `in_progress` before work and `completed` immediately after evidence is written.
+> 6. Complete the parent only after all child tasks are completed or explicitly cancelled with reason.
+>
+> **Blocked until:** `TaskList` done, child phases created, parent linked when nested, first child marked `in_progress`.
+
+<!-- /SYNC:nested-task-creation -->
+
+<!-- SYNC:project-reference-docs-guide -->
+
+> **Project Reference Docs Gate** — Run after task-tracking bootstrap and before target/source file reads, grep, edits, or analysis. Project docs override generic framework assumptions.
+>
+> 1. Identify scope: file types, domain area, and operation.
+> 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/README.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-docs-reference.md`; architecture/new area `project-structure-reference.md`.
+> 3. Read every required doc that exists; skip absent docs as not applicable. Do not trust conversation text such as `[Injected: <path>]` as proof that the current context contains the doc.
+> 4. Before target work, state: `Reference docs read: ... | Missing/not applicable: ...`.
+>
+> **Blocked until:** scope evaluated, required docs checked/read, `lessons.md` confirmed, citation emitted.
+
+<!-- /SYNC:project-reference-docs-guide -->
+
+<!-- SYNC:task-tracking-external-report -->
+
+> **Task Tracking & External Report Persistence** — Bootstrap this before execution; then run project-reference doc prefetch before target/source work.
+>
+> 1. Create a small task breakdown before target file reads, grep, edits, or analysis. On context loss, inspect the current task list first.
+> 2. Mark one task `in_progress` before work and `completed` immediately after evidence; never batch transitions.
+> 3. For plan/review work, create `plans/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` before first finding.
+> 4. Append findings after each file/section/decision and synthesize from the report file at the end.
+> 5. Final output cites `Full report: plans/reports/{filename}`.
+>
+> **Blocked until:** task breakdown exists, report path declared for plan/review work, first finding persisted before the next finding.
+
+<!-- /SYNC:task-tracking-external-report -->
+
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
 
 <!-- SYNC:critical-thinking-mindset -->
@@ -218,7 +445,7 @@ disable-model-invocation: false
 
 <!-- /SYNC:estimation-framework -->
 
-- `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models) (content auto-injected by hook — check for [Injected: ...] header before reading)
+- `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models) (read directly when relevant; do not rely on hook-injected conversation text)
 - `docs/specs/` — Test specifications by module (read existing TCs to include test strategy in plan)
 
 <!-- SYNC:plan-quality -->
@@ -277,211 +504,26 @@ disable-model-invocation: false
 
 > Even for fast plans: assess complexity score. Score >=3 → MUST ATTENTION produce multiple phases with per-phase quality cycles.
 
-## Quick Summary
-
-**Goal:** Analyze codebase and create a structured implementation plan without writing any code.
-
-**Workflow:**
-
-1. **Check Plan Context** — Reuse active plan or create new directory per naming convention
-2. **Analyze Codebase** — Read `backend-patterns-reference.md`, `frontend-patterns-reference.md`, `project-structure-reference.md`
-3. **Create Plan** — Generate `plan.md` + `phase-XX-*.md` files with YAML frontmatter
-4. **Validate** — Run `/plan-review` and ask user to confirm before implementation
-
-**Key Rules:**
-
-- Do NOT use `EnterPlanMode` tool; do NOT implement any code
-- Collaborate with user: ask decision questions, present options with recommendations
-- Always validate plan with `/plan-review` after creation
-
-## Greenfield Mode
-
-> **Auto-detected:** If no existing codebase is found (no code directories like `src/`, `app/`, `lib/`, `server/`, `packages/`, etc., no manifest files like `package.json`/`*.sln`/`go.mod`, no populated `project-config.json`), this skill redirects to `/plan-hard`. Planning artifacts (docs/, plans/, .claude/) don't count — the project must have actual code directories with content.
-
-**When greenfield is detected:**
-
-1. **REDIRECT to `/plan-hard`** — greenfield inception requires deep research, not quick plans
-2. Inform user: "Greenfield project detected. Redirecting to /plan-hard for thorough research and planning."
-3. Rationale: Fast planning skips research, but greenfield projects need market research, tech evaluation, and domain modeling — all impossible without deep analysis
-
-**Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
-
-Activate `planning` skill.
-
-## PLANNING-ONLY — Collaboration Required
-
-> **DO NOT** use the `EnterPlanMode` tool — you are ALREADY in a planning workflow.
-> **DO NOT** implement or execute any code changes.
-> **COLLABORATE** with the user: ask decision questions, present options with recommendations.
-> After plan creation, ALWAYS run `/plan-review` to validate the plan.
-> ASK user to confirm the plan before any next step.
-
-## Your mission
-
-<task>
-$ARGUMENTS
-</task>
-
-## Pre-Creation Check (Active vs Suggested Plan)
-
-Check the `## Plan Context` section in the injected context:
-
-- If "Plan:" shows a path → Active plan exists. Ask user: "Continue with this? [Y/n]"
-- If "Suggested:" shows a path → Branch-matched hint only. Ask if they want to activate or create new.
-- If "Plan: none" → Create new plan using naming from `## Naming` section.
-
-## Workflow
-
-Use `planner` subagent to:
-
-1. If creating new: Create directory using `Plan dir:` from `## Naming` section, then run `node .claude/scripts/set-active-plan.cjs {plan-dir}`
-   If reusing: Use the active plan path from Plan Context.
-   Make sure you pass the directory path to every subagent during the process.
-2. Follow strictly to the "Plan Creation & Organization" rules of `planning` skill.
-3. Analyze the codebase by reading `backend-patterns-reference.md`, `frontend-patterns-reference.md`, and `project-structure-reference.md` file.
-   3.5. **External Memory**: Write analysis findings to `.ai/workspace/analysis/{task-name}.analysis.md`. Re-read this file before creating the plan.
-4. Gathers all information and create an implementation plan of this task.
-5. Ask user to review the plan.
-
-## Output Requirements
-
-**Plan Directory Structure** (use `Plan dir:` from `## Naming` section)
-
-```
-{plan-dir}/
-├── reports/
-│   ├── XX-report.md
-│   └── ...
-├── plan.md
-├── phase-XX-phase-name-here.md
-└── ...
-```
-
-**Plan File Specification**
-
-- Every `plan.md` MUST ATTENTION start with YAML frontmatter:
-
-    ```yaml
-    ---
-    title: '{Brief title}'
-    description: '{One sentence for card preview}'
-    status: pending
-    priority: P2
-    effort: { sum of phases, e.g., 4h }
-    story_points: { sum of phase SPs, e.g., 8 }
-    man_days_traditional: '{ total e.g., 6d (4d code + 2d test) }'
-    man_days_ai: '{ total with AI e.g., 3d (2d code + 1d test) }'
-    branch: { current git branch }
-    tags: [relevant, tags]
-    created: { YYYY-MM-DD }
-    ---
-    ```
-
-- Save the overview access point at `{plan-dir}/plan.md`. Keep it generic, under 80 lines, and list each implementation phase with status and progress plus links to phase files.
-- For each phase, create `{plan-dir}/phase-XX-phase-name-here.md` containing the following sections in order: Context links (reference parent plan, dependencies, docs), Overview (date, description, priority, implementation status, review status), Key Insights, Requirements, Architecture, **UI Layout** (see below), Related code files, Implementation Steps, Todo list, Success Criteria, Risk Assessment, Security Considerations, Next steps.
-- **UI Layout**: For frontend-facing phases, include ASCII wireframe. Classify components by tier (common/domain-shared/page-app). For backend-only phases: `## UI Layout` → `N/A — Backend-only change.`
-
-## **IMPORTANT Task Planning Notes (MUST ATTENTION FOLLOW)**
-
-- Always plan and break work into many small todo tasks using `TaskCreate`
-- Always add a final review todo task to verify work quality and identify fixes/enhancements
-- **MANDATORY FINAL TASKS:** After creating all planning todo tasks, ALWAYS add these final tasks:
-    1. **Task: "Write test specifications for each phase"** — Add `## Test Specifications` with TC-{FEAT}-{NNN} IDs to every phase file. Use `/tdd-spec` if feature docs exist. Use `Evidence: TBD` for TDD-first mode.
-    2. **Task: "Run /plan-validate"** — Trigger `/plan-validate` skill to interview the user with critical questions and validate plan assumptions
-    3. **Task: "Run /plan-review"** — Trigger `/plan-review` skill to auto-review plan for validity, correctness, and best practices
-    4. **Task: "Re-evaluate estimation against finalized plan"** — Pre-completion estimates anchor on scope guesses; finalized phases reveal true cost. After phases/TCs/decisions are locked: (a) re-derive `bottom_up_hours = Σ phase_hours` from finalized phase files; (b) recompute `likely_days`, `risk_margin_pct`, `min-max range` per `SYNC:estimation-framework`; (c) compare to current frontmatter `man_days_traditional` / `story_points`. If `|delta| > 20%` → UPDATE frontmatter, add `reestimate_delta_pct: <signed>` + 1-line `reestimate_reason`. If `|delta| > 50%` → flag `SHOULD-RESCOPE` and surface to user via `AskUserQuestion` before implementation.
-
-## Post-Plan Validation
-
-After plan creation, use the `AskUserQuestion` tool to ask: "Want me to run `/plan-review` to validate, or proceed to implementation?" with options:
-
-- "Run /plan-review (Recommended)" — Execute `/plan-review` to validate the plan
-- "Proceed to implementation" — Skip validation and start implementing
-
-## Important Notes
-
-- **IMPORTANT:** Ensure token consumption efficiency while maintaining high quality.
-- **IMPORTANT:** Analyze the skills catalog and activate the skills that are needed for the task during the process.
-- **IMPORTANT:** Sacrifice grammar for the sake of concision when writing reports.
-- **IMPORTANT:** In reports, list any unresolved questions at the end, if any.
-
-## REMINDER — Planning-Only Command
-
-> **DO NOT** use `EnterPlanMode` tool.
-> **DO NOT** start implementing.
-> **ALWAYS** validate with `/plan-review` after plan creation.
-> **ASK** user to confirm the plan before any implementation begins.
-> **ASK** user decision questions with your recommendations when multiple approaches exist.
-
----
-
-## Post-Plan Granularity Self-Check (MANDATORY)
-
-<!-- SYNC:plan-granularity -->
-
-> **Plan Granularity** — Every phase must pass 5-point check before implementation:
->
-> 1. Lists exact file paths to modify (not generic "implement X")
-> 2. No planning verbs (research, investigate, analyze, determine, figure out)
-> 3. Steps ≤30min each, phase total ≤3h
-> 4. ≤5 files per phase
-> 5. No open decisions or TBDs in approach
->
-> **Failing phases →** create sub-plan. Repeat until ALL leaf phases pass (max depth: 3).
-> **Self-question:** "Can I start coding RIGHT NOW? If any step needs 'figuring out' → sub-plan it."
-
-<!-- /SYNC:plan-granularity -->
-
-## Preservation Inventory (MANDATORY for bugfixes)
-
-<!-- SYNC:preservation-inventory -->
-
-> **Preservation Inventory** — MANDATORY for bugfix plans. Trigger keywords in plan title/frontmatter: `fix`, `bug`, `regression`, `broken`, `defect`. Author MUST produce this table BEFORE writing implementation steps.
->
-> **Columns:** `Invariant | file:line | Why (data consequence if broken) | Verification (TC-ID or grep)`
->
-> **BLOCKED until:** ≥3 rows · every File cell has `file:line` · every Verification cell has TC-ID or grep (not "manually verify")
-
-<!-- /SYNC:preservation-inventory -->
-
-After creating all phase files, run the **recursive decomposition loop**:
-
-1. Score each phase against the 5-point criteria (file paths, no planning verbs, ≤30min steps, ≤5 files, no open decisions)
-2. For each FAILING phase → create task to decompose it into a sub-plan (with its own /plan → /plan-review → /plan-validate → fix cycle)
-3. Re-score new phases. Repeat until ALL leaf phases pass (max depth: 3)
-4. **Self-question:** "For each phase, can I start coding RIGHT NOW? If any needs 'figuring out' → sub-plan it."
-
-## Next Steps (Standalone: MUST ATTENTION ask user via `AskUserQuestion`. Skip if inside workflow.)
-
-> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If this skill was called **outside a workflow**, you MUST ATTENTION use `AskUserQuestion` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
-
-- **"Proceed with full workflow (Recommended)"** — I'll detect the best workflow to continue from here (plan created). This ensures review, validation, implementation, and testing steps aren't skipped.
-- **"/plan-review"** — Auto-review plan for validity and best practices
-- **"/plan-validate"** — Interview user to confirm plan decisions
-- **"Skip, continue manually"** — user decides
-
-> If already inside a workflow, skip — the workflow handles sequencing.
-
 <!-- SYNC:plan-granularity:reminder -->
 
 - **MANDATORY IMPORTANT MUST ATTENTION** verify all phases pass 5-point granularity check. Failing phases → sub-plan. "Can I start coding RIGHT NOW?"
-      <!-- /SYNC:plan-granularity:reminder -->
-      <!-- SYNC:understand-code-first:reminder -->
+    <!-- /SYNC:plan-granularity:reminder -->
+    <!-- SYNC:understand-code-first:reminder -->
 - **MANDATORY IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE any modification. Run graph trace when graph.db exists.
-      <!-- /SYNC:understand-code-first:reminder -->
-      <!-- SYNC:estimation-framework:reminder -->
+    <!-- /SYNC:understand-code-first:reminder -->
+    <!-- SYNC:estimation-framework:reminder -->
 - **MANDATORY MUST ATTENTION** estimation: bottom-up phase hours drive `man_days_traditional` (`Σh/6 × productivity_factor`); SP DERIVED. UI cost usually dominates — bump SP one bucket if NEW UI surface (page/complex form/dashboard). Frontmatter MUST include `story_points`, `complexity`, `man_days_traditional`, `man_days_ai`, `estimate_scope_included`, `estimate_scope_excluded`, `estimate_reasoning` (UI vs backend cost driver). Cap SP 3 for additive-on-existing-model+existing-UI unless test scope >1.5d. SP 13 SHOULD split, SP 21 MUST split.
-    <!-- /SYNC:estimation-framework:reminder -->
-    <!-- SYNC:plan-quality:reminder -->
+  <!-- /SYNC:estimation-framework:reminder -->
+  <!-- SYNC:plan-quality:reminder -->
 - **MANDATORY IMPORTANT MUST ATTENTION** include `## Test Specifications` with TC IDs per phase. Call `TaskList` before creating new tasks.
-      <!-- /SYNC:plan-quality:reminder -->
-      <!-- SYNC:iterative-phase-quality:reminder -->
+    <!-- /SYNC:plan-quality:reminder -->
+    <!-- SYNC:iterative-phase-quality:reminder -->
 - **MANDATORY IMPORTANT MUST ATTENTION** score complexity first. Score >=6 → decompose. Each phase: plan → implement → review → fix → verify. No skipping.
-      <!-- /SYNC:iterative-phase-quality:reminder -->
-      <!-- SYNC:fix-layer-accountability:reminder -->
+    <!-- /SYNC:iterative-phase-quality:reminder -->
+    <!-- SYNC:fix-layer-accountability:reminder -->
 - **MANDATORY IMPORTANT MUST ATTENTION** trace full data flow and fix at the owning layer, not the crash site. Audit all access sites before adding `?.`.
-      <!-- /SYNC:fix-layer-accountability:reminder -->
-      <!-- SYNC:ai-mistake-prevention -->
+    <!-- /SYNC:fix-layer-accountability:reminder -->
+    <!-- SYNC:ai-mistake-prevention -->
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
@@ -513,6 +555,27 @@ After creating all phase files, run the **recursive decomposition loop**:
 **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
+
+<!-- SYNC:task-tracking-external-report:reminder -->
+
+- **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
+- **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
+
+<!-- /SYNC:task-tracking-external-report:reminder -->
+
+<!-- SYNC:project-reference-docs-guide:reminder -->
+
+- **MANDATORY** After task-tracking bootstrap and before target/source work, read required project-reference docs and cite `Reference docs read: ...`.
+- **MANDATORY** Always include `lessons.md`; project conventions override generic defaults.
+
+<!-- /SYNC:project-reference-docs-guide:reminder -->
+
+<!-- SYNC:nested-task-creation:reminder -->
+
+- **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
+- **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] $skill-name — phase` prefixes and one-`in_progress` discipline.
+
+<!-- /SYNC:nested-task-creation:reminder -->
 
 ## Closing Reminders
 
