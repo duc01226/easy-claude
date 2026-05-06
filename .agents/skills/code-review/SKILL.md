@@ -1,34 +1,30 @@
 ---
 name: code-review
-description: '[Code Quality] Use when receiving code review feedback (especially if unclear or technically questionable), when completing tasks requiring review before proceeding, or before making completion claims. Covers receiving feedback with technical rigor, requesting reviews via code-reviewer subagent, and verification gates requiring evidence before status claims.'
+description: '[Code Quality] Use when evaluating review feedback, requesting targeted code-quality review, or verifying completion claims.'
 ---
 
 > Codex compatibility note:
->
 > - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
 > - Prefer the `plan-hard` skill for planning guidance in this Codex mirror.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
 > - User-question prompts mean to ask the user directly in Codex.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
+> - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
 > - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
 > - For workflow skills, execute each listed child-skill step explicitly and report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
-
 <!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
-
 ## Codex Project-Reference Loading (No Hooks)
 
 Codex does not receive Claude hook-based doc injection.
 When coding, planning, debugging, testing, or reviewing, open project docs explicitly using this routing.
 
 **Always read:**
-
 - `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
 - `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
 
 **Situation-based docs:**
-
 - Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`, `project-structure-reference.md`
 - Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md`
 - Spec/test-case planning or TC mapping: `feature-docs-reference.md`
@@ -37,7 +33,6 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 - Code review/audit work: `code-review-rules.md` plus domain docs above based on changed files
 
 Do not read all docs blindly. Start from `docs-index-reference.md`, then open only relevant files for the task.
-
 <!-- CODEX:PROJECT-REFERENCE-LOADING:END -->
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -51,7 +46,9 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Ensure technical correctness: receiving feedback with verification (not performative agreement), requesting systematic reviews via code-reviewer subagent, enforcing verification gates before completion claims.
+**Goal:** Ensure technical correctness: receiving feedback with verification (not performative agreement), requesting targeted systematic reviews via code-reviewer subagent, enforcing verification gates before completion claims.
+
+> **Routing boundary:** If the user asks to review current changes, uncommitted work, staged/unstaged diffs, or a branch-to-branch diff, use `review-changes` instead.
 
 > **MANDATORY MUST ATTENTION** Before reviewing, search for project-specific reference docs:
 >
@@ -65,18 +62,22 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Workflow:**
 
 1. **Create Review Report** — Init `plans/reports/code-review-{date}-{slug}.md`
-2. **Phase 0: Detect** — Classify files by language + directory semantics + change nature → route sub-agents
-3. **Phase 1: File-by-File** — Review each file, update report (naming, typing, magic numbers, responsibility)
-4. **Phase 2: Holistic** — Re-read accumulated report, assess overall approach, architecture, duplication
-5. **Phase 3: Final Result** — Update report with overall assessment, critical issues, recommendations
-6. **Round 2: Fresh Sub-Agent** — Mandatory fresh code-reviewer for cross-cutting concerns, convention drift, edge cases
+2. **Phase 0: Blast Radius** — Run graph analysis first if `.code-graph/graph.db` exists
+3. **Phase 0.3: Risk Detection** — Detect dependency, migration, bus/event, API, security, config, and infra risks
+4. **Phase 0.5: Plan Compliance** — Verify changed files and tests against active plan when present
+5. **Phase 0.7: Surface Detection** — Classify files by language + directory semantics + change nature → route sub-agents
+6. **Phase 1: File-by-File** — Review each file, update report with correctness, convention, DRY, intent, test, and docs checks
+7. **Phase 2: Holistic** — Re-read accumulated report, assess overall approach, architecture, duplication, and cross-boundary behavior
+8. **Phase 3: Final Result** — Update report with overall assessment, critical issues, recommendations, docs staleness, and test gaps
+9. **Round 2: Fresh Sub-Agent** — After a fix cycle, run a fresh code-reviewer for cross-cutting concerns, convention drift, and edge cases
 
 **Key Rules:**
 
 - **Report-Driven**: Build report incrementally; re-read for big picture
-- **Detect First**: Classify changeset type before any review — route auth/perf files to specialized sub-agents
+- **Detect First**: Run graph blast radius when available, then classify change types and file surfaces before any review
 - **No Performative Agreement**: Technical evaluation only ("You're right!" banned)
 - **Verification Gates**: Evidence required before completion claims
+- **Review Current Diffs Elsewhere**: Current changes, staged/unstaged diffs, and branch diffs belong to `review-changes`
 - **A clean Round 1 ENDS the review.** Spawn a fresh sub-agent for Round 2 ONLY after a fix cycle.
 
 # Code Review
@@ -121,21 +122,52 @@ Three practices: receiving feedback with technical rigor, requesting systematic 
 
 **MANDATORY FIRST: Create Todo Tasks**
 
-| Task                                                    | Status      |
-| ------------------------------------------------------- | ----------- |
-| `[Review] Create report file`                           | in_progress |
-| `[Review Phase 0] Detect categories + route sub-agents` | pending     |
-| `[Review Phase 1] File-by-file review + update report`  | pending     |
-| `[Review Phase 2] Holistic assessment`                  | pending     |
-| `[Review Phase 3] Final findings`                       | pending     |
-| `[Review Round 2] Fresh sub-agent re-review`            | pending     |
-| `[Review Final] Consolidate all rounds`                 | pending     |
+| Task                                                                   | Status      |
+| ---------------------------------------------------------------------- | ----------- |
+| `[Review] Create report file`                                          | in_progress |
+| `[Review Phase 0] Run graph blast-radius if available`                 | pending     |
+| `[Review Phase 0.3] Detect high-risk change types`                     | pending     |
+| `[Review Phase 0.5] Plan compliance check (skip if no active plan)`    | pending     |
+| `[Review Phase 0.7] Detect categories + route sub-agents`              | pending     |
+| `[Review Phase 1] File-by-file review + update report`                 | pending     |
+| `[Review Phase 2] Holistic assessment`                                 | pending     |
+| `[Review Phase 3] Final findings, docs triage, and test sync findings` | pending     |
+| `[Review Round 2] Fresh sub-agent re-review after fix cycle`           | pending     |
+| `[Review Final] Consolidate all rounds`                                | pending     |
 
 **Step 0: Create Report File**
 
 Create `plans/reports/code-review-{date}-{slug}.md` with Scope, Files to Review sections.
 
-**Phase 0: Detect Change Type**
+**Phase 0: Graph Blast Radius (FIRST WHEN AVAILABLE)**
+
+If `.code-graph/graph.db` exists, run graph impact analysis before reviewing:
+
+- `python .claude/scripts/code_graph graph-blast-radius --json` or the project equivalent
+- Record impacted files count, untested changed functions, and risk level in the report
+- Prioritize high-impact files during Phase 1
+
+If graph data is unavailable, record "Graph not available — skipping blast radius" and continue.
+
+**Phase 0.3: Detect High-Risk Change Types**
+
+Before file review, inspect the target diff or explicit file set for:
+
+- Dependency upgrades — semver, breaking changes, advisories, peer compatibility
+- Migrations or schema changes — rollback, lock/volume impact, zero-downtime deployment, idempotent backfill
+- Bus events/messages — consumer existence, idempotency, retries, poison/dead-letter handling
+- API contract changes — backward compatibility, caller alignment, auth, required response fields
+- Security changes — enforcement coverage, privilege escalation, negative tests, duplicated permission strings
+- Config/env changes — all environments covered, no secrets, fail-fast behavior, setup docs
+- Infra changes — dev/prod parity, pinned versions, CI/CD permissions, reproducible builds
+
+Create focused review tasks for every true signal and complete them before dimensional review.
+
+**Phase 0.5: Plan Compliance Check (CONDITIONAL)**
+
+If active plan context exists, verify scope, test evidence, and success criteria against the plan before file review; otherwise record the skip reason.
+
+**Phase 0.7: Detect Review Categories**
 
 Before any review — classify the changeset and route sub-agents:
 
@@ -163,6 +195,9 @@ For EACH file, immediately update report:
 - **Convention check:** Grep 3+ similar patterns — does new code follow existing convention?
 - **Correctness check:** Trace logic — null, empty, boundary, error cases handled?
 - **DRY check:** Grep for similar/duplicate code — does this logic exist elsewhere?
+- **Intention check:** Does the change serve the stated purpose? Flag unrelated modifications
+- **Test check:** Changed behavior has corresponding test/spec coverage or a documented gap
+- **Documentation check:** Related docs/specs/READMEs still match the changed behavior
 
 **Phase 2: Holistic Review (Re-read Report)**
 
@@ -175,6 +210,9 @@ After all files reviewed, re-read accumulated report:
 - **Architecture**: Clean Architecture? Service boundaries respected?
 - **Plan Compliance**: If active plan → check `## Plan Context`: impl matches requirements, TCs have code evidence (not "TBD"), no requirement unaddressed
 - **Design Patterns**: Pattern opportunities (switch→Strategy)? Anti-patterns (God Object, Copy-Paste, Circular Dep)? DRY via base classes?
+- **Cross-Boundary Behavior**: Callers/callees aligned? API/event contracts consistent? New wiring reachable?
+- **Test Sync**: Business logic changes have corresponding tests or explicit user-facing gap
+- **Translation Sync**: Multilingual UI text changes have translation updates or explicit risk acceptance
 
 **MUST ATTENTION CHECK — Clean Code:** YAGNI (unused params, speculative interfaces)? KISS (simpler exists)? Methods >30 lines or nesting >3?
 
@@ -190,14 +228,16 @@ Common staleness patterns: count/limit changed → docs embedding that number | 
 
 Update report: Overall Assessment, Critical Issues, High Priority, Architecture Recommendations, Documentation Staleness, Positive Observations.
 
+If documentation staleness is detected, recommend `docs-update` and list exact stale sections; do not silently pass stale docs.
+
 ## Round 2+: Fresh Sub-Agent Re-Review (MANDATORY)
 
 After Phase 3 (Round 1), spawn fresh `code-reviewer` sub-agent for Round 2 using canonical template from `SYNC:review-protocol-injection`:
 
 1. Copy Agent call shape from `SYNC:review-protocol-injection` verbatim
 2. Embed full verbatim body of all 10 SYNC blocks: `SYNC:evidence-based-reasoning`, `SYNC:bug-detection`, `SYNC:design-patterns-quality`, `SYNC:complexity-prevention`, `SYNC:logic-and-intention-review`, `SYNC:test-spec-verification`, `SYNC:fix-layer-accountability`, `SYNC:rationalization-prevention`, `SYNC:graph-assisted-investigation`, `SYNC:understand-code-first`
-3. Task: `"Review ALL uncommitted changes. Focus: cross-cutting concerns, interaction bugs, convention drift, missing pieces, subtle edge cases, logic errors, test spec gaps."`
-4. Target Files: `"run git diff to see all uncommitted changes"`
+3. Task: `"Review the assigned code-review scope. Focus: cross-cutting concerns, interaction bugs, convention drift, missing pieces, subtle edge cases, logic errors, test spec gaps."`
+4. Target Files: `"use the explicit files, plan scope, or reviewer-provided target range"`
 5. Report: `plans/reports/code-review-round{N}-{date}.md`
 
 After sub-agent returns:
@@ -246,7 +286,7 @@ NEVER assume any specific framework's lifecycle. Derive from codebase evidence.
 | Practice               | Triggers                                                                                   | MUST ATTENTION READ                            |
 | ---------------------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------- |
 | **Receiving Feedback** | Review comments received, feedback unclear/questionable, conflicts with existing decisions | `references/code-review-reception.md`          |
-| **Requesting Review**  | After each subagent task, major feature done, before merge, after complex bug fix          | `references/requesting-code-review.md`         |
+| **Requesting Review**  | After each subagent task, major feature done, targeted review scope, after complex bug fix | `references/requesting-code-review.md`         |
 | **Verification Gates** | Before any completion claim, commit, push, or PR. ANY success/satisfaction statement       | `references/verification-before-completion.md` |
 
 ## Quick Decision Tree
@@ -725,7 +765,7 @@ description: "Fresh Round {N} review",
 agent_type: "code-reviewer",
 prompt: `
 ## Task
-{review-specific task — e.g., "Review all uncommitted changes for code quality" | "Review plan files under {plan-dir}" | "Review integration tests in {path}"}
+{review-specific task — e.g., "Review assigned files for code quality" | "Review plan files under {plan-dir}" | "Review integration tests in {path}"}
 
 ## Round
 Round {N}. You have ZERO memory of prior rounds. Re-read all target files from scratch via your own tool calls. Do NOT trust anything from the main agent beyond this prompt.
@@ -827,7 +867,7 @@ Search the repository for:
 - If none found, rely on your knowledge of the project's tech stack inferred from file extensions and directory structure.
 
 ## Target Files
-{explicit file list OR "run git diff to see uncommitted changes" OR "read all files under {plan-dir}"}
+{explicit file list OR selected review scope OR "read all files under {plan-dir}"}
 
 ## Output
 Write a structured report to plans/reports/{review-type}-round{N}-{date}.md with sections:
@@ -865,7 +905,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > | "Too simple for a plan"      | Simple + wrong assumptions = wasted time. Plan anyway.        |
 > | "I'll test after"            | RED before GREEN. Write/verify test first.                    |
 > | "Already searched"           | Show grep evidence with `file:line`. No proof = no search.    |
-> | "Just do it"                 | Still need task tracking. Skip depth, never skip tracking.    |
+> | "Just do it"                 | Still need task tracking. Skip depth, never skip tracking.       |
 > | "Just a small fix"           | Small fix in wrong location cascades. Verify file:line first. |
 > | "Code is self-explanatory"   | Future readers need evidence trail. Document anyway.          |
 > | "Combine steps to save time" | Combined steps dilute focus. Each step has distinct purpose.  |
@@ -959,52 +999,52 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 <!-- SYNC:evidence-based-reasoning:reminder -->
 
 - **MANDATORY MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% = do NOT recommend.
-  <!-- /SYNC:evidence-based-reasoning:reminder -->
+    <!-- /SYNC:evidence-based-reasoning:reminder -->
 
 <!-- SYNC:design-patterns-quality:reminder -->
 
 - **MANDATORY MUST ATTENTION** check DRY via OOP (same-suffix → base class), right responsibility (lowest layer), SOLID. Grep for dangling refs after changes.
-  <!-- /SYNC:design-patterns-quality:reminder -->
+    <!-- /SYNC:design-patterns-quality:reminder -->
 
 <!-- SYNC:complexity-prevention:reminder -->
 
 - **MANDATORY MUST ATTENTION** apply complexity prevention — one business change = one code change. Flag change amplification (>3 edit sites for future change), scattered type-switches, anemic models, primitive obsession, leaked technology through abstractions, shallow modules, un-extracted utility logic (paging/datetime/string/retry → helpers), and logic in the wrong higher layer (downshift to callee/entity/VM). Don't rationalize silent duplication with pure YAGNI.
-  <!-- /SYNC:complexity-prevention:reminder -->
+    <!-- /SYNC:complexity-prevention:reminder -->
 
 <!-- SYNC:double-round-trip-review:reminder -->
 
 - **MANDATORY MUST ATTENTION** execute the review loop: review → if issues → fix → fresh sub-agent re-review. A round that finds zero issues ENDS the review.
-  <!-- /SYNC:double-round-trip-review:reminder -->
+    <!-- /SYNC:double-round-trip-review:reminder -->
 
 <!-- SYNC:rationalization-prevention:reminder -->
 
 - **MANDATORY MUST ATTENTION** follow ALL steps regardless of perceived simplicity. "Too simple to plan" is evasion, not reason.
-  <!-- /SYNC:rationalization-prevention:reminder -->
+    <!-- /SYNC:rationalization-prevention:reminder -->
 
 <!-- SYNC:graph-assisted-investigation:reminder -->
 
 - **MANDATORY MUST ATTENTION** run at least ONE graph command on key files when graph.db exists. Pattern: grep → graph trace → grep verify.
-  <!-- /SYNC:graph-assisted-investigation:reminder -->
+    <!-- /SYNC:graph-assisted-investigation:reminder -->
 
 <!-- SYNC:logic-and-intention-review:reminder -->
 
 - **MANDATORY MUST ATTENTION** verify every changed file serves stated purpose. Trace happy + error paths. Flag scope creep.
-  <!-- /SYNC:logic-and-intention-review:reminder -->
+    <!-- /SYNC:logic-and-intention-review:reminder -->
 
 <!-- SYNC:bug-detection:reminder -->
 
 - **MANDATORY MUST ATTENTION** check null safety, boundary conditions, error handling, resource management for every review.
-  <!-- /SYNC:bug-detection:reminder -->
+    <!-- /SYNC:bug-detection:reminder -->
 
 <!-- SYNC:test-spec-verification:reminder -->
 
 - **MANDATORY MUST ATTENTION** map every changed function/endpoint to a test. Search for project's test spec format near changed files. Flag coverage gaps, recommend test creation.
-  <!-- /SYNC:test-spec-verification:reminder -->
+    <!-- /SYNC:test-spec-verification:reminder -->
 
 <!-- SYNC:translation-sync-check:reminder -->
 
 - **MANDATORY MUST ATTENTION** for multilingual frontend/UI text changes, verify translation updates are present (or explicitly accepted by user as risk) before PASS.
-  <!-- /SYNC:translation-sync-check:reminder -->
+    <!-- /SYNC:translation-sync-check:reminder -->
 
 <!-- SYNC:fix-layer-accountability:reminder -->
 
@@ -1081,7 +1121,6 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
-
 ## Hookless Prompt Protocol Mirror (Auto-Synced)
 
 Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
@@ -1091,16 +1130,15 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** Match prompt against workflow catalog
 2. **ANALYZE:** Find best-match workflow AND evaluate if a custom step combination would fit better
 3. **ASK (REQUIRED FORMAT):** Use a direct user question with this structure:
-    - Question: "Which workflow do you want to activate?"
-    - Option 1: "Activate **[BestMatch Workflow]** (Recommended)"
-    - Option 2: "Activate custom workflow: **[step1 → step2 → ...]**" (include one-line rationale)
+   - Question: "Which workflow do you want to activate?"
+   - Option 1: "Activate **[BestMatch Workflow]** (Recommended)"
+   - Option 2: "Activate custom workflow: **[step1 → step2 → ...]**" (include one-line rationale)
 4. **ACTIVATE (if confirmed):** Call `$workflow-start <workflowId>` for standard; sequence custom steps manually
 5. **CREATE TASKS:** task tracking for ALL workflow steps
 6. **EXECUTE:** Follow each step in sequence
-   **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
-   **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
-   **AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
-
+**[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
+**Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
+**AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
 ## Learned Lessons
 
 # Lessons Learned
@@ -1155,20 +1193,18 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 - **IMPORTANT MUST ATTENTION** name by PURPOSE — adding/removing member forces rename = broken abstraction
 - **IMPORTANT MUST ATTENTION** sub-agents MUST write findings after each file/section — NEVER batch all findings into one final write
 - **IMPORTANT MUST ATTENTION** Windows bash: NEVER assume `python`/`python3` resolves — run `where python`/`where py` first, use `py` launcher or `node`
-
 ## [LESSON-LEARNED-REMINDER] [BLOCKING] Task Planning & Continuous Improvement — MANDATORY. Do not skip.
 
 Break work into small tasks (task tracking) before starting. Add final task: "Analyze AI mistakes & lessons learned".
 
 **Extract lessons — ROOT CAUSE ONLY, not symptom fixes:**
-
 1. Name the FAILURE MODE (reasoning/assumption failure), not symptom — "assumed API existed without reading source" not "used wrong enum value".
 2. Generality test: does this failure mode apply to ≥3 contexts/codebases? If not, abstract one level up.
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-review`/`/simplify`/`$security`/`$lint` catch this?" — Yes → improve review skill instead.
+6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security`/`$lint` catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
-   **[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
+**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:END -->

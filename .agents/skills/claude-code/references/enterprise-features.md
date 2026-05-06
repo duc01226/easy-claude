@@ -10,18 +10,17 @@ Support for SAML 2.0 and OAuth 2.0:
 
 ```json
 {
-    "auth": {
-        "type": "saml",
-        "provider": "okta",
-        "entityId": "claude-code",
-        "ssoUrl": "https://company.okta.com/app/saml",
-        "certificate": "/path/to/cert.pem"
-    }
+  "auth": {
+    "type": "saml",
+    "provider": "okta",
+    "entityId": "claude-code",
+    "ssoUrl": "https://company.okta.com/app/saml",
+    "certificate": "/path/to/cert.pem"
+  }
 }
 ```
 
 **Supported providers:**
-
 - Okta
 - Azure AD
 - Google Workspace
@@ -34,19 +33,19 @@ Define user roles and permissions:
 
 ```json
 {
-    "rbac": {
-        "roles": {
-            "developer": {
-                "permissions": ["code:read", "code:write", "tools:use"]
-            },
-            "reviewer": {
-                "permissions": ["code:read", "code:review"]
-            },
-            "admin": {
-                "permissions": ["*"]
-            }
-        }
+  "rbac": {
+    "roles": {
+      "developer": {
+        "permissions": ["code:read", "code:write", "tools:use"]
+      },
+      "reviewer": {
+        "permissions": ["code:read", "code:review"]
+      },
+      "admin": {
+        "permissions": ["*"]
+      }
     }
+  }
 }
 ```
 
@@ -76,19 +75,19 @@ Filesystem and network isolation:
 
 ```json
 {
-    "sandboxing": {
-        "enabled": true,
-        "mode": "strict",
-        "filesystem": {
-            "allowedPaths": ["/workspace"],
-            "readOnlyPaths": ["/usr/lib", "/etc"],
-            "deniedPaths": ["/etc/passwd", "/etc/shadow"]
-        },
-        "network": {
-            "enabled": false,
-            "allowedDomains": ["api.anthropic.com"]
-        }
+  "sandboxing": {
+    "enabled": true,
+    "mode": "strict",
+    "filesystem": {
+      "allowedPaths": ["/workspace"],
+      "readOnlyPaths": ["/usr/lib", "/etc"],
+      "deniedPaths": ["/etc/passwd", "/etc/shadow"]
+    },
+    "network": {
+      "enabled": false,
+      "allowedDomains": ["api.anthropic.com"]
     }
+  }
 }
 ```
 
@@ -98,27 +97,26 @@ Comprehensive activity logs:
 
 ```json
 {
-    "auditLog": {
-        "enabled": true,
-        "destination": "syslog",
-        "syslogHost": "logs.company.com:514",
-        "includeToolCalls": true,
-        "includePrompts": false,
-        "retention": "90d"
-    }
+  "auditLog": {
+    "enabled": true,
+    "destination": "syslog",
+    "syslogHost": "logs.company.com:514",
+    "includeToolCalls": true,
+    "includePrompts": false,
+    "retention": "90d"
+  }
 }
 ```
 
 **Log format:**
-
 ```json
 {
-    "timestamp": "2025-11-06T10:30:00Z",
-    "user": "user@company.com",
-    "action": "tool_call",
-    "tool": "bash",
-    "args": { "command": "git status" },
-    "result": "success"
+  "timestamp": "2025-11-06T10:30:00Z",
+  "user": "user@company.com",
+  "action": "tool_call",
+  "tool": "bash",
+  "args": {"command": "git status"},
+  "result": "success"
 }
 ```
 
@@ -128,11 +126,11 @@ Region-specific deployment:
 
 ```json
 {
-    "region": "us-east-1",
-    "dataResidency": {
-        "enabled": true,
-        "allowedRegions": ["us-east-1", "us-west-2"]
-    }
+  "region": "us-east-1",
+  "dataResidency": {
+    "enabled": true,
+    "allowedRegions": ["us-east-1", "us-west-2"]
+  }
 }
 ```
 
@@ -151,13 +149,13 @@ Deploy via AWS Bedrock:
 
 ```json
 {
-    "provider": "bedrock",
-    "region": "us-east-1",
-    "model": "anthropic.sonnet",
-    "credentials": {
-        "accessKeyId": "${AWS_ACCESS_KEY_ID}",
-        "secretAccessKey": "${AWS_SECRET_ACCESS_KEY}"
-    }
+  "provider": "bedrock",
+  "region": "us-east-1",
+  "model": "anthropic.sonnet",
+  "credentials": {
+    "accessKeyId": "${AWS_ACCESS_KEY_ID}",
+    "secretAccessKey": "${AWS_SECRET_ACCESS_KEY}"
+  }
 }
 ```
 
@@ -167,11 +165,11 @@ Deploy via GCP Vertex AI:
 
 ```json
 {
-    "provider": "vertex",
-    "project": "company-project",
-    "location": "us-central1",
-    "model": "sonnet",
-    "credentials": "/path/to/service-account.json"
+  "provider": "vertex",
+  "project": "company-project",
+  "location": "us-central1",
+  "model": "sonnet",
+  "credentials": "/path/to/service-account.json"
 }
 ```
 
@@ -180,7 +178,6 @@ Deploy via GCP Vertex AI:
 On-premises deployment:
 
 **Docker:**
-
 ```bash
 docker run -d \
   -v /workspace:/workspace \
@@ -189,25 +186,24 @@ docker run -d \
 ```
 
 **Kubernetes:**
-
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: claude-code
+  name: claude-code
 spec:
-    replicas: 3
-    template:
-        spec:
-            containers:
-                - name: claude-code
-                  image: anthropic/claude-code:latest
-                  env:
-                      - name: ANTHROPIC_API_KEY
-                        valueFrom:
-                            secretKeyRef:
-                                name: claude-secrets
-                                key: api-key
+  replicas: 3
+  template:
+    spec:
+      containers:
+      - name: claude-code
+        image: anthropic/claude-code:latest
+        env:
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: claude-secrets
+              key: api-key
 ```
 
 ### LLM Gateway
@@ -216,11 +212,11 @@ Integration with LiteLLM:
 
 ```json
 {
-    "gateway": {
-        "enabled": true,
-        "url": "http://litellm-proxy:4000",
-        "apiKey": "${GATEWAY_API_KEY}"
-    }
+  "gateway": {
+    "enabled": true,
+    "url": "http://litellm-proxy:4000",
+    "apiKey": "${GATEWAY_API_KEY}"
+  }
 }
 ```
 
@@ -232,14 +228,14 @@ Built-in telemetry support:
 
 ```json
 {
-    "telemetry": {
-        "enabled": true,
-        "exporter": "otlp",
-        "endpoint": "http://otel-collector:4317",
-        "metrics": true,
-        "traces": true,
-        "logs": true
-    }
+  "telemetry": {
+    "enabled": true,
+    "exporter": "otlp",
+    "endpoint": "http://otel-collector:4317",
+    "metrics": true,
+    "traces": true,
+    "logs": true
+  }
 }
 ```
 
@@ -259,7 +255,6 @@ claude analytics export --format csv > metrics.csv
 ```
 
 **Metrics tracked:**
-
 - Requests per user/project
 - Token usage
 - Tool invocations
@@ -296,17 +291,17 @@ Monitor and control API costs:
 
 ```json
 {
-    "costControl": {
-        "enabled": true,
-        "budgets": {
-            "monthly": 10000,
-            "perUser": 500
-        },
-        "alerts": {
-            "threshold": 0.8,
-            "recipients": ["admin@company.com"]
-        }
+  "costControl": {
+    "enabled": true,
+    "budgets": {
+      "monthly": 10000,
+      "perUser": 500
+    },
+    "alerts": {
+      "threshold": 0.8,
+      "recipients": ["admin@company.com"]
     }
+  }
 }
 ```
 
@@ -336,12 +331,12 @@ Client certificate authentication:
 
 ```json
 {
-    "mtls": {
-        "enabled": true,
-        "clientCert": "/path/to/client-cert.pem",
-        "clientKey": "/path/to/client-key.pem",
-        "caCert": "/path/to/ca-cert.pem"
-    }
+  "mtls": {
+    "enabled": true,
+    "clientCert": "/path/to/client-cert.pem",
+    "clientKey": "/path/to/client-key.pem",
+    "caCert": "/path/to/ca-cert.pem"
+  }
 }
 ```
 
@@ -351,10 +346,14 @@ Restrict access by IP:
 
 ```json
 {
-    "ipAllowlist": {
-        "enabled": true,
-        "addresses": ["10.0.0.0/8", "192.168.1.0/24", "203.0.113.42"]
-    }
+  "ipAllowlist": {
+    "enabled": true,
+    "addresses": [
+      "10.0.0.0/8",
+      "192.168.1.0/24",
+      "203.0.113.42"
+    ]
+  }
 }
 ```
 
@@ -366,12 +365,12 @@ Configure data retention policies:
 
 ```json
 {
-    "dataRetention": {
-        "conversations": "30d",
-        "logs": "90d",
-        "metrics": "1y",
-        "backups": "7d"
-    }
+  "dataRetention": {
+    "conversations": "30d",
+    "logs": "90d",
+    "metrics": "1y",
+    "backups": "7d"
+  }
 }
 ```
 
@@ -381,17 +380,17 @@ Encryption at rest and in transit:
 
 ```json
 {
-    "encryption": {
-        "atRest": {
-            "enabled": true,
-            "algorithm": "AES-256-GCM",
-            "keyManagement": "aws-kms"
-        },
-        "inTransit": {
-            "tlsVersion": "1.3",
-            "cipherSuites": ["TLS_AES_256_GCM_SHA384"]
-        }
+  "encryption": {
+    "atRest": {
+      "enabled": true,
+      "algorithm": "AES-256-GCM",
+      "keyManagement": "aws-kms"
+    },
+    "inTransit": {
+      "tlsVersion": "1.3",
+      "cipherSuites": ["TLS_AES_256_GCM_SHA384"]
     }
+  }
 }
 ```
 
@@ -401,12 +400,12 @@ Detect and redact PII:
 
 ```json
 {
-    "piiProtection": {
-        "enabled": true,
-        "detectPatterns": ["email", "ssn", "credit_card"],
-        "action": "redact",
-        "auditLog": true
-    }
+  "piiProtection": {
+    "enabled": true,
+    "detectPatterns": ["email", "ssn", "credit_card"],
+    "action": "redact",
+    "auditLog": true
+  }
 }
 ```
 
@@ -419,14 +418,14 @@ Distribute requests across instances:
 ```yaml
 # HAProxy configuration
 frontend claude_front
-bind *:443 ssl crt /etc/ssl/certs/claude.pem
-default_backend claude_back
+  bind *:443 ssl crt /etc/ssl/certs/claude.pem
+  default_backend claude_back
 
 backend claude_back
-balance roundrobin
-server claude1 10.0.1.10:8080 check
-server claude2 10.0.1.11:8080 check
-server claude3 10.0.1.12:8080 check
+  balance roundrobin
+  server claude1 10.0.1.10:8080 check
+  server claude2 10.0.1.11:8080 check
+  server claude3 10.0.1.12:8080 check
 ```
 
 ### Failover
@@ -435,15 +434,15 @@ Automatic failover configuration:
 
 ```json
 {
-    "highAvailability": {
-        "enabled": true,
-        "primaryRegion": "us-east-1",
-        "failoverRegions": ["us-west-2", "eu-west-1"],
-        "healthCheck": {
-            "interval": "30s",
-            "timeout": "5s"
-        }
+  "highAvailability": {
+    "enabled": true,
+    "primaryRegion": "us-east-1",
+    "failoverRegions": ["us-west-2", "eu-west-1"],
+    "healthCheck": {
+      "interval": "30s",
+      "timeout": "5s"
     }
+  }
 }
 ```
 

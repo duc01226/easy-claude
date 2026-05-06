@@ -1,17 +1,15 @@
 <!-- PROMPT-PROTOCOLS:START -->
-
 > Codex compatibility note:
->
 > - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
 > - Prefer the `plan-hard` skill for planning guidance in this Codex mirror.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
 > - User-question prompts mean to ask the user directly in Codex.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
+> - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
 > - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
 > - For workflow skills, execute each listed child-skill step explicitly and report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
-
 ## Prompt Protocol Mirror (Auto-Synced, Primacy Anchor)
 
 Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
@@ -21,14 +19,14 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** Match prompt against workflow catalog
 2. **ANALYZE:** Find best-match workflow AND evaluate if a custom step combination would fit better
 3. **ASK (REQUIRED FORMAT):** Use a direct user question with this structure:
-    - Question: "Which workflow do you want to activate?"
-    - Option 1: "Activate **[BestMatch Workflow]** (Recommended)"
-    - Option 2: "Activate custom workflow: **[step1 → step2 → ...]**" (include one-line rationale)
+   - Question: "Which workflow do you want to activate?"
+   - Option 1: "Activate **[BestMatch Workflow]** (Recommended)"
+   - Option 2: "Activate custom workflow: **[step1 → step2 → ...]**" (include one-line rationale)
 4. **ACTIVATE (if confirmed):** Call `$workflow-start <workflowId>` for standard; sequence custom steps manually
 5. **CREATE TASKS:** task tracking for ALL workflow steps
 6. **EXECUTE:** Follow each step in sequence
 **[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
- <!-- PROMPT-PROTOCOLS:END -->
+<!-- PROMPT-PROTOCOLS:END -->
 
 # Codex Context (Hookless Parity)
 
@@ -127,23 +125,20 @@ Environment and tooling:
 - Only retain lessons that are broadly reusable and likely to recur without reminders.
 
 <!-- WORKFLOWS:START -->
-
 > Codex compatibility note:
->
 > - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
 > - Prefer the `plan-hard` skill for planning guidance in this Codex mirror.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
 > - User-question prompts mean to ask the user directly in Codex.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
+> - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
 > - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
 > - For workflow skills, execute each listed child-skill step explicitly and report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
-
 ## Workflow Protocol (Hookless)
 
 Use this protocol for workflow execution in Codex (no hook dependency):
-
 1. Detect: match request against workflow catalog.
 2. Analyze: choose best-fit workflow and evaluate custom combination if needed.
 3. Confirm: if workflow requires confirmation or ambiguity exists, ask user before activation.
@@ -156,7 +151,6 @@ Workflow source: `.claude/workflows.json` (37 workflows).
 ## Workflow Catalog
 
 ### batch-operation — Batch Operation
-
 - Description: Multi-file batch operations requiring progress tracking
 - Confirm First: no
 - When To Use: User wants to modify multiple files at once: bulk rename, find-and-replace across codebase, update all instances
@@ -164,7 +158,6 @@ Workflow source: `.claude/workflows.json` (37 workflows).
 - Sequence: `plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> code -> tdd-spec -> why-review -> tdd-spec-review -> tdd-spec [direction=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> sre-review -> test -> docs-update -> watzup -> workflow-end`
 
 Protocol:
-
 ```text
 BATCH OPERATION PROTOCOL:
 1. Plan: List ALL files to modify, define change pattern
@@ -186,7 +179,6 @@ SAFETY:
 ```
 
 ### big-feature — Big Feature (Research + Implement)
-
 - Description: Research-driven feature development for large, complex, or ambiguous features in an existing project — includes idea refinement, market research, business evaluation, domain analysis, tech stack research, and full implementation
 - Confirm First: yes
 - When To Use: User wants to implement a large, complex, or ambiguous feature that needs research, market analysis, business evaluation, domain modeling, or tech stack analysis before implementation. Big new module, major enhancement, cross-cutting capability, or feature where scope is unclear
@@ -194,7 +186,6 @@ SAFETY:
 - Sequence: `idea -> web-research -> deep-research -> business-evaluation -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> why-review -> plan -> why-review -> plan-review -> why-review -> refine -> why-review -> refine-review -> story -> why-review -> story-review -> pbi-challenge -> dor-gate -> pbi-mockup -> tdd-spec -> why-review -> tdd-spec-review -> plan -> why-review -> plan-review -> why-review -> scaffold -> plan-validate -> why-review -> cook -> review-domain-entities -> integration-test -> integration-test-review -> integration-test-verify -> tdd-spec [direction=sync] -> workflow-review-changes -> sre-review -> security -> changelog -> test -> docs-update -> watzup -> workflow-end`
 
 Protocol:
-
 ```text
 BIG FEATURE PROTOCOL (Research-Driven):
 For large/ambiguous features in an existing codebase that need research before implementation.
@@ -265,7 +256,6 @@ MANDATORY SPEC-DRIVEN BIG-FEATURE GATES:
 ```
 
 ### bugfix — Bug Fix
-
 - Description: Systematic debugging and fix workflow with investigation-first approach
 - Confirm First: no
 - When To Use: User reports a bug, error, crash, failure, regression, or something not working; wants to fix/debug/troubleshoot an issue
@@ -273,7 +263,6 @@ MANDATORY SPEC-DRIVEN BIG-FEATURE GATES:
 - Sequence: `scout -> investigate -> debug-investigate -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> tdd-spec -> why-review -> tdd-spec-review -> integration-test -> fix -> prove-fix -> integration-test -> integration-test-review -> integration-test-verify -> tdd-spec [direction=sync] -> workflow-review-changes -> changelog -> test -> docs-update -> watzup -> workflow-end`
 
 Protocol:
-
 ```text
 BUG FIX PROTOCOL (TDD-FIRST):
 1. Scout: Find files related to the reported issue
@@ -314,7 +303,6 @@ MANDATORY INVARIANT-PRESERVING BUGFIX LOOP:
 ```
 
 ### deployment — Deployment & Infrastructure
-
 - Description: Deployment and CI/CD pipeline management
 - Confirm First: no
 - When To Use: User wants to set up or modify deployment, infrastructure, CI/CD pipelines, Docker configuration, Kubernetes setup, or deploy to environments
@@ -322,7 +310,6 @@ MANDATORY INVARIANT-PRESERVING BUGFIX LOOP:
 - Sequence: `scout -> investigate -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> code -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> sre-review -> test -> docs-update -> watzup -> workflow-end`
 
 Protocol:
-
 ```text
 Role: DevOps Engineer
 DEPLOYMENT WORKFLOW:
@@ -339,7 +326,6 @@ GUARDRAILS:
 ```
 
 ### design-workflow — Design Workflow
-
 - Description: Designer workflow: create design specification and implement UI (product, marketing, creative) from requirements or screenshots
 - Confirm First: no
 - When To Use: User wants to create a UI/UX design spec, mockup, wireframe, or component specification, design a product interface (dashboard, admin panel, SaaS app), build a landing page, create a marketing page, replicate a screenshot/design, or build a creative/distinctive frontend interface
@@ -347,7 +333,6 @@ GUARDRAILS:
 - Sequence: `design-spec -> why-review -> interface-design -> frontend-design -> workflow-review-changes -> docs-update -> workflow-end`
 
 Protocol:
-
 ```text
 Role: UX Designer
 DESIGN WORKFLOW:
@@ -362,7 +347,6 @@ DESIGN WORKFLOW:
 ```
 
 ### documentation — Documentation Update
-
 - Description: Documentation creation and update workflow with plan validation
 - Confirm First: no
 - When To Use: User wants to create, update, or improve documentation, READMEs, or code comments
@@ -370,7 +354,6 @@ DESIGN WORKFLOW:
 - Sequence: `scout -> investigate -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> docs-update -> workflow-review-changes -> review-post-task -> watzup -> workflow-end`
 
 Protocol:
-
 ```text
 IMPORTANT: For project feature docs (path from docs/project-config.json → workflowPatterns.featureDocPath), use feature-docs workflow instead.
 
@@ -391,7 +374,6 @@ RULES:
 ```
 
 ### e2e-from-changes — E2E from Changes
-
 - Description: Update E2E tests based on code or spec changes
 - Confirm First: no
 - When To Use: User updated test specifications or source code and needs to sync E2E tests
@@ -399,7 +381,6 @@ RULES:
 - Sequence: `scout -> e2e-test -> test -> docs-update -> watzup -> workflow-end`
 
 Protocol:
-
 ```text
 E2E FROM CHANGES PROTOCOL:
 1. Detect change type from git diff:
@@ -414,7 +395,6 @@ E2E FROM CHANGES PROTOCOL:
 ```
 
 ### e2e-from-recording — E2E from Recording
-
 - Description: Generate Playwright E2E tests from Chrome DevTools recordings
 - Confirm First: no
 - When To Use: User has a Chrome DevTools recording JSON and wants to generate a Playwright E2E test file
@@ -422,7 +402,6 @@ E2E FROM CHANGES PROTOCOL:
 - Sequence: `scout -> e2e-test -> test -> docs-update -> watzup -> workflow-end`
 
 Protocol:
-
 ```text
 E2E FROM RECORDING PROTOCOL:
 1. Validate recording file exists (JSON format)
@@ -438,7 +417,6 @@ E2E FROM RECORDING PROTOCOL:
 ```
 
 ### e2e-update-ui — E2E Update UI
-
 - Description: Update E2E screenshot baselines after UI changes
 - Confirm First: no
 - When To Use: User made UI changes and needs to update E2E screenshot baselines
@@ -446,7 +424,6 @@ E2E FROM RECORDING PROTOCOL:
 - Sequence: `scout -> e2e-test -> test -> docs-update -> watzup -> workflow-end`
 
 Protocol:
-
 ```text
 E2E UPDATE UI PROTOCOL:
 1. Identify visual changes from git diff (SCSS, HTML, TS)
@@ -460,7 +437,6 @@ E2E UPDATE UI PROTOCOL:
 ```
 
 ### feature — Feature Implementation
-
 - Description: Full feature development workflow with search-first approach, planning, implementation, testing, and documentation
 - Confirm First: no
 - When To Use: User wants to implement a well-defined feature, add a component, build a capability, develop a module, implement/execute an existing plan, create a new API endpoint, or design an API contract
@@ -468,7 +444,6 @@ E2E UPDATE UI PROTOCOL:
 - Sequence: `scout -> investigate -> domain-analysis -> why-review -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> tdd-spec -> why-review -> tdd-spec-review -> plan -> why-review -> plan-review -> why-review -> cook -> review-domain-entities -> tdd-spec -> why-review -> tdd-spec-review -> tdd-spec [direction=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> sre-review -> security -> changelog -> test -> docs-update -> watzup -> workflow-end`
 
 Protocol:
-
 ```text
 FEATURE IMPLEMENTATION PROTOCOL:
 ⚠️ PROJECT CONTEXT: Read docs/project-config.json → workflowPatterns for project-specific architecture rules, code hierarchy, naming conventions, and CSS methodology.
@@ -509,7 +484,6 @@ MANDATORY SPEC-DRIVEN + INVARIANT + TEST HARNESS LOOP:
 ```
 
 ### feature-docs — Business Feature Documentation
-
 - Description: Business feature documentation with 17-section template enforcement, plan validation, and mandatory test coverage
 - Confirm First: no
 - When To Use: User wants to create or update business feature documentation in docs/business-features/
@@ -517,7 +491,6 @@ MANDATORY SPEC-DRIVEN + INVARIANT + TEST HARNESS LOOP:
 - Sequence: `scout -> investigate -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> docs-update -> workflow-review-changes -> review-post-task -> watzup -> workflow-end`
 
 Protocol:
-
 ```text
 Role: Documentation Specialist
 BUSINESS FEATURE DOC PROTOCOL:
@@ -537,7 +510,6 @@ OUTPUT: Complete feature README following template sections.
 ```
 
 ### full-feature-lifecycle — Full Feature Lifecycle
-
 - Description: Complete feature from idea to PO acceptance — PO→BA→Designer→Dev→QA→PO with formal role handoffs at every stage
 - Confirm First: yes
 - When To Use: Full end-to-end feature delivery requiring idea → PBI → stories → design → implementation → testing → PO acceptance with all formal role handoffs
@@ -545,7 +517,6 @@ OUTPUT: Complete feature README following template sections.
 - Sequence: `idea -> refine -> why-review -> refine-review -> domain-analysis -> why-review -> story -> why-review -> story-review -> pbi-challenge -> dor-gate -> pbi-mockup -> design-spec -> why-review -> interface-design -> frontend-design -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> cook -> review-domain-entities -> tdd-spec -> why-review -> tdd-spec-review -> integration-test -> integration-test-review -> integration-test-verify -> tdd-spec [direction=sync] -> workflow-review-changes -> sre-review -> quality-gate -> docs-update -> watzup -> acceptance -> workflow-end`
 
 Protocol:
-
 ```text
 FULL FEATURE LIFECYCLE PROTOCOL:
 End-to-end feature delivery with formal role handoffs: idea capture → PBI refinement → story creation → Dev BA PIC challenge → DoR gate → design → implementation → testing → acceptance.
@@ -568,7 +539,6 @@ MANDATORY FULL-LIFECYCLE SYNC GATES:
 ```
 
 ### greenfield-init — Greenfield Project Init
-
 - Description: Full waterfall project inception from idea through implementation with integration testing
 - Confirm First: yes
 - When To Use: User wants to start a new project from scratch, init a greenfield project, plan a new application, research and plan before coding, bootstrap a new codebase, build something new
@@ -576,7 +546,6 @@ MANDATORY FULL-LIFECYCLE SYNC GATES:
 - Sequence: `idea -> web-research -> deep-research -> business-evaluation -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> why-review -> plan -> why-review -> security -> performance -> plan-review -> why-review -> refine -> why-review -> refine-review -> story -> why-review -> story-review -> pbi-challenge -> dor-gate -> pbi-mockup -> plan-validate -> why-review -> tdd-spec -> why-review -> tdd-spec-review -> plan -> why-review -> plan-review -> why-review -> scaffold -> linter-setup -> harness-setup -> why-review -> cook -> review-domain-entities -> tdd-spec -> why-review -> tdd-spec-review -> plan -> why-review -> plan-review -> why-review -> integration-test -> integration-test-review -> integration-test-verify -> test -> workflow-review-changes -> sre-review -> security -> changelog -> test -> docs-update -> watzup -> workflow-end`
 
 Protocol:
-
 ```text
 GREENFIELD PROJECT INCEPTION PROTOCOL:
 You are acting as a Solution Architect for a brand-new project.
@@ -646,7 +615,6 @@ This ensures greenfield projects ship with integration test coverage from day on
 ```
 
 ### idea-to-pbi — Idea to PBI
-
 - Description: PO/BA workflow: capture or review idea/artifact, optional PO→BA handoff, refine to PBI, create user stories, generate TDD test specs, challenge review, DoR gate, mockup, prioritize
 - Confirm First: yes
 - When To Use: PO or BA wants to take a raw idea — OR PO is handing off an existing artifact/ticket/brief to BA — through to a grooming-ready PBI with user stories, TDD test specifications, Dev BA PIC challenge review, DoR validation, wireframes, and backlog prioritization
@@ -654,7 +622,6 @@ This ensures greenfield projects ship with integration test coverage from day on
 - Sequence: `idea -> review-artifact -> handoff -> refine -> why-review -> refine-review -> why-review -> story -> why-review -> story-review -> tdd-spec -> why-review -> tdd-spec-review -> pbi-challenge -> dor-gate -> pbi-mockup -> prioritize -> docs-update -> watzup -> workflow-end`
 
 Protocol:
-
 ```text
 IDEA TO PBI PROTOCOL:
 Capture and refine a raw idea — or a handed-off artifact/ticket/brief — into a grooming-ready PBI with stories, TDD test specifications, challenge review, DoR validation, and wireframe.
@@ -711,7 +678,6 @@ At workflow-end, AI MUST ATTENTION present:
 ```
 
 ### investigation — Code Investigation
-
 - Description: Codebase exploration and understanding workflow
 - Confirm First: no
 - When To Use: User wants to understand how code works, find where logic lives, explore architecture, trace code paths, or get explanations
@@ -719,7 +685,6 @@ At workflow-end, AI MUST ATTENTION present:
 - Sequence: `scout -> investigate -> workflow-end`
 
 Protocol:
-
 ```text
 INVESTIGATION PROTOCOL:
 1. Scout: Find relevant files, entry points, and related code
@@ -732,7 +697,6 @@ GUARDRAIL: This is a READ-ONLY workflow. DO NOT modify any files. Only read, ana
 ```
 
 ### migration — Database Migration
-
 - Description: Database schema and data migration workflow
 - Confirm First: no
 - When To Use: User wants to create or run database migrations: schema changes, data migrations, EF migrations, adding/removing/altering columns or tables
@@ -740,7 +704,6 @@ GUARDRAIL: This is a READ-ONLY workflow. DO NOT modify any files. Only read, ana
 - Sequence: `scout -> investigate -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> db-migrate -> code -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> sre-review -> test -> docs-update -> watzup -> workflow-end`
 
 Protocol:
-
 ```text
 Role: Database Administrator
 DATABASE MIGRATION PROTOCOL:
@@ -758,7 +721,6 @@ GUARDRAILS:
 ```
 
 ### package-upgrade — Package Upgrade
-
 - Description: Package dependency upgrade with regression verification
 - Confirm First: no
 - When To Use: User wants to upgrade packages, update dependencies, npm update, NuGet upgrade, version bump
@@ -766,7 +728,6 @@ GUARDRAILS:
 - Sequence: `scout -> investigate -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> code -> integration-test -> integration-test-review -> integration-test-verify -> test -> workflow-review-changes -> docs-update -> watzup -> workflow-end`
 
 Protocol:
-
 ```text
 Role: Dependency Manager
 PACKAGE UPGRADE PROTOCOL:
@@ -786,7 +747,6 @@ GUARDRAILS:
 ```
 
 ### pbi-to-tests — PBI to Test Specs
-
 - Description: Spec-only workflow: generate TC specs from PBI, review quality, run quality gate — no integration test code generation
 - Confirm First: no
 - When To Use: Generate test specs from PBI/story, spec-only with no code generation needed
@@ -794,13 +754,11 @@ GUARDRAILS:
 - Sequence: `tdd-spec -> why-review -> tdd-spec-review -> quality-gate -> workflow-end`
 
 Protocol:
-
 ```text
 No injectContext protocol defined.
 ```
 
 ### performance — Performance Optimization
-
 - Description: Performance investigation and optimization workflow
 - Confirm First: no
 - When To Use: User reports slow performance, latency issues, optimization needed, bottleneck investigation, query optimization
@@ -808,7 +766,6 @@ No injectContext protocol defined.
 - Sequence: `scout -> investigate -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> code -> test -> workflow-review-changes -> sre-review -> docs-update -> watzup -> workflow-end`
 
 Protocol:
-
 ```text
 Role: Performance Engineer
 PERFORMANCE PROTOCOL:
@@ -836,7 +793,6 @@ MANDATORY PERFORMANCE INVARIANT GUARDS:
 ```
 
 ### product-discovery — Product Discovery | ⚠️ Confirm
-
 - Description: Product discovery: raw vision or problem → structured brainstorm → prioritized opportunity map → N PBIs with stories, challenge review, DoR gate, and wireframes → cross-PBI ranked backlog ready for sprint planning
 - Confirm First: yes
 - When To Use: PO/BA wants to go from a raw product idea, vision, or problem statement through structured brainstorming into a prioritized backlog of multiple PBIs with stories, challenge review, DoR validation, wireframes, and cross-PBI ranking — full product discovery sprint output without implementation
@@ -844,7 +800,6 @@ MANDATORY PERFORMANCE INVARIANT GUARDS:
 - Sequence: `brainstorm -> web-research -> domain-analysis -> why-review -> idea -> refine -> why-review -> refine-review -> story -> why-review -> story-review -> pbi-challenge -> dor-gate -> pbi-mockup -> review-changes -> prioritize -> watzup -> workflow-end`
 
 Protocol:
-
 ```text
 PRODUCT DISCOVERY PROTOCOL:
 Converts a raw product vision or problem statement into a grooming-ready backlog of multiple PBIs through structured PO/BA discovery techniques.
@@ -926,7 +881,6 @@ WARN → document risk and proceed with user acknowledgment.
 ```
 
 ### quality-audit — Quality Audit
-
 - Description: Quality audit: review artifacts for best practices, identify flaws and enhancements, fix if needed
 - Confirm First: no
 - When To Use: User wants to audit code quality, review skills/commands/hooks for best practices, find flaws and suggest enhancements
@@ -934,7 +888,6 @@ WARN → document risk and proceed with user acknowledgment.
 - Sequence: `workflow-review-changes -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> code -> tdd-spec -> why-review -> tdd-spec-review -> integration-test -> integration-test-review -> integration-test-verify -> test -> docs-update -> watzup -> workflow-end`
 
 Protocol:
-
 ```text
 QUALITY AUDIT WORKFLOW:
 1. Review Changes (workflow-review-changes): Consolidated review (code-simplifier + review-changes + review-architecture + code-review + performance), then plan + fix + re-review recursively until clean
@@ -954,7 +907,6 @@ CRITICAL GATE after workflow-review-changes:
 ```
 
 ### refactor — Code Refactoring
-
 - Description: Code improvement and restructuring workflow with search-first approach
 - Confirm First: no
 - When To Use: User wants to restructure, reorganize, clean up, or improve existing code without changing behavior; technical debt
@@ -962,7 +914,6 @@ CRITICAL GATE after workflow-review-changes:
 - Sequence: `scout -> investigate -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> code -> tdd-spec -> why-review -> tdd-spec-review -> tdd-spec [direction=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> sre-review -> changelog -> test -> docs-update -> watzup -> workflow-end`
 
 Protocol:
-
 ```text
 Role: Refactoring Specialist
 REFACTORING PROTOCOL:
@@ -1001,7 +952,6 @@ MANDATORY REFACTOR INVARIANT SAFETY GATES:
 ```
 
 ### release-prep — Release Preparation
-
 - Description: Pre-release quality gate with SRE review and status verification
 - Confirm First: no
 - When To Use: User wants to verify release readiness, run pre-release quality gate, or check if ready to deploy/ship
@@ -1009,7 +959,6 @@ MANDATORY REFACTOR INVARIANT SAFETY GATES:
 - Sequence: `sre-review -> quality-gate -> status -> docs-update -> workflow-end`
 
 Protocol:
-
 ```text
 Role: QC Specialist
 RELEASE PREPARATION PROTOCOL:
@@ -1025,7 +974,6 @@ RELEASE PREPARATION PROTOCOL:
 ```
 
 ### review — Code Review
-
 - Description: Code review and quality check, plan and fix issues, then re-review recursively until clean
 - Confirm First: no
 - When To Use: User wants a code review, PR review, codebase quality audit, or code quality check
@@ -1033,7 +981,6 @@ RELEASE PREPARATION PROTOCOL:
 - Sequence: `review-architecture -> code-simplifier -> code-review -> performance -> integration-test-review -> integration-test-verify -> plan -> why-review -> plan-validate -> why-review -> cook -> workflow-review -> docs-update -> watzup -> workflow-end`
 
 Protocol:
-
 ```text
 CODE REVIEW PROTOCOL (RECURSIVE):
 ⚠️ PROJECT CONTEXT: Read docs/project-config.json → workflowPatterns for project-specific architecture rules, code hierarchy, and naming conventions. Read workflowPatterns.reviewRulesDoc for project code review rules.
@@ -1055,7 +1002,6 @@ MANDATORY REVIEW GATES:
 ```
 
 ### review-changes — Review Current Changes
-
 - Description: Review uncommitted changes, plan and fix issues, then re-review recursively until clean
 - Confirm First: no
 - When To Use: User wants to review current uncommitted, staged, or unstaged changes before committing
@@ -1063,7 +1009,6 @@ MANDATORY REVIEW GATES:
 - Sequence: `review-changes -> review-architecture -> review-domain-entities -> performance -> integration-test-review -> security -> code-simplifier -> code-review -> integration-test-verify -> plan -> why-review -> plan-validate -> why-review -> cook -> workflow-review-changes -> docs-update -> watzup -> workflow-end`
 
 Protocol:
-
 ```text
 PRE-COMMIT REVIEW (RECURSIVE):
 
@@ -1095,7 +1040,6 @@ MANDATORY REVIEW-CHANGES GATES:
 ```
 
 ### security-audit — Security Audit
-
 - Description: Security review and vulnerability assessment
 - Confirm First: no
 - When To Use: User wants a security audit: vulnerability assessment, OWASP check, security review, penetration test analysis, or security compliance check
@@ -1103,7 +1047,6 @@ MANDATORY REVIEW-CHANGES GATES:
 - Sequence: `scout -> security -> watzup -> workflow-end`
 
 Protocol:
-
 ```text
 Role: Security Architect
 SECURITY AUDIT WORKFLOW:
@@ -1120,7 +1063,6 @@ GUARDRAILS:
 ```
 
 ### spec-discovery — Spec Discovery | ⚠️ Confirm
-
 - Description: Reverse-engineer a complete, tech-agnostic specification bundle from an existing codebase — scout holistically first, plan a per-module task breakdown, investigate each module deeply, then assemble a reimplementation-ready spec set for any AI agent or engineering team.
 - Confirm First: yes
 - When To Use: Re-implementing the same product on a new tech stack, onboarding a new team with zero codebase knowledge, compliance documentation of system behavior, tech migration spec generation, generating a backlog from an existing system, verifying a system matches its intended design, briefing an AI agent to build a clone or fork
@@ -1128,7 +1070,6 @@ GUARDRAILS:
 - Sequence: `scout -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> spec-discovery -> review-changes -> review-artifact -> watzup -> workflow-end`
 
 Protocol:
-
 ```text
 SPEC DISCOVERY PROTOCOL:
 Reverse-engineers a complete, tech-agnostic specification bundle from an existing codebase. Real-world codebases can have thousands of files — this workflow uses scout-first → plan-decompose → investigate-deeply to handle that scale without context overrun.
@@ -1197,7 +1138,6 @@ HANDOFF at workflow-end:
 ```
 
 ### spec-driven-dev — Spec-Driven Development | ⚠️ Confirm
-
 - Description: Unified spec-driven development — maintains both engineering spec bundle (docs/specs/{app-bucket}/{system-name}/) and business feature docs (docs/business-features/) in sync. Modes: init-full (zero → both layers), update (incremental sync from code changes), audit (staleness check both layers).
 - Confirm First: yes
 - When To Use: Initial spec generation from zero docs, maintaining spec sync after code changes, quarterly spec health audits, before tech migrations, after major features land. Replaces workflow-spec-discovery for new projects.
@@ -1205,7 +1145,6 @@ HANDOFF at workflow-end:
 - Sequence: `workflow-spec-driven-dev`
 
 Protocol:
-
 ```text
 SPEC-DRIVEN-DEV PROTOCOL:
 Modes: init-full | update | audit.
@@ -1223,7 +1162,6 @@ MANDATORY SPEC-DRIVEN SYNC GATES:
 ```
 
 ### spec-to-pbi — Spec to PBI Backlog | Confirm
-
 - Description: Generate a complete, dependency-aware PBI backlog from an existing engineering spec bundle. Audits spec freshness, decomposes large specs by module and feature, creates PBIs/stories/DoR evidence, and produces a ranked backlog.
 - Confirm First: yes
 - When To Use: User wants to create all PBIs from an existing spec, convert a large engineering spec into a complete prioritized backlog, generate dependent PBIs from docs/specs, split a very big spec into sprint-ready PBIs, or produce a ranked implementation order from spec modules.
@@ -1231,7 +1169,6 @@ MANDATORY SPEC-DRIVEN SYNC GATES:
 - Sequence: `scout -> spec-discovery -> domain-analysis -> why-review -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> refine -> why-review -> refine-review -> story -> why-review -> story-review -> pbi-challenge -> dor-gate -> pbi-mockup -> prioritize -> docs-update -> watzup -> workflow-end`
 
 Protocol:
-
 ```text
 SPEC TO PBI BACKLOG PROTOCOL:
 Use when the user has an existing engineering spec bundle at docs/specs/{app-bucket}/{system-name}/ and wants all implementable PBIs created from it.
@@ -1260,7 +1197,6 @@ OUTPUTS:
 ```
 
 ### tdd-feature — TDD Feature Implementation
-
 - Description: Test-driven feature: write test specs first, then implement, then verify with integration tests
 - Confirm First: no
 - When To Use: TDD implementation, test-first development, spec-driven feature, write test specs before implementing
@@ -1268,7 +1204,6 @@ OUTPUTS:
 - Sequence: `scout -> investigate -> domain-analysis -> why-review -> tdd-spec -> why-review -> tdd-spec-review -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> cook -> review-domain-entities -> tdd-spec -> why-review -> tdd-spec-review -> tdd-spec [direction=sync] -> integration-test -> integration-test-review -> integration-test-verify -> test -> workflow-review-changes -> sre-review -> changelog -> docs-update -> watzup -> workflow-end`
 
 Protocol:
-
 ```text
 TDD FEATURE WORKFLOW:
 1. Scout & investigate codebase
@@ -1294,7 +1229,6 @@ MANDATORY TDD FEATURE INVARIANT LOOP:
 ```
 
 ### test-spec-update — Test Spec Update (Post-Change)
-
 - Description: Update test specs and feature docs after code changes, bug fixes, or PR reviews
 - Confirm First: no
 - When To Use: After fixing a bug update test specs, after code changes update test specs, after PR review update test specs, sync test specs after changes, update test documentation after implementation
@@ -1302,7 +1236,6 @@ MANDATORY TDD FEATURE INVARIANT LOOP:
 - Sequence: `workflow-review-changes -> tdd-spec -> why-review -> tdd-spec-review -> tdd-spec [direction=sync] -> integration-test -> integration-test-review -> integration-test-verify -> test -> docs-update -> workflow-end`
 
 Protocol:
-
 ```text
 TEST SPEC UPDATE WORKFLOW:
 Use after code changes, bug fixes, or PR reviews to keep test specs in sync.
@@ -1320,7 +1253,6 @@ MANDATORY TEST-SPEC UPDATE GATES:
 ```
 
 ### test-to-integration — Test Specs to Integration Tests
-
 - Description: Generate integration tests from existing test specifications in feature docs or specs/
 - Confirm First: no
 - When To Use: Generate integration tests from test specs, create tests from feature docs, implement test cases from specifications, test specs to code
@@ -1328,7 +1260,6 @@ MANDATORY TEST-SPEC UPDATE GATES:
 - Sequence: `scout -> integration-test -> integration-test-review -> integration-test-verify -> test -> docs-update -> watzup -> workflow-end`
 
 Protocol:
-
 ```text
 TEST-TO-INTEGRATION WORKFLOW:
 Generate integration tests from existing test specifications.
@@ -1345,7 +1276,6 @@ MANDATORY INTEGRATION GENERATION GATES:
 ```
 
 ### test-verify — Test Verification & Quality
-
 - Description: Comprehensive test verification: review quality, diagnose failures, verify traceability, fix flaky tests
 - Confirm First: no
 - When To Use: Review test quality, fix flaky tests, diagnose test failures, verify test traceability, test audit, test health check, integration test review, why tests fail, tests not matching specs
@@ -1353,7 +1283,6 @@ MANDATORY INTEGRATION GENERATION GATES:
 - Sequence: `scout -> integration-test -> test -> integration-test -> integration-test-review -> integration-test-verify -> docs-update -> watzup -> workflow-end`
 
 Protocol:
-
 ```text
 TEST VERIFICATION WORKFLOW:
 Comprehensive test quality verification covering 4 concerns:
@@ -1383,7 +1312,6 @@ MANDATORY TEST-VERIFY GATES:
 ```
 
 ### verification — Verification & Validation
-
 - Description: Investigate-first verification: understand context, test/check behavior, report findings with root cause, then fix only if user approves
 - Confirm First: no
 - When To Use: User wants to verify, validate, confirm, or ensure something is correct/working; sanity check or double-check
@@ -1391,7 +1319,6 @@ MANDATORY TEST-VERIFY GATES:
 - Sequence: `scout -> investigate -> test-initial -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> fix -> prove-fix -> tdd-spec -> why-review -> tdd-spec-review -> tdd-spec [direction=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> test -> docs-update -> watzup -> workflow-end`
 
 Protocol:
-
 ```text
 VERIFICATION WORKFLOW PROTOCOL:
 1. Scout: Find files related to what needs verification
@@ -1421,7 +1348,6 @@ MANDATORY VERIFICATION SYNC GATES:
 ```
 
 ### visualize — Visual Diagram
-
 - Description: Create visual Excalidraw diagrams from codebase investigation or web research
 - Confirm First: no
 - When To Use: User wants to visualize, diagram, draw, or create visual representation of workflows, architectures, concepts, systems, or research findings
@@ -1429,7 +1355,6 @@ MANDATORY VERIFICATION SYNC GATES:
 - Sequence: `scout -> investigate -> excalidraw-diagram -> workflow-end`
 
 Protocol:
-
 ```text
 VISUAL DIAGRAM PROTOCOL:
 This workflow creates Excalidraw diagrams. Two paths based on source:
@@ -1453,7 +1378,6 @@ GUARDRAILS:
 ```
 
 ### workflow-seed-test-data — Seed Test Data
-
 - Description: Generate or enhance test data seeders that simulate QC happy-path scenarios for a feature area. Scouts existing patterns, implements idempotent command-based seeders, reviews compliance, simplifies.
 - Confirm First: no
 - When To Use: User wants to seed test data, implement data seeders, generate realistic development environment data, add happy-path scenarios for a feature, create dummy data for manual QC testing, fill dev database with realistic test cases
@@ -1461,7 +1385,6 @@ GUARDRAILS:
 - Sequence: `scout -> investigate -> seed-test-data -> review-changes -> code-simplifier -> docs-update -> watzup -> workflow-end`
 
 Protocol:
-
 ```text
 SEED TEST DATA PROTOCOL:
 ⚠️ PROJECT CONTEXT: Read docs/project-config.json → 'Data Seeders' context group for project-specific seeder base class, file location, config keys, and DI registration pattern. Then read docs/project-reference/seed-test-data-reference.md for the complete project-specific implementation guide.
@@ -1480,7 +1403,6 @@ PROJECT-SPECIFIC CONTEXT:
 ```
 
 ### write-integration-test — Write Integration Tests
-
 - Description: Write or update integration tests for existing code — spec-first: investigate domain logic → write/update specs → generate test code → 6-gate review → run and verify
 - Confirm First: no
 - When To Use: Write integration tests for a specific command/handler, add test coverage to an untested feature, update integration tests after code changes, integration test authoring from scratch for a feature area, cover uncommitted code changes with integration tests
@@ -1488,7 +1410,6 @@ PROJECT-SPECIFIC CONTEXT:
 - Sequence: `scout -> investigate -> tdd-spec -> why-review -> tdd-spec-review -> integration-test -> integration-test-review -> integration-test-verify -> tdd-spec [direction=sync] -> docs-update -> watzup -> workflow-end`
 
 Protocol:
-
 ```text
 WRITE INTEGRATION TEST PROTOCOL:
 ⚠️ PROJECT CONTEXT: Read docs/project-config.json → framework.integrationTestDoc for project-specific test patterns, helper classes, and async wait conventions.

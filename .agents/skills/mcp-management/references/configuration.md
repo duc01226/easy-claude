@@ -6,15 +6,15 @@ MCP servers are configured in `.claude/.mcp.json`:
 
 ```json
 {
-    "mcpServers": {
-        "server-name": {
-            "command": "executable",
-            "args": ["arg1", "arg2"],
-            "env": {
-                "API_KEY": "value"
-            }
-        }
+  "mcpServers": {
+    "server-name": {
+      "command": "executable",
+      "args": ["arg1", "arg2"],
+      "env": {
+        "API_KEY": "value"
+      }
     }
+  }
 }
 ```
 
@@ -26,10 +26,10 @@ Store and retrieve key-value data:
 
 ```json
 {
-    "memory": {
-        "command": "npx",
-        "args": ["-y", "@modelcontextprotocol/server-memory"]
-    }
+  "memory": {
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-memory"]
+  }
 }
 ```
 
@@ -39,10 +39,14 @@ File operations with restricted access:
 
 ```json
 {
-    "filesystem": {
-        "command": "npx",
-        "args": ["-y", "@modelcontextprotocol/server-filesystem", "/allowed/path"]
-    }
+  "filesystem": {
+    "command": "npx",
+    "args": [
+      "-y",
+      "@modelcontextprotocol/server-filesystem",
+      "/allowed/path"
+    ]
+  }
 }
 ```
 
@@ -52,13 +56,13 @@ Web search capabilities:
 
 ```json
 {
-    "brave-search": {
-        "command": "npx",
-        "args": ["-y", "@modelcontextprotocol/server-brave-search"],
-        "env": {
-            "BRAVE_API_KEY": "${BRAVE_API_KEY}"
-        }
+  "brave-search": {
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-brave-search"],
+    "env": {
+      "BRAVE_API_KEY": "${BRAVE_API_KEY}"
     }
+  }
 }
 ```
 
@@ -68,10 +72,10 @@ Browser automation:
 
 ```json
 {
-    "puppeteer": {
-        "command": "npx",
-        "args": ["-y", "@modelcontextprotocol/server-puppeteer"]
-    }
+  "puppeteer": {
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-puppeteer"]
+  }
 }
 ```
 
@@ -81,14 +85,14 @@ Reference env vars with `${VAR_NAME}` syntax:
 
 ```json
 {
-    "api-server": {
-        "command": "node",
-        "args": ["server.js"],
-        "env": {
-            "API_KEY": "${MY_API_KEY}",
-            "BASE_URL": "${API_BASE_URL}"
-        }
+  "api-server": {
+    "command": "node",
+    "args": ["server.js"],
+    "env": {
+      "API_KEY": "${MY_API_KEY}",
+      "BASE_URL": "${API_BASE_URL}"
     }
+  }
 }
 ```
 
@@ -104,7 +108,6 @@ Scripts check for config in this order:
 ## Validation
 
 Config must:
-
 - Be valid JSON
 - Include `mcpServers` object
 - Each server must have `command` and `args`

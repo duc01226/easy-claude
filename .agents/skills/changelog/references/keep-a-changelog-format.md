@@ -13,14 +13,14 @@ Based on [keepachangelog.com](https://keepachangelog.com/).
 
 ## Change Types
 
-| Type           | Description                       |
-| -------------- | --------------------------------- |
-| **Added**      | New features                      |
-| **Changed**    | Changes in existing functionality |
-| **Deprecated** | Soon-to-be removed features       |
-| **Removed**    | Now removed features              |
-| **Fixed**      | Bug fixes                         |
-| **Security**   | Vulnerability fixes               |
+| Type | Description |
+|------|-------------|
+| **Added** | New features |
+| **Changed** | Changes in existing functionality |
+| **Deprecated** | Soon-to-be removed features |
+| **Removed** | Now removed features |
+| **Fixed** | Bug fixes |
+| **Security** | Vulnerability fixes |
 
 ## Format
 
@@ -36,15 +36,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Added
-
 - New feature description
 
 ### Changed
-
 - Updated behavior description
 
 ### Fixed
-
 - Bug fix description
 
 ---
@@ -52,7 +49,6 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 ## [1.0.0] - 2026-01-14
 
 ### Added
-
 - Initial release features
 
 ---
@@ -63,7 +59,6 @@ Format based on [Keep a Changelog](https://keepachangelog.com/).
 ### Version Numbers
 
 Use [Semantic Versioning](https://semver.org/):
-
 - MAJOR.MINOR.PATCH
 - MAJOR: breaking changes
 - MINOR: new features (backward compatible)
