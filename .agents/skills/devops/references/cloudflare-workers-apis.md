@@ -7,13 +7,13 @@ Key runtime APIs for Workers development.
 ```typescript
 // Subrequest
 const response = await fetch('https://api.example.com/data', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ key: 'value' }),
-  cf: {
-    cacheTtl: 3600,
-    cacheEverything: true
-  }
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ key: 'value' }),
+    cf: {
+        cacheTtl: 3600,
+        cacheEverything: true
+    }
 });
 
 const data = await response.json();
@@ -40,23 +40,23 @@ headers.append('X-Custom-Header', 'value');
 
 ```typescript
 export default {
-  async fetch(request: Request): Promise<Response> {
-    const response = await fetch(request);
+    async fetch(request: Request): Promise<Response> {
+        const response = await fetch(request);
 
-    return new HTMLRewriter()
-      .on('title', {
-        element(element) {
-          element.setInnerContent('New Title');
-        }
-      })
-      .on('a[href]', {
-        element(element) {
-          const href = element.getAttribute('href');
-          element.setAttribute('href', href.replace('http://', 'https://'));
-        }
-      })
-      .transform(response);
-  }
+        return new HTMLRewriter()
+            .on('title', {
+                element(element) {
+                    element.setInnerContent('New Title');
+                }
+            })
+            .on('a[href]', {
+                element(element) {
+                    const href = element.getAttribute('href');
+                    element.setAttribute('href', href.replace('http://', 'https://'));
+                }
+            })
+            .transform(response);
+    }
 };
 ```
 
@@ -64,26 +64,26 @@ export default {
 
 ```typescript
 export default {
-  async fetch(request: Request): Promise<Response> {
-    const upgradeHeader = request.headers.get('Upgrade');
-    if (upgradeHeader !== 'websocket') {
-      return new Response('Expected WebSocket', { status: 426 });
+    async fetch(request: Request): Promise<Response> {
+        const upgradeHeader = request.headers.get('Upgrade');
+        if (upgradeHeader !== 'websocket') {
+            return new Response('Expected WebSocket', { status: 426 });
+        }
+
+        const pair = new WebSocketPair();
+        const [client, server] = Object.values(pair);
+
+        server.accept();
+
+        server.addEventListener('message', event => {
+            server.send(`Echo: ${event.data}`);
+        });
+
+        return new Response(null, {
+            status: 101,
+            webSocket: client
+        });
     }
-
-    const pair = new WebSocketPair();
-    const [client, server] = Object.values(pair);
-
-    server.accept();
-
-    server.addEventListener('message', (event) => {
-      server.send(`Echo: ${event.data}`);
-    });
-
-    return new Response(null, {
-      status: 101,
-      webSocket: client
-    });
-  }
 };
 ```
 
@@ -98,7 +98,7 @@ writer.write(new TextEncoder().encode('chunk 2'));
 writer.close();
 
 return new Response(readable, {
-  headers: { 'Content-Type': 'text/plain' }
+    headers: { 'Content-Type': 'text/plain' }
 });
 ```
 
@@ -112,13 +112,7 @@ const hashArray = Array.from(new Uint8Array(hashBuffer));
 const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
 // HMAC signature
-const key = await crypto.subtle.importKey(
-  'raw',
-  new TextEncoder().encode('secret'),
-  { name: 'HMAC', hash: 'SHA-256' },
-  false,
-  ['sign', 'verify']
-);
+const key = await crypto.subtle.importKey('raw', new TextEncoder().encode('secret'), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']);
 
 const signature = await crypto.subtle.sign('HMAC', key, data);
 const valid = await crypto.subtle.verify('HMAC', key, signature, data);
@@ -209,11 +203,11 @@ const { signal } = controller;
 setTimeout(() => controller.abort(), 5000);
 
 try {
-  const response = await fetch('https://slow-api.com', { signal });
+    const response = await fetch('https://slow-api.com', { signal });
 } catch (error) {
-  if (error.name === 'AbortError') {
-    console.log('Request timed out');
-  }
+    if (error.name === 'AbortError') {
+        console.log('Request timed out');
+    }
 }
 ```
 
@@ -222,12 +216,12 @@ try {
 ```typescript
 // setTimeout
 const timeoutId = setTimeout(() => {
-  console.log('Delayed');
+    console.log('Delayed');
 }, 1000);
 
 // setInterval
 const intervalId = setInterval(() => {
-  console.log('Repeated');
+    console.log('Repeated');
 }, 1000);
 
 // Clear
@@ -244,12 +238,14 @@ console.warn('Warning message');
 console.debug('Debug message');
 
 // Structured logging
-console.log(JSON.stringify({
-  level: 'info',
-  message: 'Request processed',
-  url: request.url,
-  timestamp: new Date().toISOString()
-}));
+console.log(
+    JSON.stringify({
+        level: 'info',
+        message: 'Request processed',
+        url: request.url,
+        timestamp: new Date().toISOString()
+    })
+);
 ```
 
 ## Performance API
@@ -264,6 +260,7 @@ console.log(`Processed in ${duration}ms`);
 ## Bindings Reference
 
 ### KV Operations
+
 ```typescript
 await env.KV.put(key, value, { expirationTtl: 3600, metadata: { userId: '123' } });
 const value = await env.KV.get(key, 'json');
@@ -273,6 +270,7 @@ const list = await env.KV.list({ prefix: 'user:' });
 ```
 
 ### D1 Operations
+
 ```typescript
 const result = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first();
 const { results } = await env.DB.prepare('SELECT * FROM users').all();
@@ -281,6 +279,7 @@ await env.DB.batch([stmt1, stmt2, stmt3]);
 ```
 
 ### R2 Operations
+
 ```typescript
 await env.R2.put(key, value, { httpMetadata: { contentType: 'image/jpeg' } });
 const object = await env.R2.get(key);
@@ -290,15 +289,17 @@ const multipart = await env.R2.createMultipartUpload(key);
 ```
 
 ### Queue Operations
+
 ```typescript
 await env.QUEUE.send({ type: 'email', to: 'user@example.com' });
 await env.QUEUE.sendBatch([{ body: msg1 }, { body: msg2 }]);
 ```
 
 ### Workers AI
+
 ```typescript
 const response = await env.AI.run('@cf/meta/llama-3-8b-instruct', {
-  messages: [{ role: 'user', content: 'What is edge computing?' }]
+    messages: [{ role: 'user', content: 'What is edge computing?' }]
 });
 ```
 

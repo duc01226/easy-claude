@@ -4,6 +4,7 @@ description: '[Documentation] Use when scanning integration test base classes, f
 ---
 
 > Codex compatibility note:
+>
 > - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
 > - Prefer the `plan-hard` skill for planning guidance in this Codex mirror.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
@@ -14,18 +15,22 @@ description: '[Documentation] Use when scanning integration test base classes, f
 > - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
 > - For workflow skills, execute each listed child-skill step explicitly and report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+
 <!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
+
 ## Codex Project-Reference Loading (No Hooks)
 
 Codex does not receive Claude hook-based doc injection.
 When coding, planning, debugging, testing, or reviewing, open project docs explicitly using this routing.
 
 **Always read:**
+
 - `docs/project-config.json` (project-specific paths, commands, modules, and workflow/test settings)
 - `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
 - `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
 
 **Situation-based docs:**
+
 - Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`, `project-structure-reference.md`
 - Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md`
 - Spec/test-case planning or TC mapping: `feature-docs-reference.md`
@@ -34,6 +39,7 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 - Code review/audit work: `code-review-rules.md` plus domain docs above based on changed files
 
 Do not read all docs blindly. Start from `docs-index-reference.md`, then open only relevant files for the task.
+
 <!-- CODEX:PROJECT-REFERENCE-LOADING:END -->
 
 ## Quick Summary
@@ -101,6 +107,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
     - `runScript` / `startupScript` — inspect to capture Docker/system startup behavior and supported arguments
     - `systemCheckCommand` — document what readiness check must pass before direct test commands
     - `quickRunCommand`, `testProjectPattern`, `testProjects[]` — use as the source of truth for runner commands and project discovery
+    - `integrationRules[]` — document repeatability/data-integrity gates, including 3 consecutive verification runs without DB reset
 
 **Evidence gate:** Confidence <60% on framework detection → report uncertainty, ask user before proceeding.
 
@@ -139,6 +146,8 @@ Security flag: If test credentials are found hardcoded in source files (not env 
 **Think (Assertion dimension):** What assertion patterns are used? Is there a waiting/polling mechanism for async operations? Are assertions on specific field values or just "does not throw"?
 
 **Think (Data dimension):** How is test data created — builders, factories, seed methods? How is uniqueness ensured across runs? Is there a cleanup strategy?
+Flag direct repository create/update setup as a risk unless it is a valid, idempotent fixture seeder for service-owned reference data.
+Flag verification guidance as incomplete if it does not require 3 consecutive successful runs without DB reset.
 
 **Think (Coverage dimension):** Which services have tests? Which are missing? What's the test-to-feature ratio?
 
@@ -276,6 +285,7 @@ Read full report. Apply fresh-eyes protocol:
 | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | "Framework obvious, skip Phase 0 detection"   | Phase 0 is BLOCKING — infrastructure approach determines which patterns to scan                                                      |
 | "Smoke-only test assertions are fine"         | NEVER document smoke-only as acceptable unless infrastructure is truly unobservable                                                  |
+| "Direct repository setup is just test data"   | Flag it unless it creates valid owned fixture data; tests should exercise real use cases, not impossible states.                    |
 | "Base class looks right from memory"          | Grep-verify every base class name — AI hallucinates class hierarchies                                                                |
 | "Coverage stats obvious from directory scan"  | NEVER hardcode counts — use grep expressions that stay accurate as tests are added                                                   |
 | "Skip Round 2 even when Round 1 found issues" | Clean Round 1 ends the scan. When issues exist, fresh-eyes mandatory after fixing — main agent rationalizes own fabricated examples. |
@@ -284,6 +294,7 @@ Read full report. Apply fresh-eyes protocol:
 **[TASK-PLANNING]** Before acting, analyze task scope and break into small todo tasks and sub-tasks using task tracking.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
+
 ## Hookless Prompt Protocol Mirror (Auto-Synced)
 
 Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
@@ -293,15 +304,16 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** Match prompt against workflow catalog
 2. **ANALYZE:** Find best-match workflow AND evaluate if a custom step combination would fit better
 3. **ASK (REQUIRED FORMAT):** Use a direct user question with this structure:
-   - Question: "Which workflow do you want to activate?"
-   - Option 1: "Activate **[BestMatch Workflow]** (Recommended)"
-   - Option 2: "Activate custom workflow: **[step1 → step2 → ...]**" (include one-line rationale)
+    - Question: "Which workflow do you want to activate?"
+    - Option 1: "Activate **[BestMatch Workflow]** (Recommended)"
+    - Option 2: "Activate custom workflow: **[step1 → step2 → ...]**" (include one-line rationale)
 4. **ACTIVATE (if confirmed):** Call `$workflow-start <workflowId>` for standard; sequence custom steps manually
 5. **CREATE TASKS:** task tracking for ALL workflow steps
 6. **EXECUTE:** Follow each step in sequence
-**[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
-**Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
-**AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
+   **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
+   **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
+   **AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
+
 ## Learned Lessons
 
 # Lessons Learned
@@ -356,11 +368,13 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 - **IMPORTANT MUST ATTENTION** name by PURPOSE — adding/removing member forces rename = broken abstraction
 - **IMPORTANT MUST ATTENTION** sub-agents MUST write findings after each file/section — NEVER batch all findings into one final write
 - **IMPORTANT MUST ATTENTION** Windows bash: NEVER assume `python`/`python3` resolves — run `where python`/`where py` first, use `py` launcher or `node`
+
 ## [LESSON-LEARNED-REMINDER] [BLOCKING] Task Planning & Continuous Improvement — MANDATORY. Do not skip.
 
 Break work into small tasks (task tracking) before starting. Add final task: "Analyze AI mistakes & lessons learned".
 
 **Extract lessons — ROOT CAUSE ONLY, not symptom fixes:**
+
 1. Name the FAILURE MODE (reasoning/assumption failure), not symptom — "assumed API existed without reading source" not "used wrong enum value".
 2. Generality test: does this failure mode apply to ≥3 contexts/codebases? If not, abstract one level up.
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
@@ -368,6 +382,6 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
 6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security`/`$lint` catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
-**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
+   **[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:END -->

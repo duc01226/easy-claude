@@ -30,15 +30,15 @@ Also bootstraps team-wide Codex completion notifications by copying the portable
 
 7 stages, sequential, matching `npm run codex:sync`:
 
-| #   | Stage    | Script                                                       | Effect                                                                            |
-| --- | -------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| #   | Stage    | Script                                                       | Effect                                                                                                 |
+| --- | -------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
 | 1   | migrate  | `.claude/scripts/codex/migrate-claude-to-codex.mjs`          | Migrate Claude agents → `.codex/agents/`; mirror skills → `.agents/skills/`; setup Codex notifications |
-| 2   | hooks    | `.claude/scripts/codex/sync-hooks.mjs`                       | Generate `.codex/hooks.json` + sync report                                        |
-| 3   | context  | `.claude/scripts/codex/sync-context-workflows.mjs`           | Regenerate `.codex/CODEX_CONTEXT.md` + `AGENTS.md`                                |
-| 4   | tests    | `node --test .claude/scripts/codex/tests/*.test.mjs`         | Run codex tooling unit tests                                                      |
-| 5   | wf-cycle | `.claude/scripts/codex/verify-workflow-cycle-compliance.mjs` | Verify workflow sequence cycle compliance                                         |
-| 6   | sk-proto | `.claude/scripts/codex/verify-skill-protocol-compliance.mjs` | Verify skill strict-execution-contract                                            |
-| 7   | residue  | `.claude/scripts/codex/verify-no-project-residue.mjs`        | Verify no project residue in generated artifacts                                  |
+| 2   | hooks    | `.claude/scripts/codex/sync-hooks.mjs`                       | Generate `.codex/hooks.json` + sync report                                                             |
+| 3   | context  | `.claude/scripts/codex/sync-context-workflows.mjs`           | Regenerate `.codex/CODEX_CONTEXT.md` + `AGENTS.md`                                                     |
+| 4   | tests    | `node --test .claude/scripts/codex/tests/*.test.mjs`         | Run codex tooling unit tests                                                                           |
+| 5   | wf-cycle | `.claude/scripts/codex/verify-workflow-cycle-compliance.mjs` | Verify workflow sequence cycle compliance                                                              |
+| 6   | sk-proto | `.claude/scripts/codex/verify-skill-protocol-compliance.mjs` | Verify skill strict-execution-contract                                                                 |
+| 7   | residue  | `.claude/scripts/codex/verify-no-project-residue.mjs`        | Verify no project residue in generated artifacts                                                       |
 
 ## Usage
 

@@ -4,6 +4,7 @@ description: '[Testing] Use when you need to verify integration tests pass after
 ---
 
 > Codex compatibility note:
+>
 > - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
 > - Prefer the `plan-hard` skill for planning guidance in this Codex mirror.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
@@ -14,18 +15,22 @@ description: '[Testing] Use when you need to verify integration tests pass after
 > - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
 > - For workflow skills, execute each listed child-skill step explicitly and report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+
 <!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
+
 ## Codex Project-Reference Loading (No Hooks)
 
 Codex does not receive Claude hook-based doc injection.
 When coding, planning, debugging, testing, or reviewing, open project docs explicitly using this routing.
 
 **Always read:**
+
 - `docs/project-config.json` (project-specific paths, commands, modules, and workflow/test settings)
 - `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
 - `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
 
 **Situation-based docs:**
+
 - Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`, `project-structure-reference.md`
 - Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md`
 - Spec/test-case planning or TC mapping: `feature-docs-reference.md`
@@ -34,6 +39,7 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 - Code review/audit work: `code-review-rules.md` plus domain docs above based on changed files
 
 Do not read all docs blindly. Start from `docs-index-reference.md`, then open only relevant files for the task.
+
 <!-- CODEX:PROJECT-REFERENCE-LOADING:END -->
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -47,14 +53,14 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Run integration tests after `$integration-test` writes them and `$integration-test-review` reviews them. Confirm all pass.
+**Goal:** Run integration tests after `$integration-test` writes them and `$integration-test-review` reviews them. Confirm all pass and remain repeatable.
 
 **Workflow:**
 
 1. **Read Config** — Load `docs/project-config.json` → `integrationTestVerify` section for project-specific run guidance
 2. **System Check** — Verify required system is healthy before running
 3. **Determine Test Projects** — Discover via `testProjectPattern` glob, `testProjects` list, or git auto-detect
-4. **Run Tests** — Execute `quickRunCommand` on determined test projects
+4. **Run Tests** — Execute `quickRunCommand` on determined test projects for 3 consecutive runs
 5. **Report** — Pass/fail counts, failed test names, next steps on failure
 
 **Key Rules:**
@@ -65,6 +71,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - If system check fails → instruct user how to start system (reference `startupScript` from config)
 - If config says local infrastructure, databases, services, or full system startup is required, treat that as a blocking prerequisite
 - On test failure → diagnose root cause: test bug or service bug. NEVER weaken assertions.
+- Verification only passes after 3 consecutive successful runs of each relevant suite/project without DB reset
 - Always report exact failure counts and names — "all passed" requires evidence
 
 **Be skeptical. Apply critical thinking. Every pass/fail claim needs actual test runner output.**
@@ -166,7 +173,11 @@ If auto-detect finds nothing (no uncommitted test changes), ask user: "No change
 
 Do not run this step unless Step 2 passed or the config/reference docs explicitly state no external system is required.
 
-Execute using `quickRunCommand` from config. Example for a.NET project:
+Execute using `quickRunCommand` from config. Run each relevant suite/project 3 consecutive times without resetting data.
+
+**Three-run idempotency gate:** If any run fails, verification fails. Fix the root cause, then restart the 3-run sequence from run 1.
+
+Example for a.NET project:
 
 ```bash
 # Run each test project individually for clear per-project results
@@ -181,7 +192,7 @@ Or run all at once using the solution filter if supported:
 {quickRunCommand} --filter "Category=integration"
 ```
 
-**Capture output**: count Passed, Failed, Skipped. Note: skipped tests (tests marked with a framework-specific skip annotation, e.g., `[Fact(Skip=...)]` in xUnit, `@Disabled` in JUnit) are expected and not a failure.
+**Capture output for every run**: count Passed, Failed, Skipped. Note: skipped tests (tests marked with a framework-specific skip annotation, e.g., `[Fact(Skip=...)]` in xUnit, `@Disabled` in JUnit) are expected and not a failure.
 
 ---
 
@@ -194,11 +205,13 @@ After all tests complete, report:
 
 **Run command:** {quickRunCommand}
 **Projects tested:** {N}
+**Repeatability gate:** 3 consecutive runs without DB reset
 
-| Project | Passed | Failed | Skipped |
-|---------|--------|--------|---------|
-| {Project1} | X | 0 | Y |
-| {Project2} | X | 0 | Y |
+| Project | Run | Passed | Failed | Skipped |
+|---------|-----|--------|--------|---------|
+| {Project1} | 1 | X | 0 | Y |
+| {Project1} | 2 | X | 0 | Y |
+| {Project1} | 3 | X | 0 | Y |
 
 **Total:** {total_passed} passed, {total_failed} failed, {total_skipped} skipped (expected skip annotations)
 
@@ -211,7 +224,7 @@ Status: ✅ ALL PASS | ❌ {N} FAILURES
 2. Diagnose: test bug (wrong assertion setup) or service bug (handler actually broken)?
 3. If test bug → fix in the test file (do NOT weaken assertions — fix setup/data)
 4. If service bug → report as finding, do NOT silently fix without telling user
-5. After fixing → re-run verify
+5. After fixing → re-run the full 3-run verify sequence
 
 ---
 
@@ -253,6 +266,7 @@ This script typically: creates networks → removes stale containers → builds 
 
 - ❌ Remove or weaken assertions
 - ❌ Add skip annotations (e.g., `[Fact(Skip=...)]` in xUnit, `@Disabled` in JUnit) to hide failures
+- ❌ Create or mutate domain data through repositories to bypass real use-case paths
 - ❌ Mark passing by ignoring error output
 - ❌ Report "all passed" without showing actual runner output
 
@@ -261,7 +275,7 @@ This script typically: creates networks → removes stale containers → builds 
 1. Read the failing test method
 2. Read the handler/service the test targets
 3. Identify: is the assertion wrong, or is the code wrong?
-4. Fix at the root cause layer
+4. Fix at the root cause layer; use real use cases or valid seeded fixtures for data setup
 5. Re-run to confirm green
 
 If a test fails because the system is unavailable → report as "system not ready" and reference `startupScript` / `runScript`. Never change the test.
@@ -287,7 +301,7 @@ If a test fails because the system is unavailable → report as "system not read
 - **"Skip, continue manually"** — user decides
 
 > **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting.
-> **A verify step that does not actually run tests is not verification. It is theater.**
+> **A verify step that does not actually run tests 3 consecutive times is not repeatability verification. It is theater.**
 > Read project config FIRST to understand how to run tests for this specific project.
 
 <!-- SYNC:ai-mistake-prevention -->
@@ -415,6 +429,7 @@ If a test fails because the system is unavailable → report as "system not read
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
+
 ## Hookless Prompt Protocol Mirror (Auto-Synced)
 
 Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
@@ -424,15 +439,16 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** Match prompt against workflow catalog
 2. **ANALYZE:** Find best-match workflow AND evaluate if a custom step combination would fit better
 3. **ASK (REQUIRED FORMAT):** Use a direct user question with this structure:
-   - Question: "Which workflow do you want to activate?"
-   - Option 1: "Activate **[BestMatch Workflow]** (Recommended)"
-   - Option 2: "Activate custom workflow: **[step1 → step2 → ...]**" (include one-line rationale)
+    - Question: "Which workflow do you want to activate?"
+    - Option 1: "Activate **[BestMatch Workflow]** (Recommended)"
+    - Option 2: "Activate custom workflow: **[step1 → step2 → ...]**" (include one-line rationale)
 4. **ACTIVATE (if confirmed):** Call `$workflow-start <workflowId>` for standard; sequence custom steps manually
 5. **CREATE TASKS:** task tracking for ALL workflow steps
 6. **EXECUTE:** Follow each step in sequence
-**[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
-**Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
-**AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
+   **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
+   **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
+   **AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
+
 ## Learned Lessons
 
 # Lessons Learned
@@ -487,11 +503,13 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 - **IMPORTANT MUST ATTENTION** name by PURPOSE — adding/removing member forces rename = broken abstraction
 - **IMPORTANT MUST ATTENTION** sub-agents MUST write findings after each file/section — NEVER batch all findings into one final write
 - **IMPORTANT MUST ATTENTION** Windows bash: NEVER assume `python`/`python3` resolves — run `where python`/`where py` first, use `py` launcher or `node`
+
 ## [LESSON-LEARNED-REMINDER] [BLOCKING] Task Planning & Continuous Improvement — MANDATORY. Do not skip.
 
 Break work into small tasks (task tracking) before starting. Add final task: "Analyze AI mistakes & lessons learned".
 
 **Extract lessons — ROOT CAUSE ONLY, not symptom fixes:**
+
 1. Name the FAILURE MODE (reasoning/assumption failure), not symptom — "assumed API existed without reading source" not "used wrong enum value".
 2. Generality test: does this failure mode apply to ≥3 contexts/codebases? If not, abstract one level up.
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
@@ -499,6 +517,6 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
 6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security`/`$lint` catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
-**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
+   **[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:END -->

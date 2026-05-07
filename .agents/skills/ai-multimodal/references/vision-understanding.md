@@ -18,18 +18,20 @@ Comprehensive guide for image analysis, object detection, and visual understandi
 - **Images**: PNG, JPEG, WEBP, HEIC, HEIF
 - **Documents**: PDF (up to 1,000 pages)
 - **Size Limits**:
-  - Inline: 20MB max total request
-  - File API: 2GB per file
-  - Max images: 3,600 per request
+    - Inline: 20MB max total request
+    - File API: 2GB per file
+    - Max images: 3,600 per request
 
 ## Model Selection
 
 ### Gemini 2.5 Series
+
 - **gemini-2.5-pro**: Best quality, segmentation + detection
 - **gemini-2.5-flash**: Fast, efficient, all features
 - **gemini-2.5-flash-lite**: Lightweight, all features
 
 ### Feature Requirements
+
 - **Segmentation**: Requires 2.5+ models
 - **Object Detection**: Requires 2.0+ models
 - **Multi-image**: All models (up to 3,600 images)
@@ -218,6 +220,7 @@ Images consume tokens based on size:
 **Large images**: Tiled into 768×768 chunks, 258 tokens each
 
 **Formula**:
+
 ```
 crop_unit = floor(min(width, height) / 1.5)
 tiles = (width / crop_unit) × (height / crop_unit)
@@ -225,6 +228,7 @@ total_tokens = tiles × 258
 ```
 
 **Examples**:
+
 - 256×256: 258 tokens (small)
 - 512×512: 258 tokens (small)
 - 960×540: 6 tiles = 1,548 tokens
@@ -321,16 +325,19 @@ response = client.models.generate_content(
 ### Prompt Engineering
 
 **Specific instructions**:
+
 - "Identify all vehicles with their colors and positions"
 - "Count people wearing blue shirts"
 - "Extract text from the sign in the top-left corner"
 
 **Output format**:
+
 - "Return results as JSON with fields: category, count, description"
 - "Format as markdown table"
 - "List findings as numbered items"
 
 **Few-shot examples**:
+
 ```python
 response = client.models.generate_content(
     model='gemini-2.5-flash',
@@ -348,19 +355,21 @@ response = client.models.generate_content(
 2. Use File API for repeated queries (saves tokens)
 3. Files auto-delete after 48 hours
 4. Clean up manually:
-   ```python
-   client.files.delete(name=myfile.name)
-   ```
+    ```python
+    client.files.delete(name=myfile.name)
+    ```
 
 ### Cost Optimization
 
 **Token-efficient strategies**:
+
 - Resize large images before upload
 - Use File API for repeated queries
 - Batch multiple images when related
 - Use appropriate model (Flash vs Pro)
 
 **Token costs** (Gemini 2.5 Flash at $1/1M):
+
 - Small image (258 tokens): $0.000258
 - HD image (1,548 tokens): $0.001548
 - 4K image (6,192 tokens): $0.006192
@@ -485,6 +494,7 @@ def analyze_image_with_retry(image_path, prompt, max_retries=3):
 **Current**: Image Understanding
 
 **Related Capabilities**:
+
 - [Image Generation](./image-generation.md) - Create and edit images
 - [Video Analysis](./video-analysis.md) - Analyze video frames
 - [Video Generation](./video-generation.md) - Reference images for video generation
