@@ -14,42 +14,38 @@ Settings are applied in order of precedence:
 ## Settings File Format
 
 ### Global Settings
-
 `~/.claude/settings.json`:
-
 ```json
 {
-    "model": "sonnet",
-    "maxTokens": 8192,
-    "temperature": 1.0,
-    "thinking": {
-        "enabled": true,
-        "budget": 10000
-    },
-    "outputStyle": "default",
-    "memory": {
-        "enabled": true,
-        "location": "global"
-    }
+  "model": "sonnet",
+  "maxTokens": 8192,
+  "temperature": 1.0,
+  "thinking": {
+    "enabled": true,
+    "budget": 10000
+  },
+  "outputStyle": "default",
+  "memory": {
+    "enabled": true,
+    "location": "global"
+  }
 }
 ```
 
 ### Project Settings
-
 `.claude/settings.json`:
-
 ```json
 {
-    "model": "sonnet",
-    "maxTokens": 4096,
-    "sandboxing": {
-        "enabled": true,
-        "allowedPaths": ["/workspace"]
-    },
-    "memory": {
-        "enabled": true,
-        "location": "project"
-    }
+  "model": "sonnet",
+  "maxTokens": 4096,
+  "sandboxing": {
+    "enabled": true,
+    "allowedPaths": ["/workspace"]
+  },
+  "memory": {
+    "enabled": true,
+    "location": "project"
+  }
 }
 ```
 
@@ -58,44 +54,40 @@ Settings are applied in order of precedence:
 ### Model Configuration
 
 **model**: Claude model to use
-
 - `sonnet` (default, balanced coding)
 - `opus` (complex reasoning and architecture)
 
 **Model aliases (use these instead of version IDs):**
-
 - `sonnet`: Latest Claude Sonnet (default for all tasks)
 - `opus`: Latest Claude Opus (complex tasks)
 - `opusplan`: Opus with extended thinking for planning
 
 ```json
 {
-    "model": "sonnet"
+  "model": "sonnet"
 }
 ```
 
 ### Token Settings
 
 **maxTokens**: Maximum tokens in response
-
 - Default: 8192
 - Range: 1-200000
 
 ```json
 {
-    "maxTokens": 16384
+  "maxTokens": 16384
 }
 ```
 
 **temperature**: Randomness in responses
-
 - Default: 1.0
 - Range: 0.0-1.0
 - Lower = more focused, higher = more creative
 
 ```json
 {
-    "temperature": 0.7
+  "temperature": 0.7
 }
 ```
 
@@ -105,16 +97,15 @@ Settings are applied in order of precedence:
 
 ```json
 {
-    "thinking": {
-        "enabled": true,
-        "budget": 10000,
-        "mode": "auto"
-    }
+  "thinking": {
+    "enabled": true,
+    "budget": 10000,
+    "mode": "auto"
+  }
 }
 ```
 
 **Options:**
-
 - `enabled`: Enable extended thinking
 - `budget`: Token budget for thinking (default: 10000)
 - `mode`: `auto` | `manual` | `disabled`
@@ -125,17 +116,22 @@ Filesystem and network isolation:
 
 ```json
 {
-    "sandboxing": {
-        "enabled": true,
-        "allowedPaths": ["/workspace", "/home/user/projects"],
-        "networkAccess": "restricted",
-        "allowedDomains": ["api.example.com", "*.trusted.com"]
-    }
+  "sandboxing": {
+    "enabled": true,
+    "allowedPaths": [
+      "/workspace",
+      "/home/user/projects"
+    ],
+    "networkAccess": "restricted",
+    "allowedDomains": [
+      "api.example.com",
+      "*.trusted.com"
+    ]
+  }
 }
 ```
 
 **Options:**
-
 - `enabled`: Enable sandboxing
 - `allowedPaths`: Filesystem access paths
 - `networkAccess`: `full` | `restricted` | `none`
@@ -147,16 +143,15 @@ Control how Claude remembers context:
 
 ```json
 {
-    "memory": {
-        "enabled": true,
-        "location": "project",
-        "ttl": 86400
-    }
+  "memory": {
+    "enabled": true,
+    "location": "project",
+    "ttl": 86400
+  }
 }
 ```
 
 **location options:**
-
 - `global`: Share memory across all projects
 - `project`: Project-specific memory
 - `none`: Disable memory
@@ -169,12 +164,11 @@ Customize Claude's behavior:
 
 ```json
 {
-    "outputStyle": "technical-writer"
+  "outputStyle": "technical-writer"
 }
 ```
 
 **Built-in styles:**
-
 - `default`: Standard coding assistant
 - `technical-writer`: Documentation focus
 - `code-reviewer`: Review-focused
@@ -186,11 +180,11 @@ Configure logging behavior:
 
 ```json
 {
-    "logging": {
-        "level": "info",
-        "file": ".claude/logs/session.log",
-        "console": true
-    }
+  "logging": {
+    "level": "info",
+    "file": ".claude/logs/session.log",
+    "console": true
+  }
 }
 ```
 
@@ -215,30 +209,27 @@ claude --model opusplan "plan authentication system"
 
 ```json
 {
-    "model": "opus",
-    "thinking": {
-        "enabled": true,
-        "budget": 20000
-    }
+  "model": "opus",
+  "thinking": {
+    "enabled": true,
+    "budget": 20000
+  }
 }
 ```
 
 ### Model Selection Guide
 
 **Sonnet** (default):
-
 - Balanced performance and cost
 - Default choice for all tasks
 - Good for general development, coding, reviews
 
 **Opus** (complex tasks):
-
 - Highest capability
 - Complex reasoning and planning
 - Use for architecture, design, complex debugging
 
 **opusplan**:
-
 - Opus + extended thinking
 - Deep planning and analysis
 - Architecture decisions
@@ -253,7 +244,6 @@ Create `~/.claude/output-styles/my-style.md`:
 You are a senior software architect focused on scalability.
 
 Guidelines:
-
 - Prioritize performance and scalability
 - Consider distributed systems patterns
 - Include monitoring and observability
@@ -268,22 +258,19 @@ claude --output-style my-style
 ```
 
 Or in settings:
-
 ```json
 {
-    "outputStyle": "my-style"
+  "outputStyle": "my-style"
 }
 ```
 
 ### Example Output Styles
 
 **technical-writer.md:**
-
 ```markdown
 You are a technical writer creating clear documentation.
 
 Guidelines:
-
 - Use simple, clear language
 - Provide examples
 - Structure with headings
@@ -292,12 +279,10 @@ Guidelines:
 ```
 
 **code-reviewer.md:**
-
 ```markdown
 You are a senior code reviewer.
 
 Guidelines:
-
 - Check for bugs and edge cases
 - Review security vulnerabilities
 - Assess performance implications
@@ -308,14 +293,12 @@ Guidelines:
 ## Environment Variables
 
 ### API Configuration
-
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-xxxxx
 export ANTHROPIC_BASE_URL=https://api.anthropic.com
 ```
 
 ### Proxy Configuration
-
 ```bash
 export HTTP_PROXY=http://proxy.company.com:8080
 export HTTPS_PROXY=http://proxy.company.com:8080
@@ -323,13 +306,11 @@ export NO_PROXY=localhost,127.0.0.1
 ```
 
 ### Custom CA Certificates
-
 ```bash
 export NODE_EXTRA_CA_CERTS=/path/to/ca-bundle.crt
 ```
 
 ### Debug Mode
-
 ```bash
 export CLAUDE_DEBUG=1
 export CLAUDE_LOG_LEVEL=debug
@@ -389,16 +370,16 @@ Register custom tools:
 
 ```json
 {
-    "tools": [
-        {
-            "name": "custom-tool",
-            "description": "Custom tool",
-            "command": "./scripts/custom-tool.sh",
-            "parameters": {
-                "arg1": "string"
-            }
-        }
-    ]
+  "tools": [
+    {
+      "name": "custom-tool",
+      "description": "Custom tool",
+      "command": "./scripts/custom-tool.sh",
+      "parameters": {
+        "arg1": "string"
+      }
+    }
+  ]
 }
 ```
 
@@ -408,11 +389,11 @@ Configure rate limits:
 
 ```json
 {
-    "rateLimits": {
-        "requestsPerMinute": 100,
-        "tokensPerMinute": 100000,
-        "retryStrategy": "exponential"
-    }
+  "rateLimits": {
+    "requestsPerMinute": 100,
+    "tokensPerMinute": 100000,
+    "retryStrategy": "exponential"
+  }
 }
 ```
 
@@ -422,38 +403,34 @@ Prompt caching configuration:
 
 ```json
 {
-    "caching": {
-        "enabled": true,
-        "ttl": 3600,
-        "maxSize": "100MB"
-    }
+  "caching": {
+    "enabled": true,
+    "ttl": 3600,
+    "maxSize": "100MB"
+  }
 }
 ```
 
 ## Best Practices
 
 ### Project Settings
-
 - Keep project-specific in `.claude/settings.json`
 - Commit to version control
 - Document custom settings
 - Share with team
 
 ### Global Settings
-
 - Personal preferences only
 - Don't override project settings unnecessarily
 - Use for API keys and auth
 
 ### Security
-
 - Never commit API keys
 - Use environment variables for secrets
 - Enable sandboxing in production
 - Restrict network access
 
 ### Performance
-
 - Use appropriate model for task
 - Set reasonable token limits
 - Enable caching
@@ -462,7 +439,6 @@ Prompt caching configuration:
 ## Troubleshooting
 
 ### Settings Not Applied
-
 ```bash
 # Check settings hierarchy
 claude config list --all
@@ -475,7 +451,6 @@ claude config reset
 ```
 
 ### Environment Variables Not Recognized
-
 ```bash
 # Verify export
 echo $ANTHROPIC_API_KEY

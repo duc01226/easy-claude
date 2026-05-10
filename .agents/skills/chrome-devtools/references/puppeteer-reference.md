@@ -36,8 +36,8 @@ import puppeteer from 'puppeteer';
 
 // Launch browser
 const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox']
+  headless: true,
+  args: ['--no-sandbox']
 });
 
 // Open page
@@ -60,44 +60,44 @@ await browser.close();
 
 ```javascript
 const browser = await puppeteer.launch({
-    // Visibility
-    headless: false, // Show browser UI
-    headless: 'new', // New headless mode (Chrome 112+)
+  // Visibility
+  headless: false,              // Show browser UI
+  headless: 'new',              // New headless mode (Chrome 112+)
 
-    // Chrome location
-    executablePath: '/path/to/chrome',
-    channel: 'chrome', // or 'chrome-canary', 'chrome-beta'
+  // Chrome location
+  executablePath: '/path/to/chrome',
+  channel: 'chrome',            // or 'chrome-canary', 'chrome-beta'
 
-    // Browser context
-    userDataDir: './user-data', // Persistent profile
+  // Browser context
+  userDataDir: './user-data',   // Persistent profile
 
-    // Window size
-    defaultViewport: {
-        width: 1920,
-        height: 1080,
-        deviceScaleFactor: 1,
-        isMobile: false
-    },
+  // Window size
+  defaultViewport: {
+    width: 1920,
+    height: 1080,
+    deviceScaleFactor: 1,
+    isMobile: false
+  },
 
-    // Advanced options
-    args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-web-security',
-        '--disable-features=IsolateOrigins',
-        '--disable-site-isolation-trials',
-        '--start-maximized'
-    ],
+  // Advanced options
+  args: [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-web-security',
+    '--disable-features=IsolateOrigins',
+    '--disable-site-isolation-trials',
+    '--start-maximized'
+  ],
 
-    // Debugging
-    devtools: true, // Open DevTools automatically
-    slowMo: 250, // Slow down by 250ms per action
+  // Debugging
+  devtools: true,               // Open DevTools automatically
+  slowMo: 250,                  // Slow down by 250ms per action
 
-    // Network
-    proxy: {
-        server: 'http://proxy.com:8080'
-    }
+  // Network
+  proxy: {
+    server: 'http://proxy.com:8080'
+  }
 });
 ```
 
@@ -108,8 +108,8 @@ const browser = await puppeteer.launch({
 // google-chrome --remote-debugging-port=9222
 
 const browser = await puppeteer.connect({
-    browserURL: 'http://localhost:9222'
-    // or browserWSEndpoint: 'ws://localhost:9222/devtools/browser/...'
+  browserURL: 'http://localhost:9222',
+  // or browserWSEndpoint: 'ws://localhost:9222/devtools/browser/...'
 });
 ```
 
@@ -156,8 +156,8 @@ await page.goto('https://example.com');
 
 // Navigate with options
 await page.goto('https://example.com', {
-    waitUntil: 'networkidle2', // or 'load', 'domcontentloaded', 'networkidle0'
-    timeout: 30000 // Max wait time (ms)
+  waitUntil: 'networkidle2',    // or 'load', 'domcontentloaded', 'networkidle0'
+  timeout: 30000                 // Max wait time (ms)
 });
 
 // Reload page
@@ -169,7 +169,7 @@ await page.goForward();
 
 // Wait for navigation
 await page.waitForNavigation({
-    waitUntil: 'networkidle2'
+  waitUntil: 'networkidle2'
 });
 ```
 
@@ -208,9 +208,9 @@ await page.click('.button');
 
 // Click with options
 await page.click('.button', {
-    button: 'left', // or 'right', 'middle'
-    clickCount: 1, // 2 for double-click
-    delay: 100 // Delay between mousedown and mouseup
+  button: 'left',           // or 'right', 'middle'
+  clickCount: 1,            // 2 for double-click
+  delay: 100                // Delay between mousedown and mouseup
 });
 
 // ElementHandle click
@@ -228,7 +228,7 @@ await page.type('#search', 'query text');
 await page.type('#search', 'slow typing', { delay: 100 });
 
 // Clear and type
-await page.$eval('#search', el => (el.value = ''));
+await page.$eval('#search', el => el.value = '');
 await page.type('#search', 'new text');
 ```
 
@@ -240,8 +240,8 @@ await page.type('#username', 'john@example.com');
 await page.type('#password', 'secret123');
 
 // Select dropdown option
-await page.select('#country', 'US'); // By value
-await page.select('#country', 'USA', 'UK'); // Multiple
+await page.select('#country', 'US');           // By value
+await page.select('#country', 'USA', 'UK');    // Multiple
 
 // Check/uncheck checkbox
 await page.click('input[type="checkbox"]');
@@ -292,13 +292,16 @@ await source.drop(target);
 const title = await page.evaluate(() => document.title);
 
 // With arguments
-const text = await page.evaluate(selector => document.querySelector(selector).textContent, '.heading');
+const text = await page.evaluate(
+  (selector) => document.querySelector(selector).textContent,
+  '.heading'
+);
 
 // Return complex data
 const data = await page.evaluate(() => ({
-    title: document.title,
-    url: location.href,
-    cookies: document.cookie
+  title: document.title,
+  url: location.href,
+  cookies: document.cookie
 }));
 
 // With ElementHandle
@@ -313,16 +316,14 @@ const text = await page.evaluate(el => el.textContent, element);
 const value = await page.$eval('#input', el => el.value);
 
 // Get multiple elements
-const items = await page.$$eval('.item', elements => elements.map(el => el.textContent));
+const items = await page.$$eval('.item', elements =>
+  elements.map(el => el.textContent)
+);
 
 // Modify element
-await page.$eval(
-    '#input',
-    (el, value) => {
-        el.value = value;
-    },
-    'new value'
-);
+await page.$eval('#input', (el, value) => {
+  el.value = value;
+}, 'new value');
 
 // Add class
 await page.$eval('.element', el => el.classList.add('active'));
@@ -332,11 +333,13 @@ await page.$eval('.element', el => el.classList.add('active'));
 
 ```javascript
 // Expose Node.js function to page
-await page.exposeFunction('md5', text => crypto.createHash('md5').update(text).digest('hex'));
+await page.exposeFunction('md5', (text) =>
+  crypto.createHash('md5').update(text).digest('hex')
+);
 
 // Call from page context
 const hash = await page.evaluate(async () => {
-    return await window.md5('hello world');
+  return await window.md5('hello world');
 });
 ```
 
@@ -349,35 +352,34 @@ const hash = await page.evaluate(async () => {
 ```javascript
 // Full page screenshot
 await page.screenshot({
-    path: 'screenshot.png',
-    fullPage: true
+  path: 'screenshot.png',
+  fullPage: true
 });
 
 // Viewport screenshot
 await page.screenshot({
-    path: 'viewport.png',
-    fullPage: false
+  path: 'viewport.png',
+  fullPage: false
 });
 
 // Element screenshot
 const element = await page.$('.chart');
 await element.screenshot({
-    path: 'chart.png'
+  path: 'chart.png'
 });
 
 // Screenshot options
 await page.screenshot({
-    path: 'page.png',
-    type: 'png', // or 'jpeg', 'webp'
-    quality: 80, // JPEG quality (0-100)
-    clip: {
-        // Crop region
-        x: 0,
-        y: 0,
-        width: 500,
-        height: 500
-    },
-    omitBackground: true // Transparent background
+  path: 'page.png',
+  type: 'png',              // or 'jpeg', 'webp'
+  quality: 80,              // JPEG quality (0-100)
+  clip: {                   // Crop region
+    x: 0,
+    y: 0,
+    width: 500,
+    height: 500
+  },
+  omitBackground: true      // Transparent background
 });
 
 // Screenshot to buffer
@@ -389,31 +391,31 @@ const buffer = await page.screenshot();
 ```javascript
 // Generate PDF
 await page.pdf({
-    path: 'page.pdf',
-    format: 'A4', // or 'Letter', 'Legal', etc.
-    printBackground: true,
-    margin: {
-        top: '1cm',
-        right: '1cm',
-        bottom: '1cm',
-        left: '1cm'
-    }
+  path: 'page.pdf',
+  format: 'A4',             // or 'Letter', 'Legal', etc.
+  printBackground: true,
+  margin: {
+    top: '1cm',
+    right: '1cm',
+    bottom: '1cm',
+    left: '1cm'
+  }
 });
 
 // Custom page size
 await page.pdf({
-    path: 'custom.pdf',
-    width: '8.5in',
-    height: '11in',
-    landscape: true
+  path: 'custom.pdf',
+  width: '8.5in',
+  height: '11in',
+  landscape: true
 });
 
 // Header and footer
 await page.pdf({
-    path: 'report.pdf',
-    displayHeaderFooter: true,
-    headerTemplate: '<div style="font-size:10px;">Header</div>',
-    footerTemplate: '<div style="font-size:10px;">Page <span class="pageNumber"></span></div>'
+  path: 'report.pdf',
+  displayHeaderFooter: true,
+  headerTemplate: '<div style="font-size:10px;">Header</div>',
+  footerTemplate: '<div style="font-size:10px;">Page <span class="pageNumber"></span></div>'
 });
 ```
 
@@ -428,28 +430,28 @@ await page.pdf({
 await page.setRequestInterception(true);
 
 // Intercept requests
-page.on('request', request => {
-    // Block specific resource types
-    if (request.resourceType() === 'image') {
-        request.abort();
-    }
-    // Block URLs
-    else if (request.url().includes('ads')) {
-        request.abort();
-    }
-    // Modify request
-    else if (request.url().includes('api')) {
-        request.continue({
-            headers: {
-                ...request.headers(),
-                Authorization: 'Bearer token'
-            }
-        });
-    }
-    // Continue normally
-    else {
-        request.continue();
-    }
+page.on('request', (request) => {
+  // Block specific resource types
+  if (request.resourceType() === 'image') {
+    request.abort();
+  }
+  // Block URLs
+  else if (request.url().includes('ads')) {
+    request.abort();
+  }
+  // Modify request
+  else if (request.url().includes('api')) {
+    request.continue({
+      headers: {
+        ...request.headers(),
+        'Authorization': 'Bearer token'
+      }
+    });
+  }
+  // Continue normally
+  else {
+    request.continue();
+  }
 });
 ```
 
@@ -458,19 +460,19 @@ page.on('request', request => {
 ```javascript
 await page.setRequestInterception(true);
 
-page.on('request', request => {
-    if (request.url().includes('/api/user')) {
-        request.respond({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify({
-                id: 1,
-                name: 'Mock User'
-            })
-        });
-    } else {
-        request.continue();
-    }
+page.on('request', (request) => {
+  if (request.url().includes('/api/user')) {
+    request.respond({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        id: 1,
+        name: 'Mock User'
+      })
+    });
+  } else {
+    request.continue();
+  }
 });
 ```
 
@@ -478,26 +480,26 @@ page.on('request', request => {
 
 ```javascript
 // Track requests
-page.on('request', request => {
-    console.log('Request:', request.method(), request.url());
+page.on('request', (request) => {
+  console.log('Request:', request.method(), request.url());
 });
 
 // Track responses
-page.on('response', response => {
-    console.log('Response:', response.status(), response.url());
+page.on('response', (response) => {
+  console.log('Response:', response.status(), response.url());
 });
 
 // Track failed requests
-page.on('requestfailed', request => {
-    console.log('Failed:', request.failure().errorText, request.url());
+page.on('requestfailed', (request) => {
+  console.log('Failed:', request.failure().errorText, request.url());
 });
 
 // Get response body
-page.on('response', async response => {
-    if (response.url().includes('/api/data')) {
-        const json = await response.json();
-        console.log('API Data:', json);
-    }
+page.on('response', async (response) => {
+  if (response.url().includes('/api/data')) {
+    const json = await response.json();
+    console.log('API Data:', json);
+  }
 });
 ```
 
@@ -527,15 +529,15 @@ await page.goto('https://example.com');
 
 ```javascript
 await page.emulate({
-    viewport: {
-        width: 375,
-        height: 812,
-        deviceScaleFactor: 3,
-        isMobile: true,
-        hasTouch: true,
-        isLandscape: false
-    },
-    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X)...'
+  viewport: {
+    width: 375,
+    height: 812,
+    deviceScaleFactor: 3,
+    isMobile: true,
+    hasTouch: true,
+    isLandscape: false
+  },
+  userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X)...'
 });
 ```
 
@@ -543,9 +545,9 @@ await page.emulate({
 
 ```javascript
 await page.setViewport({
-    width: 1920,
-    height: 1080,
-    deviceScaleFactor: 1
+  width: 1920,
+  height: 1080,
+  deviceScaleFactor: 1
 });
 ```
 
@@ -554,9 +556,9 @@ await page.setViewport({
 ```javascript
 // Set geolocation
 await page.setGeolocation({
-    latitude: 37.7749,
-    longitude: -122.4194,
-    accuracy: 100
+  latitude: 37.7749,
+  longitude: -122.4194,
+  accuracy: 100
 });
 
 // Grant permissions
@@ -573,9 +575,9 @@ await page.emulateTimezone('America/New_York');
 // Set locale
 await page.emulateMediaType('screen');
 await page.evaluateOnNewDocument(() => {
-    Object.defineProperty(navigator, 'language', {
-        get: () => 'en-US'
-    });
+  Object.defineProperty(navigator, 'language', {
+    get: () => 'en-US'
+  });
 });
 ```
 
@@ -592,21 +594,23 @@ await client.send('Emulation.setCPUThrottlingRate', { rate: 4 });
 
 // Network throttling
 await page.emulateNetworkConditions({
-    offline: false,
-    downloadThroughput: (1.5 * 1024 * 1024) / 8, // 1.5 Mbps
-    uploadThroughput: (750 * 1024) / 8, // 750 Kbps
-    latency: 40 // 40ms RTT
+  offline: false,
+  downloadThroughput: 1.5 * 1024 * 1024 / 8, // 1.5 Mbps
+  uploadThroughput: 750 * 1024 / 8,           // 750 Kbps
+  latency: 40                                  // 40ms RTT
 });
 
 // Predefined profiles
-await page.emulateNetworkConditions(puppeteer.networkConditions['Fast 3G']);
+await page.emulateNetworkConditions(
+  puppeteer.networkConditions['Fast 3G']
+);
 
 // Disable throttling
 await page.emulateNetworkConditions({
-    offline: false,
-    downloadThroughput: -1,
-    uploadThroughput: -1,
-    latency: 0
+  offline: false,
+  downloadThroughput: -1,
+  uploadThroughput: -1,
+  latency: 0
 });
 ```
 
@@ -630,8 +634,11 @@ console.log(metrics);
 ```javascript
 // Start tracing
 await page.tracing.start({
-    path: 'trace.json',
-    categories: ['devtools.timeline', 'disabled-by-default-devtools.timeline']
+  path: 'trace.json',
+  categories: [
+    'devtools.timeline',
+    'disabled-by-default-devtools.timeline'
+  ]
 });
 
 // Navigate
@@ -663,13 +670,13 @@ const cssCoverage = await page.coverage.stopCSSCoverage();
 let totalBytes = 0;
 let usedBytes = 0;
 for (const entry of [...jsCoverage, ...cssCoverage]) {
-    totalBytes += entry.text.length;
-    for (const range of entry.ranges) {
-        usedBytes += range.end - range.start - 1;
-    }
+  totalBytes += entry.text.length;
+  for (const range of entry.ranges) {
+    usedBytes += range.end - range.start - 1;
+  }
 }
 
-console.log(`Used: ${(usedBytes / totalBytes) * 100}%`);
+console.log(`Used: ${usedBytes / totalBytes * 100}%`);
 ```
 
 ---
@@ -681,15 +688,18 @@ console.log(`Used: ${(usedBytes / totalBytes) * 100}%`);
 ```javascript
 // Wait for selector
 await page.waitForSelector('.element', {
-    visible: true,
-    timeout: 5000
+  visible: true,
+  timeout: 5000
 });
 
 // Wait for XPath
 await page.waitForXPath('//button[text()="Submit"]');
 
 // Wait for function
-await page.waitForFunction(() => document.querySelector('.loading') === null, { timeout: 10000 });
+await page.waitForFunction(
+  () => document.querySelector('.loading') === null,
+  { timeout: 10000 }
+);
 
 // Wait for timeout
 await page.waitForTimeout(2000);
@@ -699,15 +709,15 @@ await page.waitForTimeout(2000);
 
 ```javascript
 // Alert, confirm, prompt
-page.on('dialog', async dialog => {
-    console.log(dialog.type(), dialog.message());
+page.on('dialog', async (dialog) => {
+  console.log(dialog.type(), dialog.message());
 
-    // Accept
-    await dialog.accept();
-    // or reject
-    // await dialog.dismiss();
-    // or provide input for prompt
-    // await dialog.accept('input text');
+  // Accept
+  await dialog.accept();
+  // or reject
+  // await dialog.dismiss();
+  // or provide input for prompt
+  // await dialog.accept('input text');
 });
 ```
 
@@ -717,8 +727,8 @@ page.on('dialog', async dialog => {
 // Set download path
 const client = await page.createCDPSession();
 await client.send('Page.setDownloadBehavior', {
-    behavior: 'allow',
-    downloadPath: '/path/to/downloads'
+  behavior: 'allow',
+  downloadPath: '/path/to/downloads'
 });
 
 // Trigger download
@@ -729,17 +739,17 @@ await page.click('a[download]');
 
 ```javascript
 // Listen for new pages
-browser.on('targetcreated', async target => {
-    if (target.type() === 'page') {
-        const newPage = await target.page();
-        console.log('New page opened:', newPage.url());
-    }
+browser.on('targetcreated', async (target) => {
+  if (target.type() === 'page') {
+    const newPage = await target.page();
+    console.log('New page opened:', newPage.url());
+  }
 });
 
 // Click link that opens new tab
 const [newPage] = await Promise.all([
-    new Promise(resolve => browser.once('targetcreated', target => resolve(target.page()))),
-    page.click('a[target="_blank"]')
+  new Promise(resolve => browser.once('targetcreated', target => resolve(target.page()))),
+  page.click('a[target="_blank"]')
 ]);
 
 console.log('New page URL:', newPage.url());
@@ -769,22 +779,22 @@ await frame.type('#input', 'text');
 
 ```javascript
 async function autoScroll(page) {
-    await page.evaluate(async () => {
-        await new Promise(resolve => {
-            let totalHeight = 0;
-            const distance = 100;
-            const timer = setInterval(() => {
-                const scrollHeight = document.body.scrollHeight;
-                window.scrollBy(0, distance);
-                totalHeight += distance;
+  await page.evaluate(async () => {
+    await new Promise((resolve) => {
+      let totalHeight = 0;
+      const distance = 100;
+      const timer = setInterval(() => {
+        const scrollHeight = document.body.scrollHeight;
+        window.scrollBy(0, distance);
+        totalHeight += distance;
 
-                if (totalHeight >= scrollHeight) {
-                    clearInterval(timer);
-                    resolve();
-                }
-            }, 100);
-        });
+        if (totalHeight >= scrollHeight) {
+          clearInterval(timer);
+          resolve();
+        }
+      }, 100);
     });
+  });
 }
 
 await autoScroll(page);
@@ -798,13 +808,13 @@ const cookies = await page.cookies();
 
 // Set cookies
 await page.setCookie({
-    name: 'session',
-    value: 'abc123',
-    domain: 'example.com',
-    path: '/',
-    httpOnly: true,
-    secure: true,
-    sameSite: 'Strict'
+  name: 'session',
+  value: 'abc123',
+  domain: 'example.com',
+  path: '/',
+  httpOnly: true,
+  secure: true,
+  sameSite: 'Strict'
 });
 
 // Delete cookies
@@ -816,12 +826,12 @@ await page.deleteCookie({ name: 'session' });
 ```javascript
 // Set localStorage
 await page.evaluate(() => {
-    localStorage.setItem('key', 'value');
+  localStorage.setItem('key', 'value');
 });
 
 // Get localStorage
 const value = await page.evaluate(() => {
-    return localStorage.getItem('key');
+  return localStorage.getItem('key');
 });
 
 // Clear localStorage
@@ -832,19 +842,19 @@ await page.evaluate(() => localStorage.clear());
 
 ```javascript
 try {
-    await page.goto('https://example.com', {
-        waitUntil: 'networkidle2',
-        timeout: 30000
-    });
+  await page.goto('https://example.com', {
+    waitUntil: 'networkidle2',
+    timeout: 30000
+  });
 } catch (error) {
-    if (error.name === 'TimeoutError') {
-        console.error('Page load timeout');
-    } else {
-        console.error('Navigation failed:', error);
-    }
+  if (error.name === 'TimeoutError') {
+    console.error('Page load timeout');
+  } else {
+    console.error('Navigation failed:', error);
+  }
 
-    // Take screenshot on error
-    await page.screenshot({ path: 'error.png' });
+  // Take screenshot on error
+  await page.screenshot({ path: 'error.png' });
 }
 ```
 
@@ -853,24 +863,29 @@ try {
 ```javascript
 // Hide automation indicators
 await page.evaluateOnNewDocument(() => {
-    // Override navigator.webdriver
-    Object.defineProperty(navigator, 'webdriver', {
-        get: () => false
-    });
+  // Override navigator.webdriver
+  Object.defineProperty(navigator, 'webdriver', {
+    get: () => false
+  });
 
-    // Mock chrome object
-    window.chrome = {
-        runtime: {}
-    };
+  // Mock chrome object
+  window.chrome = {
+    runtime: {}
+  };
 
-    // Mock permissions
-    const originalQuery = window.navigator.permissions.query;
-    window.navigator.permissions.query = parameters =>
-        parameters.name === 'notifications' ? Promise.resolve({ state: 'granted' }) : originalQuery(parameters);
+  // Mock permissions
+  const originalQuery = window.navigator.permissions.query;
+  window.navigator.permissions.query = (parameters) => (
+    parameters.name === 'notifications' ?
+      Promise.resolve({ state: 'granted' }) :
+      originalQuery(parameters)
+  );
 });
 
 // Set realistic user agent
-await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+await page.setUserAgent(
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+);
 ```
 
 ---
@@ -880,9 +895,9 @@ await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/5
 ### Take Screenshots on Error
 
 ```javascript
-page.on('pageerror', async error => {
-    console.error('Page error:', error);
-    await page.screenshot({ path: `error-${Date.now()}.png` });
+page.on('pageerror', async (error) => {
+  console.error('Page error:', error);
+  await page.screenshot({ path: `error-${Date.now()}.png` });
 });
 ```
 
@@ -890,8 +905,8 @@ page.on('pageerror', async error => {
 
 ```javascript
 // Forward console to Node
-page.on('console', msg => {
-    console.log('PAGE LOG:', msg.text());
+page.on('console', (msg) => {
+  console.log('PAGE LOG:', msg.text());
 });
 ```
 
@@ -899,7 +914,7 @@ page.on('console', msg => {
 
 ```javascript
 const browser = await puppeteer.launch({
-    slowMo: 250 // 250ms delay between actions
+  slowMo: 250  // 250ms delay between actions
 });
 ```
 

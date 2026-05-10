@@ -4,7 +4,6 @@ description: '[Code Quality] Use when you need to review integration tests for a
 ---
 
 > Codex compatibility note:
->
 > - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
 > - Prefer the `plan-hard` skill for planning guidance in this Codex mirror.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
@@ -15,22 +14,18 @@ description: '[Code Quality] Use when you need to review integration tests for a
 > - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
 > - For workflow skills, execute each listed child-skill step explicitly and report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
-
 <!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
-
 ## Codex Project-Reference Loading (No Hooks)
 
 Codex does not receive Claude hook-based doc injection.
 When coding, planning, debugging, testing, or reviewing, open project docs explicitly using this routing.
 
 **Always read:**
-
 - `docs/project-config.json` (project-specific paths, commands, modules, and workflow/test settings)
 - `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
 - `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
 
 **Situation-based docs:**
-
 - Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`, `project-structure-reference.md`
 - Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md`
 - Spec/test-case planning or TC mapping: `feature-docs-reference.md`
@@ -39,7 +34,6 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 - Code review/audit work: `code-review-rules.md` plus domain docs above based on changed files
 
 Do not read all docs blindly. Start from `docs-index-reference.md`, then open only relevant files for the task.
-
 <!-- CODEX:PROJECT-REFERENCE-LOADING:END -->
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -79,12 +73,12 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 Classify BEFORE any gate review. Route wrong → waste all effort.
 
-| Signal                  | Classification      | Action                                                              |
-| ----------------------- | ------------------- | ------------------------------------------------------------------- |
-| No user-specified files | Uncommitted changes | Run `git diff --name-only` to collect scope                         |
-| User specifies files    | Explicit scope      | Use provided list directly                                          |
-| 10+ test files          | Large scope         | Parallel sub-agents grouped by module                               |
-| 1-9 test files          | Normal scope        | Single review pass                                                  |
+| Signal                  | Classification      | Action                                                         |
+| ----------------------- | ------------------- | -------------------------------------------------------------- |
+| No user-specified files | Uncommitted changes | Run `git diff --name-only` to collect scope                    |
+| User specifies files    | Explicit scope      | Use provided list directly                                     |
+| 10+ test files          | Large scope         | Parallel sub-agents grouped by module                          |
+| 1-9 test files          | Normal scope        | Single review pass                                             |
 | 0 test files in changes | No tests            | Report gap — ask user for explicit scope via a direct user question |
 
 **Search for test reference docs** — NEVER hardcode paths. Grep for `integration-test-reference`, `test-patterns`, `integration-test-guide` near changed test files to discover project-specific conventions before starting gate review.
@@ -183,7 +177,7 @@ Hardest gate. Identify discrepancy, classify using source-of-truth hierarchy —
 | Wrong test                    | ✓           | ✓         | ✗         | Test wrong            | Fix test assertions to match code + docs      |
 | Code bug                      | ✓           | ✗         | ✓         | Code has bug          | Report as BUG — do NOT fix test to match code |
 | Test + code diverge from docs | ✓           | ✗         | ✗         | Code bug + wrong test | Fix test to match docs; report code bug       |
-| Three-way conflict            | ✗           | ✗         | ✗         | ESCALATE              | Cannot self-resolve — a direct user question  |
+| Three-way conflict            | ✗           | ✗         | ✗         | ESCALATE              | Cannot self-resolve — a direct user question       |
 
 **CRITICAL rules:**
 
@@ -309,6 +303,29 @@ After sub-agents return:
 >
 > 1. **Activate `write-integration-test` workflow** (Recommended) — scout → investigate → tdd-spec → tdd-spec-review → integration-test → integration-test-review → integration-test-verify → tdd-spec [direction=sync] → docs-update → watzup → workflow-end
 > 2. **Execute `$integration-test-review` directly** — run standalone
+
+---
+
+## Phase 9: Why-Review Self-Validation Gate (MANDATORY when findings exist)
+
+> **Purpose:** Adversarial validation of own findings BEFORE handoff. Catches over-flagged Highs, false positives, and severity inflation at the source rather than letting them propagate downstream.
+
+**Trigger:** Any finding produced (Critical, High, Medium, OR Low). Skip ONLY when the report's verdict is unconditional PASS with literally zero findings.
+
+**Protocol:**
+
+1. Read own finalized report from `plans/reports/{skill}-{date}-{slug}.md`
+2. Invoke `$why-review` skill with arg: `validate findings in plans/reports/{skill}-{date}-{slug}.md — verify each finding has file:line proof, steel-man each rejected interpretation, and stress-test severity classifications`
+3. Read why-review output from `plans/reports/why-review-{date}.md`
+4. **If why-review demotes/removes any finding:** UPDATE own finalized report with revised severities, remove false positives, and add a `## Why-Review Validation Notes` section citing what changed and why
+5. **If why-review confirms all findings:** Append `## Why-Review Validation` line to own report stating "All N findings re-validated against actual code; no severity changes."
+
+**Skip conditions (record explicit reason if skipping):**
+
+- Verdict is unconditional PASS with zero findings → log "Skipped — no findings to validate"
+- Why-review skill itself is the active context (avoid recursion)
+
+**Why this exists:** AI sub-agent reports inherit confirmation bias — the orchestrator absorbs severity claims as ground truth. The 2026-05-09 review incident produced 5 Highs; adversarial validation demoted 3 of them. Codify this as standard practice.
 
 ---
 
@@ -760,7 +777,6 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 ---
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
-
 ## Hookless Prompt Protocol Mirror (Auto-Synced)
 
 Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
@@ -770,16 +786,15 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** Match prompt against workflow catalog
 2. **ANALYZE:** Find best-match workflow AND evaluate if a custom step combination would fit better
 3. **ASK (REQUIRED FORMAT):** Use a direct user question with this structure:
-    - Question: "Which workflow do you want to activate?"
-    - Option 1: "Activate **[BestMatch Workflow]** (Recommended)"
-    - Option 2: "Activate custom workflow: **[step1 → step2 → ...]**" (include one-line rationale)
+   - Question: "Which workflow do you want to activate?"
+   - Option 1: "Activate **[BestMatch Workflow]** (Recommended)"
+   - Option 2: "Activate custom workflow: **[step1 → step2 → ...]**" (include one-line rationale)
 4. **ACTIVATE (if confirmed):** Call `$workflow-start <workflowId>` for standard; sequence custom steps manually
 5. **CREATE TASKS:** task tracking for ALL workflow steps
 6. **EXECUTE:** Follow each step in sequence
-   **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
-   **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
-   **AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
-
+**[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
+**Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
+**AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
 ## Learned Lessons
 
 # Lessons Learned
@@ -834,13 +849,11 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 - **IMPORTANT MUST ATTENTION** name by PURPOSE — adding/removing member forces rename = broken abstraction
 - **IMPORTANT MUST ATTENTION** sub-agents MUST write findings after each file/section — NEVER batch all findings into one final write
 - **IMPORTANT MUST ATTENTION** Windows bash: NEVER assume `python`/`python3` resolves — run `where python`/`where py` first, use `py` launcher or `node`
-
 ## [LESSON-LEARNED-REMINDER] [BLOCKING] Task Planning & Continuous Improvement — MANDATORY. Do not skip.
 
 Break work into small tasks (task tracking) before starting. Add final task: "Analyze AI mistakes & lessons learned".
 
 **Extract lessons — ROOT CAUSE ONLY, not symptom fixes:**
-
 1. Name the FAILURE MODE (reasoning/assumption failure), not symptom — "assumed API existed without reading source" not "used wrong enum value".
 2. Generality test: does this failure mode apply to ≥3 contexts/codebases? If not, abstract one level up.
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
@@ -848,6 +861,6 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
 6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security`/`$lint` catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
-   **[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
+**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:END -->

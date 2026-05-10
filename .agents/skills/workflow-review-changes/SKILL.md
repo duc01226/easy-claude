@@ -4,7 +4,6 @@ description: '[Workflow] Use when activating the Review Current Changes workflow
 ---
 
 > Codex compatibility note:
->
 > - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
 > - Prefer the `plan-hard` skill for planning guidance in this Codex mirror.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
@@ -15,22 +14,18 @@ description: '[Workflow] Use when activating the Review Current Changes workflow
 > - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
 > - For workflow skills, execute each listed child-skill step explicitly and report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
-
 <!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
-
 ## Codex Project-Reference Loading (No Hooks)
 
 Codex does not receive Claude hook-based doc injection.
 When coding, planning, debugging, testing, or reviewing, open project docs explicitly using this routing.
 
 **Always read:**
-
 - `docs/project-config.json` (project-specific paths, commands, modules, and workflow/test settings)
 - `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
 - `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
 
 **Situation-based docs:**
-
 - Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`, `project-structure-reference.md`
 - Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md`
 - Spec/test-case planning or TC mapping: `feature-docs-reference.md`
@@ -39,7 +34,6 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 - Code review/audit work: `code-review-rules.md` plus domain docs above based on changed files
 
 Do not read all docs blindly. Start from `docs-index-reference.md`, then open only relevant files for the task.
-
 <!-- CODEX:PROJECT-REFERENCE-LOADING:END -->
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -55,7 +49,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Review all uncommitted changes, fix issues found, then spawn a **fresh code-reviewer sub-agent** for unbiased re-review — repeat until clean.
 
-**Sequence:** $review-changes → **[parallel batch]** $review-architecture + $review-domain-entities (if entity changes) + $performance + $integration-test-review + $security → $code-simplifier → $code-review → $integration-test-verify → $plan-hard → $plan-validate → $why-review → $cook → **fresh sub-agent re-review gate** → $docs-update → $watzup → $workflow-end
+**Sequence:** $review-changes → **[parallel batch]** $review-architecture + $review-domain-entities (if entity changes) + $performance + $integration-test-review + $security → $code-simplifier → $code-review → $integration-test-verify → $why-review (synthesis) → $plan-hard → $plan-validate → $why-review → $cook → **fresh sub-agent re-review gate** → $docs-update → $watzup → $workflow-end
 
 **Key Rules:**
 
@@ -68,7 +62,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Mandatory Task Creation (ZERO TOLERANCE)
 
-Create one task per row in the table below — source of truth is `workflows.json` → `review-changes.sequence` (currently 17 steps; verify count matches if you suspect drift):
+Create one task per row in the table below — source of truth is `workflows.json` → `review-changes.sequence` (currently 19 steps; verify count matches if you suspect drift):
 
 | #   | Task Subject                                                                                                                                                                   | Conditional?                                                                                  |
 | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
@@ -81,14 +75,15 @@ Create one task per row in the table below — source of truth is `workflows.jso
 | 7   | `[Workflow] $code-simplifier — Simplify and refine code`                                                                                                                       | No — runs AFTER parallel batch (modifies code; batch reviews pre-simplification state)        |
 | 8   | `[Workflow] $code-review — Comprehensive code review`                                                                                                                          | No — runs AFTER code-simplifier (reviews simplified code)                                     |
 | 9   | `[Workflow] $integration-test-verify — Verify integration tests pass`                                                                                                          | No — runs AFTER code-simplifier (verifies simplified code)                                    |
-| 10  | `[Workflow] $plan-hard — Consolidate review findings into fix plan`                                                                                                            | Skip if all reviews PASS                                                                      |
-| 11  | `[Workflow] $plan-validate — Critical questions on fix plan`                                                                                                                   | Skip if all reviews PASS                                                                      |
-| 12  | `[Workflow] $why-review — Sanity-check that proposed fixes are warranted`                                                                                                      | Skip if all reviews PASS                                                                      |
-| 13  | `[Workflow] $cook — Implement fixes from plan`                                                                                                                                 | Skip if all reviews PASS                                                                      |
-| 14  | `[Workflow] Fresh sub-agent re-review gate — spawn new Agent per SYNC:fresh-context-review`                                                                                    | Skip if all reviews PASS                                                                      |
-| 15  | `[Workflow] $docs-update — Update impacted documentation`                                                                                                                      | Always run — $docs-update triages internally (fast-exits when only config/tool files changed) |
-| 16  | `[Workflow] $watzup — Wrap up and summarize`                                                                                                                                   | No                                                                                            |
-| 17  | `[Workflow] $workflow-end — End workflow`                                                                                                                                      | No                                                                                            |
+| 10  | `[Workflow] $why-review — Synthesis pass: adversarial validation of consolidated findings BEFORE $plan-hard` (catches over-flagged Highs / false positives at the synthesis layer) | Skip if all reviews PASS with zero findings                                                   |
+| 11  | `[Workflow] $plan-hard — Consolidate review findings into fix plan`                                                                                                                 | Skip if all reviews PASS                                                                      |
+| 12  | `[Workflow] $plan-validate — Critical questions on fix plan`                                                                                                                   | Skip if all reviews PASS                                                                      |
+| 13  | `[Workflow] $why-review — Sanity-check that proposed fixes are warranted`                                                                                                      | Skip if all reviews PASS                                                                      |
+| 14  | `[Workflow] $cook — Implement fixes from plan`                                                                                                                                 | Skip if all reviews PASS                                                                      |
+| 15  | `[Workflow] Fresh sub-agent re-review gate — spawn new Agent per SYNC:fresh-context-review`                                                                                    | Skip if all reviews PASS                                                                      |
+| 16  | `[Workflow] $docs-update — Update impacted documentation`                                                                                                                      | Always run — $docs-update triages internally (fast-exits when only config/tool files changed) |
+| 17  | `[Workflow] $watzup — Wrap up and summarize`                                                                                                                                   | No                                                                                            |
+| 18  | `[Workflow] $workflow-end — End workflow`                                                                                                                                      | No                                                                                            |
 
 NEVER consolidate, rename, or omit steps. If reviews PASS, mark conditional tasks `completed` with note "Skipped — all reviews passed".
 
@@ -184,7 +179,7 @@ All four feed into the consolidation summary alongside steps 2–5 architectural
 | `code-simplifier` (#7)         | Modifies code — batch reviews pre-simplification state |
 | `code-review` (#8)             | Must review simplified code (after #7)                 |
 | `integration-test-verify` (#9) | Must run tests on simplified code (after #7)           |
-| `plan` → `cook` (#10–14)       | Ordered fix cycle — each step depends on previous      |
+| `why-review` → `cook` (#10–15) | Ordered fix cycle (synthesis → plan → cook) — each step depends on previous |
 
 ---
 
@@ -193,13 +188,14 @@ All four feed into the consolidation summary alongside steps 2–5 architectural
 ### Decision Logic
 
 ```
-Reviews (steps 1-7) → ALL PASS? AND integration-test-verify (step 9) passes?
-  YES → skip steps 10-14, proceed to $docs-update → $watzup → $workflow-end → DONE
-  NO  → $plan-hard → $plan-validate → $why-review → $cook → FRESH SUB-AGENT RE-REVIEW GATE (step 14)
+Reviews (steps 1-8) → ALL PASS? AND integration-test-verify (step 9) passes?
+  YES → skip steps 10-15, proceed to $docs-update (step 16) → $watzup → $workflow-end → DONE
+  NO  → $why-review (synthesis, step 10) → $plan-hard → $plan-validate → $why-review → $cook → FRESH SUB-AGENT RE-REVIEW GATE (step 15)
 Note: $integration-test-verify (step 9) always runs — it is NOT conditional on review outcome.
+Note: $why-review at step 10 is the SYNTHESIS pass — adversarial validation of consolidated multi-skill findings BEFORE $plan-hard commits to a fix scope. Skip only when zero findings exist across all reviewers.
 ```
 
-### Fresh Sub-Agent Re-Review Gate (Step 13) — After `$cook` Applies Fixes
+### Fresh Sub-Agent Re-Review Gate (Step 15) — After `$cook` Applies Fixes
 
 1. **DO NOT** attempt main-agent re-review (main agent has confirmation bias from its own fixes)
 2. **DO** spawn a NEW `spawn_agent` tool call with `agent_type: "code-reviewer"` using the canonical template from `SYNC:review-protocol-injection` in `.claude/skills/shared/sync-inline-versions.md`. Inject all 9 required SYNC protocol blocks verbatim (`SYNC:evidence-based-reasoning`, `SYNC:bug-detection`, `SYNC:design-patterns-quality`, `SYNC:logic-and-intention-review`, `SYNC:test-spec-verification`, `SYNC:fix-layer-accountability`, `SYNC:rationalization-prevention`, `SYNC:graph-assisted-investigation`, `SYNC:understand-code-first`). Target files = `"run git diff to see all uncommitted changes"`. Report path = `plans/reports/workflow-review-changes-round{N}-{date}.md`.
@@ -238,11 +234,11 @@ Main Session: Review → Issues? → Plan → Fix ($cook) → Spawn fresh sub-ag
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $review-changes -> $review-architecture -> $review-domain-entities -> $performance -> $integration-test-review -> $security -> $code-simplifier -> $code-review -> $integration-test-verify -> $plan-hard -> $why-review -> $plan-validate -> $why-review -> $cook -> $workflow-review-changes -> $docs-update -> $watzup -> $workflow-end
+**IMPORTANT MANDATORY Steps:** $review-changes -> $review-architecture -> $review-domain-entities -> $performance -> $integration-test-review -> $security -> $code-simplifier -> $code-review -> $integration-test-verify -> $why-review -> $plan-hard -> $why-review -> $plan-validate -> $why-review -> $cook -> $workflow-review-changes -> $docs-update -> $watzup -> $workflow-end
 
 > **[BLOCKING SEQUENCING]** Step 1 `$review-changes` is SEQUENTIAL and MUST run FIRST — it produces the baseline (surface analysis + integration-test/translation gap detection) consumed by all downstream reviewers. Steps 2–6 (`$review-architecture`, `$review-domain-entities`, `$performance`, `$integration-test-review`, `$security`) form a PARALLEL BATCH — spawn all in ONE message via `spawn_agent` tool calls (`agent_type: "code-reviewer"`). Step 7 `$code-simplifier` is SEQUENTIAL and waits until ALL parallel batch sub-agents return + consolidation summary is built. Steps 8+ proceed sequentially as listed.
 
-**IMPORTANT MANDATORY Steps:** $review-changes -> $review-architecture -> $review-domain-entities -> $performance -> $integration-test-review -> $security -> $code-simplifier -> $code-review -> $integration-test-verify -> $plan-hard -> $why-review -> $plan-validate -> $why-review -> $cook -> $workflow-review-changes -> $docs-update -> $watzup -> $workflow-end
+**IMPORTANT MANDATORY Steps:** $review-changes -> $review-architecture -> $review-domain-entities -> $performance -> $integration-test-review -> $security -> $code-simplifier -> $code-review -> $integration-test-verify -> $why-review -> $plan-hard -> $why-review -> $plan-validate -> $why-review -> $cook -> $workflow-review-changes -> $docs-update -> $watzup -> $workflow-end
 
 > **[BLOCKING SEQUENCING]** Step 1 `$review-changes` is SEQUENTIAL and MUST run FIRST — it produces the baseline (surface analysis + integration-test/translation gap detection) consumed by all downstream reviewers. Steps 2–6 (`$review-architecture`, `$review-domain-entities`, `$performance`, `$integration-test-review`, `$security`) form a PARALLEL BATCH — spawn all in ONE message via `spawn_agent` tool calls (`agent_type: "code-reviewer"`). Step 7 `$code-simplifier` is SEQUENTIAL and waits until ALL parallel batch sub-agents return + consolidation summary is built. Steps 8+ proceed sequentially as listed.
 
@@ -442,11 +438,11 @@ Activate the `review-changes` workflow. Run `$workflow-start review-changes` wit
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting — create ALL 16 tasks immediately
+**IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting — create ALL 18 tasks immediately
 **IMPORTANT MUST ATTENTION** after fixes in `$cook`, spawn a NEW `code-reviewer` sub-agent via the `spawn_agent` tool per `SYNC:fresh-context-review` — NEVER re-review with the main agent
 **IMPORTANT MUST ATTENTION** track fresh-subagent round count in conversation context (session-scoped, no persistent files) — max 3 rounds, escalate via a direct user question if exceeded
 **IMPORTANT MUST ATTENTION** PASS means a fresh sub-agent round finds ZERO Critical/High issues WITHOUT needing fixes — only then are changes ready to commit
-**IMPORTANT MUST ATTENTION** skip steps 9-13 when all reviews PASS and tests pass (no fixes needed)
+**IMPORTANT MUST ATTENTION** skip steps 10-15 when all reviews PASS with zero findings and tests pass (no fixes needed)
 **IMPORTANT MUST ATTENTION** each step MUST invoke its skill invocation — marking completed without invocation is a violation
 **IMPORTANT MUST ATTENTION** treat multilingual UI translation gaps as mandatory user-decision gates — no silent pass when locale updates are missing
 
@@ -455,7 +451,6 @@ Activate the `review-changes` workflow. Run `$workflow-start review-changes` wit
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
-
 ## Hookless Prompt Protocol Mirror (Auto-Synced)
 
 Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
@@ -465,16 +460,15 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** Match prompt against workflow catalog
 2. **ANALYZE:** Find best-match workflow AND evaluate if a custom step combination would fit better
 3. **ASK (REQUIRED FORMAT):** Use a direct user question with this structure:
-    - Question: "Which workflow do you want to activate?"
-    - Option 1: "Activate **[BestMatch Workflow]** (Recommended)"
-    - Option 2: "Activate custom workflow: **[step1 → step2 → ...]**" (include one-line rationale)
+   - Question: "Which workflow do you want to activate?"
+   - Option 1: "Activate **[BestMatch Workflow]** (Recommended)"
+   - Option 2: "Activate custom workflow: **[step1 → step2 → ...]**" (include one-line rationale)
 4. **ACTIVATE (if confirmed):** Call `$workflow-start <workflowId>` for standard; sequence custom steps manually
 5. **CREATE TASKS:** task tracking for ALL workflow steps
 6. **EXECUTE:** Follow each step in sequence
-   **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
-   **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
-   **AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
-
+**[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
+**Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
+**AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
 ## Learned Lessons
 
 # Lessons Learned
@@ -529,13 +523,11 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 - **IMPORTANT MUST ATTENTION** name by PURPOSE — adding/removing member forces rename = broken abstraction
 - **IMPORTANT MUST ATTENTION** sub-agents MUST write findings after each file/section — NEVER batch all findings into one final write
 - **IMPORTANT MUST ATTENTION** Windows bash: NEVER assume `python`/`python3` resolves — run `where python`/`where py` first, use `py` launcher or `node`
-
 ## [LESSON-LEARNED-REMINDER] [BLOCKING] Task Planning & Continuous Improvement — MANDATORY. Do not skip.
 
 Break work into small tasks (task tracking) before starting. Add final task: "Analyze AI mistakes & lessons learned".
 
 **Extract lessons — ROOT CAUSE ONLY, not symptom fixes:**
-
 1. Name the FAILURE MODE (reasoning/assumption failure), not symptom — "assumed API existed without reading source" not "used wrong enum value".
 2. Generality test: does this failure mode apply to ≥3 contexts/codebases? If not, abstract one level up.
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
@@ -543,6 +535,6 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
 6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security`/`$lint` catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
-   **[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
+**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:END -->

@@ -4,32 +4,38 @@
  * Tests for analyze-llms-txt.js
  */
 
-const { analyzeLlmsTxt, parseUrls, groupByPriority, categorizeUrl, suggestAgentDistribution } = require('../analyze-llms-txt');
+const {
+  analyzeLlmsTxt,
+  parseUrls,
+  groupByPriority,
+  categorizeUrl,
+  suggestAgentDistribution,
+} = require('../analyze-llms-txt');
 
 // Test counter
 let passed = 0;
 let failed = 0;
 
 function assert(condition, message) {
-    if (condition) {
-        console.log(`✓ ${message}`);
-        passed++;
-    } else {
-        console.error(`✗ ${message}`);
-        failed++;
-    }
+  if (condition) {
+    console.log(`✓ ${message}`);
+    passed++;
+  } else {
+    console.error(`✗ ${message}`);
+    failed++;
+  }
 }
 
 function assertEqual(actual, expected, message) {
-    if (actual === expected) {
-        console.log(`✓ ${message}`);
-        passed++;
-    } else {
-        console.error(`✗ ${message}`);
-        console.error(`  Expected: ${expected}`);
-        console.error(`  Actual: ${actual}`);
-        failed++;
-    }
+  if (actual === expected) {
+    console.log(`✓ ${message}`);
+    passed++;
+  } else {
+    console.error(`✗ ${message}`);
+    console.error(`  Expected: ${expected}`);
+    console.error(`  Actual: ${actual}`);
+    failed++;
+  }
 }
 
 console.log('Running analyze-llms-txt.js tests...\n');
@@ -65,10 +71,10 @@ assertEqual(emptyUrls.length, 0, 'Empty content returns 0 URLs');
 console.log('\n## Testing groupByPriority()');
 
 const testUrls = [
-    'https://docs.example.com/getting-started',
-    'https://docs.example.com/guide/routing',
-    'https://docs.example.com/advanced/internals',
-    'https://docs.example.com/installation'
+  'https://docs.example.com/getting-started',
+  'https://docs.example.com/guide/routing',
+  'https://docs.example.com/advanced/internals',
+  'https://docs.example.com/installation',
 ];
 
 const grouped = groupByPriority(testUrls);
