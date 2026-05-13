@@ -246,22 +246,22 @@ After sub-agents return:
 
 ## Common Anti-Patterns
 
-| Anti-Pattern                                     | Why It's Bad                                     |
-| ------------------------------------------------ | ------------------------------------------------ |
-| **Smoke-only** (no-exception alone)              | Proves no crash, not correctness                 |
-| **Existence-only** (not-null)                    | Proves data exists, not handler set it correctly |
-| **Dead assertion** (`count >= 0`, always true)   | Tests nothing                                    |
-| **Framework testing** (assert auto-set fields)   | Tests framework, not handler                     |
-| **Copy-paste assertions** (wrong entity fields)  | Assertions don't match handler                   |
-| **Hardcoded ID** (`Id = "test-001"`)             | Fails on second run                              |
-| **Cleanup dependency** (`finally { Delete(); }`) | Fragile, hides pollution                         |
-| **Order dependency** (test B needs A first)      | Parallel execution breaks                        |
+| Anti-Pattern                                                         | Why It's Bad                                         |
+| -------------------------------------------------------------------- | ---------------------------------------------------- |
+| **Smoke-only** (no-exception alone)                                  | Proves no crash, not correctness                     |
+| **Existence-only** (not-null)                                        | Proves data exists, not handler set it correctly     |
+| **Dead assertion** (`count >= 0`, always true)                       | Tests nothing                                        |
+| **Framework testing** (assert auto-set fields)                       | Tests framework, not handler                         |
+| **Copy-paste assertions** (wrong entity fields)                      | Assertions don't match handler                       |
+| **Hardcoded ID** (`Id = "test-001"`)                                 | Fails on second run                                  |
+| **Cleanup dependency** (`finally { Delete(); }`)                     | Fragile, hides pollution                             |
+| **Order dependency** (test B needs A first)                          | Parallel execution breaks                            |
 | **Repository data hacks** (direct create/update bypassing use cases) | Leaves impossible state and hides real workflow bugs |
-| **Missing await** (unchecked async exception)    | Exception swallowed silently                     |
-| **Event not triggered** (query, never fire)      | Tests seeder, not handler                        |
-| **Test fixed to match broken code**              | Hides the bug — docs still say it's wrong        |
-| **Self-resolved three-way conflict**             | AI picked winner without evidence — silent lie   |
-| **Stale docs assumed without two-source proof**  | Docs may be right; code may be the bug           |
+| **Missing await** (unchecked async exception)                        | Exception swallowed silently                         |
+| **Event not triggered** (query, never fire)                          | Tests seeder, not handler                            |
+| **Test fixed to match broken code**                                  | Hides the bug — docs still say it's wrong            |
+| **Self-resolved three-way conflict**                                 | AI picked winner without evidence — silent lie       |
+| **Stale docs assumed without two-source proof**                      | Docs may be right; code may be the bug               |
 
 ---
 
@@ -645,7 +645,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > **Project Reference Docs Gate** — Run after task-tracking bootstrap and before target/source file reads, grep, edits, or analysis. Project docs override generic framework assumptions.
 >
 > 1. Identify scope: file types, domain area, and operation.
-> 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/README.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-docs-reference.md`; architecture/new area `project-structure-reference.md`.
+> 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-docs-reference.md`; architecture/new area `project-structure-reference.md`.
 > 3. Read every required doc that exists; skip absent docs as not applicable. Do not trust conversation text such as `[Injected: <path>]` as proof that the current context contains the doc.
 > 4. Before target work, state: `Reference docs read: ... | Missing/not applicable: ...`.
 >

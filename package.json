@@ -20,17 +20,17 @@
     "code:sync:context": "npm run codex:sync:context",
     "code:sync:copy-skills": "npm run codex:sync:copy-skills",
     "code:sync:hooks": "npm run codex:sync:hooks",
-    "codex:migrate": "node scripts/codex/migrate-claude-to-codex.mjs",
-    "codex:normalize:skill-frontmatter": "node scripts/codex/migrate-claude-to-codex.mjs --normalize-source-skills",
+    "codex:migrate": "node .claude/scripts/codex/migrate-claude-to-codex.mjs",
+    "codex:normalize:skill-frontmatter": "node .claude/scripts/codex/migrate-claude-to-codex.mjs --normalize-source-skills",
     "codex:sync": "npm run codex:migrate && npm run codex:sync:hooks && npm run codex:sync:context && npm run codex:verify:all",
-    "codex:sync:context": "node scripts/codex/sync-context-workflows.mjs",
-    "codex:sync:copy-skills": "node scripts/codex/migrate-claude-to-codex.mjs --copy-skills && npm run codex:sync:hooks && npm run codex:sync:context && npm run codex:verify:all",
-    "codex:sync:hooks": "node scripts/codex/sync-hooks.mjs",
-    "codex:test:tooling": "node --test scripts/codex/tests/*.test.mjs",
+    "codex:sync:context": "node .claude/scripts/codex/sync-context-workflows.mjs",
+    "codex:sync:copy-skills": "node .claude/scripts/codex/migrate-claude-to-codex.mjs --copy-skills && npm run codex:sync:hooks && npm run codex:sync:context && npm run codex:verify:all",
+    "codex:sync:hooks": "node .claude/scripts/codex/sync-hooks.mjs",
+    "codex:test:tooling": "node --test .claude/scripts/codex/tests/*.test.mjs",
     "codex:verify:all": "npm run codex:test:tooling && npm run codex:verify:workflow-cycle && npm run codex:verify:skill-protocol && npm run codex:verify:no-project-residue",
-    "codex:verify:no-project-residue": "node scripts/codex/verify-no-project-residue.mjs",
-    "codex:verify:skill-protocol": "node scripts/codex/verify-skill-protocol-compliance.mjs",
-    "codex:verify:workflow-cycle": "node scripts/codex/verify-workflow-cycle-compliance.mjs"
+    "codex:verify:no-project-residue": "node .claude/scripts/codex/verify-no-project-residue.mjs",
+    "codex:verify:skill-protocol": "node .claude/scripts/codex/verify-skill-protocol-compliance.mjs",
+    "codex:verify:workflow-cycle": "node .claude/scripts/codex/verify-workflow-cycle-compliance.mjs"
   },
   "version": "1.0.0"
 }

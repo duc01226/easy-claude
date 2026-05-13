@@ -1,4 +1,283 @@
-# Codex Project Instructions<!-- CODEX-CONTEXT-MIRROR:START -->
+# Codex Project Instructions
+<!-- CLAUDE-MIRROR:START -->
+## Claude Instructions Mirror (Auto-Synced)
+
+This block is auto-generated from `CLAUDE.md` by `npm run codex:sync:context`.
+Do not edit manually; update `CLAUDE.md` and re-sync.
+
+# easy-claude - Code Instructions
+
+<!-- SECTION:tldr -->
+
+> **Project:** easy-claude — Claude Code enhancement framework — hooks, skills, agents, and workflows that extend Claude Code capabilities
+>
+> **Tech Stack:** javascript, python + claude-code-framework
+>
+> **Apps/Services:** hooks, hooks-lib, skills, agents, scripts, workflows, docs-framework
+
+<!-- /SECTION:tldr -->
+
+**Sections:** [TL;DR](#tldr) | [Search First](#mandatory-search-existing-code-first) | [Task Planning](#important-task-planning-rules-must-follow) | [Code Hierarchy](#code-responsibility-hierarchy-critical) | [Naming](#naming-conventions) | [Key Locations](#key-file-locations) | [Dev Commands](#development-commands) | [Evidence](#evidence-based-reasoning--investigation-protocol-mandatory) | [Graph Intelligence](#graph-intelligence-mandatory-when-code-graphgraphdb-exists) | [Skill Activation](#automatic-skill-activation-mandatory)
+
+---
+
+## TL;DR — What You Must Know Before Writing Any Code
+
+<!-- SECTION:golden-rules -->
+
+**Golden Rules (memorize these):**
+
+1. Hooks use CommonJS (require/module.exports)
+2. Hook files read stdin JSON and write to stdout/stderr
+3. Shared utilities go in .claude/hooks/lib/
+4. Test hooks via node .claude/hooks/tests/test-all-hooks.cjs
+5. Each skill is a directory with SKILL.md as entry point
+6. Skills may have scripts/, references/, and tests/ subdirectories
+7. Follow naming conventions in .claude/docs/skill-naming-conventions.md
+8. Agent definitions are markdown files in .claude/agents/
+9. Follow patterns in .claude/docs/agents/agent-patterns.md
+
+<!-- /SECTION:golden-rules -->
+
+**Architecture Hierarchy** — Place logic in LOWEST layer: `Entity/Model > Service > Component/Handler`
+
+**First Principles (Code Quality in AI Era):**
+
+1. **Understanding > Output** — Never ship code you can't explain. AI generates candidates; humans validate intent.
+2. **Design Before Mechanics** — Document WHY before WHAT. A 3-sentence rationale prevents 3-day debugging sessions.
+3. **Own Your Abstractions** — Every dependency, framework, and platform decision is YOUR responsibility.
+4. **Operational Awareness** — Code that works but can't be debugged, monitored, or rolled back is technical debt in disguise.
+5. **Depth Over Breadth** — One well-understood solution beats ten AI-generated variants.
+
+> **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
+
+<!-- SECTION:decision-quick-ref -->
+
+**Decision Quick-Ref:**
+
+| Task                  | Pattern                                                                     |
+| --------------------- | --------------------------------------------------------------------------- |
+| New hook              | `.claude/hooks/<name>.cjs` — CJS, reads stdin JSON, writes stdout/stderr    |
+| Shared hook utility   | `.claude/hooks/lib/<name>.cjs` — extracted module for reuse across hooks    |
+| New skill             | `.claude/skills/<skill-name>/SKILL.md` + optional `scripts/`, `references/` |
+| New agent             | `.claude/agents/<agent-name>.md` — markdown definition                      |
+| New workflow          | `.claude/workflows.json` entry + skill definitions for each step            |
+| Test hooks            | `node .claude/hooks/tests/test-all-hooks.cjs`                               |
+| Project config change | Update `docs/project-config.json`, validate with schema                     |
+
+<!-- /SECTION:decision-quick-ref -->
+
+## MANDATORY: Search Existing Code FIRST
+
+**Before writing ANY code:**
+
+1. **Grep/Glob search** for similar patterns (find 3+ examples)
+2. **Follow codebase pattern**, NOT generic framework docs
+3. **Provide evidence** in plan (file:line references)
+
+**Why:** Projects have conventions that differ from framework defaults.
+
+**Enforced by:** Feature/Bugfix/Refactor workflows (scout > investigate steps)
+
+---
+
+## FIRST ACTION DECISION (Before ANY tool call)
+
+```
+1. Explicit slash command? (e.g., $plan-hard, $cook) -> Execute it
+2. Detect nearest matching workflow from the Workflow Catalog
+3. ALWAYS ask user via ask the user directly to confirm: activate workflow or execute directly
+4. FALLBACK -> MUST invoke $plan-hard <prompt> FIRST
+```
+
+**CRITICAL: Modification > Research.** If prompt contains BOTH research AND modification intent, **modification workflow wins** (investigation is a substep of `$plan-hard`).
+
+---
+
+## IMPORTANT: Task Planning Rules (MUST FOLLOW)
+
+1. **MANDATORY task creation for file-modifying prompts** — If the prompt could result in ANY file changes, you MUST create task tracking items BEFORE making changes.
+2. **Always break work into many small todo tasks** — granular tasks prevent losing track of progress
+3. **Always add a final review todo task** to review all work done
+4. **Mark todos as completed IMMEDIATELY** after finishing each task
+5. **Exactly ONE task in_progress at a time**
+6. **On context loss/compaction**, ALWAYS call the current task list FIRST — resume existing tasks, do NOT create duplicates
+7. **No speculation or hallucination** — always answer with proof
+8. **Evidence-based recommendations** — complete investigation before recommending changes
+9. **Breaking change assessment** — Any recommendation that could break functionality requires validation
+
+---
+
+## Code Responsibility Hierarchy (CRITICAL)
+
+**Place logic in the LOWEST appropriate layer to enable reuse and prevent duplication.**
+
+```
+Entity/Model (Lowest)  >  Service  >  Component/Handler (Highest)
+```
+
+| Layer            | Contains                                                                |
+| ---------------- | ----------------------------------------------------------------------- |
+| **Entity/Model** | Business logic, display helpers, static factory methods, default values |
+| **Service**      | API calls, command factories, data transformation                       |
+| **Component**    | UI event handling ONLY — delegates all logic to lower layers            |
+
+**Anti-Pattern**: Logic in component/handler that should be in entity > leads to duplicated code.
+
+---
+
+## Naming Conventions
+
+| Type           | Convention       | Example                                       |
+| -------------- | ---------------- | --------------------------------------------- |
+| Files          | kebab-case       | `context-injector.cjs`, `session-manager.cjs` |
+| Hook files     | `<name>.cjs`     | `.claude/hooks/workflow-router.cjs`           |
+| Hook libraries | `<name>.cjs`     | `.claude/hooks/lib/project-config-schema.cjs` |
+| Skill dirs     | `<skill-name>/`  | `.claude/skills/code-review/SKILL.md`         |
+| Agent files    | `<name>.md`      | `.claude/agents/code-reviewer.md`             |
+| Constants      | UPPER_SNAKE_CASE | `MAX_RETRY_COUNT`                             |
+| Booleans       | Prefix with verb | `isActive`, `hasPermission`, `canEdit`        |
+| Collections    | Plural           | `users`, `items`, `employees`                 |
+
+---
+
+<!-- SECTION:key-locations -->
+
+## Key File Locations
+
+```
+.claude/hooks/              # Runtime hooks (CJS modules) — context injection, enforcement, session mgmt
+.claude/hooks/lib/          # Shared hook utility modules
+.claude/hooks/tests/        # Hook test suites
+.claude/skills/             # Skill definitions (SKILL.md + scripts/)
+.claude/agents/             # Agent definitions (markdown)
+.claude/scripts/            # Utility scripts — catalog gen, code graph, skill mgmt
+.claude/workflows/          # Workflow definitions and orchestration
+.claude/docs/               # Framework documentation
+docs/project-config.json    # Project config consumed by hooks at runtime
+docs/project-reference/     # Reference docs populated by /scan-* skills
+```
+
+<!-- /SECTION:key-locations -->
+
+<!-- SECTION:dev-commands -->
+
+## Development Commands
+
+```bash
+node .claude/hooks/tests/test-all-hooks.cjs                          # Run all hook tests
+node .claude/hooks/tests/run-all-tests.cjs                           # Run full test suite
+python .claude/scripts/generate_catalogs.py --skills                 # Generate skills catalog
+python .claude/scripts/generate_catalogs.py --commands               # Generate commands catalog
+```
+
+<!-- /SECTION:dev-commands -->
+
+<!-- SECTION:integration-testing -->
+
+See [integration-test-reference.md](docs/project-reference/integration-test-reference.md) for integration test patterns and setup.
+
+<!-- /SECTION:integration-testing -->
+
+---
+
+## Evidence-Based Reasoning & Investigation Protocol (MANDATORY)
+
+Speculation is FORBIDDEN. Every claim about code behavior, every recommendation for changes, must be backed by evidence.
+
+### Core Rules
+
+1. **Evidence before conclusion** — Cite `file:line`, grep results, or framework docs. Never use "obviously...", "I think..." without proof.
+2. **Confidence declaration required** — Every recommendation must state confidence level with evidence list.
+3. **Inference alone is FORBIDDEN** — Always upgrade to code evidence. When unsure: _"I don't have enough evidence yet."_
+4. **Cross-service validation** — Check ALL services before recommending architectural changes.
+5. **Graph trace before conclusion** — When investigating code flow, you MUST run graph trace on key files.
+
+### Confidence Levels
+
+| Level       | Meaning                                         | Action                 |
+| ----------- | ----------------------------------------------- | ---------------------- |
+| **95-100%** | Full trace, all items verified                  | Recommend freely       |
+| **80-94%**  | Main paths verified, some edge cases unverified | Recommend with caveats |
+| **60-79%**  | Implementation found, usage partially traced    | Recommend cautiously   |
+| **<60%**    | Insufficient evidence                           | **DO NOT RECOMMEND**   |
+
+---
+
+## Graph Intelligence (MANDATORY when .code-graph/graph.db exists)
+
+<HARD-GATE>
+You MUST run at least ONE graph command on key files before concluding any investigation,
+creating any plan, or verifying any fix. Proceeding without graph evidence is FORBIDDEN.
+Skip only if `.code-graph/graph.db` does not exist.
+</HARD-GATE>
+
+### Quick CLI Reference
+
+```bash
+python .claude/scripts/code_graph trace <file> --direction both --json                    # Full system flow
+python .claude/scripts/code_graph trace <file> --direction both --node-mode file --json   # File-level overview
+python .claude/scripts/code_graph connections <file> --json                               # Structural relationships
+python .claude/scripts/code_graph query callers_of <function> --json                      # All callers
+python .claude/scripts/code_graph query tests_for <function> --json                       # Test coverage
+python .claude/scripts/code_graph batch-query <f1> <f2> <f3> --json                       # Multiple files at once
+python .claude/scripts/code_graph search <keyword> --kind Function --json                 # Find by keyword
+```
+
+**Pattern:** Grep finds files > trace reveals system flow > grep verifies details.
+
+---
+
+## Automatic Skill Activation (MANDATORY)
+
+<!-- SECTION:skill-activation -->
+
+When working in specific areas, these skills MUST be automatically activated BEFORE any file creation or modification:
+
+| Path Pattern                 | Skill / Auto-Context | Pre-Read Files                  |
+| ---------------------------- | -------------------- | ------------------------------- |
+| `.claude/hooks/**/*.cjs`     | _(auto-context)_     | `.claude/docs/hooks/README.md`  |
+| `.claude/skills/**/SKILL.md` | _(auto-context)_     | `.claude/docs/skills/README.md` |
+| `.claude/agents/**/*.md`     | _(auto-context)_     | `.claude/docs/agents/README.md` |
+
+<!-- /SECTION:skill-activation -->
+
+---
+
+<!-- SECTION:doc-index -->
+
+## Documentation Index
+
+```
+docs/project-config.json           # Project configuration (hooks read this at runtime)
+docs/project-reference/            # 12 reference docs populated by /scan-* skills
+  project-structure-reference.md   # Directory tree, module overview
+  domain-entities-reference.md     # Hook, Skill, Agent, Workflow domain model
+  integration-test-reference.md    # Integration test conventions
+  code-review-rules.md             # Code review checklist
+  feature-docs-reference.md        # Business feature doc index
+```
+
+<!-- /SECTION:doc-index -->
+
+<!-- SECTION:doc-lookup -->
+
+### Doc Lookup Guide
+
+| If user prompt mentions...        | Read first                                              |
+| --------------------------------- | ------------------------------------------------------- |
+| Hook development, hook patterns   | `.claude/docs/hooks/README.md`                          |
+| Skill creation, skill structure   | `.claude/docs/skills/README.md`                         |
+| Agent patterns, agent definitions | `.claude/docs/agents/README.md`                         |
+| Domain model, entities            | `docs/project-reference/domain-entities-reference.md`   |
+| Project structure, modules        | `docs/project-reference/project-structure-reference.md` |
+| Code review rules                 | `docs/project-reference/code-review-rules.md`           |
+| Integration testing               | `docs/project-reference/integration-test-reference.md`  |
+
+<!-- /SECTION:doc-lookup -->
+<!-- CLAUDE-MIRROR:END -->
+
+<!-- CODEX-CONTEXT-MIRROR:START -->
 ## Codex Context Mirror (Auto-Synced)
 
 This block is auto-generated from `.codex/CODEX_CONTEXT.md` by `npm run codex:sync:context`.
@@ -12,6 +291,7 @@ Do not edit manually; update Claude sources and re-sync.
 > - User-question prompts mean to ask the user directly in Codex.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
+> - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
 > - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
 > - For workflow skills, execute each listed child-skill step explicitly and report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
@@ -45,7 +325,17 @@ Source hooks:
 - `.claude/hooks/lessons-injector.cjs`
 - `docs/project-reference/lessons.md`
 
-Last synced: 2026-04-22
+Last synced: 2026-05-06
+
+
+## Codex Hookless Project Reference Gate
+
+Codex does not receive Claude hook-injected project docs or project config summaries. Before coding, planning, debugging, testing, or reviewing:
+
+- Read `docs/project-config.json` for project-specific commands, module paths, workflow settings, and doc paths.
+- Read `docs/project-reference/docs-index-reference.md` to route to the right project-reference files.
+- Read `docs/project-reference/lessons.md` for always-on project guardrails.
+- For situation-specific work, open the referenced project doc directly; do not rely on prior conversation text as proof that the doc is loaded.
 
 ## Critical Thinking Mindset
 
@@ -137,6 +427,7 @@ Environment and tooling:
 > - User-question prompts mean to ask the user directly in Codex.
 > - Ignore Claude-specific mode-switch instructions when they appear.
 > - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
+> - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
 > - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
 > - For workflow skills, execute each listed child-skill step explicitly and report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
@@ -145,7 +436,7 @@ Environment and tooling:
 Use this protocol for workflow execution in Codex (no hook dependency):
 1. Detect: match request against workflow catalog.
 2. Analyze: choose best-fit workflow and evaluate custom combination if needed.
-3. Confirm: if workflow requires confirmation or ambiguity exists, ask user before activation.
+3. Ask: when a workflow match is detected, ask "Which workflow do you want to activate?" with the recommended standard workflow and a custom option before activation.
 4. Activate: execute selected workflow sequence.
 5. Tasking: create tasks for each workflow step.
 6. Execute: run steps in order, validate outputs, and report completion.
@@ -156,7 +447,6 @@ Workflow source: `.claude/workflows.json` (37 workflows).
 
 ### batch-operation — Batch Operation
 - Description: Multi-file batch operations requiring progress tracking
-- Confirm First: no
 - When To Use: User wants to modify multiple files at once: bulk rename, find-and-replace across codebase, update all instances
 - When Not To Use: Test-only operations, documentation
 - Sequence: `plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> code -> tdd-spec -> why-review -> tdd-spec-review -> tdd-spec [direction=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> sre-review -> test -> docs-update -> watzup -> workflow-end`
@@ -184,7 +474,6 @@ SAFETY:
 
 ### big-feature — Big Feature (Research + Implement)
 - Description: Research-driven feature development for large, complex, or ambiguous features in an existing project — includes idea refinement, market research, business evaluation, domain analysis, tech stack research, and full implementation
-- Confirm First: yes
 - When To Use: User wants to implement a large, complex, or ambiguous feature that needs research, market analysis, business evaluation, domain modeling, or tech stack analysis before implementation. Big new module, major enhancement, cross-cutting capability, or feature where scope is unclear
 - When Not To Use: Small/well-defined features (use feature), new project from scratch (use greenfield-init), bug fixes, documentation, test-only tasks
 - Sequence: `idea -> web-research -> deep-research -> business-evaluation -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> why-review -> plan -> why-review -> plan-review -> why-review -> refine -> why-review -> refine-review -> story -> why-review -> story-review -> pbi-challenge -> dor-gate -> pbi-mockup -> tdd-spec -> why-review -> tdd-spec-review -> plan -> why-review -> plan-review -> why-review -> scaffold -> plan-validate -> why-review -> cook -> review-domain-entities -> integration-test -> integration-test-review -> integration-test-verify -> tdd-spec [direction=sync] -> workflow-review-changes -> sre-review -> security -> changelog -> test -> docs-update -> watzup -> workflow-end`
@@ -261,7 +550,6 @@ MANDATORY SPEC-DRIVEN BIG-FEATURE GATES:
 
 ### bugfix — Bug Fix
 - Description: Systematic debugging and fix workflow with investigation-first approach
-- Confirm First: no
 - When To Use: User reports a bug, error, crash, failure, regression, or something not working; wants to fix/debug/troubleshoot an issue
 - When Not To Use: New feature implementation, code improvement/refactoring, investigation-only (no fix), documentation updates
 - Sequence: `scout -> investigate -> debug-investigate -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> tdd-spec -> why-review -> tdd-spec-review -> integration-test -> fix -> prove-fix -> integration-test -> integration-test-review -> integration-test-verify -> tdd-spec [direction=sync] -> workflow-review-changes -> changelog -> test -> docs-update -> watzup -> workflow-end`
@@ -308,7 +596,6 @@ MANDATORY INVARIANT-PRESERVING BUGFIX LOOP:
 
 ### deployment — Deployment & Infrastructure
 - Description: Deployment and CI/CD pipeline management
-- Confirm First: no
 - When To Use: User wants to set up or modify deployment, infrastructure, CI/CD pipelines, Docker configuration, Kubernetes setup, or deploy to environments
 - When Not To Use: Explaining deployment concepts, checking deployment status/history, infrastructure investigation only
 - Sequence: `scout -> investigate -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> code -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> sre-review -> test -> docs-update -> watzup -> workflow-end`
@@ -331,7 +618,6 @@ GUARDRAILS:
 
 ### design-workflow — Design Workflow
 - Description: Designer workflow: create design specification and implement UI (product, marketing, creative) from requirements or screenshots
-- Confirm First: no
 - When To Use: User wants to create a UI/UX design spec, mockup, wireframe, or component specification, design a product interface (dashboard, admin panel, SaaS app), build a landing page, create a marketing page, replicate a screenshot/design, or build a creative/distinctive frontend interface
 - When Not To Use: Implementing an existing design in code
 - Sequence: `design-spec -> why-review -> interface-design -> frontend-design -> workflow-review-changes -> docs-update -> workflow-end`
@@ -352,7 +638,6 @@ DESIGN WORKFLOW:
 
 ### documentation — Documentation Update
 - Description: Documentation creation and update workflow with plan validation
-- Confirm First: no
 - When To Use: User wants to create, update, or improve documentation, READMEs, or code comments
 - When Not To Use: Feature implementation, bug fixes, test writing
 - Sequence: `scout -> investigate -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> docs-update -> workflow-review-changes -> review-post-task -> watzup -> workflow-end`
@@ -379,7 +664,6 @@ RULES:
 
 ### e2e-from-changes — E2E from Changes
 - Description: Update E2E tests based on code or spec changes
-- Confirm First: no
 - When To Use: User updated test specifications or source code and needs to sync E2E tests
 - When Not To Use: New recordings (use e2e-from-recording), visual-only changes (use e2e-update-ui)
 - Sequence: `scout -> e2e-test -> test -> docs-update -> watzup -> workflow-end`
@@ -400,7 +684,6 @@ E2E FROM CHANGES PROTOCOL:
 
 ### e2e-from-recording — E2E from Recording
 - Description: Generate Playwright E2E tests from Chrome DevTools recordings
-- Confirm First: no
 - When To Use: User has a Chrome DevTools recording JSON and wants to generate a Playwright E2E test file
 - When Not To Use: Updating existing tests, writing tests from scratch, running existing tests
 - Sequence: `scout -> e2e-test -> test -> docs-update -> watzup -> workflow-end`
@@ -422,7 +705,6 @@ E2E FROM RECORDING PROTOCOL:
 
 ### e2e-update-ui — E2E Update UI
 - Description: Update E2E screenshot baselines after UI changes
-- Confirm First: no
 - When To Use: User made UI changes and needs to update E2E screenshot baselines
 - When Not To Use: Generating new tests, fixing test logic, non-visual changes
 - Sequence: `scout -> e2e-test -> test -> docs-update -> watzup -> workflow-end`
@@ -442,7 +724,6 @@ E2E UPDATE UI PROTOCOL:
 
 ### feature — Feature Implementation
 - Description: Full feature development workflow with search-first approach, planning, implementation, testing, and documentation
-- Confirm First: no
 - When To Use: User wants to implement a well-defined feature, add a component, build a capability, develop a module, implement/execute an existing plan, create a new API endpoint, or design an API contract
 - When Not To Use: Bug fixes, documentation, test-only tasks, feature requests/ideas (no implementation), PBI/story creation, design specs, large/ambiguous features needing research (use big-feature)
 - Sequence: `scout -> investigate -> domain-analysis -> why-review -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> tdd-spec -> why-review -> tdd-spec-review -> plan -> why-review -> plan-review -> why-review -> cook -> review-domain-entities -> tdd-spec -> why-review -> tdd-spec-review -> tdd-spec [direction=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> sre-review -> security -> changelog -> test -> docs-update -> watzup -> workflow-end`
@@ -489,7 +770,6 @@ MANDATORY SPEC-DRIVEN + INVARIANT + TEST HARNESS LOOP:
 
 ### feature-docs — Business Feature Documentation
 - Description: Business feature documentation with 17-section template enforcement, plan validation, and mandatory test coverage
-- Confirm First: no
 - When To Use: User wants to create or update business feature documentation in docs/business-features/
 - When Not To Use: Bug fixes, feature implementation, test writing, debugging, refactoring
 - Sequence: `scout -> investigate -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> docs-update -> workflow-review-changes -> review-post-task -> watzup -> workflow-end`
@@ -515,7 +795,6 @@ OUTPUT: Complete feature README following template sections.
 
 ### full-feature-lifecycle — Full Feature Lifecycle
 - Description: Complete feature from idea to PO acceptance — PO→BA→Designer→Dev→QA→PO with formal role handoffs at every stage
-- Confirm First: yes
 - When To Use: Full end-to-end feature delivery requiring idea → PBI → stories → design → implementation → testing → PO acceptance with all formal role handoffs
 - When Not To Use: PBI-only work (use idea-to-pbi), implementation-only work (use feature or big-feature), research-heavy new product (use big-feature or greenfield-init), bug fixes (use bugfix)
 - Sequence: `idea -> refine -> why-review -> refine-review -> domain-analysis -> why-review -> story -> why-review -> story-review -> pbi-challenge -> dor-gate -> pbi-mockup -> design-spec -> why-review -> interface-design -> frontend-design -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> cook -> review-domain-entities -> tdd-spec -> why-review -> tdd-spec-review -> integration-test -> integration-test-review -> integration-test-verify -> tdd-spec [direction=sync] -> workflow-review-changes -> sre-review -> quality-gate -> docs-update -> watzup -> acceptance -> workflow-end`
@@ -544,7 +823,6 @@ MANDATORY FULL-LIFECYCLE SYNC GATES:
 
 ### greenfield-init — Greenfield Project Init
 - Description: Full waterfall project inception from idea through implementation with integration testing
-- Confirm First: yes
 - When To Use: User wants to start a new project from scratch, init a greenfield project, plan a new application, research and plan before coding, bootstrap a new codebase, build something new
 - When Not To Use: Existing codebase with code, bug fixes, feature implementation, refactoring existing code
 - Sequence: `idea -> web-research -> deep-research -> business-evaluation -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> why-review -> plan -> why-review -> security -> performance -> plan-review -> why-review -> refine -> why-review -> refine-review -> story -> why-review -> story-review -> pbi-challenge -> dor-gate -> pbi-mockup -> plan-validate -> why-review -> tdd-spec -> why-review -> tdd-spec-review -> plan -> why-review -> plan-review -> why-review -> scaffold -> linter-setup -> harness-setup -> why-review -> cook -> review-domain-entities -> tdd-spec -> why-review -> tdd-spec-review -> plan -> why-review -> plan-review -> why-review -> integration-test -> integration-test-review -> integration-test-verify -> test -> workflow-review-changes -> sre-review -> security -> changelog -> test -> docs-update -> watzup -> workflow-end`
@@ -620,7 +898,6 @@ This ensures greenfield projects ship with integration test coverage from day on
 
 ### idea-to-pbi — Idea to PBI
 - Description: PO/BA workflow: capture or review idea/artifact, optional PO→BA handoff, refine to PBI, create user stories, generate TDD test specs, challenge review, DoR gate, mockup, prioritize
-- Confirm First: yes
 - When To Use: PO or BA wants to take a raw idea — OR PO is handing off an existing artifact/ticket/brief to BA — through to a grooming-ready PBI with user stories, TDD test specifications, Dev BA PIC challenge review, DoR validation, wireframes, and backlog prioritization
 - When Not To Use: Already have a drafted PBI (use pbi-challenge standalone), implementing a feature (use feature or big-feature)
 - Sequence: `idea -> review-artifact -> handoff -> refine -> why-review -> refine-review -> why-review -> story -> why-review -> story-review -> tdd-spec -> why-review -> tdd-spec-review -> pbi-challenge -> dor-gate -> pbi-mockup -> prioritize -> docs-update -> watzup -> workflow-end`
@@ -683,7 +960,6 @@ At workflow-end, AI MUST ATTENTION present:
 
 ### investigation — Code Investigation
 - Description: Codebase exploration and understanding workflow
-- Confirm First: no
 - When To Use: User wants to understand how code works, find where logic lives, explore architecture, trace code paths, or get explanations
 - When Not To Use: Any action that modifies code (implement, fix, create, refactor, test, review, document, design, plan)
 - Sequence: `scout -> investigate -> workflow-end`
@@ -702,7 +978,6 @@ GUARDRAIL: This is a READ-ONLY workflow. DO NOT modify any files. Only read, ana
 
 ### migration — Database Migration
 - Description: Database schema and data migration workflow
-- Confirm First: no
 - When To Use: User wants to create or run database migrations: schema changes, data migrations, EF migrations, adding/removing/altering columns or tables
 - When Not To Use: Explaining migration concepts, checking migration history/status, schema investigation only
 - Sequence: `scout -> investigate -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> db-migrate -> code -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> sre-review -> test -> docs-update -> watzup -> workflow-end`
@@ -726,7 +1001,6 @@ GUARDRAILS:
 
 ### package-upgrade — Package Upgrade
 - Description: Package dependency upgrade with regression verification
-- Confirm First: no
 - When To Use: User wants to upgrade packages, update dependencies, npm update, NuGet upgrade, version bump
 - When Not To Use: Adding new packages (use feature), removing packages (use refactor)
 - Sequence: `scout -> investigate -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> code -> integration-test -> integration-test-review -> integration-test-verify -> test -> workflow-review-changes -> docs-update -> watzup -> workflow-end`
@@ -752,7 +1026,6 @@ GUARDRAILS:
 
 ### pbi-to-tests — PBI to Test Specs
 - Description: Spec-only workflow: generate TC specs from PBI, review quality, run quality gate — no integration test code generation
-- Confirm First: no
 - When To Use: Generate test specs from PBI/story, spec-only with no code generation needed
 - When Not To Use: Integration test code generation needed (use write-integration-test), specs already exist (use test-to-integration)
 - Sequence: `tdd-spec -> why-review -> tdd-spec-review -> quality-gate -> workflow-end`
@@ -764,7 +1037,6 @@ No injectContext protocol defined.
 
 ### performance — Performance Optimization
 - Description: Performance investigation and optimization workflow
-- Confirm First: no
 - When To Use: User reports slow performance, latency issues, optimization needed, bottleneck investigation, query optimization
 - When Not To Use: Bug fixes (use bugfix), feature implementation, refactoring without performance goals
 - Sequence: `scout -> investigate -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> code -> test -> workflow-review-changes -> sre-review -> docs-update -> watzup -> workflow-end`
@@ -798,7 +1070,6 @@ MANDATORY PERFORMANCE INVARIANT GUARDS:
 
 ### product-discovery — Product Discovery | ⚠️ Confirm
 - Description: Product discovery: raw vision or problem → structured brainstorm → prioritized opportunity map → N PBIs with stories, challenge review, DoR gate, and wireframes → cross-PBI ranked backlog ready for sprint planning
-- Confirm First: yes
 - When To Use: PO/BA wants to go from a raw product idea, vision, or problem statement through structured brainstorming into a prioritized backlog of multiple PBIs with stories, challenge review, DoR validation, wireframes, and cross-PBI ranking — full product discovery sprint output without implementation
 - When Not To Use: Single well-defined feature (use feature or idea-to-pbi), implementation-only work (use feature or big-feature), bug fixes (use bugfix), research-only without PBI output (use investigation or deep-research)
 - Sequence: `brainstorm -> web-research -> domain-analysis -> why-review -> idea -> refine -> why-review -> refine-review -> story -> why-review -> story-review -> pbi-challenge -> dor-gate -> pbi-mockup -> review-changes -> prioritize -> watzup -> workflow-end`
@@ -886,7 +1157,6 @@ WARN → document risk and proceed with user acknowledgment.
 
 ### quality-audit — Quality Audit
 - Description: Quality audit: review artifacts for best practices, identify flaws and enhancements, fix if needed
-- Confirm First: no
 - When To Use: User wants to audit code quality, review skills/commands/hooks for best practices, find flaws and suggest enhancements
 - When Not To Use: Bug fixes, feature implementation, investigation-only, reviewing uncommitted changes, PR reviews
 - Sequence: `workflow-review-changes -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> code -> tdd-spec -> why-review -> tdd-spec-review -> integration-test -> integration-test-review -> integration-test-verify -> test -> docs-update -> watzup -> workflow-end`
@@ -912,7 +1182,6 @@ CRITICAL GATE after workflow-review-changes:
 
 ### refactor — Code Refactoring
 - Description: Code improvement and restructuring workflow with search-first approach
-- Confirm First: no
 - When To Use: User wants to restructure, reorganize, clean up, or improve existing code without changing behavior; technical debt
 - When Not To Use: Bug fixes, new feature development
 - Sequence: `scout -> investigate -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> code -> tdd-spec -> why-review -> tdd-spec-review -> tdd-spec [direction=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> sre-review -> changelog -> test -> docs-update -> watzup -> workflow-end`
@@ -957,7 +1226,6 @@ MANDATORY REFACTOR INVARIANT SAFETY GATES:
 
 ### release-prep — Release Preparation
 - Description: Pre-release quality gate with SRE review and status verification
-- Confirm First: no
 - When To Use: User wants to verify release readiness, run pre-release quality gate, or check if ready to deploy/ship
 - When Not To Use: Rollbacks, hotfixes, release notes writing, release branch operations
 - Sequence: `sre-review -> quality-gate -> status -> docs-update -> workflow-end`
@@ -979,7 +1247,6 @@ RELEASE PREPARATION PROTOCOL:
 
 ### review — Code Review
 - Description: Code review and quality check, plan and fix issues, then re-review recursively until clean
-- Confirm First: no
 - When To Use: User wants a code review, PR review, codebase quality audit, or code quality check
 - When Not To Use: Reviewing uncommitted changes (use review-changes), reviewing plans/designs/specs/docs
 - Sequence: `review-architecture -> code-simplifier -> code-review -> performance -> integration-test-review -> integration-test-verify -> plan -> why-review -> plan-validate -> why-review -> cook -> workflow-review -> docs-update -> watzup -> workflow-end`
@@ -1007,10 +1274,9 @@ MANDATORY REVIEW GATES:
 
 ### review-changes — Review Current Changes
 - Description: Review uncommitted changes, plan and fix issues, then re-review recursively until clean
-- Confirm First: no
 - When To Use: User wants to review current uncommitted, staged, or unstaged changes before committing
 - When Not To Use: PR reviews, codebase reviews, branch comparisons
-- Sequence: `review-changes -> review-architecture -> review-domain-entities -> performance -> integration-test-review -> security -> code-simplifier -> code-review -> integration-test-verify -> plan -> why-review -> plan-validate -> why-review -> cook -> workflow-review-changes -> docs-update -> watzup -> workflow-end`
+- Sequence: `review-changes -> review-architecture -> review-domain-entities -> performance -> integration-test-review -> security -> code-simplifier -> code-review -> integration-test-verify -> why-review -> plan -> why-review -> plan-validate -> why-review -> cook -> workflow-review-changes -> docs-update -> watzup -> workflow-end`
 
 Protocol:
 ```text
@@ -1045,7 +1311,6 @@ MANDATORY REVIEW-CHANGES GATES:
 
 ### security-audit — Security Audit
 - Description: Security review and vulnerability assessment
-- Confirm First: no
 - When To Use: User wants a security audit: vulnerability assessment, OWASP check, security review, penetration test analysis, or security compliance check
 - When Not To Use: Implementing new security features, fixing known security bugs (use bugfix workflow)
 - Sequence: `scout -> security -> watzup -> workflow-end`
@@ -1068,7 +1333,6 @@ GUARDRAILS:
 
 ### spec-discovery — Spec Discovery | ⚠️ Confirm
 - Description: Reverse-engineer a complete, tech-agnostic specification bundle from an existing codebase — scout holistically first, plan a per-module task breakdown, investigate each module deeply, then assemble a reimplementation-ready spec set for any AI agent or engineering team.
-- Confirm First: yes
 - When To Use: Re-implementing the same product on a new tech stack, onboarding a new team with zero codebase knowledge, compliance documentation of system behavior, tech migration spec generation, generating a backlog from an existing system, verifying a system matches its intended design, briefing an AI agent to build a clone or fork
 - When Not To Use: Understanding one specific feature (use investigation), writing tests for existing code (use write-integration-test), updating existing documentation (use documentation), refactoring or optimizing (use refactor or performance), new project with no codebase (use greenfield-init or product-discovery)
 - Sequence: `scout -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> spec-discovery -> review-changes -> review-artifact -> watzup -> workflow-end`
@@ -1143,7 +1407,6 @@ HANDOFF at workflow-end:
 
 ### spec-driven-dev — Spec-Driven Development | ⚠️ Confirm
 - Description: Unified spec-driven development — maintains both engineering spec bundle (docs/specs/{app-bucket}/{system-name}/) and business feature docs (docs/business-features/) in sync. Modes: init-full (zero → both layers), update (incremental sync from code changes), audit (staleness check both layers).
-- Confirm First: yes
 - When To Use: Initial spec generation from zero docs, maintaining spec sync after code changes, quarterly spec health audits, before tech migrations, after major features land. Replaces workflow-spec-discovery for new projects.
 - When Not To Use: Understanding one specific feature (use investigation), updating a single feature doc (use feature-docs directly), extracting spec for one module (use spec-discovery directly)
 - Sequence: `workflow-spec-driven-dev`
@@ -1167,7 +1430,6 @@ MANDATORY SPEC-DRIVEN SYNC GATES:
 
 ### spec-to-pbi — Spec to PBI Backlog | Confirm
 - Description: Generate a complete, dependency-aware PBI backlog from an existing engineering spec bundle. Audits spec freshness, decomposes large specs by module and feature, creates PBIs/stories/DoR evidence, and produces a ranked backlog.
-- Confirm First: yes
 - When To Use: User wants to create all PBIs from an existing spec, convert a large engineering spec into a complete prioritized backlog, generate dependent PBIs from docs/specs, split a very big spec into sprint-ready PBIs, or produce a ranked implementation order from spec modules.
 - When Not To Use: Raw product vision without an existing spec bundle (use product-discovery), one informal idea (use idea-to-pbi), implementation work after PBIs are ready (use feature or big-feature), spec generation/update only (use spec-driven-dev).
 - Sequence: `scout -> spec-discovery -> domain-analysis -> why-review -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> refine -> why-review -> refine-review -> story -> why-review -> story-review -> pbi-challenge -> dor-gate -> pbi-mockup -> prioritize -> docs-update -> watzup -> workflow-end`
@@ -1202,7 +1464,6 @@ OUTPUTS:
 
 ### tdd-feature — TDD Feature Implementation
 - Description: Test-driven feature: write test specs first, then implement, then verify with integration tests
-- Confirm First: no
 - When To Use: TDD implementation, test-first development, spec-driven feature, write test specs before implementing
 - When Not To Use: Bug fixes, quick changes, documentation-only tasks, implement-first approach
 - Sequence: `scout -> investigate -> domain-analysis -> why-review -> tdd-spec -> why-review -> tdd-spec-review -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> cook -> review-domain-entities -> tdd-spec -> why-review -> tdd-spec-review -> tdd-spec [direction=sync] -> integration-test -> integration-test-review -> integration-test-verify -> test -> workflow-review-changes -> sre-review -> changelog -> docs-update -> watzup -> workflow-end`
@@ -1234,7 +1495,6 @@ MANDATORY TDD FEATURE INVARIANT LOOP:
 
 ### test-spec-update — Test Spec Update (Post-Change)
 - Description: Update test specs and feature docs after code changes, bug fixes, or PR reviews
-- Confirm First: no
 - When To Use: After fixing a bug update test specs, after code changes update test specs, after PR review update test specs, sync test specs after changes, update test documentation after implementation
 - When Not To Use: New feature implementation (use tdd-feature), no code changes yet, idea refinement
 - Sequence: `workflow-review-changes -> tdd-spec -> why-review -> tdd-spec-review -> tdd-spec [direction=sync] -> integration-test -> integration-test-review -> integration-test-verify -> test -> docs-update -> workflow-end`
@@ -1258,7 +1518,6 @@ MANDATORY TEST-SPEC UPDATE GATES:
 
 ### test-to-integration — Test Specs to Integration Tests
 - Description: Generate integration tests from existing test specifications in feature docs or specs/
-- Confirm First: no
 - When To Use: Generate integration tests from test specs, create tests from feature docs, implement test cases from specifications, test specs to code
 - When Not To Use: No test specs exist yet — use write-integration-test (includes tdd-spec step), test planning phase, documentation-only
 - Sequence: `scout -> integration-test -> integration-test-review -> integration-test-verify -> test -> docs-update -> watzup -> workflow-end`
@@ -1281,7 +1540,6 @@ MANDATORY INTEGRATION GENERATION GATES:
 
 ### test-verify — Test Verification & Quality
 - Description: Comprehensive test verification: review quality, diagnose failures, verify traceability, fix flaky tests
-- Confirm First: no
 - When To Use: Review test quality, fix flaky tests, diagnose test failures, verify test traceability, test audit, test health check, integration test review, why tests fail, tests not matching specs
 - When Not To Use: Writing new tests (use write-integration-test or test-to-integration), creating test specs (use pbi-to-tests), new feature implementation
 - Sequence: `scout -> integration-test -> test -> integration-test -> integration-test-review -> integration-test-verify -> docs-update -> watzup -> workflow-end`
@@ -1317,7 +1575,6 @@ MANDATORY TEST-VERIFY GATES:
 
 ### verification — Verification & Validation
 - Description: Investigate-first verification: understand context, test/check behavior, report findings with root cause, then fix only if user approves
-- Confirm First: no
 - When To Use: User wants to verify, validate, confirm, or ensure something is correct/working; sanity check or double-check
 - When Not To Use: Bug reports (known broken), investigation-only, feature implementation, code reviews
 - Sequence: `scout -> investigate -> test-initial -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> fix -> prove-fix -> tdd-spec -> why-review -> tdd-spec-review -> tdd-spec [direction=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> test -> docs-update -> watzup -> workflow-end`
@@ -1353,7 +1610,6 @@ MANDATORY VERIFICATION SYNC GATES:
 
 ### visualize — Visual Diagram
 - Description: Create visual Excalidraw diagrams from codebase investigation or web research
-- Confirm First: no
 - When To Use: User wants to visualize, diagram, draw, or create visual representation of workflows, architectures, concepts, systems, or research findings
 - When Not To Use: Text-only documentation, code implementation, bug fixes, non-visual outputs
 - Sequence: `scout -> investigate -> excalidraw-diagram -> workflow-end`
@@ -1383,7 +1639,6 @@ GUARDRAILS:
 
 ### workflow-seed-test-data — Seed Test Data
 - Description: Generate or enhance test data seeders that simulate QC happy-path scenarios for a feature area. Scouts existing patterns, implements idempotent command-based seeders, reviews compliance, simplifies.
-- Confirm First: no
 - When To Use: User wants to seed test data, implement data seeders, generate realistic development environment data, add happy-path scenarios for a feature, create dummy data for manual QC testing, fill dev database with realistic test cases
 - When Not To Use: Writing integration tests (use write-integration-test), production data migration (use migration workflow), seeding reference/config data without domain commands
 - Sequence: `scout -> investigate -> seed-test-data -> review-changes -> code-simplifier -> docs-update -> watzup -> workflow-end`
@@ -1408,7 +1663,6 @@ PROJECT-SPECIFIC CONTEXT:
 
 ### write-integration-test — Write Integration Tests
 - Description: Write or update integration tests for existing code — spec-first: investigate domain logic → write/update specs → generate test code → 6-gate review → run and verify
-- Confirm First: no
 - When To Use: Write integration tests for a specific command/handler, add test coverage to an untested feature, update integration tests after code changes, integration test authoring from scratch for a feature area, cover uncommitted code changes with integration tests
 - When Not To Use: No implementation yet (use feature or bugfix), spec-only with no code generation (use pbi-to-tests), specs already exist and just need code generation (use test-to-integration), auditing existing tests for quality/flakiness (use test-verify)
 - Sequence: `scout -> investigate -> tdd-spec -> why-review -> tdd-spec-review -> integration-test -> integration-test-review -> integration-test-verify -> tdd-spec [direction=sync] -> docs-update -> watzup -> workflow-end`

@@ -534,7 +534,7 @@ const redirAnchorTests = [
 
 const psHereStringTests = [
     {
-        name: 'PS @\'...\'@ here-string with regex containing => - should allow (real user report)',
+        name: "PS @'...'@ here-string with regex containing => - should allow (real user report)",
         input: {
             tool_input: {
                 command:

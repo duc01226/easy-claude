@@ -18,7 +18,7 @@
 | Workflows      | 37                        | `.claude/workflows.json`     | JSON workflow definitions                                                          |
 | Output Styles  | 6                         | `.claude/output-styles/*.md` | Coding level presets (ELI5→God)                                                    |
 | Scripts        | 11                        | `.claude/scripts/*`          | CJS + Python utilities (top-level; excludes code_graph package internals + tests/) |
-| Codex Scripts  | 7                         | `scripts/codex/*.mjs`        | ESM sync and verification tools                                                    |
+| Codex Scripts  | 8                         | `.claude/scripts/codex/*.mjs` | ESM sync, migration, notification, and verification tools                          |
 | Hook Tests     | 14 suites + 13 standalone | `.claude/hooks/tests/`       | CJS test files                                                                     |
 | Codex Mirrors  | 266 skills, 28 agents     | `.agents/`, `.codex/`        | Generated Codex-compatible copy                                                    |
 
@@ -198,6 +198,7 @@ easy-claude/
 │   │   ├── worktree.cjs              # Git worktree management
 │   │   ├── worktree.test.cjs         # Worktree tests
 │   │   ├── code_graph/               # Code graph CLI + library
+│   │   ├── codex/                    # Codex sync, migration, notification, and verification tooling
 │   │   ├── commands_data.yaml        # Commands catalog data
 │   │   ├── skills_data.yaml          # Skills catalog data
 │   │   ├── requirements.txt          # Python dependencies
@@ -250,16 +251,6 @@ easy-claude/
 │   ├── extensions.json
 │   ├── mcp.json
 │   └── settings.json
-├── scripts/
-│   └── codex/                        # Codex sync, migration, and verification scripts
-│       ├── compat-rewrite.mjs
-│       ├── migrate-claude-to-codex.mjs
-│       ├── sync-context-workflows.mjs
-│       ├── sync-hooks.mjs
-│       ├── verify-no-project-residue.mjs
-│       ├── verify-skill-protocol-compliance.mjs
-│       ├── verify-workflow-cycle-compliance.mjs
-│       └── tests/
 ├── AGENTS.md                         # Codex-facing project instructions
 ├── CLAUDE.md                         # Project instructions for Claude
 ├── package.json                      # Root Codex tooling scripts
@@ -294,7 +285,7 @@ easy-claude/
 | AG   | Agents         | `.claude/agents/`              | 28 specialized subagent role definitions                                                                                    |
 | WF   | Workflows      | `.claude/workflows.json`       | 37 end-to-end process orchestrations                                                                                        |
 | SC   | Scripts        | `.claude/scripts/`             | 11 top-level utility scripts (catalog gen, audit, worktree, statusline-tps); excludes code_graph package internals + tests/ |
-| CX   | Codex Tooling  | `scripts/codex/`               | 7 sync, migration, and verification scripts                                                                                 |
+| CX   | Codex Tooling  | `.claude/scripts/codex/`        | 8 sync, migration, notification, and verification scripts                                                                    |
 | CM   | Codex Mirrors  | `.agents/`, `.codex/`          | Generated Codex-compatible skills, agents, hooks                                                                            |
 | OS   | Output Styles  | `.claude/output-styles/`       | 6 coding level presets                                                                                                      |
 | NT   | Notifications  | `.claude/hooks/notifications/` | Multi-channel notification providers (5)                                                                                    |

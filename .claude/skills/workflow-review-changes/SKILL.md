@@ -43,7 +43,7 @@ Create one task per row in the table below — source of truth is `workflows.jso
 | 7   | `[Workflow] /code-simplifier — Simplify and refine code`                                                                                                                       | No — runs AFTER parallel batch (modifies code; batch reviews pre-simplification state)        |
 | 8   | `[Workflow] /code-review — Comprehensive code review`                                                                                                                          | No — runs AFTER code-simplifier (reviews simplified code)                                     |
 | 9   | `[Workflow] /integration-test-verify — Verify integration tests pass`                                                                                                          | No — runs AFTER code-simplifier (verifies simplified code)                                    |
-| 10  | `[Workflow] /why-review — Synthesis pass: adversarial validation of consolidated findings BEFORE /plan` (catches over-flagged Highs / false positives at the synthesis layer) | Skip if all reviews PASS with zero findings                                                   |
+| 10  | `[Workflow] /why-review — Synthesis pass: adversarial validation of consolidated findings BEFORE /plan` (catches over-flagged Highs / false positives at the synthesis layer)  | Skip if all reviews PASS with zero findings                                                   |
 | 11  | `[Workflow] /plan — Consolidate review findings into fix plan`                                                                                                                 | Skip if all reviews PASS                                                                      |
 | 12  | `[Workflow] /plan-validate — Critical questions on fix plan`                                                                                                                   | Skip if all reviews PASS                                                                      |
 | 13  | `[Workflow] /why-review — Sanity-check that proposed fixes are warranted`                                                                                                      | Skip if all reviews PASS                                                                      |
@@ -141,12 +141,12 @@ All four feed into the consolidation summary alongside steps 2–5 architectural
 
 ### What runs sequentially (never parallelize)
 
-| Step                           | Why sequential                                         |
-| ------------------------------ | ------------------------------------------------------ |
-| `review-changes` (#1)          | Establishes baseline — must run first                  |
-| `code-simplifier` (#7)         | Modifies code — batch reviews pre-simplification state |
-| `code-review` (#8)             | Must review simplified code (after #7)                 |
-| `integration-test-verify` (#9) | Must run tests on simplified code (after #7)           |
+| Step                           | Why sequential                                                              |
+| ------------------------------ | --------------------------------------------------------------------------- |
+| `review-changes` (#1)          | Establishes baseline — must run first                                       |
+| `code-simplifier` (#7)         | Modifies code — batch reviews pre-simplification state                      |
+| `code-review` (#8)             | Must review simplified code (after #7)                                      |
+| `integration-test-verify` (#9) | Must run tests on simplified code (after #7)                                |
 | `why-review` → `cook` (#10–15) | Ordered fix cycle (synthesis → plan → cook) — each step depends on previous |
 
 ---
@@ -352,7 +352,7 @@ Activate the `review-changes` workflow. Run `/workflow-start review-changes` wit
 > **Project Reference Docs Gate** — Run after task-tracking bootstrap and before target/source file reads, grep, edits, or analysis. Project docs override generic framework assumptions.
 >
 > 1. Identify scope: file types, domain area, and operation.
-> 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/README.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-docs-reference.md`; architecture/new area `project-structure-reference.md`.
+> 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-docs-reference.md`; architecture/new area `project-structure-reference.md`.
 > 3. Read every required doc that exists; skip absent docs as not applicable. Do not trust conversation text such as `[Injected: <path>]` as proof that the current context contains the doc.
 > 4. Before target work, state: `Reference docs read: ... | Missing/not applicable: ...`.
 >

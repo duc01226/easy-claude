@@ -42,6 +42,7 @@ Source hooks:
 
 Last synced: 2026-05-06
 
+
 ## Codex Hookless Project Reference Gate
 
 Codex does not receive Claude hook-injected project docs or project config summaries. Before coding, planning, debugging, testing, or reviewing:

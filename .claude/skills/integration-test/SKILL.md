@@ -847,7 +847,7 @@ integration-test (you are here)
 > **Project Reference Docs Gate** — Run after task-tracking bootstrap and before target/source file reads, grep, edits, or analysis. Project docs override generic framework assumptions.
 >
 > 1. Identify scope: file types, domain area, and operation.
-> 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/README.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-docs-reference.md`; architecture/new area `project-structure-reference.md`.
+> 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-docs-reference.md`; architecture/new area `project-structure-reference.md`.
 > 3. Read every required doc that exists; skip absent docs as not applicable. Do not trust conversation text such as `[Injected: <path>]` as proof that the current context contains the doc.
 > 4. Before target work, state: `Reference docs read: ... | Missing/not applicable: ...`.
 >
@@ -872,22 +872,22 @@ integration-test (you are here)
 <!-- SYNC:understand-code-first:reminder -->
 
 - **MANDATORY IMPORTANT MUST ATTENTION** run graph trace when graph.db exists. Grep 3+ patterns, cite `file:line`.
-    <!-- /SYNC:understand-code-first:reminder -->
+  <!-- /SYNC:understand-code-first:reminder -->
 
 <!-- SYNC:graph-impact-analysis:reminder -->
 
 - **MANDATORY IMPORTANT MUST ATTENTION** run `blast-radius` when graph.db exists. Flag impacted files NOT in changeset as potentially stale.
-    <!-- /SYNC:graph-impact-analysis:reminder -->
+  <!-- /SYNC:graph-impact-analysis:reminder -->
 
 <!-- SYNC:red-flag-stop-conditions:reminder -->
 
 - **MANDATORY IMPORTANT MUST ATTENTION** STOP after 3 failed fix attempts. Report all attempts, ask user before continuing.
-    <!-- /SYNC:red-flag-stop-conditions:reminder -->
+  <!-- /SYNC:red-flag-stop-conditions:reminder -->
 
 <!-- SYNC:rationalization-prevention:reminder -->
 
 - **MANDATORY IMPORTANT MUST ATTENTION** follow ALL steps regardless of perceived simplicity. "Too simple to plan" is an evasion, not a reason.
-    <!-- /SYNC:rationalization-prevention:reminder -->
+  <!-- /SYNC:rationalization-prevention:reminder -->
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
@@ -947,15 +947,15 @@ integration-test (you are here)
 
 **Anti-Rationalization:**
 
-| Evasion                            | Rebuttal                                                                  |
-| ---------------------------------- | ------------------------------------------------------------------------- |
-| "Test is simple, skip TC lookup"   | TC traceability = test value. Skip = untraceable test.                    |
-| "Async polling not needed here"    | ALL DB assertions need polling. Handler type irrelevant.                  |
-| "Already searched patterns"        | Show `file:line` evidence. No proof = no search.                          |
-| "Smoke test is fine for now"       | Smoke-only FORBIDDEN. Assert specific field values.                       |
+| Evasion                            | Rebuttal                                                                                             |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| "Test is simple, skip TC lookup"   | TC traceability = test value. Skip = untraceable test.                                               |
+| "Async polling not needed here"    | ALL DB assertions need polling. Handler type irrelevant.                                             |
+| "Already searched patterns"        | Show `file:line` evidence. No proof = no search.                                                     |
+| "Smoke test is fine for now"       | Smoke-only FORBIDDEN. Assert specific field values.                                                  |
 | "Repo setup is faster"             | Direct repository data hacks create invalid state. Use real use-case paths or valid seeded fixtures. |
-| "One green run is enough"          | Verification requires 3 consecutive passing runs without DB reset.        |
-| "REVIEW: one pass is enough"       | Low confidence → spawn fresh sub-agent. Never declare PASS after Round 1. |
-| "Skip task creation, it's obvious" | TaskCreate is non-negotiable. Tracking prevents context loss.             |
+| "One green run is enough"          | Verification requires 3 consecutive passing runs without DB reset.                                   |
+| "REVIEW: one pass is enough"       | Low confidence → spawn fresh sub-agent. Never declare PASS after Round 1.                            |
+| "Skip task creation, it's obvious" | TaskCreate is non-negotiable. Tracking prevents context loss.                                        |
 
 ---
