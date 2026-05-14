@@ -59,7 +59,6 @@ const IMPLEMENTATION_STEPS = new Set(["cook", "fix", "code"]);
 
 const STEP_ALIASES = new Map([
   ["feature-investigation", "investigate"],
-  ["plan-hard", "plan"],
   ["test-initial", "test"],
 ]);
 

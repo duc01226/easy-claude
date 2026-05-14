@@ -1,4 +1,4 @@
-<!-- Last scanned: 2026-03-30 -->
+<!-- Last scanned: 2026-05-15 -->
 
 # Documentation Index Reference
 
@@ -6,13 +6,18 @@
 
 ## Documentation System
 
-43 markdown files across 4 categories. Last scanned: 2026-03-30.
+46 markdown files across 5 categories. Last scanned: 2026-05-15.
+
+This inventory tracks authored framework and project-reference documentation.
+Generated explainer app sources under `.claude/docs/claude-agent-explainer/` are
+outside this count.
 
 | Category              | Count | Path                       |
 | --------------------- | ----- | -------------------------- |
-| Root-level docs       | 2     | `*.md`                     |
+| Root-level docs       | 4     | `*.md`                     |
 | Project reference     | 12    | `docs/project-reference/`  |
-| Framework docs        | 29    | `.claude/docs/`            |
+| ADRs                  | 2     | `docs/adr/`                |
+| Framework docs        | 28    | `.claude/docs/`            |
 | Config (non-markdown) | 1     | `docs/project-config.json` |
 
 ## Documentation Graph
@@ -23,6 +28,9 @@ easy-claude/
 ├── README.md                               # Project overview, installation, features
 │
 ├── docs/
+│   ├── adr/                                # (2 files)
+│   │   ├── 0001-skill-lifecycle.md         # Skill lifecycle schema and GC policy
+│   │   └── 0002-canonical-count-metrics.md # Canonical inventory count metrics
 │   ├── project-config.json                 # Runtime config consumed by hooks
 │   └── project-reference/                  # (12 files)
 │       ├── project-structure-reference.md   # Service architecture, directory tree, tech stack
@@ -39,7 +47,7 @@ easy-claude/
 │       └── design-system/
 │           └── README.md                    # Design system overview, tokens, inventory
 │
-└── .claude/docs/                           # (29 files)
+└── .claude/docs/                           # (28 files)
     ├── README.md                            # Framework documentation hub
     ├── quick-start.md                       # 5-minute onboarding
     ├── universal-setup-guide.md             # Adoption guide for any project
@@ -56,10 +64,10 @@ easy-claude/
     │   ├── README.md                        # Agent system overview
     │   └── agent-patterns.md                # Agent definition patterns
     │
-    ├── configuration/                       # (3 files)
+    ├── configuration/                       # (4 files)
     │   ├── README.md                        # Settings schema, permissions
     │   ├── settings-reference.md            # Full settings.json reference
-    │   └── output-styles.md                 # Output style configuration
+    │   ├── output-styles.md                 # Output style configuration
     │   └── figma-setup.md                   # Figma MCP integration setup
     │
     ├── hooks/                               # (4 files)
@@ -94,7 +102,8 @@ README.md
 └── .claude/docs/troubleshooting.md                  (support)
 
 CLAUDE.md
-└── docs/project-reference/integration-test-reference.md  (test patterns)
+├── docs/project-reference/integration-test-reference.md  (test patterns)
+└── docs/adr/0002-canonical-count-metrics.md              (inventory count metrics)
 
 .claude/docs/README.md  (hub — links to all framework docs)
 ├── .claude/docs/quick-start.md

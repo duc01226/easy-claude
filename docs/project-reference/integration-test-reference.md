@@ -1,6 +1,6 @@
 # Integration Test Reference
 
-<!-- Last scanned: 2026-03-15 -->
+<!-- Last scanned: 2026-05-15 -->
 <!-- This file is referenced by Claude skills and agents for project-specific context. -->
 
 ## Test Architecture
@@ -9,10 +9,10 @@ The framework uses a custom CJS test runner with no external test framework depe
 
 ### Two-Layer Design
 
-1. **`test-all-hooks.cjs`** (2150 lines) -- Monolithic test file containing 22 inline test functions covering every hook event type. Uses `logResult()` to count pass/fail. Invoked as the primary CI entry point.
+1. **`test-all-hooks.cjs`** (2782 lines) -- Primary test file containing inline test functions covering every hook event type. Uses `logResult()` to count pass/fail and bridges the count-drift suite through `run-all-tests.cjs`.
 2. **`run-all-tests.cjs`** -- Suite runner that auto-discovers `suites/*.test.cjs` files, loads each module's exported `{ name, tests }` object, and executes them sequentially with `--filter`, `--verbose`, `--bail`, `--parallel`, and `--list` flags.
 
-Both layers can run independently; `test-all-hooks.cjs` does NOT delegate to `run-all-tests.cjs`.
+Both layers can run independently; `test-all-hooks.cjs` delegates to `run-all-tests.cjs` only for bridged suite coverage such as count-drift.
 
 ### Component Map
 
@@ -20,12 +20,12 @@ Both layers can run independently; `test-all-hooks.cjs` does NOT delegate to `ru
 | --------------------- | ------------------------------------------- | ----------------------- |
 | Main test runner      | `.claude/hooks/tests/test-all-hooks.cjs`    | Direct `node` execution |
 | Suite runner          | `.claude/hooks/tests/run-all-tests.cjs`     | Direct `node` execution |
-| Test suites (14)      | `.claude/hooks/tests/suites/*.test.cjs`     | `run-all-tests.cjs`     |
-| Standalone tests (10) | `.claude/hooks/tests/test-*.cjs`            | Direct `node` execution |
+| Test suites (16)      | `.claude/hooks/tests/suites/*.test.cjs`     | `run-all-tests.cjs`     |
+| Standalone tests (13) | `.claude/hooks/tests/test-*.cjs/.js`        | Direct `node` execution |
 | Lib unit tests        | `.claude/hooks/lib/__tests__/*.test.cjs`    | Direct `node` execution |
 | Scout-block tests (7) | `.claude/hooks/scout-block/tests/test-*.js` | Direct `node` execution |
 
-## Test Suites (14)
+## Test Suites (16)
 
 Suites export `module.exports = { name: string, tests: Array<{ name, fn, skip? }> }`.
 
@@ -34,18 +34,21 @@ Suites export `module.exports = { name: string, tests: Array<{ name, fn, skip? }
 | BA Refinement Context  | `suites/ba-refinement-context.test.cjs`         | BA team context injection on PBI writes |
 | Bugfix Regression      | `suites/bugfix-regression.test.cjs`             | Regression tests for fixed bugs         |
 | Code Patterns Injector | `suites/code-patterns-injector.test.cjs`        | Pattern injection logic                 |
+| Count Drift            | `suites/count-drift.test.cjs`                   | Generated count/catalog drift           |
 | Context                | `suites/context.test.cjs`                       | Context injection tests                 |
+| Dev Rules Injector     | `suites/dev-rules-injector.test.cjs`            | Development-rule injection behavior     |
 | Init Reference Docs    | `suites/init-reference-docs.test.cjs`           | Doc initialization                      |
 | Integration            | `suites/integration.test.cjs`                   | Cross-hook integration                  |
 | Lifecycle              | `suites/lifecycle.test.cjs`                     | Session lifecycle events                |
 | Notification           | `suites/notification.test.cjs`                  | Notification providers                  |
-| Production Readiness   | `suites/production-readiness-protocol.test.cjs` | Quality gates                           |
+| Pre-Compact Snapshot   | `suites/pre-compact-snapshot.test.cjs`          | Transcript snapshot capture             |
 | Quality Audit          | `suites/quality-audit.test.cjs`                 | Audit logic                             |
 | Security               | `suites/security.test.cjs`                      | Security hooks                          |
+| Subagent Concurrency   | `suites/subagent-concurrency.test.cjs`          | Subagent concurrency guardrails         |
 | Swap Engine            | `suites/swap-engine.test.cjs`                   | Output compression                      |
 | Workflow               | `suites/workflow.test.cjs`                      | Workflow routing/tracking               |
 
-## Standalone Test Files (10)
+## Standalone Test Files (13)
 
 Standalone files in `.claude/hooks/tests/` run directly with `node`. They use the `helpers/test-utils.cjs` `TestGroup`/`TestSuite` classes or inline test/assert patterns.
 
@@ -53,6 +56,7 @@ Standalone files in `.claude/hooks/tests/` run directly with `node`. They use th
 | ------------------------------- | ---------------------------------------------------- |
 | `test-ckignore.js`              | `.ckignore` pattern matching                         |
 | `test-context-tracker.cjs`      | Context tracking state                               |
+| `test-git-commit-block.cjs`     | Git commit blocking behavior                         |
 | `test-init-reference-docs.cjs`  | Reference doc initialization                         |
 | `test-lib-modules.cjs`          | Lib modules (workflow-state, edit-state, todo-state) |
 | `test-lib-modules-extended.cjs` | Extended lib module coverage                         |
@@ -62,6 +66,7 @@ Standalone files in `.claude/hooks/tests/` run directly with `node`. They use th
 | `test-scout-block.js`           | Scout-block entry point                              |
 | `test-shared-utilities.cjs`     | Shared utils (debug-log, stdin-parser, hook-runner)  |
 | `test-swap-engine.cjs`          | Swap engine compression                              |
+| `test-workflow-task-guard.cjs`  | Workflow task guard behavior                         |
 
 ## Running Tests
 
@@ -219,11 +224,11 @@ The suite is auto-discovered by `run-all-tests.cjs` -- no registration needed.
 
 ## Latest Test Stats
 
-As of 2026-03-15 scan:
+As of 2026-05-15 scan:
 
-- **test-all-hooks.cjs:** 296 passed, 4 failed (22 test sections covering all hook event types)
-- **Suites:** 14 suite files in `suites/`
-- **Standalone:** 10+ test files in `tests/`
+- **test-all-hooks.cjs:** 369 passed, 0 failed (includes bridged count-drift suite coverage)
+- **Suites:** 16 suite files in `suites/`
+- **Standalone:** 13 standalone test files in `tests/` (14 `test-*` files including the primary runner)
 - **Scout-block:** 7 test files in `scout-block/tests/`
 - **Lib unit tests:** 1 file (`ck-config-utils.test.cjs`)
 

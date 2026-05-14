@@ -48,28 +48,28 @@
  * Purpose: What this hook does
  */
 
-"use strict";
+'use strict';
 
-const { runHook } = require("./lib/hook-runner.cjs");
-const { debug } = require("./lib/debug-log.cjs");
+const { runHook } = require('./lib/hook-runner.cjs');
+const { debug } = require('./lib/debug-log.cjs');
 
 runHook(
-  "my-hook",
-  async (event) => {
-    // event.hookEventName, event.toolName, event.toolInput, event.toolResult
-    // event.sessionId, event.cwd
+    'my-hook',
+    async event => {
+        // event.hookEventName, event.toolName, event.toolInput, event.toolResult
+        // event.sessionId, event.cwd
 
-    return {
-      continue: true, // false = block operation
-      inject: "Context", // Optional: inject into Claude context
-      message: "User msg", // Optional: display to user
-    };
-  },
-  { exitCode: 0, errorExitCode: 0, outputResult: true },
+        return {
+            continue: true, // false = block operation
+            inject: 'Context', // Optional: inject into Claude context
+            message: 'User msg' // Optional: display to user
+        };
+    },
+    { exitCode: 0, errorExitCode: 0, outputResult: true }
 );
 
 module.exports = {
-  /* exported test helpers */
+    /* exported test helpers */
 };
 ```
 
@@ -87,10 +87,10 @@ module.exports = {
 ```javascript
 // Correct: fail-open
 try {
-  // hook logic
+    // hook logic
 } catch (error) {
-  debugError("my-hook", error);
-  process.exit(0); // allow operation on error
+    debugError('my-hook', error);
+    process.exit(0); // allow operation on error
 }
 ```
 
@@ -123,7 +123,7 @@ try {
 ---
 name: skill-name # Must match directory name exactly
 version: 2.0.0 # Semantic versioning (MAJOR.MINOR.PATCH)
-description: "..." # Include trigger keywords for discoverability
+description: '...' # Include trigger keywords for discoverability
 allowed-tools: Read, Grep, Glob, Bash, Write, TaskCreate, Edit
 ---
 ```
@@ -134,7 +134,7 @@ allowed-tools: Read, Grep, Glob, Bash, Write, TaskCreate, Edit
 | ----------------------------- | --------------------------------- | -------------------------------------- |
 | lowercase-hyphen-case only    | `code-review`                     | `CodeReview`, `code_review`            |
 | Max 64 characters             | `arch-security-review`            | `angular-19-nx-component-review-skill` |
-| Characters: `a-z`, `0-9`, `-` | `fix-parallel`                    | `fix_parallel`, `Fix Parallel`         |
+| Characters: `a-z`, `0-9`, `-` | `plan-validate`                   | `plan_validate`, `Plan Validate`       |
 | `name` field = directory name | `name: debug` in `debug/SKILL.md` | Mismatch between name and directory    |
 | No redundant suffixes         | `debug`                           | `debugging-skill`                      |
 
@@ -167,7 +167,7 @@ allowed-tools: Read, Grep, Glob, Bash, Write, TaskCreate, Edit
 ---
 name: agent-name
 description: >-
-  What this agent does and when to use it.
+    What this agent does and when to use it.
 tools: Read, Write, Edit, MultiEdit, Grep, Glob, Bash, TaskCreate
 model: inherit
 skills: related-skill-name

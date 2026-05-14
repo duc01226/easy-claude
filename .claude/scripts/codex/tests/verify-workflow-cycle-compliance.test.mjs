@@ -167,19 +167,18 @@ function makeWorkflowJson() {
 
   return {
     commandMapping: {
-      investigate: { claude: "/feature-investigation", copilot: "/feature-investigation" },
-      plan: { claude: "/plan", copilot: "/plan" },
-      "test-initial": { claude: "/test", copilot: "/test" },
-      "workflow-end": { claude: "/workflow-end", copilot: "/workflow-end" },
-      scout: { claude: "/scout", copilot: "/scout" },
+      investigate: { claude: "/feature-investigation" },
+      plan: { claude: "/plan" },
+      "test-initial": { claude: "/test" },
+      "workflow-end": { claude: "/workflow-end" },
+      scout: { claude: "/scout" },
     },
     workflows,
   };
 }
 
-function toSkillStepToken(step, { agents = false } = {}) {
+function toSkillStepToken(step) {
   if (step === "investigate") return "feature-investigation";
-  if (step === "plan" && agents) return "plan-hard";
   if (step === "test-initial") return "test";
   return step;
 }
@@ -187,7 +186,7 @@ function toSkillStepToken(step, { agents = false } = {}) {
 function buildSkillStepLine(workflowId, { agents = false } = {}) {
   const prefix = agents ? "$" : "/";
   return sequenceByWorkflow[workflowId]
-    .map((step) => `${prefix}${toSkillStepToken(step, { agents })}`)
+    .map((step) => `${prefix}${toSkillStepToken(step)}`)
     .join(" -> ");
 }
 
@@ -269,7 +268,7 @@ test("verify-workflow-cycle-compliance fails on paired-drift", async () => {
     await writeSkillFile(
       path.join(tempRoot, ".agents", "skills"),
       "feature",
-      "$scout -> $feature-investigation -> $plan-hard -> $workflow-end"
+      "$scout -> $feature-investigation -> $unknown-step -> $workflow-end"
     );
 
     await assert.rejects(

@@ -32,6 +32,8 @@
 
 **Objective:** {One sentence: what this test verifies and why it matters}
 
+**Business Intent / Invariant Guarded:** {Business rule or invariant this TC protects; the TC must fail if this rule breaks}
+
 **Preconditions:**
 
 - {Required DB state, seeded data, or prior actions}

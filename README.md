@@ -4,7 +4,7 @@
 
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **75 hooks**, **266 skills**, **37 workflows**, and **28 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **64 top-level hook files**, **256 skills**, **37 workflows**, and **28 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -102,7 +102,7 @@ Optional scans (run if applicable):
 
 ## What's Inside
 
-### Hooks (75 files, 29 lib modules)
+### Hooks (64 top-level files, 29 lib modules)
 
 Runtime Node.js scripts that fire on Claude Code lifecycle events.
 
@@ -119,7 +119,7 @@ Runtime Node.js scripts that fire on Claude Code lifecycle events.
 
 **Hook part-file architecture:** Large hooks are split into chained part-files (`-p2`, `-p3`) for maintainability. The harness chains them at runtime. Affected: `prompt-context-assembler` (6 files), `workflow-router` (3 files).
 
-### Skills (266 definitions)
+### Skills (256 definitions)
 
 Markdown-based prompts with YAML frontmatter that guide AI behavior.
 
@@ -136,7 +136,7 @@ Markdown-based prompts with YAML frontmatter that guide AI behavior.
 | **Scanning**       | `/scan-project-structure`, `/scan-codebase-health`, `/scan-docs-index`                                         | Generate reference docs for hooks to auto-inject        |
 | **Documents**      | `/markdown-to-pdf`, `/markdown-to-docx`, `/pdf-to-markdown`                                                    | Document format conversion                              |
 
-### Workflows (34 definitions)
+### Workflows (37 definitions)
 
 End-to-end process orchestration with step enforcement.
 
@@ -174,12 +174,12 @@ easy-claude/
 ├── .codex/                   # Codex agents, hooks, and context parity files
 ├── .claude/                  # <-- The framework template (copy this to your project)
 │   ├── agents/               # 28 specialized agent definitions
-│   ├── hooks/                # 75 runtime hooks + lib/ utilities
+│   ├── hooks/                # 64 top-level hook files + lib/ utilities
 │   │   ├── lib/              # Shared hook libraries
 │   │   ├── notifications/    # Multi-channel notification system
 │   │   ├── scout-block/      # Broad search prevention
 │   │   └── tests/            # Hook test suites
-│   ├── skills/               # 266 skill definitions
+│   ├── skills/               # 256 skill definitions
 │   │   ├── <skill>/          # Each skill directory contains:
 │   │   │   ├── SKILL.md      # Entry point (prompt + frontmatter)
 │   │   │   ├── scripts/      # Optional automation scripts
@@ -211,7 +211,7 @@ The entire framework is **project-agnostic**. All project-specific knowledge liv
 ```
 ┌─────────────────────────────────────┐
 │     Generic Framework (reusable)    │
-│  75 Hooks + 266 Skills + 37 Flows  │
+│ 64 Hook Files + 256 Skills + 37 Flows │
 └──────────────┬──────────────────────┘
                │
         ┌──────┴──────┐

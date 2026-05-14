@@ -17,6 +17,11 @@ disable-model-invocation: true
 - `team-artifacts/backlog/spec-to-pbi-{date}-backlog.md` with priority order and dependency graph.
 - `plans/reports/spec-to-pbi-{date}-{system-name}.md` with coverage matrix and unresolved questions.
 
+**Universal Rules:**
+
+- MUST ATTENTION define success criteria before execution and loop until observable verification passes.
+- MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
+
 ## When to Use
 
 - User wants to create all PBIs from an existing engineering spec.

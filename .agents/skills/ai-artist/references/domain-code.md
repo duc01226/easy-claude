@@ -1,6 +1,7 @@
 # Code Generation Patterns
 
 ## Function Implementation
+
 ```
 Write a [language] function:
 - Input: [params with types]
@@ -14,6 +15,7 @@ Requirements:
 ```
 
 ## Code Review
+
 ```
 Review for:
 1. Bugs/logic errors
@@ -26,6 +28,7 @@ Format: Issue, line number, severity, fix.
 ```
 
 ## Refactoring
+
 ```
 Refactor to:
 - [Improvement goal]
@@ -36,10 +39,11 @@ Show before/after.
 ```
 
 ## Debugging
+
 ```
 <error>[Error message/behavior]</error>
-<code>[Relevant code]<$code>
-<context>[When it occurs]<$context>
+<code>[Relevant code]</code>
+<context>[When it occurs]</context>
 
 Analyze:
 1. Root cause
@@ -49,6 +53,7 @@ Analyze:
 ```
 
 ## Test Generation
+
 ```
 Generate tests for [function/class]:
 - Framework: [jest/pytest/etc]
@@ -58,6 +63,7 @@ Generate tests for [function/class]:
 ```
 
 ## Documentation
+
 ```
 Document this [function/class/API]:
 - Format: [JSDoc/docstring/OpenAPI]

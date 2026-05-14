@@ -42,7 +42,7 @@
       "name": "skills",
       "kind": "library",
       "pathRegex": "[\\\\/]\\.claude[\\\\/]skills[\\\\/]",
-      "description": "236 skill definitions for task automation (SKILL.md + scripts)",
+      "description": "256 skill definitions for task automation (SKILL.md + scripts)",
       "tags": ["core", "markdown"]
     },
     {

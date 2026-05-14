@@ -39,7 +39,7 @@ test('migrate-claude-to-codex mirrors skills and injects protocol block', async 
     const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-migrate-'));
     try {
         const skillDir = path.join(tempRoot, '.claude', 'skills', 'sample-skill');
-        const planHardSkillDir = path.join(tempRoot, '.claude', 'skills', 'plan-hard');
+        const planSkillDir = path.join(tempRoot, '.claude', 'skills', 'plan');
         const codeSimplifierSkillDir = path.join(tempRoot, '.claude', 'skills', 'code-simplifier');
         const codexSyncSkillDir = path.join(tempRoot, '.claude', 'skills', 'codex-sync');
         const portableSourceScriptsDir = path.join(tempRoot, '.claude', 'scripts', 'codex');
@@ -47,7 +47,7 @@ test('migrate-claude-to-codex mirrors skills and injects protocol block', async 
         const codexDir = path.join(tempRoot, '.codex');
         const hooksDir = path.join(tempRoot, '.claude', 'hooks', 'lib');
         await fs.mkdir(skillDir, { recursive: true });
-        await fs.mkdir(planHardSkillDir, { recursive: true });
+        await fs.mkdir(planSkillDir, { recursive: true });
         await fs.mkdir(codeSimplifierSkillDir, { recursive: true });
         await fs.mkdir(codexSyncSkillDir, { recursive: true });
         await fs.mkdir(portableSourceScriptsDir, { recursive: true });
@@ -66,6 +66,7 @@ test('migrate-claude-to-codex mirrors skills and injects protocol block', async 
                 '# Sample Skill',
                 '',
                 'Use /plan for planning.',
+                'Plan directory: `{plan-dir}/plan.md` + `{plan-dir}/research/*.md`.',
                 'Run /simplify after implementation.',
                 'Agent({ subagent_type: "architect", prompt: "review" })',
                 'Agent(review-architecture, subagent_type="code-reviewer", ...)',
@@ -77,8 +78,8 @@ test('migrate-claude-to-codex mirrors skills and injects protocol block', async 
         await fs.writeFile(path.join(skillDir, 'README.md'), 'Legacy /simplify note.   \n', 'utf8');
 
         await fs.writeFile(
-            path.join(planHardSkillDir, 'SKILL.md'),
-            ['---', 'name: plan-hard', 'description: Plan hard', '---', '', '# Plan Hard', ''].join('\n'),
+            path.join(planSkillDir, 'SKILL.md'),
+            ['---', 'name: plan', 'description: Plan', '---', '', '# Plan', ''].join('\n'),
             'utf8'
         );
 
@@ -157,7 +158,9 @@ test('migrate-claude-to-codex mirrors skills and injects protocol block', async 
         assert.match(mirroredSkill, /CODEX:SYNC-PROMPT-PROTOCOLS:START/);
         assert.match(mirroredSkill, /Hookless Prompt Protocol Mirror/);
         assert.match(mirroredSkill, new RegExp(subagentAuthorizationSnippet.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-        assert.match(mirroredSkill, /Use \$plan-hard for planning\./);
+        assert.match(mirroredSkill, /Use \$plan for planning\./);
+        assert.match(mirroredSkill, /Plan directory: `\{plan-dir\}\/plan\.md` \+ `\{plan-dir\}\/research\/\*\.md`\./);
+        assert.doesNotMatch(mirroredSkill, /\{plan-dir\}\$plan\.md|\{plan-dir\}\$research/);
         assert.match(mirroredSkill, /Run \$code-simplifier after implementation\./);
         assert.match(mirroredSkill, /spawn_agent\(\{ agent_type: "architect"/);
         assert.match(mirroredSkill, /spawn_agent\(review-architecture, agent_type="code-reviewer"/);

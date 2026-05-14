@@ -17,7 +17,7 @@ Do not edit manually; update `CLAUDE.md` and re-sync.
 
 <!-- /SECTION:tldr -->
 
-**Sections:** [TL;DR](#tldr) | [Search First](#mandatory-search-existing-code-first) | [Task Planning](#important-task-planning-rules-must-follow) | [Code Hierarchy](#code-responsibility-hierarchy-critical) | [Naming](#naming-conventions) | [Key Locations](#key-file-locations) | [Dev Commands](#development-commands) | [Evidence](#evidence-based-reasoning--investigation-protocol-mandatory) | [Graph Intelligence](#graph-intelligence-mandatory-when-code-graphgraphdb-exists) | [Skill Activation](#automatic-skill-activation-mandatory)
+**Sections:** [TL;DR](#tldr--what-you-must-know-before-writing-any-code) | [Search First](#search-existing-code-first) | [Task Planning](#task-planning-rules) | [Code Hierarchy](#code-responsibility-hierarchy) | [Naming](#naming-conventions) | [Key Locations](#key-file-locations) | [Dev Commands](#development-commands) | [Evidence](#evidence-based-reasoning--investigation) | [Graph Intelligence](#graph-intelligence-when-code-graphgraphdb-exists) | [Skill Activation](#automatic-skill-activation)
 
 ---
 
@@ -67,50 +67,44 @@ Do not edit manually; update `CLAUDE.md` and re-sync.
 
 <!-- /SECTION:decision-quick-ref -->
 
-## MANDATORY: Search Existing Code FIRST
+## Search Existing Code First
 
-**Before writing ANY code:**
+Before writing code, you MUST grep/glob for 3+ similar examples and follow the local pattern over generic framework docs. Cite `file:line` evidence in the plan.
 
-1. **Grep/Glob search** for similar patterns (find 3+ examples)
-2. **Follow codebase pattern**, NOT generic framework docs
-3. **Provide evidence** in plan (file:line references)
+1. Grep/Glob for similar patterns (find 3+ examples).
+2. Follow the codebase pattern; don't default to framework docs.
+3. Provide `file:line` evidence in the plan.
 
-**Why:** Projects have conventions that differ from framework defaults.
-
-**Enforced by:** Feature/Bugfix/Refactor workflows (scout > investigate steps)
-
----
-
-## FIRST ACTION DECISION (Before ANY tool call)
-
-```
-1. Explicit slash command? (e.g., $plan-hard, $cook) -> Execute it
-2. Detect nearest matching workflow from the Workflow Catalog
-3. ALWAYS ask user via ask the user directly to confirm: activate workflow or execute directly
-4. FALLBACK -> MUST invoke $plan-hard <prompt> FIRST
-```
-
-**CRITICAL: Modification > Research.** If prompt contains BOTH research AND modification intent, **modification workflow wins** (investigation is a substep of `$plan-hard`).
+**Why:** projects have local conventions that differ from framework defaults.
+**Enforced by:** Feature/Bugfix/Refactor workflows (scout → investigate steps).
 
 ---
 
-## IMPORTANT: Task Planning Rules (MUST FOLLOW)
+## First Action Decision (before any tool call)
 
-1. **MANDATORY task creation for file-modifying prompts** — If the prompt could result in ANY file changes, you MUST create task tracking items BEFORE making changes.
-2. **Always break work into many small todo tasks** — granular tasks prevent losing track of progress
-3. **Always add a final review todo task** to review all work done
-4. **Mark todos as completed IMMEDIATELY** after finishing each task
-5. **Exactly ONE task in_progress at a time**
-6. **On context loss/compaction**, ALWAYS call the current task list FIRST — resume existing tasks, do NOT create duplicates
-7. **No speculation or hallucination** — always answer with proof
-8. **Evidence-based recommendations** — complete investigation before recommending changes
-9. **Breaking change assessment** — Any recommendation that could break functionality requires validation
+1. Explicit slash command (e.g. `$plan`, `$cook`) → execute it.
+2. Workflow Catalog has a matching workflow → ask via a direct user question whether to activate the workflow or run the underlying skill directly.
+3. No matching workflow AND prompt would modify files → MUST invoke `$plan <prompt>` first.
+4. No matching workflow AND prompt is read-only/conversational → answer directly.
+
+**Modification beats research.** When a prompt mixes research and modification intent, treat it as modification (investigation is a substep of `$plan`).
 
 ---
 
-## Code Responsibility Hierarchy (CRITICAL)
+## Task Planning Rules
 
-**Place logic in the LOWEST appropriate layer to enable reuse and prevent duplication.**
+1. Before editing files, MUST create a task tracking item per change.
+2. Break work into small todos; add a final review todo.
+3. Mark todos `completed` immediately after each one finishes. Keep exactly one `in_progress`.
+4. On context loss or compaction, call the current task list first — resume existing tasks, don't duplicate.
+5. Recommendations need traced evidence (`file:line`, grep, graph). No speculation.
+6. Recommendations that could break behavior require validation before proposing.
+
+---
+
+## Code Responsibility Hierarchy
+
+Place logic in the lowest appropriate layer to enable reuse and prevent duplication.
 
 ```
 Entity/Model (Lowest)  >  Service  >  Component/Handler (Highest)
@@ -120,9 +114,9 @@ Entity/Model (Lowest)  >  Service  >  Component/Handler (Highest)
 | ---------------- | ----------------------------------------------------------------------- |
 | **Entity/Model** | Business logic, display helpers, static factory methods, default values |
 | **Service**      | API calls, command factories, data transformation                       |
-| **Component**    | UI event handling ONLY — delegates all logic to lower layers            |
+| **Component**    | UI event handling only — delegates all logic to lower layers            |
 
-**Anti-Pattern**: Logic in component/handler that should be in entity > leads to duplicated code.
+**Anti-pattern:** logic in a component/handler that belongs in the entity → leads to duplicated code.
 
 ---
 
@@ -166,10 +160,14 @@ docs/project-reference/     # Reference docs populated by /scan-* skills
 
 ```bash
 node .claude/hooks/tests/test-all-hooks.cjs                          # Run all hook tests
-node .claude/hooks/tests/run-all-tests.cjs                           # Run full test suite
+node .claude/hooks/tests/run-all-tests.cjs                           # Run full test suite (includes count-drift)
 python .claude/scripts/generate_catalogs.py --skills                 # Generate skills catalog
 python .claude/scripts/generate_catalogs.py --commands               # Generate commands catalog
+python .claude/scripts/generate_catalogs.py --inject-counts <file>   # Refresh marker counts in <file>
+python .claude/scripts/generate_catalogs.py --check-counts <file>    # CI drift check (exit 1 on mismatch)
 ```
+
+> **If `count-drift` test fails in CI:** run `--inject-counts` against the offending file (path appears in the DRIFT line on stderr), commit the regenerated digits. Canonical metrics live in `docs/adr/0002-canonical-count-metrics.md`.
 
 <!-- /SECTION:dev-commands -->
 
@@ -181,17 +179,17 @@ See [integration-test-reference.md](docs/project-reference/integration-test-refe
 
 ---
 
-## Evidence-Based Reasoning & Investigation Protocol (MANDATORY)
+## Evidence-Based Reasoning & Investigation
 
-Speculation is FORBIDDEN. Every claim about code behavior, every recommendation for changes, must be backed by evidence.
+Don't speculate. Every claim about code behavior — and every recommendation for changes — must be backed by evidence.
 
 ### Core Rules
 
-1. **Evidence before conclusion** — Cite `file:line`, grep results, or framework docs. Never use "obviously...", "I think..." without proof.
-2. **Confidence declaration required** — Every recommendation must state confidence level with evidence list.
-3. **Inference alone is FORBIDDEN** — Always upgrade to code evidence. When unsure: _"I don't have enough evidence yet."_
-4. **Cross-service validation** — Check ALL services before recommending architectural changes.
-5. **Graph trace before conclusion** — When investigating code flow, you MUST run graph trace on key files.
+1. **Evidence before conclusion** — cite `file:line`, grep results, or framework docs. Don't use "obviously…", "I think…" without proof.
+2. **State your confidence** — every recommendation lists its confidence level and the evidence it rests on.
+3. **Inference alone isn't enough** — upgrade to code evidence when possible. When unsure, say _"I don't have enough evidence yet."_
+4. **Cross-service validation** — check all services before recommending architectural changes.
+5. **Graph trace before conclusion** — when investigating code flow, run a graph trace on key files.
 
 ### Confidence Levels
 
@@ -204,12 +202,10 @@ Speculation is FORBIDDEN. Every claim about code behavior, every recommendation 
 
 ---
 
-## Graph Intelligence (MANDATORY when .code-graph/graph.db exists)
+## Graph Intelligence (when .code-graph/graph.db exists)
 
 <HARD-GATE>
-You MUST run at least ONE graph command on key files before concluding any investigation,
-creating any plan, or verifying any fix. Proceeding without graph evidence is FORBIDDEN.
-Skip only if `.code-graph/graph.db` does not exist.
+You MUST run at least one graph command on key files before concluding any investigation, plan, or fix verification. Skip only when `.code-graph/graph.db` is absent.
 </HARD-GATE>
 
 ### Quick CLI Reference
@@ -228,11 +224,11 @@ python .claude/scripts/code_graph search <keyword> --kind Function --json       
 
 ---
 
-## Automatic Skill Activation (MANDATORY)
+## Automatic Skill Activation
 
 <!-- SECTION:skill-activation -->
 
-When working in specific areas, these skills MUST be automatically activated BEFORE any file creation or modification:
+These skills auto-activate before file edits in their path patterns:
 
 | Path Pattern                 | Skill / Auto-Context | Pre-Read Files                  |
 | ---------------------------- | -------------------- | ------------------------------- |
@@ -241,6 +237,21 @@ When working in specific areas, these skills MUST be automatically activated BEF
 | `.claude/agents/**/*.md`     | _(auto-context)_     | `.claude/docs/agents/README.md` |
 
 <!-- /SECTION:skill-activation -->
+
+---
+
+## Inventory
+
+<!-- Auto-injected by `python .claude/scripts/generate_catalogs.py --inject-counts CLAUDE.md`. See `docs/adr/0002-canonical-count-metrics.md`. -->
+
+| Kind        | Count                                       |
+| ----------- | ------------------------------------------- |
+| Skills      | <!-- COUNT:skills -->256<!-- /COUNT -->     |
+| Hooks       | <!-- COUNT:hooks -->64<!-- /COUNT -->       |
+| Agents      | <!-- COUNT:agents -->28<!-- /COUNT -->      |
+| Workflows   | <!-- COUNT:workflows -->37<!-- /COUNT -->   |
+| Shared      | <!-- COUNT:shared -->3<!-- /COUNT -->       |
+| Lib modules | <!-- COUNT:lib-modules -->29<!-- /COUNT --> |
 
 ---
 
@@ -286,7 +297,6 @@ Do not edit manually; update Claude sources and re-sync.
 <!-- PROMPT-PROTOCOLS:START -->
 > Codex compatibility note:
 > - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
-> - Prefer the `plan-hard` skill for planning guidance in this Codex mirror.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
 > - User-question prompts mean to ask the user directly in Codex.
 > - Ignore Claude-specific mode-switch instructions when they appear.
@@ -325,7 +335,7 @@ Source hooks:
 - `.claude/hooks/lessons-injector.cjs`
 - `docs/project-reference/lessons.md`
 
-Last synced: 2026-05-06
+Last synced: 2026-05-15
 
 
 ## Codex Hookless Project Reference Gate
@@ -422,7 +432,6 @@ Environment and tooling:
 <!-- WORKFLOWS:START -->
 > Codex compatibility note:
 > - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
-> - Prefer the `plan-hard` skill for planning guidance in this Codex mirror.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
 > - User-question prompts mean to ask the user directly in Codex.
 > - Ignore Claude-specific mode-switch instructions when they appear.
@@ -524,15 +533,15 @@ PLAN PHASES (quick reference):
 The two plans serve different purposes — PLAN₁ is strategic, PLAN₂ is tactical.
 
 SECOND PLANNING ROUND:
-After stories + reviews are complete, a second $plan-hard + $plan-review cycle runs.
-The first $plan-hard (after architecture-design) is high-level architecture based on research + domain analysis.
-The second $plan-hard (after tdd-spec-review) incorporates the concrete stories, test specifications, dependency tables, and refinement details into a sprint-ready implementation plan with phased steps.
+After stories + reviews are complete, a second $plan + $plan-review cycle runs.
+The first $plan (after architecture-design) is high-level architecture based on research + domain analysis.
+The second $plan (after tdd-spec-review) incorporates the concrete stories, test specifications, dependency tables, and refinement details into a sprint-ready implementation plan with phased steps.
 This ensures the implementation plan reflects all discovered requirements, test strategy, and story dependencies.
 
 TEST SPECIFICATIONS (after story-review, BEFORE second plan):
 After stories are reviewed, write TDD specs ($tdd-spec) based on story acceptance criteria.
 Review specs ($tdd-spec-review) for coverage and correctness.
-The second $plan-hard then incorporates test strategy alongside implementation tasks.
+The second $plan then incorporates test strategy alongside implementation tasks.
 
 ARCHITECTURE SCAFFOLDING (after second plan-review, CONDITIONAL):
 The $scaffold step is CONDITIONAL — AI must first self-investigate for existing base abstractions.
@@ -740,7 +749,7 @@ FEATURE IMPLEMENTATION PROTOCOL:
 4. Validate plan via $plan-review before any code changes
 5. Validate design rationale with $why-review (features/refactors)
 6. Write test specifications with $tdd-spec CREATE mode (before implementation). Review with $tdd-spec-review.
-7. Update plan with test strategy via $plan-hard (re-plan cycle). Review with $plan-review.
+7. Update plan with test strategy via $plan (re-plan cycle). Review with $plan-review.
 8. Implement with $cook (backend + frontend) — guided by test specs
 8b. Domain Entity Review — CONDITIONAL: if domain entity files created/modified, run $review-domain-entities before updating test specs to catch DDD quality issues early.
 9. Update test specs to catch implementation gaps with $tdd-spec UPDATE mode. Review with $tdd-spec-review. Sync dashboard with $tdd-spec [direction=sync].
@@ -761,7 +770,7 @@ GUARDRAIL: Provide file:line evidence of pattern search in plan. Follow project 
 
 PERFORMANCE EXCEPTION: If this feature is a performance enhancement (query optimization, caching, throughput improvement, latency reduction), skip tdd-spec (both occurrences), tdd-spec-review (both occurrences), the PLAN2 re-plan cycle, tdd-spec [direction=sync], integration-test, integration-test-review, and integration-test-verify. Do NOT skip $cook — implementation still runs. Integration tests cannot measure performance. Run $test only to confirm no functional regressions. Use workflow-performance instead.
 MANDATORY SPEC-DRIVEN + INVARIANT + TEST HARNESS LOOP:
-- Read docs/project-reference/spec-principles.md before $plan-hard and lock feature intent + non-negotiable invariants.
+- Read docs/project-reference/spec-principles.md before $plan and lock feature intent + non-negotiable invariants.
 - $tdd-spec MUST map every invariant to TC IDs in Section 15.
 - STATE MACHINE DATA ASSERT (MOST IMPORTANT MANDATORY ASSERT): for lifecycle behavior, tests MUST assert persisted entity state transitions and invalid-transition rejection.
 - $workflow-end is BLOCKED until spec docs, TDD docs, and test code are synchronized via $tdd-spec + $tdd-spec-review + $integration-test + $integration-test-review + $integration-test-verify + $tdd-spec [direction=sync] + $docs-update (except documented PERFORMANCE EXCEPTION routes where those steps are intentionally skipped).
@@ -868,7 +877,7 @@ PLAN PHASES (quick reference):
 The three plans serve progressively detailed purposes — architecture → implementation → test infrastructure.
 
 SECOND PLANNING ROUND:
-After stories + TDD specs are generated and reviewed, a second $plan-hard + $plan-review cycle runs.
+After stories + TDD specs are generated and reviewed, a second $plan + $plan-review cycle runs.
 This second plan incorporates the concrete stories, test specs, and dependency tables into a detailed implementation plan.
 The first plan is high-level architecture; the second plan is sprint-ready with phased implementation steps.
 
@@ -887,7 +896,7 @@ After scaffolding, the workflow continues with full implementation and integrati
 3. $review-domain-entities reviews domain entity DDD quality — CONDITIONAL: skip if no domain entity files in changeset. Detects anemic model, missing invariants, VO misclassification before integration tests are written.
 4. $tdd-spec writes test specifications (feature doc Section 15)
 5. $tdd-spec-review validates spec coverage and correctness
-6. Third $plan-hard + $plan-review cycle plans integration test architecture
+6. Third $plan + $plan-review cycle plans integration test architecture
 7. $integration-test generates integration tests from specs
 8. $test runs all tests to verify TCs pass
 9. $workflow-review-changes for quality (consolidated review: code-simplifier + review-changes + review-architecture + code-review + performance, then plan + fix + re-review recursively)

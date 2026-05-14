@@ -66,6 +66,27 @@ Three practices: receiving feedback with technical rigor, requesting systematic 
 - ALWAYS question: "Does this actually work?" → trace it. "Is this all?" → grep cross-service
 - ALWAYS verify side effects: check consumers + dependents before approving
 
+## First Principle — Easy to Change
+
+> **The success metric of every coding decision is _future change cost_.**
+> DRY, SRP, abstraction, design patterns, naming, layering, tests — every
+> technique exists to serve one goal: **making the next change cheaper**.
+
+When evaluating code, a refactor, a test, or an abstraction, ask:
+**does this make the next change cheaper or more expensive?**
+
+- Reject "best practices" that raise change cost (premature abstraction,
+  speculative generality, leaky indirection, ceremony without payoff).
+- Name the real enemies in findings: **coupling, hidden state, duplicated
+  knowledge, unclear intent, irreversible decisions exposed too early**.
+- A simpler design that is easy to change beats a sophisticated design that
+  isn't.
+
+Apply this lens **before** invoking any specific rule, pattern, or checklist
+below — if a downstream rule would raise change cost, this principle wins.
+
+---
+
 ## Core Principles (ENFORCE ALL)
 
 | Principle          | Rule                                                                                                        |
@@ -914,6 +935,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > 2. **Happy Path Trace:** Walk through one complete success scenario through changed code
 > 3. **Error Path Trace:** Walk through one failure/edge case scenario through changed code
 > 4. **Acceptance Mapping:** If plan context available, map every acceptance criterion to a code change
+> 5. **Tests Verify Intent:** For test/spec changes, verify tests name the protected business rule or invariant and would fail if that intent breaks.
 >
 > **NEVER mark review PASS without completing both traces (happy + error path).**
 
@@ -936,14 +958,15 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:test-spec-verification -->
 
-> **Test Coverage Verification** — Map changed code to test coverage.
+> **Test Spec Verification** — Map changed code to test specifications.
 >
-> 1. **Find the project's test format** — search for test files, spec docs, or test catalogs near the changed files. Note the naming convention and location pattern.
-> 2. **Map changed behavior to tests** — every changed code path MUST ATTENTION map to a test (or flag as "needs test").
-> 3. **New functions/endpoints/handlers** → flag for test creation.
-> 4. **Verify test references point to actual code** (`file:line`, not stale).
-> 5. **Coverage by concern type:** Security-sensitive changes → auth/permission tests exist? Data-mutating changes → state assertion tests exist?
-> 6. **If no tests exist** → log gap and recommend creating tests.
+> 1. From changed files → find TC-{FEAT}-{NNN} in `docs/business-features/{Service}/detailed-features/{Feature}.md` Section 15
+> 2. Every changed code path MUST ATTENTION map to a corresponding TC (or flag as "needs TC")
+> 3. New functions/endpoints/handlers → flag for test spec creation
+> 4. Verify TC evidence fields point to actual code (`file:line`, not stale references)
+> 5. Verify each meaningful TC includes `Business Intent / Invariant Guarded`; flag behavior-only TCs that only mirror implementation details.
+> 6. Auth changes → TC-{FEAT}-02x exist? Data changes → TC-{FEAT}-01x exist?
+> 7. If no specs exist → log gap and recommend `/tdd-spec`
 >
 > **NEVER skip test mapping.** Untested code paths are the #1 source of production bugs.
 
@@ -972,6 +995,11 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:fix-layer-accountability -->
 
+<!-- SYNC:source-test-drift-check -->
+
+> **Source/test drift check.** For coding, fix, debug, investigation, test, or review work: when source behavior changes, inspect affected unit/integration/E2E tests and decide from evidence whether tests should change to match intended behavior or the source change is an unintended bug to fix.
+
+<!-- /SYNC:source-test-drift-check -->
 <!-- SYNC:ai-mistake-prevention -->
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
@@ -1113,3 +1141,11 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **MANDATORY MUST ATTENTION** run `/why-review` after completing this review to validate design rationale, alternatives considered, and risk assessment
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
+
+---
+
+> **Closing reminder — Easy to Change is the success metric.** Every finding,
+> test, refactor, and abstraction must answer one question: _does this make
+> the next change cheaper or more expensive?_ If it doesn't reduce future
+> change cost, reject it. Coupling, hidden state, duplicated knowledge, and
+> unclear intent are the real enemies — call them out by name.

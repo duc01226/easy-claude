@@ -16,6 +16,9 @@ description: '[Skill Management] Use when starting a detected workflow, initiali
 
 **Key Rules:**
 
+- MUST ATTENTION define success criteria before execution and loop until observable verification passes.
+- MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
+
 - MUST ATTENTION **always** call `AskUserQuestion` before activating — NEVER auto-activate or skip the confirmation step
 - Present THREE options: `A) Activate [Workflow] (Recommended)` | `B) Custom Pipeline: [step → ...]` | `C) Execute directly`
 - Propose Custom Pipeline when no catalog workflow is a strong fit (>80% steps relevant = use catalog)
@@ -138,7 +141,7 @@ FIRST action after activation: create EXACTLY one `TaskCreate` for EACH entry in
 
 ```
 {
-  "commandMapping": { <stepId>: { "claude": "/cmd", "copilot": "/cmd" } },
+  "commandMapping": { <stepId>: { "claude": "/cmd" } },
   "settings":       { ... },
   "workflows":      { <workflowId>: WorkflowEntry }   ← OBJECT, keyed by ID
 }

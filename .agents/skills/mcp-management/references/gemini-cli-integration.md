@@ -25,6 +25,7 @@ npm install -g gemini-cli
 ```
 
 Verify installation:
+
 ```bash
 gemini --version
 ```
@@ -49,6 +50,7 @@ mklink .gemini\settings.json .claude\.mcp.json
 ### Security
 
 Add to `.gitignore`:
+
 ```
 .gemini/settings.json
 ```
@@ -68,33 +70,38 @@ echo "<prompt>" | gemini [flags]
 
 - `-y`: Skip confirmation prompts (auto-approve tool execution)
 - `-m <model>`: Model selection
-  - `gemini-2.5-flash` (fast, recommended for MCP)
-  - `gemini-2.5-flash` (balanced)
-  - `gemini-pro` (high quality)
+    - `gemini-2.5-flash` (fast, recommended for MCP)
+    - `gemini-2.5-flash` (balanced)
+    - `gemini-pro` (high quality)
 
 ### Examples
 
 **Screenshot Capture**:
+
 ```bash
 echo "Take a screenshot of https://www.google.com.vn" | gemini -y -m gemini-2.5-flash
 ```
 
 **Memory Operations**:
+
 ```bash
 echo "Remember that Alice is a React developer working on e-commerce projects" | gemini -y -m gemini-2.5-flash
 ```
 
 **Web Research**:
+
 ```bash
 echo "Search for latest Next.js 15 features and summarize the top 3" | gemini -y -m gemini-2.5-flash
 ```
 
 **Multi-Tool Orchestration**:
+
 ```bash
 echo "Search for Claude AI documentation, take a screenshot of the homepage, and save both to memory" | gemini -y -m gemini-2.5-flash
 ```
 
 **Browser Automation**:
+
 ```bash
 echo "Navigate to https://example.com, click the signup button, and take a screenshot" | gemini -y -m gemini-2.5-flash
 ```
@@ -117,13 +124,13 @@ Edit `.claude/.mcp.json`:
 
 ```json
 {
-  "mcpServers": {
-    "memory": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-memory"],
-      "trust": true
+    "mcpServers": {
+        "memory": {
+            "command": "npx",
+            "args": ["-y", "@modelcontextprotocol/server-memory"],
+            "trust": true
+        }
     }
-  }
 }
 ```
 
@@ -135,14 +142,14 @@ Limit tool exposure:
 
 ```json
 {
-  "mcpServers": {
-    "chrome-devtools": {
-      "command": "npx",
-      "args": ["-y", "chrome-devtools-mcp@latest"],
-      "includeTools": ["navigate_page", "screenshot"],
-      "excludeTools": ["evaluate_js"]
+    "mcpServers": {
+        "chrome-devtools": {
+            "command": "npx",
+            "args": ["-y", "chrome-devtools-mcp@latest"],
+            "includeTools": ["navigate_page", "screenshot"],
+            "excludeTools": ["evaluate_js"]
+        }
     }
-  }
 }
 ```
 
@@ -152,15 +159,15 @@ Use `$VAR_NAME` syntax for sensitive data:
 
 ```json
 {
-  "mcpServers": {
-    "brave-search": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-brave-search"],
-      "env": {
-        "BRAVE_API_KEY": "$BRAVE_API_KEY"
-      }
+    "mcpServers": {
+        "brave-search": {
+            "command": "npx",
+            "args": ["-y", "@modelcontextprotocol/server-brave-search"],
+            "env": {
+                "BRAVE_API_KEY": "$BRAVE_API_KEY"
+            }
+        }
     }
-  }
 }
 ```
 
@@ -174,6 +181,7 @@ gemini
 ```
 
 Shows:
+
 - Connected servers
 - Available tools
 - Configuration errors
@@ -200,11 +208,11 @@ Shows detailed MCP communication logs.
 
 ## Comparison with Alternatives
 
-| Method | Speed | Flexibility | Setup | Best For |
-|--------|-------|-------------|-------|----------|
-| Gemini CLI | ⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ | All tasks |
-| Direct Scripts | ⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐ | Specific tools |
-| Subagent | ⭐ | ⭐⭐ | ⭐⭐⭐ | Fallback |
+| Method         | Speed  | Flexibility | Setup  | Best For       |
+| -------------- | ------ | ----------- | ------ | -------------- |
+| Gemini CLI     | ⭐⭐⭐ | ⭐⭐⭐      | ⭐⭐   | All tasks      |
+| Direct Scripts | ⭐⭐   | ⭐⭐⭐      | ⭐⭐⭐ | Specific tools |
+| Subagent       | ⭐     | ⭐⭐        | ⭐⭐⭐ | Fallback       |
 
 **Recommendation**: Use Gemini CLI as primary method, fallback to scripts/subagent when unavailable.
 

@@ -485,7 +485,7 @@ async function main() {
         );
       }
 
-      // Plan validation config (for /plan-validate, /plan-hard, /plan-parallel)
+      // Plan validation config (for /plan, /plan-validate)
       const validation = config.plan?.validation || {};
       writeEnv(envFile, "CK_VALIDATION_MODE", validation.mode || "prompt");
       writeEnv(

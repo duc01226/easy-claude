@@ -26,7 +26,7 @@ The skill includes a render pipeline that lets the agent visually validate its d
 
 **Option A: Ask your coding agent (easiest)**
 
-Just tell your agent: *"Set up the Excalidraw diagram skill renderer by following the instructions in SKILL.md."* It will run the commands for you.
+Just tell your agent: _"Set up the Excalidraw diagram skill renderer by following the instructions in SKILL.md."_ It will run the commands for you.
 
 **Option B: Manual**
 

@@ -19,6 +19,8 @@ disable-model-invocation: true
 
 - MUST ATTENTION keep claims evidence-based (`file:line`) with confidence >80% to act.
 - MUST ATTENTION keep task tracking updated as each step starts/completes.
+- MUST ATTENTION define success criteria before execution and loop until observable verification passes.
+- MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
 - NEVER skip mandatory workflow or skill gates.
 
 ## When to Use
@@ -54,7 +56,7 @@ After confirming the workflow, present the full step list and let the user desel
 - [x] Test specification review (tdd-spec-review)
 - [x] Dev BA PIC challenge (pbi-challenge)
 - [x] Definition of Ready gate (dor-gate)
-- [x] PBI mockup/wireframe (pbi-mockup)            — CONDITIONAL
+- [x] PBI HTML mock-up (pbi-mockup)                — CONDITIONAL
 - [x] Backlog prioritization (prioritize)
 - [x] Documentation synchronization (docs-update)
 ```
@@ -76,7 +78,7 @@ TaskCreate: "Test specifications (tdd-spec)"
 TaskCreate: "Test specification review (tdd-spec-review)"
 TaskCreate: "Dev BA PIC challenge"
 TaskCreate: "Definition of Ready gate"
-TaskCreate: "PBI mockup" [if UI]
+TaskCreate: "PBI HTML mock-up" [if UI]
 TaskCreate: "Prioritize"
 TaskCreate: "Documentation synchronization (docs-update)"
 TaskCreate: "Session summary (watzup)"
@@ -118,17 +120,17 @@ Generate and review test specifications before challenge and DoR gates so review
 
 Each PBI artifact must contain:
 
-| Section             | Content                                     |
-| ------------------- | ------------------------------------------- |
-| Title               | Clear, actionable                           |
-| Problem Statement   | Why this needs to exist                     |
-| Hypothesis          | If we build X, users will Y, which drives Z |
-| Acceptance Criteria | GIVEN / WHEN / THEN format                  |
-| RICE Score          | Reach × Impact × Confidence / Effort        |
-| User Stories        | Who / What / Why                            |
-| Test Specs          | TC IDs mapped to acceptance criteria        |
-| DoR Status          | PASS / WARN / FAIL                          |
-| Mockup              | ASCII wireframe (if UI)                     |
+| Section             | Content                                                     |
+| ------------------- | ----------------------------------------------------------- |
+| Title               | Clear, actionable                                           |
+| Problem Statement   | Why this needs to exist                                     |
+| Hypothesis          | If we build X, users will Y, which drives Z                 |
+| Acceptance Criteria | GIVEN / WHEN / THEN format                                  |
+| RICE Score          | Reach × Impact × Confidence / Effort                        |
+| User Stories        | Who / What / Why                                            |
+| Test Specs          | TC IDs mapped to acceptance criteria                        |
+| DoR Status          | PASS / WARN / FAIL                                          |
+| Mockup              | HTML mock-up based on project reference design docs (if UI) |
 
 ### 6. Artifact Locations
 
@@ -139,7 +141,7 @@ Each PBI artifact must contain:
 | Stories        | Added to PBI artifact                             |
 | Test specs     | Feature doc Section 15 / `docs/specs/`            |
 | DoR result     | Added to PBI artifact                             |
-| Mockup         | Added to PBI artifact                             |
+| Mockup         | HTML mock-up file saved beside PBI artifact       |
 | Prioritization | `team-artifacts/backlog/{date}-backlog-update.md` |
 | Docs sync      | `plans/reports/docs-update-{YYMMDD}-{HHMM}.md`    |
 

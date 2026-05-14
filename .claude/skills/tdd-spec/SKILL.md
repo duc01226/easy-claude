@@ -42,6 +42,27 @@ triggers: 'tdd spec, tdd test, test driven, write test specs, create test cases,
 >
 > Use output to identify: event consumers, message bus subscribers, background jobs triggered by this feature. These are cross-service TC candidates (category 041–049).
 
+## First Principle — Easy to Change
+
+> **The success metric of every coding decision is _future change cost_.**
+> DRY, SRP, abstraction, design patterns, naming, layering, tests — every
+> technique exists to serve one goal: **making the next change cheaper**.
+
+When evaluating code, a refactor, a test, or an abstraction, ask:
+**does this make the next change cheaper or more expensive?**
+
+- Reject "best practices" that raise change cost (premature abstraction,
+  speculative generality, leaky indirection, ceremony without payoff).
+- Name the real enemies in findings: **coupling, hidden state, duplicated
+  knowledge, unclear intent, irreversible decisions exposed too early**.
+- A simpler design that is easy to change beats a sophisticated design that
+  isn't.
+
+Apply this lens **before** invoking any specific rule, pattern, or checklist
+below — if a downstream rule would raise change cost, this principle wins.
+
+---
+
 ## Estimation & Reference Summary
 
 > **[BLOCKING]** TaskCreate todo to READ these reference files BEFORE generating TCs:
@@ -113,12 +134,12 @@ triggers: 'tdd spec, tdd test, test driven, write test specs, create test cases,
 
 ### Related Skills
 
-| Skill                       | Relationship                                                                                      |
-| --------------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `tdd-spec [direction=sync]` | **Native sync mode** — syncs S15 TCs to/from `docs/specs/` dashboard (replaces `test-specs-docs`) |
-| `integration-test`          | Code generator → generates integration tests FROM TCs written by this skill                       |
-| `feature-docs`              | Feature doc creator → creates the Section 15 that this skill populates                            |
-| `/spec-discovery`           | **Upstream spec** — engineering spec bundle is the source of truth for domain model               | When TCs reveal implementation doesn't match spec-discovery output: run spec-discovery audit/update |
+| Skill                       | Relationship                                                                        |
+| --------------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `tdd-spec [direction=sync]` | **Native sync mode** — syncs S15 TCs to/from `docs/specs/` dashboard                |
+| `integration-test`          | Code generator → generates integration tests FROM TCs written by this skill         |
+| `feature-docs`              | Feature doc creator → creates the Section 15 that this skill populates              |
+| `/spec-discovery`           | **Upstream spec** — engineering spec bundle is the source of truth for domain model | When TCs reveal implementation doesn't match spec-discovery output: run spec-discovery audit/update |
 
 ### Output Locations
 
@@ -416,6 +437,8 @@ Options:
 
 **Objective:** {What this test verifies}
 
+**Business Intent / Invariant Guarded:** {Business rule or invariant this TC protects; the TC must fail if this rule breaks}
+
 **Preconditions:**
 
 - {Setup requirement}
@@ -571,7 +594,7 @@ When feature behavior removed or significantly changed:
 ## See Also
 
 - `tdd-spec-review` — TC quality review (use AFTER this skill to validate TC coverage and correctness)
-- `tdd-spec [direction=sync]` — Native dashboard sync mode (aggregates TCs from feature docs to `docs/specs/` — replaces `test-specs-docs`)
+- `tdd-spec [direction=sync]` — Native dashboard sync mode (aggregates TCs from feature docs to `docs/specs/`)
 - `integration-test` — Integration test code generator (use AFTER this skill to generate test stubs)
 - `feature-docs` — Feature doc creator (creates the Section 15 that this skill populates)
 - `refine` — PBI refinement (feeds acceptance criteria into this skill's TDD-first mode)
@@ -761,6 +784,11 @@ TC-REG-001: GIVEN payment processed WHEN amount > limit THEN reject with Payment
 
 # TDD Spec — Test-Driven Specification Writer
 
+<!-- SYNC:source-test-drift-check -->
+
+> **Source/test drift check.** For coding, fix, debug, investigation, test, or review work: when source behavior changes, inspect affected unit/integration/E2E tests and decide from evidence whether tests should change to match intended behavior or the source change is an unintended bug to fix.
+
+<!-- /SYNC:source-test-drift-check -->
 <!-- SYNC:ai-mistake-prevention -->
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
@@ -1127,3 +1155,11 @@ TC-REG-001: GIVEN payment processed WHEN amount > limit THEN reject with Payment
 **IMPORTANT MUST ATTENTION** authorization TCs are MANDATORY — every role must appear in ≥1 authorization TC.
 
 ---
+
+---
+
+> **Closing reminder — Easy to Change is the success metric.** Every finding,
+> test, refactor, and abstraction must answer one question: _does this make
+> the next change cheaper or more expensive?_ If it doesn't reduce future
+> change cost, reject it. Coupling, hidden state, duplicated knowledge, and
+> unclear intent are the real enemies — call them out by name.

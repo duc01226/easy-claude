@@ -7,32 +7,36 @@ API endpoints and programmatic access to Claude Code functionality.
 ### Usage Reports
 
 **Get Claude Code Usage Report:**
+
 ```bash
 GET /v1/admin/claude-code/usage
 ```
 
 **Query parameters:**
+
 - `start_date`: Start date (YYYY-MM-DD)
 - `end_date`: End date (YYYY-MM-DD)
 - `user_id`: Filter by user
 - `workspace_id`: Filter by workspace
 
 **Response:**
+
 ```json
 {
-  "usage": [
-    {
-      "date": "2025-11-06",
-      "user_id": "user-123",
-      "requests": 150,
-      "tokens": 45000,
-      "cost": 12.50
-    }
-  ]
+    "usage": [
+        {
+            "date": "2025-11-06",
+            "user_id": "user-123",
+            "requests": 150,
+            "tokens": 45000,
+            "cost": 12.5
+        }
+    ]
 }
 ```
 
 **Example:**
+
 ```bash
 curl https://api.anthropic.com/v1/admin/claude-code/usage \
   -H "x-api-key: $ANTHROPIC_API_KEY" \
@@ -44,48 +48,55 @@ curl https://api.anthropic.com/v1/admin/claude-code/usage \
 ### Cost Reports
 
 **Get Cost Report:**
+
 ```bash
 GET /v1/admin/usage/cost
 ```
 
 **Query parameters:**
+
 - `start_date`: Start date
 - `end_date`: End date
 - `group_by`: `user` | `project` | `model`
 
 **Response:**
+
 ```json
 {
-  "costs": [
-    {
-      "group": "user-123",
-      "input_tokens": 100000,
-      "output_tokens": 50000,
-      "cost": 25.00
-    }
-  ],
-  "total": 250.00
+    "costs": [
+        {
+            "group": "user-123",
+            "input_tokens": 100000,
+            "output_tokens": 50000,
+            "cost": 25.0
+        }
+    ],
+    "total": 250.0
 }
 ```
 
 ### User Management
 
 **List Users:**
+
 ```bash
 GET /v1/admin/users
 ```
 
 **Get User:**
+
 ```bash
 GET /v1/admin/users/{user_id}
 ```
 
 **Update User:**
+
 ```bash
 PATCH /v1/admin/users/{user_id}
 ```
 
 **Remove User:**
+
 ```bash
 DELETE /v1/admin/users/{user_id}
 ```
@@ -95,25 +106,28 @@ DELETE /v1/admin/users/{user_id}
 ### Create Message
 
 **Endpoint:**
+
 ```bash
 POST /v1/messages
 ```
 
 **Request:**
+
 ```json
 {
-  "model": "sonnet",
-  "max_tokens": 4096,
-  "messages": [
-    {
-      "role": "user",
-      "content": "Explain this code"
-    }
-  ]
+    "model": "sonnet",
+    "max_tokens": 4096,
+    "messages": [
+        {
+            "role": "user",
+            "content": "Explain this code"
+        }
+    ]
 }
 ```
 
 **With Skills:**
+
 ```json
 {
   "model": "sonnet",
@@ -133,27 +147,29 @@ POST /v1/messages
 ```
 
 **Response:**
+
 ```json
 {
-  "id": "msg_123",
-  "type": "message",
-  "role": "assistant",
-  "content": [
-    {
-      "type": "text",
-      "text": "This code implements..."
+    "id": "msg_123",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+        {
+            "type": "text",
+            "text": "This code implements..."
+        }
+    ],
+    "usage": {
+        "input_tokens": 100,
+        "output_tokens": 200
     }
-  ],
-  "usage": {
-    "input_tokens": 100,
-    "output_tokens": 200
-  }
 }
 ```
 
 ### Stream Messages
 
 **Streaming response:**
+
 ```json
 {
   "model": "sonnet",
@@ -164,6 +180,7 @@ POST /v1/messages
 ```
 
 **Server-sent events:**
+
 ```
 event: message_start
 data: {"type":"message_start","message":{...}}
@@ -178,27 +195,30 @@ data: {"type":"message_stop"}
 ### Count Tokens
 
 **Endpoint:**
+
 ```bash
 POST /v1/messages/count_tokens
 ```
 
 **Request:**
+
 ```json
 {
-  "model": "sonnet",
-  "messages": [
-    {
-      "role": "user",
-      "content": "Count these tokens"
-    }
-  ]
+    "model": "sonnet",
+    "messages": [
+        {
+            "role": "user",
+            "content": "Count these tokens"
+        }
+    ]
 }
 ```
 
 **Response:**
+
 ```json
 {
-  "input_tokens": 15
+    "input_tokens": 15
 }
 ```
 
@@ -207,11 +227,13 @@ POST /v1/messages/count_tokens
 ### Upload File
 
 **Endpoint:**
+
 ```bash
 POST /v1/files
 ```
 
 **Request (multipart/form-data):**
+
 ```bash
 curl https://api.anthropic.com/v1/files \
   -H "x-api-key: $ANTHROPIC_API_KEY" \
@@ -220,40 +242,44 @@ curl https://api.anthropic.com/v1/files \
 ```
 
 **Response:**
+
 ```json
 {
-  "id": "file-123",
-  "object": "file",
-  "bytes": 12345,
-  "created_at": 1699564800,
-  "filename": "document.pdf",
-  "purpose": "user_upload"
+    "id": "file-123",
+    "object": "file",
+    "bytes": 12345,
+    "created_at": 1699564800,
+    "filename": "document.pdf",
+    "purpose": "user_upload"
 }
 ```
 
 ### List Files
 
 **Endpoint:**
+
 ```bash
 GET /v1/files
 ```
 
 **Response:**
+
 ```json
 {
-  "data": [
-    {
-      "id": "file-123",
-      "filename": "document.pdf",
-      "bytes": 12345
-    }
-  ]
+    "data": [
+        {
+            "id": "file-123",
+            "filename": "document.pdf",
+            "bytes": 12345
+        }
+    ]
 }
 ```
 
 ### Download File
 
 **Endpoint:**
+
 ```bash
 GET /v1/files/{file_id}/content
 ```
@@ -261,6 +287,7 @@ GET /v1/files/{file_id}/content
 ### Delete File
 
 **Endpoint:**
+
 ```bash
 DELETE /v1/files/{file_id}
 ```
@@ -270,37 +297,41 @@ DELETE /v1/files/{file_id}
 ### List Models
 
 **Endpoint:**
+
 ```bash
 GET /v1/models
 ```
 
 **Response:**
+
 ```json
 {
-  "data": [
-    {
-      "id": "sonnet",
-      "type": "model",
-      "display_name": "Claude Sonnet 4.5"
-    }
-  ]
+    "data": [
+        {
+            "id": "sonnet",
+            "type": "model",
+            "display_name": "Claude Sonnet 4.5"
+        }
+    ]
 }
 ```
 
 ### Get Model
 
 **Endpoint:**
+
 ```bash
 GET /v1/models/{model_id}
 ```
 
 **Response:**
+
 ```json
 {
-  "id": "sonnet",
-  "type": "model",
-  "display_name": "Claude Sonnet 4.5",
-  "created_at": 1699564800
+    "id": "sonnet",
+    "type": "model",
+    "display_name": "Claude Sonnet 4.5",
+    "created_at": 1699564800
 }
 ```
 
@@ -309,58 +340,65 @@ GET /v1/models/{model_id}
 ### Create Skill
 
 **Endpoint:**
+
 ```bash
 POST /v1/skills
 ```
 
 **Request:**
+
 ```json
 {
-  "name": "my-skill",
-  "description": "Skill description",
-  "instructions": "Detailed instructions...",
-  "version": "1.0.0"
+    "name": "my-skill",
+    "description": "Skill description",
+    "instructions": "Detailed instructions...",
+    "version": "1.0.0"
 }
 ```
 
 ### List Skills
 
 **Endpoint:**
+
 ```bash
 GET /v1/skills
 ```
 
 **Response:**
+
 ```json
 {
-  "data": [
-    {
-      "id": "skill-123",
-      "name": "my-skill",
-      "description": "Skill description"
-    }
-  ]
+    "data": [
+        {
+            "id": "skill-123",
+            "name": "my-skill",
+            "description": "Skill description"
+        }
+    ]
 }
 ```
 
 ### Update Skill
 
 **Endpoint:**
+
 ```bash
 PATCH /v1/skills/{skill_id}
 ```
 
 **Request:**
+
 ```json
 {
-  "description": "Updated description",
-  "instructions": "Updated instructions..."
+    "description": "Updated description",
+    "instructions": "Updated instructions..."
 }
 ```
 
 ### Delete Skill
 
 **Endpoint:**
+
 ```bash
 DELETE /v1/skills/{skill_id}
 ```
@@ -373,15 +411,13 @@ DELETE /v1/skills/{skill_id}
 import Anthropic from '@anthropic-ai/sdk';
 
 const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY
+    apiKey: process.env.ANTHROPIC_API_KEY
 });
 
 const message = await client.messages.create({
-  model: 'sonnet',
-  max_tokens: 1024,
-  messages: [
-    { role: 'user', content: 'Hello, Claude!' }
-  ]
+    model: 'sonnet',
+    max_tokens: 1024,
+    messages: [{ role: 'user', content: 'Hello, Claude!' }]
 });
 
 console.log(message.content);
@@ -413,11 +449,11 @@ print(message.content)
 
 ```json
 {
-  "type": "error",
-  "error": {
-    "type": "invalid_request_error",
-    "message": "Invalid API key"
-  }
+    "type": "error",
+    "error": {
+        "type": "invalid_request_error",
+        "message": "Invalid API key"
+    }
 }
 ```
 
@@ -435,17 +471,17 @@ print(message.content)
 
 ```typescript
 async function withRetry(fn: () => Promise<any>, maxRetries = 3) {
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await fn();
-    } catch (error) {
-      if (error.status === 529 && i < maxRetries - 1) {
-        await new Promise(r => setTimeout(r, 1000 * (i + 1)));
-        continue;
-      }
-      throw error;
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            return await fn();
+        } catch (error) {
+            if (error.status === 529 && i < maxRetries - 1) {
+                await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+                continue;
+            }
+            throw error;
+        }
     }
-  }
 }
 ```
 
@@ -454,6 +490,7 @@ async function withRetry(fn: () => Promise<any>, maxRetries = 3) {
 ### Headers
 
 Response headers include rate limit info:
+
 ```
 anthropic-ratelimit-requests-limit: 1000
 anthropic-ratelimit-requests-remaining: 999
@@ -475,6 +512,7 @@ anthropic-ratelimit-tokens-reset: 2025-11-06T12:00:00Z
 ### API Key
 
 Include API key in requests:
+
 ```bash
 curl https://api.anthropic.com/v1/messages \
   -H "x-api-key: $ANTHROPIC_API_KEY" \
@@ -484,6 +522,7 @@ curl https://api.anthropic.com/v1/messages \
 ### Workspace Keys
 
 For organization workspaces:
+
 ```bash
 curl https://api.anthropic.com/v1/messages \
   -H "x-api-key: $WORKSPACE_API_KEY" \
