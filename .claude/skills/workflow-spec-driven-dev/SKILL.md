@@ -44,6 +44,7 @@ disable-model-invocation: true
 - Spawn sub-agents for 4+ modules in ONE message — NEVER sequential
 - NEVER skip Phase A.ERD — mandatory with every Phase A extraction
 - Write findings incrementally after each section — NEVER hold in memory
+- If shared skills/workflows/hooks/sync tooling changed, run `npm run codex:sync` before `/workflow-end` or record explicit N/A evidence; verify generated mirrors are current.
 
 ---
 

@@ -212,7 +212,7 @@ After all files reviewed, re-read accumulated report:
 
 **Documentation Staleness Check:**
 
-For each changed file — grep file name/module across `docs/` and AI tooling dirs. Changed behavior → flag stale doc (specific section + what changed). **Do NOT auto-fix — flag only.**
+For each changed file — grep file name/module across `docs/` and AI tooling dirs. Changed behavior → flag stale doc (specific section + what changed). **Flag the staleness only — never auto-fix docs here.**
 
 Common staleness patterns: count/limit changed → docs embedding that number | API/contract changed → API usage docs | hook/skill added/removed → catalogs/README | schema changed → entity reference docs.
 
@@ -622,7 +622,7 @@ If `architectureRules` absent in project-config.json → skip silently.
 >
 > **Anti-patterns to flag:** God Object, Copy-Paste inheritance, Circular Dependency, Leaky Abstraction.
 >
-> **Serial Attention for Design Quality** — DO NOT scan all quality concerns simultaneously. Split attention misses violations that focused passes catch.
+> **Serial Attention for Design Quality** — Scan one quality dimension at a time (serial passes), not all concerns at once. — why: split attention misses violations that single-focus passes catch.
 >
 > 1. **Identify applicable dimensions** — Based on the code's language, domain, and patterns, determine which quality dimensions apply: DRY, SOLID principles (SRP/OCP/LSP/ISP/DIP), OOP idioms, cohesion/coupling, GRASP, Law of Demeter, CQRS invariants, etc. Your list is NOT fixed — derive from what the code actually does.
 > 2. **One focused pass per dimension** — Dedicate single-focus attention to EACH dimension in sequence. Do NOT mix concerns across passes.
@@ -960,12 +960,12 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 > **Test Spec Verification** — Map changed code to test specifications.
 >
-> 1. From changed files → find TC-{FEAT}-{NNN} in `docs/business-features/{Service}/detailed-features/{Feature}.md` Section 15
+> 1. From changed files → find TC-{FEATURE}-{NNN} in `docs/business-features/{Service}/detailed-features/{Feature}.md` Section 15
 > 2. Every changed code path MUST ATTENTION map to a corresponding TC (or flag as "needs TC")
 > 3. New functions/endpoints/handlers → flag for test spec creation
 > 4. Verify TC evidence fields point to actual code (`file:line`, not stale references)
 > 5. Verify each meaningful TC includes `Business Intent / Invariant Guarded`; flag behavior-only TCs that only mirror implementation details.
-> 6. Auth changes → TC-{FEAT}-02x exist? Data changes → TC-{FEAT}-01x exist?
+> 6. Auth changes → TC-{FEATURE}-02x exist? Data changes → TC-{FEATURE}-01x exist?
 > 7. If no specs exist → log gap and recommend `/tdd-spec`
 >
 > **NEVER skip test mapping.** Untested code paths are the #1 source of production bugs.
@@ -1021,52 +1021,52 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 <!-- SYNC:evidence-based-reasoning:reminder -->
 
 - **MANDATORY MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% = do NOT recommend.
-  <!-- /SYNC:evidence-based-reasoning:reminder -->
+      <!-- /SYNC:evidence-based-reasoning:reminder -->
 
 <!-- SYNC:design-patterns-quality:reminder -->
 
 - **MANDATORY MUST ATTENTION** check DRY via OOP (same-suffix → base class), right responsibility (lowest layer), SOLID. Grep for dangling refs after changes.
-  <!-- /SYNC:design-patterns-quality:reminder -->
+      <!-- /SYNC:design-patterns-quality:reminder -->
 
 <!-- SYNC:complexity-prevention:reminder -->
 
 - **MANDATORY MUST ATTENTION** apply complexity prevention — one business change = one code change. Flag change amplification (>3 edit sites for future change), scattered type-switches, anemic models, primitive obsession, leaked technology through abstractions, shallow modules, un-extracted utility logic (paging/datetime/string/retry → helpers), and logic in the wrong higher layer (downshift to callee/entity/VM). Don't rationalize silent duplication with pure YAGNI.
-  <!-- /SYNC:complexity-prevention:reminder -->
+      <!-- /SYNC:complexity-prevention:reminder -->
 
 <!-- SYNC:double-round-trip-review:reminder -->
 
 - **MANDATORY MUST ATTENTION** execute the review loop: review → if issues → fix → fresh sub-agent re-review. A round that finds zero issues ENDS the review.
-  <!-- /SYNC:double-round-trip-review:reminder -->
+      <!-- /SYNC:double-round-trip-review:reminder -->
 
 <!-- SYNC:rationalization-prevention:reminder -->
 
 - **MANDATORY MUST ATTENTION** follow ALL steps regardless of perceived simplicity. "Too simple to plan" is evasion, not reason.
-  <!-- /SYNC:rationalization-prevention:reminder -->
+      <!-- /SYNC:rationalization-prevention:reminder -->
 
 <!-- SYNC:graph-assisted-investigation:reminder -->
 
 - **MANDATORY MUST ATTENTION** run at least ONE graph command on key files when graph.db exists. Pattern: grep → graph trace → grep verify.
-  <!-- /SYNC:graph-assisted-investigation:reminder -->
+      <!-- /SYNC:graph-assisted-investigation:reminder -->
 
 <!-- SYNC:logic-and-intention-review:reminder -->
 
 - **MANDATORY MUST ATTENTION** verify every changed file serves stated purpose. Trace happy + error paths. Flag scope creep.
-  <!-- /SYNC:logic-and-intention-review:reminder -->
+      <!-- /SYNC:logic-and-intention-review:reminder -->
 
 <!-- SYNC:bug-detection:reminder -->
 
 - **MANDATORY MUST ATTENTION** check null safety, boundary conditions, error handling, resource management for every review.
-  <!-- /SYNC:bug-detection:reminder -->
+      <!-- /SYNC:bug-detection:reminder -->
 
 <!-- SYNC:test-spec-verification:reminder -->
 
 - **MANDATORY MUST ATTENTION** map every changed function/endpoint to a test. Search for project's test spec format near changed files. Flag coverage gaps, recommend test creation.
-  <!-- /SYNC:test-spec-verification:reminder -->
+      <!-- /SYNC:test-spec-verification:reminder -->
 
 <!-- SYNC:translation-sync-check:reminder -->
 
 - **MANDATORY MUST ATTENTION** for multilingual frontend/UI text changes, verify translation updates are present (or explicitly accepted by user as risk) before PASS.
-  <!-- /SYNC:translation-sync-check:reminder -->
+      <!-- /SYNC:translation-sync-check:reminder -->
 
 <!-- SYNC:fix-layer-accountability:reminder -->
 

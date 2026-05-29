@@ -190,7 +190,18 @@ function buildSkillStepLine(workflowId, { agents = false } = {}) {
     .join(" -> ");
 }
 
-async function writeSkillFile(root, workflowId, stepsLine) {
+function buildTaskTable(steps) {
+  return [
+    "| # | Task Subject | Conditional? |",
+    "| --- | --- | --- |",
+    ...steps.map(
+      (step, index) => `| ${index + 1} | \`[Workflow] /${toSkillStepToken(step)}\` | No |`
+    ),
+  ].join("\n");
+}
+
+async function writeSkillFile(root, workflowId, stepsLine, options = {}) {
+  const { taskTableSteps = null, closingTaskCount = null } = options;
   const targetDir = path.join(root, `workflow-${workflowId}`);
   await fs.mkdir(targetDir, { recursive: true });
   const content = [
@@ -201,8 +212,20 @@ async function writeSkillFile(root, workflowId, stepsLine) {
     "",
     `**IMPORTANT MANDATORY Steps:** ${stepsLine}`,
     "",
-  ].join("\n");
-  await fs.writeFile(path.join(targetDir, "SKILL.md"), content, "utf8");
+  ];
+
+  if (taskTableSteps) {
+    content.push("## Mandatory Task Creation", "", buildTaskTable(taskTableSteps), "");
+  }
+
+  if (closingTaskCount !== null) {
+    content.push(
+      `**IMPORTANT MUST ATTENTION** break work into small todo tasks using TaskCreate BEFORE starting - create ALL ${closingTaskCount} tasks immediately`,
+      ""
+    );
+  }
+
+  await fs.writeFile(path.join(targetDir, "SKILL.md"), content.join("\n"), "utf8");
 }
 
 test("verify-workflow-cycle-compliance passes with normalized aliases", async () => {
@@ -274,6 +297,139 @@ test("verify-workflow-cycle-compliance fails on paired-drift", async () => {
     await assert.rejects(
       execFileAsync(process.execPath, [verifyScript], { cwd: tempRoot }),
       /FAIL/
+    );
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("verify-workflow-cycle-compliance validates task tables and closing counts", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-verify-cycle-table-pass-"));
+
+  try {
+    await fs.mkdir(path.join(tempRoot, ".claude"), { recursive: true });
+    await fs.mkdir(path.join(tempRoot, ".claude", "skills"), { recursive: true });
+    await fs.mkdir(path.join(tempRoot, ".agents", "skills"), { recursive: true });
+
+    await fs.writeFile(
+      path.join(tempRoot, ".claude", "workflows.json"),
+      `${JSON.stringify(makeWorkflowJson(), null, 2)}\n`,
+      "utf8"
+    );
+
+    for (const workflowId of workflowIds) {
+      await writeSkillFile(
+        path.join(tempRoot, ".claude", "skills"),
+        workflowId,
+        buildSkillStepLine(workflowId),
+        {
+          taskTableSteps: sequenceByWorkflow[workflowId],
+          closingTaskCount: sequenceByWorkflow[workflowId].length,
+        }
+      );
+      await writeSkillFile(
+        path.join(tempRoot, ".agents", "skills"),
+        workflowId,
+        buildSkillStepLine(workflowId, { agents: true }),
+        {
+          taskTableSteps: sequenceByWorkflow[workflowId],
+          closingTaskCount: sequenceByWorkflow[workflowId].length,
+        }
+      );
+    }
+
+    await execFileAsync(process.execPath, [verifyScript], { cwd: tempRoot });
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("verify-workflow-cycle-compliance fails on task-table drift", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-verify-cycle-table-fail-"));
+
+  try {
+    await fs.mkdir(path.join(tempRoot, ".claude"), { recursive: true });
+    await fs.mkdir(path.join(tempRoot, ".claude", "skills"), { recursive: true });
+    await fs.mkdir(path.join(tempRoot, ".agents", "skills"), { recursive: true });
+
+    await fs.writeFile(
+      path.join(tempRoot, ".claude", "workflows.json"),
+      `${JSON.stringify(makeWorkflowJson(), null, 2)}\n`,
+      "utf8"
+    );
+
+    for (const workflowId of workflowIds) {
+      await writeSkillFile(
+        path.join(tempRoot, ".claude", "skills"),
+        workflowId,
+        buildSkillStepLine(workflowId)
+      );
+      await writeSkillFile(
+        path.join(tempRoot, ".agents", "skills"),
+        workflowId,
+        buildSkillStepLine(workflowId, { agents: true })
+      );
+    }
+
+    await writeSkillFile(
+      path.join(tempRoot, ".claude", "skills"),
+      "feature",
+      buildSkillStepLine("feature"),
+      {
+        taskTableSteps: sequenceByWorkflow.feature.filter((step) => step !== "workflow-review-changes"),
+        closingTaskCount: sequenceByWorkflow.feature.length,
+      }
+    );
+
+    await assert.rejects(
+      execFileAsync(process.execPath, [verifyScript], { cwd: tempRoot }),
+      /Task-table drift detected/
+    );
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("verify-workflow-cycle-compliance fails on closing task-count drift", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-verify-cycle-count-fail-"));
+
+  try {
+    await fs.mkdir(path.join(tempRoot, ".claude"), { recursive: true });
+    await fs.mkdir(path.join(tempRoot, ".claude", "skills"), { recursive: true });
+    await fs.mkdir(path.join(tempRoot, ".agents", "skills"), { recursive: true });
+
+    await fs.writeFile(
+      path.join(tempRoot, ".claude", "workflows.json"),
+      `${JSON.stringify(makeWorkflowJson(), null, 2)}\n`,
+      "utf8"
+    );
+
+    for (const workflowId of workflowIds) {
+      await writeSkillFile(
+        path.join(tempRoot, ".claude", "skills"),
+        workflowId,
+        buildSkillStepLine(workflowId)
+      );
+      await writeSkillFile(
+        path.join(tempRoot, ".agents", "skills"),
+        workflowId,
+        buildSkillStepLine(workflowId, { agents: true })
+      );
+    }
+
+    await writeSkillFile(
+      path.join(tempRoot, ".claude", "skills"),
+      "feature",
+      buildSkillStepLine("feature"),
+      {
+        taskTableSteps: sequenceByWorkflow.feature,
+        closingTaskCount: 999,
+      }
+    );
+
+    await assert.rejects(
+      execFileAsync(process.execPath, [verifyScript], { cwd: tempRoot }),
+      /Closing task-count drift detected/
     );
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });

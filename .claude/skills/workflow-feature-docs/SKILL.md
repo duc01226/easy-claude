@@ -26,7 +26,7 @@ disable-model-invocation: true
 **IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /plan -> /why-review -> /plan-review -> /why-review -> /plan-validate -> /why-review -> /docs-update -> /workflow-review-changes -> /review-post-task -> /watzup -> /workflow-end
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
-> **[BLOCKING]** Read `docs/project-reference/spec-principles.md` before starting this workflow — use it as the baseline for completeness, tech-agnostic wording, and TC quality expectations.
+> **[BLOCKING]** Read `docs/project-reference/spec-principles.md` before starting this workflow — baseline for completeness, TC quality, and **tech-agnostic output (§3)**: generated prose/headings name no framework/product/language/design-pattern; source paths and class names appear ONLY in evidence fields (`**Evidence**`, `[Source:]`), frontmatter, and Mermaid.
 
 Activate the `feature-docs` workflow. Run `/workflow-start feature-docs` with the user's prompt as context.
 

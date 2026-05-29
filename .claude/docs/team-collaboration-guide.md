@@ -297,7 +297,7 @@ BA:             /refine ──→ [PBI with AC] ──→ /story ──→ [user
 **IMPORTANT MANDATORY Steps:** `/tdd-spec` → `/quality-gate`
 
 ```
-QA:  [PBI] ──→ /tdd-spec ──→ [test spec with TC-{FEAT}-{NNN}]
+QA:  [PBI] ──→ /tdd-spec ──→ [test spec with TC-{FEATURE}-{NNN}]
                                         │
 QC:                              /quality-gate ──→ [PASS/FAIL report]
 ```
@@ -516,7 +516,7 @@ CAPTURE & REQUIREMENTS
   /prioritize [framework]    Order backlog (rice|moscow|value-effort)
 
 TESTING & QUALITY
-  /tdd-spec {source}         Generate test specs (TC-{FEAT}-{NNN})
+  /tdd-spec {source}         Generate test specs (TC-{FEATURE}-{NNN})
   /integration-test          Generate integration tests
   /e2e-test                  Generate E2E tests
   /quality-gate {type}       Run quality checklist (pre-dev|pre-qa|pre-release)

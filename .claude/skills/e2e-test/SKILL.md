@@ -152,8 +152,8 @@ All frameworks should use Page Object pattern:
 Tests must generate unique data to be repeatable:
 
 - Append GUIDs/timestamps to test data
-- Don't depend on specific database state
-- Don't clean up data (creates side effects)
+- Make each test self-sufficient with its own generated data, never depend on specific pre-existing database state
+- Leave seeded data in place after the run, never clean up — why: teardown across shared runs creates side effects for parallel/repeat tests
 
 ### 5. Preconditions Documentation
 
@@ -225,7 +225,7 @@ Generate and maintain E2E tests using the project's configured testing framework
 <!-- SYNC:sub-agent-selection -->
 
 > **Sub-Agent Selection** — Full routing contract: `.claude/skills/shared/sub-agent-selection-guide.md`
-> **Rule:** NEVER use `code-reviewer` for specialized domains (architecture, security, performance, DB, E2E, integration-test, git).
+> **Rule:** Route specialized domains (architecture, security, performance, DB, E2E, integration-test, git) to the matching specialist agent (see guide above) — NEVER use `code-reviewer` for these. — why: `code-reviewer` lacks each domain's checklist, so specialized issues slip through.
 
 <!-- /SYNC:sub-agent-selection -->
 

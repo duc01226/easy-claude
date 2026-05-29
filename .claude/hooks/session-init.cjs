@@ -34,6 +34,9 @@ const {
   validateConfig: validateProjectConfig,
   formatResult: formatProjectConfigResult,
 } = require("./lib/project-config-schema.cjs");
+const {
+  getConfiguredProjectConfigPath,
+} = require("./lib/project-config-loader.cjs");
 
 /**
  * Safely execute shell command with optional timeout
@@ -611,9 +614,9 @@ async function main() {
       }
     }
 
-    // Validate docs/project-config.json on startup — notify user of invalid project config
+    // Validate configured project config on startup — notify user of invalid project config
     if (source === "startup") {
-      const projectConfigPath = "docs/project-config.json";
+      const projectConfigPath = getConfiguredProjectConfigPath();
       if (fs.existsSync(projectConfigPath)) {
         try {
           const raw = JSON.parse(fs.readFileSync(projectConfigPath, "utf-8"));

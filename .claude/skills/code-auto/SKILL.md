@@ -23,7 +23,7 @@ disable-model-invocation: false
 - No user approval gate (unlike `/code` which has a blocking Step 5)
 - Tests must be 100% passing; critical issues must be 0
 - `$ALL_PHASES=Yes` (default) processes all phases in one run
-- Never comment out tests or use fake data to pass
+- Keep tests real and let them genuinely pass — never comment out tests or use fake data to pass — why: faked green hides the regression the test exists to catch
 
 **MUST ATTENTION READ** `CLAUDE.md` then **THINK HARDER** to start working on the following plan:
 
@@ -153,7 +153,7 @@ below — if a downstream rule would raise change cost, this principle wins.
 - Step 3: Tests must be 100% passing
 - Step 4: Critical issues must be 0
 
-Do not skip steps. Do not proceed if validation fails. One plan phase per command run.
+Execute every step in declared order; proceed only when validation passes. One plan phase per command run. — why: skipping steps or advancing past a failed gate leaves later steps acting on unverified state.
 
 ---
 
@@ -216,8 +216,8 @@ Do not skip steps. Do not proceed if validation fails. One plan phase per comman
 > 3. Run `python .claude/scripts/code_graph trace <file> --direction both --json` when `.code-graph/graph.db` exists
 > 4. Map dependencies via `connections` or `callers_of` — know what depends on your target
 > 5. Write investigation to `.ai/workspace/analysis/` for non-trivial tasks (3+ files)
-> 6. Re-read analysis file before implementing — never work from memory alone
-> 7. NEVER invent new patterns when existing ones work — match exactly or document deviation
+> 6. Re-read analysis file before implementing — never work from memory alone. — why: long context drifts from the file; the file is ground truth
+> 7. NEVER invent new patterns when existing ones work — match exactly or document deviation. — why: divergent patterns fragment the codebase and slow every future reader
 >
 > **BLOCKED until:** `- [ ]` Read target files `- [ ]` Grep 3+ patterns `- [ ]` Graph trace (if graph.db exists) `- [ ]` Assumptions verified with evidence
 

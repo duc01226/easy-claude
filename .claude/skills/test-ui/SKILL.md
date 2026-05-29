@@ -21,7 +21,7 @@ disable-model-invocation: false
 
 **Key Rules:**
 
-- Do NOT implement fixes; this is a testing/reporting skill only
+- Test and report only — never implement fixes (this is a testing/reporting skill)
 - Save all screenshots in the report directory
 - Support authenticated routes via cookie/token/localStorage injection
 
@@ -126,7 +126,7 @@ How to write reports:
 - **IMPORTANT:** Sacrifice grammar for the sake of concision when writing reports.
 - **IMPORTANT:** In reports, list any unresolved questions at the end, if any.
 
-**IMPORTANT**: **Do not** start implementing the fixes.
+**IMPORTANT**: Stop at testing and reporting — do not start implementing the fixes.
 **IMPORTANT:** Analyze the skills catalog and activate the skills that are needed for the task during the process.
 
 ---

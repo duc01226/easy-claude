@@ -110,7 +110,7 @@ Call `code-reviewer` subagent: "Review changes for plan phase [phase-name]. Chec
 
 **Output:** `✓ Step 3: Code reviewed - [0] critical issues`
 
-**Validation:** If critical issues > 0, Step 3 INCOMPLETE - do not proceed.
+**Validation:** If critical issues > 0, keep Step 3 open and resolve them before advancing — Step 3 stays INCOMPLETE until the count is 0.
 
 Mark Step 3 complete in TaskCreate, mark Step 4 in_progress.
 
@@ -207,7 +207,7 @@ below — if a downstream rule would raise change cost, this principle wins.
 
 **REMEMBER:**
 
-- Do not skip steps. Do not proceed if validation fails. Do not assume approval without user response.
+- Execute every step in order; proceed only when validation passes and the user has explicitly approved.
 - One plan phase per command run. Command focuses on single plan phase only.
 - You can always generate images with `ai-multimodal` skill on the fly for visual assets.
 - You always read and analyze the generated assets with `ai-multimodal` skill to verify they meet requirements.
@@ -274,8 +274,8 @@ below — if a downstream rule would raise change cost, this principle wins.
 > 3. Run `python .claude/scripts/code_graph trace <file> --direction both --json` when `.code-graph/graph.db` exists
 > 4. Map dependencies via `connections` or `callers_of` — know what depends on your target
 > 5. Write investigation to `.ai/workspace/analysis/` for non-trivial tasks (3+ files)
-> 6. Re-read analysis file before implementing — never work from memory alone
-> 7. NEVER invent new patterns when existing ones work — match exactly or document deviation
+> 6. Re-read analysis file before implementing — never work from memory alone. — why: long context drifts from the file; the file is ground truth
+> 7. NEVER invent new patterns when existing ones work — match exactly or document deviation. — why: divergent patterns fragment the codebase and slow every future reader
 >
 > **BLOCKED until:** `- [ ]` Read target files `- [ ]` Grep 3+ patterns `- [ ]` Graph trace (if graph.db exists) `- [ ]` Assumptions verified with evidence
 

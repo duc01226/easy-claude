@@ -607,11 +607,11 @@ NEVER mark review PASS without completing both traces (happy + error path).
 
 ### Test Spec Verification
 Map changed code to test specifications.
-1. From changed files → find TC-{FEAT}-{NNN} in docs/business-features/{Service}/detailed-features/{Feature}.md Section 15.
+1. From changed files → find TC-{FEATURE}-{NNN} in docs/business-features/{Service}/detailed-features/{Feature}.md Section 15.
 2. Every changed code path MUST map to a corresponding TC (or flag as "needs TC").
 3. New functions/endpoints/handlers → flag for test spec creation.
 4. Verify TC evidence fields point to actual code (file:line, not stale references).
-5. Auth changes → TC-{FEAT}-02x exist? Data changes → TC-{FEAT}-01x exist?
+5. Auth changes → TC-{FEATURE}-02x exist? Data changes → TC-{FEATURE}-01x exist?
 6. If no specs exist → log gap and recommend /tdd-spec.
 NEVER skip test mapping. Untested code paths are the #1 source of production bugs.
 
@@ -700,7 +700,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 <!-- SYNC:double-round-trip-review:reminder -->
 
 - **MANDATORY IMPORTANT MUST ATTENTION** execute the review loop: review → if issues → fix → fresh sub-agent re-review. A round that finds zero issues ENDS the review.
-  <!-- /SYNC:double-round-trip-review:reminder -->
+      <!-- /SYNC:double-round-trip-review:reminder -->
 
 <!-- SYNC:graph-impact-analysis:reminder -->
 
@@ -717,7 +717,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 <!-- SYNC:estimation-framework:reminder -->
 
 - **MANDATORY MUST ATTENTION** estimation: bottom-up phase hours drive `man_days_traditional` (`Σh/6 × productivity_factor`); SP DERIVED. UI cost usually dominates — bump SP one bucket if NEW UI surface (page/complex form/dashboard). Frontmatter MUST include `story_points`, `complexity`, `man_days_traditional`, `man_days_ai`, `estimate_scope_included`, `estimate_scope_excluded`, `estimate_reasoning` (UI vs backend cost driver). Cap SP 3 for additive-on-existing-model+existing-UI unless test scope >1.5d. SP 13 SHOULD split, SP 21 MUST split.
-  <!-- /SYNC:estimation-framework:reminder -->
+      <!-- /SYNC:estimation-framework:reminder -->
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 

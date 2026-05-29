@@ -250,12 +250,18 @@ After plan creation, offer validation interview to confirm decisions before impl
 - For each phase, create `{plan-dir}/phase-XX-phase-name-here.md` with sections: Context links, Overview, Key Insights, Requirements, **Alternatives Considered** (minimum 2 approaches with pros/cons), **Design Rationale** (WHY chosen approach), Architecture, **UI Layout** (see below), Related code files, Implementation Steps, Todo list, Success Criteria, Risk Assessment, Security Considerations, Next steps.
 - **UI Layout:** For frontend-facing phases, include ASCII wireframe. Classify components by tier (common/domain-shared/page-app). For backend-only phases: `## UI Layout` → `N/A — Backend-only change.`
 
+**Behavior/Sync Planning Checks**
+
+- For behavior-changing work, every phase should name changed behavior, unchanged behavior to preserve, TC/test proof, and docs/spec sync action.
+- For AI-extracted specs/TCs, plan must mark them reference-only until canonical acceptance.
+- For `.claude` skills/hooks/workflows/sync tooling, plan must include generated mirror sync or explicit no-sync evidence.
+
 ## **IMPORTANT Task Planning Notes (MUST ATTENTION FOLLOW)**
 
 - Always plan and break work into many small todo tasks using task tracking
 - Always add a final review todo task to verify work quality and identify fixes/enhancements
 - **MANDATORY FINAL TASKS:** After creating all planning todo tasks, ALWAYS add these final tasks:
-    1. **Task: "Write test specifications for each phase"** — Add `## Test Specifications` with TC-{FEAT}-{NNN} IDs to every phase file. Use `$tdd-spec` if feature docs exist. Use `Evidence: TBD` for TDD-first mode.
+    1. **Task: "Write test specifications for each phase"** — Add `## Test Specifications` with TC-{FEATURE}-{NNN} IDs to every phase file. Use `$tdd-spec` if feature docs exist. Use `Evidence: TBD` for TDD-first mode.
     2. **Task: "Run $plan-validate"** — Trigger `$plan-validate` skill to interview user with critical questions and validate plan assumptions
     3. **Task: "Run $plan-review"** — Trigger `$plan-review` skill with deep 3-round protocol (R1: checklist, R2: code-proof trace, R3: adversarial simulation). Review depth based on SP: ≤3 → 2 rounds min, 4-8 → 3 rounds, >8 → 3 rounds + code-proof mandatory.
     4. **Task: "Run $why-review (standalone only)"** — If NOT inside a workflow, trigger `$why-review` to validate design rationale, alternatives considered, and risk assessment in plan. Skip if a workflow already includes `$why-review` in its sequence.
@@ -414,8 +420,8 @@ After creating all phase files, run **recursive decomposition loop**:
 > 3. Run `python .claude/scripts/code_graph trace <file> --direction both --json` when `.code-graph/graph.db` exists
 > 4. Map dependencies via `connections` or `callers_of` — know what depends on your target
 > 5. Write investigation to `.ai/workspace/analysis/` for non-trivial tasks (3+ files)
-> 6. Re-read analysis file before implementing — never work from memory alone
-> 7. NEVER invent new patterns when existing ones work — match exactly or document deviation
+> 6. Re-read analysis file before implementing — never work from memory alone. — why: long context drifts from the file; the file is ground truth
+> 7. NEVER invent new patterns when existing ones work — match exactly or document deviation. — why: divergent patterns fragment the codebase and slow every future reader
 >
 > **BLOCKED until:** `- [ ]` Read target files `- [ ]` Grep 3+ patterns `- [ ]` Graph trace (if graph.db exists) `- [ ]` Assumptions verified with evidence
 
@@ -608,7 +614,7 @@ After creating all phase files, run **recursive decomposition loop**:
 
 > **Plan Quality** — Every plan phase MUST ATTENTION include test specifications.
 >
-> 1. Add `## Test Specifications` section with TC-{FEAT}-{NNN} IDs to every phase file
+> 1. Add `## Test Specifications` section with TC-{FEATURE}-{NNN} IDs to every phase file
 > 2. Map every functional requirement to ≥1 TC (or explicit `TBD` with rationale)
 > 3. TC IDs follow `TC-{FEATURE}-{NNN}` format — reference by ID, never embed full content
 > 4. Before any new workflow step: call the current task list and re-read the phase file
@@ -629,7 +635,7 @@ After creating all phase files, run **recursive decomposition loop**:
 > - ≤5 files modified
 > - ≤3h effort
 > - Follows cycle: plan → implement → review → fix → verify
-> - Do NOT start Phase N+1 until Phase N passes VERIFY
+> - Start Phase N+1 only after Phase N passes VERIFY — why: building on an unverified phase compounds errors downstream
 >
 > **Phase success = all TCs pass + code-reviewer agent approves + no CRITICAL findings.**
 
@@ -782,9 +788,11 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 
 ## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
 
+**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. Any supported AI tool may execute when this shared context and local docs are available.
+
 1. **DETECT:** Match prompt against workflow catalog
 2. **ANALYZE:** Find best-match workflow AND evaluate if a custom step combination would fit better
-3. **ASK (REQUIRED FORMAT):** Use a direct user question with this structure:
+3. **ASK (REQUIRED FORMAT):** Use a direct user question with this structure unless the user explicitly invoked a workflow/skill and the local protocol treats explicit invocation as confirmation:
     - Question: "Which workflow do you want to activate?"
     - Option 1: "Activate **[BestMatch Workflow]** (Recommended)"
     - Option 2: "Activate custom workflow: **[step1 → step2 → ...]**" (include one-line rationale)
@@ -796,63 +804,6 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
    **AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
    **Goal-driven execution:** Define success criteria first, loop until verified, and stop only when observable checks pass.
    **Tests verify intent:** Tests must protect business rules/invariants and fail when the protected intent breaks, not only mirror current behavior.
-
-## Learned Lessons
-
-# Lessons Learned
-
-> **[CRITICAL]** Hard-won project debugging/architecture rules. MUST ATTENTION apply BEFORE forming hypothesis or writing code.
-
-## Quick Summary
-
-**Goal:** Prevent recurrence of known failure patterns — debugging, architecture, naming, AI orchestration, environment.
-
-**Top Rules (apply always):**
-
-- MUST ATTENTION verify ALL preconditions (config, env, DB names, DI regs) BEFORE code-layer hypothesis
-- MUST ATTENTION fix responsible layer — NEVER patch symptom sites with caller-specific defensive code
-- MUST ATTENTION use `ExecuteInjectScopedAsync` for parallel async + repo/UoW — NEVER `ExecuteUowTask`
-- MUST ATTENTION name by PURPOSE not CONTENT — adding member forces rename = abstraction broken
-- MUST ATTENTION persist sub-agent findings incrementally after each file — NEVER batch at end
-- MUST ATTENTION Windows bash: verify Python alias (`where python`/`where py`) — NEVER assume `python`/`python3` resolves
-
----
-
-## Debugging & Root Cause Reasoning
-
-- [2026-04-11] **Holistic-first: verify environment before code.** Failure → list ALL preconditions (config, env vars, DB names, endpoints, DI regs, credentials, permissions, data prerequisites) → verify each via evidence (grep/cat/query) BEFORE code-layer hypothesis. Worst rabbit holes: diving nearest layer while bug sits elsewhere — e.g., hours debugging "sync timeout", real cause: test appsettings pointing wrong DB. ALWAYS cheapest check first.
-- [2026-04-01] **Ask "whose responsibility?" before fixing.** Trace: bug caller (wrong data) or callee (wrong handling)? Fix responsible layer — NEVER patch symptom site masking real issue.
-- [2026-04-01] **Trace data lifecycle, not error site.** Follow data: creation → transformation → consumption. Bug usually where data created wrong, not consumed.
-- [2026-04-01] **Code caller-agnostic.** Functions/handlers/consumers don't know who invokes them. Comments/guards/messages describe business intent — NEVER reference specific callers (tests, seeders, scripts).
-
-## Architecture Invariants
-
-- [2026-05-09] **User name materialization MUST ATTENTION go through `User.UpdateName(firstName, middleName, lastName)`.** Domain method (`src/Services/bravoTALENTS/Employee.Domain/AggregatesModel/User.cs:202-209`) recomputes `FullName` as single source of truth. Three sites still manually patch `user.FullName = user.GetFullName()` after assigning name fields — `src/Services/bravoTALENTS/Employee.Application/Factories/UserFactory.cs:50`, `src/Services/bravoSURVEYS/LearningPlatform.Application/ApplyPlatform/MessageBus/Consumers/AccountUserDeletedEventBusConsumer.cs:102`, `src/Services/bravoINSIGHTS/Analyze/Analyze.Application/MessageBus/Consumers/AccountUserDeletedEventBusConsumer.cs:66`. Next time touching any: replace manual patch with `user.UpdateName(...)` to maintain invariant.
-- [2026-03-31] **ParallelAsync + repo/UoW MUST ATTENTION use `ExecuteInjectScopedAsync`, NEVER `ExecuteUowTask`.** `ExecuteUowTask` creates new UoW but reuses outer DI scope (same DbContext) — parallel iterations sharing non-thread-safe DbContext silently corrupt data. `ExecuteInjectScopedAsync` creates new UoW + new DI scope (fresh repo per iteration).
-- [2026-03-31] **Bus message naming MUST ATTENTION include service name prefix — core services NEVER consume feature events.** Prefix declares schema ownership (`AccountUserEntityEventBusMessage` = Accounts owns). Core services (Accounts, Communication) leaders. Feature services (Growth, Talents) sending to core MUST ATTENTION use `{CoreServiceName}...RequestBusMessage` — NEVER define own event for core to consume.
-
-## Naming & Abstraction
-
-- [2026-04-12] **Name PURPOSE not CONTENT — "OrXxx" anti-pattern.** `HrManagerOrHrOrPayrollHrOperationsPolicy` names set members, not what guards. Add role → rename = broken abstraction. **Rule:** names express DOES/GUARDS, not CONTAINS. **Test:** adding/removing member forces rename? YES = content-driven = bad → rename to purpose (e.g., `HrOperationsAccessPolicy`). **Nuance:** "Or" fine behavioral idioms (`FirstOrDefault`, `SuccessOrThrow`) — expresses HAPPENS, not membership.
-
-## Environment & Tooling
-
-- [2026-04-20] **Windows bash: NEVER assume `python`/`python3` resolves — verify alias first.** Python may not be bash PATH under those names. Check: `where python` / `where py`. ALWAYS prefer `py` (Windows Python Launcher) one-liners, `node` if JS alternative exists.
-
-> Test-specific lessons → `docs/project-reference/integration-test-reference.md` Lessons Learned section. Production-code anti-patterns → `docs/project-reference/backend-patterns-reference.md` Anti-Patterns section. Generic debugging/refactoring reminders → System Lessons `.claude/hooks/lib/prompt-injections.cjs`.
-
----
-
-## Closing Reminders
-
-- **IMPORTANT MUST ATTENTION** holistic-first: verify ALL preconditions (config, env, DB names, endpoints, DI regs) BEFORE code-layer hypothesis — cheapest check first
-- **IMPORTANT MUST ATTENTION** fix responsible layer — NEVER patch symptom site; trace caller (wrong data) vs callee (wrong handling), fix root owner
-- **IMPORTANT MUST ATTENTION** parallel async + repo/UoW → ALWAYS `ExecuteInjectScopedAsync`, NEVER `ExecuteUowTask` (shared DbContext = silent data corruption)
-- **IMPORTANT MUST ATTENTION** bus message prefix = schema ownership; feature services NEVER define events for core services — use `{CoreServiceName}...RequestBusMessage`
-- **IMPORTANT MUST ATTENTION** name by PURPOSE — adding/removing member forces rename = broken abstraction
-- **IMPORTANT MUST ATTENTION** sub-agents MUST write findings after each file/section — NEVER batch all findings into one final write
-- **IMPORTANT MUST ATTENTION** Windows bash: NEVER assume `python`/`python3` resolves — run `where python`/`where py` first, use `py` launcher or `node`
-- **IMPORTANT MUST ATTENTION** every claim needs `file:line` evidence — confidence >80% to act, NEVER speculate
 
 ## [LESSON-LEARNED-REMINDER] [BLOCKING] Task Planning & Continuous Improvement — MANDATORY. Do not skip.
 

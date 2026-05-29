@@ -247,7 +247,7 @@ After all files reviewed, re-read accumulated report:
 
 **Documentation Staleness Check:**
 
-For each changed file — grep file name/module across `docs/` and AI tooling dirs. Changed behavior → flag stale doc (specific section + what changed). **Do NOT auto-fix — flag only.**
+For each changed file — grep file name/module across `docs/` and AI tooling dirs. Changed behavior → flag stale doc (specific section + what changed). **Flag the staleness only — never auto-fix docs here.**
 
 Common staleness patterns: count/limit changed → docs embedding that number | API/contract changed → API usage docs | hook/skill added/removed → catalogs/README | schema changed → entity reference docs.
 
@@ -657,7 +657,7 @@ If `architectureRules` absent in project-config.json → skip silently.
 >
 > **Anti-patterns to flag:** God Object, Copy-Paste inheritance, Circular Dependency, Leaky Abstraction.
 >
-> **Serial Attention for Design Quality** — DO NOT scan all quality concerns simultaneously. Split attention misses violations that focused passes catch.
+> **Serial Attention for Design Quality** — Scan one quality dimension at a time (serial passes), not all concerns at once. — why: split attention misses violations that single-focus passes catch.
 >
 > 1. **Identify applicable dimensions** — Based on the code's language, domain, and patterns, determine which quality dimensions apply: DRY, SOLID principles (SRP/OCP/LSP/ISP/DIP), OOP idioms, cohesion/coupling, GRASP, Law of Demeter, CQRS invariants, etc. Your list is NOT fixed — derive from what the code actually does.
 > 2. **One focused pass per dimension** — Dedicate single-focus attention to EACH dimension in sequence. Do NOT mix concerns across passes.
@@ -772,7 +772,7 @@ If `architectureRules` absent in project-config.json → skip silently.
 >
 > **How:**
 >
-> 1. Spawn a NEW `spawn_agent` tool call — use `code-reviewer` subagent_type for code reviews, `general-purpose` for plan/doc/artifact reviews
+> 1. Spawn a NEW `spawn_agent` tool call — use `code-reviewer` agent_type for code reviews, `general-purpose` for plan/doc/artifact reviews
 > 2. Inject ALL required review protocols VERBATIM into the prompt — see `SYNC:review-protocol-injection` for the full list and template. Never reference protocols by file path; AI compliance drops behind file-read indirection (see `SYNC:shared-protocol-duplication-policy`)
 > 3. Sub-agent re-reads ALL target files from scratch via its own tool calls — never pass file contents inline in the prompt
 > 4. Sub-agent writes structured report to `plans/reports/{review-type}-round{N}-{date}.md`
@@ -938,7 +938,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 - DO copy the template wholesale — including all 10 embedded protocol sections
 - DO replace only the `{placeholders}` in Task / Round / Reference Docs / Target Files / Output sections with context-specific content
-- DO choose `code-reviewer` subagent_type for code reviews and `general-purpose` for plan / doc / artifact reviews
+- DO choose `code-reviewer` agent_type for code reviews and `general-purpose` for plan / doc / artifact reviews
 - DO NOT paraphrase, summarize, or skip any protocol section
 - DO NOT pass file contents inline — the sub-agent reads via its own tool calls so it has a fresh context
 - DO NOT reference protocols by file path or tag name — the bodies are already embedded above
@@ -995,12 +995,12 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 > **Test Spec Verification** — Map changed code to test specifications.
 >
-> 1. From changed files → find TC-{FEAT}-{NNN} in `docs/business-features/{Service}/detailed-features/{Feature}.md` Section 15
+> 1. From changed files → find TC-{FEATURE}-{NNN} in `docs/business-features/{Service}/detailed-features/{Feature}.md` Section 15
 > 2. Every changed code path MUST ATTENTION map to a corresponding TC (or flag as "needs TC")
 > 3. New functions/endpoints/handlers → flag for test spec creation
 > 4. Verify TC evidence fields point to actual code (`file:line`, not stale references)
 > 5. Verify each meaningful TC includes `Business Intent / Invariant Guarded`; flag behavior-only TCs that only mirror implementation details.
-> 6. Auth changes → TC-{FEAT}-02x exist? Data changes → TC-{FEAT}-01x exist?
+> 6. Auth changes → TC-{FEATURE}-02x exist? Data changes → TC-{FEATURE}-01x exist?
 > 7. If no specs exist → log gap and recommend `$tdd-spec`
 >
 > **NEVER skip test mapping.** Untested code paths are the #1 source of production bugs.
@@ -1056,52 +1056,52 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 <!-- SYNC:evidence-based-reasoning:reminder -->
 
 - **MANDATORY MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% = do NOT recommend.
-      <!-- /SYNC:evidence-based-reasoning:reminder -->
+  <!-- /SYNC:evidence-based-reasoning:reminder -->
 
 <!-- SYNC:design-patterns-quality:reminder -->
 
 - **MANDATORY MUST ATTENTION** check DRY via OOP (same-suffix → base class), right responsibility (lowest layer), SOLID. Grep for dangling refs after changes.
-      <!-- /SYNC:design-patterns-quality:reminder -->
+  <!-- /SYNC:design-patterns-quality:reminder -->
 
 <!-- SYNC:complexity-prevention:reminder -->
 
 - **MANDATORY MUST ATTENTION** apply complexity prevention — one business change = one code change. Flag change amplification (>3 edit sites for future change), scattered type-switches, anemic models, primitive obsession, leaked technology through abstractions, shallow modules, un-extracted utility logic (paging/datetime/string/retry → helpers), and logic in the wrong higher layer (downshift to callee/entity/VM). Don't rationalize silent duplication with pure YAGNI.
-      <!-- /SYNC:complexity-prevention:reminder -->
+  <!-- /SYNC:complexity-prevention:reminder -->
 
 <!-- SYNC:double-round-trip-review:reminder -->
 
 - **MANDATORY MUST ATTENTION** execute the review loop: review → if issues → fix → fresh sub-agent re-review. A round that finds zero issues ENDS the review.
-      <!-- /SYNC:double-round-trip-review:reminder -->
+  <!-- /SYNC:double-round-trip-review:reminder -->
 
 <!-- SYNC:rationalization-prevention:reminder -->
 
 - **MANDATORY MUST ATTENTION** follow ALL steps regardless of perceived simplicity. "Too simple to plan" is evasion, not reason.
-      <!-- /SYNC:rationalization-prevention:reminder -->
+  <!-- /SYNC:rationalization-prevention:reminder -->
 
 <!-- SYNC:graph-assisted-investigation:reminder -->
 
 - **MANDATORY MUST ATTENTION** run at least ONE graph command on key files when graph.db exists. Pattern: grep → graph trace → grep verify.
-      <!-- /SYNC:graph-assisted-investigation:reminder -->
+  <!-- /SYNC:graph-assisted-investigation:reminder -->
 
 <!-- SYNC:logic-and-intention-review:reminder -->
 
 - **MANDATORY MUST ATTENTION** verify every changed file serves stated purpose. Trace happy + error paths. Flag scope creep.
-      <!-- /SYNC:logic-and-intention-review:reminder -->
+  <!-- /SYNC:logic-and-intention-review:reminder -->
 
 <!-- SYNC:bug-detection:reminder -->
 
 - **MANDATORY MUST ATTENTION** check null safety, boundary conditions, error handling, resource management for every review.
-      <!-- /SYNC:bug-detection:reminder -->
+  <!-- /SYNC:bug-detection:reminder -->
 
 <!-- SYNC:test-spec-verification:reminder -->
 
 - **MANDATORY MUST ATTENTION** map every changed function/endpoint to a test. Search for project's test spec format near changed files. Flag coverage gaps, recommend test creation.
-      <!-- /SYNC:test-spec-verification:reminder -->
+  <!-- /SYNC:test-spec-verification:reminder -->
 
 <!-- SYNC:translation-sync-check:reminder -->
 
 - **MANDATORY MUST ATTENTION** for multilingual frontend/UI text changes, verify translation updates are present (or explicitly accepted by user as risk) before PASS.
-      <!-- /SYNC:translation-sync-check:reminder -->
+  <!-- /SYNC:translation-sync-check:reminder -->
 
 <!-- SYNC:fix-layer-accountability:reminder -->
 
@@ -1193,9 +1193,11 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 
 ## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
 
+**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. Any supported AI tool may execute when this shared context and local docs are available.
+
 1. **DETECT:** Match prompt against workflow catalog
 2. **ANALYZE:** Find best-match workflow AND evaluate if a custom step combination would fit better
-3. **ASK (REQUIRED FORMAT):** Use a direct user question with this structure:
+3. **ASK (REQUIRED FORMAT):** Use a direct user question with this structure unless the user explicitly invoked a workflow/skill and the local protocol treats explicit invocation as confirmation:
     - Question: "Which workflow do you want to activate?"
     - Option 1: "Activate **[BestMatch Workflow]** (Recommended)"
     - Option 2: "Activate custom workflow: **[step1 → step2 → ...]**" (include one-line rationale)
@@ -1207,63 +1209,6 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
    **AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
    **Goal-driven execution:** Define success criteria first, loop until verified, and stop only when observable checks pass.
    **Tests verify intent:** Tests must protect business rules/invariants and fail when the protected intent breaks, not only mirror current behavior.
-
-## Learned Lessons
-
-# Lessons Learned
-
-> **[CRITICAL]** Hard-won project debugging/architecture rules. MUST ATTENTION apply BEFORE forming hypothesis or writing code.
-
-## Quick Summary
-
-**Goal:** Prevent recurrence of known failure patterns — debugging, architecture, naming, AI orchestration, environment.
-
-**Top Rules (apply always):**
-
-- MUST ATTENTION verify ALL preconditions (config, env, DB names, DI regs) BEFORE code-layer hypothesis
-- MUST ATTENTION fix responsible layer — NEVER patch symptom sites with caller-specific defensive code
-- MUST ATTENTION use `ExecuteInjectScopedAsync` for parallel async + repo/UoW — NEVER `ExecuteUowTask`
-- MUST ATTENTION name by PURPOSE not CONTENT — adding member forces rename = abstraction broken
-- MUST ATTENTION persist sub-agent findings incrementally after each file — NEVER batch at end
-- MUST ATTENTION Windows bash: verify Python alias (`where python`/`where py`) — NEVER assume `python`/`python3` resolves
-
----
-
-## Debugging & Root Cause Reasoning
-
-- [2026-04-11] **Holistic-first: verify environment before code.** Failure → list ALL preconditions (config, env vars, DB names, endpoints, DI regs, credentials, permissions, data prerequisites) → verify each via evidence (grep/cat/query) BEFORE code-layer hypothesis. Worst rabbit holes: diving nearest layer while bug sits elsewhere — e.g., hours debugging "sync timeout", real cause: test appsettings pointing wrong DB. ALWAYS cheapest check first.
-- [2026-04-01] **Ask "whose responsibility?" before fixing.** Trace: bug caller (wrong data) or callee (wrong handling)? Fix responsible layer — NEVER patch symptom site masking real issue.
-- [2026-04-01] **Trace data lifecycle, not error site.** Follow data: creation → transformation → consumption. Bug usually where data created wrong, not consumed.
-- [2026-04-01] **Code caller-agnostic.** Functions/handlers/consumers don't know who invokes them. Comments/guards/messages describe business intent — NEVER reference specific callers (tests, seeders, scripts).
-
-## Architecture Invariants
-
-- [2026-05-09] **User name materialization MUST ATTENTION go through `User.UpdateName(firstName, middleName, lastName)`.** Domain method (`src/Services/bravoTALENTS/Employee.Domain/AggregatesModel/User.cs:202-209`) recomputes `FullName` as single source of truth. Three sites still manually patch `user.FullName = user.GetFullName()` after assigning name fields — `src/Services/bravoTALENTS/Employee.Application/Factories/UserFactory.cs:50`, `src/Services/bravoSURVEYS/LearningPlatform.Application/ApplyPlatform/MessageBus/Consumers/AccountUserDeletedEventBusConsumer.cs:102`, `src/Services/bravoINSIGHTS/Analyze/Analyze.Application/MessageBus/Consumers/AccountUserDeletedEventBusConsumer.cs:66`. Next time touching any: replace manual patch with `user.UpdateName(...)` to maintain invariant.
-- [2026-03-31] **ParallelAsync + repo/UoW MUST ATTENTION use `ExecuteInjectScopedAsync`, NEVER `ExecuteUowTask`.** `ExecuteUowTask` creates new UoW but reuses outer DI scope (same DbContext) — parallel iterations sharing non-thread-safe DbContext silently corrupt data. `ExecuteInjectScopedAsync` creates new UoW + new DI scope (fresh repo per iteration).
-- [2026-03-31] **Bus message naming MUST ATTENTION include service name prefix — core services NEVER consume feature events.** Prefix declares schema ownership (`AccountUserEntityEventBusMessage` = Accounts owns). Core services (Accounts, Communication) leaders. Feature services (Growth, Talents) sending to core MUST ATTENTION use `{CoreServiceName}...RequestBusMessage` — NEVER define own event for core to consume.
-
-## Naming & Abstraction
-
-- [2026-04-12] **Name PURPOSE not CONTENT — "OrXxx" anti-pattern.** `HrManagerOrHrOrPayrollHrOperationsPolicy` names set members, not what guards. Add role → rename = broken abstraction. **Rule:** names express DOES/GUARDS, not CONTAINS. **Test:** adding/removing member forces rename? YES = content-driven = bad → rename to purpose (e.g., `HrOperationsAccessPolicy`). **Nuance:** "Or" fine behavioral idioms (`FirstOrDefault`, `SuccessOrThrow`) — expresses HAPPENS, not membership.
-
-## Environment & Tooling
-
-- [2026-04-20] **Windows bash: NEVER assume `python`/`python3` resolves — verify alias first.** Python may not be bash PATH under those names. Check: `where python` / `where py`. ALWAYS prefer `py` (Windows Python Launcher) one-liners, `node` if JS alternative exists.
-
-> Test-specific lessons → `docs/project-reference/integration-test-reference.md` Lessons Learned section. Production-code anti-patterns → `docs/project-reference/backend-patterns-reference.md` Anti-Patterns section. Generic debugging/refactoring reminders → System Lessons `.claude/hooks/lib/prompt-injections.cjs`.
-
----
-
-## Closing Reminders
-
-- **IMPORTANT MUST ATTENTION** holistic-first: verify ALL preconditions (config, env, DB names, endpoints, DI regs) BEFORE code-layer hypothesis — cheapest check first
-- **IMPORTANT MUST ATTENTION** fix responsible layer — NEVER patch symptom site; trace caller (wrong data) vs callee (wrong handling), fix root owner
-- **IMPORTANT MUST ATTENTION** parallel async + repo/UoW → ALWAYS `ExecuteInjectScopedAsync`, NEVER `ExecuteUowTask` (shared DbContext = silent data corruption)
-- **IMPORTANT MUST ATTENTION** bus message prefix = schema ownership; feature services NEVER define events for core services — use `{CoreServiceName}...RequestBusMessage`
-- **IMPORTANT MUST ATTENTION** name by PURPOSE — adding/removing member forces rename = broken abstraction
-- **IMPORTANT MUST ATTENTION** sub-agents MUST write findings after each file/section — NEVER batch all findings into one final write
-- **IMPORTANT MUST ATTENTION** Windows bash: NEVER assume `python`/`python3` resolves — run `where python`/`where py` first, use `py` launcher or `node`
-- **IMPORTANT MUST ATTENTION** every claim needs `file:line` evidence — confidence >80% to act, NEVER speculate
 
 ## [LESSON-LEARNED-REMINDER] [BLOCKING] Task Planning & Continuous Improvement — MANDATORY. Do not skip.
 

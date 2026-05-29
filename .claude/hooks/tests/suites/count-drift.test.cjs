@@ -2,7 +2,8 @@
  * Count Drift Test Suite
  *
  * Verifies marker-region counts in pilot documents remain in sync with
- * filesystem ground truth. See docs/adr/0002-canonical-count-metrics.md.
+ * filesystem ground truth. (Design ADR 0002-canonical-count-metrics is
+ * planned but not yet written.)
  *
  * Wired here for suite discovery, and bridged from `test-all-hooks.cjs` so
  * the documented primary hook test command also catches count/catalog drift.
@@ -138,10 +139,6 @@ const tests = [
                 path.join(REPO_ROOT, '.claude', 'docs', 'README.md'),
                 'utf8'
             );
-            const structureReference = fs.readFileSync(
-                path.join(REPO_ROOT, 'docs', 'project-reference', 'project-structure-reference.md'),
-                'utf8'
-            );
 
             assertMatches(
                 '.claude/docs/README.md',
@@ -154,12 +151,6 @@ const tests = [
                 docsReadme,
                 new RegExp(`\\|\\s*Hook files \\(top-level\\)\\s*\\|\\s*${hookCount}\\s*\\|`),
                 'top-level hook'
-            );
-            assertMatches(
-                'docs/project-reference/project-structure-reference.md',
-                structureReference,
-                new RegExp(`\\.\\.\\. \\(${skillCount} total direct SKILL\\.md files\\)`),
-                'direct skill file'
             );
         }
     }

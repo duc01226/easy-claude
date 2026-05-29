@@ -1,6 +1,6 @@
 # Skills Reference
 
-> 256 skills across 15+ domains + 3 shared reference/protocol files for context-aware AI assistance
+> 257 skills across 15+ domains + 5 shared reference/protocol files for context-aware AI assistance
 
 ## Overview
 
@@ -40,7 +40,7 @@ Skills Activated: fix, feature-investigation
 | [Document Processing](#document-processing)       | 4      | PDF, DOCX, Markdown conversions                      |
 | [Utility](#utility)                               | 2      | Claude Code CLI, skill creation                      |
 
-**Additional:** Shared reference/protocol files (3) -- see [Shared Protocols](#shared-protocols-sync-inline)
+**Additional:** Shared reference/protocol files (5) -- see [Shared Protocols](#shared-protocols-sync-inline)
 
 ---
 
@@ -83,7 +83,7 @@ See `docs/project-reference/frontend-patterns-reference.md` for project-specific
 | Skill                       | Triggers                                                              | Description                                                                                                      |
 | --------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | `webapp-testing`            | E2E, Playwright, Cypress                                              | End-to-end testing                                                                                               |
-| `tdd-spec`                  | test specification, QA spec, test strategy, TC-IDs, test cases        | Unified test case writer — generates TC-{FEAT}-{NNN} specs from PBIs and feature docs                            |
+| `tdd-spec`                  | test specification, QA spec, test strategy, TC-IDs, test cases        | Unified test case writer — generates TC-{FEATURE}-{NNN} specs from PBIs and feature docs                         |
 | `tdd-spec [direction=sync]` | sync test specs, update dashboard, reverse sync, sync to feature docs | Dashboard sync mode — syncs TCs from feature docs Section 15 to `docs/specs/`                                    |
 | `integration-test-review`   | integration test review, assertion quality, test gate review, TC gate | Review integration tests against 5 quality gates (assertion value, data state, repeatability, domain logic, TC)  |
 | `integration-test-verify`   | run integration tests, verify tests pass, test runner, dotnet test    | Run integration tests after writing/reviewing them — reads project-config.json for project-specific run guidance |
@@ -253,7 +253,11 @@ Each skill is located at `.claude/skills/{skill-name}/`:
     +-- topic-2.md
 
 .claude/skills/shared/          # SYNC canonical source (protocols inlined into skills)
-+-- sync-inline-versions.md    # Single source of truth for all SYNC protocol content
+|-- affirmative-rewrite-rubric.md
+|-- sdd-artifact-contract.md
+|-- sub-agent-selection-guide.md
+|-- sync-inline-versions.md    # Single source of truth for all SYNC protocol content
++-- tc-format.md
 ```
 
 ### SKILL.md Structure
@@ -329,4 +333,4 @@ Use `/skill/create` to create a new skill:
 
 ---
 
-_Source: `.claude/skills/` | 256 skills across 15+ domains + 3 shared reference/protocol files_
+_Source: `.claude/skills/` | 257 skills across 15+ domains + 5 shared reference/protocol files_

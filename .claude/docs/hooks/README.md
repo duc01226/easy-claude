@@ -315,11 +315,11 @@ Hooks are registered in `settings.json` under `hooks.{EventName}[].hooks[]`. Eac
 
 `code-review-rules-injector.cjs` auto-injects `docs/project-reference/code-review-rules.md` when code review skills activate. Configure via `.ck.json`:
 
-| Field                       | Default                                                                     | Description                          |
-| --------------------------- | --------------------------------------------------------------------------- | ------------------------------------ |
-| `codeReview.enabled`        | `true`                                                                      | Enable/disable rule injection        |
-| `codeReview.rulesPath`      | `docs/project-reference/code-review-rules.md`                               | Path to rules file                   |
-| `codeReview.injectOnSkills` | `["code-review", "review-pr", "review-changes", "code-reviewer", "review"]` | Skills/agents that trigger injection |
+| Field                       | Default                                                                           | Description                          |
+| --------------------------- | --------------------------------------------------------------------------------- | ------------------------------------ |
+| `codeReview.enabled`        | `true`                                                                            | Enable/disable rule injection        |
+| `codeReview.rulesPath`      | `docs/project-reference/code-review-rules.md`                                     | Path to rules file                   |
+| `codeReview.injectOnSkills` | `["code-review", "review", "review:codebase", "review-changes", "code-reviewer"]` | Skills/agents that trigger injection |
 
 ---
 

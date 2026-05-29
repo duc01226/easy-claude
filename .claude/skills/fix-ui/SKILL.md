@@ -28,7 +28,7 @@ disable-model-invocation: false
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
-- Do NOT assume the first hypothesis is correct — verify with actual code traces
+- Verify each hypothesis against an actual code trace before acting — do NOT assume the first hypothesis is correct — why: the first guess is usually the nearest-attention trap, not the cause
 - Every root cause claim must include `file:line` evidence
 - If you cannot prove a root cause with a code trace, state "hypothesis, not confirmed"
 - Question assumptions: "Is this really the cause?" → trace the actual execution path
@@ -200,8 +200,8 @@ If the user provides a screenshots or videos, use `ai-multimodal` skill to descr
 > 3. Run `python .claude/scripts/code_graph trace <file> --direction both --json` when `.code-graph/graph.db` exists
 > 4. Map dependencies via `connections` or `callers_of` — know what depends on your target
 > 5. Write investigation to `.ai/workspace/analysis/` for non-trivial tasks (3+ files)
-> 6. Re-read analysis file before implementing — never work from memory alone
-> 7. NEVER invent new patterns when existing ones work — match exactly or document deviation
+> 6. Re-read analysis file before implementing — never work from memory alone. — why: long context drifts from the file; the file is ground truth
+> 7. NEVER invent new patterns when existing ones work — match exactly or document deviation. — why: divergent patterns fragment the codebase and slow every future reader
 >
 > **BLOCKED until:** `- [ ]` Read target files `- [ ]` Grep 3+ patterns `- [ ]` Graph trace (if graph.db exists) `- [ ]` Assumptions verified with evidence
 
@@ -390,17 +390,17 @@ If the user provides a screenshots or videos, use `ai-multimodal` skill to descr
 <!-- SYNC:understand-code-first:reminder -->
 
 - **MANDATORY IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE any modification. Run graph trace when graph.db exists.
-  <!-- /SYNC:understand-code-first:reminder -->
+      <!-- /SYNC:understand-code-first:reminder -->
 
 <!-- SYNC:evidence-based-reasoning:reminder -->
 
 - **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% = do NOT recommend.
-  <!-- /SYNC:evidence-based-reasoning:reminder -->
+      <!-- /SYNC:evidence-based-reasoning:reminder -->
 
 <!-- SYNC:estimation-framework:reminder -->
 
 - **MANDATORY MUST ATTENTION** estimation: bottom-up phase hours drive `man_days_traditional` (`Σh/6 × productivity_factor`); SP DERIVED. UI cost usually dominates — bump SP one bucket if NEW UI surface (page/complex form/dashboard). Frontmatter MUST include `story_points`, `complexity`, `man_days_traditional`, `man_days_ai`, `estimate_scope_included`, `estimate_scope_excluded`, `estimate_reasoning` (UI vs backend cost driver). Cap SP 3 for additive-on-existing-model+existing-UI unless test scope >1.5d. SP 13 SHOULD split, SP 21 MUST split.
-  <!-- /SYNC:estimation-framework:reminder -->
+      <!-- /SYNC:estimation-framework:reminder -->
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 

@@ -38,7 +38,7 @@ description: '[Code Quality] Use when you need to simplify and refines code for 
 - Preserve all existing functionality — no behavior changes
 - Follow platform patterns (entity expressions, fluent helpers, store base, BEM)
 - Tests pass after every change
-- NEVER apply simplification when unsure it preserves behavior
+- Apply simplification only when certain it preserves behavior — NEVER apply when unsure
 
 ### Frontend/UI Context (if applicable)
 
@@ -93,7 +93,7 @@ below — if a downstream rule would raise change cost, this principle wins.
 - Before removing/replacing: grep all usages confirming nothing depends on current form
 - Before flagging convention violation: grep 3+ existing examples — codebase convention wins
 - Every simplification requires `file:line` evidence of what was verified
-- If unsure whether simplification preserves behavior → DO NOT apply
+- Apply simplification only when certain it preserves behavior; if unsure → DO NOT apply
 
 ## Simplification Dimensions
 
@@ -419,11 +419,11 @@ NEVER mark review PASS without completing both traces (happy + error path).
 
 ### Test Spec Verification
 Map changed code to test specifications.
-1. From changed files → find TC-{FEAT}-{NNN} in docs/business-features/{Service}/detailed-features/{Feature}.md Section 15.
+1. From changed files → find TC-{FEATURE}-{NNN} in docs/business-features/{Service}/detailed-features/{Feature}.md Section 15.
 2. Every changed code path MUST map to a corresponding TC (or flag as "needs TC").
 3. New functions/endpoints/handlers → flag for test spec creation.
 4. Verify TC evidence fields point to actual code (file:line, not stale references).
-5. Auth changes → TC-{FEAT}-02x exist? Data changes → TC-{FEAT}-01x exist?
+5. Auth changes → TC-{FEATURE}-02x exist? Data changes → TC-{FEATURE}-01x exist?
 6. If no specs exist → log gap and recommend /tdd-spec.
 NEVER skip test mapping. Untested code paths are the #1 source of production bugs.
 
@@ -541,8 +541,8 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > 3. Run `python .claude/scripts/code_graph trace <file> --direction both --json` when `.code-graph/graph.db` exists
 > 4. Map dependencies via `connections` or `callers_of` — know what depends on your target
 > 5. Write investigation to `.ai/workspace/analysis/` for non-trivial tasks (3+ files)
-> 6. Re-read analysis file before implementing — never work from memory alone
-> 7. NEVER invent new patterns when existing ones work — match exactly or document deviation
+> 6. Re-read analysis file before implementing — never work from memory alone. — why: long context drifts from the file; the file is ground truth
+> 7. NEVER invent new patterns when existing ones work — match exactly or document deviation. — why: divergent patterns fragment the codebase and slow every future reader
 >
 > **BLOCKED until:** `- [ ]` Read target files `- [ ]` Grep 3+ patterns `- [ ]` Graph trace (if graph.db exists) `- [ ]` Assumptions verified with evidence
 
@@ -560,7 +560,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 >
 > **Anti-patterns to flag:** God Object, Copy-Paste inheritance, Circular Dependency, Leaky Abstraction.
 >
-> **Serial Attention for Design Quality** — DO NOT scan all quality concerns simultaneously. Split attention misses violations that focused passes catch.
+> **Serial Attention for Design Quality** — Scan one quality dimension at a time (serial passes), not all concerns at once. — why: split attention misses violations that single-focus passes catch.
 >
 > 1. **Identify applicable dimensions** — Based on the code's language, domain, and patterns, determine which quality dimensions apply: DRY, SOLID principles (SRP/OCP/LSP/ISP/DIP), OOP idioms, cohesion/coupling, GRASP, Law of Demeter, CQRS invariants, etc. Your list is NOT fixed — derive from what the code actually does.
 > 2. **One focused pass per dimension** — Dedicate single-focus attention to EACH dimension in sequence. Do NOT mix concerns across passes.

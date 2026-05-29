@@ -559,7 +559,7 @@ mindmap
 
 ### 5.3 Shared Protocols — The Foundation
 
-25 shared protocol modules enforce universal behavior across all skills. Protocols are **inlined** into each skill via `<!-- SYNC:tag -->` blocks (not file-read references) for maximum AI compliance.
+5 shared reference/protocol files provide canonical reusable behavior for skills. Protocol blocks are **inlined** into each skill via `<!-- SYNC:tag -->` blocks (not file-read references) for maximum AI compliance.
 
 **Architecture:** The canonical source is `.claude/skills/shared/sync-inline-versions.md`. Each protocol is wrapped in `<!-- SYNC:protocol-name -->` / `<!-- /SYNC:protocol-name -->` HTML comment tags. Closing Reminders use `:reminder` suffix variants. To update a protocol: edit the canonical file first, then `grep SYNC:protocol-name` and update all copies.
 
@@ -1515,7 +1515,7 @@ This section provides concrete prompts and expected flows for every test generat
 │  ┌───────────────┐    ┌──────────────────┐   ┌──────────────┐  │
 │  │ Feature Docs   │───→│ docs/specs/  │   │ Test Code    │  │
 │  │ Section 15     │    │ {Module}/README   │   │ (annotated   │  │
-│  │ TC-{FEAT}-{N}  │←───│ (cross-module     │   │  with TC ID  │  │
+│  │ TC-{FEATURE}-{NNN} │←│ (cross-module     │   │  with TC ID  │  │
 │  │                │    │  dashboard)       │   │  per test)   │  │
 │  └───────┬───────┘    └──────────────────┘   └──────┬───────┘  │
 │          │                                           │          │
@@ -1558,10 +1558,10 @@ This section provides concrete prompts and expected flows for every test generat
 
 **Output locations:**
 
-| Artifact             | Path                                                                     |
-| -------------------- | ------------------------------------------------------------------------ |
-| TCs (canonical)      | `docs/business-features/{App}/detailed-features/{feature}.md` Section 15 |
-| Dashboard (optional) | `docs/specs/{Module}/README.md`                                          |
+| Artifact                     | Path                                                                     |
+| ---------------------------- | ------------------------------------------------------------------------ |
+| TCs (canonical)              | `docs/business-features/{App}/detailed-features/{feature}.md` Section 15 |
+| Dashboard indexes (optional) | `docs/specs/README.md` + `docs/specs/PRIORITY-INDEX.md`                  |
 
 ---
 
@@ -1647,7 +1647,7 @@ feature-with-integration-test:
 **What happens (bidirectional via /tdd-spec sync mode):**
 
 1. Reads feature doc Section 15 TCs
-2. Reads `docs/specs/{Module}/README.md` TCs
+2. Reads `docs/specs/README.md` and `docs/specs/PRIORITY-INDEX.md` TCs
 3. Greps for TC annotations (e.g., test tags/traits) in test files
 4. Builds 3-way comparison:
 
@@ -2605,7 +2605,7 @@ This section maps **established prompt engineering techniques** to specific fram
 │  2. RISK MATRICES — Breaking changes must use:                   │
 │     | Risk | Likelihood | Impact | Mitigation |                  │
 │                                                                   │
-│  3. TEST CASE FORMAT — Unified TC-{FEAT}-{NNN}:                  │
+│  3. TEST CASE FORMAT — Unified TC-{FEATURE}-{NNN}:               │
 │     All skills use identical format preventing drift.             │
 │                                                                   │
 │  4. PLAN FILES — Written to plans/ with consistent structure:    │
@@ -3195,7 +3195,7 @@ The spec-driven development loop ensures that every code fix propagates through 
 │  Code fix (service/handler/consumer)                              │
 │    → Engineering spec bundle updated                              │
 │        (A-domain-model.md, B-business-rules.md)                  │
-│    → Integration tests written with TC-{FEAT}-{NNN} annotations  │
+│    → Integration tests written with TC-{FEATURE}-{NNN} annotations │
 │    → Feature doc Section 15 updated (TC evidence)               │
 │    → QA dashboard synced (PRIORITY-INDEX.md)                     │
 │    → SPEC-CHANGELOG.md entry written                             │
@@ -3224,7 +3224,7 @@ The spec bundle includes `last_extracted` and `extraction_mode` frontmatter. Kee
 
 **Registration format:** Each TC entry includes an `evidence` field linking to the integration test method name (`TestClass::MethodName`). This enables future AI sessions to find the test via a single grep — no manual file tree traversal required.
 
-The `[Trait("TestSpec", "TC-{FEAT}-{NNN}")]` annotation in test code provides the bidirectional link:
+The `[Trait("TestSpec", "TC-{FEATURE}-{NNN}")]` annotation in test code provides the bidirectional link:
 
 - Feature doc Section 15 → spec bundle TC ID → test method (forward)
 - Test method `Trait` → TC ID → feature doc evidence section (reverse)
@@ -3463,9 +3463,9 @@ flowchart TB
 │   │   ├── todo-state.cjs
 │   │   └── ...
 │   └── tests/ ────────── Test suites
-├── skills/ ────────────── 277 skill directories
+├── skills/ ────────────── 257 skill directories
 │   ├── {skill-name}/SKILL.md
-│   ├── shared/ ───────── 25 shared protocols + sync-inline-versions.md (canonical)
+│   ├── shared/ ───────── 5 shared reference/protocol files
 │   └── _templates/ ───── Skill scaffolding
 ├── agents/ ────────────── 28 agent definitions
 ├── docs/ ─────────────── Framework documentation (co-located)

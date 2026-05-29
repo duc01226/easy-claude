@@ -47,7 +47,7 @@ description: '[Implementation] Use when you need to start coding & testing an ex
 <HARD-GATE>
 
 If ANY check fails → STOP. Ask user: "Phase needs more detail before implementation. Refine with /plan? [Y/n]"
-DO NOT implement a phase that contains planning verbs, unnamed files, or unresolved decisions.
+Implement only phases with named files, concrete actions, and resolved decisions — DO NOT implement a phase containing planning verbs, unnamed files, or unresolved decisions.
 </HARD-GATE>
 
 ---
@@ -181,7 +181,7 @@ below — if a downstream rule would raise change cost, this principle wins.
 - Step 4: Critical issues must be 0
 - Step 5: User must explicitly approve
 
-Do not skip steps. Do not proceed if validation fails. Do not assume approval without user response. One plan phase per command run.
+Execute every step in declared order; proceed only when validation passes and the user has approved; run one plan phase per command. Do not skip steps, proceed on failed validation, or assume approval without a user response.
 
 ---
 
@@ -282,8 +282,8 @@ Do not skip steps. Do not proceed if validation fails. Do not assume approval wi
 > 3. Run `python .claude/scripts/code_graph trace <file> --direction both --json` when `.code-graph/graph.db` exists
 > 4. Map dependencies via `connections` or `callers_of` — know what depends on your target
 > 5. Write investigation to `.ai/workspace/analysis/` for non-trivial tasks (3+ files)
-> 6. Re-read analysis file before implementing — never work from memory alone
-> 7. NEVER invent new patterns when existing ones work — match exactly or document deviation
+> 6. Re-read analysis file before implementing — never work from memory alone. — why: long context drifts from the file; the file is ground truth
+> 7. NEVER invent new patterns when existing ones work — match exactly or document deviation. — why: divergent patterns fragment the codebase and slow every future reader
 >
 > **BLOCKED until:** `- [ ]` Read target files `- [ ]` Grep 3+ patterns `- [ ]` Graph trace (if graph.db exists) `- [ ]` Assumptions verified with evidence
 

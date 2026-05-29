@@ -231,7 +231,7 @@ BLOCKED: {filePath}:{line} uses generic IPlatformRootRepository instead of servi
 
 **New services — BLOCKED if any legacy-only pattern is used.** Identify the project's modern-pattern checklist from injected reference docs (e.g., `project-structure-reference.md`, ADRs, scaffolding templates) and verify every item.
 
-**Existing legacy services — WARN if modern patterns are partially mixed without full migration.** Do not flag legacy patterns as violations in their own context; flag them only when partial mixing creates inconsistency.
+**Existing legacy services — WARN if modern patterns are partially mixed without full migration.** Flag legacy patterns only when partial mixing creates inconsistency; in their own consistent context they are expected, not violations.
 
 **Determining era:** Read the project's reference docs at review time — service-pattern era assignments are project-specific and listed authoritatively there. Do NOT hardcode service names in this skill.
 
@@ -292,6 +292,8 @@ BLOCKED: {filePath}:{line} references {otherService} domain/persistence directly
 - All subscriptions MUST use `.pipe(this.untilDestroyed())` — NEVER manual unsubscribe (BLOCKED)
 - All template elements MUST have BEM classes (WARN)
 - Logic in lowest layer: Model > Service > Component (WARN)
+
+> **Boundary with `/review-ui`:** This category owns frontend ARCHITECTURE — base classes, `PlatformVmStore`/`effectSimple`, `PlatformApiService`, subscription teardown, layer placement, BEM-class presence. VISUAL/styling quality — long-content overflow, responsive multi-screen flex, flex-vs-fixed sizing, z-index discipline, and SCSS/CSS detail — is owned by `/review-ui` (runs as a parallel-batch sibling on frontend changes). Flag missing base classes / store / teardown here; defer SCSS-quality depth and visual-layout findings to review-ui to avoid double-reporting.
 
 ---
 
@@ -451,7 +453,7 @@ Before reporting ANY work done:
 ## Sub-Agent Type Override
 
 > **MANDATORY:** Architecture reviews spawn `architect` sub-agent, NOT `code-reviewer`.
-> The canonical template below uses `subagent_type: "architect"` — do NOT revert to `code-reviewer`.
+> Keep `subagent_type: "architect"` from the canonical template below, never revert to `code-reviewer`.
 > **Rationale:** `architect` carries cross-service impact analysis, ADR creation, and comprehensive multi-service security/performance context that `code-reviewer` lacks for architecture-level decisions.
 
 <!-- OVERRIDE:review-protocol-injection -->
@@ -519,11 +521,11 @@ NEVER mark review PASS without completing both traces (happy + error path).
 
 ### Test Spec Verification
 Map changed code to test specifications.
-1. From changed files → find TC-{FEAT}-{NNN} in docs/business-features/{Service}/detailed-features/{Feature}.md Section 15.
+1. From changed files → find TC-{FEATURE}-{NNN} in docs/business-features/{Service}/detailed-features/{Feature}.md Section 15.
 2. Every changed code path MUST map to a corresponding TC (or flag as "needs TC").
 3. New functions/endpoints/handlers → flag for test spec creation.
 4. Verify TC evidence fields point to actual code (file:line, not stale references).
-5. Auth changes → TC-{FEAT}-02x exist? Data changes → TC-{FEAT}-01x exist?
+5. Auth changes → TC-{FEATURE}-02x exist? Data changes → TC-{FEATURE}-01x exist?
 6. If no specs exist → log gap and recommend /tdd-spec.
 NEVER skip test mapping. Untested code paths are the #1 source of production bugs.
 
@@ -757,7 +759,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 <!-- SYNC:sub-agent-selection -->
 
 > **Sub-Agent Selection** — Full routing contract: `.claude/skills/shared/sub-agent-selection-guide.md`
-> **Rule:** NEVER use `code-reviewer` for specialized domains (architecture, security, performance, DB, E2E, integration-test, git).
+> **Rule:** Route specialized domains (architecture, security, performance, DB, E2E, integration-test, git) to the matching specialist agent (see guide above) — NEVER use `code-reviewer` for these. — why: `code-reviewer` lacks each domain's checklist, so specialized issues slip through.
 
 <!-- /SYNC:sub-agent-selection -->
 

@@ -21,6 +21,10 @@ disable-model-invocation: true
 - MUST ATTENTION keep task tracking updated as each step starts/completes.
 - MUST ATTENTION define success criteria before execution and loop until observable verification passes.
 - MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
+- MUST ATTENTION apply the shared SDD Artifact Contract from `shared/sdd-artifact-contract.md` in the active skills root; use `docs/project-config.json` and `docs/project-reference/docs-index-reference.md` for project-specific conventions.
+- **[BLOCKING] Tech-agnostic output:** idea / PBI / story / problem-statement prose stays tech-agnostic per `docs/project-reference/spec-principles.md` §3 — no framework/product/language/design-pattern names; source paths and class names appear ONLY in evidence fields (`**Evidence**`, `[Source:]`), frontmatter, and Mermaid.
+- MUST ATTENTION treat AI-generated ideas, PBIs, stories, mockups, and TCs as draft/reference until their review or acceptance gate approves them.
+- MUST ATTENTION allow any supported AI tool to produce or review artifacts when the shared contract, synced context, and local docs are available.
 - NEVER skip mandatory workflow or skill gates.
 
 ## When to Use
@@ -48,11 +52,14 @@ After confirming the workflow, present the full step list and let the user desel
 - [ ] Review existing artifact (review-artifact)   — CONDITIONAL
 - [ ] PO → BA handoff (handoff)                    — CONDITIONAL
 - [x] Refine to PBI (refine)
+- [x] Refinement rationale review (why-review)
 - [x] PBI review (refine-review)
-- [x] Design rationale review (why-review)
+- [x] Reviewed-PBI rationale review (why-review)
 - [x] User stories (story)
+- [x] Story rationale review (why-review)
 - [x] Story review (story-review)
 - [x] Test specifications (tdd-spec)
+- [x] Test-spec rationale review (why-review)
 - [x] Test specification review (tdd-spec-review)
 - [x] Dev BA PIC challenge (pbi-challenge)
 - [x] Definition of Ready gate (dor-gate)
@@ -70,11 +77,14 @@ Mark skipped steps as completed immediately.
 ```
 TaskCreate: "Idea capture"
 TaskCreate: "Refine to PBI"
+TaskCreate: "Refinement rationale review (why-review after refine)"
 TaskCreate: "PBI review (refine-review)"
-TaskCreate: "Design rationale review (why-review)"
+TaskCreate: "Reviewed-PBI rationale review (why-review after refine-review)"
 TaskCreate: "User stories (story)"
+TaskCreate: "Story rationale review (why-review after story)"
 TaskCreate: "Story review"
 TaskCreate: "Test specifications (tdd-spec)"
+TaskCreate: "Test-spec rationale review (why-review after tdd-spec)"
 TaskCreate: "Test specification review (tdd-spec-review)"
 TaskCreate: "Dev BA PIC challenge"
 TaskCreate: "Definition of Ready gate"
@@ -89,6 +99,8 @@ One task per step. Mark each completed immediately when done — never batch.
 ### 3. Why-Review Gate (After refine-review, Before story)
 
 This is the adversarial design rationale check. Purpose: validate the **WHY** of this PBI before investing in stories.
+
+The workflow contains repeated `/why-review` gates. Use purpose-specific labels in sequence: refinement rationale, reviewed-PBI rationale, story rationale, and test-spec rationale. Do not deduplicate them.
 
 **Challenge prompts:**
 
@@ -110,9 +122,12 @@ This is the adversarial design rationale check. Purpose: validate the **WHY** of
 
 Generate and review test specifications before challenge and DoR gates so reviewers evaluate a testable PBI.
 
+AI-generated TC drafts are reference-only until `/tdd-spec-review`, `/pbi-challenge`, and `/dor-gate` accept them for delivery planning.
+
 **Output requirements:**
 
 - Map material acceptance criteria and user stories to TC IDs
+- Route planned TC IDs to Feature doc Section 15 through `/tdd-spec`; `/docs-update` later verifies feature docs and dashboard sync.
 - Cover happy path, validation failure, authorization/permission, and important edge cases where applicable
 - Run `/tdd-spec-review` before `/pbi-challenge`
 
@@ -134,16 +149,18 @@ Each PBI artifact must contain:
 
 ### 6. Artifact Locations
 
-| Step           | Output Path                                       |
-| -------------- | ------------------------------------------------- |
-| Idea           | `team-artifacts/ideas/{date}-idea-{slug}.md`      |
-| PBI            | `team-artifacts/pbis/{date}-pbi-{slug}.md`        |
-| Stories        | Added to PBI artifact                             |
-| Test specs     | Feature doc Section 15 / `docs/specs/`            |
-| DoR result     | Added to PBI artifact                             |
-| Mockup         | HTML mock-up file saved beside PBI artifact       |
-| Prioritization | `team-artifacts/backlog/{date}-backlog-update.md` |
-| Docs sync      | `plans/reports/docs-update-{YYMMDD}-{HHMM}.md`    |
+| Step           | Output Path                                           |
+| -------------- | ----------------------------------------------------- |
+| Idea           | `team-artifacts/ideas/{YYMMDD}-{role}-idea-{slug}.md` |
+| PBI            | `team-artifacts/pbis/{YYMMDD}-pbi-{slug}.md`          |
+| Stories        | Added to PBI artifact                                 |
+| Test specs     | Feature doc Section 15 / docs/specs dashboard sync    |
+| DoR result     | Added to PBI artifact                                 |
+| Mockup         | HTML mock-up file saved beside PBI artifact           |
+| Prioritization | `team-artifacts/backlog/{YYMMDD}-backlog-update.md`   |
+| Docs sync      | `plans/reports/docs-update-{YYMMDD}-{HHMM}.md`        |
+
+These roots intentionally match the child skills (`idea`, `refine`, `story`, `pbi-mockup`, `prioritize`, `docs-update`). If artifact roots become configurable later, update this workflow and all child skills in the same change.
 
 Write output IMMEDIATELY after each step — never batch across steps.
 
@@ -179,7 +196,7 @@ Purpose:
 Activate the `idea-to-pbi` workflow. Run `/workflow-start idea-to-pbi` with the user's prompt as context.
 
 **Steps:**
-/idea → /review-artifact (conditional) → /handoff (conditional) → /refine → /refine-review → /why-review → /story → /story-review → /tdd-spec → /tdd-spec-review → /pbi-challenge → /dor-gate → /pbi-mockup → /prioritize → /docs-update → /watzup → /workflow-end
+/idea → /review-artifact (conditional) → /handoff (conditional) → /refine → /why-review → /refine-review → /why-review → /story → /why-review → /story-review → /tdd-spec → /why-review → /tdd-spec-review → /pbi-challenge → /dor-gate → /pbi-mockup → /prioritize → /docs-update → /watzup → /workflow-end
 
 > **Conditional steps:**
 >
@@ -295,7 +312,7 @@ Activate the `idea-to-pbi` workflow. Run `/workflow-start idea-to-pbi` with the 
 ## Closing Reminders
 
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting — one task per step
-- **MANDATORY IMPORTANT MUST ATTENTION** why-review runs after refine-review — FAIL blocks story writing, WARN requires user acknowledgment
+- **MANDATORY IMPORTANT MUST ATTENTION** run all four purpose-specific why-review gates: after refine, after refine-review, after story, and after tdd-spec; FAIL blocks the next artifact step, WARN requires user acknowledgment
 - **MANDATORY IMPORTANT MUST ATTENTION** tdd-spec and tdd-spec-review run after story-review and before pbi-challenge
 - **MANDATORY IMPORTANT MUST ATTENTION** pbi-challenge must be run by a reviewer different from the drafter
 - **MANDATORY IMPORTANT MUST ATTENTION** dor-gate must pass (PASS or WARN) before pbi-mockup is finalized

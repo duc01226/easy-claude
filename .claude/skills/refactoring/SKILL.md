@@ -17,7 +17,7 @@ description: '[Code Quality] Use when you need restructure code without changing
 
 **Key Rules:**
 
-- Never refactor without existing test coverage
+- Establish test coverage first, then refactor — never refactor code that has no existing tests — why: tests are the only proof the refactor preserved behavior
 - Make small incremental changes; never mix refactoring with feature work
 - Place logic in the lowest appropriate layer (Entity > Service > Component)
 
@@ -46,7 +46,7 @@ below — if a downstream rule would raise change cost, this principle wins.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
-- Do NOT assume code is unused — verify with grep across ALL services
+- Verify any "unused" code with grep across ALL services before touching it — do NOT assume it is dead — why: dynamic/reflection/cross-service callers don't surface in a casual read
 - Every refactoring recommendation must include `file:line` evidence
 - If you cannot prove a code path is safe to change, state "unverified, needs investigation"
 - Question assumptions: "Is this really dead code?" → trace all usages including dynamic/reflection
@@ -373,8 +373,8 @@ When graph DB is available, BEFORE refactoring, trace to verify all consumers:
 > 3. Run `python .claude/scripts/code_graph trace <file> --direction both --json` when `.code-graph/graph.db` exists
 > 4. Map dependencies via `connections` or `callers_of` — know what depends on your target
 > 5. Write investigation to `.ai/workspace/analysis/` for non-trivial tasks (3+ files)
-> 6. Re-read analysis file before implementing — never work from memory alone
-> 7. NEVER invent new patterns when existing ones work — match exactly or document deviation
+> 6. Re-read analysis file before implementing — never work from memory alone. — why: long context drifts from the file; the file is ground truth
+> 7. NEVER invent new patterns when existing ones work — match exactly or document deviation. — why: divergent patterns fragment the codebase and slow every future reader
 >
 > **BLOCKED until:** `- [ ]` Read target files `- [ ]` Grep 3+ patterns `- [ ]` Graph trace (if graph.db exists) `- [ ]` Assumptions verified with evidence
 
@@ -408,7 +408,7 @@ When graph DB is available, BEFORE refactoring, trace to verify all consumers:
 >
 > **Anti-patterns to flag:** God Object, Copy-Paste inheritance, Circular Dependency, Leaky Abstraction.
 >
-> **Serial Attention for Design Quality** — DO NOT scan all quality concerns simultaneously. Split attention misses violations that focused passes catch.
+> **Serial Attention for Design Quality** — Scan one quality dimension at a time (serial passes), not all concerns at once. — why: split attention misses violations that single-focus passes catch.
 >
 > 1. **Identify applicable dimensions** — Based on the code's language, domain, and patterns, determine which quality dimensions apply: DRY, SOLID principles (SRP/OCP/LSP/ISP/DIP), OOP idioms, cohesion/coupling, GRASP, Law of Demeter, CQRS invariants, etc. Your list is NOT fixed — derive from what the code actually does.
 > 2. **One focused pass per dimension** — Dedicate single-focus attention to EACH dimension in sequence. Do NOT mix concerns across passes.

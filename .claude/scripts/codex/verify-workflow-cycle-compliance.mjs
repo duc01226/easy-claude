@@ -102,6 +102,24 @@ function parseStepsFromSkill(content) {
     .filter(Boolean);
 }
 
+function parseTaskTableStepsFromSkill(content) {
+  const steps = [];
+  const rowPattern = /^\|\s*\d+\s*\|\s*`\[Workflow\]\s*[/$]([^`—]+)[^`]*`/gm;
+  for (const match of content.matchAll(rowPattern)) {
+    const token = normalizeSkillStepToken(match[1]);
+    if (token) {
+      steps.push(token);
+    }
+  }
+
+  return steps;
+}
+
+function parseClosingTaskCount(content) {
+  const match = content.match(/create ALL\s+(\d+)\s+tasks/im);
+  return match ? Number.parseInt(match[1], 10) : null;
+}
+
 function normalizeStep(step, stepAliases) {
   const normalized = normalizeWhitespace(step).replace(/^[/$]+/, "").trim();
   return stepAliases.get(normalized) ?? normalized;
@@ -261,6 +279,30 @@ async function main() {
           ].join("\n")
         );
       }
+
+      const rawTaskTableSteps = parseTaskTableStepsFromSkill(skillContent);
+      if (rawTaskTableSteps.length > 0) {
+        const taskTableSteps = normalizeSequence(rawTaskTableSteps, stepAliases);
+        if (!arraysEqual(expectedSteps, taskTableSteps)) {
+          const diff = formatSequenceDiff(expectedSteps, taskTableSteps);
+          failures.push(
+            [
+              `Task-table drift detected for workflow '${workflowId}' in ${normalizePath(skillPath, rootDir)}`,
+              `  missing: [${diff.missing.join(", ")}]`,
+              `  extra:   [${diff.extra.join(", ")}]`,
+              `  expected: ${diff.expected.join(" -> ")}`,
+              `  actual:   ${diff.actual.join(" -> ")}`,
+            ].join("\n")
+          );
+        }
+      }
+
+      const closingTaskCount = parseClosingTaskCount(skillContent);
+      if (closingTaskCount !== null && closingTaskCount !== expectedSteps.length) {
+        failures.push(
+          `Closing task-count drift detected for workflow '${workflowId}' in ${normalizePath(skillPath, rootDir)}: expected ${expectedSteps.length}, found ${closingTaskCount}`
+        );
+      }
     }
   }
 
@@ -298,5 +340,7 @@ export {
   ensureWorkflowPolicy,
   normalizeSequence,
   parseStepsFromSkill,
+  parseTaskTableStepsFromSkill,
+  parseClosingTaskCount,
   formatSequenceDiff,
 };

@@ -40,7 +40,7 @@ Activate `code-review` skill and follow its workflow with **post-task two-pass**
 
 - Do NOT accept code correctness at face value — verify by reading actual implementations
 - Every finding must include `file:line` evidence (grep results, read confirmations)
-- If you cannot prove a claim with a code trace, do NOT include it in the report
+- Include only claims you can prove with a code trace — drop any claim that lacks one
 - Question assumptions: "Does this actually work?" → trace the call path to confirm
 - Challenge completeness: "Is this all?" → grep for related usages across services
 - Verify side effects: "What else does this change break?" → check consumers and dependents
@@ -247,8 +247,8 @@ After sub-agent returns:
 > 3. Run `python .claude/scripts/code_graph trace <file> --direction both --json` when `.code-graph/graph.db` exists
 > 4. Map dependencies via `connections` or `callers_of` — know what depends on your target
 > 5. Write investigation to `.ai/workspace/analysis/` for non-trivial tasks (3+ files)
-> 6. Re-read analysis file before implementing — never work from memory alone
-> 7. NEVER invent new patterns when existing ones work — match exactly or document deviation
+> 6. Re-read analysis file before implementing — never work from memory alone. — why: long context drifts from the file; the file is ground truth
+> 7. NEVER invent new patterns when existing ones work — match exactly or document deviation. — why: divergent patterns fragment the codebase and slow every future reader
 >
 > **BLOCKED until:** `- [ ]` Read target files `- [ ]` Grep 3+ patterns `- [ ]` Graph trace (if graph.db exists) `- [ ]` Assumptions verified with evidence
 
@@ -266,7 +266,7 @@ After sub-agent returns:
 >
 > **Anti-patterns to flag:** God Object, Copy-Paste inheritance, Circular Dependency, Leaky Abstraction.
 >
-> **Serial Attention for Design Quality** — DO NOT scan all quality concerns simultaneously. Split attention misses violations that focused passes catch.
+> **Serial Attention for Design Quality** — Scan one quality dimension at a time (serial passes), not all concerns at once. — why: split attention misses violations that single-focus passes catch.
 >
 > 1. **Identify applicable dimensions** — Based on the code's language, domain, and patterns, determine which quality dimensions apply: DRY, SOLID principles (SRP/OCP/LSP/ISP/DIP), OOP idioms, cohesion/coupling, GRASP, Law of Demeter, CQRS invariants, etc. Your list is NOT fixed — derive from what the code actually does.
 > 2. **One focused pass per dimension** — Dedicate single-focus attention to EACH dimension in sequence. Do NOT mix concerns across passes.
@@ -402,11 +402,11 @@ NEVER mark review PASS without completing both traces (happy + error path).
 
 ### Test Spec Verification
 Map changed code to test specifications.
-1. From changed files → find TC-{FEAT}-{NNN} in docs/business-features/{Service}/detailed-features/{Feature}.md Section 15.
+1. From changed files → find TC-{FEATURE}-{NNN} in docs/business-features/{Service}/detailed-features/{Feature}.md Section 15.
 2. Every changed code path MUST map to a corresponding TC (or flag as "needs TC").
 3. New functions/endpoints/handlers → flag for test spec creation.
 4. Verify TC evidence fields point to actual code (file:line, not stale references).
-5. Auth changes → TC-{FEAT}-02x exist? Data changes → TC-{FEAT}-01x exist?
+5. Auth changes → TC-{FEATURE}-02x exist? Data changes → TC-{FEATURE}-01x exist?
 6. If no specs exist → log gap and recommend /tdd-spec.
 NEVER skip test mapping. Untested code paths are the #1 source of production bugs.
 
@@ -525,12 +525,12 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 > **Test Spec Verification** — Map changed code to test specifications.
 >
-> 1. From changed files → find TC-{FEAT}-{NNN} in `docs/business-features/{Service}/detailed-features/{Feature}.md` Section 15
+> 1. From changed files → find TC-{FEATURE}-{NNN} in `docs/business-features/{Service}/detailed-features/{Feature}.md` Section 15
 > 2. Every changed code path MUST ATTENTION map to a corresponding TC (or flag as "needs TC")
 > 3. New functions/endpoints/handlers → flag for test spec creation
 > 4. Verify TC evidence fields point to actual code (`file:line`, not stale references)
 > 5. Verify each meaningful TC includes `Business Intent / Invariant Guarded`; flag behavior-only TCs that only mirror implementation details.
-> 6. Auth changes → TC-{FEAT}-02x exist? Data changes → TC-{FEAT}-01x exist?
+> 6. Auth changes → TC-{FEATURE}-02x exist? Data changes → TC-{FEATURE}-01x exist?
 > 7. If no specs exist → log gap and recommend `/tdd-spec`
 >
 > **NEVER skip test mapping.** Untested code paths are the #1 source of production bugs.
@@ -597,7 +597,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:test-spec-verification:reminder -->
 
-**IMPORTANT MUST ATTENTION** map changed code paths to TC-{FEAT}-{NNN}. Flag untested paths.
+**IMPORTANT MUST ATTENTION** map changed code paths to TC-{FEATURE}-{NNN}. Flag untested paths.
 
 <!-- /SYNC:test-spec-verification:reminder -->
 

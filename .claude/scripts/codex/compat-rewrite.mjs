@@ -85,6 +85,7 @@ export function rewriteClaudeToolTermsForCodex(text) {
     .replace(/\bAgent\(/g, "spawn_agent(")
     .replace(/\bsubagent_type:/g, "agent_type:")
     .replace(/\bsubagent_type=/g, "agent_type=")
+    .replace(/\bsubagent_type\b/g, "agent_type")
     .replace(/\bTaskCreate:/g, "Task tracking:")
     .replace(/\bTaskCreate\b/g, "task tracking")
     .replace(/\bTaskList\b/g, "the current task list")

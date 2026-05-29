@@ -51,7 +51,7 @@ disable-model-invocation: false
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.**
 
-- Do NOT assume first hypothesis correct — verify with actual code traces
+- Verify each hypothesis against an actual code trace before acting — do NOT assume first hypothesis correct — why: the first guess is usually the nearest-attention trap, not the cause
 - Every root cause claim must include `file:line` evidence
 - If you cannot prove root cause with code trace, state "hypothesis, not confirmed"
 - Question assumptions: "Is this really the cause?" → trace actual execution path
@@ -198,8 +198,8 @@ Analyze skills catalog and activate other needed skills during the process.
 > 3. Run `python .claude/scripts/code_graph trace <file> --direction both --json` when `.code-graph/graph.db` exists
 > 4. Map dependencies via `connections` or `callers_of` — know what depends on your target
 > 5. Write investigation to `.ai/workspace/analysis/` for non-trivial tasks (3+ files)
-> 6. Re-read analysis file before implementing — never work from memory alone
-> 7. NEVER invent new patterns when existing ones work — match exactly or document deviation
+> 6. Re-read analysis file before implementing — never work from memory alone. — why: long context drifts from the file; the file is ground truth
+> 7. NEVER invent new patterns when existing ones work — match exactly or document deviation. — why: divergent patterns fragment the codebase and slow every future reader
 >
 > **BLOCKED until:** `- [ ]` Read target files `- [ ]` Grep 3+ patterns `- [ ]` Graph trace (if graph.db exists) `- [ ]` Assumptions verified with evidence
 

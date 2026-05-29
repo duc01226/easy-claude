@@ -153,7 +153,7 @@ If auto-detect finds nothing (no uncommitted test changes), ask user: "No change
 
 ## Step 4: Run Tests
 
-Do not run this step unless Step 2 passed or the config/reference docs explicitly state no external system is required.
+Run this step only after Step 2 passed or the config/reference docs explicitly state no external system is required.
 
 Execute using `quickRunCommand` from config. Run each relevant suite/project 3 consecutive times without resetting data.
 
