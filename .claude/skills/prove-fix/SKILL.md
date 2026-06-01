@@ -107,16 +107,20 @@ TRIGGER PATH (how the symptom occurs):
 ROOT CAUSE (proven):
   → [One sentence: what exactly is wrong and why]
   → Evidence: [file:line] shows [specific code proving the bug]
+  → Hypothesis matrix mapping: RC-[N] status [primary/contributing/latent] from [report path/section]
+  → Feeder paths closed: [path names or "single path verified"]; unresolved paths: [none/list]
 
 FIX MECHANISM (how the change fixes it):
   → [One sentence: what the fix does differently]
   → Before: [broken code path with file:line]
   → After:  [fixed code path with file:line]
+  → Owning fix layer: [layer/component] — why this is the lowest shared owner
 
 WHY THIS FIX IS CORRECT:
   → [Reasoning backed by code evidence]
   → Pattern precedent: [file:line] shows same pattern working elsewhere
   → Framework behavior: [file:line or doc reference] confirms expected behavior
+  → Forward convergence: [origin/trigger] -> [corrected transformations] -> [observed final output no longer stale/wrong]
 
 EDGE CASES CHECKED:
   → [edge case 1]: [verified/not-verified] — [evidence]
@@ -134,9 +138,11 @@ CONFIDENCE: [X%]
 
 1. **Every arrow (→) MUST ATTENTION have a `file:line` reference** — no exceptions
 2. **TRIGGER PATH must be traceable** — someone should be able to follow it step-by-step in the code
-3. **Pattern precedent is REQUIRED** — find at least 1 working example of the same pattern elsewhere in the codebase
-4. **Edge cases MUST ATTENTION be enumerated** — at minimum: error path, null/empty input, concurrent access
-5. **Side effects MUST ATTENTION be assessed** — what else could this change affect?
+3. **Hypothesis matrix mapping is REQUIRED for bugfixes** — every fix part maps to a primary/contributing/latent root cause or is flagged as unrelated scope
+4. **Feeder paths must be accounted for** — prove the fix closes every path that can write the final observed state, or explicitly list remaining unverified paths
+5. **Pattern precedent is REQUIRED** — find at least 1 working example of the same pattern elsewhere in the codebase
+6. **Edge cases MUST ATTENTION be enumerated** — at minimum: error path, null/empty input, concurrent access
+7. **Side effects MUST ATTENTION be assessed** — what else could this change affect?
 
 ---
 
@@ -332,6 +338,23 @@ This skill is the **mandatory verification gate** between `/fix` and `/code-simp
 
 > **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION — every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% must verify first).
 
+<!-- SYNC:end-to-start-debugger-trace -->
+
+> **End-to-Start Debugger Trace** — For non-trivial bugs, failed verification, regression fixes, behavior-changing code, or unclear code flow, start from the observed final state and walk backward before proposing a fix.
+>
+> 1. **Frame 0: observed end state** — Name the exact user-visible output, failing assertion, log line, persisted value, API response, rendered UI, or aggregate bucket. Record the reader/query/renderer that produced it with `file:line` evidence.
+> 2. **Walk backward one hop at a time** — Trace final reader -> projection/cache/storage -> writer -> consumer/handler/job -> producer/caller -> original trigger. At every hop record: input, transformation, output, owner, and evidence.
+> 3. **Enumerate all feeder paths** — Find every upstream producer/caller/event/job that can write into the final path, including retry, async, cache, background, and alternate UI/API paths. Mark each path verified, ruled out, or still unknown.
+> 4. **Build the hypothesis matrix** — For each plausible cause, list evidence for, evidence against, how to reproduce/verify, blast radius, and status (`primary`, `contributing`, `ruled out`, `latent`). Do not fix until competing causes are explicitly resolved or bounded.
+> 5. **Choose the owning fix layer** — Identify the invariant owner and the lowest shared point that protects all downstream consumers. A fix at the symptom site is rejected unless the symptom site owns the invariant.
+> 6. **Prove convergence forward** — After choosing the fix, walk start -> end again and show how the corrected state reaches the observed final output. Map each root cause to a fix part and each fix part to a test/proof.
+>
+> **BLOCKED until:** final state named · backward trace written · all feeder paths enumerated · hypothesis matrix completed · owning fix layer justified · forward convergence proof mapped to tests.
+>
+> **NEVER:** Start at the first suspicious code path. Collapse multiple producers into one "flow". Treat duplicate symptoms as duplicate records without proving the read model. Skip ruled-out hypotheses.
+
+<!-- /SYNC:end-to-start-debugger-trace -->
+
 <!-- SYNC:ui-system-context -->
 
 > **UI System Context** — For ANY task touching `.ts`, `.html`, `.scss`, or `.css` files:
@@ -414,9 +437,10 @@ This skill is the **mandatory verification gate** between `/fix` and `/code-simp
 
 <!-- SYNC:source-test-drift-check -->
 
-> **Source/test drift check.** For coding, fix, debug, investigation, test, or review work: when source behavior changes, inspect affected unit/integration/E2E tests and decide from evidence whether tests should change to match intended behavior or the source change is an unintended bug to fix.
+> **Source/test drift check.** For coding, fix, debug, investigation, test, or review work: when source behavior changes, inspect affected unit/integration/E2E tests and decide from evidence whether tests should change to match intended behavior or the source change is an unintended bug to fix. Do not write tests for migration code; schema/data migrations are one-time execution paths, not core application logic.
 
 <!-- /SYNC:source-test-drift-check -->
+
 <!-- SYNC:ai-mistake-prevention -->
 
 **AI Mistake Prevention** — Failure modes to avoid on every task:
@@ -468,6 +492,12 @@ This skill is the **mandatory verification gate** between `/fix` and `/code-simp
 **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
+
+<!-- SYNC:end-to-start-debugger-trace:reminder -->
+
+**IMPORTANT MUST ATTENTION** debugger trace gate: for non-trivial bug/fix/investigation/review work, start at the observed final output and trace backward through reader -> storage/projection -> writer -> consumer/job -> producer/trigger. Enumerate all feeder paths and hypotheses before fixing. **BLOCKED until** trace, hypothesis matrix, owning fix layer, and forward convergence proof exist.
+
+<!-- /SYNC:end-to-start-debugger-trace:reminder -->
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
 

@@ -56,6 +56,15 @@ const IMPLEMENTATION_WORKFLOW_IDS = new Set([
 ]);
 
 const IMPLEMENTATION_STEPS = new Set(["cook", "fix", "code"]);
+const DEBUGGER_TRACE_WORKFLOW_IDS = new Set(["bugfix", "verification"]);
+const DEBUGGER_TRACE_WORKFLOW_TERMS = [
+  "end-to-start",
+  "observed final",
+  "feeder",
+  "hypothesis matrix",
+  "owning fix layer",
+  "forward convergence",
+];
 
 const STEP_ALIASES = new Map([
   ["feature-investigation", "investigate"],
@@ -145,7 +154,21 @@ function hasOrderedSubsequence(sequence, expectedSubsequence) {
   return false;
 }
 
-function ensureWorkflowPolicy(workflowId, sequence, failures) {
+export function checkWorkflowDebuggerTracePolicy(workflowId, workflow) {
+  if (!DEBUGGER_TRACE_WORKFLOW_IDS.has(workflowId)) return null;
+  const haystack = normalizeWhitespace(
+    [
+      workflow?.description ?? "",
+      workflow?.whenToUse ?? "",
+      workflow?.preActions?.injectContext ?? "",
+    ].join(" ")
+  ).toLowerCase();
+  const missing = DEBUGGER_TRACE_WORKFLOW_TERMS.filter((term) => !haystack.includes(term));
+  if (missing.length === 0) return null;
+  return `Workflow policy violation (${workflowId}): missing end-to-start debugger trace metadata term(s): ${missing.join(", ")}`;
+}
+
+function ensureWorkflowPolicy(workflowId, workflow, sequence, failures) {
   if (
     !hasOrderedSubsequence(sequence, [
       "integration-test",
@@ -191,6 +214,9 @@ function ensureWorkflowPolicy(workflowId, sequence, failures) {
       );
     }
   }
+
+  const debuggerTraceFailure = checkWorkflowDebuggerTracePolicy(workflowId, workflow);
+  if (debuggerTraceFailure) failures.push(debuggerTraceFailure);
 }
 
 function formatSequenceDiff(expected, actual) {
@@ -243,7 +269,7 @@ async function main() {
 
     const expectedSteps = normalizeSequence(workflowSequence, stepAliases);
     if (TARGET_WORKFLOW_IDS.includes(workflowId)) {
-      ensureWorkflowPolicy(workflowId, expectedSteps, failures);
+      ensureWorkflowPolicy(workflowId, workflow, expectedSteps, failures);
     }
 
     const workflowSkillName = getWorkflowSkillName(workflowId);

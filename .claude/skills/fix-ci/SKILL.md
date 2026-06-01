@@ -1,17 +1,17 @@
 ---
 name: fix-ci
 version: 1.0.0
-description: '[Implementation] Use when you need to analyze GitHub Actions logs and fix issues.'
+description: '[Implementation] Use when you need to analyze CI/CD pipeline logs and fix issues.'
 disable-model-invocation: false
 ---
 
 ## Quick Summary
 
-**Goal:** Analyze GitHub Actions CI logs to identify and fix build/test failures in the pipeline.
+**Goal:** Analyze CI/CD pipeline logs to identify and fix build/test failures in the configured pipeline platform.
 
 **Workflow:**
 
-1. **Fetch** — Download CI logs from GitHub Actions
+1. **Fetch** — Download CI logs from the configured pipeline platform
 2. **Analyze** — Identify root cause from log output (build errors, test failures, env issues)
 3. **Fix** — Apply targeted fix based on traced root cause
 
@@ -38,7 +38,7 @@ disable-model-invocation: false
 **MANDATORY IMPORTANT MUST ATTENTION** declare `Confidence: X%` with evidence list + `file:line` proof for EVERY claim.
 **95%+** recommend freely | **80-94%** with caveats | **60-79%** list unknowns | **<60% STOP — gather more evidence.**
 
-## Github Actions URL
+## CI Log URL
 
 <url>$ARGUMENTS</url>
 
@@ -46,7 +46,7 @@ disable-model-invocation: false
 
 ## Workflow
 
-1. Use `debugger` subagent to read the github actions logs with `gh` command, analyze and find the root cause of the issues and report back to main agent.
+1. Use `debugger` subagent to read the CI logs using the configured platform tool/API from `docs/project-config.json`, analyze the final failing log/error backward to the root cause, and report back to main agent.
    1.5. Write analysis findings to `.ai/workspace/analysis/{ci-issue}.analysis.md`. Re-read before implementing fix.
 2. **🛑 Present root cause + proposed fix → `AskUserQuestion` → wait for user approval.**
 3. Start implementing the fix based the reports and solutions.
@@ -56,7 +56,7 @@ disable-model-invocation: false
 
 ## Notes
 
-- If `gh` command is not available, instruct the user to install and authorize GitHub CLI first.
+- Use the CLI/API for the configured CI platform. If the configured platform is GitHub Actions and `gh` is not available, instruct the user to install and authorize GitHub CLI first.
 
 - **After fixing, MUST ATTENTION run `/prove-fix`** — build code proof traces per change with confidence scores. Never skip.
 
@@ -66,13 +66,31 @@ disable-model-invocation: false
 
 - `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models) (read directly when relevant; do not rely on hook-injected conversation text)
 
-> **Skill Variant:** Variant of `/fix` — specialized for CI/GitHub Actions log analysis.
+> **Skill Variant:** Variant of `/fix` — specialized for CI/CD pipeline log analysis.
+
+<!-- SYNC:end-to-start-debugger-trace -->
+
+> **End-to-Start Debugger Trace** — For non-trivial bugs, failed verification, regression fixes, behavior-changing code, or unclear code flow, start from the observed final state and walk backward before proposing a fix.
+>
+> 1. **Frame 0: observed end state** — Name the exact user-visible output, failing assertion, log line, persisted value, API response, rendered UI, or aggregate bucket. Record the reader/query/renderer that produced it with `file:line` evidence.
+> 2. **Walk backward one hop at a time** — Trace final reader -> projection/cache/storage -> writer -> consumer/handler/job -> producer/caller -> original trigger. At every hop record: input, transformation, output, owner, and evidence.
+> 3. **Enumerate all feeder paths** — Find every upstream producer/caller/event/job that can write into the final path, including retry, async, cache, background, and alternate UI/API paths. Mark each path verified, ruled out, or still unknown.
+> 4. **Build the hypothesis matrix** — For each plausible cause, list evidence for, evidence against, how to reproduce/verify, blast radius, and status (`primary`, `contributing`, `ruled out`, `latent`). Do not fix until competing causes are explicitly resolved or bounded.
+> 5. **Choose the owning fix layer** — Identify the invariant owner and the lowest shared point that protects all downstream consumers. A fix at the symptom site is rejected unless the symptom site owns the invariant.
+> 6. **Prove convergence forward** — After choosing the fix, walk start -> end again and show how the corrected state reaches the observed final output. Map each root cause to a fix part and each fix part to a test/proof.
+>
+> **BLOCKED until:** final state named · backward trace written · all feeder paths enumerated · hypothesis matrix completed · owning fix layer justified · forward convergence proof mapped to tests.
+>
+> **NEVER:** Start at the first suspicious code path. Collapse multiple producers into one "flow". Treat duplicate symptoms as duplicate records without proving the read model. Skip ruled-out hypotheses.
+
+<!-- /SYNC:end-to-start-debugger-trace -->
 
 <!-- SYNC:source-test-drift-check -->
 
-> **Source/test drift check.** For coding, fix, debug, investigation, test, or review work: when source behavior changes, inspect affected unit/integration/E2E tests and decide from evidence whether tests should change to match intended behavior or the source change is an unintended bug to fix.
+> **Source/test drift check.** For coding, fix, debug, investigation, test, or review work: when source behavior changes, inspect affected unit/integration/E2E tests and decide from evidence whether tests should change to match intended behavior or the source change is an unintended bug to fix. Do not write tests for migration code; schema/data migrations are one-time execution paths, not core application logic.
 
 <!-- /SYNC:source-test-drift-check -->
+
 <!-- SYNC:ai-mistake-prevention -->
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
@@ -353,7 +371,7 @@ disable-model-invocation: false
 <!-- SYNC:estimation-framework:reminder -->
 
 - **MANDATORY MUST ATTENTION** estimation: bottom-up phase hours drive `man_days_traditional` (`Σh/6 × productivity_factor`); SP DERIVED. UI cost usually dominates — bump SP one bucket if NEW UI surface (page/complex form/dashboard). Frontmatter MUST include `story_points`, `complexity`, `man_days_traditional`, `man_days_ai`, `estimate_scope_included`, `estimate_scope_excluded`, `estimate_reasoning` (UI vs backend cost driver). Cap SP 3 for additive-on-existing-model+existing-UI unless test scope >1.5d. SP 13 SHOULD split, SP 21 MUST split.
-      <!-- /SYNC:estimation-framework:reminder -->
+<!-- /SYNC:estimation-framework:reminder -->
 
 <!-- SYNC:understand-code-first:reminder -->
 
@@ -392,6 +410,12 @@ disable-model-invocation: false
 - **MANDATORY** Always include `lessons.md`; project conventions override generic defaults.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
+
+<!-- SYNC:end-to-start-debugger-trace:reminder -->
+
+**IMPORTANT MUST ATTENTION** debugger trace gate: for non-trivial bug/fix/investigation/review work, start at the observed final output and trace backward through reader -> storage/projection -> writer -> consumer/job -> producer/trigger. Enumerate all feeder paths and hypotheses before fixing. **BLOCKED until** trace, hypothesis matrix, owning fix layer, and forward convergence proof exist.
+
+<!-- /SYNC:end-to-start-debugger-trace:reminder -->
 
 <!-- SYNC:nested-task-creation:reminder -->
 

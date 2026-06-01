@@ -91,6 +91,13 @@ All findings → `plans/reports/scan-feature-docs-{YYMMDD}-{HHMM}-report.md`
 - Count docs per app/module to assess coverage distribution
 - Identify documentation naming patterns across feature docs
 
+**M1/M2 Compliance Scan (per feature doc):** See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6)" for BLOCKING criteria. Scan §1-14 prose lines (excluding evidence carriers `**Evidence**` / `IntegrationTest` / `[Source:]`, YAML frontmatter, and ` ```mermaid ``` ` blocks) and report:
+
+- **M1 prose leaks:** banned tech-term occurrences (framework/product/language/persistence/messaging/auth names and project-internal framework type names — banned-token list in `spec-principles.md` §3.2) appearing in narrative, headings, or tables.
+- **M2 prose leaks:** code-identifier occurrences (class/method names, file paths, namespaces) appearing in narrative prose.
+
+Report each leak by **file, line, and section** so the doc owner can locate and fix it.
+
 ### Agent 2: App-to-Service Mapping
 
 **Think (Relationships dimension):** Which frontend apps map to which backend services? Where is this documented vs inferred? Which apps have no service mapping?
@@ -126,6 +133,7 @@ Read report. Apply fresh-eyes protocol:
 | **Section Structure**         | Standard sections across feature docs (with frequency table) |
 | **Documentation Conventions** | Naming, numbering, required fields, evidence rules           |
 | **Coverage Gaps**             | Apps/services without documentation, incomplete docs         |
+| **M1/M2 Compliance Leaks**    | Per-leak table: File, Line, Section, Mandate (M1/M2), Offending token/identifier |
 
 ### Content Rules
 
@@ -189,7 +197,7 @@ Read report. Apply fresh-eyes protocol:
 <!-- SYNC:scan-and-update-reference-doc:reminder -->
 
 - **[REQUIRED]** read existing doc first, scan codebase, diff, surgical update only. Never rewrite entire doc.
-  <!-- /SYNC:scan-and-update-reference-doc:reminder -->
+<!-- /SYNC:scan-and-update-reference-doc:reminder -->
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 

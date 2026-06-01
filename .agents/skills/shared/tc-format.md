@@ -1,7 +1,7 @@
 ---
 title: 'Canonical TC Format'
-version: 1.0.0
-last_reviewed: 2026-04-21
+version: 1.1.0
+last_reviewed: 2026-06-01
 authority: tdd-spec
 consumers: [feature-docs, tdd-spec, tdd-spec (sync mode)]
 ---
@@ -73,19 +73,32 @@ And {additional verification}
 - {Concurrency: simultaneous updates} → {expected behavior}
 - {Cross-service: message bus timing} → {expected behavior}
 
-**Evidence:** `[Source: {FilePath}:{LineRange}]` or `TBD (pre-implementation)`
+**Evidence:** `[Source: {namespace}/{service}/{id}]` or `TBD (pre-implementation)`
 
-**Related Files:**
-| Layer | Type | File |
-|----------|---------------|---------------------------------------------------------------------------------------|
-| API | Controller/Endpoint | `{configured-source-path}/{module}/{api-layer-path}/{FeatureEndpointFile}` |
-| App | Command/Query/Use Case | `{configured-source-path}/{module}/{application-layer-path}/{FeatureUseCaseFile}` |
-| Domain | Entity/Model | `{configured-source-path}/{module}/{domain-layer-path}/{FeatureEntityFile}` |
-| Test | Integration | `{configured-test-path}/{FeatureTestFile}` |
+**Related Behaviors:**
+| Capability | Anchor |
+|------------|----------------------------------|
+| API surface | `operation/{service}/{Feature}` |
+| Use case (command/query) | `operation/{service}/{Feature}` |
+| Domain model | `component/{service}/{Feature}` |
+| Test | `test/{service}/{Feature}` |
 
-**IntegrationTest:** `{IntegrationTests}/{TestFile}.cs::{MethodName}` (or `Untested`)
+**IntegrationTest:** `{configured-test-path}/{TestFile}::{MethodName}` (or `Untested`)
 **Status:** Tested | Untested | Planned
 ````
+
+> **Stack-portable evidence (M2/M3/M5).** `Evidence` and `Related Behaviors` carriers use **abstract anchors**
+> `[Source: namespace/service/id]` — never donor `file:line`, `.cs`, or `src/` paths. Namespace ∈
+> `operation | event | component | schema | requirement | rule | constraint | test`. Physical coordinates
+> are recoverable only through the provenance sidecar. Full contract: `docs/specs/MIGRATION.md`.
+>
+> **`IntegrationTest` is the one exception** — it is operational QA glue (a traceability link to the actual
+> executable test, consumed by the `integration-test` skill and the QA dashboard). It stays a physical
+> `{TestFile}::{MethodName}` link, is exempt from the prose gate, and is regenerated per-stack on rebuild.
+>
+> **Configurable roots (never donor paths).** When physical coordinates are emitted on rebuild, root them at the
+> project-configured roots — `{configured-source-path}` for source/evidence and `{configured-test-path}` for
+> executable tests — resolved from `docs/project-config.json`. Never hardcode a donor repository's service-layout paths.
 
 ## TC Priority Classification
 
@@ -211,4 +224,5 @@ When a behavior is removed:
 - MUST ATTENTION keep this file canonical; update consumer skills only after this format changes.
 - MUST ATTENTION every TC protects a named behavior, invariant, or regression path.
 - MUST ATTENTION preserve evidence links and deprecated TC history for traceability.
+- MUST ATTENTION emit evidence as stack-portable abstract anchors `[Source: namespace/service/id]` — never `file:line`, `.cs`, or `src/` paths (see `docs/specs/MIGRATION.md`).
 - NEVER replace specific assertions with smoke checks or existence-only checks.

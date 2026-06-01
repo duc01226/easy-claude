@@ -19,6 +19,49 @@ const WORKFLOWS_START_MARKER = 'WORKFLOWS:START';
 const WORKFLOWS_END_MARKER = 'WORKFLOWS:END';
 const AGENTS_CONTEXT_MIRROR_START = 'CODEX-CONTEXT-MIRROR:START';
 const AGENTS_CONTEXT_MIRROR_END = 'CODEX-CONTEXT-MIRROR:END';
+const DEBUGGER_TRACE_MARKER = '<!-- SYNC:end-to-start-debugger-trace -->';
+const DEBUGGER_TRACE_REQUIRED_SNIPPETS = [
+    'End-to-Start Debugger Trace',
+    'observed final state',
+    'Enumerate all feeder paths',
+    'hypothesis matrix',
+    'owning fix layer',
+    'forward convergence proof'
+];
+
+const DEBUGGER_TRACE_REQUIRED_SOURCE_PATHS = [
+    '.claude/skills/scout/SKILL.md',
+    '.claude/skills/graph-trace/SKILL.md',
+    '.claude/skills/graph-query/SKILL.md',
+    '.claude/skills/investigate/SKILL.md',
+    '.claude/skills/debug-investigate/SKILL.md',
+    '.claude/skills/fix/SKILL.md',
+    '.claude/skills/fix-issue/SKILL.md',
+    '.claude/skills/prove-fix/SKILL.md',
+    '.claude/skills/fix-ci/SKILL.md',
+    '.claude/skills/fix-test/SKILL.md',
+    '.claude/skills/fix-types/SKILL.md',
+    '.claude/skills/fix-ui/SKILL.md',
+    '.claude/skills/fix-logs/SKILL.md',
+    '.claude/skills/code/SKILL.md',
+    '.claude/skills/code-auto/SKILL.md',
+    '.claude/skills/code-parallel/SKILL.md',
+    '.claude/skills/code-no-test/SKILL.md',
+    '.claude/skills/cook/SKILL.md',
+    '.claude/skills/review-changes/SKILL.md',
+    '.claude/skills/workflow-review-changes/SKILL.md',
+    '.claude/skills/code-review/SKILL.md',
+    '.claude/skills/why-review/skill.md',
+    '.claude/agents/code-reviewer.md',
+    '.claude/skills/workflow-bugfix/SKILL.md',
+    '.claude/skills/workflow-investigation/SKILL.md',
+    '.claude/skills/workflow-feature/SKILL.md',
+    '.claude/skills/workflow-verification/SKILL.md'
+];
+
+const DEBUGGER_TRACE_REQUIRED_GENERATED_SKILLS = DEBUGGER_TRACE_REQUIRED_SOURCE_PATHS
+    .filter(relPath => relPath.startsWith('.claude/skills/'))
+    .map(relPath => relPath.replace('.claude/skills/', '.agents/skills/').replace(/\/skill\.md$/i, '/SKILL.md'));
 
 const REQUIRED_CONTRACT_SNIPPETS = [
     'Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.',
@@ -220,11 +263,102 @@ export function checkMainContentBeforeSyncBlocks(content, relativePath) {
     return `${relativePath} layout invalid: ${offendingH2s.length} "## H2" heading(s) appear AFTER first <!-- SYNC:${firstSyncOpenerTag} --> opener at line ${firstSyncOpenerLine}; main content must consolidate ABOVE all SYNC blocks. Examples: ${firstFew}. Re-run \`python .claude/scripts/refactor_skill_layout.py\` then codex-sync.`;
 }
 
+// Orphan-heading hygiene (authoring quality on SOURCE skills; the mirror inherits it).
+// An "orphan" is a heading whose next non-blank line is ANOTHER heading of the SAME or
+// SHALLOWER level with zero intervening body — an empty section, usually a SYNC/template
+// leftover. `##`->`###` (section->subsection) is legitimate and must pass. Two classes of
+// legitimate consecutive headings are excluded:
+//   1. headings inside fenced code blocks (skills document their output format as fenced
+//      markdown templates with stacked `## ...` section headers), and
+//   2. `{placeholder}` output-template headings (e.g. `## Verdict: {PASS | WARN | BLOCKED}`)
+//      that review skills stack on purpose.
+export function checkOrphanHeadings(content, relativePath) {
+    const lines = content.split('\n');
+    const orphans = [];
+    let inFence = false;
+    let fenceChar = '';
+    const headingLevel = idx => {
+        const match = lines[idx].match(/^(#{1,6}) +\S/);
+        return match ? match[1].length : 0;
+    };
+    for (let i = 0; i < lines.length; i++) {
+        const fenceMatch = lines[i].match(/^\s*(```+|~~~+)/);
+        if (fenceMatch) {
+            const marker = fenceMatch[1][0];
+            if (!inFence) {
+                inFence = true;
+                fenceChar = marker;
+            } else if (marker === fenceChar) {
+                inFence = false;
+                fenceChar = '';
+            }
+            continue;
+        }
+        if (inFence) continue;
+
+        const level = headingLevel(i);
+        if (level === 0) continue;
+        if (lines[i].includes('{')) continue;
+
+        let next = i + 1;
+        while (next < lines.length && lines[next].trim() === '') next++;
+        if (next >= lines.length) continue;
+        if (/^\s*(```+|~~~+)/.test(lines[next])) continue;
+
+        const nextLevel = headingLevel(next);
+        if (nextLevel === 0) continue;
+        if (nextLevel <= level) {
+            orphans.push({ line: i + 1, text: lines[i].trim() });
+        }
+    }
+
+    if (orphans.length === 0) return null;
+    const firstFew = orphans
+        .slice(0, 5)
+        .map(o => `line ${o.line}: ${o.text.slice(0, 60)}`)
+        .join('; ');
+    return `${relativePath} has ${orphans.length} orphan heading(s) — a heading immediately followed by a same-or-shallower-level heading with no body (empty section). Add content or remove the heading. Examples: ${firstFew}.`;
+}
+
+export function checkDebuggerTraceCoverage(content, relativePath) {
+    const missing = [];
+    if (!content.includes(DEBUGGER_TRACE_MARKER)) {
+        missing.push(DEBUGGER_TRACE_MARKER);
+    }
+    for (const snippet of DEBUGGER_TRACE_REQUIRED_SNIPPETS) {
+        if (!content.includes(snippet)) {
+            missing.push(snippet);
+        }
+    }
+    if (missing.length === 0) return null;
+    return `${relativePath} missing end-to-start debugger trace gate snippet(s): ${missing.join(' | ')}`;
+}
+
+async function checkRequiredDebuggerTraceFiles(relativePaths, failures) {
+    for (const relPath of relativePaths) {
+        const fullPath = path.join(rootDir, ...relPath.split('/'));
+        if (!(await exists(fullPath))) {
+            failures.push(`${relPath} missing required debugger trace target`);
+            continue;
+        }
+        const content = await fs.readFile(fullPath, 'utf8');
+        const failure = checkDebuggerTraceCoverage(content, relPath);
+        if (failure) failures.push(failure);
+    }
+}
+
 async function main() {
     const failures = [];
 
     if (!(await exists(claudeSkillsRoot))) {
         failures.push(`Missing source skills directory: ${path.relative(rootDir, claudeSkillsRoot)}`);
+    } else {
+        const orphanScanFiles = await collectFilesByName(claudeSkillsRoot, 'SKILL.md', { caseInsensitive: true });
+        for (const sourcePath of orphanScanFiles) {
+            const sourceContent = await fs.readFile(sourcePath, 'utf8');
+            const orphanFailure = checkOrphanHeadings(sourceContent, toRelativeNormalized(sourcePath, rootDir));
+            if (orphanFailure) failures.push(orphanFailure);
+        }
     }
 
     if (!(await exists(skillsRoot))) {
@@ -419,6 +553,9 @@ async function main() {
             }
         }
     }
+
+    await checkRequiredDebuggerTraceFiles(DEBUGGER_TRACE_REQUIRED_SOURCE_PATHS, failures);
+    await checkRequiredDebuggerTraceFiles(DEBUGGER_TRACE_REQUIRED_GENERATED_SKILLS, failures);
 
     if (failures.length > 0) {
         console.error('[codex-skill-compliance] FAIL');

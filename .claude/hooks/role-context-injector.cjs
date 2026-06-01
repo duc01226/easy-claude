@@ -79,7 +79,7 @@ const QUALITY_CHECKLISTS = {
         '- [ ] GIVEN/WHEN/THEN format',
         '- [ ] INVEST criteria met'
     ],
-    'qa-engineer': ['- [ ] TC-{FEATURE}-{NNN} IDs assigned', '- [ ] Evidence field has file:line', '- [ ] Summary counts match', '- [ ] No template placeholders'],
+    'qa-engineer': ['- [ ] TC-{FEATURE}-{NNN} IDs assigned', '- [ ] Evidence field has [Source: namespace/service/id] abstract anchor (never file:line)', '- [ ] Summary counts match', '- [ ] No template placeholders'],
     'ux-designer': [
         '- [ ] All states documented',
         '- [ ] Design tokens specified',

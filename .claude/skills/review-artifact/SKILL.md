@@ -140,6 +140,20 @@ If any box is unchecked → adversarial review incomplete. Go back.
 | 4   | **GIVEN/WHEN/THEN format used** — tests follow the structured BDD format                             | Are all tests written in GIVEN/WHEN/THEN?   | Are the THEN clauses assertions on observable outcomes, or on internal state? Tests asserting on internal state are brittle and break on refactoring.                        |
 | 5   | **Negative test cases included** — tests cover rejection, failure, and unauthorized access scenarios | Are negative tests present?                 | Do negative tests assert on specific error conditions (error code, message) or just that an error occurred? Unspecific negative tests don't verify correct failure behavior. |
 
+## M1-M6 Compliance Gate (BLOCKING — applies to ALL artifact types)
+
+> **Contract:** See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6)". This review enforces M6: any artifact (PBI, story, design spec, test spec) that violates M1-M5 MUST receive a NEEDS WORK verdict that names the violated mandate ID and cites the exact section + line. Passing an M1-M5 violation makes this review itself defective.
+>
+> Carriers are EXEMPT from M1/M2 — source identifiers are CORRECT inside `[Source: ...]`, `**Evidence**`, `**IntegrationTest**` fields, YAML frontmatter, and ` ```mermaid ``` ` blocks. Only flag leakage in narrative prose (descriptions, AC/scenario text, rule statements). Banned prose token list: `docs/project-reference/spec-principles.md` §3.2.
+
+- [ ] **M1 — Tech-agnostic prose.** FAIL if narrative prose, headings, summaries, or AC/scenario text name a framework/product, a language-native type, or a product/design-pattern class name (banned-token list in `spec-principles.md` §3.2). Cite the section + leaked token.
+- [ ] **M2 — No source code in prose.** FAIL if prose expresses behavior as a class/method/file-path/namespace used as a noun (e.g. "call the create-async method") instead of the business operation (e.g. "create the record"). Source identifiers belong only in evidence carriers. Cite the section + line.
+- [ ] **M3 — Abstract-IDs-first traceability.** FAIL if a requirement/rule/AC/test-case lacks a logical ID (`FR-/BR-/OP-/TC-`), OR has a logical ID but no `[Source: namespace/service/id]` abstract-anchor evidence, OR the `[Source:]` evidence is a physical `file:line`/`src/` path instead of a stack-portable abstract anchor, OR the anchor is treated as the primary citation. `[Source: namespace/service/id]` abstract-anchor evidence is REQUIRED and KEPT — SECONDARY to the logical ID, never the spine and never removed; physical coordinates live only in the provenance sidecar.
+- [ ] **M4 — Unambiguous, observable criteria.** FAIL if AC/expected-result prose uses vague language ("handle appropriately", "process normally", "as needed"), OR two engineers could implement it differently while both claiming conformance, OR no observable completion state / named error condition exists. (Reinforces the AC-testability technique above.)
+- [ ] **M5 — Rebuild-from-artifact.** FAIL if a competent team with ZERO codebase knowledge could not re-implement the described behavior on a different stack from the artifact alone (it relies on reading source to be understood). Cite the section + the missing detail.
+
+If ANY box fails → verdict is NEEDS WORK; list each violated mandate ID with its concrete section/line citation in the Action Items.
+
 ## Readability Checklist (MUST ATTENTION evaluate)
 
 Before approving, verify the code is **easy to read, easy to maintain, easy to understand**:
@@ -383,9 +397,9 @@ After sub-agent returns:
 
 ```
 Agent({
-description: "Fresh Round {N} review",
-subagent_type: "code-reviewer",
-prompt: `
+  description: "Fresh Round {N} review",
+  subagent_type: "code-reviewer",
+  prompt: `
 ## Task
 {review-specific task — e.g., "Review all uncommitted changes for code quality" | "Review plan files under {plan-dir}" | "Review integration tests in {path}"}
 
@@ -429,17 +443,32 @@ Verify WHAT code does matches WHY it was changed.
 2. Happy Path Trace: Walk through one complete success scenario through changed code.
 3. Error Path Trace: Walk through one failure/edge case scenario through changed code.
 4. Acceptance Mapping: If plan context available, map every acceptance criterion to a code change.
+5. Tests Verify Intent: For test/spec changes, verify tests name the protected business rule or invariant and would fail if that intent breaks.
+6. Migration Test Exclusion: Do not write tests for migration code. Schema/data migrations are one-time execution paths, not core application logic.
 NEVER mark review PASS without completing both traces (happy + error path).
 
 ### Test Spec Verification
 Map changed code to test specifications.
-1. From changed files → find TC-{FEATURE}-{NNN} in docs/business-features/{Service}/detailed-features/{Feature}.md Section 15.
-2. Every changed code path MUST map to a corresponding TC (or flag as "needs TC").
+1. Identify the project's test/spec format from existing docs, test-case files, BDD feature files, or spec folders.
+2. Every changed code path MUST map to a corresponding test case/spec (or flag as "needs test case").
 3. New functions/endpoints/handlers → flag for test spec creation.
-4. Verify TC evidence fields point to actual code (file:line, not stale references).
-5. Auth changes → TC-{FEATURE}-02x exist? Data changes → TC-{FEATURE}-01x exist?
-6. If no specs exist → log gap and recommend /tdd-spec.
+4. Migration files are excluded from test/spec creation; schema/data migrations are one-time execution paths, not core application logic.
+5. If spec evidence fields exist, verify they point to actual code (file:line, not stale references).
+6. Verify each meaningful test case names the business intent/invariant; flag behavior-only cases that only mirror implementation details.
+7. Auth/data changes → verify corresponding authorization and data-state test cases exist.
+8. If no specs exist for a changed path → log the gap and recommend the project's test-spec workflow.
 NEVER skip test mapping. Untested code paths are the #1 source of production bugs.
+
+### Behavioral Delta Matrix
+MANDATORY for any bugfix review. Produce input-state × pre-fix × post-fix × delta table BEFORE writing verdict.
+- Minimum 3 rows; include at least one row OUTSIDE the original bug report.
+- Any "REGRESSION" delta → review returns FAIL until a preservation test is added.
+- Narrative descriptions do NOT substitute for the matrix.
+Example rows (external-record sync fix):
+| Input                 | Pre-fix | Post-fix                  | Delta      |
+| --------------------- | ------- | ------------------------- | ---------- |
+| Record exists (valid) | Reused  | Always recreated → orphan | REGRESSION |
+| Record missing (404)  | Error   | Recreated                 | Fixed      |
 
 ### Fix-Layer Accountability
 NEVER fix at the crash site. Trace the full flow, fix at the owning layer. The crash site is a SYMPTOM, not the cause.

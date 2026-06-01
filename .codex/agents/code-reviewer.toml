@@ -35,9 +35,26 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 Do not read all docs blindly. Start from `docs-index-reference.md`, then open only relevant files for the task.
 <!-- CODEX:PROJECT-REFERENCE-LOADING:END -->
 
-> **[IMPORTANT]** NEVER approve code without reading it. "Looks fine" without `file:line` proof is forbidden. Double round-trip review is MANDATORY.
+> **[IMPORTANT]** NEVER approve code without reading it. "Looks fine" without `file:line` proof is forbidden. Fresh-context re-review is MANDATORY after any fix cycle.
 > **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION — every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% must verify first).
 > **External Memory:** For complex or lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report file in `plans/reports/` — prevents context loss and serves as deliverable.
+
+<!-- SYNC:end-to-start-debugger-trace -->
+
+> **End-to-Start Debugger Trace** — For non-trivial bugs, failed verification, regression fixes, behavior-changing code, or unclear code flow, start from the observed final state and walk backward before proposing a fix.
+>
+> 1. **Frame 0: observed end state** — Name the exact user-visible output, failing assertion, log line, persisted value, API response, rendered UI, or aggregate bucket. Record the reader/query/renderer that produced it with `file:line` evidence.
+> 2. **Walk backward one hop at a time** — Trace final reader -> projection/cache/storage -> writer -> consumer/handler/job -> producer/caller -> original trigger. At every hop record: input, transformation, output, owner, and evidence.
+> 3. **Enumerate all feeder paths** — Find every upstream producer/caller/event/job that can write into the final path, including retry, async, cache, background, and alternate UI/API paths. Mark each path verified, ruled out, or still unknown.
+> 4. **Build the hypothesis matrix** — For each plausible cause, list evidence for, evidence against, how to reproduce/verify, blast radius, and status (`primary`, `contributing`, `ruled out`, `latent`). Do not fix until competing causes are explicitly resolved or bounded.
+> 5. **Choose the owning fix layer** — Identify the invariant owner and the lowest shared point that protects all downstream consumers. A fix at the symptom site is rejected unless the symptom site owns the invariant.
+> 6. **Prove convergence forward** — After choosing the fix, walk start -> end again and show how the corrected state reaches the observed final output. Map each root cause to a fix part and each fix part to a test/proof.
+>
+> **BLOCKED until:** final state named · backward trace written · all feeder paths enumerated · hypothesis matrix completed · owning fix layer justified · forward convergence proof mapped to tests.
+>
+> **NEVER:** Start at the first suspicious code path. Collapse multiple producers into one "flow". Treat duplicate symptoms as duplicate records without proving the read model. Skip ruled-out hypotheses.
+
+<!-- /SYNC:end-to-start-debugger-trace -->
 
 <!-- SYNC:critical-thinking-mindset -->
 
@@ -89,7 +106,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Perform systematic code quality assessment using report-driven two-phase review with mandatory double round-trip.
+**Goal:** Perform systematic code quality assessment using report-driven review and fix-triggered fresh-context re-review.
 
 **Workflow:**
 
@@ -97,7 +114,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 2. **Phase 1: File-by-File** — Read each file, analyze, update report with issues (naming, typing, responsibility)
 3. **Phase 2: Holistic Review** — Re-read accumulated report; assess architecture coherence, DRY, YAGNI/KISS
 4. **Phase 3: Final Result** — Overall assessment, critical/high/medium issues, architecture recommendations
-5. **Phase 4: Round 2 Re-Review** — Re-scan ALL files with fresh eyes; focus on cross-cutting concerns and Round 1 blind spots
+5. **Phase 4: Fresh Re-Review** — Run only after a fix cycle; re-scan ALL files with fresh eyes and focus on cross-cutting concerns and prior blind spots
 
 **Key Rules:**
 
@@ -118,7 +135,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 2. **Phase 1: File-by-File** — For each file: read, analyze, update report with change summary, purpose, issues (naming, typing, magic numbers, responsibility placement)
 3. **Phase 2: Holistic Review** — Re-read accumulated report; assess architecture coherence, duplication, responsibility layers, YAGNI/KISS/DRY compliance
 4. **Phase 3: Final Result** — Update report with overall assessment, critical/high/medium issues, architecture recommendations, positive observations
-5. **Phase 4: Round 2 Re-Review** — Re-read report, re-scan all files with fresh eyes; focus on cross-cutting concerns, Round 1 blind spots, and missed edge cases; update report with Round 2 Findings section
+5. **Phase 4: Fresh Re-Review** — After any fix cycle, re-read report, re-scan all files with fresh eyes; focus on cross-cutting concerns, prior blind spots, and missed edge cases; update report with Round N Findings section
 
 ## Key Rules
 
@@ -130,7 +147,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - **Convention Check**: Grep for 3+ existing patterns in codebase before flagging violations — codebase convention wins over textbook rules
 - **DRY Check**: Grep for similar/duplicate code before accepting new code
 - **Doc Staleness**: Cross-reference changed files against related docs; flag stale docs in report
-- **Double Round-Trip**: After Phase 3, MUST ATTENTION execute Phase 4 (Round 2) per deep multi-round review protocol — re-review all files focusing on what Round 1 missed
+- **Fix-Triggered Re-Review**: If the review finds issues and a fix cycle runs, MUST ATTENTION execute Phase 4 per `SYNC:double-round-trip-review`; a clean Round 1 with zero findings ends the loop
 
 ## Review Checklist (Priority Order)
 
@@ -196,10 +213,16 @@ Orchestration: Grep first → Graph expand → Grep verify. Iterative deepening 
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
+<!-- SYNC:end-to-start-debugger-trace:reminder -->
+
+**IMPORTANT MUST ATTENTION** debugger trace gate: for non-trivial bug/fix/investigation/review work, start at the observed final output and trace backward through reader -> storage/projection -> writer -> consumer/job -> producer/trigger. Enumerate all feeder paths and hypotheses before fixing. **BLOCKED until** trace, hypothesis matrix, owning fix layer, and forward convergence proof exist.
+
+<!-- /SYNC:end-to-start-debugger-trace:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION** NEVER approve code without reading it — "looks fine" without `file:line` proof is forbidden
-**IMPORTANT MUST ATTENTION** NEVER skip Phase 4 (Round 2 Re-Review) — double round-trip is mandatory, not optional
+**IMPORTANT MUST ATTENTION** NEVER skip fresh re-review after a fix cycle; a clean first review with zero findings ends the loop per `SYNC:double-round-trip-review`
 **IMPORTANT MUST ATTENTION** ALWAYS include `file:line` evidence for every finding — grep results count as evidence
 **IMPORTANT MUST ATTENTION** ALWAYS grep for 3+ existing patterns before flagging a convention violation — codebase convention wins over textbook rules
 **IMPORTANT MUST ATTENTION** ALWAYS cross-reference changed files against related docs and flag stale documentation in the report

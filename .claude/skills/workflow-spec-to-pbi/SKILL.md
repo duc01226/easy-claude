@@ -22,6 +22,7 @@ disable-model-invocation: true
 - MUST ATTENTION define success criteria before execution and loop until observable verification passes.
 - MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
 - **[BLOCKING] Tech-agnostic output:** PBI / backlog / report prose stays tech-agnostic per `docs/project-reference/spec-principles.md` §3 — no framework/product/language/design-pattern names; source paths and class names appear ONLY in evidence fields (`**Evidence**`, `[Source:]`), frontmatter, and Mermaid.
+- **[BLOCKING] Inherit M1-M5 + logical-ID carry:** See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6)" for BLOCKING criteria. Every generated PBI MUST satisfy M1-M5. Carry each requirement's logical ID (`FR-`/`BR-`) from the spec's requirement/rule statements into the PBI as the PRIMARY citation spine, keeping the spec's `[Source: namespace/service/id]` abstract-anchor evidence as the SECONDARY carrier (KEEP it). Generated acceptance criteria stay tech-agnostic and observable — one valid interpretation, named failure modes, no implementation details.
 
 ## When to Use
 
@@ -114,8 +115,9 @@ For each matrix row that needs a new PBI:
 
 Each PBI MUST include:
 
-- Source spec references with `file:section` evidence.
-- GIVEN/WHEN/THEN acceptance criteria.
+- Logical requirement IDs (`FR-`/`BR-`) carried from the spec as the primary citation spine (M3).
+- Source spec references with `file:section` evidence (secondary, re-anchorable carrier — KEEP).
+- GIVEN/WHEN/THEN acceptance criteria — tech-agnostic and observable (M1/M4).
 - Story points and complexity.
 - Dependencies table with `must-before`, `can-parallel`, `blocked-by`, or `independent`.
 - Priority input data for `/prioritize`.

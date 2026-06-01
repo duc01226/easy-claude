@@ -15,7 +15,7 @@ description: '[Workflow] Use when activating the Review Current Changes workflow
 
 ## Quick Summary
 
-**Goal:** Review all uncommitted changes, fix issues found, then spawn a **fresh code-reviewer sub-agent** for unbiased re-review — repeat until clean.
+**Goal:** Review all uncommitted changes, fix issues found, then spawn a **fresh code-reviewer sub-agent** for unbiased re-review after each fix cycle — repeat until clean.
 
 **Sequence:** /review-changes → **[parallel batch]** /review-architecture + /review-ui (if frontend changes) + /review-domain-entities (if entity changes) + /performance + /integration-test-review + /security → /code-simplifier → /code-review → /integration-test-verify → /why-review (synthesis) → /plan → /why-review → /plan-validate → /why-review → /cook → **fresh sub-agent re-review gate** → /docs-update → /watzup → /workflow-end
 
@@ -28,7 +28,7 @@ description: '[Workflow] Use when activating the Review Current Changes workflow
 
 - After `/cook` applies fixes → spawn fresh `code-reviewer` sub-agent per `SYNC:fresh-context-review` → integrate findings → fix → spawn NEW sub-agent → repeat
 - Main-agent re-review (with knowledge of its own fixes) is NOT sufficient — orchestrator-level confirmation bias
-- PASS = a fresh sub-agent round finds ZERO Critical/High issues WITHOUT needing any fixes
+- PASS = initial reviews and tests find zero blocking issues, or after fixes a fresh sub-agent round finds ZERO Critical/High issues without needing another fix
 - Max 3 fresh-subagent rounds per conversation (tracked in conversation context)
 
 ---
@@ -212,7 +212,7 @@ Iteration count is tracked **in conversation context only** — no persistent fi
 **Rules:**
 
 - **Max 3 fresh-subagent rounds** — if fresh-subagent round count >= 3 and issues persist, STOP and escalate via `AskUserQuestion` (manual review required)
-- **PASS = done** — proceed to commit
+- **PASS = done** — if no fix cycle happened, initial clean reviews/tests are enough; if a fix cycle happened, PASS requires the fresh sub-agent round to find zero Critical/High issues
 - **Issue count increasing** — if round N finds MORE issues than round N-1, STOP and escalate via `AskUserQuestion`
 
 ### Flow Diagram
@@ -238,10 +238,6 @@ Main Session: Review → Issues? → Plan → Fix (/cook) → Spawn fresh sub-ag
 
 > **[BLOCKING SEQUENCING]** Step 1 `/review-changes` is SEQUENTIAL and MUST run FIRST — it produces the baseline (surface analysis + integration-test/translation gap detection) consumed by all downstream reviewers. Steps 2–7 (`/review-architecture`, `/review-ui`, `/review-domain-entities`, `/performance`, `/integration-test-review`, `/security`) form a PARALLEL BATCH — spawn all in ONE message via `Agent` tool calls, using each reviewer's required `subagent_type` (`review-ui` uses `ui-ux-designer`; default reviewers use `code-reviewer`). Step 8 `/code-simplifier` is SEQUENTIAL and waits until ALL parallel batch sub-agents return + consolidation summary is built. Steps 9+ proceed sequentially as listed.
 
-**IMPORTANT MANDATORY Steps:** /review-changes -> /review-architecture -> /review-ui -> /review-domain-entities -> /performance -> /integration-test-review -> /security -> /code-simplifier -> /code-review -> /integration-test-verify -> /why-review -> /plan -> /why-review -> /plan-validate -> /why-review -> /cook -> /workflow-review-changes -> /docs-update -> /watzup -> /workflow-end
-
-> **[BLOCKING SEQUENCING]** Step 1 `/review-changes` is SEQUENTIAL and MUST run FIRST — it produces the baseline (surface analysis + integration-test/translation gap detection) consumed by all downstream reviewers. Steps 2–7 (`/review-architecture`, `/review-ui`, `/review-domain-entities`, `/performance`, `/integration-test-review`, `/security`) form a PARALLEL BATCH — spawn all in ONE message via `Agent` tool calls, using each reviewer's required `subagent_type` (`review-ui` uses `ui-ux-designer`; default reviewers use `code-reviewer`). Step 8 `/code-simplifier` is SEQUENTIAL and waits until ALL parallel batch sub-agents return + consolidation summary is built. Steps 9+ proceed sequentially as listed.
-
 > **[WORKFLOW-IN-WORKFLOW: MUST RUN AS SUB-AGENT when inside another workflow]** This skill activates the full `review-changes` workflow (20 steps). When invoked as a step inside a parent workflow (e.g., `feature`, `bugfix`, `refactor`), it MUST execute via `Agent` tool (`subagent_type: "code-reviewer"`) — NEVER as an inline `Skill` tool call. Inline execution absorbs 20 steps of context into the parent session.
 >
 > **Sub-agent prompt must include:** current git diff, feature/task description, instruction to return SYNC:subagent-return-contract summary and write full findings to `plans/reports/`.
@@ -249,10 +245,27 @@ Main Session: Review → Issues? → Plan → Fix (/cook) → Spawn fresh sub-ag
 > **Standalone invocation** (not inside a workflow): inline execution is fine — no sub-agent required.
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
-> **[FRESH SUB-AGENT RE-REVIEW]** After fixes in `/cook`, spawn a fresh sub-agent per `SYNC:fresh-context-review` for unbiased re-review. Max 3 fresh rounds per conversation.
-> **[ITERATION CAP]** Max 3 fresh-subagent re-review rounds per conversation (tracked in conversation context, not persistent files). PASS = zero Critical/High without fixes.
+> **[FRESH SUB-AGENT RE-REVIEW]** After fixes in `/cook`, spawn a fresh sub-agent per `SYNC:fresh-context-review` for unbiased re-review. Clean review rounds with no fixes end the loop. Max 3 fresh rounds per conversation.
+> **[ITERATION CAP]** Max 3 fresh-subagent re-review rounds per conversation (tracked in conversation context, not persistent files). After a fix cycle, PASS = fresh sub-agent finds zero Critical/High without more fixes.
 
 Activate the `review-changes` workflow. Run `/workflow-start review-changes` with the user's prompt as context.
+
+<!-- SYNC:end-to-start-debugger-trace -->
+
+> **End-to-Start Debugger Trace** — For non-trivial bugs, failed verification, regression fixes, behavior-changing code, or unclear code flow, start from the observed final state and walk backward before proposing a fix.
+>
+> 1. **Frame 0: observed end state** — Name the exact user-visible output, failing assertion, log line, persisted value, API response, rendered UI, or aggregate bucket. Record the reader/query/renderer that produced it with `file:line` evidence.
+> 2. **Walk backward one hop at a time** — Trace final reader -> projection/cache/storage -> writer -> consumer/handler/job -> producer/caller -> original trigger. At every hop record: input, transformation, output, owner, and evidence.
+> 3. **Enumerate all feeder paths** — Find every upstream producer/caller/event/job that can write into the final path, including retry, async, cache, background, and alternate UI/API paths. Mark each path verified, ruled out, or still unknown.
+> 4. **Build the hypothesis matrix** — For each plausible cause, list evidence for, evidence against, how to reproduce/verify, blast radius, and status (`primary`, `contributing`, `ruled out`, `latent`). Do not fix until competing causes are explicitly resolved or bounded.
+> 5. **Choose the owning fix layer** — Identify the invariant owner and the lowest shared point that protects all downstream consumers. A fix at the symptom site is rejected unless the symptom site owns the invariant.
+> 6. **Prove convergence forward** — After choosing the fix, walk start -> end again and show how the corrected state reaches the observed final output. Map each root cause to a fix part and each fix part to a test/proof.
+>
+> **BLOCKED until:** final state named · backward trace written · all feeder paths enumerated · hypothesis matrix completed · owning fix layer justified · forward convergence proof mapped to tests.
+>
+> **NEVER:** Start at the first suspicious code path. Collapse multiple producers into one "flow". Treat duplicate symptoms as duplicate records without proving the read model. Skip ruled-out hypotheses.
+
+<!-- /SYNC:end-to-start-debugger-trace -->
 
 <!-- SYNC:fresh-context-review -->
 
@@ -418,6 +431,12 @@ Activate the `review-changes` workflow. Run `/workflow-start review-changes` wit
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
 
+<!-- SYNC:end-to-start-debugger-trace:reminder -->
+
+**IMPORTANT MUST ATTENTION** debugger trace gate: for non-trivial bug/fix/investigation/review work, start at the observed final output and trace backward through reader -> storage/projection -> writer -> consumer/job -> producer/trigger. Enumerate all feeder paths and hypotheses before fixing. **BLOCKED until** trace, hypothesis matrix, owning fix layer, and forward convergence proof exist.
+
+<!-- /SYNC:end-to-start-debugger-trace:reminder -->
+
 <!-- SYNC:nested-task-creation:reminder -->
 
 - **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
@@ -441,7 +460,7 @@ Activate the `review-changes` workflow. Run `/workflow-start review-changes` wit
 **IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting — create ALL 20 tasks immediately
 **IMPORTANT MUST ATTENTION** after fixes in `/cook`, spawn a NEW `code-reviewer` sub-agent via the `Agent` tool per `SYNC:fresh-context-review` — NEVER re-review with the main agent
 **IMPORTANT MUST ATTENTION** track fresh-subagent round count in conversation context (session-scoped, no persistent files) — max 3 rounds, escalate via `AskUserQuestion` if exceeded
-**IMPORTANT MUST ATTENTION** PASS means a fresh sub-agent round finds ZERO Critical/High issues WITHOUT needing fixes — only then are changes ready to commit
+**IMPORTANT MUST ATTENTION** PASS means initial reviews/tests find zero blocking issues, or after a fix cycle a fresh sub-agent round finds ZERO Critical/High issues without more fixes
 **IMPORTANT MUST ATTENTION** skip steps 11-17 when all reviews PASS with zero findings and tests pass (no fixes needed)
 **IMPORTANT MUST ATTENTION** each step MUST invoke its `Skill` tool — marking completed without invocation is a violation
 **IMPORTANT MUST ATTENTION** treat multilingual UI translation gaps as mandatory user-decision gates — no silent pass when locale updates are missing

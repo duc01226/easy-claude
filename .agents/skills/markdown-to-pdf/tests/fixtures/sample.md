@@ -11,22 +11,22 @@ This is a test document for the markdown-to-pdf skill.
 
 ```javascript
 function hello() {
-    console.log('Hello, World!');
+  console.log('Hello, World!');
 }
 ```
 
 ## Table Example
 
-| Name  | Value |
-| ----- | ----- |
-| Alpha | 1     |
-| Beta  | 2     |
+| Name | Value |
+|------|-------|
+| Alpha | 1 |
+| Beta | 2 |
 
 ## List Example
 
 - Item 1
 - Item 2
-    - Nested item
+  - Nested item
 
 ## Blockquote
 

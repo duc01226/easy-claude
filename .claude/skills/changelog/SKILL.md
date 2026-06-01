@@ -35,6 +35,7 @@ triggers:
 - Use business-focused language, not technical jargon (e.g., "Added pipeline management" not "Added PipelineController.cs")
 - Group related changes by module/feature, not by file
 - Always insert under the `[Unreleased]` section; create it if missing
+- **Cite logical IDs + flag breaking changes (M3/M1):** See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6)" for BLOCKING criteria. Each entry cites the logical IDs it affects (`FR-`/`TC-`, plus `BR-` where relevant) and a business-level change description; keep implementation jargon and class/file names out of entry prose per `docs/project-reference/spec-principles.md` §3. Explicitly flag any breaking change with a `**BREAKING:**` prefix and a one-line migration/impact note.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
@@ -147,6 +148,7 @@ Format (Keep a Changelog):
 ### {Module}: {Feature Title}
 
 **Feature/Fix**: {One-line business description}
+**Refs**: {FR-/BR-/TC- logical IDs affected}
 
 #### Added
 
@@ -159,7 +161,13 @@ Format (Keep a Changelog):
 #### Fixed
 
 - {What issue was resolved}
+
+#### Breaking
+
+- **BREAKING:** {what changed} — {migration/impact note}
 ```
+
+> If no breaking change: omit the `#### Breaking` block. Cite logical IDs in `**Refs**`; keep class/file names out of all entry prose.
 
 ### Step 6: Update Changelog
 

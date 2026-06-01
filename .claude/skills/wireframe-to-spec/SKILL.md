@@ -61,6 +61,25 @@ After image analysis, generate output per `ui-wireframe-protocol.md`:
 4. **Component Decomposition Tree** — If detail level warrants (refine/story)
 5. **Responsive Suggestions** — Based on layout complexity
 
+## M1-M5 Compliance in UI Conversion
+
+See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6)" for BLOCKING criteria. When converting a wireframe to a spec:
+
+- **M1-M2 — Business-level descriptions.** Describe every component and state in business/UX terms (Primary Button, Modal Dialog, Data Table, Filter Bar) and observable markers — NEVER framework component class names, library imports, CSS classes, or component-state props in prose. Source identifiers belong only in `**Evidence**`/`[Source:]` carriers, frontmatter, and Mermaid.
+- **M3 — Map to feature logic by logical ID.** Map each interactive component and interaction to the feature-spec operation or rule it drives, citing the logical ID (`OP-`/`BR-`/`FR-`). The logical ID is the primary spine; any `[Source: namespace/service/id]` abstract anchor stays in the Evidence carrier only — never a physical `file:line`/`src/` path.
+- **M4 — Observable state transitions.** Define every state transition by what visibly changes (color, icon, position, visible text) and its trigger — NEVER by code-level state management. Each transition must have exactly one valid interpretation.
+- **M5 — Rebuild-from-spec test.** Before finalizing, confirm a reader with zero codebase knowledge could rebuild this screen on ANY framework from the spec alone. If any marker requires reading source to interpret, restate it as a visual/textual observable.
+
+### Mapped Business Operations
+
+Emit this table linking each interactive component to the feature operations/rules it drives (logical ID is the primary spine; mark `[UNVERIFIED — needs feature-spec mapping]` when the wireframe alone cannot determine it):
+
+| Interactive Component | Interaction (observable) | Feature Operation / Rule (logical ID) | Notes                              |
+| --------------------- | ------------------------ | ------------------------------------- | ---------------------------------- |
+| Primary Button        | Click → submit form      | OP-XX                                 | Triggers create/update operation   |
+| Filter Dropdown       | Select → reload list     | OP-XX                                 | Drives query/search operation      |
+| Row Action Menu       | Click → confirm dialog   | BR-XX                                 | Guarded by authorization rule      |
+
 ## Output Formats
 
 ### Format A: PBI Section (default)

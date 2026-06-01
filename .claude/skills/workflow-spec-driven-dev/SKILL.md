@@ -173,7 +173,7 @@ TaskCreate: "size-evaluation — count modules, estimate total_tasks, decide spl
   → Phase A.ERD: produces `01-domain-erd.md` — Mermaid erDiagram with ALL entities, relationships,
     cardinalities, and aggregate boundaries; foundational artifact referenced by phases B–E
   → Per-task investigation: READ (grep → narrow → read) → TRACE (call chain, validators, triggers)
-    → EXTRACT (this phase/module only) → WRITE ([Source: file:line] every claim)
+    → EXTRACT (this phase/module only) → WRITE ([Source: namespace/service/id] abstract anchor every claim)
     → VERIFY (mark [UNVERIFIED] without source) → COMPLETE
     NEVER accumulate across tasks — write output after each task immediately
   → Phase F: bundle assembly + README completeness index + SPEC-CHANGELOG.md
@@ -592,7 +592,7 @@ Both layers stay in sync on every feature/bugfix/refactor workflow.
 - **[BLOCKING]** Plan decomposes big→small — ONE task per module × phase, every task ≤50 files in scope; split large modules with part labels
 - **[BLOCKING]** Dependency order: Phase A (domain model) before Phase B (rules) per module; priority: core domain modules first, infrastructure last
 - **[BLOCKING]** Per-task investigation: READ → TRACE → EXTRACT → WRITE immediately — NEVER accumulate across tasks
-- **[REQUIRED]** Every claim cites `[Source: file:line]` — mark `[UNVERIFIED]` not blank; all output tech-agnostic (no framework names, no language constructs)
+- **[REQUIRED]** Every claim cites `[Source: namespace/service/id]` (stack-portable abstract anchor — never physical `file:line`/`src/`) — mark `[UNVERIFIED]` not blank; all output tech-agnostic (no framework names, no language constructs)
 - **[REQUIRED]** Each sub-agent prompt MUST include: module name, task list, output path, tech-agnostic contract, SYNC protocols (critical-thinking, evidence-based, incremental-persistence, cross-scope boundary)
 - **[BLOCKING]** Context compaction / session resume → `TaskList` first, read completeness tracker, skip ✅ modules — NEVER re-run scout or plan
 - **[BLOCKING]** review-artifact: PASS = zero `[UNVERIFIED]` without exclusion reason + zero tech terms; gap found → fresh code-reviewer sub-agent (max 2 rounds) — NEVER inline re-review

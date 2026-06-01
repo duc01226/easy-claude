@@ -28,6 +28,8 @@ const {
   findBannedProseTechTerms,
   isSdd022TargetFile,
   scanProseForBannedTokens,
+  classifyEvidenceBody,
+  findProseSourceIdentifiers,
 } = await import(pathToFileURL(verifierPath).href);
 
 test("evaluateCheck fails unsafe drift wording", () => {
@@ -178,13 +180,15 @@ test("runChecks fails SDD022 banned tech terms in changed feature/spec prose onl
     );
 
     const result = await runChecks(tempRoot, [], { sdd022Files: [relativeFile] });
-    assert.equal(result.failures.length, 2);
-    assert.ok(result.failures.every((failure) => failure.code === "SDD022"));
+    const sdd022 = result.failures.filter((failure) => failure.code === "SDD022");
+    assert.equal(sdd022.length, 2);
     assert.deepEqual(
-      result.failures.map((failure) => failure.message.match(/"([^"]+)"/)?.[1]).sort(),
+      sdd022.map((failure) => failure.message.match(/"([^"]+)"/)?.[1]).sort(),
       ["CQRS", "PlatformValidationResult"]
     );
     assert.equal(result.sddMetrics.bannedProseTechTermFindings, 2);
+    // The physical `[Source: src/Foo.cs ...]` carrier is now an SDD023 (legacy-physical) warn.
+    assert.ok(result.failures.some((failure) => failure.code === "SDD023" && failure.severity === "warn"));
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
   }
@@ -225,10 +229,125 @@ test("runChecks skips SDD022 carrier lines and documented exempt guide files", a
     }
 
     const result = await runChecks(tempRoot, [], { sdd022Files: [...files.keys()] });
-    assert.deepEqual(result.failures, []);
+    // SDD022 (banned prose) and SDD024 (prose identifiers) must stay clean — every banned
+    // token and identifier here lives inside a carrier, mermaid block, or exempt guide file.
+    // The legacy `[Source: src/Foo.cs ...]` physical carrier legitimately raises an SDD023 warn.
+    assert.deepEqual(result.failures.filter((failure) => failure.code !== "SDD023"), []);
     assert.equal(result.sddMetrics.bannedProseTechTermFindings, 0);
+    assert.equal(result.sddMetrics.proseSourceIdentifierFindings, 0);
     assert.equal(isSdd022TargetFile("docs/business-features/DOCUMENTATION-GUIDE.md"), false);
     assert.deepEqual(findBannedProseTechTerms("Manual OAuth text"), ["OAuth"]);
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("classifyEvidenceBody accepts abstract anchors and flags physical/malformed bodies", () => {
+  // Valid, fully-migrated abstract anchors (single + comma-grouped) are exempt.
+  assert.equal(classifyEvidenceBody("operation/accounts/CreateUser"), null);
+  assert.equal(
+    classifyEvidenceBody("event/accounts/AccountUserSaved, schema/accounts/UserStore"),
+    null
+  );
+  // Doc cross-references and literal placeholders are not code anchors.
+  assert.equal(classifyEvidenceBody("docs/specs/example/A-domain-model.md"), null);
+  assert.equal(classifyEvidenceBody("file:line"), null);
+  // Canonical abstract-anchor placeholder (the literal teaching token in doc headers / MIGRATION.md)
+  // is an instructional placeholder, never a real anchor — exempt, not an unknown-namespace flag.
+  assert.equal(classifyEvidenceBody("namespace/service/id"), null);
+  // Legacy physical evidence (file path / extension / line range).
+  assert.deepEqual(classifyEvidenceBody("src/Services/Accounts/Foo.cs:12-20"), {
+    kind: "legacy-physical",
+  });
+  assert.deepEqual(classifyEvidenceBody("Bar.cs:5"), { kind: "legacy-physical" });
+  // Anchor-shaped but unknown namespace.
+  assert.deepEqual(classifyEvidenceBody("widget/accounts/Thing"), { kind: "unknown-namespace" });
+});
+
+test("findProseSourceIdentifiers detects code identifiers, filenames, and src paths", () => {
+  assert.deepEqual(
+    findProseSourceIdentifiers("The CreateUserCommandHandler validates input.").sort(),
+    ["CreateUserCommandHandler"]
+  );
+  assert.deepEqual(
+    findProseSourceIdentifiers("publishes AccountUserSavedEventBusMessage to consumers"),
+    ["AccountUserSavedEventBusMessage"]
+  );
+  assert.ok(
+    findProseSourceIdentifiers("See src/Services/Accounts/Foo.cs for details.").some((term) =>
+      term.startsWith("src/")
+    )
+  );
+  // Pure business prose has no source identifiers.
+  assert.deepEqual(findProseSourceIdentifiers("After saving, the system notifies subscribers."), []);
+});
+
+test("runChecks flags legacy physical evidence and unknown-namespace anchors (SDD023)", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-verify-sdd023-"));
+  try {
+    const relativeFile = "docs/specs/example/B-business-rules.md";
+    const target = path.join(tempRoot, relativeFile);
+    await fs.mkdir(path.dirname(target), { recursive: true });
+    await fs.writeFile(
+      target,
+      [
+        "# Rules",
+        "Valid abstract anchors stay clean.",
+        "[Source: operation/accounts/CreateUser]",
+        "[Source: event/accounts/AccountUserSaved, schema/accounts/UserStore]",
+        "Legacy physical reference must be flagged.",
+        "[Source: src/Services/Accounts/Foo.cs:12-20]",
+        "Bold-label physical carrier must be flagged.",
+        "**Source:** `Bar.cs:5`",
+        "Unknown namespace must be flagged.",
+        "[Source: widget/accounts/Thing]",
+      ].join("\n"),
+      "utf8"
+    );
+
+    const result = await runChecks(tempRoot, [], { sdd022Files: [relativeFile] });
+    const sdd023 = result.failures.filter((failure) => failure.code === "SDD023");
+    // Two legacy-physical (bracket file:line + bold-label .cs) + one unknown-namespace.
+    assert.equal(result.sddMetrics.legacyPhysicalEvidenceFindings, 2);
+    assert.equal(result.sddMetrics.malformedAbstractAnchorFindings, 1);
+    assert.ok(sdd023.every((failure) => failure.severity === "warn"));
+    assert.ok(sdd023.some((failure) => failure.message.includes("widget/accounts/Thing")));
+    // The two well-formed abstract carriers produce no SDD023 findings.
+    assert.equal(sdd023.length, 3);
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("runChecks flags source identifiers leaking into prose (SDD024 / M2)", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-verify-sdd024-"));
+  try {
+    const relativeFile = "docs/specs/example/A-domain-model.md";
+    const target = path.join(tempRoot, relativeFile);
+    await fs.mkdir(path.dirname(target), { recursive: true });
+    await fs.writeFile(
+      target,
+      [
+        "# Domain",
+        "After save, the service publishes AccountUserSavedEventBusMessage to consumers.",
+        "The CreateUserCommandHandler validates input.",
+        "See src/Services/Accounts/Foo.cs for details.",
+        "Business prose about creating a user has no leak.",
+        "[Source: operation/accounts/CreateUser]",
+        "**Handler:** `AccountUserSavedEventBusConsumer`",
+      ].join("\n"),
+      "utf8"
+    );
+
+    const result = await runChecks(tempRoot, [], { sdd022Files: [relativeFile] });
+    const sdd024 = result.failures.filter((failure) => failure.code === "SDD024");
+    const terms = sdd024.map((failure) => failure.message.match(/"([^"]+)"/)?.[1]);
+    assert.ok(terms.includes("AccountUserSavedEventBusMessage"));
+    assert.ok(terms.includes("CreateUserCommandHandler"));
+    assert.ok(terms.some((term) => term.startsWith("src/")));
+    // The `[Source:]` anchor and `**Handler:**` carrier lines are exempt from prose scanning.
+    assert.ok(!terms.includes("AccountUserSavedEventBusConsumer"));
+    assert.ok(sdd024.every((failure) => failure.severity === "warn"));
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
   }

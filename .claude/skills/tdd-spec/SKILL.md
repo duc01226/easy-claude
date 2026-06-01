@@ -26,6 +26,8 @@ triggers: 'tdd spec, tdd test, test driven, write test specs, create test cases,
 
 **Key Rules:** Unified `TC-{FEATURE}-{NNN}` format · Section 15 = source of truth · Evidence required on every TC · Minimum 4 categories (positive, negative, authorization, edge cases) · Interactive review via `AskUserQuestion` mandatory
 
+> **[M5 — Rebuild-from-scratch signal]** A competent team with zero codebase knowledge MUST be able to derive and execute every TC from the spec text alone, on ANY stack — without reading source. If a TC's intent is only understandable by opening the implementation, it fails M5: rewrite the objective/Given-When-Then in business-observable terms. See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6)" for BLOCKING criteria.
+
 ---
 
 > **[BLOCKING]** `TaskCreate` — break ALL work into small tasks BEFORE starting. NEVER skip.
@@ -117,7 +119,7 @@ below — if a downstream rule would raise change cost, this principle wins.
 
 - **Unified format:** `TC-{FEATURE}-{NNN}` — feature codes in `docs/project-reference/feature-docs-reference.md`
 - **Source of truth:** Feature docs Section 15 — canonical TC registry. NEVER write TCs to `docs/specs/` as primary destination.
-- **Evidence required:** Every TC MUST have `Evidence: [Source: {FilePath}:{LineRange}]` or `TBD (pre-implementation)` for TDD-first
+- **Evidence required:** Every TC MUST have `Evidence: [Source: {namespace}/{service}/{id}]` (stack-portable abstract anchor — never `file:line`/`src/` paths) or `TBD (pre-implementation)` for TDD-first. Canonical format: `shared/tc-format.md`; anchor taxonomy: `docs/specs/MIGRATION.md`
 - **Minimum 4 categories:** Positive (happy path) · Negative (error handling) · **Authorization** (role-based access — MANDATORY) · Edge cases
     - **Bugfix specs:** MANDATORY Preservation Tests — see `references/tdd-spec-template.md#preservation-tests-mandatory-for-bugfix-specs`
     - **Query-Only exception:** Read-only, no auth boundaries, no events → validation + authorization + edge cases minimum
@@ -202,7 +204,7 @@ Skip confirmation only when mode explicit in `$ARGUMENTS` AND feature name unamb
 
 Read target feature doc Sections 5, 6, 8, 13. Check:
 
-- Every BR-XX in Section 6 has `[Source: file:line]` citation — flag missing
+- Every BR-XX in Section 6 has `[Source: {namespace}/{service}/{id}]` abstract-anchor citation — flag missing
 - Every operation in Section 8 references ≥1 `BR-XX` — flag unreferenced operations
 - Section 13 has permission matrix (≥1 role × action row) — flag if absent
 - Section 4 has FR-XX entries with explicit outcomes — flag if empty/vague
@@ -470,14 +472,18 @@ And {additional verification}
 
 - {Boundary condition}
 
-**Evidence:** `[Source: {FilePath}:{LineRange}]` or `TBD (pre-implementation)`
+**Evidence:** `[Source: {namespace}/{service}/{id}]` or `TBD (pre-implementation)`
 ```
+
+> **[M1-M2 Compliance — authoring the TC body]** The `Objective`, `Business Intent / Invariant Guarded`, and the `Given/When/Then` steps MUST name business operations and observable states only — what an actor does and what the system visibly does in response. NEVER use class/method/file names, transport/handler names, or language-native types in these fields. Those source identifiers belong ONLY in the `**Evidence**` and `IntegrationTest` carriers. Quick check: replace the implementation with a different stack — does the GWT still read correctly? If not, it leaks tech (M1/M2 fail). See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6)" for BLOCKING criteria.
 
 **Evidence rules by mode:**
 
 - **TDD-first:** `Evidence: TBD (pre-implementation)` — will be updated after implementation
-- **Implement-first:** `Evidence: [Source: {actual file}:{actual lines}]` — trace to real code
-- **Update:** Update existing evidence references if code moved
+- **Implement-first:** trace to the real code, then record the stack-portable abstract anchor `Evidence: [Source: {namespace}/{service}/{id}]` (derive namespace/service/id per `docs/specs/MIGRATION.md`; the physical `file:line` goes to the provenance sidecar, NEVER into the doc)
+- **Update:** re-resolve the anchor ONLY if the logical artifact was renamed/split; a file move or stack change does NOT change the anchor — that stability is the point
+
+> **[M3 Traceability — logical-IDs-first]** Every TC MUST map to at least one logical business-rule/operation ID (`BR-`/`OP-` from feature doc Section 6/8) as its primary trace spine — record this mapping in the TC body (e.g. a `Traces: BR-XX, OP-XX` line) SEPARATE from the evidence anchor. The `[Source: {namespace}/{service}/{id}]` in the `**Evidence**` field is the SECONDARY, stack-portable carrier — it names WHICH logical artifact implements/verifies the behavior, never WHAT the TC guards. KEEP the abstract anchor; never drop it and never replace it with `file:line` (physical coordinates live only in the provenance sidecar). A TC with `[Source: ...]` but no logical-ID mapping fails M3. See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6)" for BLOCKING criteria.
 
 ### Phase 5: Update docs/specs/ Dashboard (Optional)
 
@@ -486,6 +492,8 @@ If `docs/specs/README.md` exists:
 1. Update Implementation Index with TC→test method mappings
 2. TDD-first: map to expected test method names (created by `/integration-test`)
 3. Update `PRIORITY-INDEX.md` with new TC entries in correct priority tier
+
+> **[M2/M3 — dashboard stays stack-portable]** When syncing dashboards, carry each TC's `Evidence` **abstract anchor** (`[Source: {namespace}/{service}/{id}]`) verbatim from Section 15 — NEVER expand it to a `file:line`/`src/` path or add an "implementation file" column. The only physical reference a dashboard may hold is the operational `IntegrationTest` `{TestFile}::{MethodName}` link.
 
 **Skip** if user says "skip dashboard" or no `docs/specs/` file exists for module.
 
@@ -793,9 +801,10 @@ TC-REG-001: GIVEN payment processed WHEN amount > limit THEN reject with Payment
 
 <!-- SYNC:source-test-drift-check -->
 
-> **Source/test drift check.** For coding, fix, debug, investigation, test, or review work: when source behavior changes, inspect affected unit/integration/E2E tests and decide from evidence whether tests should change to match intended behavior or the source change is an unintended bug to fix.
+> **Source/test drift check.** For coding, fix, debug, investigation, test, or review work: when source behavior changes, inspect affected unit/integration/E2E tests and decide from evidence whether tests should change to match intended behavior or the source change is an unintended bug to fix. Do not write tests for migration code; schema/data migrations are one-time execution paths, not core application logic.
 
 <!-- /SYNC:source-test-drift-check -->
+
 <!-- SYNC:ai-mistake-prevention -->
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
@@ -1078,7 +1087,7 @@ TC-REG-001: GIVEN payment processed WHEN amount > limit THEN reject with Payment
 <!-- SYNC:estimation-framework:reminder -->
 
 - **MANDATORY MUST ATTENTION** estimation: bottom-up phase hours drive `man_days_traditional` (`Σh/6 × productivity_factor`); SP DERIVED. UI cost usually dominates — bump SP one bucket if NEW UI surface (page/complex form/dashboard). Frontmatter MUST include `story_points`, `complexity`, `man_days_traditional`, `man_days_ai`, `estimate_scope_included`, `estimate_scope_excluded`, `estimate_reasoning` (UI vs backend cost driver). Cap SP 3 for additive-on-existing-model+existing-UI unless test scope >1.5d. SP 13 SHOULD split, SP 21 MUST split.
-    <!-- /SYNC:estimation-framework:reminder -->
+<!-- /SYNC:estimation-framework:reminder -->
 
 <!-- SYNC:rationalization-prevention:reminder -->
 

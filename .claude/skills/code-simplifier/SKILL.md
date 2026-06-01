@@ -350,9 +350,9 @@ When used standalone (outside a review workflow), run `/workflow-review-changes`
 
 ```
 Agent({
-description: "Fresh Round {N} review",
-subagent_type: "code-reviewer",
-prompt: `
+  description: "Fresh Round {N} review",
+  subagent_type: "code-reviewer",
+  prompt: `
 ## Task
 {review-specific task — e.g., "Review all uncommitted changes for code quality" | "Review plan files under {plan-dir}" | "Review integration tests in {path}"}
 
@@ -390,42 +390,38 @@ Priority checks for every code change:
 5. YAGNI gate: NEVER recommend patterns unless 3+ occurrences exist. Don't extract for hypothetical future use.
 Anti-patterns to flag: God Object, Copy-Paste inheritance, Circular Dependency, Leaky Abstraction.
 
-### Complexity Prevention (Ousterhout)
-MANDATORY. Measure code by cost of change: one business change = one code change. Flag ALL 13:
-1. Change amplification — >3 edit sites for plausible future change = structural flaw. Reject.
-2. Cognitive load — deep inheritance, long param lists, boolean traps, implicit ordering = reader overload.
-3. Cross-cutting duplication at entry points — logging/error/validation/auth/tx reimplemented per handler → lift to middleware/interceptor/filter/decorator/aspect.
-4. Leaked implementation technology — repos returning IQueryable/QuerySet/raw cursors/ORM entities → return finished results + intent-revealing methods.
-5. Type-switch scattering — switch/if-chains on enum/discriminator in >1 place → polymorphism/strategy. New variant = 1 new file, not N edits.
-6. Anemic models — getters/setters only, logic in services → move invariants/behavior onto object (`order.Checkout()`, not `order.Status = ...`).
-7. Primitive obsession — raw string/int/decimal for account/email/money/percent/date-range → value objects / records / structs validating once at construction.
-8. Inline cross-cutting concerns — authz/tenant/audit/sanitization at top of every handler → declarative markers (`@RequirePermission`), enforce centrally.
-9. Shallow modules — tiny class, big interface wrapping little logic → inline or deepen.
-10. Missing base class for repeated component/handler lifecycle — 3+ forms/CRUD handlers/list views reimplementing loading/dirty/submit/pagination → base class/hook/composable/mixin/trait.
-11. Premature vs delayed abstraction — rule-of-three. First write it; second notice; third extract. No generic frameworks before real variation; no copy-paste for the 4th time.
-12. Embedded utility logic not extracted — inline paging/retry/datetime/string parsing/URL building → extract to util/helper/extensions. Inline duplicates = duplicated bug surface.
-13. Logic in wrong (higher) layer — caller computing what callee owns → downshift. Lowest responsible layer wins (Entity > Domain Service > App Service > Controller · Model/VM > Store > Component).
-Pre-commit edit-site test (reject if answer is "many"): Add new variant → 1 new file. Change HTTP error format → 1 middleware. Add timestamp to every entity → 1 base/interceptor. Add authorization to an endpoint → 1 declarative marker. Swap DB/ORM → data layer only. Change business calculation → 1 method on entity. Add loading pattern to forms → 1 base/hook. Add validation to primitive → 1 value-object ctor. Change paging/retry/datetime algorithm → 1 helper. Change entity derivation → 1 method on entity.
-Heuristics: write call site first · count edit sites for plausible future change · pre-reuse scan (grep similar algorithms before writing) · layer placement test ("would a sibling caller re-derive this?") · open-case-for-future-reuse (don't rationalize silent duplication with pure YAGNI — extract now if cheap or track TODO) · prefer removing code · surface assumptions at boundaries, hide details inside.
-The measure of good code is the cost of change.
-
 ### Logic & Intention Review
 Verify WHAT code does matches WHY it was changed.
 1. Change Intention Check: Every changed file MUST serve the stated purpose. Flag unrelated changes as scope creep.
 2. Happy Path Trace: Walk through one complete success scenario through changed code.
 3. Error Path Trace: Walk through one failure/edge case scenario through changed code.
 4. Acceptance Mapping: If plan context available, map every acceptance criterion to a code change.
+5. Tests Verify Intent: For test/spec changes, verify tests name the protected business rule or invariant and would fail if that intent breaks.
+6. Migration Test Exclusion: Do not write tests for migration code. Schema/data migrations are one-time execution paths, not core application logic.
 NEVER mark review PASS without completing both traces (happy + error path).
 
 ### Test Spec Verification
 Map changed code to test specifications.
-1. From changed files → find TC-{FEATURE}-{NNN} in docs/business-features/{Service}/detailed-features/{Feature}.md Section 15.
-2. Every changed code path MUST map to a corresponding TC (or flag as "needs TC").
+1. Identify the project's test/spec format from existing docs, test-case files, BDD feature files, or spec folders.
+2. Every changed code path MUST map to a corresponding test case/spec (or flag as "needs test case").
 3. New functions/endpoints/handlers → flag for test spec creation.
-4. Verify TC evidence fields point to actual code (file:line, not stale references).
-5. Auth changes → TC-{FEATURE}-02x exist? Data changes → TC-{FEATURE}-01x exist?
-6. If no specs exist → log gap and recommend /tdd-spec.
+4. Migration files are excluded from test/spec creation; schema/data migrations are one-time execution paths, not core application logic.
+5. If spec evidence fields exist, verify they point to actual code (file:line, not stale references).
+6. Verify each meaningful test case names the business intent/invariant; flag behavior-only cases that only mirror implementation details.
+7. Auth/data changes → verify corresponding authorization and data-state test cases exist.
+8. If no specs exist for a changed path → log the gap and recommend the project's test-spec workflow.
 NEVER skip test mapping. Untested code paths are the #1 source of production bugs.
+
+### Behavioral Delta Matrix
+MANDATORY for any bugfix review. Produce input-state × pre-fix × post-fix × delta table BEFORE writing verdict.
+- Minimum 3 rows; include at least one row OUTSIDE the original bug report.
+- Any "REGRESSION" delta → review returns FAIL until a preservation test is added.
+- Narrative descriptions do NOT substitute for the matrix.
+Example rows (external-record sync fix):
+| Input                 | Pre-fix | Post-fix                  | Delta      |
+| --------------------- | ------- | ------------------------- | ---------- |
+| Record exists (valid) | Reused  | Always recreated → orphan | REGRESSION |
+| Record missing (404)  | Error   | Recreated                 | Fixed      |
 
 ### Fix-Layer Accountability
 NEVER fix at the crash site. Trace the full flow, fix at the owning layer. The crash site is a SYMPTOM, not the cause.
@@ -505,9 +501,10 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:source-test-drift-check -->
 
-> **Source/test drift check.** For coding, fix, debug, investigation, test, or review work: when source behavior changes, inspect affected unit/integration/E2E tests and decide from evidence whether tests should change to match intended behavior or the source change is an unintended bug to fix.
+> **Source/test drift check.** For coding, fix, debug, investigation, test, or review work: when source behavior changes, inspect affected unit/integration/E2E tests and decide from evidence whether tests should change to match intended behavior or the source change is an unintended bug to fix. Do not write tests for migration code; schema/data migrations are one-time execution paths, not core application logic.
 
 <!-- /SYNC:source-test-drift-check -->
+
 <!-- SYNC:ai-mistake-prevention -->
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:

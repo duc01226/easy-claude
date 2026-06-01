@@ -53,7 +53,7 @@ Use this checklist to validate idea and PBI templates before committing.
     - [ ] Conflicts/clarifications flagged
 - [ ] Acceptance Criteria follow BDD format (GIVEN/WHEN/THEN)
 - [ ] Test case IDs follow TC-{FEATURE}-{NNN} format (domain features)
-- [ ] Evidence format mentioned (file:line)
+- [ ] Evidence format mentioned (`[Source: namespace/service/id]` abstract anchor — never physical `file:line`)
 - [ ] Reference Documentation section has valid links
 
 ### Cross-References

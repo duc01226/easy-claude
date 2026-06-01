@@ -306,7 +306,7 @@ QC:                              /quality-gate ──→ [PASS/FAIL report]
 
 - All test cases have `TC-{FEATURE}-{NNN}` IDs
 - At least 3 categories: positive, negative, edge
-- Evidence fields link to code (`file:line`)
+- Evidence fields use `[Source: namespace/service/id]` abstract anchors (stack-portable — never `file:line`)
 
 ---
 

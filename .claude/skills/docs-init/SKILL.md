@@ -25,7 +25,13 @@ disable-model-invocation: true
 
 ## Step 1: Verify Reference Doc Stubs
 
-Check that the `session-init-docs.cjs` hook has created the 14 reference doc files:
+Check that `session-init-docs.cjs` has created the project reference docs declared for the project:
+
+1. Read `docs/project-config.json` and use `referenceDocs[*].filename` as the source of truth.
+2. If `referenceDocs` is empty or missing, use `DEFAULT_REFERENCE_DOCS` from `.claude/hooks/lib/session-init-helpers.cjs`.
+3. Do not manually add missing `docs/project-reference/` files. Add or correct the project config/template entry first, then rerun the session-init/docs-init path.
+
+Common mappings when configured:
 
 ```
 docs/project-reference/project-structure-reference.md     -> /scan-project-structure
@@ -35,6 +41,7 @@ docs/project-reference/frontend-patterns-reference.md     -> /scan-frontend-patt
 docs/project-reference/integration-test-reference.md      -> /scan-integration-tests
 docs/project-reference/feature-docs-reference.md          -> /scan-feature-docs
 docs/project-reference/spec-principles.md                -> static template (no scan skill)
+docs/project-reference/workflow-spec-test-code-cycle-reference.md -> static template (no scan skill)
 docs/project-reference/code-review-rules.md              -> /scan-code-review-rules
 docs/project-reference/scss-styling-guide.md             -> /scan-scss-styling
 docs/project-reference/design-system/README.md           -> /scan-design-system
@@ -44,7 +51,7 @@ docs/project-reference/docs-index-reference.md           -> /scan-docs-index
 docs/project-reference/lessons.md                        -> /learn (managed separately)
 ```
 
-If any files are missing, the hook should create them on next prompt. Verify by checking `docs/` directory.
+If configured files are missing, the hook should create them on next prompt/session start. Verify by checking `docs/project-reference/` against the configured filenames.
 
 ## Step 2: Detect Placeholder vs Populated
 
@@ -54,16 +61,26 @@ Read the first 512 bytes of each file. If it contains `<!-- Fill in your project
 
 Use `AskUserQuestion` to present:
 
-1. **"Run /claude-md-init + all scan skills" (Recommended for first-time init)** -- Generates CLAUDE.md from config, then runs all 12 scan skills
-2. **"Run all scan skills only"** -- Runs all 12 scan skills without CLAUDE.md generation
+1. **"Run /claude-md-init + all configured scan skills" (Recommended for first-time init)** -- Generates CLAUDE.md from config, then runs scan skills for configured docs
+2. **"Run configured scan skills only"** -- Runs scan skills without CLAUDE.md generation
 3. **"Select specific skills"** -- Let user choose which ones to run
 4. **"Skip -- docs are already populated"** -- Exit if all docs have content
 
 For each selected scan skill, invoke it via the Skill tool (e.g., `/scan-backend-patterns`).
 
+## Step 4: M1-M5 Compliance Gate (BLOCKING)
+
+See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6)" for BLOCKING criteria. After the scan skills generate/populate the reference docs, gate the generated output:
+
+- **M1/M2 — tech-agnostic prose:** Spec/feature-facing docs (and any populated `spec-principles.md` extension) keep narrative and headings free of framework/product/language/design-pattern names and source identifiers; those appear only in evidence carriers (`[Source: namespace/service/id]`, `**Evidence**`), frontmatter, and Mermaid. Authority: `docs/project-reference/spec-principles.md` §3.
+- **M3 — logical-IDs-first:** Where docs carry requirements/rules/TCs, the logical IDs (`FR-`/`BR-`/`OP-`/`TC-`) are the primary spine and `[Source: namespace/service/id]` (a stack-portable abstract anchor — never physical `file:line`/`src/`; physical coords live only in the provenance sidecar) is the secondary carrier.
+- **M4/M5 — implementability:** Generated content is testable, observable, one-interpretation, and sufficient to rebuild the described behavior on any stack.
+
+**Verification step (run after generation):** Run the exact SDD compliance verifier documented by the project and resolve any failures before declaring init complete. Do not invent a verifier command; if the verifier or project config is not yet initialized, record that and re-run once available.
+
 ## Configuration
 
-Reference doc definitions are in `docs/project-config.json` under `referenceDocs`. The hook reads this config to determine which files to create. See `.claude/hooks/session-init-docs.cjs` for the full implementation.
+Reference doc definitions are in `docs/project-config.json` under `referenceDocs`. The hook reads this config to determine which files to create. Static local-extension docs use `.claude/templates/reference-docs/` templates. See `.claude/hooks/session-init-docs.cjs` for the full implementation.
 
 ---
 

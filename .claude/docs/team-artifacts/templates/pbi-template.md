@@ -80,7 +80,7 @@ THEN {expected outcome}
 Follow test case patterns from related feature docs:
 
 - **Format:** TC-{FEATURE}-{NNN}
-- **Evidence:** file:line format (e.g., component.ts:142)
+- **Evidence:** `[Source: namespace/service/id]` abstract anchor (stack-portable — physical `file:line` lives only in the provenance sidecar, never in the PBI body)
 - **Reference:** See existing patterns in feature doc Section 15 (Test Cases)
 
 ### Acceptance Criteria List
@@ -95,10 +95,10 @@ WHEN {action}
 THEN {outcome}
 ```
 
-**Evidence Format:** (will be added during implementation)
+**Evidence Format:** (abstract anchor added during implementation; physical coordinates → provenance sidecar)
 
-- Backend: (file:line)
-- Frontend: (file:line)
+- Backend: `[Source: operation/{service}/{Operation}]` (or `event`/`rule`/`schema` per artifact)
+- Frontend: `[Source: component/{service}/{Component}]`
 
 **Related Business Rules:** BR-{MOD}-XXX, BR-{MOD}-YYY
 
@@ -114,10 +114,10 @@ WHEN {action}
 THEN {outcome}
 ```
 
-**Evidence Format:** (will be added during implementation)
+**Evidence Format:** (abstract anchor added during implementation; physical coordinates → provenance sidecar)
 
-- Backend: (file:line)
-- Frontend: (file:line)
+- Backend: `[Source: operation/{service}/{Operation}]` (or `event`/`rule`/`schema` per artifact)
+- Frontend: `[Source: component/{service}/{Component}]`
 
 ---
 
@@ -146,7 +146,7 @@ THEN {error handling}
 
 - [ ] TC format follows TC-{FEATURE}-{NNN} pattern
 - [ ] All ACs use GIVEN/WHEN/THEN format
-- [ ] Evidence format specified (file:line)
+- [ ] Evidence format specified (`[Source: namespace/service/id]` abstract anchor — never physical `file:line`)
 
 ### Conflict Check
 

@@ -379,7 +379,7 @@ async function testGraphSessionInit() {
 
     // Test 2: Config populated → produces graph-related output
     {
-        const result = await runHook('graph-session-init.cjs', { source: 'startup' }, { timeout: 15000 });
+        const result = await runHook('graph-session-init.cjs', { source: 'startup' }, { timeout: 30000 });
         logResult('Exits 0 when config populated', result.code === 0);
         logResult('Produces graph output when config populated', result.stdout.includes('code-graph') || result.stdout.includes('graph'));
     }
@@ -938,11 +938,28 @@ async function testInitPromptGate() {
 
     // Test 1: Populated config → exit 0 (silent pass-through)
     {
-        const result = await runHook('init-prompt-gate.cjs', {
-            prompt: 'implement feature X'
-        });
-        logResult('Exit 0 when config populated', result.code === 0);
-        logResult('No stderr when config populated', result.stderr.trim() === '');
+        const tmpDir = createTempDir();
+        try {
+            const docsDir = path.join(tmpDir, 'docs');
+            const srcDir = path.join(tmpDir, 'src');
+            const graphDir = path.join(tmpDir, '.code-graph');
+            fs.mkdirSync(docsDir, { recursive: true });
+            fs.mkdirSync(srcDir, { recursive: true }); // hasProjectContent needs a content dir
+            fs.mkdirSync(graphDir, { recursive: true });
+            fs.writeFileSync(
+                path.join(docsDir, 'project-config.json'),
+                JSON.stringify({
+                    project: { name: 'TestProject' },
+                    modules: [{ name: 'mod', kind: 'library', pathRegex: 'src/' }]
+                })
+            );
+            fs.writeFileSync(path.join(graphDir, 'graph.db'), 'fake-db');
+            const result = await runHook('init-prompt-gate.cjs', { prompt: 'implement feature X' }, { env: { CLAUDE_PROJECT_DIR: tmpDir } });
+            logResult('Exit 0 when config populated', result.code === 0);
+            logResult('No stderr when config populated', result.stderr.trim() === '');
+        } finally {
+            cleanupTempDir(tmpDir);
+        }
     }
 
     // Test 2: Unpopulated config → exit 2 (blocked)

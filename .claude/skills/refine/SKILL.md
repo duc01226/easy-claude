@@ -199,8 +199,19 @@ Scenario: Manager reviews subordinate goal
 ### Project Test Case Format
 
 - **Format:** `TC-{FEATURE}-{NNN}` (e.g., TC-GM-001)
-- **Evidence:** `file:line` format
+- **Evidence:** `[Source: namespace/service/id]` abstract-anchor format (never `file:line`)
 - See `business-analyst` skill for detailed patterns
+
+---
+
+### Phase 5.1: AI-SDD Mandate Gate (M1-M5) — BLOCKING
+
+See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6)" for BLOCKING criteria. The generated PBI MUST satisfy M1-M5 or be reworked before Phase 8 writes it:
+
+- **Separate intent from implementation (M1/M2):** Keep a tech-agnostic **Business Intent** narrative (Description, Business Value, Acceptance Criteria) free of framework/product/language/design-pattern names and source identifiers. Put any optional implementation hints in a clearly separated **Implementation Notes** block, and put source references only in evidence carriers (`[Source: namespace/service/id]`, `**Evidence**`). Prose stays tech-agnostic per `docs/project-reference/spec-principles.md` §3.
+- **Logical Requirement ID first (M3):** Assign each requirement a logical ID (`FR-`/`BR-`) as the PRIMARY citation spine; keep `[Source: namespace/service/id]` abstract-anchor evidence (never physical `file:line`/`src/` — those live only in the provenance sidecar) as a SECONDARY carrier in a separate evidence column/section — KEEP it, never remove it.
+- **Testable, observable acceptance criteria (M4):** Every acceptance criterion has ONE valid interpretation, observable completion states, named failure modes, and NO implementation details. Reject vague phrasing ("handle appropriately", "fast", "user-friendly").
+- **Rebuild-from-scratch validation (M5):** Before emitting, confirm a competent team with zero codebase knowledge could re-implement identical business behavior on ANY stack from the PBI alone. If a reader would have to guess a rule, limit, role, or failure mode, add it as a clarification — never guess.
 
 ---
 
@@ -369,6 +380,15 @@ source_idea: '{idea artifact path or ID}'
 
 # {PBI Title}
 
+> **Business Intent (tech-agnostic — M1/M2):** Description, Business Value, Business Rules, and Acceptance Criteria below describe observable business behavior only — no framework/product/language/design-pattern names, no source identifiers. Keep implementation hints in `## Implementation Notes` and source references in evidence carriers.
+
+## Requirement IDs (M3 — logical-IDs-first)
+
+| Logical ID | Statement (tech-agnostic)   | Evidence (secondary, re-anchorable)        |
+| ---------- | --------------------------- | ------------------------------------------- |
+| FR-{MOD}-XXX | {functional requirement}  | `[Source: path:line]` or `TBD (pre-impl)`   |
+| BR-{MOD}-XXX | {business rule}           | `[Source: path:line]` or `TBD (pre-impl)`   |
+
 ## Description
 
 **As a** {user role}
@@ -478,6 +498,10 @@ Then error "{message}"
 
 **Entities:** {Entity1}, {Entity2}
 **Related Features:** {feature doc paths}
+
+## Implementation Notes
+
+> Optional, clearly separated from Business Intent. Implementation hints / source identifiers may appear here and in evidence carriers only — never in the tech-agnostic sections above. If none: `N/A — no implementation hints; rebuild from Business Intent + Requirement IDs.`
 
 ## UI Layout
 
@@ -855,7 +879,7 @@ For domain PBIs: detect module from `docs/business-features/` directory names, e
 <!-- SYNC:estimation-framework:reminder -->
 
 - **MANDATORY MUST ATTENTION** estimation: bottom-up phase hours drive `man_days_traditional` (`Σh/6 × productivity_factor`); SP DERIVED. UI cost usually dominates — bump SP one bucket if NEW UI surface (page/complex form/dashboard). Frontmatter MUST include `story_points`, `complexity`, `man_days_traditional`, `man_days_ai`, `estimate_scope_included`, `estimate_scope_excluded`, `estimate_reasoning` (UI vs backend cost driver). Cap SP 3 for additive-on-existing-model+existing-UI unless test scope >1.5d. SP 13 SHOULD split, SP 21 MUST split.
-  <!-- /SYNC:estimation-framework:reminder -->
+<!-- /SYNC:estimation-framework:reminder -->
 
 <!-- SYNC:ui-system-context:reminder -->
 

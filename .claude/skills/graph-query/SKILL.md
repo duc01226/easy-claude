@@ -130,14 +130,16 @@ Found {N} result(s).
 
 When the user asks about a FLOW or BEHAVIOR (not a specific file), follow this protocol:
 
-### Step 0: Grep/Glob/Search to find entry points
+### Step 0: Grep/Glob/Search to find trace anchors
 
 Use Grep/Glob/Search to find key classes/functions related to the user's query.
-Example: User asks "what happens when X is created" → grep for `CreateX`, `XCommand`, `XHandler`
+
+- Bug/failure symptom: find the final output reader first (renderer, query, assertion, aggregate, log, stored field), then trace upstream.
+- Feature-flow question: find entry points (`CreateX`, `XCommand`, `XHandler`) and trace both directions.
 
 ### Step 1: Use graph to expand
 
-Run `connections` or `batch-query` on the grep-discovered files to find ALL related files.
+Run `connections` or `batch-query` on the grep-discovered files to find ALL related files. For bugs, group results by final reader, storage/projection, writer, consumer/job, and producer/origin.
 
 ### Step 2: Trace full system flow
 
@@ -149,6 +151,13 @@ python .claude/scripts/code_graph trace <entry-file> --direction both --depth 3 
 
 This traces upstream (who calls this?) AND downstream (what does this trigger?) through:
 CALLS → TRIGGERS_EVENT → PRODUCES_EVENT → MESSAGE_BUS → API_ENDPOINT
+
+For bug/failure symptoms, run an upstream-first pass from the final output before expanding the suspected producer:
+
+```bash
+python .claude/scripts/code_graph trace <final-reader-or-output-file> --direction upstream --depth 5 --json
+python .claude/scripts/code_graph batch-query <final-reader> <writer> <producer> --json
+```
 
 ### Step 3: Verify with grep
 
@@ -279,6 +288,23 @@ Returns a multi-level tree of connected nodes grouped by BFS depth, with edge ty
 
 Query code relationships using the structural knowledge graph. Maps natural language questions to graph CLI queries and formats structured reports.
 
+<!-- SYNC:end-to-start-debugger-trace -->
+
+> **End-to-Start Debugger Trace** — For non-trivial bugs, failed verification, regression fixes, behavior-changing code, or unclear code flow, start from the observed final state and walk backward before proposing a fix.
+>
+> 1. **Frame 0: observed end state** — Name the exact user-visible output, failing assertion, log line, persisted value, API response, rendered UI, or aggregate bucket. Record the reader/query/renderer that produced it with `file:line` evidence.
+> 2. **Walk backward one hop at a time** — Trace final reader -> projection/cache/storage -> writer -> consumer/handler/job -> producer/caller -> original trigger. At every hop record: input, transformation, output, owner, and evidence.
+> 3. **Enumerate all feeder paths** — Find every upstream producer/caller/event/job that can write into the final path, including retry, async, cache, background, and alternate UI/API paths. Mark each path verified, ruled out, or still unknown.
+> 4. **Build the hypothesis matrix** — For each plausible cause, list evidence for, evidence against, how to reproduce/verify, blast radius, and status (`primary`, `contributing`, `ruled out`, `latent`). Do not fix until competing causes are explicitly resolved or bounded.
+> 5. **Choose the owning fix layer** — Identify the invariant owner and the lowest shared point that protects all downstream consumers. A fix at the symptom site is rejected unless the symptom site owns the invariant.
+> 6. **Prove convergence forward** — After choosing the fix, walk start -> end again and show how the corrected state reaches the observed final output. Map each root cause to a fix part and each fix part to a test/proof.
+>
+> **BLOCKED until:** final state named · backward trace written · all feeder paths enumerated · hypothesis matrix completed · owning fix layer justified · forward convergence proof mapped to tests.
+>
+> **NEVER:** Start at the first suspicious code path. Collapse multiple producers into one "flow". Treat duplicate symptoms as duplicate records without proving the read model. Skip ruled-out hypotheses.
+
+<!-- /SYNC:end-to-start-debugger-trace -->
+
 <!-- SYNC:ai-mistake-prevention -->
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
@@ -314,6 +340,12 @@ Query code relationships using the structural knowledge graph. Maps natural lang
 **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
+
+<!-- SYNC:end-to-start-debugger-trace:reminder -->
+
+**IMPORTANT MUST ATTENTION** debugger trace gate: for non-trivial bug/fix/investigation/review work, start at the observed final output and trace backward through reader -> storage/projection -> writer -> consumer/job -> producer/trigger. Enumerate all feeder paths and hypotheses before fixing. **BLOCKED until** trace, hypothesis matrix, owning fix layer, and forward convergence proof exist.
+
+<!-- /SYNC:end-to-start-debugger-trace:reminder -->
 
 ## Closing Reminders
 

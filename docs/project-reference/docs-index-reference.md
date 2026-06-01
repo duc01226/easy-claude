@@ -1,4 +1,4 @@
-<!-- Last scanned: 2026-05-15 -->
+<!-- Last scanned: 2026-06-02 -->
 
 # Documentation Index Reference
 
@@ -6,7 +6,7 @@
 
 ## Documentation System
 
-46 markdown files across 5 categories. Last scanned: 2026-05-15.
+48 markdown files across 5 categories. Last scanned: 2026-06-02.
 
 This inventory tracks authored framework and project-reference documentation.
 Generated explainer app sources under `.claude/docs/claude-agent-explainer/` are
@@ -15,7 +15,7 @@ outside this count.
 | Category              | Count | Path                       |
 | --------------------- | ----- | -------------------------- |
 | Root-level docs       | 4     | `*.md`                     |
-| Project reference     | 12    | `docs/project-reference/`  |
+| Project reference     | 14    | `docs/project-reference/`  |
 | ADRs                  | 2     | `docs/adr/`                |
 | Framework docs        | 28    | `.claude/docs/`            |
 | Config (non-markdown) | 1     | `docs/project-config.json` |
@@ -32,12 +32,14 @@ easy-claude/
 │   │   ├── 0001-skill-lifecycle.md         # Skill lifecycle schema and GC policy
 │   │   └── 0002-canonical-count-metrics.md # Canonical inventory count metrics
 │   ├── project-config.json                 # Runtime config consumed by hooks
-│   └── project-reference/                  # (12 files)
+│   └── project-reference/                  # (14 files)
 │       ├── project-structure-reference.md   # Service architecture, directory tree, tech stack
 │       ├── backend-patterns-reference.md    # CQRS, repositories, entities, validation
 │       ├── frontend-patterns-reference.md   # Component base classes, state mgmt, API services
 │       ├── integration-test-reference.md    # Test base classes, fixtures, helpers
 │       ├── feature-docs-reference.md        # App-to-service mapping, doc structure
+│       ├── spec-principles.md               # Local spec/test/documentation extension rules
+│       ├── workflow-spec-test-code-cycle-reference.md # Local workflow spec/test/code cycle
 │       ├── code-review-rules.md             # Conventions, anti-patterns, checklists
 │       ├── domain-entities-reference.md     # Entities, data models, DTOs, aggregates
 │       ├── e2e-test-reference.md            # E2E framework, page objects, config
@@ -130,6 +132,8 @@ CLAUDE.md
 | frontend, component, state mgmt   | `docs/project-reference/frontend-patterns-reference.md` |
 | integration test, fixtures        | `docs/project-reference/integration-test-reference.md`  |
 | feature docs, app-to-service      | `docs/project-reference/feature-docs-reference.md`      |
+| spec principles, local SDD rules  | `docs/project-reference/spec-principles.md`             |
+| workflow spec test code cycle     | `docs/project-reference/workflow-spec-test-code-cycle-reference.md` |
 | code review, anti-patterns        | `docs/project-reference/code-review-rules.md`           |
 | domain model, DTO, aggregate      | `docs/project-reference/domain-entities-reference.md`   |
 | E2E test, playwright, page object | `docs/project-reference/e2e-test-reference.md`          |

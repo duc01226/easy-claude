@@ -4,7 +4,6 @@ description: '[General] Use when you need reverse-engineer a complete, tech-agno
 ---
 
 > Codex compatibility note:
->
 > - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
 > - User-question prompts mean to ask the user directly in Codex.
@@ -14,22 +13,18 @@ description: '[General] Use when you need reverse-engineer a complete, tech-agno
 > - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
 > - For workflow skills, execute each listed child-skill step explicitly and report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
-
 <!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
-
 ## Codex Project-Reference Loading (No Hooks)
 
 Codex does not receive Claude hook-based doc injection.
 When coding, planning, debugging, testing, or reviewing, open project docs explicitly using this routing.
 
 **Always read:**
-
 - `docs/project-config.json` (project-specific paths, commands, modules, and workflow/test settings)
 - `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
 - `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
 
 **Situation-based docs:**
-
 - Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`, `project-structure-reference.md`
 - Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md`
 - Spec/test-case planning or TC mapping: `feature-docs-reference.md`
@@ -38,7 +33,6 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 - Code review/audit work: `code-review-rules.md` plus domain docs above based on changed files
 
 Do not read all docs blindly. Start from `docs-index-reference.md`, then open only relevant files for the task.
-
 <!-- CODEX:PROJECT-REFERENCE-LOADING:END -->
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -71,7 +65,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - 4+ modules → BLOCKING: spawn all sub-agents in ONE message — NEVER inline single-session
 - Context compaction/session resume → the current task list FIRST, read completeness tracker, NEVER re-scout/re-plan
 - All output tech-agnostic — NEVER framework names, language constructs, class names
-- Every claim cites `[Source: file:line]` — mark `[UNVERIFIED]` not blank
+- Every claim cites `[Source: namespace/service/id]` (abstract anchor, NEVER physical `file:line`) — mark `[UNVERIFIED]` not blank
 - Output path is STABLE (`docs/specs/{app-bucket}/{system-name}/`) — version history in SPEC-CHANGELOG.md, NOT in folder name
 
 ---
@@ -342,7 +336,7 @@ Append to `docs/specs/{app-bucket}/{system-name}/00-module-registry.md` (add aft
 
 | Actor / Role | Permission Scope   | Source              |
 | ------------ | ------------------ | ------------------- |
-| {role-name}  | {what they can do} | [Source: file:line] |
+| {role-name}  | {what they can do} | [Source: rule/{service}/{Role}] |
 ```
 
 **[GATE — BLOCKING before Step 2]:**
@@ -449,7 +443,7 @@ For each extraction task, follow this sequence:
 1. READ   — Read all source files in this task's scope (grep → read → understand)
 2. TRACE  — Trace code paths: what calls what, what triggers what, what validates what
 3. EXTRACT — Extract the relevant spec content (only what this task covers)
-4. WRITE  — Write the extracted content to the spec file with [Source: file:line] on every claim
+4. WRITE  — Write the extracted content to the spec file with [Source: namespace/service/id] (abstract anchor) on every claim
 5. VERIFY — Re-read the written spec against the source. Any claim without a source → mark [UNVERIFIED]
 6. COMPLETE — Mark the task completed. Move to next task.
 ```
@@ -503,7 +497,7 @@ For each entity/aggregate in scope:
 - **Lifecycle:** [created-modified-deleted / append-only / state machine: list states]
 - **Invariants:** [list of rules the entity always enforces — plain language]
 - **Domain Events:** [what significant things happen when this entity changes state]
-  [Source: path/to/entity-file.ext:line_range]
+  [Source: component/{service}/{Entity}]
 ```
 
 For each value object:
@@ -515,7 +509,7 @@ For each value object:
 - **Attributes:** [name | type | constraint]
 - **Immutable:** yes/no
 - **Validation:** [what makes an instance valid]
-  [Source: path/to/file.ext:line_range]
+  [Source: component/{service}/{ValueObject}]
 ```
 
 For each aggregate:
@@ -527,7 +521,7 @@ For each aggregate:
 - **Members:** [list]
 - **Consistency Boundary:** [what changes must happen atomically]
 - **Invariants Enforced:** [cross-entity rules the aggregate protects]
-  [Source: path/to/file.ext:line_range]
+  [Source: component/{service}/{Aggregate}]
 ```
 
 ### Phase A.ERD — Domain Entity Relationship Diagram (Mandatory — run after all entities extracted)
@@ -581,7 +575,7 @@ erDiagram
  EntityA }o--|| EntityC: "belongs to"
 ```
 
-[Source: path/to/entity-files.ext:line_range]
+[Source: component/{service}/{Entity}]
 ````
 
 **ERD rules (tech-agnostic contract):**
@@ -617,7 +611,7 @@ erDiagram
 - [ ] Every entity extracted in Phase A appears in the ERD
 - [ ] Every relationship has a cardinality — no floating entities without at least one relationship (or documented reason)
 - [ ] All aggregate roots are marked with `%% [AGGREGATE: ...]` comment
-- [ ] `[Source: file:line]` present for relationship evidence
+- [ ] `[Source: component/{service}/{Entity}]` abstract anchor present for relationship evidence
 - [ ] No tech-specific types or class names
 
 **Circular Dependency Handling (ERD):**
@@ -655,28 +649,28 @@ erDiagram
 | Field | Rule | Error Condition | Error Message |
 | ----- | ---- | --------------- | ------------- |
 
-[Source: path/to/validator.ext:line_range]
+[Source: rule/{service}/{Rule}]
 
 ### Authorization Rules
 
 | Operation | Who Can Perform | Condition |
 | --------- | --------------- | --------- |
 
-[Source: path/to/policy.ext:line_range]
+[Source: rule/{service}/{Rule}]
 
 ### Invariants
 
 | #   | Invariant | Always True Because | Enforcement |
 | --- | --------- | ------------------- | ----------- |
 
-[Source: path/to/entity.ext:line_range]
+[Source: rule/{service}/{Rule}]
 
 ### Calculations
 
 | Name | Inputs | Formula / Description | Output |
 | ---- | ------ | --------------------- | ------ |
 
-[Source: path/to/file.ext:line_range]
+[Source: rule/{service}/{Rule}]
 
 ### State Machine: {EntityName} Lifecycle
 
@@ -684,7 +678,7 @@ States: [list with descriptions]
 Transitions:
 | From State | Event/Trigger | Guard Condition | To State |
 |-----------|---------------|-----------------|----------|
-[Source: path/to/file.ext:line_range]
+[Source: rule/{service}/{Rule}]
 ```
 
 ### Phase C — API Contracts
@@ -707,8 +701,10 @@ Transitions:
 - **Errors:**
   | Code | Condition | Retryable |
   |------|-----------|-----------|
-  [Source: path/to/controller.ext:line_range]
+  [Source: operation/{service}/{Operation}]
 ```
+
+> **[M2/M3 Rule — operation-contract extraction]** Name each operation by the BUSINESS operation it performs, NEVER the code handler/controller/method that implements it. Describe `Input`/`Output` fields with business-level types (`string`, `number`, `boolean`, `date`, `list`, `map`) and constraints, not language-native types. Map every operation to a logical ID (`OP-`) and link the rules it enforces (`BR-`) as the primary trace spine; the source handler is cited ONLY in the trailing `[Source: namespace/service/id]` abstract anchor (here `[Source: operation/{service}/{Operation}]`) / `**Evidence**` carrier — a SECONDARY, re-anchorable reference, never part of the operation name or prose. Physical coordinates (`file:line`) live ONLY in the provenance sidecar (`docs/specs/.sdd-provenance-map.jsonl`), never in the spec output. See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6)" for BLOCKING criteria.
 
 ### Phase D — Integration & Events
 
@@ -722,7 +718,7 @@ Transitions:
   | Field | Type | Description |
   |-------|------|-------------|
 - **Ordering:** guaranteed / best-effort
-  [Source: path/to/publisher.ext:line_range]
+  [Source: event/{service}/{Event}]
 
 ## Consumed Events
 
@@ -732,14 +728,14 @@ Transitions:
 - **Processing:** [what this system does when received]
 - **Idempotency:** [how duplicate delivery is handled]
 - **Failure handling:** [retry? dead-letter? discard?]
-  [Source: path/to/consumer.ext:line_range]
+  [Source: event/{service}/{Event}]
 
 ## Scheduled Jobs
 
 | Job | Schedule | Purpose | Side Effects | Abort Condition |
 | --- | -------- | ------- | ------------ | --------------- |
 
-[Source: path/to/job.ext:line_range]
+[Source: operation/{service}/{Job}]
 ```
 
 ### Phase E — User Journeys
@@ -769,7 +765,7 @@ Use **actor catalog from Step 1.5** — every story MUST reference a real actor 
 - **Acceptance Criteria:**
     - GIVEN {precondition} WHEN {action} THEN {observable outcome}
     - GIVEN {precondition} WHEN {invalid action} THEN {error outcome}
-      [Source: path/to/handler-or-component.ext:line_range]
+      [Source: operation/{service}/{Operation}]
 ```
 
 **Per-task Phase E completeness checklist (check BEFORE marking task complete):**
@@ -778,7 +774,7 @@ Use **actor catalog from Step 1.5** — every story MUST reference a real actor 
 - [ ] Every actor in the actor catalog (Step 1.5) has ≥1 journey in Phase E output
 - [ ] Every UI route (if frontend exists) has ≥1 screen-story with Operation Type: ui-screen
 - [ ] Every GET/query operation with filter parameters has a "search/list/view" story
-- [ ] Every journey has `[Source: file:line]` — no journeys from memory or assumption
+- [ ] Every journey has `[Source: operation/{service}/{Operation}]` abstract anchor — no journeys from memory or assumption
 - [ ] All User Story fields use "As a / I want / So that" format — no free-form narratives
 
 ### Phase F — Spec Bundle Assembly
@@ -794,7 +790,7 @@ After all per-module tasks complete:
 | **C-gate**      | Phase C total entries across all modules | ≥ Grand Total from Use Case Inventory (Step 1.5) | Create fix task: `"Fill Phase C gap: {module} missing {N} operation entries"` |
 | **E-gate**      | Phase E journey count across all modules | ≥ Phase C total entry count                      | Create fix task: `"Fill Phase E gap: {module} missing {N} user stories"`      |
 | **Actor-gate**  | Every actor in actor catalog             | Has ≥1 Phase E journey                           | Create fix task: `"Add stories for actor: {role} — currently 0 journeys"`     |
-| **Source-gate** | Every Phase C + Phase E entry            | Has `[Source: file:line]`                        | Mark `[UNVERIFIED]` — do NOT silently pass                                    |
+| **Source-gate** | Every Phase C + Phase E entry            | Has `[Source: namespace/service/id]`             | Mark `[UNVERIFIED]` — do NOT silently pass                                    |
 
 If any gate fails: create fix tasks, execute them, then re-check ALL 4 gates before proceeding.
 Re-checking runs in the main session — spawn fresh sub-agent only if re-check still fails after one fix cycle.
@@ -964,7 +960,7 @@ Per-task execution protocol — follow in order for EACH assigned task:
 1. READ   — grep to narrow file set to this task's scope; read only matching files
 2. TRACE  — trace code paths: what calls what, what validates what, what triggers what
 3. EXTRACT — extract spec content for this phase/module only
-4. WRITE  — append to output file immediately with [Source: file:line] on every claim
+4. WRITE  — append to output file immediately with [Source: namespace/service/id] (abstract anchor) on every claim
 5. VERIFY — re-read written spec vs source; mark [UNVERIFIED] for any claim without traceable source
 6. COMPLETE — call TaskUpdate to mark task completed; move to next task
 
@@ -984,7 +980,7 @@ Before Phase F bundle assembly, quality-review all generated spec files:
 
 For each spec file:
 
-- [ ] Every entity/operation/rule has ≥1 `[Source: file:line]` citation
+- [ ] Every entity/operation/rule has ≥1 `[Source: namespace/service/id]` abstract-anchor citation
 - [ ] No technology-specific terms (no framework names, ORM types, language constructs)
 - [ ] All state machines have complete transitions (no dead-end states without explanation)
 - [ ] All operations have ≥1 error case documented
@@ -1010,7 +1006,7 @@ If any check fails:
 > **Spawn a NEW `spawn_agent` tool call** (`agent_type: "code-reviewer"`) with:
 >
 > - Target: all generated spec files in `docs/specs/{app-bucket}/{system-name}/`
-> - Protocol: re-read ALL spec files from scratch; check every `[UNVERIFIED]` item; flag any tech-specific term; verify every entity/operation has at least one `[Source: file:line]`
+> - Protocol: re-read ALL spec files from scratch; check every `[UNVERIFIED]` item; flag any tech-specific term; verify every entity/operation has at least one `[Source: namespace/service/id]` abstract anchor
 > - Report path: `plans/reports/spec-discovery-review-round{N}-{date}.md`
 >
 > **Rules:**
@@ -1042,19 +1038,24 @@ Every spec bundle document MUST be free of:
 
 ## Evidence Standards
 
-Every spec claim MUST have source reference:
+Every spec claim MUST have a source reference using a stack-portable abstract anchor — NEVER physical `file:line` / `path/to/file.ext:line_range`. Physical coordinates live ONLY in the provenance sidecar (`docs/specs/.sdd-provenance-map.jsonl`).
 
 ```
-[Source: path/to/file.ext:line_number]
+[Source: namespace/service/id]
 ```
 
-- Attribute types → entity/model layer files
-- Validation rules → validator/command layer files
-- State transitions → handler/service layer files
-- API contracts → controller/router/resolver layer files
-- Events → publisher/consumer layer files
+- Attribute types → `[Source: component/{service}/{Entity}]`
+- Validation rules → `[Source: rule/{service}/{Rule}]`
+- State transitions → `[Source: rule/{service}/{Rule}]`
+- API contracts → `[Source: operation/{service}/{Operation}]`
+- Events → `[Source: event/{service}/{Event}]`
+- Persistence (store / repository / migration) → `[Source: schema/{service}/{Store}]`
 
 **BLOCKED:** Any spec section without source evidence MUST be marked `[UNVERIFIED — needs manual review]`. NEVER invent or assume.
+
+### M3 Abstract-ID-First Extraction
+
+> **[M3 — logical-IDs-first]** Extract with logical IDs as the PRIMARY spine: assign `BR-` to each business rule, `FR-` to each functional requirement, and `OP-` to each operation, and use those IDs to wire rules → operations → journeys across phases. The `[Source: namespace/service/id]` abstract anchor is the SECONDARY carrier — it lives in `**Evidence**` fields and documents WHERE the behavior is implemented, never WHAT the requirement IS. Use stack-portable abstract anchors, NEVER physical `file:line`; physical coordinates live ONLY in the provenance sidecar (`docs/specs/.sdd-provenance-map.jsonl`). KEEP every `[Source: ...]` carrier; the logical spine plus stable anchors is what survives a stack migration when source links are re-pointed at new code. A rule/operation with source evidence but no logical ID fails M3. See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6)" for BLOCKING criteria.
 
 ---
 
@@ -1253,19 +1254,19 @@ Reverse of product discovery — existing codebase → reimplementation-grade sp
 - **IMPORTANT MUST ATTENTION [BLOCKING]** Context compaction/session resume → the current task list FIRST, read completeness tracker, NEVER re-run scout or plan
 - **IMPORTANT MUST ATTENTION [BLOCKING]** After any fix in quality review → spawn fresh `code-reviewer` sub-agent (max 2 rounds) — NEVER inline re-review
 - **IMPORTANT MUST ATTENTION [REQUIRED]** All output tech-agnostic — no framework names, no language constructs
-- **IMPORTANT MUST ATTENTION [REQUIRED]** Every claim cites `[Source: file:line]` — mark `[UNVERIFIED]` rather than guessing
+- **IMPORTANT MUST ATTENTION [REQUIRED]** Every claim cites `[Source: namespace/service/id]` (abstract anchor, NEVER physical `file:line`) — mark `[UNVERIFIED]` rather than guessing
 
 **Anti-Rationalization:**
 
-| Evasion                                              | Rebuttal                                                                                                 |
-| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| "Only 2–3 modules, skip sub-agents"                  | BLOCKING SCALE GATE applies at 4+. Count modules first, then decide.                                     |
-| "Already scouted, skip Step 1.5"                     | Step 1.5 MANDATORY after Step 1. Show Use Case Inventory as proof before proceeding.                     |
-| "module_count × phase_count is the plan formula"     | NEVER — use `sum(operation_groups × phase_count)`. Module formula undercounts large modules.             |
-| "Context compacted, re-run scout to rebuild context" | the current task list FIRST. Registry + task list survive compaction. NEVER re-scout in resumed session. |
-| "Wrote spec file, marking complete"                  | VERIFY — re-read written spec against source. Mark `[UNVERIFIED]`, not blank.                            |
-| "Fresh sub-agent overkill for small fix"             | Mandatory after ANY fix loop. Main agent rationalizes its own output. Max 2 rounds.                      |
-| "Scope is clear, skip Step 0 ask the user directly"  | BLOCKING — NEVER auto-start. Scope, mode, and system name MUST be confirmed first.                       |
+| Evasion                                              | Rebuttal                                                                                     |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| "Only 2–3 modules, skip sub-agents"                  | BLOCKING SCALE GATE applies at 4+. Count modules first, then decide.                         |
+| "Already scouted, skip Step 1.5"                     | Step 1.5 MANDATORY after Step 1. Show Use Case Inventory as proof before proceeding.         |
+| "module_count × phase_count is the plan formula"     | NEVER — use `sum(operation_groups × phase_count)`. Module formula undercounts large modules. |
+| "Context compacted, re-run scout to rebuild context" | the current task list FIRST. Registry + task list survive compaction. NEVER re-scout in resumed session.  |
+| "Wrote spec file, marking complete"                  | VERIFY — re-read written spec against source. Mark `[UNVERIFIED]`, not blank.                |
+| "Fresh sub-agent overkill for small fix"             | Mandatory after ANY fix loop. Main agent rationalizes its own output. Max 2 rounds.          |
+| "Scope is clear, skip Step 0 ask the user directly"        | BLOCKING — NEVER auto-start. Scope, mode, and system name MUST be confirmed first.           |
 
 **[TASK-PLANNING]** MUST ATTENTION analyze task scope and break into small todo tasks/sub-tasks via task tracking before acting.
 
@@ -1274,7 +1275,6 @@ Reverse of product discovery — existing codebase → reimplementation-grade sp
 ---
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
-
 ## Hookless Prompt Protocol Mirror (Auto-Synced)
 
 Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
@@ -1286,24 +1286,22 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** Match prompt against workflow catalog
 2. **ANALYZE:** Find best-match workflow AND evaluate if a custom step combination would fit better
 3. **ASK (REQUIRED FORMAT):** Use a direct user question with this structure unless the user explicitly invoked a workflow/skill and the local protocol treats explicit invocation as confirmation:
-    - Question: "Which workflow do you want to activate?"
-    - Option 1: "Activate **[BestMatch Workflow]** (Recommended)"
-    - Option 2: "Activate custom workflow: **[step1 → step2 → ...]**" (include one-line rationale)
+   - Question: "Which workflow do you want to activate?"
+   - Option 1: "Activate **[BestMatch Workflow]** (Recommended)"
+   - Option 2: "Activate custom workflow: **[step1 → step2 → ...]**" (include one-line rationale)
 4. **ACTIVATE (if confirmed):** Call `$workflow-start <workflowId>` for standard; sequence custom steps manually
 5. **CREATE TASKS:** task tracking for ALL workflow steps
 6. **EXECUTE:** Follow each step in sequence
-   **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
-   **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
-   **AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
-   **Goal-driven execution:** Define success criteria first, loop until verified, and stop only when observable checks pass.
-   **Tests verify intent:** Tests must protect business rules/invariants and fail when the protected intent breaks, not only mirror current behavior.
-
+**[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
+**Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
+**AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
+**Goal-driven execution:** Define success criteria first, loop until verified, and stop only when observable checks pass.
+**Tests verify intent:** Tests must protect business rules/invariants and fail when the protected intent breaks, not only mirror current behavior.
 ## [LESSON-LEARNED-REMINDER] [BLOCKING] Task Planning & Continuous Improvement — MANDATORY. Do not skip.
 
 Break work into small tasks (task tracking) before starting. Add final task: "Analyze AI mistakes & lessons learned".
 
 **Extract lessons — ROOT CAUSE ONLY, not symptom fixes:**
-
 1. Name the FAILURE MODE (reasoning/assumption failure), not symptom — "assumed API existed without reading source" not "used wrong enum value".
 2. Generality test: does this failure mode apply to ≥3 contexts/codebases? If not, abstract one level up.
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
@@ -1311,6 +1309,6 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
 6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security`/`$lint` catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
-   **[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
+**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:END -->

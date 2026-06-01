@@ -4,7 +4,6 @@ description: '[Code Intelligence] Use when you need to query code relationships 
 ---
 
 > Codex compatibility note:
->
 > - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
 > - User-question prompts mean to ask the user directly in Codex.
@@ -14,22 +13,18 @@ description: '[Code Intelligence] Use when you need to query code relationships 
 > - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
 > - For workflow skills, execute each listed child-skill step explicitly and report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
-
 <!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
-
 ## Codex Project-Reference Loading (No Hooks)
 
 Codex does not receive Claude hook-based doc injection.
 When coding, planning, debugging, testing, or reviewing, open project docs explicitly using this routing.
 
 **Always read:**
-
 - `docs/project-config.json` (project-specific paths, commands, modules, and workflow/test settings)
 - `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
 - `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
 
 **Situation-based docs:**
-
 - Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`, `project-structure-reference.md`
 - Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md`
 - Spec/test-case planning or TC mapping: `feature-docs-reference.md`
@@ -38,7 +33,6 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 - Code review/audit work: `code-review-rules.md` plus domain docs above based on changed files
 
 Do not read all docs blindly. Start from `docs-index-reference.md`, then open only relevant files for the task.
-
 <!-- CODEX:PROJECT-REFERENCE-LOADING:END -->
 
 ## Quick Summary
@@ -167,14 +161,16 @@ Found {N} result(s).
 
 When the user asks about a FLOW or BEHAVIOR (not a specific file), follow this protocol:
 
-### Step 0: Grep/Glob/Search to find entry points
+### Step 0: Grep/Glob/Search to find trace anchors
 
 Use Grep/Glob/Search to find key classes/functions related to the user's query.
-Example: User asks "what happens when X is created" → grep for `CreateX`, `XCommand`, `XHandler`
+
+- Bug/failure symptom: find the final output reader first (renderer, query, assertion, aggregate, log, stored field), then trace upstream.
+- Feature-flow question: find entry points (`CreateX`, `XCommand`, `XHandler`) and trace both directions.
 
 ### Step 1: Use graph to expand
 
-Run `connections` or `batch-query` on the grep-discovered files to find ALL related files.
+Run `connections` or `batch-query` on the grep-discovered files to find ALL related files. For bugs, group results by final reader, storage/projection, writer, consumer/job, and producer/origin.
 
 ### Step 2: Trace full system flow
 
@@ -186,6 +182,13 @@ python .claude/scripts/code_graph trace <entry-file> --direction both --depth 3 
 
 This traces upstream (who calls this?) AND downstream (what does this trigger?) through:
 CALLS → TRIGGERS_EVENT → PRODUCES_EVENT → MESSAGE_BUS → API_ENDPOINT
+
+For bug/failure symptoms, run an upstream-first pass from the final output before expanding the suspected producer:
+
+```bash
+python .claude/scripts/code_graph trace <final-reader-or-output-file> --direction upstream --depth 5 --json
+python .claude/scripts/code_graph batch-query <final-reader> <writer> <producer> --json
+```
 
 ### Step 3: Verify with grep
 
@@ -316,6 +319,23 @@ Returns a multi-level tree of connected nodes grouped by BFS depth, with edge ty
 
 Query code relationships using the structural knowledge graph. Maps natural language questions to graph CLI queries and formats structured reports.
 
+<!-- SYNC:end-to-start-debugger-trace -->
+
+> **End-to-Start Debugger Trace** — For non-trivial bugs, failed verification, regression fixes, behavior-changing code, or unclear code flow, start from the observed final state and walk backward before proposing a fix.
+>
+> 1. **Frame 0: observed end state** — Name the exact user-visible output, failing assertion, log line, persisted value, API response, rendered UI, or aggregate bucket. Record the reader/query/renderer that produced it with `file:line` evidence.
+> 2. **Walk backward one hop at a time** — Trace final reader -> projection/cache/storage -> writer -> consumer/handler/job -> producer/caller -> original trigger. At every hop record: input, transformation, output, owner, and evidence.
+> 3. **Enumerate all feeder paths** — Find every upstream producer/caller/event/job that can write into the final path, including retry, async, cache, background, and alternate UI/API paths. Mark each path verified, ruled out, or still unknown.
+> 4. **Build the hypothesis matrix** — For each plausible cause, list evidence for, evidence against, how to reproduce/verify, blast radius, and status (`primary`, `contributing`, `ruled out`, `latent`). Do not fix until competing causes are explicitly resolved or bounded.
+> 5. **Choose the owning fix layer** — Identify the invariant owner and the lowest shared point that protects all downstream consumers. A fix at the symptom site is rejected unless the symptom site owns the invariant.
+> 6. **Prove convergence forward** — After choosing the fix, walk start -> end again and show how the corrected state reaches the observed final output. Map each root cause to a fix part and each fix part to a test/proof.
+>
+> **BLOCKED until:** final state named · backward trace written · all feeder paths enumerated · hypothesis matrix completed · owning fix layer justified · forward convergence proof mapped to tests.
+>
+> **NEVER:** Start at the first suspicious code path. Collapse multiple producers into one "flow". Treat duplicate symptoms as duplicate records without proving the read model. Skip ruled-out hypotheses.
+
+<!-- /SYNC:end-to-start-debugger-trace -->
+
 <!-- SYNC:ai-mistake-prevention -->
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
@@ -352,6 +372,12 @@ Query code relationships using the structural knowledge graph. Maps natural lang
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
+<!-- SYNC:end-to-start-debugger-trace:reminder -->
+
+**IMPORTANT MUST ATTENTION** debugger trace gate: for non-trivial bug/fix/investigation/review work, start at the observed final output and trace backward through reader -> storage/projection -> writer -> consumer/job -> producer/trigger. Enumerate all feeder paths and hypotheses before fixing. **BLOCKED until** trace, hypothesis matrix, owning fix layer, and forward convergence proof exist.
+
+<!-- /SYNC:end-to-start-debugger-trace:reminder -->
+
 ## Closing Reminders
 
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting
@@ -362,7 +388,6 @@ Query code relationships using the structural knowledge graph. Maps natural lang
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
-
 ## Hookless Prompt Protocol Mirror (Auto-Synced)
 
 Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
@@ -374,24 +399,22 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** Match prompt against workflow catalog
 2. **ANALYZE:** Find best-match workflow AND evaluate if a custom step combination would fit better
 3. **ASK (REQUIRED FORMAT):** Use a direct user question with this structure unless the user explicitly invoked a workflow/skill and the local protocol treats explicit invocation as confirmation:
-    - Question: "Which workflow do you want to activate?"
-    - Option 1: "Activate **[BestMatch Workflow]** (Recommended)"
-    - Option 2: "Activate custom workflow: **[step1 → step2 → ...]**" (include one-line rationale)
+   - Question: "Which workflow do you want to activate?"
+   - Option 1: "Activate **[BestMatch Workflow]** (Recommended)"
+   - Option 2: "Activate custom workflow: **[step1 → step2 → ...]**" (include one-line rationale)
 4. **ACTIVATE (if confirmed):** Call `$workflow-start <workflowId>` for standard; sequence custom steps manually
 5. **CREATE TASKS:** task tracking for ALL workflow steps
 6. **EXECUTE:** Follow each step in sequence
-   **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
-   **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
-   **AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
-   **Goal-driven execution:** Define success criteria first, loop until verified, and stop only when observable checks pass.
-   **Tests verify intent:** Tests must protect business rules/invariants and fail when the protected intent breaks, not only mirror current behavior.
-
+**[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
+**Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
+**AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
+**Goal-driven execution:** Define success criteria first, loop until verified, and stop only when observable checks pass.
+**Tests verify intent:** Tests must protect business rules/invariants and fail when the protected intent breaks, not only mirror current behavior.
 ## [LESSON-LEARNED-REMINDER] [BLOCKING] Task Planning & Continuous Improvement — MANDATORY. Do not skip.
 
 Break work into small tasks (task tracking) before starting. Add final task: "Analyze AI mistakes & lessons learned".
 
 **Extract lessons — ROOT CAUSE ONLY, not symptom fixes:**
-
 1. Name the FAILURE MODE (reasoning/assumption failure), not symptom — "assumed API existed without reading source" not "used wrong enum value".
 2. Generality test: does this failure mode apply to ≥3 contexts/codebases? If not, abstract one level up.
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
@@ -399,6 +422,6 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
 6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security`/`$lint` catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
-   **[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
+**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:END -->

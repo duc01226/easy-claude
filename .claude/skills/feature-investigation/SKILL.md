@@ -38,6 +38,13 @@ description: '[Investigation] Use when the user asks to investigate, explore, un
 - Use anti-hallucination protocols: validate assumptions, chain evidence, anchor to original question
 - Re-read original question every 10 operations to prevent context drift
 
+### Logical-ID Extraction & Business-Intent Rule (M3/M5)
+
+See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6)" for BLOCKING criteria. When extracting operations, business rules, or events into findings:
+
+- Assign each extracted operation/rule/event a logical ID (FR-/BR- for operations and rules) as the PRIMARY identifier. Keep the `[Source: namespace/service/id]` abstract-anchor evidence (never physical `file:line`/`src/` — those live only in the provenance sidecar) as a SEPARATE carrier — never fold the source link into the rule statement itself (M3).
+- For every rule, explain **WHY** it exists (the business intent / invariant it protects), not only **WHAT** the code does. State the rule in tech-agnostic business terms so the finding is reusable by a rebuild team on any stack (M5).
+
 > **Skill Variant:** READ-ONLY exploration - no code changes. For implementing features, use `feature-implementation`. For debugging, use `debug-investigate`.
 
 # Feature Investigation & Logic Exploration
@@ -766,9 +773,10 @@ When graph DB is available, use `trace` to understand the complete feature flow:
 
 <!-- SYNC:source-test-drift-check -->
 
-> **Source/test drift check.** For coding, fix, debug, investigation, test, or review work: when source behavior changes, inspect affected unit/integration/E2E tests and decide from evidence whether tests should change to match intended behavior or the source change is an unintended bug to fix.
+> **Source/test drift check.** For coding, fix, debug, investigation, test, or review work: when source behavior changes, inspect affected unit/integration/E2E tests and decide from evidence whether tests should change to match intended behavior or the source change is an unintended bug to fix. Do not write tests for migration code; schema/data migrations are one-time execution paths, not core application logic.
 
 <!-- /SYNC:source-test-drift-check -->
+
 <!-- SYNC:ai-mistake-prevention -->
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:

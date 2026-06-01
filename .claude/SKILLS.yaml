@@ -1,10 +1,10 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-05-29'
-  total_skills: 257
+  last_updated: '2026-06-03'
+  total_skills: 258
   total_by_status:
-    active: 257
+    active: 258
     deprecated: 0
     experimental: 0
 categories:
@@ -571,7 +571,7 @@ skills:
       last_reviewed: null
     - name: fix-ci
       path: fix-ci/SKILL.md
-      description: '[Implementation] Use when you need to analyze GitHub Actions logs
+      description: '[Implementation] Use when you need to analyze CI/CD pipeline logs
         and fix issues.'
       category: other
       has_scripts: false
@@ -645,6 +645,19 @@ skills:
       category: other
       has_scripts: false
       has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+      last_reviewed: null
+    - name: git-developer-performance
+      path: git-developer-performance/SKILL.md
+      description: '[Git] Use when generating developer KPI, performance, contribution
+        value, story point, man-day, or code-quality reports from local git commit
+        history.'
+      category: other
+      has_scripts: true
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null

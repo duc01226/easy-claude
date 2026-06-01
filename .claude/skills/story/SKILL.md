@@ -371,7 +371,7 @@ SP 21:    ❌ MUST ATTENTION split — epic-level, not sprint-ready
 
 ## Scenario Templates
 
-### Minimum 3 scenarios per story:
+**Minimum 3 scenarios per story:**
 
 ### 1. Happy Path (Positive)
 
@@ -419,6 +419,25 @@ Scenario: Unauthorized user cannot {perform action}
 **Performance:** Response time under load
 **Concurrency:** Simultaneous user actions
 **Integration:** External service unavailable
+
+---
+
+## AI-SDD Mandate Gate (M1-M5) — BLOCKING
+
+See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6)" for BLOCKING criteria. Every generated story MUST satisfy M1-M5:
+
+- **Separate intent from implementation (M1/M2):** The story narrative and acceptance criteria stay tech-agnostic — describe observable business behavior, no framework/product/language/design-pattern names, no source identifiers. Keep optional hints in `## Technical Notes` and source references in evidence carriers as stack-portable abstract anchors (`[Source: namespace/service/id]`, never `file:line`). Prose follows `docs/project-reference/spec-principles.md` §3.
+- **Logical Requirement ID (M3):** Each story carries a logical requirement ID (`FR-`/`BR-`) inherited from its parent PBI as the PRIMARY citation spine; keep the `[Source: namespace/service/id]` abstract anchor as a SECONDARY, stack-portable carrier — KEEP it, never remove it and never replace it with `file:line` (physical coordinates live only in the provenance sidecar).
+- **Testable GWT/EARS criteria (M4):** Every Given/When/Then or EARS criterion has ONE valid interpretation, observable completion states, and named failure modes — no vague phrasing ("fast", "user-friendly", "handle appropriately") and no implementation details.
+- **Rebuild-from-scratch (M5):** A team with zero codebase knowledge can implement identical behavior on ANY stack from the story alone.
+
+> **[STOP — rework before emitting]** Reject and rework a story when ANY of these failure conditions holds:
+>
+> 1. Tech-specific prose — narrative/criteria name a framework, product, language type, or design-pattern class.
+> 2. Source code reference in prose — a class/method name, file path, or namespace appears outside an evidence carrier.
+> 3. Missing logical ID or evidence — no `FR-`/`BR-` ID, OR a requirement/rule with no `[Source: namespace/service/id]` abstract-anchor evidence (or explicit `TBD (pre-implementation)` marker).
+> 4. Vague acceptance criteria — non-testable, non-observable, or more than one valid interpretation.
+> 5. Not implementable from the artifact alone — a reader would have to read source or guess a rule, limit, role, or failure mode.
 
 ---
 
@@ -501,7 +520,9 @@ Then error "{message}"
 **Module:** {module}
 **Related Feature:** {feature doc path}
 **Entities:** {Entity1}, {Entity2}
+**Requirement IDs (M3 — inherited from PBI):** {FR-XXX / BR-XXX — primary citation spine}
 **Business Rules:** {BR-XXX references}
+**Evidence (secondary, stack-portable):** {`[Source: namespace/service/id]` abstract anchor per requirement, or `TBD (pre-implementation)`}
 
 ## UI Wireframe
 

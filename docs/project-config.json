@@ -42,7 +42,7 @@
       "name": "skills",
       "kind": "library",
       "pathRegex": "[\\\\/]\\.claude[\\\\/]skills[\\\\/]",
-      "description": "256 skill definitions for task automation (SKILL.md + scripts)",
+      "description": "258 skill definitions for task automation (SKILL.md + scripts)",
       "tags": ["core", "markdown"]
     },
     {
@@ -163,6 +163,27 @@
       "filename": "feature-docs-reference.md",
       "purpose": "Business feature documentation index",
       "sections": []
+    },
+    {
+      "filename": "spec-principles.md",
+      "purpose": "Project-specific extension for local spec, test, and documentation rules",
+      "sections": [
+        "Local Authority",
+        "Local Source Routing",
+        "Local Prose Rules",
+        "Verification Commands"
+      ],
+      "templatePath": ".claude/templates/reference-docs/spec-principles.md"
+    },
+    {
+      "filename": "workflow-spec-test-code-cycle-reference.md",
+      "purpose": "Project-specific workflow sequence for keeping specs, tests, code, docs, and generated mirrors aligned",
+      "sections": [
+        "Local Workflow Sequence",
+        "Local Artifact Owners",
+        "Local Closure Gates"
+      ],
+      "templatePath": ".claude/templates/reference-docs/workflow-spec-test-code-cycle-reference.md"
     },
     {
       "filename": "code-review-rules.md",

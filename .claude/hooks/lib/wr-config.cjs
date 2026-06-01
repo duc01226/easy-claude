@@ -38,9 +38,10 @@ function getDefaultConfig() {
       },
       bugfix: {
         name: 'Bug Fix',
-        whenToUse: 'User reports a bug, error, crash, or something not working; wants to fix/debug',
+        whenToUse: 'User reports a bug, error, crash, stale/incorrect final output, regression, or something not working; wants to fix/debug with end-to-start trace',
         whenNotToUse: 'New feature implementation, code improvement, investigation-only',
         sequence: ['scout', 'investigate', 'debug', 'plan', 'fix', 'code-review', 'test'],
+        requiredGate: 'End-to-start debugger trace: observed final output -> reader -> storage/projection -> writer -> consumer/job -> producer/origin; include feeder paths, hypothesis matrix, owning fix layer, and forward convergence proof before fix',
         confirmFirst: false
       },
       documentation: {

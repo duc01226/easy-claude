@@ -76,6 +76,9 @@ const SDD022_SCAN_ROOTS = ["docs/business-features/", "docs/specs/"];
 const SDD022_EXEMPT_FILES = new Set([
   "docs/business-features/DOCUMENTATION-GUIDE.md",
   "docs/specs/06-reimplementation-guide.md",
+  // The abstract-anchor format contract necessarily quotes donor class names, file paths, and
+  // `src/` references as teaching examples; it documents the rules rather than describing a product.
+  "docs/specs/MIGRATION.md",
 ]);
 const BANNED_PROSE_TECH_TERMS = [
   "Easy.Platform",
@@ -99,6 +102,98 @@ const BANNED_PROSE_TECH_TERMS = [
 ];
 const PLATFORM_PREFIXED_IDENTIFIER_PATTERN =
   /(^|[^A-Za-z0-9_])(Platform[A-Z][A-Za-z0-9]+)(?=$|[^A-Za-z0-9_])/g;
+
+// --- SDD023: M3 abstract-anchor evidence model ---------------------------------
+// Post-migration, `[Source: ...]` carriers MUST use stack-portable abstract anchors
+// `namespace/service/id` instead of physical `file:line` references. SDD023 flags
+// carriers that still hold physical evidence (legacy, not yet migrated) or that use a
+// malformed/unknown-namespace anchor. WARN by default (mixed corpus is the designed
+// transition state); ERROR on changed files under --enforce-changed.
+const ABSTRACT_ANCHOR_NAMESPACES = new Set([
+  "component",
+  "operation",
+  "requirement",
+  "rule",
+  "event",
+  "schema",
+  "constraint",
+  "test",
+]);
+// One well-formed anchor part: `namespace/service/id`. service+id are slug-ish tokens.
+const ABSTRACT_ANCHOR_PART_PATTERN = /^[a-z]+\/[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/;
+// Body still holds a physical source reference (filename with code extension or a src/ path).
+const PHYSICAL_EVIDENCE_HINT_PATTERN = /\.(?:cs|ts|tsx|cshtml|razor|scss|html)\b|(?:^|[\s,(])src\//i;
+// Carriers exempt from SDD023: doc-to-doc cross references and literal format placeholders.
+// `file:line`/`path:line` are the legacy-format placeholder tokens; `namespace/service/id` is
+// the canonical abstract-anchor placeholder (the literal teaching token used in MIGRATION.md,
+// spec-principles, and every emitting skill) — both are instructional placeholders, never real
+// anchors, so neither should be flagged when a doc header shows the citation format.
+const EVIDENCE_BODY_IGNORE_PATTERN =
+  /^(?:docs|specs)\/|(?:^|\s)(?:docs|specs)\/|\bfile:line\b|\bpath:line\b|\bgraph trace\b|\bnamespace\/service\/id\b/i;
+
+// --- SDD024: M2 no source code in prose ----------------------------------------
+// Prose (narrative outside evidence carriers) MUST NOT name source identifiers. SDD024
+// detects code-suffixed class names, source filenames, and src/ paths leaking into prose.
+// Tight patterns only (distinct code shapes) to avoid false-positives on business words.
+const CODE_IDENTIFIER_SUFFIXES = [
+  "CommandHandler",
+  "QueryHandler",
+  "CommandResult",
+  "Controller",
+  "Consumer",
+  "Repository",
+  "AppService",
+  "BackgroundJobExecutor",
+  "BackgroundJob",
+  "DbContext",
+  "EventBusMessage",
+  "BusMessageConsumer",
+  "ValueObject",
+  "EntityDto",
+];
+const CODE_IDENTIFIER_PATTERN = new RegExp(
+  `(^|[^A-Za-z0-9_])([A-Z][A-Za-z0-9]*(?:${CODE_IDENTIFIER_SUFFIXES.join("|")}))(?=$|[^A-Za-z0-9_])`,
+  "g"
+);
+const SOURCE_FILENAME_PATTERN =
+  /(^|[^A-Za-z0-9_./])([A-Z][A-Za-z0-9]*\.(?:cs|ts|tsx|cshtml|razor))(?=$|[^A-Za-z0-9_])/g;
+const SOURCE_PATH_PATTERN = /(^|[\s(])(src\/[A-Za-z0-9_./-]+)/g;
+const SOURCE_CARRIER_PATTERN = /\[Source:\s*([^\]]+?)\s*\]/g;
+
+// The docs use a broader evidence-carrier vocabulary than the original `[Source:]` bracket
+// form: bold-label fields like `**Source:**`, `**Handler:**`, `**Consumer:**`, `**Event:**`
+// hold source identifiers structurally. These are carriers, not narrative — lines bearing
+// them are exempt from the M1/M2 prose scans (the identifier is quarantined in a field),
+// the same way `**Evidence**`/`**IntegrationTest**` already are. — why: policing structured
+// evidence fields as prose floods M2 with carrier noise and hides the true narrative leaks.
+const EVIDENCE_CARRIER_LABELS = [
+  "Evidence",
+  "IntegrationTest",
+  "Integration Test",
+  "Source",
+  "Sources",
+  "Handler",
+  "Consumer",
+  "Producer",
+  "Publisher",
+  "Event",
+  "Subscriber",
+  "Endpoint",
+  "Trigger",
+  "Payload",
+  "Emits",
+  "Publishes",
+  "Test",
+  "Tests",
+];
+const EVIDENCE_CARRIER_LABEL_PATTERN = new RegExp(
+  `\\*\\*(?:${EVIDENCE_CARRIER_LABELS.map(escapeRegExp).join("|")}):?\\*\\*`
+);
+// Bold-label carriers that hold a backtick-quoted physical reference, e.g.
+// `**Source:** ` + "`Foo.cs:84-94`". SDD023 scans these alongside the bracket form so
+// un-migrated physical evidence in EITHER carrier syntax is detected.
+const BOLD_LABEL_SOURCE_CARRIER_PATTERN =
+  /\*\*(?:Source|Sources|Handler|Consumer|Producer|Publisher|Event|Subscriber|Endpoint):?\*\*[^\n`]*`([^`]+)`/g;
 
 const ACTIVE_SDD_CONTRACT_REFERENCE = "shared/sdd-artifact-contract.md";
 const LEGACY_CLAUDE_SDD_CONTRACT_REFERENCE = ".claude/skills/shared/sdd-artifact-contract.md";
@@ -564,8 +659,12 @@ function isEvidenceContextLine(line, state = {}) {
   }
   return (
     line.includes("[Source:") ||
-    line.includes("**Evidence**") ||
-    line.includes("**IntegrationTest**") ||
+    // Tolerate both carrier label forms: `**Evidence**:` (colon outside the bold,
+    // canonical template) and `**Evidence:**` (colon inside the bold, the dominant
+    // form across docs). Same for the full evidence-carrier label set. Matching only
+    // the template form false-flagged thousands of genuine evidence carriers as prose.
+    // — why: carrier labels are structural fields, never narrative, so widening is leak-safe.
+    EVIDENCE_CARRIER_LABEL_PATTERN.test(line) ||
     line.includes("sdd022-allow")
   );
 }
@@ -686,6 +785,127 @@ async function scanSdd022File(rootDir, relativeFile, options = {}) {
   return scanProseForBannedTokens(content);
 }
 
+// SDD023: validate one `[Source: ...]` carrier body against the abstract-anchor model.
+// Returns null if valid/exempt, else { kind } describing the violation.
+function classifyEvidenceBody(body) {
+  const trimmed = body.trim();
+  if (EVIDENCE_BODY_IGNORE_PATTERN.test(trimmed)) {
+    return null; // doc cross-reference or literal placeholder — not a code anchor
+  }
+  const parts = trimmed.split(",").map((part) => part.trim()).filter(Boolean);
+  const allAbstract =
+    parts.length > 0 &&
+    parts.every(
+      (part) =>
+        ABSTRACT_ANCHOR_PART_PATTERN.test(part) &&
+        ABSTRACT_ANCHOR_NAMESPACES.has(part.split("/")[0])
+    );
+  if (allAbstract) {
+    return null; // fully migrated, well-formed abstract anchor
+  }
+  if (PHYSICAL_EVIDENCE_HINT_PATTERN.test(trimmed)) {
+    return { kind: "legacy-physical" };
+  }
+  // Looks like an anchor attempt (has a slash) but is malformed or uses an unknown namespace.
+  if (parts.some((part) => part.includes("/") && !ABSTRACT_ANCHOR_PART_PATTERN.test(part))) {
+    return { kind: "malformed-anchor" };
+  }
+  if (parts.some((part) => /^[a-z]+\//.test(part) && !ABSTRACT_ANCHOR_NAMESPACES.has(part.split("/")[0]))) {
+    return { kind: "unknown-namespace" };
+  }
+  return null; // free-text body we do not police (e.g. prose note in a carrier)
+}
+
+function scanCarriersForEvidenceModel(content) {
+  const findings = [];
+  const lines = content.split(/\r?\n/);
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    for (const pattern of [SOURCE_CARRIER_PATTERN, BOLD_LABEL_SOURCE_CARRIER_PATTERN]) {
+      pattern.lastIndex = 0;
+      for (const match of line.matchAll(pattern)) {
+        const verdict = classifyEvidenceBody(match[1]);
+        if (verdict) {
+          findings.push({ line: index + 1, kind: verdict.kind, body: match[1].trim() });
+        }
+      }
+    }
+  }
+  return findings;
+}
+
+// SDD024: detect source-code identifiers leaking into PROSE (M2). Reuses the same
+// fence/frontmatter/carrier state machine as the banned-token scan so evidence carriers,
+// mermaid blocks, and allow-regions are exempt — only narrative prose is policed.
+function findProseSourceIdentifiers(line) {
+  const found = [];
+  for (const pattern of [CODE_IDENTIFIER_PATTERN, SOURCE_FILENAME_PATTERN, SOURCE_PATH_PATTERN]) {
+    pattern.lastIndex = 0;
+    for (const match of line.matchAll(pattern)) {
+      found.push(match[2]);
+    }
+  }
+  return [...new Set(found)];
+}
+
+function scanProseForSourceIdentifiers(content) {
+  const findings = [];
+  const lines = content.split(/\r?\n/);
+  const state = {
+    inFrontmatter: lines[0]?.trim() === "---",
+    fenceLang: null,
+    allowRegion: false,
+  };
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const trimmed = line.trim();
+
+    if (index === 0 && state.inFrontmatter) {
+      continue;
+    }
+    if (state.inFrontmatter) {
+      if (trimmed === "---") {
+        state.inFrontmatter = false;
+      }
+      continue;
+    }
+    if (/<!--\s*sdd022-allow:start/i.test(line)) {
+      state.allowRegion = true;
+      continue;
+    }
+    if (/<!--\s*sdd022-allow:end/i.test(line)) {
+      state.allowRegion = false;
+      continue;
+    }
+    const fenceMatch = /^(```|~~~)(.*)$/.exec(trimmed);
+    if (fenceMatch) {
+      state.fenceLang = state.fenceLang === null ? fenceMatch[2].trim().toLowerCase() : null;
+      continue;
+    }
+    if (isEvidenceContextLine(line, state)) {
+      continue;
+    }
+
+    for (const term of findProseSourceIdentifiers(line)) {
+      findings.push({ line: index + 1, term });
+    }
+  }
+
+  return findings;
+}
+
+async function scanEvidenceModelFile(rootDir, relativeFile, options = {}) {
+  const content = await readFileOrNull(rootDir, normalizeRelativeFile(relativeFile), options);
+  if (content === null) {
+    return { evidenceFindings: [], proseIdentifierFindings: [] };
+  }
+  return {
+    evidenceFindings: scanCarriersForEvidenceModel(content),
+    proseIdentifierFindings: scanProseForSourceIdentifiers(content),
+  };
+}
+
 async function runChecks(rootDir = process.cwd(), checks = CHECKS, options = {}) {
   const failures = [];
   const metrics = {
@@ -704,6 +924,9 @@ async function runChecks(rootDir = process.cwd(), checks = CHECKS, options = {})
     staleQaDashboardPathFindings: 0,
     unconfiguredArtifactRootFindings: 0,
     bannedProseTechTermFindings: 0,
+    legacyPhysicalEvidenceFindings: 0,
+    malformedAbstractAnchorFindings: 0,
+    proseSourceIdentifierFindings: 0,
   };
   const checkedFiles = new Set();
 
@@ -823,6 +1046,48 @@ async function runChecks(rootDir = process.cwd(), checks = CHECKS, options = {})
     }
   }
 
+  // SDD023 (abstract-anchor evidence model) + SDD024 (M2 source identifiers in prose).
+  // Same target set and warn/error ratchet as SDD022: WARN in census mode, ERROR only on
+  // changed files under --enforce-changed. A mixed legacy/abstract corpus is the designed
+  // transition state, so unchanged legacy carriers must not block the gate.
+  for (const relativeFile of sdd022Files) {
+    checkedFiles.add(relativeFile);
+    const { evidenceFindings, proseIdentifierFindings } = await scanEvidenceModelFile(
+      rootDir,
+      relativeFile,
+      options
+    );
+    const isChanged = enforcedChangedSet.has(relativeFile);
+
+    for (const finding of evidenceFindings) {
+      if (finding.kind === "legacy-physical") {
+        metrics.legacyPhysicalEvidenceFindings += 1;
+      } else {
+        metrics.malformedAbstractAnchorFindings += 1;
+      }
+      const severity = isChanged ? "error" : "warn";
+      if (severity === "warn") metrics.warnings += 1;
+      failures.push({
+        severity,
+        code: "SDD023",
+        file: relativeFile,
+        message: `Evidence carriers must use stack-portable abstract anchors (namespace/service/id). (line ${finding.line}: ${finding.kind} "${finding.body}")`,
+      });
+    }
+
+    for (const finding of proseIdentifierFindings) {
+      metrics.proseSourceIdentifierFindings += 1;
+      const severity = isChanged ? "error" : "warn";
+      if (severity === "warn") metrics.warnings += 1;
+      failures.push({
+        severity,
+        code: "SDD024",
+        file: relativeFile,
+        message: `Prose must not name source identifiers; use business operation names (identifiers live only in evidence carriers). (line ${finding.line}: source identifier "${finding.term}")`,
+      });
+    }
+  }
+
   metrics.checkedFiles = checkedFiles.size;
   metrics.hardFailures = failures.filter((failure) => failure.severity !== "warn").length;
 
@@ -860,8 +1125,19 @@ async function main() {
   const hardFailures = result.failures.filter((failure) => failure.severity !== "warn");
   const warnFindings = result.failures.filter((failure) => failure.severity === "warn");
 
-  for (const warning of warnFindings) {
+  // The census (no --enforce-changed) emits one warn per legacy carrier / prose leak across the
+  // whole corpus — thousands during the abstract-anchor migration. Printing every line floods the
+  // codex:sync stage-8 log, so cap the per-line output and rely on the per-code breakdown +
+  // sddMetrics census for the full picture. Under --enforce-changed the warn set is small (changed
+  // files only), so the cap is effectively a no-op there.
+  const WARN_PRINT_CAP = 25;
+  for (const warning of warnFindings.slice(0, WARN_PRINT_CAP)) {
     console.warn(`warn ${warning.code} ${warning.file}: ${warning.message}`);
+  }
+  if (warnFindings.length > WARN_PRINT_CAP) {
+    console.warn(
+      `warn ... and ${warnFindings.length - WARN_PRINT_CAP} more (capped; see per-code breakdown + sddMetrics)`
+    );
   }
 
   if (hardFailures.length > 0) {
@@ -876,8 +1152,16 @@ async function main() {
 
   console.log("[codex-verify-sdd] PASS");
   if (warnFindings.length > 0) {
+    const byCode = warnFindings.reduce((acc, warning) => {
+      acc[warning.code] = (acc[warning.code] ?? 0) + 1;
+      return acc;
+    }, {});
+    const breakdown = Object.keys(byCode)
+      .sort()
+      .map((code) => `${code}: ${byCode[code]}`)
+      .join(", ");
     console.log(
-      `[codex-verify-sdd] ${warnFindings.length} non-blocking SDD022 warning(s) — run with --enforce-changed to gate changed files`
+      `[codex-verify-sdd] ${warnFindings.length} non-blocking warning(s) [${breakdown}] — run with --enforce-changed to gate changed files`
     );
   }
   console.log(JSON.stringify({ sddMetrics: result.sddMetrics }, null, 2));
@@ -918,5 +1202,13 @@ export {
   readGitIndexFileOrNull,
   scanProseForBannedTokens,
   scanSdd022File,
+  ABSTRACT_ANCHOR_NAMESPACES,
+  ABSTRACT_ANCHOR_PART_PATTERN,
+  CODE_IDENTIFIER_SUFFIXES,
+  classifyEvidenceBody,
+  scanCarriersForEvidenceModel,
+  findProseSourceIdentifiers,
+  scanProseForSourceIdentifiers,
+  scanEvidenceModelFile,
   runChecks,
 };

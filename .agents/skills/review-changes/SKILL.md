@@ -4,7 +4,6 @@ description: '[Code Quality] Use when reviewing current changes, staged or unsta
 ---
 
 > Codex compatibility note:
->
 > - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
 > - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
 > - User-question prompts mean to ask the user directly in Codex.
@@ -14,22 +13,18 @@ description: '[Code Quality] Use when reviewing current changes, staged or unsta
 > - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
 > - For workflow skills, execute each listed child-skill step explicitly and report step-by-step evidence.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
-
 <!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
-
 ## Codex Project-Reference Loading (No Hooks)
 
 Codex does not receive Claude hook-based doc injection.
 When coding, planning, debugging, testing, or reviewing, open project docs explicitly using this routing.
 
 **Always read:**
-
 - `docs/project-config.json` (project-specific paths, commands, modules, and workflow/test settings)
 - `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
 - `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
 
 **Situation-based docs:**
-
 - Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`, `project-structure-reference.md`
 - Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md`
 - Spec/test-case planning or TC mapping: `feature-docs-reference.md`
@@ -38,7 +33,6 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 - Code review/audit work: `code-review-rules.md` plus domain docs above based on changed files
 
 Do not read all docs blindly. Start from `docs-index-reference.md`, then open only relevant files for the task.
-
 <!-- CODEX:PROJECT-REFERENCE-LOADING:END -->
 
 > **[FINAL PURPOSE REMINDER — MUST ATTENTION CRITICAL]**
@@ -243,7 +237,7 @@ ApiContract: [YES/NO] | SecurityChange: [YES/NO] | ConfigChange: [YES/NO] | Infr
 > **MANDATORY:** Call task tracking for each TRUE signal. Do NOT create tasks for FALSE signals.
 > The concerns listed are starting points — apply domain knowledge beyond them.
 
-| Condition           | task tracking subject                                                                                | Key concerns to investigate (starting points — expand with domain knowledge)                                                                                                                                                                                          |
+| Condition           | task tracking subject                                                                                   | Key concerns to investigate (starting points — expand with domain knowledge)                                                                                                                                                                                          |
 | ------------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | DepUpgrade TRUE     | `[Review-DepUpgrade] Dependency upgrade — semver, breaking changes, security advisories`             | Major/minor/patch? Read upstream CHANGELOG for breaking API changes. Grep deprecated API usage. Check transitive dependency changes. Known security advisories for new version? Peer dependency compatibility? Tests still passing?                                   |
 | Migration TRUE      | `[Review-Migration] DB migration — rollback path, volume impact, zero-downtime`                      | Rollback/Down script exists? Table size estimate — large tables need lock analysis. NOT NULL column without default on non-empty table? Indexes created with no-lock option? Deployment ordering (before/after service deploy)? Backfill idempotent if run twice?     |
@@ -338,7 +332,7 @@ For EACH identified category:
 
 **Sub-Agent Type Selection:**
 
-| Category Nature                        | `agent_type`            |
+| Category Nature                        | `agent_type`         |
 | -------------------------------------- | ----------------------- |
 | Code logic (any stack)                 | `code-reviewer`         |
 | Security, auth, permissions            | `security-auditor`      |
@@ -581,6 +575,17 @@ Before approving, verify artifacts are **easy to read, maintain, understand**:
 - MUST ATTENTION Incorrect or absent exception handling
 - MUST ATTENTION Missing validation at boundaries
 
+### 6.5 Bugfix Debugger Trace Gate
+
+For bugfix, failed-verification, stale/incorrect final output, regression, or behavior-changing fixes, FAIL review if any required proof is missing:
+
+- MUST ATTENTION `Debugger Trace: End -> Start` names the observed final state and final reader/query/renderer/assertion
+- MUST ATTENTION backward hops are evidenced from reader -> storage/projection/cache -> writer -> consumer/handler/job -> producer/origin
+- MUST ATTENTION all feeder paths that can write the final state are enumerated or explicitly marked unknown
+- MUST ATTENTION hypothesis matrix classifies root causes as primary, contributing, ruled out, latent, or unknown
+- MUST ATTENTION owning fix layer is justified as the lowest shared owner, not the symptom site by default
+- MUST ATTENTION forward convergence proof and regression test/proof mapping show why the final symptom cannot persist
+
 ### 7. Documentation Staleness
 
 - MUST ATTENTION For each changed file: identify related docs (feature docs, architecture references, READMEs)
@@ -589,6 +594,20 @@ Before approving, verify artifacts are **easy to read, maintain, understand**:
 - MUST ATTENTION New feature/component added → flag if corresponding doc missing
 - MUST ATTENTION Test specs reflect current behavior after changes
 - MUST ATTENTION API changes reflected in relevant API docs or specs
+
+### 8. M1-M6 Compliance Gate — Code-to-Spec Drift (BLOCKING)
+
+> **Contract:** See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6)". This review enforces M6 for any spec/feature-doc/PBI/story/test-spec touched by — or supposed to be synced by — this change. Frame each check as: **did this change introduce M1/M2 prose leakage, break a logical-ID mapping (M3), or create AC/expected-result ambiguity (M4)?** A FAIL must name the violated mandate ID and cite the changed file + line. Passing an introduced M1-M5 violation makes this review itself defective.
+>
+> Carriers are EXEMPT from M1/M2 — source identifiers stay CORRECT inside `[Source: ...]`, `**Evidence**`, `**IntegrationTest**` fields, YAML frontmatter, and ` ```mermaid ``` ` blocks. Only flag leakage in spec/doc narrative prose. Banned prose token list: `docs/project-reference/spec-principles.md` §3.2. Scope this gate to changed artifact files (`docs/specs/**`, `docs/business-features/**`, PBI/story/test-spec files in the diff); SKIP with a one-line note when the diff touches no such artifact.
+
+- MUST ATTENTION **M1 — No introduced tech leakage in prose.** FAIL if the diff adds a framework/product, language-native type, or product/design-pattern class name to spec/doc narrative prose, headings, or AC text (banned list in `spec-principles.md` §3.2). Cite the changed file + line + token.
+- MUST ATTENTION **M2 — No introduced source code in prose.** FAIL if the diff expresses a requirement as a class/method/file-path/namespace used as a noun instead of a business operation. Source identifiers belong only in evidence carriers. Cite the changed line.
+- MUST ATTENTION **M3 — Logical-ID mapping preserved.** FAIL if the change adds a requirement/rule/TC without a logical ID (`FR-/BR-/OP-/TC-`), strips a logical ID, demotes it below the `[Source:]` evidence, writes a physical `file:line`/`src/` path instead of a stack-portable abstract anchor (`[Source: namespace/service/id]`), OR drops the `[Source:]` abstract-anchor evidence (evidence is REQUIRED and KEPT — SECONDARY to the logical ID; a code move alone does NOT change the anchor — physical coords live only in the provenance sidecar).
+- MUST ATTENTION **M4 — No introduced AC ambiguity.** FAIL if the change leaves an AC/expected-result vague ("handle appropriately", "process normally", "as needed"), implementable two different ways while both claim conformance, or with no observable completion state / named error condition.
+- MUST ATTENTION **M5 — Spec stays rebuildable.** FAIL if the change makes the spec/doc depend on reading the new code to be understood (a zero-codebase-knowledge team could no longer re-implement on a different stack from the artifact alone). Cite the file + missing detail.
+
+If ANY item fails → the verdict is FAIL; list each violated mandate ID with its changed-file/line citation in the Critical Issues or High Priority section.
 
 ## Output Format
 
@@ -612,6 +631,11 @@ Provide feedback in this format:
 
 - Doc 1: What is stale and why
 - `No doc updates needed` — if no changed file maps to a doc
+
+**Debugger Trace Gaps:** (Bugfix/behavior-changing changes only)
+
+- `Trace complete` — if the required trace, feeder paths, hypothesis matrix, owner, and forward proof are present
+- Gap 1: Missing or weak trace evidence and why it blocks PASS
 
 **Positive Notes:**
 
@@ -814,6 +838,23 @@ review-changes (you are here)
 
 > **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. Prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
 
+<!-- SYNC:end-to-start-debugger-trace -->
+
+> **End-to-Start Debugger Trace** — For non-trivial bugs, failed verification, regression fixes, behavior-changing code, or unclear code flow, start from the observed final state and walk backward before proposing a fix.
+>
+> 1. **Frame 0: observed end state** — Name the exact user-visible output, failing assertion, log line, persisted value, API response, rendered UI, or aggregate bucket. Record the reader/query/renderer that produced it with `file:line` evidence.
+> 2. **Walk backward one hop at a time** — Trace final reader -> projection/cache/storage -> writer -> consumer/handler/job -> producer/caller -> original trigger. At every hop record: input, transformation, output, owner, and evidence.
+> 3. **Enumerate all feeder paths** — Find every upstream producer/caller/event/job that can write into the final path, including retry, async, cache, background, and alternate UI/API paths. Mark each path verified, ruled out, or still unknown.
+> 4. **Build the hypothesis matrix** — For each plausible cause, list evidence for, evidence against, how to reproduce/verify, blast radius, and status (`primary`, `contributing`, `ruled out`, `latent`). Do not fix until competing causes are explicitly resolved or bounded.
+> 5. **Choose the owning fix layer** — Identify the invariant owner and the lowest shared point that protects all downstream consumers. A fix at the symptom site is rejected unless the symptom site owns the invariant.
+> 6. **Prove convergence forward** — After choosing the fix, walk start -> end again and show how the corrected state reaches the observed final output. Map each root cause to a fix part and each fix part to a test/proof.
+>
+> **BLOCKED until:** final state named · backward trace written · all feeder paths enumerated · hypothesis matrix completed · owning fix layer justified · forward convergence proof mapped to tests.
+>
+> **NEVER:** Start at the first suspicious code path. Collapse multiple producers into one "flow". Treat duplicate symptoms as duplicate records without proving the read model. Skip ruled-out hypotheses.
+
+<!-- /SYNC:end-to-start-debugger-trace -->
+
 <!-- SYNC:critical-thinking-mindset -->
 
 > **Critical Thinking Mindset** — Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
@@ -1010,30 +1051,20 @@ review-changes (you are here)
 >
 > **Why inline expansion:** Placeholder markers would force file-read indirection at runtime. AI compliance drops significantly behind indirection (see `SYNC:shared-protocol-duplication-policy`). Therefore the template carries all 10 protocol bodies pre-embedded.
 
-### Sub-Agent Type Selection
+### Subagent Type Selection
 
-Choose `agent_type` based on the dominant concern of the review:
-
-| Dominant Concern                               | `agent_type`            |
-| ---------------------------------------------- | ----------------------- |
-| Code logic, architecture, correctness          | `code-reviewer`         |
-| Security, auth, permissions, vulnerabilities   | `security-auditor`      |
-| Performance, latency, query efficiency, memory | `performance-optimizer` |
-| Documentation, plans, specs, ADRs, configs     | `general-purpose`       |
-| Infrastructure, CI/CD, build tooling           | `general-purpose`       |
-| Mixed concerns (default fallback)              | `code-reviewer`         |
-
-For large changesets with multiple distinct dominant concerns — spawn ONE sub-agent per concern type in parallel.
+- `code-reviewer` — for code reviews (reviewing source files, git diffs, implementation)
+- `general-purpose` — for plan / doc / artifact reviews (reviewing markdown plans, docs, specs)
 
 ### Canonical Agent Call Template (Copy Verbatim)
 
 ```
 spawn_agent({
-description: "Fresh Round {N} review",
-agent_type: "{code-reviewer | security-auditor | performance-optimizer | general-purpose}",
-prompt: `
+  description: "Fresh Round {N} review",
+  agent_type: "code-reviewer",
+  prompt: `
 ## Task
-{review-specific task — e.g., "Review all uncommitted changes for code quality" | "Security review of auth changes" | "Review plan files under {plan-dir}" | "Performance review of data access layer changes"}
+{review-specific task — e.g., "Review all uncommitted changes for code quality" | "Review plan files under {plan-dir}" | "Review integration tests in {path}"}
 
 ## Round
 Round {N}. You have ZERO memory of prior rounds. Re-read all target files from scratch via your own tool calls. Do NOT trust anything from the main agent beyond this prompt.
@@ -1044,7 +1075,7 @@ Round {N}. You have ZERO memory of prior rounds. Re-read all target files from s
 Speculation is FORBIDDEN. Every claim needs proof.
 1. Cite file:line, grep results, or framework docs for EVERY claim
 2. Declare confidence: >80% act freely, 60-80% verify first, <60% DO NOT recommend
-3. Cross-boundary validation required for architectural changes
+3. Cross-service validation required for architectural changes
 4. "I don't have enough evidence" is valid and expected output
 BLOCKED until: Evidence file path (file:line) provided; Grep search performed; 3+ similar patterns found; Confidence level stated.
 Forbidden without proof: "obviously", "I think", "should be", "probably", "this is because".
@@ -1052,18 +1083,18 @@ If incomplete → output: "Insufficient evidence. Verified: [...]. Not verified:
 
 ### Bug Detection
 MUST check categories 1-4 for EVERY review. Never skip.
-1. Null Safety: Can params/returns be null/undefined? Are they guarded? .find()/.get() returns checked before use?
+1. Null Safety: Can params/returns be null? Are they guarded? Optional chaining gaps? .find() returns checked?
 2. Boundary Conditions: Off-by-one (< vs <=)? Empty collections handled? Zero/negative values? Max limits?
-3. Error Handling: Try-catch scope correct? Silent swallowed exceptions? Error types specific? Cleanup in finally/defer?
-4. Resource Management: Connections/streams closed? Long-lived resources released? Memory bounded?
-5. Concurrency (if async): Missing await/promise handling? Race conditions on shared state? Retry storms?
-6. Language/Stack-Specific: Apply known failure modes for the language/runtime in this project — use your domain knowledge of the stack.
+3. Error Handling: Try-catch scope correct? Silent swallowed exceptions? Error types specific? Cleanup in finally?
+4. Resource Management: Connections/streams closed? Subscriptions unsubscribed on destroy? Timers cleared? Memory bounded?
+5. Concurrency (if async): Missing await? Race conditions on shared state? Stale closures? Retry storms?
+6. Stack-Specific: JS: === vs ==, typeof null. C#: async void, missing using, LINQ deferred execution.
 Classify: CRITICAL (crash/corrupt) → FAIL | HIGH (incorrect behavior) → FAIL | MEDIUM (edge case) → WARN | LOW (defensive) → INFO.
 
 ### Design Patterns Quality
 Priority checks for every code change:
-1. DRY via OOP: Same-suffix classes MUST share base class. 3+ similar patterns → extract to shared abstraction.
-2. Right Responsibility: Logic in LOWEST layer. Never business logic in top-layer orchestrators.
+1. DRY via OOP: Same-suffix classes (*Entity, *Dto, *Service) MUST share base class. 3+ similar patterns → extract to shared abstraction.
+2. Right Responsibility: Logic in LOWEST layer (Entity > Domain Service > Application Service > Controller). Never business logic in controllers.
 3. SOLID: Single responsibility (one reason to change). Open-closed (extend, don't modify). Liskov (subtypes substitutable). Interface segregation (small interfaces). Dependency inversion (depend on abstractions).
 4. After extraction/move/rename: Grep ENTIRE scope for dangling references. Zero tolerance.
 5. YAGNI gate: NEVER recommend patterns unless 3+ occurrences exist. Don't extract for hypothetical future use.
@@ -1075,24 +1106,40 @@ Verify WHAT code does matches WHY it was changed.
 2. Happy Path Trace: Walk through one complete success scenario through changed code.
 3. Error Path Trace: Walk through one failure/edge case scenario through changed code.
 4. Acceptance Mapping: If plan context available, map every acceptance criterion to a code change.
+5. Tests Verify Intent: For test/spec changes, verify tests name the protected business rule or invariant and would fail if that intent breaks.
+6. Migration Test Exclusion: Do not write tests for migration code. Schema/data migrations are one-time execution paths, not core application logic.
 NEVER mark review PASS without completing both traces (happy + error path).
 
 ### Test Spec Verification
 Map changed code to test specifications.
-1. Identify the project's test spec format — grep for test case files (e.g., docs/**/test-*, docs/specs/**, *.feature, *.spec.md, test-cases/).
-2. For each changed code path, locate the corresponding test case — or flag as "needs test case".
+1. Identify the project's test/spec format from existing docs, test-case files, BDD feature files, or spec folders.
+2. Every changed code path MUST map to a corresponding test case/spec (or flag as "needs test case").
 3. New functions/endpoints/handlers → flag for test spec creation.
-4. If test spec evidence fields exist in the project, verify they point to actual code (file:line, not stale).
-5. If no specs exist for a changed path → log gap and recommend $tdd-spec.
+4. Migration files are excluded from test/spec creation; schema/data migrations are one-time execution paths, not core application logic.
+5. If spec evidence fields exist, verify they point to actual code (file:line, not stale references).
+6. Verify each meaningful test case names the business intent/invariant; flag behavior-only cases that only mirror implementation details.
+7. Auth/data changes → verify corresponding authorization and data-state test cases exist.
+8. If no specs exist for a changed path → log the gap and recommend the project's test-spec workflow.
 NEVER skip test mapping. Untested code paths are the #1 source of production bugs.
+
+### Behavioral Delta Matrix
+MANDATORY for any bugfix review. Produce input-state × pre-fix × post-fix × delta table BEFORE writing verdict.
+- Minimum 3 rows; include at least one row OUTSIDE the original bug report.
+- Any "REGRESSION" delta → review returns FAIL until a preservation test is added.
+- Narrative descriptions do NOT substitute for the matrix.
+Example rows (external-record sync fix):
+| Input                 | Pre-fix | Post-fix                  | Delta      |
+| --------------------- | ------- | ------------------------- | ---------- |
+| Record exists (valid) | Reused  | Always recreated → orphan | REGRESSION |
+| Record missing (404)  | Error   | Recreated                 | Fixed      |
 
 ### Fix-Layer Accountability
 NEVER fix at the crash site. Trace the full flow, fix at the owning layer. The crash site is a SYMPTOM, not the cause.
 MANDATORY before ANY fix:
-1. Trace full data flow — Map the complete path from data origin to crash site across ALL layers. Identify where bad state ENTERS, not where it CRASHES.
+1. Trace full data flow — Map the complete path from data origin to crash site across ALL layers (storage → backend → API → frontend → UI). Identify where bad state ENTERS, not where it CRASHES.
 2. Identify the invariant owner — Which layer's contract guarantees this value is valid? Fix at the LOWEST layer that owns the invariant, not the highest layer that consumes it.
 3. One fix, maximum protection — If fix requires touching 3+ files with defensive checks, you are at the wrong layer — go lower.
-4. Verify no bypass paths — Confirm all data flows through the fix point.
+4. Verify no bypass paths — Confirm all data flows through the fix point. Check for direct construction skipping factories, clone/spread without re-validation, raw data not wrapped in domain models, mutations outside the model layer.
 BLOCKED until: Full data flow traced (origin → crash); Invariant owner identified with file:line evidence; All access sites audited (grep count); Fix layer justified (lowest layer that protects most consumers).
 Anti-patterns (REJECT): "Fix it where it crashes" (crash site ≠ cause site, trace upstream); "Add defensive checks at every consumer" (scattered defense = wrong layer); "Both fix is safer" (pick ONE authoritative layer).
 
@@ -1128,33 +1175,9 @@ HARD-GATE: Do NOT write, plan, or fix until you READ existing code.
 7. NEVER invent new patterns when existing ones work — match exactly or document deviation.
 BLOCKED until: Read target files; Grep 3+ patterns; Graph trace (if graph.db exists); Assumptions verified with evidence.
 
-### Category Review Thinking
-For EACH category of changed files — THINK, do not fill in a checklist. DO NOT limit to the examples below.
-Step 1 — Understand the category's role: What is its purpose? What invariants govern it? Who consumes it and what do they expect?
-Step 2 — Read project conventions: grep for reference docs, style guides, READMEs for this area. Examine 3+ existing similar files to surface established patterns.
-Step 3 — Derive concerns from first principles. Apply ALL that are relevant — expand based on domain knowledge:
-- Correctness: logic matches intent? happy path AND error path traced?
-- Contracts: interfaces/APIs/events/protocols honored? no implicit coupling introduced?
-- Project conventions: follows patterns found in Step 2? evidence-confirmed, not assumed?
-- Security: auth enforced? input validated at boundaries? no secrets in diff?
-- Performance: unbounded operations? N+1? blocking in async context? unindexed queries?
-- Maintainability: DRY? single responsibility? complexity reasonable? names reveal intent?
-- Test coverage: changed paths covered? existing tests still valid after the change?
-- Documentation: related docs/specs reflect the changes?
-Step 4 — For each concern identified: verify with file:line evidence or flag as finding.
-Examples only — your knowledge exceeds this list:
-- Logic files (any stack): handler/service structure, validation placement, side effect isolation, cross-boundary coupling, data access layer separation
-- Data/Schema: rollback path, lock impact on table volume, backfill idempotency, index coverage for query patterns, deployment ordering
-- Config files: all environments covered? no secrets committed? app fails fast if missing?
-- Infrastructure: dev/prod parity? no hardcoded dev values? pinned versions? CI impact documented?
-- Styles/Assets: naming conventions? design variables/tokens used (no magic values)? scope correct?
-- Documentation: accurate? links valid? examples match current code/behavior?
-- Tests: assertions verify specific outcomes (not just no-exception)? idempotent (repeatable N times)? edge cases covered?
-- Security artifacts: all code paths reach the gate? negative tests exist? both enforcement AND display control updated?
-- Build/Tooling: rule changes apply consistently? violations not silently swallowed? CI runtime impact?
-
 ## Reference Docs (READ before reviewing)
-{Discover by searching *patterns*, *conventions*, *style-guide*, *architecture*, README at service/module roots — list what you find}
+- docs/project-reference/code-review-rules.md
+- {skill-specific reference docs — e.g., integration-test-reference.md for integration-test-review; backend-patterns-reference.md for backend reviews; frontend-patterns-reference.md for frontend reviews}
 
 ## Target Files
 {explicit file list OR "run git diff to see uncommitted changes" OR "read all files under {plan-dir}"}
@@ -1178,7 +1201,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 - DO copy the template wholesale — including all 10 embedded protocol sections
 - DO replace only the `{placeholders}` in Task / Round / Reference Docs / Target Files / Output sections with context-specific content
-- DO choose `agent_type` based on the dominant concern (see Sub-Agent Type Selection above)
+- DO choose `code-reviewer` agent_type for code reviews and `general-purpose` for plan / doc / artifact reviews
 - DO NOT paraphrase, summarize, or skip any protocol section
 - DO NOT pass file contents inline — the sub-agent reads via its own tool calls so it has a fresh context
 - DO NOT reference protocols by file path or tag name — the bodies are already embedded above
@@ -1195,6 +1218,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > 3. **Error Path Trace:** Walk through one failure/edge case scenario through changed code
 > 4. **Acceptance Mapping:** If plan context available, map every acceptance criterion to a code change
 > 5. **Tests Verify Intent:** For test/spec changes, verify tests name the protected business rule or invariant and would fail if that intent breaks.
+> 6. **Migration Test Exclusion:** Do not write tests for migration code. Schema/data migrations are one-time execution paths, not core application logic.
 >
 > **NEVER mark review PASS without completing both traces (happy + error path).**
 
@@ -1219,12 +1243,14 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 > **Test Spec Verification** — Map changed code to test specifications.
 >
-> 1. Identify the project's test spec format — grep for test case files (e.g., `docs/**/test-*`, `docs/specs/**`, `*.feature`, `*.spec.md`, `test-cases/`)
-> 2. For each changed code path, locate the corresponding test case — or flag as "needs test case"
+> 1. Identify the project's test/spec format from existing docs, test-case files, BDD feature files, or spec folders.
+> 2. Every changed code path MUST ATTENTION map to a corresponding test case/spec (or flag as "needs test case")
 > 3. New functions/endpoints/handlers → flag for test spec creation
-> 4. If test spec evidence fields exist in the project, verify they point to actual code (`file:line`, not stale references)
-> 5. Verify each meaningful TC includes `Business Intent / Invariant Guarded`; flag behavior-only TCs that only mirror implementation details.
-> 6. If no specs exist for a changed path → log gap and recommend `$tdd-spec`
+> 4. Migration files are excluded from TC/test creation; schema/data migrations are one-time execution paths, not core application logic.
+> 5. If spec evidence fields exist, verify they point to actual code (`file:line`, not stale references)
+> 6. Verify each meaningful test case names the business intent/invariant; flag behavior-only cases that only mirror implementation details.
+> 7. Auth/data changes → verify corresponding authorization and data-state test cases exist.
+> 8. If no specs exist for a changed path → log the gap and recommend the project's test-spec workflow.
 >
 > **NEVER skip test mapping.** Untested code paths are the #1 source of production bugs.
 
@@ -1234,7 +1260,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 > **Integration Test Sync Check** — Verify changed business logic files have corresponding tests.
 >
-> 1. From changed files → identify **business logic files**: handlers, commands, queries, services, controllers, resolvers, event processors. Naming varies by stack — infer from project conventions (e.g., `*Service.*`, `*Handler.*`, `*Controller.*`, `*Command.*`, `*Query.*`, `*Resolver.*`).
+> 1. From changed files → identify **business logic files**: handlers, commands, queries, services, controllers, resolvers, event processors. Naming varies by stack — infer from project conventions (e.g., `*Service.*`, `*Handler.*`, `*Controller.*`, `*Command.*`, `*Query.*`, `*Resolver.*`). Exclude migration files: schema/data migrations are one-time execution paths, not core application logic.
 > 2. For each identified file → search for a corresponding test file. Infer test naming from existing tests in the project (e.g., `*.test.ts`, `*Tests.java`, `*_test.py`, `*.spec.js`, `*Tests.cs`). Check standard test directories (`tests/`, `spec/`, `__tests__/`, or adjacent test projects/packages).
 > 3. If test EXISTS → check if test methods cover changed behavior (new methods/parameters/logic paths)
 > 4. If test MISSING → **MANDATORY**: use a direct user question: "Business logic file `{file}` has no integration tests — run `$integration-test` before proceeding, or confirm tests already written?" Options: "Run `$integration-test` first" (Recommended) | "Tests already written/updated — proceed"
@@ -1372,9 +1398,10 @@ For each identified concern: create a task tracking sub-task, work through it wi
 
 <!-- SYNC:source-test-drift-check -->
 
-> **Source/test drift check.** For coding, fix, debug, investigation, test, or review work: when source behavior changes, inspect affected unit/integration/E2E tests and decide from evidence whether tests should change to match intended behavior or the source change is an unintended bug to fix.
+> **Source/test drift check.** For coding, fix, debug, investigation, test, or review work: when source behavior changes, inspect affected unit/integration/E2E tests and decide from evidence whether tests should change to match intended behavior or the source change is an unintended bug to fix. Do not write tests for migration code; schema/data migrations are one-time execution paths, not core application logic.
 
 <!-- /SYNC:source-test-drift-check -->
+
 <!-- SYNC:ai-mistake-prevention -->
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
@@ -1479,6 +1506,12 @@ For each identified concern: create a task tracking sub-task, work through it wi
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
 
+<!-- SYNC:end-to-start-debugger-trace:reminder -->
+
+**IMPORTANT MUST ATTENTION** debugger trace gate: for non-trivial bug/fix/investigation/review work, start at the observed final output and trace backward through reader -> storage/projection -> writer -> consumer/job -> producer/trigger. Enumerate all feeder paths and hypotheses before fixing. **BLOCKED until** trace, hypothesis matrix, owning fix layer, and forward convergence proof exist.
+
+<!-- /SYNC:end-to-start-debugger-trace:reminder -->
+
 <!-- SYNC:nested-task-creation:reminder -->
 
 - **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
@@ -1535,7 +1568,6 @@ For each identified concern: create a task tracking sub-task, work through it wi
 > unclear intent are the real enemies — call them out by name.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
-
 ## Hookless Prompt Protocol Mirror (Auto-Synced)
 
 Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
@@ -1547,24 +1579,22 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** Match prompt against workflow catalog
 2. **ANALYZE:** Find best-match workflow AND evaluate if a custom step combination would fit better
 3. **ASK (REQUIRED FORMAT):** Use a direct user question with this structure unless the user explicitly invoked a workflow/skill and the local protocol treats explicit invocation as confirmation:
-    - Question: "Which workflow do you want to activate?"
-    - Option 1: "Activate **[BestMatch Workflow]** (Recommended)"
-    - Option 2: "Activate custom workflow: **[step1 → step2 → ...]**" (include one-line rationale)
+   - Question: "Which workflow do you want to activate?"
+   - Option 1: "Activate **[BestMatch Workflow]** (Recommended)"
+   - Option 2: "Activate custom workflow: **[step1 → step2 → ...]**" (include one-line rationale)
 4. **ACTIVATE (if confirmed):** Call `$workflow-start <workflowId>` for standard; sequence custom steps manually
 5. **CREATE TASKS:** task tracking for ALL workflow steps
 6. **EXECUTE:** Follow each step in sequence
-   **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
-   **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
-   **AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
-   **Goal-driven execution:** Define success criteria first, loop until verified, and stop only when observable checks pass.
-   **Tests verify intent:** Tests must protect business rules/invariants and fail when the protected intent breaks, not only mirror current behavior.
-
+**[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
+**Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
+**AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
+**Goal-driven execution:** Define success criteria first, loop until verified, and stop only when observable checks pass.
+**Tests verify intent:** Tests must protect business rules/invariants and fail when the protected intent breaks, not only mirror current behavior.
 ## [LESSON-LEARNED-REMINDER] [BLOCKING] Task Planning & Continuous Improvement — MANDATORY. Do not skip.
 
 Break work into small tasks (task tracking) before starting. Add final task: "Analyze AI mistakes & lessons learned".
 
 **Extract lessons — ROOT CAUSE ONLY, not symptom fixes:**
-
 1. Name the FAILURE MODE (reasoning/assumption failure), not symptom — "assumed API existed without reading source" not "used wrong enum value".
 2. Generality test: does this failure mode apply to ≥3 contexts/codebases? If not, abstract one level up.
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
@@ -1572,6 +1602,6 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
 6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security`/`$lint` catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
-   **[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
+**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:END -->

@@ -1372,13 +1372,13 @@ flowchart LR
 │  Mode 2: IMPLEMENT-FIRST                                         │
 │  Input: Existing codebase (code already written)                 │
 │  Action: Analyze code paths → generate TC specs                  │
-│  Evidence: file:line references to actual code                   │
+│  Evidence: [Source: namespace/service/id] abstract anchor        │
 │  Next: /integration-test → /test                                 │
 │                                                                   │
 │  Mode 3: UPDATE                                                   │
 │  Input: Existing TCs + code changes                              │
 │  Action: Diff TCs against current code → find gaps               │
-│  Evidence: Updated file:line references                          │
+│  Evidence: updated [Source: namespace/service/id] anchors        │
 │  Next: /test → /review-changes                                   │
 │                                                                   │
 │  ALL MODES:                                                       │

@@ -7,3 +7,7 @@ plans/
 tmp/
 .claude/scheduled_tasks.lock
 node_modules/
+.claude/scripts/codex/tests/fixtures/
+!.claude/scripts/codex/tests/fixtures/
+!.claude/scripts/codex/tests/fixtures/*.md
+.codex/hooks.sync.report.json

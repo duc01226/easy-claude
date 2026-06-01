@@ -84,6 +84,8 @@
 ## Phase 7: Debugging (when issues arise)
 
 - Use `/debug-investigate` skill for systematic debugging when issues are reported
+- For non-trivial bugs, failed verification, or stale/incorrect final outputs, start from the observed end state and trace backward through reader -> storage/projection -> writer -> consumer/job -> producer/origin before proposing a fix
+- Enumerate every feeder path and root-cause hypothesis; a fix is blocked until the owning fix layer and forward convergence proof are written
 - Use `/fix` skill to apply fixes after root cause is identified
 - Re-run tests after every fix to verify no regressions
 
@@ -96,13 +98,13 @@ All workflows are defined in `.claude/workflows.json`. Each workflow composes a 
 | Workflow                          | Phases Used                        | When To Use                                         |
 | --------------------------------- | ---------------------------------- | --------------------------------------------------- |
 | **feature**                       | 0→1→2→3→4→5→6                      | Well-defined feature implementation                 |
-| **bugfix**                        | 0→1→3→4→5→6→7                      | Bug reports, debugging, troubleshooting             |
+| **bugfix**                        | 0→1→3→4→5→6→7                      | Bug reports, debugging, troubleshooting with end-to-start trace |
 | **hotfix**                        | 0→1→3→4→5→6                        | P0/P1 production emergencies (lightweight planning) |
 | **refactor**                      | 0→1→2→3→4→5→6                      | Code restructuring without behavior change          |
 | **investigation**                 | 0 only                             | Read-only codebase exploration                      |
 | **review-changes**                | 5→3→5→6                            | Pre-commit review of uncommitted changes            |
 | **review**                        | 5→3→5→6                            | Code review, PR review, quality audit               |
-| **verification**                  | 0→4→(3→4→5 if fix needed)→6        | Verify/validate correctness                         |
+| **verification**                  | 0→4→(3→4→5 if fix needed)→6        | Verify correctness; FAIL-to-fix requires end-to-start trace |
 | **big-feature**                   | Full lifecycle with research       | Large/ambiguous features needing market research    |
 | **feature-with-integration-test** | 0→1→2→3→4→5→6                      | Feature + spec-first integration testing            |
 | **tdd-feature**                   | 0→2→1→3→4→5→6                      | Test-first development (specs before plan)          |

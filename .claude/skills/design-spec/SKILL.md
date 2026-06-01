@@ -167,6 +167,29 @@ For ANY visual input: extract design context FIRST, then proceed to spec generat
 - {Any unresolved design decisions}
 ```
 
+## M1-M5 Compliance for UI Specs
+
+See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6)" for BLOCKING criteria. A UI spec MUST satisfy these before handoff:
+
+- **M1 — Business-level component names.** Name every component by its UX role — Primary Button, Secondary Button, Modal Dialog, Data Table, Dropdown, Toast — NEVER by a framework component class name or library import. FAIL on tech-term prose.
+- **M2 — No code-prop refs in prose.** Describe behavior and appearance in plain UX language. NEVER reference component-state props, CSS class names, framework directives, or selectors in prose. Those belong only in `**Evidence**`/`[Source:]` carriers, frontmatter, and Mermaid.
+- **M3 — Cross-reference by logical ID.** For every behavior driven by feature logic, cite the driving operation or rule by its logical ID (`OP-`/`BR-`/`FR-`) — link UI behavior back to the feature spec, not to handler code. Keep any `[Source: namespace/service/id]` abstract anchor strictly in the Evidence carrier — never a physical `file:line`/`src/` path.
+- **M4 — Testable, unambiguous behavior.** Every state and interaction MUST have exactly one valid interpretation and an observable completion marker. Replace vague phrases ("handle appropriately", "show feedback") with the concrete observable result.
+- **M5 — Rebuild-from-spec.** A reader with zero codebase knowledge MUST be able to rebuild this UI on ANY framework from the spec alone. If a marker is only resolvable by reading source, it fails M5 — restate it as a visual/textual observable.
+
+### Observable State Definitions
+
+Define every state by what a user can SEE (color, icon, position, text), the business meaning, and the operation/rule that triggers it — NEVER by CSS class or component-state prop:
+
+| State    | Visual Markers (observable)                              | Business Meaning                          | Triggering Operation / Rule (logical ID) |
+| -------- | -------------------------------------------------------- | ----------------------------------------- | ---------------------------------------- |
+| Default  | Primary fill color, enabled label, no spinner            | Action available to the actor             | OP-XX (entry state)                      |
+| Loading  | Spinner icon replaces label, control non-interactive     | Operation in progress, awaiting result    | OP-XX (request submitted)                |
+| Disabled | Muted/gray fill, label dimmed, no pointer affordance      | Precondition not met / actor not permitted | BR-XX (authorization or guard rule)      |
+| Error    | Error-color border, inline message text, alert icon       | Operation rejected or validation failed   | BR-XX (validation rule)                  |
+| Empty    | Placeholder illustration + guidance text, no data rows    | No records exist for the current view     | OP-XX (query returned zero results)      |
+| Success  | Confirmation toast/checkmark, updated visible data        | Operation completed and persisted         | OP-XX (operation succeeded)              |
+
 ## Examples
 
 ### Example 1: Simple form spec
@@ -245,7 +268,7 @@ For ANY visual input: extract design context FIRST, then proceed to spec generat
 <!-- SYNC:ui-system-context:reminder -->
 
 - **MANDATORY IMPORTANT MUST ATTENTION** read frontend-patterns-reference, scss-styling-guide, design-system/README before any UI change.
-  <!-- /SYNC:ui-system-context:reminder -->
+<!-- /SYNC:ui-system-context:reminder -->
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 

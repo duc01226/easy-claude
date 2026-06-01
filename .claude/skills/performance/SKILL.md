@@ -84,7 +84,7 @@ For each dimension: state role → derive failure modes → apply to bottleneck 
 
 **Think:** Are parallel ops sharing non-thread-safe resources? Are sequential ops blocking hot path unnecessarily?
 
-- Parallel + repo/UoW → ALWAYS `ExecuteInjectScopedAsync` (new DI scope per iteration), NEVER `ExecuteUowTask` (shared DbContext = silent corruption)
+- Parallel + repo/UoW → ALWAYS open a NEW DI scope per iteration (do NOT reuse one unit-of-work / DB context across parallel iterations — shared mutable context = silent data corruption)
 - Sequential DB calls in loops → batch or `Include()`
 - Unnecessary sequential awaits → identify parallelizable chains
 
@@ -266,9 +266,10 @@ Route based on detected bottleneck type:
 
 <!-- SYNC:source-test-drift-check -->
 
-> **Source/test drift check.** For coding, fix, debug, investigation, test, or review work: when source behavior changes, inspect affected unit/integration/E2E tests and decide from evidence whether tests should change to match intended behavior or the source change is an unintended bug to fix.
+> **Source/test drift check.** For coding, fix, debug, investigation, test, or review work: when source behavior changes, inspect affected unit/integration/E2E tests and decide from evidence whether tests should change to match intended behavior or the source change is an unintended bug to fix. Do not write tests for migration code; schema/data migrations are one-time execution paths, not core application logic.
 
 <!-- /SYNC:source-test-drift-check -->
+
 <!-- SYNC:ai-mistake-prevention -->
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:

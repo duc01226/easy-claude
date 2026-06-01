@@ -185,14 +185,14 @@ Scenario: {Descriptive title}
 
 1. Reference existing test case patterns from feature docs
 2. Use TC-{FEATURE}-{NNN} format (e.g., TC-GM-001)
-3. Include Evidence field: `file:line` format
+3. Include Evidence field: `[Source: namespace/service/id]` abstract-anchor format — never `file:line` or `src/` paths (stack-portable; see `shared/tc-format.md` + `docs/specs/MIGRATION.md`)
 4. Example from GoalManagement feature:
     ```
     TC-GRO-GOAL-001: Create goal with valid data
     GIVEN employee has permission to create goals
     WHEN employee submits goal form with all required fields
     THEN goal is created and appears in goal list
-    Evidence: goal.service.ts:87, goal.component.ts:142
+    Evidence: [Source: operation/growth/CreateGoal], [Source: component/growth/Goal]
     ```
 
 ### 4. Business Rules Documentation
@@ -204,7 +204,7 @@ BR-{MOD}-{NNN}: {Rule name}
 IF {condition}
 THEN {action/result}
 ELSE {alternative}
-Evidence: {file}:{line}
+Evidence: [Source: rule/{service}/{RuleName}]
 ```
 
 ### 5. Gap Analysis
@@ -224,7 +224,7 @@ Before finalizing user story:
 - [ ] Business rules don't conflict with existing BR-{MOD}-XXX rules
 - [ ] Test case format matches existing TC-{FEATURE}-{NNN} patterns
 - [ ] Entity names match those in feature docs
-- [ ] Evidence format follows file:line convention
+- [ ] Evidence format follows the abstract-anchor convention (`[Source: namespace/service/id]`) — no `file:line` or `src/` paths
 
 ### Documentation Links
 

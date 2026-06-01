@@ -26,6 +26,17 @@ disable-model-invocation: false
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
+### M1-M6 Compliance Gate (STOP and rework on any violation)
+
+See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6)" for BLOCKING criteria. Any requirements/spec text this skill emits MUST pass the gate before scaffolding:
+
+- **M1/M2:** Requirement and design prose describes business behavior only — no framework/product/language names and no class/method/file references in narrative; source identifiers stay in evidence carriers (`[Source:]`, `**Evidence**`).
+- **M3:** Each functional rule carries a logical ID (FR-/BR-/OP-) plus a SEPARATE `[Source: namespace/service/id]` abstract-anchor evidence carrier (never a physical `file:line`/`src/` path) — retain both.
+- **M4/M5:** One interpretation per requirement, named success/failure outcomes, and behavior re-implementable on any stack from the spec text alone.
+- When referencing implementation patterns in prose, name the **abstract pattern** (a pattern ID or business term such as "operation handler", "persistence layer", "event bus") — NOT a framework/product name. Concrete pattern/library names belong only in the scaffolding steps and evidence fields, never in the spec narrative.
+
+If any requirement/design text would violate a mandate, **STOP and rework** it before continuing to scaffolding.
+
 Create a new feature: $ARGUMENTS
 
 ## Steps:
@@ -78,9 +89,10 @@ Create a new feature: $ARGUMENTS
 
 <!-- SYNC:source-test-drift-check -->
 
-> **Source/test drift check.** For coding, fix, debug, investigation, test, or review work: when source behavior changes, inspect affected unit/integration/E2E tests and decide from evidence whether tests should change to match intended behavior or the source change is an unintended bug to fix.
+> **Source/test drift check.** For coding, fix, debug, investigation, test, or review work: when source behavior changes, inspect affected unit/integration/E2E tests and decide from evidence whether tests should change to match intended behavior or the source change is an unintended bug to fix. Do not write tests for migration code; schema/data migrations are one-time execution paths, not core application logic.
 
 <!-- /SYNC:source-test-drift-check -->
+
 <!-- SYNC:ai-mistake-prevention -->
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
@@ -152,7 +164,7 @@ Create a new feature: $ARGUMENTS
 <!-- SYNC:understand-code-first:reminder -->
 
 - **MANDATORY IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE any modification. Run graph trace when graph.db exists.
-      <!-- /SYNC:understand-code-first:reminder -->
+<!-- /SYNC:understand-code-first:reminder -->
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 

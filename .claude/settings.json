@@ -7,7 +7,7 @@
   "autoMemoryEnabled": false,
   "cleanupPeriodDays": 30,
   "disabledMcpjsonServers": ["chrome-devtools", "figma", "memory", "sequential-thinking"],
-  "effortLevel": "xhigh",
+  "effortLevel": "high",
   "enableAllProjectMcpServers": false,
   "enabledMcpjsonServers": ["context7", "github", "mongodb", "postgres"],
   "enabledPlugins": {
@@ -607,5 +607,6 @@
     "command": "npx -y ccstatusline@latest --config .claude/ccstatusline.json",
     "padding": 0,
     "type": "command"
-  }
+  },
+  "workflowKeywordTriggerEnabled": false
 }

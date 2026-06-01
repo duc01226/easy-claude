@@ -207,6 +207,12 @@ const DEFAULT_REFERENCE_DOCS = [
         templatePath: '.claude/templates/reference-docs/spec-principles.md'
     },
     {
+        filename: 'workflow-spec-test-code-cycle-reference.md',
+        purpose: 'Workflow spec-test-code cycle: local workflow sequence, artifact ownership, verification gates, and generated mirror sync.',
+        sections: [],
+        templatePath: '.claude/templates/reference-docs/workflow-spec-test-code-cycle-reference.md'
+    },
+    {
         filename: 'code-review-rules.md',
         purpose: 'Code review rules, conventions, anti-patterns, decision trees, and checklists.',
         sections: ['Critical Rules', 'Backend Rules', 'Frontend Rules', 'Architecture Rules', 'Anti-Patterns', 'Checklists']

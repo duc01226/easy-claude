@@ -22,7 +22,7 @@ description: '[Documentation] Use when you need to create or update business fea
 **Workflow:**
 
 1. **Detect & Gather** — Auto-detect modules from git changes OR user-specified module, read existing docs
-2. **Investigate Code** — Grep/glob codebase for evidence (`file:line`) for every test case
+2. **Investigate Code** — Grep/glob codebase to trace evidence for every test case; record it as a `[Source: namespace/service/id]` abstract anchor (physical `file:line` → provenance sidecar)
 3. **Write Documentation** — Follow exact 17-section structure, place in `docs/business-features/{Module}/`
 4. **Verification** — 4-pass system: evidence audit, domain model, cross-reference, AI-implementability
 
@@ -37,6 +37,16 @@ description: '[Documentation] Use when you need to create or update business fea
 - Third verification pass finds >5 issues → HALT, re-run verification
 
 > `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read directly when relevant; do not rely on hook-injected conversation text)
+
+### M1-M6 Compliance Checklist (BLOCKING — FAIL the doc on any violation)
+
+See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6)" for BLOCKING criteria. Every feature doc MUST satisfy ALL of the following before it is emitted; any violation FAILS the doc and forces rework:
+
+- **M1 — Tech-agnostic prose:** §1-14 narrative, headings, tables, and glossary describe business capability only. No framework/product/language/persistence/messaging/auth names and no project-internal framework type names in prose (banned-token list: `spec-principles.md` §3.2). Such terms are allowed ONLY inside evidence carriers (`**Evidence**`, `IntegrationTest`, `[Source:]`), YAML frontmatter, and ` ```mermaid ``` ` blocks.
+- **M2 — No source code in prose:** No class/method names, file paths, or namespaces in prose. Use business operation names; source identifiers live only in evidence carriers.
+- **M3 — Logical-IDs-first traceability:** Every FR / BR / operation carries a logical ID (FR-/BR-/OP-/TC-) as the primary spine AND a SEPARATE `[Source: namespace/service/id]` stack-portable abstract-anchor evidence carrier (never a physical `file:line`/`src/` path — those live only in the provenance sidecar; taxonomy: `docs/specs/MIGRATION.md`). Keep the logical ID in the rule statement; keep the source link out of the narrative — do NOT remove `[Source:]`.
+- **M4 — AI-implementability:** Each requirement has one valid interpretation, observable success/failure outcomes, and named failure modes — no vague "handle appropriately".
+- **M5 — Rebuild-from-scratch:** A team with zero codebase knowledge could re-implement identical business behavior on ANY stack from the doc alone.
 
 ## Project Pattern Discovery
 
@@ -63,19 +73,23 @@ Generate feature docs following project conventions.
 
 ### Evidence Format
 
+Evidence is a **stack-portable abstract anchor** — never a donor `file:line`, `.cs`, or `src/` path:
+
 ```markdown
-**Evidence**: `{RelativeFilePath}:{LineNumber}` or `{RelativeFilePath}:{StartLine}-{EndLine}`
+**Evidence**: `[Source: {namespace}/{service}/{id}]`
 ```
+
+Namespace ∈ `operation | event | component | schema | requirement | rule | constraint | test`. Service = owning module (lowercased). Id = the artifact concept with code suffixes stripped. Physical coordinates are recoverable only via the provenance sidecar. Full contract: `docs/specs/MIGRATION.md`.
 
 ### Valid vs Invalid Evidence
 
-| Valid                           | Invalid                             |
-| ------------------------------- | ----------------------------------- |
-| `ErrorMessage.cs:83`            | `{FilePath}:{LineRange}` (template) |
-| `Handler.cs:42-52`              | `SomeFile.cs` (no line)             |
-| `interviews.service.ts:115-118` | "Based on CQRS pattern" (vague)     |
+| Valid                                       | Invalid                                       |
+| ------------------------------------------- | --------------------------------------------- |
+| `[Source: operation/orders/CreateOrder]`    | `ErrorMessage.cs:83` (physical `file:line`)   |
+| `[Source: component/orders/Order]`          | `{namespace}/{service}/{id}` (template)       |
+| `[Source: event/accounts/AccountUserSaved]` | "Based on CQRS pattern" (vague)               |
 
-> **Evidence-field only:** these file paths appear ONLY inside the `**Evidence**` / `IntegrationTest` fields — never in a test case's behavioral description, which stays tech-agnostic (`spec-principles.md §3`).
+> **Carrier-field only:** the abstract anchor (and the `IntegrationTest` test link) appear ONLY inside the `**Evidence**` / `IntegrationTest` fields — never in a test case's behavioral description, which stays tech-agnostic (`spec-principles.md §3`). `IntegrationTest` is the lone exception that keeps a physical `{TestFile}::{MethodName}` link (operational QA glue; see `tc-format.md`).
 
 ---
 
@@ -249,7 +263,7 @@ For each entity in Entity layer:
 1. Read entity file
 2. Extract: name, purpose (1 sentence), attributes (name, required, constraint, business meaning), lifecycle states, invariants
 3. Identify relationships: FK fields, navigation properties, collection fields → cardinality
-4. Write entity description with `[Source: file:line]`
+4. Write entity description with `[Source: component/{service}/{Entity}]` abstract anchor (physical coords → provenance sidecar)
 5. Collect all entities for ERD generation
 
 **ERD Generation (mandatory after all entities extracted):**
@@ -267,7 +281,7 @@ For each validator/command handler in Validation layer:
 1. Read file, extract validation rules (field → rule → error condition → error message)
 2. Extract authorization rules (operation → who can perform → condition)
 3. Extract state machine transitions if entity has lifecycle states
-4. Write with `[Source: file:line]` per rule group
+4. Write with `[Source: rule/{service}/{RuleName}]` abstract anchor per rule group
 
 #### Step 1-INIT.4: API Contracts Extraction (Phase C)
 
@@ -279,7 +293,7 @@ For each application-layer entry point — read in this priority order:
 4. **Background jobs** — one entry per job. Extract: schedule/trigger, operation performed, side effects.
 5. **REST controllers** — supplementary only (HTTP adapter layer). Extract: HTTP method + path + auth required + DTO shape for operations NOT already covered by handlers above.
 
-Write operation description in business language only — no C# type names or class names. Write with `[Source: file:line]` per entry.
+Write operation description in business language only — no C# type names or class names. Write with `[Source: operation/{service}/{Operation}]` abstract anchor per entry.
 
 **MUST: Every operation in Use Case Inventory (Step 1-INIT.1.5) → exactly one Phase C entry.** After Phase C: count entries. If count < Grand Total from inventory → create fill tasks before Phase D.
 
@@ -309,7 +323,7 @@ For each event handler and bus consumer:
 
 1. Extract: event name, trigger, payload fields, ordering guarantee
 2. Background jobs: schedule, purpose, side effects, abort condition
-3. Write with `[Source: file:line]`
+3. Write with `[Source: event/{service}/{Event}]` abstract anchor (use `operation/{service}/{Job}` for background jobs)
 
 #### Step 1-INIT.6: User Journey Synthesis (Phase E)
 
@@ -338,7 +352,7 @@ For each event handler and bus consumer:
 - **Outcome:** {what actor achieves}
 - **Acceptance Criteria:**
     - GIVEN {precondition} WHEN {action} THEN {outcome}
-      [Source: path/to/handler-or-component.ext:line_range]
+      [Source: operation/{service}/{Operation}]
 ```
 
 **Per-phase E completeness checklist (BLOCKING before proceeding to Step 1-INIT.7):**
@@ -348,7 +362,7 @@ For each event handler and bus consumer:
 - [ ] Every UI route discovered has ≥1 screen story
 - [ ] Every GET/query with filter params has a search/list/view story
 - [ ] Every story uses "As a / I want / So that" format
-- [ ] Every story has `[Source: file:line]`
+- [ ] Every story has `[Source: operation/{service}/{Operation}]` abstract anchor
 
 #### Step 1-INIT.7: Transform to 17-Section Format
 
@@ -356,7 +370,7 @@ After extraction is complete, format the extracted content into the 17-section s
 
 | Extracted Phase    | Target Section                                                       |
 | ------------------ | -------------------------------------------------------------------- |
-| Phase A entities   | Section 5 (Domain Model) — with ERD + `[Source: file:line]`          |
+| Phase A entities   | Section 5 (Domain Model) — with ERD + `[Source: component/{service}/{Entity}]` |
 | Phase B rules      | Section 6 (Business Rules) + Section 4 (Business Requirements FR-XX) |
 | Phase C operations | Section 8 (Commands) + Section 11 (API Reference)                    |
 | Phase D events     | Section 9 (Events & Background Jobs) + Section 12 (Cross-Service)    |
@@ -568,7 +582,7 @@ Generate at `docs/business-features/{Module}/detailed-features/README.{FeatureNa
 | --------------- | --------------------------------- |
 | **Description** | {What this requirement enables}   |
 | **Scope**       | {Who can use / affected entities} |
-| **Evidence**    | `{FilePath}:{LineRange}`          |
+| **Evidence**    | `[Source: {namespace}/{service}/{id}]` |
 ```
 
 **User Stories (US-XX)**:
@@ -586,7 +600,7 @@ Generate at `docs/business-features/{Module}/detailed-features/README.{FeatureNa
 - [ ] AC-02: {Criterion with evidence reference}
 
 **Related Requirements**: FR-{MOD}-01, FR-{MOD}-02
-**Evidence**: `{FilePath}:{LineRange}`
+**Evidence**: `[Source: {namespace}/{service}/{id}]`
 ```
 
 **Test Summary Table (MANDATORY)**:
@@ -626,8 +640,8 @@ Generate at `docs/business-features/{Module}/detailed-features/README.{FeatureNa
 
 - {Invalid scenario} → {Expected error/behavior}
 
-**Evidence:** `[Source: {FilePath}:{LineRange}]`
-**IntegrationTest:** `{TestFile}.cs::{MethodName}` (or `Untested`)
+**Evidence:** `[Source: {namespace}/{service}/{id}]`
+**IntegrationTest:** `{TestFile}::{MethodName}` (or `Untested`)
 **Status:** Tested | Untested | Planned
 ```
 
@@ -682,11 +696,11 @@ erDiagram
 - Mark aggregate roots: `%% [AGGREGATE: EntityName]`
 - Cross-module stubs: `%% [CROSS-REF: module-name]`
 
-`[Source: path/to/entity-files:line_range]` required after the ERD block.
+`[Source: component/{service}/{Entity}]` abstract anchor required after the ERD block.
 
 **Business Rules (Section 6) Format:**
 
-Each rule group MUST include `[Source: file:line]`:
+Each rule group MUST include `[Source: rule/{service}/{RuleName}]`:
 
 ```markdown
 ### BR-{MOD}-01: {Rule Group Name}
@@ -695,7 +709,7 @@ Each rule group MUST include `[Source: file:line]`:
 | --------------- | ------------ | --------------- | ------------------ |
 | {field}         | {constraint} | {when violated} | {message constant} |
 
-[Source: {Service}/{Layer}/{File}.cs:{line_range}]
+[Source: rule/{service}/{RuleName}]
 ```
 
 ---
@@ -707,7 +721,7 @@ No `.ai.md` companion files. Single `README.{Feature}.md` only output. Template:
 ### Key Principles (v4.0)
 
 - **No code details** in sections 1-14, 16 — no file paths, no C# types, no API shapes
-- **Evidence only in Section 15** — `file:line` references
+- **Evidence only in Section 15** — `[Source: namespace/service/id]` abstract-anchor references
 - **Commands MUST cross-reference BR-XXX** — each command lists business rules validated
 - **Max 1500 lines** per doc (target 500-800). When approaching limit, split into sub-features:
     1. Create `README.{FeatureName}-Part1.md` and `README.{FeatureName}-Part2.md`
@@ -793,7 +807,7 @@ Before writing documentation, verify:
 - 17 sections present in correct order
 - Test Summary counts match actual TC count in Section 15
 - All internal links work
-- No template placeholders remain (`{FilePath}`, `{LineRange}`)
+- No template placeholders remain (`{namespace}`, `{service}`, `{id}`)
 - ErrorMessage constants match edge case messages
 - YAML frontmatter present and complete
 
@@ -804,7 +818,7 @@ Before writing documentation, verify:
 Flag items requiring implementation assumptions:
 
 - **S4 (Functional Requirements):** Every FR-XX needs explicit success AND failure outcome. Vague FR → INCOMPLETE.
-- **S6 (Business Rules):** Every BR-XX needs: trigger condition, rule content, error message, `[Source: file:line]`. Missing field → flag.
+- **S6 (Business Rules):** Every BR-XX needs: trigger condition, rule content, error message, `[Source: rule/{service}/{RuleName}]`. Missing field → flag.
 - **S8 (Commands/Operations):** Every command references ≥1 BR-XX validated. Commands with no BR reference → flag.
 - **S13 (Authorization):** Permission matrix with explicit role × action × condition cells. Blank cells → flag.
 - **Concrete examples:** ≥1 example (input + expected output) per core operation. Abstract-only → LOW.
@@ -813,9 +827,26 @@ If >3 INCOMPLETE items → HALT, present gap list via AskUserQuestion before com
 
 _Reference: `docs/project-reference/spec-principles.md` Section 4 (AI-Implementability Checklist)._
 
+### M5 — Rebuild-From-Scratch Test
+
+See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6)" for BLOCKING criteria. Before completing, answer this for the whole doc:
+
+> **Could a team with zero knowledge of this codebase re-implement the identical business behavior on ANY stack — using §1-14 prose alone, with `[Source:]` evidence stripped out?**
+
+If the answer is NO because the prose depends on framework/product/language wording, class or file references, or a single hidden interpretation → the doc FAILS M5 (and likely M1/M2/M4). Rework the offending sections into tech-agnostic, single-interpretation business behavior before marking complete.
+
 ---
 
 ## Quality Checklist
+
+### Mandate Compliance (M1-M6)
+
+See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6)" for BLOCKING criteria.
+
+- [ ] **Mandate Quality Check:** §1-14 prose contains ZERO banned tech terms (`spec-principles.md` §3.2) and NO code identifiers (class/method names, file paths, namespaces) outside evidence carriers (M1/M2)
+- [ ] Every FR / BR / operation carries a logical ID (FR-/BR-/OP-/TC-) AND a separate `[Source: namespace/service/id]` abstract-anchor evidence carrier (never physical `file:line`/`src/`) — `[Source:]` retained, not folded into prose (M3)
+- [ ] Every requirement is testable with one interpretation and named success/failure outcomes (M4)
+- [ ] Rebuild-From-Scratch Test answered YES — doc is re-implementable on any stack from §1-14 prose alone (M5)
 
 ### Structure
 
@@ -832,8 +863,8 @@ _Reference: `docs/project-reference/spec-principles.md` Section 4 (AI-Implementa
 
 ### Test Case Evidence (MANDATORY)
 
-- [ ] **EVERY test case has Evidence field** with `file:line` format
-- [ ] **No template placeholders** remain (`{FilePath}`, `{LineRange}`)
+- [ ] **EVERY test case has Evidence field** with `[Source: namespace/service/id]` abstract-anchor format (never `file:line`)
+- [ ] **No template placeholders** remain (`{namespace}`, `{service}`, `{id}`)
 - [ ] **Line numbers verified** by reading actual source files
 - [ ] **Edge case errors match** constants from `ErrorMessage.cs`
 - [ ] **Test Summary counts match** actual number of test cases in Section 15
@@ -849,12 +880,12 @@ _Reference: `docs/project-reference/spec-principles.md` Section 4 (AI-Implementa
 
 - [ ] Mermaid `erDiagram` present with all entities
 - [ ] ERD uses only tech-agnostic types
-- [ ] `[Source: file:line]` after each entity definition and after ERD block
+- [ ] `[Source: component/{service}/{Entity}]` abstract anchor after each entity definition and after ERD block
 - [ ] Aggregate roots marked with `%% [AGGREGATE: ...]`
 
 ### Section 6 (Business Rules)
 
-- [ ] `[Source: file:line]` present after each rule group table
+- [ ] `[Source: rule/{service}/{RuleName}]` abstract anchor present after each rule group table
 - [ ] Error messages verified against `ErrorMessage.cs` or equivalent constants file
 
 ### Init Mode Checklist
@@ -872,7 +903,7 @@ _Reference: `docs/project-reference/spec-principles.md` Section 4 (AI-Implementa
 - [ ] [E-gate] Phase E journey count ≥ Phase C entry count
 - [ ] [Actor-gate] Every actor in actor catalog appears in ≥1 Phase E journey
 - [ ] [TC-gate] Section 15 TC count ≥ Grand Total from Use Case Inventory
-- [ ] [Source-gate] Every Phase C entry and every Phase E journey has `[Source: file:line]`
+- [ ] [Source-gate] Every Phase C entry and every Phase E journey has `[Source: namespace/service/id]` abstract anchor
 
 ## Related
 

@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const execFileAsync = promisify(execFile);
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
@@ -17,6 +17,7 @@ const verifyScript = path.join(
   "codex",
   "verify-workflow-cycle-compliance.mjs"
 );
+const { checkWorkflowDebuggerTracePolicy } = await import(pathToFileURL(verifyScript).href);
 
 const workflowIds = [
   "batch-operation",
@@ -165,6 +166,24 @@ function makeWorkflowJson() {
     };
   }
 
+  workflows.bugfix.description =
+    "Bugfix workflow with end-to-start debugger trace from observed final output to owning fix layer";
+  workflows.bugfix.whenToUse =
+    "Use for bug reports with observed final output, all feeder paths, hypothesis matrix, owning fix layer, and forward convergence proof";
+  workflows.bugfix.preActions = {
+    injectContext:
+      "END-TO-START TRACE: observed final state, feeder paths, hypothesis matrix, owning fix layer, forward convergence proof",
+  };
+
+  workflows.verification.description =
+    "Verification workflow with end-to-start trace before FAIL-to-fix";
+  workflows.verification.whenToUse =
+    "Use verification FAIL-to-fix with observed final output, all feeder paths, hypothesis matrix, owning fix layer, and forward convergence proof";
+  workflows.verification.preActions = {
+    injectContext:
+      "END-TO-START TRACE: observed final state, feeder paths, hypothesis matrix, owning fix layer, forward convergence proof",
+  };
+
   return {
     commandMapping: {
       investigate: { claude: "/feature-investigation" },
@@ -176,6 +195,28 @@ function makeWorkflowJson() {
     workflows,
   };
 }
+
+test("verify-workflow-cycle-compliance debugger trace metadata policy", () => {
+  assert.equal(
+    checkWorkflowDebuggerTracePolicy("bugfix", {
+      description: "Bugfix with end-to-start debugger trace",
+      whenToUse: "Observed final output and all feeder paths",
+      preActions: {
+        injectContext:
+          "Use hypothesis matrix, owning fix layer, and forward convergence proof before fixing.",
+      },
+    }),
+    null
+  );
+
+  assert.match(
+    checkWorkflowDebuggerTracePolicy("bugfix", {
+      description: "Bugfix with normal investigation",
+      preActions: { injectContext: "Find root cause and fix." },
+    }),
+    /missing end-to-start debugger trace metadata/
+  );
+});
 
 function toSkillStepToken(step) {
   if (step === "investigate") return "feature-investigation";

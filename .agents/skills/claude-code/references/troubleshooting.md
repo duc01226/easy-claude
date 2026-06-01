@@ -7,7 +7,6 @@ Common issues, debugging, and solutions for Claude Code.
 ### API Key Not Recognized
 
 **Symptoms:**
-
 - "Invalid API key" errors
 - Authentication failures
 - 401 Unauthorized responses
@@ -162,14 +161,14 @@ npx @modelcontextprotocol/inspector
 
 ```json
 {
-    "mcpServers": {
-        "my-server": {
-            "command": "npx",
-            "args": ["-y", "@modelcontextprotocol/server-example"],
-            "timeout": 30000,
-            "retries": 3
-        }
+  "mcpServers": {
+    "my-server": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-example"],
+      "timeout": 30000,
+      "retries": 3
     }
+  }
 }
 ```
 
@@ -191,35 +190,31 @@ ls -ld /path/to/allowed/directory
 ### Slow Responses
 
 **Check network latency:**
-
 ```bash
 ping api.anthropic.com
 ```
 
 **Use default model:**
-
 ```bash
 claude --model sonnet "simple task"
 ```
 
 **Reduce context:**
-
 ```json
 {
-    "maxTokens": 4096,
-    "context": {
-        "autoTruncate": true
-    }
+  "maxTokens": 4096,
+  "context": {
+    "autoTruncate": true
+  }
 }
 ```
 
 **Enable caching:**
-
 ```json
 {
-    "caching": {
-        "enabled": true
-    }
+  "caching": {
+    "enabled": true
+  }
 }
 ```
 
@@ -258,18 +253,16 @@ claude "retry task"
 ### Bash Command Failures
 
 **Check sandboxing settings:**
-
 ```json
 {
-    "sandboxing": {
-        "enabled": true,
-        "allowedPaths": ["/workspace", "/tmp"]
-    }
+  "sandboxing": {
+    "enabled": true,
+    "allowedPaths": ["/workspace", "/tmp"]
+  }
 }
 ```
 
 **Verify command permissions:**
-
 ```bash
 # Make script executable
 chmod +x script.sh
@@ -443,10 +436,10 @@ env | grep ANTHROPIC
 2. **Gather diagnostic info**
 3. **Create minimal reproduction**
 4. **Submit issue** with:
-    - Claude Code version
-    - Operating system
-    - Error messages
-    - Steps to reproduce
+   - Claude Code version
+   - Operating system
+   - Error messages
+   - Steps to reproduce
 
 ### Support Channels
 
