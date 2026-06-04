@@ -5,6 +5,8 @@
 **Audience:** AI engineers, tech leads, and teams wanting to build reliable AI-assisted development systems.
 **Scope:** What each layer does, why it exists, how the pieces compose, the design principles behind every decision, and which AI agent best practices each addresses.
 
+> **Document Sync Status** — Current local verification (2026-06-05): **65 hook files · 258 skills · 37 workflows · 28 agents** using the ADR-0002 filesystem metrics. Codex mirrors are committed under `.agents/`, `.codex/`, and `AGENTS.md`; Copilot instructions are generated on demand by the Copilot sync skills/scripts. Notable mechanisms documented here include multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential-thinking.
+
 ---
 
 ## Table of Contents
@@ -29,18 +31,23 @@
     - 8.17 [Code Review Graph — Structural Intelligence](#817-code-graph--structural-intelligence)
     - 8.18 [Surface-Aware Code Review — Phase 0.7 Detection](#818-surface-aware-code-review--phase-07-detection)
     - 8.19 [Spec-Driven Development Loop — Closed Feedback Chain](#819-spec-driven-development-loop--closed-feedback-chain)
+    - 8.20 [Self-Validating Review — Findings Validation Gate](#820-self-validating-review--findings-validation-gate)
+    - 8.21 [Behavioral Principle Injection — The Mindset Layer](#821-behavioral-principle-injection--the-mindset-layer)
 9. [State Management & Recovery](#9-state-management--recovery)
 10. [Testing Infrastructure](#10-testing-infrastructure)
 11. [Quick Reference](#11-quick-reference)
 12. [The Agent System](#12-the-agent-system--specialized-subagents)
     - 12.3 [Agent Behavioral Rules](#123-agent-behavioral-rules-new)
-13. [Summary — Philosophy & Principles](#summary--philosophy--principles)
+13. [Multi-AI-Tool Portability — One Source, Every Harness](#13-multi-ai-tool-portability--one-source-every-harness)
+14. [Summary — Philosophy & Principles](#summary--philosophy--principles)
 
 ---
 
 ## 1. Executive Summary
 
-This framework wraps Claude Code in a **3-layer framework** — **64 top-level hook files**, **256 skills**, **37 registered workflows**, and **28 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
+This framework wraps Claude Code in a three-pillar execution framework — **65 top-level hook files**, **258 skills**, **37 registered workflows**, and **28 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
+
+It is also **harness- and project-agnostic**: the `.claude/` source compiles to verified OpenAI Codex mirrors (`AGENTS.md`, `.agents/`, `.codex/`) and can generate GitHub Copilot instruction files on demand, while all project-specific knowledge is factored into `project-config.json` + reference docs — so the same behavior runs on any supported AI tool and ports to any codebase (Section 13).
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -66,6 +73,9 @@ This framework wraps Claude Code in a **3-layer framework** — **64 top-level h
 │  AI writes stale docs  │  DOC SYNC DEFERRAL  │  Review=read-only  │
 │  Docs phases skipped   │  docs-update BLOCK  │  8-task audit trail│
 │  Spec bundle stale     │  spec-discovery upd │  Incremental diffs │
+│  AI trusts own review  │  Findings-val gate  │  Self re-review    │
+│  AI tool lock-in       │  Mirror sync        │  Codex+Copilot     │
+│  Project lock-in       │  Residue verifier   │  Build-gate fail   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -86,7 +96,7 @@ graph TB
         AUQ[AskUserQuestion<br/>Confirm Workflow]
     end
 
-    subgraph "Enforcement Layer — 64 Top-Level Hook Files"
+    subgraph "Enforcement Layer — 65 Top-Level Hook Files"
         subgraph "Safety Hooks"
             PB[Path Boundary Block]
             PR[Privacy Block]
@@ -107,8 +117,8 @@ graph TB
         end
     end
 
-    subgraph "Intelligence Layer — 202 Skills"
-        SP[Shared Protocols<br/>25 modules]
+    subgraph "Intelligence Layer — 258 Skills"
+        SP[Shared Protocols<br/>5 files]
         IS[Implementation Skills<br/>cook, fix, refactor]
         QS[Quality Skills<br/>code-review, prove-fix]
         PS[Planning Skills<br/>plan, investigate, scout]
@@ -272,7 +282,7 @@ graph LR
 ### 4.3 Hook Files — Organized by Purpose
 
 ```
-HOOK SYSTEM (64 top-level hook files)
+HOOK SYSTEM (65 top-level hook files)
 │
 ├── SESSION LIFECYCLE (7 hooks)
 │   ├── session-init.cjs ─────────── Load config, set 25 env vars
@@ -281,7 +291,7 @@ HOOK SYSTEM (64 top-level hook files)
 │   ├── session-resume.cjs ────────── Restore todos from checkpoints
 │   ├── npm-auto-install.cjs ──────── Install missing npm packages
 │   ├── session-end.cjs ──────────── Cleanup swap files, save state
-│   └── subagent-init-*.cjs ──────── Inject context into subagents (18+ part-hooks)
+│   └── subagent-init-*.cjs ──────── Inject context into subagents (8 hooks)
 │
 ├── PROMPT PROCESSING (3 hooks)
 │   ├── init-prompt-gate.cjs ──────── Block until project-config exists
@@ -459,11 +469,11 @@ allowed-tools: Read, Grep, Glob, Bash, Write, TaskCreate
 2. Declare confidence level...
 ```
 
-### 5.2 Skill Categories (256 skills)
+### 5.2 Skill Categories (258 skills)
 
 ```mermaid
 mindmap
-  root((256 Skills))
+  root((258 Skills))
     Quality & Verification
       code-review
       prove-fix
@@ -568,7 +578,7 @@ mindmap
 └── sync-inline-versions.md             ← CANONICAL source for all SYNC blocks
 ```
 
-> **Note:** Standalone protocol files have been deleted. All protocol content is inlined into consuming skills via `<!-- SYNC:tag -->` blocks. Only `sync-inline-versions.md` remains as the canonical source.
+> **Note:** Protocol content is inlined into consuming skills via `<!-- SYNC:tag -->` blocks. `sync-inline-versions.md` is the canonical source for shared inline protocol text; adjacent shared files hold related reusable contracts and reference guidance.
 
 **Why inline instead of file-read?** AI compliance drops significantly when protocols are behind `MUST ATTENTION READ file.md` indirection. AI agents skip the file-read step ~40% of the time. Inline SYNC blocks are always present in the skill's context window.
 
@@ -790,66 +800,54 @@ Workflows are **JSON-defined sequences of skills** stored in `.claude/workflows.
 ```
 WORKFLOW CATALOG
 │
-├── DEVELOPMENT (16) ★ includes TDD, E2E, and big-feature workflows
-│   ├── feature ─────────── scout→investigate→plan→tdd-spec→plan→cook→tdd-spec→tdd-spec [direction=sync]→test→docs
-│   ├── feature-with-integration-test ── feature + tdd-spec→plan→integration-test→test ★
-│   ├── big-feature ─────── idea→research→domain→techstack→plan→refine→story→plan2→scaffold→cook→test ★
-│   ├── tdd-feature ─────── scout→investigate→tdd-spec→plan→cook→integration-test→test→docs ★ TDD
-│   ├── bugfix ──────────── scout→investigate→debug→plan→fix→prove-fix→tdd-spec→tdd-spec [direction=sync]→test
-│   ├── hotfix ──────────── scout→plan→fix→prove-fix→tdd-spec→tdd-spec [direction=sync]→test (fast path)
-│   ├── refactor ────────── scout→investigate→plan→code→tdd-spec→tdd-spec [direction=sync]→test→docs
-│   ├── batch-operation ─── plan→code→tdd-spec→tdd-spec [direction=sync]→review→test
-│   ├── migration ───────── scout→investigate→plan→code→test→docs
-│   ├── package-upgrade ─── scout→investigate→plan→code→test
-│   ├── idea-to-pbi ─────── idea→refine→story→tdd-spec→DoR ★ PBI + TDD pipeline
-│   ├── test-spec-update ── review-changes→tdd-spec→tdd-spec [direction=sync]→integration-test→test
-│   ├── test-to-integration scout→integration-test→test→watzup
-│   ├── e2e-from-recording ─ scout→e2e-test→test→watzup ★ E2E from Chrome recording
-│   ├── e2e-update-ui ────── scout→e2e-test→test→watzup ★ Update screenshot baselines
-│   └── e2e-from-changes ─── scout→e2e-test→test→watzup ★ Sync E2E with code changes
+├── DEVELOPMENT (9)
+│   ├── batch-operation
+│   ├── big-feature
+│   ├── bugfix
+│   ├── deployment
+│   ├── feature
+│   ├── migration
+│   ├── package-upgrade
+│   ├── performance
+│   └── refactor
 │
-├── QUALITY & TESTING (8)
-│   ├── quality-audit ───── code-review→plan→code→tdd-spec→review→test
-│   ├── security-audit ──── scout→security→watzup (read-only)
-│   ├── performance ─────── scout→investigate→plan→code→tdd-spec→tdd-spec [direction=sync]→test→sre-review
-│   ├── review-changes ──── review-changes→[arch+domain+perf+int-test+security]→simplifier→code-review→plan→cook→docs-update→watzup (17 steps)
-│   ├── review ────────────── code-review→watzup
-│   ├── testing ───────────── test→workflow-end
-│   ├── test-verify ─────── scout→integration-test→test→integration-test→watzup
-│   └── verification ────── scout→investigate→test→fix→prove-fix→tdd-spec→tdd-spec [direction=sync]→test
+├── TESTING (9)
+│   ├── e2e-from-changes
+│   ├── e2e-from-recording
+│   ├── e2e-update-ui
+│   ├── tdd-feature
+│   ├── test-spec-update
+│   ├── test-to-integration
+│   ├── test-verify
+│   ├── workflow-seed-test-data
+│   └── write-integration-test
 │
-├── PLANNING & INCEPTION (5)
-│   ├── greenfield-init ─── idea→research→domain→techstack→plan→scaffold→cook→integration-test→review (40 steps)
-│   ├── pre-development ─── quality-gate→plan→plan-review→plan-validate
-│   ├── investigation ───── scout→investigate (read-only)
-│   ├── design-workflow ─── design-spec→interface-design|frontend-design→code-review
-│   └── release-prep ────── sre-review→quality-gate→status
+├── DISCOVERY & PLANNING (7)
+│   ├── full-feature-lifecycle
+│   ├── greenfield-init
+│   ├── idea-to-pbi
+│   ├── investigation
+│   ├── pbi-to-tests
+│   ├── product-discovery
+│   └── spec-to-pbi
 │
-├── RESEARCH & CONTENT (4)
-│   ├── research ──────────── web-research→deep-research→synthesis→review
-│   ├── business-evaluation ── web-research→deep-research→market→evaluate→review
-│   ├── marketing-strategy ── web-research→deep-research→market→strategy→review
-│   └── course-building ───── web-research→deep-research→course→review
+├── DOCUMENTATION & SPEC (4)
+│   ├── documentation
+│   ├── feature-docs
+│   ├── spec-discovery
+│   └── spec-driven-dev
 │
-├── DOCUMENTATION (3)
-│   ├── documentation ───── scout→investigate→plan→docs-update→review
-│   ├── feature-docs ────── scout→investigate→plan→docs-update→review
-│   └── visualize ─────────── scout→investigate→excalidraw-diagram
+├── REVIEW, SECURITY & RELEASE (6)
+│   ├── quality-audit
+│   ├── release-prep
+│   ├── review
+│   ├── review-changes
+│   ├── security-audit
+│   └── verification
 │
-├── REQUIREMENTS & PM (5)
-│   ├── idea-to-pbi ─────── idea→refine→story→prioritize
-│   ├── pbi-to-tests ────── tdd-spec→tdd-spec-review→quality-gate
-│   ├── sprint-planning ─── prioritize→dependency→team-sync
-│   ├── sprint-retro ────── status→retro
-│   └── pm-reporting ────── status→dependency
-│
-├── PROCESS & HANDOFFS (6)
-│   ├── full-feature-lifecycle ── idea→refine→design→plan→cook→test→accept (21 steps)
-│   ├── ba-dev-handoff ── review→quality-gate→handoff→plan
-│   ├── design-dev-handoff ── design→review→handoff→plan
-│   ├── dev-qa-handoff \u2500\u2500 handoff\u2192tdd-spec
-│   ├── qa-po-acceptance ── quality-gate→handoff→acceptance
-│   └── deployment ──────── scout→investigate→plan→code→review→test
+└── DESIGN & VISUALIZATION (2)
+    ├── design-workflow
+    └── visualize
 │
 ```
 
@@ -919,8 +917,8 @@ The hook and skill system is **project-agnostic**. All project-specific knowledg
 ```mermaid
 graph LR
     subgraph "Generic Framework (reusable)"
-        H[64 Hook Files]
-        S[256 Skills]
+        H[65 Hook Files]
+        S[258 Skills]
         W[37 Workflows]
     end
 
@@ -1391,13 +1389,13 @@ flowchart LR
 
 #### TDD Workflows
 
-Dedicated workflows support test-driven development:
+Dedicated registered workflows and workflow trigger skills support test-driven development:
 
 | Workflow                          | Sequence                                                                                                    | Use Case                                                                                                  |
 | --------------------------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | **idea-to-pbi**                   | `/idea` → `/refine` → `/story` → `/tdd-spec` → `/dor-gate`                                                  | Go from raw idea to grooming-ready PBI, stories, and reviewed test specifications                         |
 | **tdd-feature**                   | `/scout` → `/investigate` → `/tdd-spec` → `/plan` → `/cook` → `/integration-test` → `/test` → ...           | Full TDD cycle: write test specs FIRST, then implement, then generate tests and verify                    |
-| **feature-with-integration-test** | `/scout` → `/investigate` → `/plan` → `/tdd-spec` → `/plan` → `/cook` → `/integration-test` → `/test` → ... | Feature workflow with spec-first integration testing: write specs, refine plan, then implement and verify |
+| **workflow-feature-with-integration-test** | `/scout` → `/investigate` → `/plan` → `/tdd-spec` → `/plan` → `/cook` → `/integration-test` → `/test` → ... | Workflow trigger skill for spec-first integration testing; not a registered `workflows.json` ID |
 | **pbi-to-tests**                  | `/tdd-spec` → `/quality-gate`                                                                               | Quick path from existing PBI to test specifications using unified TC format                               |
 | **e2e-from-recording**            | `/scout` → `/e2e-test` → `/test` → `/watzup`                                                                | Generate Playwright E2E tests from Chrome DevTools recordings                                             |
 | **e2e-update-ui**                 | `/scout` → `/e2e-test` → `/test` → `/watzup`                                                                | Update E2E screenshot baselines after UI changes                                                          |
@@ -1491,7 +1489,7 @@ The framework supports AI-assisted development across **every phase** of the sof
 
 #### Integration Testing — 3-Step Sequence
 
-Testing is not a single step. The framework breaks it into three discrete skills enforced across all major development workflows (feature, bugfix, refactor, hotfix, big-feature, tdd-feature, and 14 others):
+Testing is not a single step. The framework breaks it into discrete skills enforced across major development workflows such as `feature`, `bugfix`, `refactor`, `big-feature`, `tdd-feature`, and `write-integration-test`:
 
 | Step         | Skill                      | Purpose                                                                              |
 | ------------ | -------------------------- | ------------------------------------------------------------------------------------ |
@@ -1608,11 +1606,11 @@ tdd-feature: scout → investigate → tdd-spec → plan → plan-review →
 **Key difference from tdd-feature:** Both write specs before implementation. This workflow includes a dedicated re-planning step after specs to refine the implementation plan with test infrastructure needs.
 
 ```bash
-/workflow-start feature-with-integration-test
+/workflow-feature-with-integration-test
 ```
 
 ```
-feature-with-integration-test:
+workflow-feature-with-integration-test:
   scout → investigate → plan → plan-review → plan-validate → why-review →
   tdd-spec → tdd-spec-review → plan → plan-review →
   cook → integration-test → test → code-simplifier → review-changes →
@@ -3233,6 +3231,114 @@ Both directions are queryable without reading source code, making the spec-drive
 
 ---
 
+### 8.20 Self-Validating Review — Findings Validation Gate
+
+The hardest hallucination to catch is the one inside the review itself. A review agent that fabricates a finding — wrong `file:line`, inflated severity, a "bug" that re-traces as correct — poisons everything downstream: the fix targets nothing, the human burns trust, the audit trail records noise. Evidence gates (Section 8.6) protect the _implementation_; this gate protects the _review_.
+
+The mechanism is a **recursion-guarded self-review loop**: after any review produces findings, the reviewer re-reviews its own output once more in a terminal mode, and a bounded re-do loop reconciles until the findings are clean. It ships in `/why-review` and is wired as the mandatory closing gate of `/review-changes` (Phase 6).
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  FINDINGS VALIDATION GATE — the reviewer reviews itself          │
+│                                                                   │
+│  full mode (review)                                               │
+│    ├─ produce findings → write report                             │
+│    └─ CLOSING TASK: invoke /why-review --validate-findings ──┐    │
+│                                                              │    │
+│  validate-findings mode (TERMINAL)  ◄────────────────────────┘    │
+│    For EACH finding verify all four:                              │
+│      (a) file:line proof exists & re-traces to real code          │
+│      (b) the finding is correct (re-trace the cited code)         │
+│      (c) severity is reasonable, not inflated                     │
+│      (d) it reflects project conventions / best practice          │
+│    + sweep for finding issues or enhancements the review MISSED    │
+│    → emit CLEAN | HAS-ISSUES verdict, return to caller             │
+│    NEVER calls /why-review · NEVER spawns a sub-agent             │
+│    NEVER runs the gate  ── this is what stops infinite recursion  │
+│                                                                   │
+│  caller-owned re-do loop (bounded):                               │
+│    CLEAN     → append "## Findings Validation" line, gate PASSES   │
+│    HAS ISSUES→ reconcile (drop unproven, fix proof, add missed),  │
+│               re-derive verdict, re-validate the UPDATED report    │
+│    repeat → max 2 re-dos (3 validate passes total)                │
+│    still not clean → escalate via AskUserQuestion (no silent loop) │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### Why the recursion guard is the whole design
+
+A naive "review your review" instruction recurses forever — the validation pass is itself a review, which triggers another validation, and so on. Three rules make it terminate deterministically:
+
+| Rule                                                                                                              | What it prevents                                                               |
+| ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `validate-findings` is **terminal** — never calls `/why-review`, never re-runs the gate, never spawns a sub-agent | Infinite self-recursion                                                        |
+| The re-do loop lives in the **caller** (full mode / `/review-changes` Phase 6), not in validate mode              | Diffuse, unbounded looping across agents                                       |
+| **Bounded at max 2 re-dos**, then `AskUserQuestion` escalation                                                    | A finding the AI can neither prove nor drop silently looping forever           |
+| All passes run in the **same main-agent session** (never a spawned sub-agent)                                     | Context loss between validation rounds; the validator sees the real cited code |
+
+#### Why this matters operationally
+
+- **Self-correction without a second human** — the reviewer demotes its own unprovable findings before they reach the report, so humans review a pre-filtered, proof-backed list instead of triaging noise.
+- **Bounded cost** — at most 3 validation passes per review, then it escalates rather than burning tokens. The cap is the budget guarantee.
+- **Auditable** — every outcome writes a record: `## Findings Validation` (clean), `## Findings Validation Notes` (what changed and why), or `## Findings Validation — Unresolved` (escalated). The reconciliation is never invisible.
+- **Symmetric with the rest of the framework** — it is the Section 8.6 evidence discipline turned back on the review layer: every finding must be correct, proof-backed, reasonable, and best-practice, or it gets dropped or escalated.
+
+This closes the last open loop in the quality chain: implementation is evidence-gated, the review is evidence-gated, and now the review's _own findings_ are evidence-gated — by the same standard, with a hard recursion stop and a bounded escape hatch.
+
+---
+
+### 8.21 Behavioral Principle Injection — The Mindset Layer
+
+Sections 8.1–8.2 cover injecting _project knowledge_ (patterns, reference docs). This section covers injecting _reasoning discipline_ — the small set of universal behavioral principles that must be in front of the model at every decision point regardless of project. These are the framework's encoding of AI-harness best practices, and they are delivered by their own dedicated injection path so they survive long context and compaction.
+
+#### The canonical principles
+
+| Principle                          | One-line rule                                                                                                                                    | Best-practice it encodes          |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------- |
+| **Anti-hallucination**             | Never present a guess as fact — cite sources, admit uncertainty, self-check, cross-reference, stay skeptical of own confidence                   | Grounding / calibrated confidence |
+| **AI Attention (Primacy-Recency)** | Put the 3 most critical rules at BOTH top and bottom of long prompts so adherence survives long context                                          | Attention engineering             |
+| **Goal-driven execution**          | Define success criteria first, loop until verified, stop only when observable checks pass; each task step carries `→ verify: [observable check]` | Closed-loop agency                |
+| **Tests verify intent**            | Tests must protect a business rule/invariant and fail when that intent breaks — not merely mirror current behavior                               | Specification-as-test             |
+| **Critical / sequential thinking** | Every claim needs traced proof, confidence >80% to act; complex problems use explicit thought markers, revisions, and stop conditions            | Structured reasoning              |
+| **Surgical changes**               | Diff test — every changed line must trace to the request; bug-fix mode adds no restyling; enhancements are announced, never silent scope-creep   | Minimal-diff discipline           |
+| **Surface ambiguity**              | Multiple valid interpretations → present each with an effort estimate and ask; never silently pick the broad/complex path                        | Clarify-before-assume             |
+| **Output quality**                 | Token efficiency without quality loss — no inventories/dir-trees/redundant examples; lead with the answer; unresolved questions at the end       | Signal density                    |
+
+The short principles are authored once as hardcoded strings in `.claude/hooks/lib/prompt-injections.cjs` (the 5-line `injectCriticalContext` block + the 26-bullet AI-mistake-prevention block); their long-form canon lives in `.claude/docs/development-rules.md` and `.claude/docs/anti-hallucination-patterns.md`; and the reusable ones are also SYNC-tagged in `sync-inline-versions.md` so they propagate into skill bodies and the cross-tool mirrors (Section 13.5).
+
+#### Three injection timings — principle stays in the attention window
+
+The mindset layer fires at three distinct moments, each tuned for cost:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  UserPromptSubmit  →  prompt-context-assembler.cjs (TOP bookend)     │
+│     full 5-principle block + AI-mistake block, every prompt         │
+│  UserPromptSubmit  →  prompt-context-assembler-closers.cjs (BOTTOM)  │
+│     graph/workflow/lesson closing gates — the recency bookend       │
+│                                                                     │
+│  PreToolUse: Edit|Write|Skill|Agent|Task → mindset-injector.cjs     │
+│     re-injects principles + Golden Rules before any consequential   │
+│     action (coding/planning/review skills, sub-agent spawn)         │
+│                                                                     │
+│  PreToolUse: Read|Grep|Glob|Bash → mindset-compact-injector.cjs     │
+│     re-anchors ONLY the 1-line critical-thinking marker (cheap)     │
+│     so it can't scroll out during long read sessions                │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+The top/bottom split is the **mechanical implementation of the Primacy-Recency principle**: the assembler places critical rules at the start of injected context, the closers hook places gates at the end — the model sees them at both bookends of every turn. (The split also keeps each hook under the harness's 10,000-char per-hook limit.) Injection is deliberately skipped at `SessionStart` (the harness truncates it to ~2KB) and delivered on the first real prompt instead.
+
+#### Dual-window dedup — anchoring without bloat
+
+Re-injecting on every prompt would flood the context. `wasMarkerRecentlyInjected` (in `prompt-injections.cjs`) does a **dual primacy + recency check**: it suppresses a re-injection if the marker already appears in either the last N lines (recency window) _or_ the first ~50 lines (primacy window). Window sizes are computed from actual content size in `dedup-constants.cjs`. The effect: a principle stays present at the boundaries of the conversation but is never duplicated mid-stream — and after compaction (which clears both windows) it correctly re-injects. This is the same dedup discipline as Section 4.5, applied specifically to keep the mindset layer cheap.
+
+#### Embedded over external — the sequential-thinking migration
+
+A concrete portability/reliability win: sequential-thinking was originally a **runtime MCP server**. It was removed from `.mcp.json` and replaced with an embedded `SYNC:sequential-thinking-protocol` markdown block inlined into 28 planning/review/debug skill files (27 `SKILL.md` + the lowercase-named `why-review/skill.md`; introduced in commit `5f01f44f34e`). The rationale generalizes the framework's stance: a methodology that can be expressed as a protocol should not depend on an external server that might be unavailable — and inlining means **sub-agents and hookless tools inherit it automatically** rather than needing the MCP connection. The protocol defines explicit thought markers (`Thought N/M`, `[REVISION]`, `[HYPOTHESIS]`/`[VERIFICATION]`), mandatory closers (confidence %, assumptions, open questions), and stop conditions (confidence <80% → escalate; ≥3 revisions → re-frame). Fewer runtime dependencies, more portability — the same principle that drives the whole mirror architecture.
+
+---
+
 ## 9. State Management & Recovery
 
 ### 9.1 The Compaction Problem
@@ -3406,14 +3512,14 @@ flowchart TB
 | **Context injection at decision points**       | 10 context injector hooks, auto-triggered by file path        | Hooks     |
 | **Reminder rules prevent forgetting**          | 3 UserPromptSubmit hooks re-inject on every prompt            | Hooks     |
 | **Generic & configurable via config**          | project-config.json drives all context injection              | Config    |
-| **Prompt engineering quality**                 | 256 skills with YAML frontmatter + behavior protocols         | Skills    |
+| **Prompt engineering quality**                 | 258 skills with YAML frontmatter + behavior protocols         | Skills    |
 | **Confirm workflow before acting**             | workflow-router.cjs → AskUserQuestion → confirm               | Workflows |
 | **Confirm plan with questions**                | /plan-validate asks 3-8 questions before implementation       | Skills    |
 | **Sequential thinking for complex problems**   | /sequential-thinking skill + /debug-investigate skill         | Skills    |
 | **Code proof tracing prevents hallucination**  | evidence-based-reasoning-protocol + /prove-fix                | Skills    |
 | **State survives context compaction**          | Swap engine + todo-tracker + compact-recovery                 | State     |
 | **Lessons persist across sessions**            | docs/project-reference/lessons.md + lessons-injector.cjs      | Hooks     |
-| **Subagents inherit project context**          | 18 subagent-init-\*.cjs part-hooks inject CLAUDE.md + lessons | Hooks     |
+| **Subagents inherit project context**          | 8 subagent-init-\*.cjs hooks inject CLAUDE.md + lessons       | Hooks     |
 | **Safety boundaries**                          | path-boundary, privacy, scout blocks (exit code 2)            | Hooks     |
 | **Task-gated edits**                           | edit-enforcement.cjs requires TaskCreate before edits         | Hooks     |
 | **Auto-formatting**                            | post-edit-prettier.cjs runs formatter after every edit        | Hooks     |
@@ -3430,7 +3536,7 @@ flowchart TB
 | **DDD domain modeling**                        | /domain-analysis skill: bounded contexts, ERD, aggregates     | Skills    |
 | **Tech stack comparison with evidence**        | /tech-stack-research: top 3 per layer, confidence %           | Skills    |
 | **Step-selection gate for long workflows**     | big-feature + greenfield preActions let user deselect         | Workflows |
-| **Workflow trigger shortcuts**                 | 19 workflow-\* skills for instant activation via /command     | Skills    |
+| **Workflow trigger shortcuts**                 | 53 workflow-\* skills for workflow activation and lifecycle control | Skills    |
 | **Prompt engineering (role + CoT + evidence)** | Skills use role prompting, chain-of-thought, few-shot         | Skills    |
 | **Context engineering (JIT + dedup + budget)** | Hooks manage context window with precision injection          | Hooks     |
 | **Skill chain navigation (Next Steps)**        | AskUserQuestion recommends logical next skill per step        | Skills    |
@@ -3444,13 +3550,13 @@ flowchart TB
 
 ```
 .claude/
-├── settings.json ──────── Hook registration (9 events, ~47 hooks)
+├── settings.json ──────── Hook registration (9 events, 71 registrations)
 ├── ccstatusline.json ──── Status line display config (model, context, tokens, tok/s estimator)
 ├── .ck.json ──────────── Hook-specific config
 ├── .ckignore ─────────── Scout block patterns
 ├── workflows.json ─────── 37 workflow definitions
 ├── workflows/ ──────────── Workflow definitions (primary-workflow.md, etc.)
-├── hooks/ ─────────────── 64 top-level hook files + 29 lib modules
+├── hooks/ ─────────────── 65 top-level hook files + 29 lib modules
 │   ├── session-init.cjs
 │   ├── workflow-router.cjs
 │   ├── prompt-context-assembler.cjs
@@ -3463,7 +3569,7 @@ flowchart TB
 │   │   ├── todo-state.cjs
 │   │   └── ...
 │   └── tests/ ────────── Test suites
-├── skills/ ────────────── 257 skill directories
+├── skills/ ────────────── 258 skill definitions
 │   ├── {skill-name}/SKILL.md
 │   ├── shared/ ───────── 5 shared reference/protocol files
 │   └── _templates/ ───── Skill scaffolding
@@ -3595,6 +3701,111 @@ Each agent definition now inlines two shared protocol blocks from `sync-inline-v
 
 ---
 
+## 13. Multi-AI-Tool Portability — One Source, Every Harness
+
+Everything documented above is engineered as **Claude Code hooks, skills, and workflows** — but the harness is not the product. The product is the **behavior**: evidence gates, workflow enforcement, pattern injection, quality protocols. Claude Code is one execution engine; OpenAI Codex and GitHub Copilot are others. The framework treats the harness as a target, not a dependency — the same authored behavior **compiles** to each tool.
+
+This is the answer to two questions the rest of the guide raises: _"does this only work with Claude Code?"_ (no) and _"does this only work on this codebase?"_ (no). Both are answered by the same mechanism — a **single source of truth that generates verified mirrors** for every supported tool, with project-specific knowledge factored out into config.
+
+### 13.1 Source of Truth → Generated Mirrors
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│  SOURCE OF TRUTH  (hand-authored, the ONLY place you edit)            │
+│  .claude/skills/**/SKILL.md · .claude/agents/*.md ·                   │
+│  .claude/workflows.json · .claude/hooks/lib/prompt-injections.cjs ·   │
+│  CLAUDE.md (project instructions)                                      │
+└──────────────────────────────────────────────────────────────────────┘
+            │  npm run codex:sync   (8-stage pipeline, fail-fast)
+            ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│  GENERATED MIRRORS  (never hand-edited — sync overwrites them)        │
+│                                                                        │
+│  Codex ── .agents/skills/**/SKILL.md   1:1 sanitized skill mirror     │
+│       ├── .codex/CODEX_CONTEXT.md      prompt-protocols + workflow     │
+│       │                                 catalog + AI-SDD markers       │
+│       ├── .codex/agents/*.toml         agent mirror                    │
+│       ├── .codex/hooks.json            hookless-parity declaration     │
+│       └── AGENTS.md (root)             full CLAUDE.md mirror +         │
+│                                         managed Codex-context block    │
+│                                                                        │
+│  Optional Copilot outputs, generated on demand:                       │
+│       .github/copilot-instructions.md + .github/instructions/*.md     │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+Every generated file **self-declares** as a mirror. `AGENTS.md`: _"This block is auto-generated from `CLAUDE.md` by `npm run codex:sync:context`. Do not edit manually; update `CLAUDE.md` and re-sync."_ Copilot outputs generated by `sync-copilot-workflows.cjs` carry the same auto-generated warning. The authoring rule is absolute: **edit `.claude/` source, run sync, never touch a mirror** — because the next sync overwrites direct mirror edits.
+
+### 13.2 Why Mirrors at All? The Hookless-Parity Problem
+
+Claude Code's power in this framework comes substantially from **hooks** — they inject context, re-anchor principles, and block unsafe actions _automatically_, outside the model's control loop (Section 4). Codex and Copilot **have no hook system**. A naive port would lose every automatic injection.
+
+The mirror compensates by **baking what hooks would have injected into the static artifacts**:
+
+| Hook-delivered on Claude Code                                      | How the mirror delivers it to a hookless tool                                                                    |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| `graph-session-init` / workflow catalog auto-injected              | Catalog written into `.codex/CODEX_CONTEXT.md` and `copilot-instructions.md` as static text                      |
+| `lessons-injector` re-injects `lessons.md`                         | Replaced by an explicit `CODEX:PROJECT-REFERENCE-LOADING` gate telling Codex to open the reference docs itself   |
+| `prompt-context-assembler` injects project-config + reference docs | A loading gate instructs the tool to read `docs/project-config.json` + `docs/project-reference/**` at task start |
+| `/skill` slash invocation                                          | Rewritten to Codex's `$skill` invocation syntax; `Agent(...)` → `spawn_agent`, `subagent_type` → `agent_type`    |
+
+So the mirror is not a copy — it is a **transform** that converts hook-dependent automation into self-service instructions the hookless tool can follow. Frontmatter is sanitized (Claude-only keys like `version` stripped; `disable-model-invocation` preserved) so each tool reads only what it understands.
+
+### 13.3 The Sync Skills
+
+| Skill                        | Scope                                        | Mechanics                                                                                                                                                   |
+| ---------------------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`codex-sync`**             | Full Claude → Codex mirror                   | `npm run codex:sync` (or the skill without npm). `disable-model-invocation: true` — **user-invoked only, never auto-runs.** 8 sequential, fail-fast stages. |
+| **`ai-dev-tools-sync`**      | Broadest, **bidirectional** Claude ↔ Copilot | 4-step pipeline: Understand → Research → Compare → Sync. Source-first reconciliation, then regenerate mirrors.                                              |
+| **`sync-to-copilot`**        | Claude → Copilot knowledge/docs              | Script generates instruction files from `workflows.json` + `development-rules.md`; AI enrichment adds per-doc "Key Sections".                               |
+| **`sync-copilot-workflows`** | Narrowest — workflow catalog only            | `node sync-copilot-workflows.cjs`. Fast, no AI. Exists because Copilot has no `workflow-router` hook to auto-inject the catalog.                            |
+
+**`codex-sync`'s 8 stages** (1–3 mutate, 4–8 verify-only, any failure aborts): **migrate** (agents/skills/notifications) → **hooks** (`.codex/hooks.json`) → **context** (`CODEX_CONTEXT.md` + `AGENTS.md`) → **tests** → **wf-cycle** → **sk-proto** → **residue** → **sdd**. The sync is not "done" until all five verifiers pass (four run as dedicated stages — wf-cycle, sk-proto, residue, sdd; the `verify-sync-divergence` oracle runs via its unit test in the `tests` stage) — a stale or non-portable mirror **fails the pipeline** rather than shipping silently.
+
+### 13.4 Mirror Parity Is Mechanically Verified
+
+Five verifier scripts (`.claude/scripts/codex/verify-*.mjs`, each with a unit test) turn "keep the mirrors in sync" from a discipline into a **build gate**:
+
+| Verifier                           | Asserts                                                                                                                                                                                                                                                                                      |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `verify-sync-divergence`           | **Oracle gate** — re-runs the real mirror transform into a throwaway dir and diffs against the committed `.agents/skills`. Any difference = someone edited source without re-syncing, or hand-edited a mirror.                                                                               |
+| `verify-skill-protocol-compliance` | Bidirectional set-diff parity (every source skill has a mirror and vice-versa); the 6 strict-execution-contract sentences present in every mirror; **no Claude-isms** (`Agent(`, `subagent_type`) leak into Codex output; AGENTS.md context block byte-matches `CODEX_CONTEXT.md`.           |
+| `verify-workflow-cycle-compliance` | Workflow step-sequences in `workflows.json` match the skill files in **both** `.claude/skills` AND `.agents/skills` ("paired-drift" detection); ordered gates (integration → review → verify; docs-update → workflow-end) intact.                                                            |
+| `verify-no-project-residue`        | **Portability enforcement** — scans the generic surfaces for the literal `bravo`/`BravoSuite` and a denylist of this repo's framework symbols (`AppBaseComponent`, `PlatformVmStore`, `IPlatformRootRepository`, …). A reusable skill that hardcodes a project specific **fails the build**. |
+| `verify-sdd-semantic-compliance`   | ~30 semantic assertions on the spec-driven cycle; Codex mirrors reference the _local_ shared-contract path, not the `.claude` source path.                                                                                                                                                   |
+
+`verify-no-project-residue` is the load-bearing one for "works for any project": it is impossible to merge a generic skill that leaked project-specific names, because the residue scan rejects it. Portability isn't a guideline — it's a gate.
+
+### 13.5 The SYNC-Tag Mechanism — One Protocol, Identical Everywhere
+
+The framework's protocols (evidence-based reasoning, critical-thinking mindset, AI-SDD contract, end-to-start debugger trace, …) must read **identically** across ~260 skills _and_ across three tools. They are kept identical by **inlining, not referencing**:
+
+1. Each shared protocol is authored **once** under a `## SYNC:{tag}` heading in `.claude/skills/shared/sync-inline-versions.md` (~55 tagged protocols).
+2. In every consuming skill the content is inlined **verbatim** between `<!-- SYNC:{tag} -->` … `<!-- /SYNC:{tag} -->` fences.
+3. The **`sync-protocols`** skill propagates a canonical edit: find every file carrying the tag, replace the text between its fences, verify fence balance. Bulk inserts across all ~286 skill/agent files go through `sync-hooks-to-skills.py`, never by hand.
+4. The Codex context stage re-emits the same SYNC blocks into `CODEX_CONTEXT.md` / `AGENTS.md`.
+
+**Why inline instead of reference?** The explicit policy (`SYNC:shared-protocol-duplication-policy`): _"Inline protocol content … is INTENTIONAL duplication. Do NOT extract, deduplicate, or replace with file references. AI compliance drops significantly when protocols are behind file-read indirection."_ This is a deliberate trade — storage/duplication cost for adherence. An LLM follows a rule in front of it far more reliably than a rule it must choose to go read. The verifiers (13.4) make the duplication safe by failing the build the moment copies diverge.
+
+### 13.6 The Portability Contract — How It Works on Any Project
+
+The boundary that makes the framework repo-agnostic is stated in `.claude/skills/shared/sdd-artifact-contract.md` and mirrored into every tool:
+
+> **Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from `docs/project-config.json` and `docs/project-reference/`. … Any supported AI tool may execute when this shared context and local docs are available.
+
+The rule that keeps it clean: _"If a rule can be reused unchanged by another repository, keep it out of project-reference docs and place it in `.claude`."_ Skills hold the **reusable** behavior; `project-config.json` + `project-reference/**` hold the **specific** knowledge (tech stack, paths, naming, patterns, evidence formats). Tool-specific adapters translate paths and invocation syntax but must preserve the shared contract — _"correctness comes from artifacts, evidence, tests, and review, not from requiring a named tool set."_
+
+**Adopting this framework on a new repo, concretely:**
+
+1. Copy `.claude/` (skills, hooks, workflows, agents) — the reusable behavior, unchanged.
+2. Replace `docs/project-config.json` and `docs/project-reference/**` with the new project's stack, paths, patterns, and conventions. (The `/project-config` and `scan-*` skills can generate these from a codebase scan.)
+3. Rewrite `CLAUDE.md` for the new project's golden rules.
+4. Run `npm run codex:sync` to regenerate the committed Codex mirrors. Run `/sync-to-copilot` or `/sync-copilot-workflows` only when Copilot instruction files are part of the target repo.
+
+The harness, the protocols, and the quality gates carry over verbatim. Only the config and reference docs change. That is what "works for any project, on any supported AI harness" means in this framework — and it is enforced by the same verifier suite that keeps the mirrors honest.
+
+---
+
 ## Summary — Philosophy & Principles
 
 ### The Core Thesis
@@ -3654,6 +3865,7 @@ The framework elevates the AI from a code autocomplete tool to a **strategic dev
 | Skills work in isolation     | Plan-aware skills (Step 0) read prior workflow outputs automatically  |
 | Manual workflow progression  | Skill chain navigation (Next Steps) auto-recommends next action       |
 | Artifacts flow unchecked     | Review gate skills validate PBIs, stories, and test specs mid-flow    |
+| Locked to one tool & repo    | One source compiles to Codex mirrors and can generate Copilot instructions; config-driven, any repo |
 
 **For greenfield projects**, the AI becomes a full Solution Architect — conducting market research, evaluating tech stacks with confidence percentages, modeling domains with DDD, and collaborating with the user at every decision point. The AI earns trust through structured thinking, not just fast output.
 
@@ -3680,7 +3892,7 @@ The framework succeeds because it aligns with how LLMs actually fail:
 
 ### The Result
 
-**64 top-level hook files**, **256 skills**, **37 registered workflows**, and **28 specialized agents** working in concert to deliver:
+**65 top-level hook files**, **258 skills**, **37 registered workflows**, and **28 specialized agents** working in concert to deliver:
 
 - **Fewer hallucinations** — Evidence gates and proof traces catch AI fabrications before they reach files
 - **Better code quality** — Pattern injection ensures AI follows project conventions, not generic training data
@@ -3688,7 +3900,7 @@ The framework succeeds because it aligns with how LLMs actually fail:
 - **Consistent adherence** — Programmatic enforcement means quality doesn't degrade in long sessions or complex tasks
 - **Recovery from amnesia** — External state persistence means context compaction doesn't lose progress
 - **Persistent learning** — Mistakes captured once prevent recurrence across all future sessions
-- **Prompt engineering depth** — Role prompting, chain-of-thought, few-shot, negative prompting, and iterative refinement applied systematically across 256 skills (Section 8.15)
+- **Prompt engineering depth** — Role prompting, chain-of-thought, few-shot, negative prompting, and iterative refinement applied systematically across 258 skills (Section 8.15)
 - **Context engineering precision** — JIT injection, dedup, external memory, budget management, and recovery keep the AI informed without overwhelming its context window (Section 8.16)
 
 The framework is **generic and reusable**. Replace `project-config.json` with your project's specifics, and the entire system adapts — different tech stack, different patterns, different conventions, same quality enforcement.

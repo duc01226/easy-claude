@@ -34,6 +34,7 @@ For any non-trivial bug, failed verification, regression fix, or behavior-changi
 ## Debugger Trace: End -> Start
 
 Frame 0 - Observed final state:
+
 - Symptom:
 - Reader/query/renderer:
 - Evidence:
@@ -55,6 +56,7 @@ Fix mapping:
 | --- | --- | --- | --- | --- |
 
 Forward convergence proof:
+
 - Start trigger:
 - Corrected transformations:
 - Final state:
@@ -72,7 +74,7 @@ Forward convergence proof:
 | Remove code without comprehensive search     | Must verify: static + dynamic + string literals + templates + framework integration |
 | Propose solutions without file:line evidence | Show actual code, not summaries                                                     |
 | Proceed when confidence < 90%                | Request user confirmation instead                                                   |
-| Fix from the first suspicious code path      | The bug may originate upstream or through a different producer path                  |
+| Fix from the first suspicious code path      | The bug may originate upstream or through a different producer path                 |
 
 ### ✅ ALWAYS
 
@@ -84,7 +86,7 @@ Forward convergence proof:
 | Document evidence                | File paths with line numbers, search commands, explicit "NONE FOUND" |
 | Declare confidence level         | High (90-100%), Medium (70-89%), Low (<70%)                          |
 | Request confirmation when unsure | If confidence < 90%: STOP and ask user                               |
-| Trace end-to-start before fixing | Symptom -> reader -> storage/projection -> writer -> producer/origin  |
+| Trace end-to-start before fixing | Symptom -> reader -> storage/projection -> writer -> producer/origin |
 
 ---
 

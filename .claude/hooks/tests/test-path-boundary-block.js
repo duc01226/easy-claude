@@ -324,6 +324,41 @@ const winFlagAllowTests = [
 ];
 
 // =====================================================================
+// cd/pushd navigation exemption — the target of a working-directory change
+// is navigation, not content access, so it is exempt from boundary checks
+// (completes intent of the winToolRe cd/pushd entries). These tests lock the
+// security invariant: ONLY the cd target is exempt; chained content-access
+// commands and `cd` appearing as an argument are still scanned.
+// =====================================================================
+const cdNavigationTests = [
+    {
+        name: 'cd /d to outside drive then read outside file - should block (access not exempt)',
+        input: { tool_input: { command: 'cd /d D:\\Other && type "D:\\Other\\secret.txt"' } },
+        expectBlock: true
+    },
+    {
+        name: 'cd /d to outside then cat /etc/passwd - should block (chained access scanned)',
+        input: { tool_input: { command: 'cd /d D:\\Other; cat /etc/passwd' } },
+        expectBlock: true
+    },
+    {
+        name: 'cd /d quoted space-path target - should allow (navigation exempt)',
+        input: { tool_input: { command: 'cd /d "D:\\New folder\\proj"' } },
+        expectBlock: false
+    },
+    {
+        name: 'pushd outside target - should allow (navigation exempt)',
+        input: { tool_input: { command: 'pushd D:\\GitSources\\BravoSuite' } },
+        expectBlock: false
+    },
+    {
+        name: 'cd as echo argument - should still block (not a real navigation)',
+        input: { tool_input: { command: 'echo cd D:\\Secret\\path' } },
+        expectBlock: true
+    }
+];
+
+// =====================================================================
 // findstr pattern strip — quoted search patterns containing /etc/foo
 // must be stripped (line 239 tools regex), only file argument remains.
 // Cross-platform.
@@ -607,6 +642,53 @@ const psHereStringTests = [
     }
 ];
 
+// =====================================================================
+// Space-in-project-root regression tests
+// Source: real user report — project at "D:\GitSources\New folder" (space
+// in root). Path-extraction regexes consumed an opening quote but their body
+// class excluded whitespace, truncating "D:/New folder" -> "D:/New". The
+// truncated prefix failed the boundary check -> false-positive BLOCK on every
+// legitimate command. Run with the space-containing root as CLAUDE_PROJECT_DIR.
+// =====================================================================
+const SPACE_ROOT = 'D:/GitSources/New folder';
+const spaceInRootTests = [
+    {
+        name: 'cd into space-containing root (backslash) - should allow',
+        input: { tool_input: { command: 'cd "D:\\GitSources\\New folder"; echo hi' } },
+        expectBlock: false
+    },
+    {
+        name: 'quoted forward-slash space root operand - should allow',
+        input: { tool_input: { command: 'Get-ChildItem -Force -LiteralPath "D:/GitSources/New folder"' } },
+        expectBlock: false
+    },
+    {
+        name: 'cat quoted subdir under space root - should allow',
+        input: { tool_input: { command: 'cat "D:/GitSources/New folder/src/file.txt"' } },
+        expectBlock: false
+    },
+    {
+        name: 'single-quoted subdir under space root - should allow',
+        input: { tool_input: { command: "cat 'D:/GitSources/New folder/a.txt'" } },
+        expectBlock: false
+    },
+    {
+        name: 'redirect to quoted path inside space root - should allow',
+        input: { tool_input: { command: 'echo data > "D:/GitSources/New folder/out.log"' } },
+        expectBlock: false
+    },
+    {
+        name: 'quoted outside path WITH space - should still block',
+        input: { tool_input: { command: 'cat "D:/Other Project/secret.txt"' } },
+        expectBlock: true
+    },
+    {
+        name: 'quoted outside redirect WITH space - should still block',
+        input: { tool_input: { command: 'echo data > "D:/Other Folder/test"' } },
+        expectBlock: true
+    }
+];
+
 // Tests for MCP filesystem tools
 const mcpTests = [
     {
@@ -777,6 +859,7 @@ async function main() {
         ['Block Tests (outside project)', blockTests],
         ['Path Traversal Tests', traversalTests],
         ['Bash Command Tests', bashTests],
+        ['Space-in-Project-Root Regression', spaceInRootTests, { projectDir: SPACE_ROOT }],
         ['Inline Code Tests', inlineCodeTests],
         ['Sed/Awk Pattern Tests', sedAwkTests],
         ['Grep Pattern Tests', grepTests],
@@ -788,6 +871,7 @@ async function main() {
         ['Edge Cases', edgeCaseTests],
         ['Linux Regression (boundary cannot bypass on Linux)', linuxRegressionTests, { env: { CLAUDE_TEST_PLATFORM: 'linux' } }],
         ['Windows Flag Allow (findstr /I, cmd /C, etc.)', winFlagAllowTests, { env: { CLAUDE_TEST_PLATFORM: 'win32' } }],
+        ['cd/pushd Navigation Exemption (navigation-only, access still scanned)', cdNavigationTests, { env: { CLAUDE_TEST_PLATFORM: 'win32' } }],
         ['findstr Pattern Strip', findstrPatternStripTests, { env: { CLAUDE_TEST_PLATFORM: 'win32' } }],
         ['Fuzz: /Word without Win-tool token must block', fuzzNonFlagWordPathTests, { env: { CLAUDE_TEST_PLATFORM: 'win32' } }]
     ];

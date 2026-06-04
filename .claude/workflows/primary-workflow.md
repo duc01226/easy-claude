@@ -95,33 +95,33 @@
 
 All workflows are defined in `.claude/workflows.json`. Each workflow composes a subset of the phases above into a specific sequence. Key workflows:
 
-| Workflow                          | Phases Used                        | When To Use                                         |
-| --------------------------------- | ---------------------------------- | --------------------------------------------------- |
-| **feature**                       | 0→1→2→3→4→5→6                      | Well-defined feature implementation                 |
+| Workflow                          | Phases Used                        | When To Use                                                     |
+| --------------------------------- | ---------------------------------- | --------------------------------------------------------------- |
+| **feature**                       | 0→1→2→3→4→5→6                      | Well-defined feature implementation                             |
 | **bugfix**                        | 0→1→3→4→5→6→7                      | Bug reports, debugging, troubleshooting with end-to-start trace |
-| **hotfix**                        | 0→1→3→4→5→6                        | P0/P1 production emergencies (lightweight planning) |
-| **refactor**                      | 0→1→2→3→4→5→6                      | Code restructuring without behavior change          |
-| **investigation**                 | 0 only                             | Read-only codebase exploration                      |
-| **review-changes**                | 5→3→5→6                            | Pre-commit review of uncommitted changes            |
-| **review**                        | 5→3→5→6                            | Code review, PR review, quality audit               |
-| **verification**                  | 0→4→(3→4→5 if fix needed)→6        | Verify correctness; FAIL-to-fix requires end-to-start trace |
-| **big-feature**                   | Full lifecycle with research       | Large/ambiguous features needing market research    |
-| **feature-with-integration-test** | 0→1→2→3→4→5→6                      | Feature + spec-first integration testing            |
-| **tdd-feature**                   | 0→2→1→3→4→5→6                      | Test-first development (specs before plan)          |
-| **batch-operation**               | 1→2→3→4→5→6                        | Bulk multi-file modifications                       |
-| **documentation**                 | 0→1→3→5→6                          | Documentation creation/update                       |
-| **feature-docs**                  | 0→1→3→5→6                          | Business feature docs (17-section template)         |
-| **testing**                       | 4 only                             | Run test suites                                     |
-| **performance**                   | 0→1→2→3→4→5→6                      | Performance investigation and optimization          |
-| **migration**                     | 0→1→3→5→6                          | Database schema/data migrations                     |
-| **deployment**                    | 0→1→3→5→6                          | CI/CD, Docker, K8s setup                            |
-| **package-upgrade**               | 0→1→3→4→5→6                        | Dependency upgrades                                 |
-| **security-audit**                | 0→6                                | Security review and vulnerability assessment        |
-| **quality-audit**                 | 5→1→3→4→6                          | Code quality audit with fix loop                    |
-| **release-prep**                  | 6 only                             | Pre-release quality gate                            |
-| **research**                      | Web research → synthesis → review  | Topic research and report generation                |
-| **greenfield-init**               | Full inception + implementation    | New project from scratch                            |
-| **full-feature-lifecycle**        | All roles PO→BA→Designer→Dev→QA→PO | End-to-end with formal handoffs                     |
+| **hotfix**                        | 0→1→3→4→5→6                        | P0/P1 production emergencies (lightweight planning)             |
+| **refactor**                      | 0→1→2→3→4→5→6                      | Code restructuring without behavior change                      |
+| **investigation**                 | 0 only                             | Read-only codebase exploration                                  |
+| **review-changes**                | 5→3→5→6                            | Pre-commit review of uncommitted changes                        |
+| **review**                        | 5→3→5→6                            | Code review, PR review, quality audit                           |
+| **verification**                  | 0→4→(3→4→5 if fix needed)→6        | Verify correctness; FAIL-to-fix requires end-to-start trace     |
+| **big-feature**                   | Full lifecycle with research       | Large/ambiguous features needing market research                |
+| **feature-with-integration-test** | 0→1→2→3→4→5→6                      | Feature + spec-first integration testing                        |
+| **tdd-feature**                   | 0→2→1→3→4→5→6                      | Test-first development (specs before plan)                      |
+| **batch-operation**               | 1→2→3→4→5→6                        | Bulk multi-file modifications                                   |
+| **documentation**                 | 0→1→3→5→6                          | Documentation creation/update                                   |
+| **feature-docs**                  | 0→1→3→5→6                          | Business feature docs (17-section template)                     |
+| **testing**                       | 4 only                             | Run test suites                                                 |
+| **performance**                   | 0→1→2→3→4→5→6                      | Performance investigation and optimization                      |
+| **migration**                     | 0→1→3→5→6                          | Database schema/data migrations                                 |
+| **deployment**                    | 0→1→3→5→6                          | CI/CD, Docker, K8s setup                                        |
+| **package-upgrade**               | 0→1→3→4→5→6                        | Dependency upgrades                                             |
+| **security-audit**                | 0→6                                | Security review and vulnerability assessment                    |
+| **quality-audit**                 | 5→1→3→4→6                          | Code quality audit with fix loop                                |
+| **release-prep**                  | 6 only                             | Pre-release quality gate                                        |
+| **research**                      | Web research → synthesis → review  | Topic research and report generation                            |
+| **greenfield-init**               | Full inception + implementation    | New project from scratch                                        |
+| **full-feature-lifecycle**        | All roles PO→BA→Designer→Dev→QA→PO | End-to-end with formal handoffs                                 |
 
 ### Role-Based Handoff Workflows
 

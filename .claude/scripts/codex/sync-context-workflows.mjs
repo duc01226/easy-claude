@@ -66,8 +66,11 @@ const PROJECT_REFERENCE_GATE_BODY_LINES = [
   "- Read `docs/project-config.json` for project-specific commands, module paths, workflow settings, and doc paths.",
   "- Read `docs/project-reference/docs-index-reference.md` to route to the right project-reference files.",
   "- Read `docs/project-reference/lessons.md` for always-on project guardrails.",
+  "- If `docs/project-config.json`, the docs index, `lessons.md`, or any task-required reference doc is missing, stop immediately and ask the user to run `$project-config` and `$scan-all`.",
   "- For situation-specific work, open the referenced project doc directly; do not rely on prior conversation text as proof that the doc is loaded.",
 ];
+const PROJECT_REFERENCE_GATE_BODY_START = PROJECT_REFERENCE_GATE_BODY_LINES[0];
+const PROJECT_REFERENCE_GATE_BODY_END = PROJECT_REFERENCE_GATE_BODY_LINES.at(-1);
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -135,7 +138,7 @@ function stripProjectReferenceGateSection(contextMd) {
   }
 
   const orphanBodyPattern = new RegExp(
-    `(?:^|\\n)${escapeRegExp(PROJECT_REFERENCE_GATE_BODY_LINES.join("\n"))}(?=\\n(?:## |<!-- [A-Z-]+:START -->)|\\n\\n(?:## |<!-- [A-Z-]+:START -->)|$)`,
+    `(?:^|\\n)${escapeRegExp(PROJECT_REFERENCE_GATE_BODY_START)}\\n[\\s\\S]*?${escapeRegExp(PROJECT_REFERENCE_GATE_BODY_END)}(?=\\n(?:## |<!-- [A-Z-]+:START -->)|\\n\\n(?:## |<!-- [A-Z-]+:START -->)|$)`,
     "g"
   );
   nextText = nextText.replace(orphanBodyPattern, "");

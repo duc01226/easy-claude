@@ -24,6 +24,8 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 - `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
 - `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
 
+**Missing-file hard stop:** If `docs/project-config.json`, the docs index, `lessons.md`, or any task-required reference doc is missing, stop immediately and ask the user to run `$project-config` and `$scan-all`.
+
 **Situation-based docs:**
 - Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`, `project-structure-reference.md`
 - Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md`

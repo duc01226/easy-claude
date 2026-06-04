@@ -24,6 +24,8 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 - `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
 - `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
 
+**Missing-file hard stop:** If `docs/project-config.json`, the docs index, `lessons.md`, or any task-required reference doc is missing, stop immediately and ask the user to run `$project-config` and `$scan-all`.
+
 **Situation-based docs:**
 - Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`, `project-structure-reference.md`
 - Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md`
@@ -50,7 +52,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Comprehensive review of current diffs following project standards. No flaws, no bugs, no missing updates, no stale content. Applies to uncommitted work, staged changes, branch-to-branch diffs, and any project type — code, docs, config, infrastructure, or non-coding artifacts.
+**Goal:** Comprehensive review of current diffs following project standards. No flaws, bugs, missing updates, or stale content. Applies to uncommitted work, staged changes, branch-to-branch diffs, any project type — code, docs, config, infrastructure, non-coding artifacts.
 
 **Workflow:**
 
@@ -63,6 +65,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 7. **Phase 3: Holistic** — Spawn fresh-context sub-agent for unbiased holistic assessment
 8. **Phase 4: Finalize** — Generate critical issues, recommendations, suggested commit message
 9. **Phase 5: Docs Triage** — Invoke `$docs-update` if staleness detected
+10. **Phase 6: Why-Review Findings Validation (REQUIRED closing task)** — Invoke `$why-review` to verify every finding is correct, proof-backed, reasonable, and best-practice; RE-DO why-review ONLY if finding issues / enhancement opportunities surface (capped)
 
 **Key Rules:**
 
@@ -182,6 +185,7 @@ Before starting, call task tracking with:
 - [ ] `[Review Phase 3] Spawn fresh-context sub-agent for holistic assessment` - pending
 - [ ] `[Review Phase 4] Generate final review findings` - pending
 - [ ] `[Review Phase 5] Run $docs-update if staleness detected` - pending
+- [ ] `[Review Phase 6] Why-review findings validation gate (re-do until clean, capped)` - pending **(MANDATORY CLOSING TASK — never skip when findings exist)**
 
 Update todo status as each phase completes.
 
@@ -748,26 +752,32 @@ If `architectureRules` not present in project-config.json, skip silently.
 
 ---
 
-## Phase 6: Why-Review Self-Validation Gate (MANDATORY when findings exist)
+## Phase 6: Why-Review Findings Validation Gate (MANDATORY CLOSING TASK when findings exist)
 
-> **Purpose:** Adversarial validation of own findings BEFORE handoff. Catches over-flagged Highs, false positives, and severity inflation at the source rather than letting them propagate downstream.
+> **Purpose:** Adversarial validation of own findings BEFORE handoff. Verify EVERY finding **correct, proof-backed (`file:line`), reasonable, aligned with best practices/conventions**. Catches over-flagged Highs, false positives, severity inflation, AND missed enhancement opportunities at source — before they propagate downstream.
 
-**Trigger:** Any finding produced (Critical, High, Medium, OR Low). Skip ONLY when the report's verdict is unconditional PASS with literally zero findings.
+> **MANDATORY:** REQUIRED final todo task. Register via task tracking as `[Review Phase 6] Why-review findings validation gate` (already in Phase task list above). Do NOT mark review complete until gate passes CLEAN or hits re-do cap.
 
-**Protocol:**
+**Trigger:** Any finding produced (Critical, High, Medium, OR Low). Skip ONLY when report verdict is unconditional PASS with literally zero findings.
+
+**Protocol (capped re-do loop):**
 
 1. Read own finalized report from `plans/reports/{skill}-{date}-{slug}.md`
-2. Invoke `$why-review` skill with arg: `validate findings in plans/reports/{skill}-{date}-{slug}.md — verify each finding has file:line proof, steel-man each rejected interpretation, and stress-test severity classifications`
+2. **Invoke `$why-review --validate-findings`** (terminal validate mode — runs in the SAME main-agent session, never spawns a sub-agent, never recurses) with arg: `--validate-findings plans/reports/{skill}-{date}-{slug}.md — for EACH finding verify (a) file:line proof exists and is accurate, (b) the finding is correct (re-trace the cited code), (c) severity is reasonable and not inflated, (d) it reflects project best practices/conventions; steel-man each rejected interpretation; and surface any MISSED finding or enhancement opportunity the review overlooked`
 3. Read why-review output from `plans/reports/why-review-{date}.md`
-4. **If why-review demotes/removes any finding:** UPDATE own finalized report with revised severities, remove false positives, and add a `## Why-Review Validation Notes` section citing what changed and why
-5. **If why-review confirms all findings:** Append `## Why-Review Validation` line to own report stating "All N findings re-validated against actual code; no severity changes."
+4. **Classify the why-review verdict:**
+    - **CLEAN** — all findings confirmed correct / proof-backed / reasonable / best-practice, AND no new finding issue or enhancement opportunity surfaced → append `## Why-Review Validation` line to own report ("All N findings re-validated against actual code; no changes."), gate PASSES, exit loop.
+    - **HAS ISSUES** — why-review demotes/removes a finding, flags a missing or inaccurate proof, OR surfaces a new finding issue / enhancement opportunity → go to step 5.
+5. **Reconcile:** UPDATE own finalized report — revise severities, remove false positives, add the surfaced findings/enhancements, and record a `## Why-Review Validation Notes` section citing what changed and why.
+6. **RE-DO `$why-review --validate-findings`** on the UPDATED report (return to step 2) — re-validation is required ONLY because the report changed. Each pass is terminal (validate mode never recurses); the loop is owned and bounded HERE. Repeat until a why-review round comes back CLEAN, or **max 2 re-do rounds** (3 total validate passes) is reached.
+7. **If still not CLEAN after the cap:** record unresolved items under `## Why-Review Validation — Unresolved` and escalate to the user via a direct user question instead of silently looping.
 
 **Skip conditions (record explicit reason if skipping):**
 
 - Verdict is unconditional PASS with zero findings → log "Skipped — no findings to validate"
-- Why-review skill itself is the active context (avoid recursion)
+- `$why-review` itself is the active skill context → do NOT recurse; why-review re-validates via its own terminal `--validate-findings` mode (see its `Findings Validation Gate`)
 
-**Why this exists:** AI sub-agent reports inherit confirmation bias — the orchestrator absorbs severity claims as ground truth. The 2026-05-09 review incident produced 5 Highs; adversarial validation demoted 3 of them. Codify this as standard practice.
+**Why this exists:** AI sub-agent reports inherit confirmation bias — orchestrator absorbs severity claims as ground truth. 2026-05-09 review incident produced 5 Highs; adversarial validation demoted 3. Capped re-do loop closes the gap where a single validation pass fixes findings but never re-checks the corrected report. Codify as standard practice.
 
 ---
 
@@ -1375,8 +1385,8 @@ For each identified concern: create a task tracking sub-task, work through it wi
 >
 > 1. Identify scope: file types, domain area, and operation.
 > 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-docs-reference.md`; architecture/new area `project-structure-reference.md`.
-> 3. Read every required doc that exists; skip absent docs as not applicable. Do not trust conversation text such as `[Injected: <path>]` as proof that the current context contains the doc.
-> 4. Before target work, state: `Reference docs read: ... | Missing/not applicable: ...`.
+> 3. Read every required doc. If `docs/project-config.json`, the docs index, `lessons.md`, or any task-required reference doc is missing, stop immediately and ask the user to run `$project-config` and `$scan-all`.
+> 4. Before target work, state: `Reference docs read: ... | Not applicable: ...`.
 >
 > **Blocked until:** scope evaluated, required docs checked/read, `lessons.md` confirmed, citation emitted.
 
@@ -1547,7 +1557,7 @@ For each identified concern: create a task tracking sub-task, work through it wi
 - **MANDATORY IMPORTANT MUST ATTENTION** fresh sub-agent re-review is mandatory ONLY after a fix cycle. Clean Round 1 ENDS the review.
 - **MANDATORY IMPORTANT MUST ATTENTION** documentation staleness check is REQUIRED in every review — flag stale docs even if not auto-fixing
 - **MANDATORY IMPORTANT MUST ATTENTION** missing tests for changed business logic MUST surface to user via a direct user question — NOT silently logged
-- **MANDATORY IMPORTANT MUST ATTENTION** run `$why-review` after completing this review to validate design rationale, alternatives considered, and risk assessment
+- **MANDATORY IMPORTANT MUST ATTENTION** run the **Phase 6 Why-Review Findings Validation Gate** as the REQUIRED closing task whenever findings exist — invoke `$why-review --validate-findings` (terminal mode, same session) to verify every finding is correct, proof-backed, reasonable, and best-practice; RE-DO it ONLY if it surfaces finding issues or enhancement opportunities (max 2 re-dos, then escalate via a direct user question)
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break into small todo tasks and sub-tasks using task tracking.
 
@@ -1574,7 +1584,7 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 
 ## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
 
-**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. Any supported AI tool may execute when this shared context and local docs are available.
+**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. If either file or a required reference doc is missing, stop immediately and ask the user to run the project-config and scan-all skills. Any supported AI tool may execute when this shared context and local docs are available.
 
 1. **DETECT:** Match prompt against workflow catalog
 2. **ANALYZE:** Find best-match workflow AND evaluate if a custom step combination would fit better

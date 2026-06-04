@@ -4,7 +4,7 @@
 
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **64 top-level hook files**, **256 skills**, **37 workflows**, and **28 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **65 top-level hook files**, **258 skills**, **37 workflows**, and **28 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`, with Copilot instruction generation available through sync skills and scripts.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -21,7 +21,7 @@
 
 ## Architecture
 
-Three-layer architecture where each layer solves a different failure mode:
+Three core execution layers solve different failure modes. Specialized agents plug into skills and workflows when work benefits from isolated context or parallel review.
 
 ```
 ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
@@ -51,6 +51,7 @@ Three-layer architecture where each layer solves a different failure mode:
 | --------------- | ------- | ------------------ |
 | Claude Code CLI | Latest  | `claude --version` |
 | Node.js         | 18+     | `node --version`   |
+| Python          | 3.x     | `python --version` |
 | Git             | 2.x+    | `git --version`    |
 
 ### Installation (5 minutes)
@@ -102,7 +103,7 @@ Optional scans (run if applicable):
 
 ## What's Inside
 
-### Hooks (64 top-level files, 29 lib modules)
+### Hooks (65 top-level files, 29 lib modules)
 
 Runtime Node.js scripts that fire on Claude Code lifecycle events.
 
@@ -119,7 +120,7 @@ Runtime Node.js scripts that fire on Claude Code lifecycle events.
 
 **Hook part-file architecture:** Large hooks are split into chained part-files (`-p2`, `-p3`) for maintainability. The harness chains them at runtime. Affected: `prompt-context-assembler` (6 files), `workflow-router` (3 files).
 
-### Skills (256 definitions)
+### Skills (258 definitions)
 
 Markdown-based prompts with YAML frontmatter that guide AI behavior.
 
@@ -140,15 +141,16 @@ Markdown-based prompts with YAML frontmatter that guide AI behavior.
 
 End-to-end process orchestration with step enforcement.
 
-| Workflow          | Steps                                                                                   | Use When                                 |
-| ----------------- | --------------------------------------------------------------------------------------- | ---------------------------------------- |
-| `feature`         | scout → investigate → plan → review → validate → cook → simplify → review → test → docs | Implementing a well-defined feature      |
-| `bugfix`          | scout → investigate → debug → plan → fix → prove-fix → review → test                    | Fixing a bug                             |
-| `big-feature`     | idea → research → architecture → plan → cook → test → review → docs                     | Large/ambiguous feature needing research |
-| `greenfield-init` | idea → research → domain-analysis → architecture → plan → scaffold → cook → test        | New project from scratch                 |
-| `hotfix`          | scout → plan → fix → prove-fix → test → review                                          | Production emergency                     |
-| `refactor`        | scout → investigate → plan → code → simplify → review → test                            | Code restructuring                       |
-| `tdd-feature`     | scout → investigate → tdd-spec → plan → cook → integration-test → test → review         | Test-driven development                  |
+| Workflow                  | Focus                                                                    | Use When                                      |
+| ------------------------- | ------------------------------------------------------------------------ | --------------------------------------------- |
+| `feature`                 | Scout, investigate, plan, write specs, implement, review, test, docs     | Implementing a well-defined feature           |
+| `bugfix`                  | Trace root cause, write regression specs/tests, fix, prove, verify       | Fixing a bug without losing invariants        |
+| `big-feature`             | Idea, research, domain/tech analysis, stories, specs, implementation     | Large or ambiguous feature needing research   |
+| `greenfield-init`         | Product inception through scaffold, implementation, tests, docs          | New project from scratch                      |
+| `product-discovery`       | Brainstorm, research, PBIs, stories, DoR, mockups, ranked backlog        | Turning raw vision into implementation-ready work |
+| `spec-driven-dev`         | Engineering specs, feature docs, TDD specs, implementation sync          | Keeping specs, tests, code, and docs aligned  |
+| `write-integration-test`  | Domain investigation, test specs, integration test code, review, verify  | Adding or updating integration tests          |
+| `refactor`                | Search-first restructuring with plan, implementation, review, tests      | Code improvement without behavior drift       |
 
 ### Agents (28 specialists)
 
@@ -174,12 +176,12 @@ easy-claude/
 ├── .codex/                   # Codex agents, hooks, and context parity files
 ├── .claude/                  # <-- The framework template (copy this to your project)
 │   ├── agents/               # 28 specialized agent definitions
-│   ├── hooks/                # 64 top-level hook files + lib/ utilities
+│   ├── hooks/                # 65 top-level hook files + lib/ utilities
 │   │   ├── lib/              # Shared hook libraries
 │   │   ├── notifications/    # Multi-channel notification system
 │   │   ├── scout-block/      # Broad search prevention
 │   │   └── tests/            # Hook test suites
-│   ├── skills/               # 256 skill definitions
+│   ├── skills/               # 258 skill definitions
 │   │   ├── <skill>/          # Each skill directory contains:
 │   │   │   ├── SKILL.md      # Entry point (prompt + frontmatter)
 │   │   │   ├── scripts/      # Optional automation scripts
@@ -211,7 +213,7 @@ The entire framework is **project-agnostic**. All project-specific knowledge liv
 ```
 ┌─────────────────────────────────────┐
 │     Generic Framework (reusable)    │
-│ 64 Hook Files + 256 Skills + 37 Flows │
+│ 65 Hook Files + 258 Skills + 37 Flows │
 └──────────────┬──────────────────────┘
                │
         ┌──────┴──────┐
@@ -238,7 +240,7 @@ Hooks fire on 9 Claude Code events:
 | `PreToolUse`       | Before tool execution     | `privacy-block.cjs` — block secrets access                      |
 | `PostToolUse`      | After tool execution      | `tool-output-swap.cjs` — compress large outputs                 |
 | `PreCompact`       | Before context compaction | `write-compact-marker.cjs` — save state                         |
-| `SubagentStart`    | Subagent init             | `subagent-init-*.cjs` (13 hooks) — inject agent context (paged) |
+| `SubagentStart`    | Subagent init             | `subagent-init-*.cjs` (8 hooks) — inject agent context (paged)  |
 | `Notification`     | Desktop notify event      | `notify-waiting.js` — send system notification                  |
 | `Stop`             | Response complete         | `notify-waiting.js` — desktop notification                      |
 
@@ -260,7 +262,7 @@ Seven principles that make this framework work reliably across any project:
 | Principle                         | What it means                                                                                                                              |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Stateless-per-turn invariants** | Rules are re-injected at every prompt turn — never trust context retention over long sessions                                              |
-| **Defense in depth**              | Quality gates exist at all three layers: hook (programmatic), skill (protocol), workflow (sequence). Bypassing one is caught by another    |
+| **Defense in depth**              | Quality gates exist across hooks (programmatic), skills (protocol), workflows (sequence), and agents (specialized review). Bypassing one is caught by another |
 | **Self-contained skill units**    | Each skill is a complete prompt unit via `SYNC` tags — protocols are inlined, not indirectly referenced. Skills work standalone            |
 | **Project-agnostic generality**   | One `project-config.json` drives all context injection. The same hooks, skills, and workflows adapt to any tech stack                      |
 | **Full lifecycle coverage**       | idea → research → TDD spec → plan → implement → review → test → E2E → docs. No stage left to chance                                        |
@@ -281,7 +283,7 @@ Seven principles that make this framework work reliably across any project:
 
 ## Optional Dependencies
 
-Most features work with just Node.js. Some skills require additional tools:
+Most framework features work with Node.js and Python 3. Some skills require additional tools:
 
 | Skill              | Dependency          | Install                           |
 | ------------------ | ------------------- | --------------------------------- |
@@ -321,7 +323,7 @@ npm run codex:verify:all
 
 | Document                                                              | Description                             |
 | --------------------------------------------------------------------- | --------------------------------------- |
-| [Architecture Guide](.claude/docs/claude-ai-agent-framework-guide.md) | Deep dive into the 3-layer architecture |
+| [Architecture Guide](.claude/docs/claude-ai-agent-framework-guide.md) | Deep dive into architecture and portability |
 | [Quick Start](.claude/docs/quick-start.md)                            | 5-minute getting started guide          |
 | [Universal Setup Guide](.claude/docs/universal-setup-guide.md)        | Step-by-step adoption for any project   |
 | [Hook System](.claude/docs/hooks/README.md)                           | Hook architecture and extending         |

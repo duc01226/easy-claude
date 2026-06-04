@@ -15,7 +15,7 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 
 ## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
 
-**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. Any supported AI tool may execute when this shared context and local docs are available.
+**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. If either file or a required reference doc is missing, stop immediately and ask the user to run the project-config and scan-all skills. Any supported AI tool may execute when this shared context and local docs are available.
 
 1. **DETECT:** Match prompt against workflow catalog
 2. **ANALYZE:** Find best-match workflow AND evaluate if a custom step combination would fit better
@@ -40,6 +40,7 @@ Source: `.claude/skills/shared/sync-inline-versions.md`
 > 4. Treat code-to-spec extraction as reference-only until accepted by the canonical spec owner.
 > 5. Any supported AI tool may plan, implement, review, or verify with synced context; using multiple tools is optional.
 > 6. Update `.claude` source first, then sync generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`. — why: mirrors are generated artifacts; hand-edits are overwritten on the next sync
+> 7. If `docs/project-config.json` or a required project-reference doc is missing, stop immediately and ask the user to run `$project-config` and `$scan-all`.
 >
 > **Active reference:** `shared/sdd-artifact-contract.md` in the active skills root.
 
@@ -50,6 +51,7 @@ Source: `.claude/skills/shared/sync-inline-versions.md`
 - **MANDATORY** Apply `shared/sdd-artifact-contract.md`; keep reusable AI-SDD in `.claude` and local rules in project docs.
 - **MANDATORY** Code-to-spec extraction is reference-only until canonical acceptance; any supported AI tool may execute with synced context.
 - **MANDATORY** Update `.claude` source before syncing generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`.
+- **MANDATORY** Missing project config or required reference docs block project-specific work; ask the user to run `$project-config` and `$scan-all`.
 **[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
 <!-- PROMPT-PROTOCOLS:END -->
 
@@ -75,6 +77,7 @@ Codex does not receive Claude hook-injected project docs or project config summa
 - Read `docs/project-config.json` for project-specific commands, module paths, workflow settings, and doc paths.
 - Read `docs/project-reference/docs-index-reference.md` to route to the right project-reference files.
 - Read `docs/project-reference/lessons.md` for always-on project guardrails.
+- If `docs/project-config.json`, the docs index, `lessons.md`, or any task-required reference doc is missing, stop immediately and ask the user to run `$project-config` and `$scan-all`.
 - For situation-specific work, open the referenced project doc directly; do not rely on prior conversation text as proof that the doc is loaded.
 
 ## Critical Thinking Mindset

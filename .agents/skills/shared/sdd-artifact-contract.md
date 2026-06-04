@@ -285,7 +285,7 @@ This contract defines generic artifact mechanics. Before applying it in a reposi
 2. Read `docs/project-reference/docs-index-reference.md` to discover the relevant reference docs.
 3. Read only the reference docs needed for the active task.
 4. Follow the target repository's canonical spec/test/doc owners.
-5. If the repository has no initialized project config/docs, run the local init/config workflow or ask the user to initialize it before applying project-specific rules.
+5. If `docs/project-config.json` or a required project-reference doc is missing, stop immediately and ask the user to run `$project-config` and `$scan-all` before applying project-specific rules.
 
 ## Source Practices
 
@@ -305,5 +305,5 @@ Useful external references to re-check when changing the contract:
 - MUST ATTENTION shared reusable principles live in `.claude` and sync to generated agent mirrors; project-reference docs only add local repository extensions.
 - MUST ATTENTION core cycle is `spec -> plan -> tasks -> implement -> verify -> update spec/docs`.
 - MUST ATTENTION specs, tests, and code stay traceable through requirements, decisions, tasks, TCs, evidence, and docs.
-- MUST ATTENTION when adapting this contract, read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`; do not hardcode project rules here.
+- MUST ATTENTION when adapting this contract, read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`; if either file or a required reference doc is missing, stop and ask the user to run `$project-config` and `$scan-all`.
 - NEVER edit `.agents`, `.codex`, or `AGENTS.md` mirrors directly; source change belongs in `.claude`, sync happens later.

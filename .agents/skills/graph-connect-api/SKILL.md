@@ -24,6 +24,8 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 - `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
 - `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
 
+**Missing-file hard stop:** If `docs/project-config.json`, the docs index, `lessons.md`, or any task-required reference doc is missing, stop immediately and ask the user to run `$project-config` and `$scan-all`.
+
 **Situation-based docs:**
 - Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`, `project-structure-reference.md`
 - Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md`
@@ -217,7 +219,7 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 
 ## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
 
-**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. Any supported AI tool may execute when this shared context and local docs are available.
+**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. If either file or a required reference doc is missing, stop immediately and ask the user to run the project-config and scan-all skills. Any supported AI tool may execute when this shared context and local docs are available.
 
 1. **DETECT:** Match prompt against workflow catalog
 2. **ANALYZE:** Find best-match workflow AND evaluate if a custom step combination would fit better

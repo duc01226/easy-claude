@@ -365,6 +365,15 @@
       {
         "hooks": [
           {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/verify-install.cjs",
+            "type": "command"
+          }
+        ],
+        "matcher": "startup|resume|clear|compact"
+      },
+      {
+        "hooks": [
+          {
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-init.cjs",
             "type": "command"
           }

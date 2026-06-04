@@ -24,6 +24,8 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 - `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
 - `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
 
+**Missing-file hard stop:** If `docs/project-config.json`, the docs index, `lessons.md`, or any task-required reference doc is missing, stop immediately and ask the user to run `$project-config` and `$scan-all`.
+
 **Situation-based docs:**
 - Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`, `project-structure-reference.md`
 - Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md`
@@ -46,7 +48,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Validate code changes comply with project architecture — repository layout, tooling boundaries, generated artifact ownership, command flows, and project-specific implementation patterns.
+**Goal:** Validate changed code against architecture: layers, service boundaries, message flow, CQRS, repositories, entity events, frontend architecture, generated artifacts, and quality tooling.
 
 **Default scope:** All uncommitted changes (staged + unstaged). Override: specify files, directories, services, or full codebase.
 
@@ -72,6 +74,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - Write findings to `plans/reports/arch-review-{date}-{slug}.md`
 - BLOCKED = must fix before merge | WARN = review and decide | PASS = compliant
 - Every violation needs `file:line` proof + grep 3+ counterexamples before flagging
+- MUST ATTENTION review one category at a time: doc rule → source evidence → verdict
 - Skill reviews only — NEVER fixes code
 
 ## Your Mission
@@ -82,22 +85,28 @@ $ARGUMENTS
 
 ## First Principle — Easy to Change
 
-> **The success metric of every coding decision is _future change cost_.**
-> DRY, SRP, abstraction, design patterns, naming, layering, tests — every
-> technique exists to serve one goal: **making the next change cheaper**.
+> **Success metric: future change cost.** DRY, SRP, abstraction, patterns, naming, layering, and tests exist to make the next change cheaper.
 
-When evaluating code, a refactor, a test, or an abstraction, ask:
-**does this make the next change cheaper or more expensive?**
+Before applying any rule, ask: **does this lower or raise future change cost?**
 
-- Reject "best practices" that raise change cost (premature abstraction,
-  speculative generality, leaky indirection, ceremony without payoff).
-- Name the real enemies in findings: **coupling, hidden state, duplicated
-  knowledge, unclear intent, irreversible decisions exposed too early**.
-- A simpler design that is easy to change beats a sophisticated design that
-  isn't.
+- Reject "best practices" that raise cost: premature abstraction, speculative generality, leaky indirection, ceremony without payoff.
+- Name the real enemies: **coupling, hidden state, duplicated knowledge, unclear intent, irreversible decisions exposed too early**.
+- Prefer simple, reversible design over sophisticated rigid design.
+- If a downstream rule raises change cost, this principle wins.
 
-Apply this lens **before** invoking any specific rule, pattern, or checklist
-below — if a downstream rule would raise change cost, this principle wins.
+---
+
+## Quality Tooling Principle — Tech-Stack Adaptive
+
+> Architecture review includes automated quality guardrails. Without stack-appropriate linting, formatting, type checks, static analysis, dependency/security scanning, and CI enforcement, defects depend on reviewer memory.
+
+Evaluate detected stacks, not a fixed tool list:
+
+- Detect stacks from project-reference docs, manifests, lock files, build files, and CI before recommending tools.
+- For each production stack, verify formatter/style config, linter/code analyzer, compiler/type-check strictness, dependency/vulnerability scanning, tests/coverage, and CI/pre-commit enforcement.
+- Prefer official or ecosystem-standard tooling; if local docs are absent/stale, check current official docs before recommending setup.
+- MUST ATTENTION recommend enforceable best practice only: installed but unwired tool = WARN; production source with no relevant automated quality gate = BLOCKED.
+- Identify the missing capability first; map to a local equivalent before prescribing new tooling.
 
 ---
 
@@ -153,6 +162,27 @@ Flag MESSAGE_BUS consumers or event handlers impacted by changes.
 Create report: `plans/reports/arch-review-{date}-{slug}.md`
 
 For EACH file in scope, evaluate against ALL applicable categories. Skip categories not applicable to the file type.
+
+MUST ATTENTION review serially. For each applicable category: read docs/source evidence → derive risk with `Think:` → grep 3+ examples/counterexamples → record PASS/WARN/BLOCKED. NEVER scan categories simultaneously.
+
+---
+
+### Category 0: Quality Tooling Baseline — Severity: BLOCKED/WARN
+
+**Think:** Can the project automatically catch style, type, complexity, security, dependency, and boundary regressions for detected stacks?
+
+- Detect production stacks via `docs/project-config.json`, relevant docs, manifests, lock files, build files, and CI.
+- Inventory gates: formatter, linter, code/static analyzer, compiler/type checker, dependency audit/SCA/SBOM, SAST, test/coverage, architecture/dependency-boundary checks, pre-commit, CI/build.
+- Verify stack-appropriate coverage: `.editorconfig`/language analyzers, JavaScript/TypeScript linting, UI template linting when supported, formatter config, dependency vulnerability scans, semantic security analysis.
+- BLOCKED when production stack lacks runnable lint/static-analysis/type-check command and equivalent enforced gate, or CI/build references a missing/broken quality command.
+- WARN when tooling is local-only, not wired into CI/build/pre-commit, partial for active production code, broadly/unexplainedly suppressed, unclear on generated-code exclusions, or stale for the stack.
+- Before recommending tools, find current official/ecosystem setup and cite it; recommend capabilities first, tools second.
+
+**Violation format:**
+
+```
+BLOCKED: {stack} has no enforced lint/static-analysis/type-check quality gate ({evidenceFile}:{line})
+```
 
 ---
 
@@ -377,6 +407,7 @@ Update report with final sections:
 
 ## Architecture Health Summary
 
+- Quality Tooling Baseline: {PASS/WARN/BLOCKED}
 - Clean Architecture: {PASS/WARN/BLOCKED}
 - Messaging Patterns: {PASS/WARN/BLOCKED}
 - CQRS Compliance: {PASS/WARN/BLOCKED}
@@ -687,8 +718,8 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 >
 > 1. Identify scope: file types, domain area, and operation.
 > 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-docs-reference.md`; architecture/new area `project-structure-reference.md`.
-> 3. Read every required doc that exists; skip absent docs as not applicable. Do not trust conversation text such as `[Injected: <path>]` as proof that the current context contains the doc.
-> 4. Before target work, state: `Reference docs read: ... | Missing/not applicable: ...`.
+> 3. Read every required doc. If `docs/project-config.json`, the docs index, `lessons.md`, or any task-required reference doc is missing, stop immediately and ask the user to run `$project-config` and `$scan-all`.
+> 4. Before target work, state: `Reference docs read: ... | Not applicable: ...`.
 >
 > **Blocked until:** scope evaluated, required docs checked/read, `lessons.md` confirmed, citation emitted.
 
@@ -891,7 +922,9 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **MUST ATTENTION** grep 3+ counterexamples before flagging any pattern violation
 **MUST ATTENTION** run at least ONE graph command on key files when graph.db exists
 **MUST ATTENTION** NEVER fix code — review and report only
-**MUST ATTENTION** apply `Think:` reasoning prompt before checking each category — derive violations, don't recite checklists
+**MUST ATTENTION** review one category at a time — doc rule → source evidence → verdict
+**MUST ATTENTION** quality-tooling baseline covers every detected production stack — missing enforced gate is BLOCKED, unwired tool is WARN
+**MUST ATTENTION** apply `Think:` reasoning before each category — derive violations, don't recite checklists
 **MUST ATTENTION** use a direct user question to present next steps after completing review
 
 **Anti-Rationalization:**
@@ -900,7 +933,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 | ------------------------------------ | ------------------------------------------------------------------ |
 | "Too simple for architecture review" | Simple code hides layer violations. Apply all phases.              |
 | "Already read the docs"              | Show the extracted rule — no recall = no read.                     |
-| "Just flag obvious violations"       | Gray areas matter most. Apply `Think:` prompt to all 8 categories. |
+| "Just flag obvious violations"       | Gray areas matter most. Apply `Think:` to every applicable category. |
 | "Graph not needed here"              | Run ONE trace. 5 seconds → full blast radius revealed.             |
 | "Skill reviews only changed files"   | Default scope, not a limit. User can override.                     |
 
@@ -919,7 +952,7 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 
 ## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
 
-**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. Any supported AI tool may execute when this shared context and local docs are available.
+**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. If either file or a required reference doc is missing, stop immediately and ask the user to run the project-config and scan-all skills. Any supported AI tool may execute when this shared context and local docs are available.
 
 1. **DETECT:** Match prompt against workflow catalog
 2. **ANALYZE:** Find best-match workflow AND evaluate if a custom step combination would fit better

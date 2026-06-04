@@ -11,14 +11,14 @@
 
 | Component      | Count                                                                                         | Location                      | Format                                                                             |
 | -------------- | --------------------------------------------------------------------------------------------- | ----------------------------- | ---------------------------------------------------------------------------------- |
-| Hooks          | <!-- COUNT:hooks -->64<!-- /COUNT -->                                                         | `.claude/hooks/*.cjs`         | Top-level CommonJS Node.js hook scripts counted by ADR-0002                        |
+| Hooks          | <!-- COUNT:hooks -->65<!-- /COUNT -->                                                         | `.claude/hooks/*.cjs`         | Top-level CommonJS Node.js hook scripts counted by ADR-0002                        |
 | Hook Libraries | <!-- COUNT:lib-modules -->29<!-- /COUNT -->                                                   | `.claude/hooks/lib/*.cjs`     | CommonJS utility modules                                                           |
 | Skills         | <!-- COUNT:skills -->258<!-- /COUNT -->                                                       | `.claude/skills/*/SKILL.md`   | Markdown + YAML frontmatter                                                        |
 | Agents         | <!-- COUNT:agents -->28<!-- /COUNT -->                                                        | `.claude/agents/*.md`         | Markdown definitions                                                               |
 | Workflows      | <!-- COUNT:workflows -->37<!-- /COUNT -->                                                     | `.claude/workflows.json`      | JSON workflow definitions                                                          |
 | Output Styles  | 6                                                                                             | `.claude/output-styles/*.md`  | Coding level presets (ELI5→God)                                                    |
-| Scripts        | 22                                                                                            | `.claude/scripts/*`           | CJS + Python utilities (top-level; excludes code_graph package internals + tests/) |
-| Codex Scripts  | 8                                                                                             | `.claude/scripts/codex/*.mjs` | ESM sync, migration, notification, and verification tools                          |
+| Scripts        | 28                                                                                            | `.claude/scripts/*`           | CJS + Python utilities (top-level; excludes code_graph package internals + tests/) |
+| Codex Scripts  | 10                                                                                            | `.claude/scripts/codex/*.mjs` | ESM sync, migration, notification, and verification tools                          |
 | Hook Tests     | 16 suites + 13 standalone                                                                     | `.claude/hooks/tests/`        | CJS/JS test files; 14 `test-*` files including primary runner                      |
 | Codex Mirrors  | <!-- COUNT:skills -->258<!-- /COUNT --> skills, <!-- COUNT:agents -->28<!-- /COUNT --> agents | `.agents/`, `.codex/`         | Generated Codex-compatible copy                                                    |
 
@@ -87,7 +87,7 @@ easy-claude/
 │   │   ├── hooks/                    # Hook documentation
 │   │   ├── skills/                   # Skill documentation
 │   │   └── team-artifacts/           # Templates for PBIs, stories, specs
-│   ├── hooks/                        # 64 top-level .cjs runtime hook files (+ notify-waiting.js)
+│   ├── hooks/                        # 65 top-level .cjs runtime hook files (+ notify-waiting.js)
 │   │   ├── config/                   # Hook configuration
 │   │   │   └── swap-config.json
 │   │   ├── docs/                     # Hook documentation
@@ -278,20 +278,20 @@ easy-claude/
 
 | Code | Module         | Location                       | Description                                                                                                                 |
 | ---- | -------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
-| HK   | Hooks          | `.claude/hooks/`               | <!-- COUNT:hooks -->64<!-- /COUNT --> top-level `.cjs` runtime enforcement & context injection hook files                   |
+| HK   | Hooks          | `.claude/hooks/`               | <!-- COUNT:hooks -->65<!-- /COUNT --> top-level `.cjs` runtime enforcement & context injection hook files                   |
 | HL   | Hook Libraries | `.claude/hooks/lib/`           | <!-- COUNT:lib-modules -->29<!-- /COUNT --> shared utility modules for hooks                                                |
 | SK   | Skills         | `.claude/skills/`              | <!-- COUNT:skills -->258<!-- /COUNT --> task automation skill definitions                                                   |
 | AG   | Agents         | `.claude/agents/`              | <!-- COUNT:agents -->28<!-- /COUNT --> specialized subagent role definitions                                                |
 | WF   | Workflows      | `.claude/workflows.json`       | <!-- COUNT:workflows -->37<!-- /COUNT --> end-to-end process orchestrations                                                 |
-| SC   | Scripts        | `.claude/scripts/`             | 22 top-level utility scripts (catalog gen, audit, worktree, statusline-tps); excludes code_graph package internals + tests/ |
-| CX   | Codex Tooling  | `.claude/scripts/codex/`       | 8 sync, migration, notification, and verification scripts                                                                   |
+| SC   | Scripts        | `.claude/scripts/`             | 28 top-level utility scripts (catalog gen, audit, worktree, statusline-tps); excludes code_graph package internals + tests/ |
+| CX   | Codex Tooling  | `.claude/scripts/codex/`       | 10 sync, migration, notification, and verification scripts                                                                  |
 | CM   | Codex Mirrors  | `.agents/`, `.codex/`          | Generated Codex-compatible skills, agents, hooks                                                                            |
 | OS   | Output Styles  | `.claude/output-styles/`       | 6 coding level presets                                                                                                      |
 | NT   | Notifications  | `.claude/hooks/notifications/` | Multi-channel notification providers (5)                                                                                    |
 | SB   | Scout Block    | `.claude/hooks/scout-block/`   | Broad search prevention subsystem (4 modules)                                                                               |
 | HT   | Hook Tests     | `.claude/hooks/tests/`         | 16 test suites + 13 standalone tests; 14 `test-*` files including primary runner                                            |
 
-## Hooks (<!-- COUNT:hooks -->64<!-- /COUNT --> top-level `.cjs` files)
+## Hooks (<!-- COUNT:hooks -->65<!-- /COUNT --> top-level `.cjs` files)
 
 ### Safety Hooks
 
@@ -368,21 +368,20 @@ easy-claude/
 
 ## Workflows (<!-- COUNT:workflows -->37<!-- /COUNT -->)
 
-| Category          | Workflows                                                                                                                                                                                     |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Development**   | `feature`, `bugfix`, `refactor`, `big-feature`, `batch-operation`, `migration`, `package-upgrade`, `performance`, `deployment`                                                                |
-| **Testing**       | `tdd-feature`, `feature-with-integration-test`, `test-verify`, `test-to-integration`, `test-spec-update`, `e2e-from-changes`, `e2e-from-recording`, `e2e-update-ui`, `write-integration-test` |
-| **Planning**      | `idea-to-pbi`, `pre-development`, `greenfield-init`                                                                                                                                           |
-| **Review**        | `review`, `review-changes`, `quality-audit`, `security-audit`, `verification`                                                                                                                 |
-| **Documentation** | `documentation`, `feature-docs`                                                                                                                                                               |
-| **Design**        | `design-workflow`, `visualize`                                                                                                                                                                |
-| **Handoffs**      | `ba-dev-handoff`, `design-dev-handoff`, `dev-qa-handoff`, `qa-po-acceptance`                                                                                                                  |
-| **Management**    | `release-prep`, `full-feature-lifecycle`, `investigation`                                                                                                                                     |
+| Category                       | Registered Workflows                                                                                                                                                                           |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Development**                | `batch-operation`, `big-feature`, `bugfix`, `deployment`, `feature`, `migration`, `package-upgrade`, `performance`, `refactor`                                                                 |
+| **Testing**                    | `e2e-from-changes`, `e2e-from-recording`, `e2e-update-ui`, `tdd-feature`, `test-spec-update`, `test-to-integration`, `test-verify`, `workflow-seed-test-data`, `write-integration-test`        |
+| **Discovery & Planning**       | `full-feature-lifecycle`, `greenfield-init`, `idea-to-pbi`, `investigation`, `pbi-to-tests`, `product-discovery`, `spec-to-pbi`                                                                |
+| **Documentation & Spec**       | `documentation`, `feature-docs`, `spec-discovery`, `spec-driven-dev`                                                                                                                           |
+| **Review, Security & Release** | `quality-audit`, `release-prep`, `review`, `review-changes`, `security-audit`, `verification`                                                                                                  |
+| **Design & Visualization**     | `design-workflow`, `visualize`                                                                                                                                                                 |
 
 > **Also available as workflow skills** (invokeable via `/workflow-<name>` but not registered in `workflows.json`):
-> `ba-dev-handoff`, `business-evaluation`, `course-building`, `design-dev-handoff`, `dev-qa-handoff`,
-> `marketing-strategy`, `pbi-to-tests`, `pm-reporting`, `qa-po-acceptance`,
-> `research`, `sprint-planning`, `sprint-retro`, `testing`
+> `ba-dev-handoff`, `business-evaluation`, `course-building`, `design`, `design-dev-handoff`,
+> `dev-qa-handoff`, `end`, `feature-with-integration-test`, `greenfield`, `marketing-strategy`,
+> `pm-reporting`, `pre-development`, `qa-po-acceptance`, `research`, `seed-test-data`,
+> `sprint-planning`, `sprint-retro`, `start`, `testing`
 
 ## Agents (<!-- COUNT:agents -->28<!-- /COUNT -->)
 

@@ -1,403 +1,312 @@
 ---
 name: performance
-version: 2.0.0
-description: '[Debugging] Use when you need to analyze and optimize performance bottlenecks.'
+version: 3.0.0
+description: '[Debugging] Use when analyzing or optimizing performance bottlenecks: database queries, N+1 fan-out, indexing, API latency, memory, concurrency, frontend rendering, caching, and distributed paths.'
 ---
+
+> **[IMPORTANT]** MANDATORY MUST ATTENTION stay project-generic: discover local stack, conventions, query APIs, index definitions, metrics, and report paths before judging.
+> **[IMPORTANT]** MANDATORY MUST ATTENTION prove every performance claim with measurement or static evidence: `file:line`, query text/shape, row counts, query plan/explain output, trace, profile, or logs.
+> **[IMPORTANT]** MANDATORY MUST ATTENTION review database performance one dimension at a time: over-fetching, filters, indexes, N+1 fan-out, batching, aggregation/join shape, materialization, writes, caching.
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
 > **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Before each step/sub-skill call, update task tracking: set `in_progress` when step starts, `completed` when step ends.
 > **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
-> **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
+> **[BLOCKING]** If task tools unavailable, maintain equivalent step-by-step tracker with synchronized statuses.
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
 
 ## Quick Summary
 
-**Goal:** Analyze + optimize perf bottlenecks — DB queries, API endpoints, frontend rendering.
+**Goal:** Find real performance bottlenecks, especially database waste: too many rows, too many columns, missing/unused indexes, query-in-loop fan-out, unbounded materialization, slow joins/aggregations, write amplification.
 
 **Workflow:**
 
-1. **Detect** — Classify bottleneck type (DB/API/frontend/memory/N+1/distributed)
-2. **Profile** — Identify hot paths via profiling data/metrics
-3. **Analyze** — Trace execution path + measure impact with `file:line` evidence
-4. **Optimize** — Apply targeted fixes with before/after measurements
-5. **Verify** — Re-measure + confirm improvement, present plan for user approval
+1. **Detect** - Classify scope and bottleneck type.
+2. **Discover** - Read local code, metrics, docs, query/index definitions, similar patterns.
+3. **Measure** - Capture baseline or mark static-only risk.
+4. **Analyze** - Run serial dimension passes with evidence.
+5. **Plan** - Propose smallest fix preserving behavior.
+6. **Verify** - Re-measure, run tests, fresh-eyes review.
 
 **Key Rules:**
 
-- Measure before AND after — NEVER optimize blindly
-- Every claim requires profiling data + `file:line` proof
-- Row-count reduction before projection — higher OOM ROI
+- MANDATORY MUST ATTENTION ALWAYS measure before/after; static review findings need explicit verification command.
+- MANDATORY MUST ATTENTION ALWAYS push row filters to data source before projection/caching; row-count reduction beats column trimming.
+- MANDATORY MUST ATTENTION ALWAYS verify index usability with query shape/order, not index existence alone.
+- NEVER recommend caching until query shape, indexes, pagination, batching, and data volume are understood.
+- NEVER claim PASS after one review round on non-trivial performance work; run fresh-eyes challenge.
 
 <target>$ARGUMENTS</target>
 
 ---
 
-## Phase 0: Detect Bottleneck Type
+## Phase 0: Detect Scope
 
-**MANDATORY IMPORTANT MUST ATTENTION** — classify BEFORE analyzing. Detection drives: which dimensions apply, which tools to use, which sub-agent to route to.
+Classify before analysis. Detection drives dimensions, evidence, sub-agent choice.
 
-| Type            | Signals                                      | Primary Investigation                |
-| --------------- | -------------------------------------------- | ------------------------------------ |
-| DB query        | slow SELECT, missing index, full scan        | Query plan + index analysis          |
-| API latency     | slow endpoint, timeout, high p95             | Profiler + call chain trace          |
-| N+1 queries     | loop + DB call, lazy load in serialization   | `graph trace --direction downstream` |
-| Memory/OOM      | unbounded collections, no paging, blob loads | Row count + memory profiler          |
-| Frontend render | slow paint, excessive change detection       | DevTools perf tab + bundle analysis  |
-| Distributed     | cross-service latency, message bus delays    | `trace` for MESSAGE_BUS edges        |
+| Scope | Signals | Primary evidence |
+| --- | --- | --- |
+| DB read | slow query, full scan, sort spill, high rows examined | query text/ORM expression, row count, plan/explain, indexes |
+| DB write | slow save, lock waits, per-row updates, transaction bloat | write loop, batch size, lock/deadlock logs, transaction scope |
+| N+1/fan-out | loop with query/API call, lazy loading, per-item lookup | caller trace, query count, loop source |
+| API latency | high p95/p99, timeout, slow endpoint/job | trace/profile/logs, call chain |
+| Memory/OOM | large materialization, blobs, no paging, buffering | allocation profile, result size, collection loads |
+| Frontend | slow render, huge bundle, repeated fetch, DOM churn | browser profile, network waterfall, component/render trace |
+| Distributed | message lag, cross-service waterfall, retry storm | trace spans, queue metrics, consumer/producer chain |
 
-Anti-pattern: same analysis applied regardless of bottleneck type.
-
----
-
-## Performance Dimensions
-
-For each dimension: state role → derive failure modes → apply to bottleneck with `file:line` evidence.
-
-### 1. Query Efficiency
-
-**Think:** What data volume loads? Are filters pushed to DB? Do indexes cover all WHERE/JOIN/ORDER BY columns?
-
-- Paging REQUIRED — NEVER unbounded `GetAll()`/`ToList()`/`Find()` without `Skip/Take` or cursor
-- Index REQUIRED — every filter field, FK, sort column needs DB index; verify field order matches query
-- OOM triage order: (1) missing DB-level filter → push to DB (eliminates OOM absolutely); (2) unbounded arrays/blobs → apply projection (reduces severity proportionally). Row reduction higher ROI than projection.
-
-### 2. Hot Path Frequency
-
-**Think:** How often does this code execute? What triggers it? Is there call fan-out?
-
-- `python .claude/scripts/code_graph query callers_of <function> --json` — call frequency + trigger chain
-- `python .claude/scripts/code_graph trace <file> --direction downstream --json` — N+1 cascade, excessive event handlers
-- MESSAGE_BUS edges in trace output = distributed perf bottleneck signals
-
-### 3. Memory Pressure
-
-**Think:** What loads into memory? Is data bounded? Are projections applied before materialization?
-
-- Diagnose unbounded row count BEFORE document size — always row-count first
-- Identify: no pagination, full entity loads, blob fields in list queries
-- Verify projections applied at DB layer, not after `ToList()`
-
-### 4. Concurrency & Parallelism
-
-**Think:** Are parallel ops sharing non-thread-safe resources? Are sequential ops blocking hot path unnecessarily?
-
-- Parallel + repo/UoW → ALWAYS open a NEW DI scope per iteration (do NOT reuse one unit-of-work / DB context across parallel iterations — shared mutable context = silent data corruption)
-- Sequential DB calls in loops → batch or `Include()`
-- Unnecessary sequential awaits → identify parallelizable chains
-
-### 5. Frontend Performance
-
-**Think:** What triggers change detection? Is data fetched eagerly when lazy suffices? Is bundle size bounded?
-
-- `OnPush` change detection + `async` pipe for observable streams
-- Lazy-loaded modules for feature routes
-- `trackBy` on `*ngFor` — prevents full DOM re-renders
-- Profile observable chains for unnecessary emissions
+Skip reason allowed only when target explicitly narrows scope and evidence proves dimension irrelevant.
 
 ---
 
-## ⚠️ Confidence & Evidence Gate
+## Phase 1: Discover Local Context
 
-**MANDATORY IMPORTANT MUST ATTENTION** declare `Confidence: X%` + profiling data + `file:line` for EVERY claim.
+MANDATORY discovery before findings:
 
-| Confidence | Action                      |
-| ---------- | --------------------------- |
-| ≥95%       | Recommend freely            |
-| 80-94%     | Recommend with caveats      |
-| 60-79%     | List unknowns first         |
-| <60%       | STOP — gather more evidence |
+- MUST ATTENTION ALWAYS search local standards: `performance`, `index`, `query`, `pagination`, `projection`, `database`, `profiling`, `contributing`, `style guide`.
+- MUST ATTENTION search 3+ similar local query/API patterns before proposing a fix.
+- MUST ATTENTION read target code and index/migration/schema files controlling the queried data.
+- MUST ATTENTION map callers and frequency using available graph/call-trace/profiler tools; if none exist, use grep/import/call hierarchy.
+- MUST ATTENTION identify data shape: tenant/security filters, cardinality, expected max rows, selected columns/fields, sort, joins, aggregation/grouping, cache keys.
+- NEVER hardcode project names, repository paths, ID formats, DB engines, ORMs, or framework defaults; derive from discovered files.
+
+---
+
+## Phase 2: Baseline Evidence
+
+Prefer runtime proof. If unavailable, label finding `static risk` and include exact command/query needed to verify.
+
+MANDATORY baseline for DB findings:
+
+- ALWAYS capture query source: `file:line` and generated SQL/query/ORM expression when available
+- ALWAYS capture volume: input size, rows matched, rows returned, rows examined/scanned, page size/limit
+- ALWAYS capture access path: query plan/explain, used index, sort/group strategy, join method when available
+- ALWAYS capture timing: p50/p95/p99, elapsed query time, query count, allocation or response size
+- ALWAYS capture context: endpoint/job/consumer frequency and worst-case fan-out
+
+Confidence:
+
+| Confidence | Action |
+| --- | --- |
+| 95%+ | Recommend fix freely. |
+| 80-94% | Recommend with caveats and verification command. |
+| 60-79% | List unknowns first; gather more evidence before fix. |
+| <60% | STOP. Do not recommend. |
+
+---
+
+## Phase 3: Serial Dimension Passes
+
+MANDATORY MUST ATTENTION apply one focused pass per dimension. NEVER scan all dimensions at once.
+
+### 1. Query Shape And Data Minimization
+
+**Think:** Which rows/columns load? Are filters, projection, sorting, and limits executed by data source before materialization?
+
+MUST ATTENTION find:
+
+- unbounded list/read-all APIs without page, limit, cursor, or bounded business invariant
+- filter after materialization (`ToList`/array/load-all before `Where`/filter)
+- projection after materialization; full entity/document loaded for list/summary view
+- unused includes/joins/lookup data; large text/blob/json fields in list queries
+- client-side sort/group/distinct; offset pagination on very deep pages where cursor/keyset fits better
+- missing tenant/auth/status/date filters in hot-path queries
+
+MUST ATTENTION prefer fixes: push predicates to data source, select only needed fields, bound result set, use cursor/keyset for deep sequential access, keep reusable predicates near domain/query-owner layer discovered locally.
+
+### 2. Index And Access Path
+
+**Think:** Can existing indexes satisfy equality/range filters, joins, sort, grouping, and projection in the actual query order?
+
+MUST ATTENTION find:
+
+- no index for high-cardinality filters, joins, foreign keys, sort columns, or frequent group keys
+- composite index field order mismatched with equality -> range -> sort access pattern
+- index exists but plan ignores it because query wraps field in function/cast, uses incompatible type/collation, leading wildcard, broad `OR`, negative predicate, or low selectivity
+- sort spill/filesort because index order does not match filter + order by
+- covering/partial/filtered index opportunity for hot narrow query
+- index bloat from adding every field without write-cost analysis
+
+MUST ATTENTION prefer fixes: add/adjust smallest useful index, reorder composite keys to match query, rewrite predicate to be sargable, verify with plan/explain before/after, include write-cost risk.
+
+### 3. N+1 And Fan-Out
+
+**Think:** Does work scale with item count instead of request/job count?
+
+MUST ATTENTION find:
+
+- query/API/cache call inside loop, map, serializer, resolver, template/render loop, event handler loop
+- per-item existence/count lookup; per-item lazy-loaded relation
+- repeated same lookup with different IDs that could be one `IN`/batch/group query
+- nested fan-out across services, queues, jobs, or retries
+- sequential awaits where independent calls can batch or run bounded parallel with separate safe resources
+
+MUST ATTENTION prefer fixes: batch IDs once, join/include only needed fields, prefetch dictionaries, aggregate counts in one query, use bounded concurrency, preserve ordering/authorization semantics.
+
+### 4. Aggregation, Join, And Pipeline Shape
+
+**Think:** Does the pipeline reduce data before expensive join/unwind/group/sort/window stages?
+
+MUST ATTENTION find:
+
+- join/unwind/group before selective filter
+- cartesian joins or duplicate expansion not collapsed
+- grouping/sorting without pre-filter or supporting index
+- aggregation loads all related rows/documents when only existence/count/min/max needed
+- repeated post-processing that database can compute safely
+
+MUST ATTENTION prefer fixes: filter early, project early, aggregate at source, reduce join cardinality, use existence/count queries, repeat necessary post-expansion filters when array/child semantics require it.
+
+### 5. Materialization And Memory
+
+**Think:** What enters memory? Is it bounded, streamed, and tracking-free when read-only?
+
+MUST ATTENTION find:
+
+- large collection materialized before paging/filtering
+- read-only queries tracking entities/objects unnecessarily
+- blob/file/large JSON fields loaded for lightweight responses
+- buffering entire export/report when streaming/chunking fits
+- accidental multiple enumeration re-running query
+
+MUST ATTENTION prefer fixes: page/chunk/stream, use no-tracking/read-only mode when local stack supports it, project lightweight DTOs, move filter before load, memoize intentionally.
+
+### 6. Write Path, Locks, And Transactions
+
+**Think:** Does write work batch safely and keep locks/transactions small?
+
+MUST ATTENTION find:
+
+- per-row save/update/delete inside loop
+- long transaction wrapping remote calls or heavy reads
+- unnecessary unique checks per row instead of bulk validation
+- lock escalation/hot-row contention/counter updates without batching
+- parallel writes sharing unsafe session/context/unit-of-work
+
+MUST ATTENTION prefer fixes: bulk write, chunk, shorten transaction, move remote calls outside transaction, use idempotent commands, create fresh safe scope/context per parallel worker.
+
+### 7. Cache And Reuse
+
+**Think:** Is repeated expensive work stable, safe to reuse, and invalidated correctly?
+
+MUST ATTENTION find:
+
+- same lookup repeated within request/job
+- hot reference data fetched every request
+- cache key missing tenant/user/auth/filter/version dimensions
+- cache hides unbounded query or stale security-sensitive data
+
+MUST ATTENTION prefer fixes: request-scope memoization first, then bounded shared cache with explicit key, TTL/invalidation, size limits, privacy constraints, and hit/miss metrics.
+
+### 8. API, Distributed, Frontend
+
+**Think:** Is slow work caused by network waterfall, payload size, render churn, or background fan-out?
+
+MUST ATTENTION find:
+
+- endpoint returns more payload than view needs
+- sequential remote calls where backend aggregation or batch endpoint fits
+- message consumer publishes one message per item without batching/backpressure
+- frontend repeated fetch, missing list virtualization, expensive render loop, missing stable keys/track-by
+- bundle or asset load dominates interaction
+
+MUST ATTENTION prefer fixes: batch API, reduce payload, add backpressure, virtualize large lists, stabilize render keys, lazy-load cold assets/routes, measure browser/network trace.
+
+---
+
+## Phase 4: Findings And Severity
+
+Finding format:
+
+```markdown
+- [Severity] [file:line] [dimension] Problem. Evidence: metric/plan/query count. Impact: user/system effect. Fix: smallest behavior-preserving change. Verify: command/query/metric.
+```
+
+Severity:
+
+- Critical: outage/OOM/data corruption risk, unbounded hot path, lock storm, runaway fan-out.
+- High: p95/p99 timeout risk, full scan on large/hot table/collection, N+1 on user-visible list, missing page bound.
+- Medium: avoidable over-fetch, suboptimal index, repeated lookup, moderate memory waste.
+- Low: cleanup with small measurable benefit or future-proofing.
+
+NEVER inflate severity without production-like scale/frequency evidence.
+
+---
+
+## Phase 5: Optimize Plan
+
+Before code changes:
+
+- MUST ATTENTION present baseline, proposed change, behavior invariants, risks, verification commands, and rollback path.
+- MUST ATTENTION preserve functional behavior, authorization, ordering, pagination semantics, consistency, and idempotency.
+- MUST ATTENTION inspect affected tests/specs/docs when behavior, SLA, public contract, or limits change.
+- NEVER change query semantics only to improve speed unless user approves changed behavior.
+- NEVER add broad indexes/caches without write-cost, storage-cost, invalidation, and privacy analysis.
 
 ---
 
 ## Sub-Agent Routing
 
-Route based on detected bottleneck type:
+Use specialized help when available:
 
-| Bottleneck                                      | Sub-agent                                              |
-| ----------------------------------------------- | ------------------------------------------------------ |
-| DB queries / OOM / backend hot path             | `performance-optimizer` (backend)                      |
-| Security-adjacent (auth queries, PII fields)    | `security-auditor` first, then `performance-optimizer` |
-| Cross-service / caching strategy / architecture | activate `arch-performance-optimization` skill         |
-| Frontend bundle / change detection / rendering  | `performance-optimizer` (frontend focus)               |
+| Detected focus | Sub-agent |
+| --- | --- |
+| DB/query/N+1/memory/backend hot path | `performance-optimizer` |
+| Auth, PII, tenant isolation, sensitive cache keys | `security-auditor` first, then `performance-optimizer` |
+| Cross-service architecture, caching policy, capacity/SLO trade-off | architecture/performance specialist |
+| Frontend render/bundle/network waterfall | frontend or performance specialist |
 
-**Activate `arch-performance-optimization` skill for architectural-level decisions.**
-
-**CRITICAL:** Present findings + optimization plan. Wait for explicit user approval before making changes.
+Sub-agent prompt MUST include target, detected scope, local context evidence, required dimensions, report path, and "return summary only; write full report incrementally."
 
 ---
 
-## Sub-Agent Type Override
+## Fresh-Eyes Quality Loop
 
-> **MANDATORY:** Performance analysis spawns `performance-optimizer` sub-agent as the **Round 1 proactive lead**, not just a Round 2 challenger.
-> **Rationale:** `performance-optimizer` specializes in N+1 patterns, query plans, bundle analysis, and memory profiling for both backend (.NET/MongoDB/SQL) and frontend (Angular/RxJS). Main agent synthesizes findings — it does not lead analysis alone.
+1. Round 1: produce findings/plan with evidence.
+2. Round 2: spawn fresh reviewer or re-run review from zero-memory perspective; challenge missed bottlenecks, false positives, wrong root cause, and unsafe fixes.
+3. If issues found: fix plan -> re-review with new fresh reviewer.
+4. Max 3 rounds: stop and ask user for decision.
 
-## Recursive Quality Loop
-
-1. **Round 1 (Proactive):** Spawn `performance-optimizer` sub-agent (`subagent_type: "performance-optimizer"`) as the analysis lead. Main agent provides scope context; sub-agent drives all dimension analysis and produces the draft optimization plan.
-2. **Round 2 (Challenge):** Spawn NEW fresh `performance-optimizer` sub-agent — ZERO memory of Round 1. Challenges Round 1 findings: missed bottlenecks, wrong root cause, premature optimization.
-3. Issues found → fix → Round 3 with NEW fresh `performance-optimizer` sub-agent
-4. Max 3 rounds → escalate to user via `AskUserQuestion`
-5. **Clean Round 1 ENDS the review.** When issues are found, fix and spawn a fresh sub-agent for Round 2 — main agent rationalizes own work, fresh eyes catch what was dismissed.
+MANDATORY clean PASS on non-trivial review requires fresh-eyes challenge or explicit skip reason.
 
 ---
 
-## Workflow Recommendation
+## Output
 
-> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** Not already in workflow → use `AskUserQuestion`:
->
-> 1. **Activate `quality-audit` workflow** (Recommended) — performance → sre-review → test
-> 2. **Execute `/performance` directly** — standalone
+MANDATORY final report sections:
 
----
+- Scope and detected bottleneck type
+- Baseline evidence and unknowns
+- Findings ordered by severity
+- Optimization plan and rejected alternatives
+- Verification plan with before/after metrics
+- Test/spec/doc impact or explicit skip reason
+- Confidence and assumptions
 
-## Phase 1: Why-Review Self-Validation Gate (MANDATORY when findings exist)
-
-> **Purpose:** Adversarial validation of own findings BEFORE handoff. Catches over-flagged Highs, false positives, and severity inflation at the source rather than letting them propagate downstream.
-
-**Trigger:** Any finding produced (Critical, High, Medium, OR Low). Skip ONLY when the report's verdict is unconditional PASS with literally zero findings.
-
-**Protocol:**
-
-1. Read own finalized report from `plans/reports/{skill}-{date}-{slug}.md`
-2. Invoke `/why-review` skill with arg: `validate findings in plans/reports/{skill}-{date}-{slug}.md — verify each finding has file:line proof, steel-man each rejected interpretation, and stress-test severity classifications`
-3. Read why-review output from `plans/reports/why-review-{date}.md`
-4. **If why-review demotes/removes any finding:** UPDATE own finalized report with revised severities, remove false positives, and add a `## Why-Review Validation Notes` section citing what changed and why
-5. **If why-review confirms all findings:** Append `## Why-Review Validation` line to own report stating "All N findings re-validated against actual code; no severity changes."
-
-**Skip conditions (record explicit reason if skipping):**
-
-- Verdict is unconditional PASS with zero findings → log "Skipped — no findings to validate"
-- Why-review skill itself is the active context (avoid recursion)
-
-**Why this exists:** AI sub-agent reports inherit confirmation bias — the orchestrator absorbs severity claims as ground truth. The 2026-05-09 review incident produced 5 Highs; adversarial validation demoted 3 of them. Codify this as standard practice.
+If evidence insufficient, output: `Insufficient evidence. Verified: [...]. Not verified: [...]. Next evidence needed: [...].`
 
 ---
-
-## Next Steps
-
-**MANDATORY IMPORTANT MUST ATTENTION** after completing, use `AskUserQuestion`:
-
-- **"/sre-review (Recommended)"** — production readiness after optimization
-- **"/changelog"** — document perf changes
-- **"Skip, continue manually"** — user decides
-
----
-
-> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting. For simple tasks, ask user whether to skip.
-
-- `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, cross-service sync (read directly when relevant; do not rely on hook-injected conversation text)
-
-> **External Memory:** Write intermediate findings + results to `plans/reports/` — prevents context loss, serves as deliverable.
-
-<!-- SYNC:graph-assisted-investigation -->
-
-> **Graph-Assisted Investigation** — MANDATORY when `.code-graph/graph.db` exists.
->
-> **HARD-GATE:** MUST ATTENTION run at least ONE graph command on key files before concluding any investigation.
->
-> **Pattern:** Grep finds files → `trace --direction both` reveals full system flow → Grep verifies details
->
-> | Task                | Minimum Graph Action                         |
-> | ------------------- | -------------------------------------------- |
-> | Investigation/Scout | `trace --direction both` on 2-3 entry files  |
-> | Fix/Debug           | `callers_of` on buggy function + `tests_for` |
-> | Feature/Enhancement | `connections` on files to be modified        |
-> | Code Review         | `tests_for` on changed functions             |
-> | Blast Radius        | `trace --direction downstream`               |
->
-> **CLI:** `python .claude/scripts/code_graph {command} --json`. Use `--node-mode file` first (10-30x less noise), then `--node-mode function` for detail.
-
-<!-- /SYNC:graph-assisted-investigation -->
-
-<!-- SYNC:incremental-persistence -->
-
-> **Incremental Result Persistence** — MANDATORY for all sub-agents or heavy inline steps processing >3 files.
->
-> 1. **Before starting:** Create report file `plans/reports/{skill}-{date}-{slug}.md`
-> 2. **After each file/section reviewed:** Append findings to report immediately — never hold in memory
-> 3. **Return to main agent:** Summary only (per SYNC:subagent-return-contract) with `Full report:` path
-> 4. **Main agent:** Reads report file only when resolving specific blockers
->
-> **Why:** Context cutoff mid-execution loses ALL in-memory findings. Each disk write survives compaction. Partial results are better than no results.
->
-> **Report naming:** `plans/reports/{skill-name}-{YYMMDD}-{HHmm}-{slug}.md`
-
-<!-- /SYNC:incremental-persistence -->
-
-<!-- SYNC:subagent-return-contract -->
-
-> **Sub-Agent Return Contract** — When this skill spawns a sub-agent, the sub-agent MUST return ONLY this structure. Main agent reads only this summary — NEVER requests full sub-agent output inline.
->
-> ```markdown
-> ## Sub-Agent Result: [skill-name]
->
-> Status: ✅ PASS | ⚠️ PARTIAL | ❌ FAIL
-> Confidence: [0-100]%
->
-> ### Findings (Critical/High only — max 10 bullets)
->
-> - [severity] [file:line] [finding]
->
-> ### Actions Taken
->
-> - [file changed] [what changed]
->
-> ### Blockers (if any)
->
-> - [blocker description]
->
-> Full report: plans/reports/[skill-name]-[date]-[slug].md
-> ```
->
-> Main agent reads `Full report` file ONLY when: (a) resolving a specific blocker, or (b) building a fix plan.
-> Sub-agent writes full report incrementally (per SYNC:incremental-persistence) — not held in memory.
-
-<!-- /SYNC:subagent-return-contract -->
-
-<!-- SYNC:sub-agent-selection -->
-
-> **Sub-Agent Selection** — Full routing contract: `.claude/skills/shared/sub-agent-selection-guide.md`
-> **Rule:** Route specialized domains (architecture, security, performance, DB, E2E, integration-test, git) to the matching specialist agent (see guide above) — NEVER use `code-reviewer` for these. — why: `code-reviewer` lacks each domain's checklist, so specialized issues slip through.
-
-<!-- /SYNC:sub-agent-selection -->
-
-<!-- SYNC:source-test-drift-check -->
-
-> **Source/test drift check.** For coding, fix, debug, investigation, test, or review work: when source behavior changes, inspect affected unit/integration/E2E tests and decide from evidence whether tests should change to match intended behavior or the source change is an unintended bug to fix. Do not write tests for migration code; schema/data migrations are one-time execution paths, not core application logic.
-
-<!-- /SYNC:source-test-drift-check -->
-
-<!-- SYNC:ai-mistake-prevention -->
-
-> **AI Mistake Prevention** — Failure modes to avoid on every task:
->
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-
-<!-- /SYNC:ai-mistake-prevention -->
-
-<!-- SYNC:critical-thinking-mindset -->
-
-> **Critical Thinking Mindset** — Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
-> **Anti-hallucination:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
-
-<!-- /SYNC:critical-thinking-mindset -->
-
-<!-- SYNC:sequential-thinking-protocol -->
-
-> **Sequential Thinking Protocol** — Structured multi-step reasoning for complex/ambiguous work. Use when planning, reviewing, debugging, or refining ideas where one-shot reasoning is unsafe.
->
-> **Trigger when:** complex problem decomposition · adaptive plans needing revision · analysis with course correction · unclear/emerging scope · multi-step solutions · hypothesis-driven debugging · cross-cutting trade-off evaluation.
->
-> **Format (explicit mode — visible thought trail):**
->
-> 1. `Thought N/M: [aspect]` — one aspect per thought, state assumptions/uncertainty
-> 2. `Thought N/M [REVISION of Thought K]: ...` — when prior reasoning invalidated; state Original / Why revised / Impact
-> 3. `Thought N/M [BRANCH A from Thought K]: ...` — explore alternative; converge with decision rationale
-> 4. `Thought N/M [HYPOTHESIS]: ...` then `[VERIFICATION]: ...` — test before acting
-> 5. `Thought N/N [FINAL]` — only when verified, all critical aspects addressed, confidence >80%
->
-> **Mandatory closers:** Confidence % stated · Assumptions listed · Open questions surfaced · Next action concrete.
->
-> **Stop conditions:** confidence <80% on any critical decision → escalate via AskUserQuestion · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
->
-> **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
->
-> **Deep-dive:** see `/sequential-thinking` skill (`.claude/skills/sequential-thinking/SKILL.md`) for worked examples (api-design, debug, architecture), advanced techniques (spiral refinement, hypothesis testing, convergence), and meta-strategies (uncertainty handling, revision cascades).
-
-<!-- /SYNC:sequential-thinking-protocol -->
-
-<!-- SYNC:understand-code-first -->
-
-> **Understand Code First** — HARD-GATE: Do NOT write, plan, or fix until you READ existing code.
->
-> 1. Search 3+ similar patterns (`grep`/`glob`) — cite `file:line` evidence
-> 2. Read existing files in target area — understand structure, base classes, conventions
-> 3. Run `python .claude/scripts/code_graph trace <file> --direction both --json` when `.code-graph/graph.db` exists
-> 4. Map dependencies via `connections` or `callers_of` — know what depends on your target
-> 5. Write investigation to `.ai/workspace/analysis/` for non-trivial tasks (3+ files)
-> 6. Re-read analysis file before implementing — never work from memory alone. — why: long context drifts from the file; the file is ground truth
-> 7. NEVER invent new patterns when existing ones work — match exactly or document deviation. — why: divergent patterns fragment the codebase and slow every future reader
->
-> **BLOCKED until:** `- [ ]` Read target files `- [ ]` Grep 3+ patterns `- [ ]` Graph trace (if graph.db exists) `- [ ]` Assumptions verified with evidence
-
-<!-- /SYNC:understand-code-first -->
-
-<!-- SYNC:evidence-based-reasoning -->
-
-> **Evidence-Based Reasoning** — Speculation is FORBIDDEN. Every claim needs proof.
->
-> 1. Cite `file:line`, grep results, or framework docs for EVERY claim
-> 2. Declare confidence: >80% act freely, 60-80% verify first, <60% DO NOT recommend
-> 3. Cross-service validation required for architectural changes
-> 4. "I don't have enough evidence" is valid and expected output
->
-> **BLOCKED until:** `- [ ]` Evidence file path (`file:line`) `- [ ]` Grep search performed `- [ ]` 3+ similar patterns found `- [ ]` Confidence level stated
->
-> **Forbidden without proof:** "obviously", "I think", "should be", "probably", "this is because"
-> **If incomplete →** output: `"Insufficient evidence. Verified: [...]. Not verified: [...]."`
-
-<!-- /SYNC:evidence-based-reasoning -->
-
-<!-- SYNC:critical-thinking-mindset:reminder -->
-
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
-
-<!-- /SYNC:critical-thinking-mindset:reminder -->
-
-<!-- SYNC:sequential-thinking-protocol:reminder -->
-
-**MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer; see `/sequential-thinking` skill.
-
-<!-- /SYNC:sequential-thinking-protocol:reminder -->
-
-<!-- SYNC:ai-mistake-prevention:reminder -->
-
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
-
-<!-- /SYNC:ai-mistake-prevention:reminder -->
-
-<!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
-
-## Prompt-Enhance Closing Anchors
-
-**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
-**IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
-**IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
-**IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses
-
-<!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 
 ## Closing Reminders
 
-- **MANDATORY IMPORTANT MUST ATTENTION** classify bottleneck type (Phase 0) BEFORE analyzing — detection drives dimension selection and sub-agent routing
-- **MANDATORY IMPORTANT MUST ATTENTION** measure before AND after every change — NEVER "should improve performance" without proof
-- **MANDATORY IMPORTANT MUST ATTENTION** row-count reduction before projection — push DB filters first (eliminates OOM absolutely)
-- **MANDATORY IMPORTANT MUST ATTENTION** break work into small tasks via `TaskCreate` BEFORE starting
-- **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` + profiling data for EVERY claim — `Confidence: X%` required
-- **MANDATORY IMPORTANT MUST ATTENTION** run graph trace before concluding — `callers_of` + `trace --direction downstream` for hot paths
-- **MANDATORY IMPORTANT MUST ATTENTION** wait for explicit user approval before applying changes
-- **MANDATORY IMPORTANT MUST ATTENTION** recursive quality loop — review → if issues → fix → fresh sub-agent re-review. Clean round ENDS the loop.
+**IMPORTANT MANDATORY MUST ATTENTION** stay project-generic: discover local stack, conventions, query APIs, index definitions, metrics, and report paths before judging.
+**IMPORTANT MANDATORY MUST ATTENTION** prove every performance claim with measurement or static evidence: `file:line`, query text/shape, row counts, query plan/explain output, trace, profile, or logs.
+**IMPORTANT MANDATORY MUST ATTENTION** review database performance one dimension at a time: over-fetching, filters, indexes, N+1 fan-out, batching, aggregation/join shape, materialization, writes, caching.
+**IMPORTANT MANDATORY MUST ATTENTION** ALWAYS measure before/after; static review findings need explicit verification command.
+**IMPORTANT MANDATORY MUST ATTENTION** ALWAYS verify index usability with actual query shape/order and plan/explain; index existence alone is not proof.
+**IMPORTANT MANDATORY MUST ATTENTION** ALWAYS push row filters to data source before projection/caching; row-count reduction beats column trimming.
+**IMPORTANT MUST ATTENTION** run fresh-eyes challenge before PASS on non-trivial performance work.
+**IMPORTANT MUST ATTENTION** add final review task checking doc/test/spec staleness.
 
 **Anti-Rationalization:**
 
-| Evasion                                       | Rebuttal                                                         |
-| --------------------------------------------- | ---------------------------------------------------------------- |
-| "Bottleneck is obvious, skip profiling"       | Assumption without measurement = guess. Always measure.          |
-| "Already checked code, no N+1"                | Show graph trace output. No proof = no check.                    |
-| "Simple optimization, skip user approval"     | User decides complexity. Always present plan first.              |
-| "Round 2 redundant, Round 1 found everything" | Main agent rationalizes own work. Fresh eyes catch blind spots.  |
-| "Performance type is clear, skip Phase 0"     | Wrong type = wrong dimensions = wasted analysis. Classify first. |
+| Evasion | Rebuttal |
+| --- | --- |
+| "Bottleneck obvious, skip baseline" | No measurement = guess. Capture metric or label static risk. |
+| "Index exists, so query fine" | Show plan/explain and access path. Existing unused index proves nothing. |
+| "Projection enough" | First reduce rows. Loading fewer columns from too many rows still wastes work. |
+| "Just cache it" | Fix query shape/index/bounds first. Cache can hide stale, unsafe, unbounded work. |
+| "Only one query in code" | Trace loops, serializers, resolvers, consumers, and retries. Fan-out often hides upstream. |
 
-**[TASK-PLANNING]** Break task into small todo tasks via `TaskCreate` BEFORE starting.
+**[TASK-PLANNING]** Break work into small tracked tasks before starting; update each status immediately.

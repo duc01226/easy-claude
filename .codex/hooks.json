@@ -299,6 +299,15 @@
       "hooks": [
         {
           "type": "command",
+          "command": "node ./.claude/hooks/verify-install.cjs"
+        }
+      ],
+      "matcher": "startup|resume"
+    },
+    {
+      "hooks": [
+        {
+          "type": "command",
           "command": "node ./.claude/hooks/session-init.cjs"
         }
       ],

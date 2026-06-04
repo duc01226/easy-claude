@@ -366,6 +366,7 @@ test("sync-context-workflows replaces stale project-reference gate content", asy
     const agentsText = await fs.readFile(path.join(tempRoot, "AGENTS.md"), "utf8");
 
     assert.doesNotMatch(contextText, /Old direct-read-all-project-reference-docs guidance/);
+    assert.match(contextText, /run `\$project-config` and `\$scan-all`/);
     assert.match(contextText, /For situation-specific work, open the referenced project doc directly/);
     assert.equal(contextText.match(/For situation-specific work, open the referenced project doc directly/g)?.length, 1);
     assert.match(contextText, /## Critical Thinking Mindset/);

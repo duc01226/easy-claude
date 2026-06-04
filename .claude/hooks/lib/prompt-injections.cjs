@@ -176,7 +176,7 @@ function buildPortabilityBoundary(portability = {}) {
     const docsIndexPath = portability.docsIndexPath || DEFAULT_PORTABILITY.docsIndexPath;
     const rule = portability.rule || DEFAULT_PORTABILITY.rule;
 
-    return `**Generic portability boundary:** ${rule} Apply shared AI-SDD from \`shared/sdd-artifact-contract.md\`. Read \`${projectConfigPath}\` and \`${docsIndexPath}\`, then open the project reference docs named there. Any supported AI tool may execute when this shared context and local docs are available.`;
+    return `**Generic portability boundary:** ${rule} Apply shared AI-SDD from \`shared/sdd-artifact-contract.md\`. Read \`${projectConfigPath}\` and \`${docsIndexPath}\`, then open the project reference docs named there. If either file or a required reference doc is missing, stop immediately and ask the user to run the project-config and scan-all skills. Any supported AI tool may execute when this shared context and local docs are available.`;
 }
 
 /**

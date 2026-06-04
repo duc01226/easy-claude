@@ -1,7 +1,7 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-06-03'
+  last_updated: '2026-06-05'
   total_skills: 258
   total_by_status:
     active: 258
@@ -1073,8 +1073,9 @@ skills:
       last_reviewed: null
     - name: performance
       path: performance/SKILL.md
-      description: '[Debugging] Use when you need to analyze and optimize performance
-        bottlenecks.'
+      description: '[Debugging] Use when analyzing or optimizing performance bottlenecks:
+        database queries, N+1 fan-out, indexing, API latency, memory, concurrency,
+        frontend rendering, caching, and distributed paths.'
       category: other
       has_scripts: false
       has_references: false

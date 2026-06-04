@@ -241,6 +241,7 @@
 > 4. Treat code-to-spec extraction as reference-only until accepted by the canonical spec owner.
 > 5. Any supported AI tool may plan, implement, review, or verify with synced context; using multiple tools is optional.
 > 6. Update `.claude` source first, then sync generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`. — why: mirrors are generated artifacts; hand-edits are overwritten on the next sync
+> 7. If `docs/project-config.json` or a required project-reference doc is missing, stop immediately and ask the user to run `$project-config` and `$scan-all`.
 >
 > **Active reference:** `shared/sdd-artifact-contract.md` in the active skills root.
 
@@ -251,6 +252,7 @@
 - **MANDATORY** Apply `shared/sdd-artifact-contract.md`; keep reusable AI-SDD in `.claude` and local rules in project docs.
 - **MANDATORY** Code-to-spec extraction is reference-only until canonical acceptance; any supported AI tool may execute with synced context.
 - **MANDATORY** Update `.claude` source before syncing generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`.
+- **MANDATORY** Missing project config or required reference docs block project-specific work; ask the user to run `$project-config` and `$scan-all`.
 
 ---
 
@@ -809,8 +811,8 @@
 >
 > 1. Identify scope: file types, domain area, and operation.
 > 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-docs-reference.md`; architecture/new area `project-structure-reference.md`.
-> 3. Read every required doc that exists; skip absent docs as not applicable. Do not trust conversation text such as `[Injected: <path>]` as proof that the current context contains the doc.
-> 4. Before target work, state: `Reference docs read: ... | Missing/not applicable: ...`.
+> 3. Read every required doc. If `docs/project-config.json`, the docs index, `lessons.md`, or any task-required reference doc is missing, stop immediately and ask the user to run `$project-config` and `$scan-all`.
+> 4. Before target work, state: `Reference docs read: ... | Not applicable: ...`.
 >
 > **Blocked until:** scope evaluated, required docs checked/read, `lessons.md` confirmed, citation emitted.
 
@@ -820,6 +822,7 @@
 
 - **MANDATORY** After task-tracking bootstrap and before target/source work, read required project-reference docs and cite `Reference docs read: ...`.
 - **MANDATORY** Always include `lessons.md`; project conventions override generic defaults.
+- **MANDATORY** If project config or any required reference doc is missing, stop and ask the user to run `$project-config` and `$scan-all`.
 
 ---
 
