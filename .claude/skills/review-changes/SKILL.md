@@ -1,12 +1,8 @@
 ---
 name: review-changes
-version: 2.2.0
+version: 2.3.1
 description: '[Code Quality] Use when reviewing current changes, staged or unstaged diffs, or branch-to-branch diffs.'
 ---
-
-> **[FINAL PURPOSE REMINDER — MUST ATTENTION CRITICAL]**
->
-> Ensure the changes is reasonable, no potential bugs or flaws, critical thinking hard.
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
@@ -19,7 +15,13 @@ description: '[Code Quality] Use when reviewing current changes, staged or unsta
 
 ## Quick Summary
 
-**Goal:** Comprehensive review of current diffs following project standards. No flaws, bugs, missing updates, or stale content. Applies to uncommitted work, staged changes, branch-to-branch diffs, any project type — code, docs, config, infrastructure, non-coding artifacts.
+**Goal:** Review current working-tree, staged, branch, or commit diffs across code, docs, config, infra, and non-code artifacts. Find correctness bugs, flaws, missing updates, stale docs, and convention drift with evidence.
+
+**Final Purpose:** Ensure every reviewed change is defect-free, evidence-backed, convention-aligned, and synchronized with required tests/docs before handoff; when code files changed, also prove the code stays easy to change.
+
+> **Routing boundary:** This skill reviews a **git diff** — working-tree (default), staged, branch, or commit. For an explicit file-set or SHA-range review, processing received review feedback, or a pre-completion verification gate over already-known scope, use `code-review` instead.
+
+> **Shared engine (keep in sync):** `review-changes` and `code-review` share the same review-protocol `SYNC:` blocks. Canonical source: `.claude/skills/shared/sync-inline-versions.md`; policy: `SYNC:shared-protocol-duplication-policy`. When you change a shared block in one skill, update the canonical file AND the sibling skill so the two never drift. The skills differ only in entry intent (diff vs explicit scope) and diff-specific gates (integration-test-sync, translation-sync) — not in review quality.
 
 **Workflow:**
 
@@ -29,10 +31,11 @@ description: '[Code Quality] Use when reviewing current changes, staged or unsta
 4. **Phase 0.7: Surface Detection** — AI categorizes changed files; creates dimension tasks
 5. **Phase 1: Collect** — Run git status/diff, create report file
 6. **Phase 2: File Review** — Review each changed file, update report incrementally
-7. **Phase 3: Holistic** — Spawn fresh-context sub-agent for unbiased holistic assessment
+7. **Phase 3: Fresh-Context Gate** — Skip when findings already exist; run a second-round sub-agent only for an explicit user/workflow/high-risk synthesis trigger
 8. **Phase 4: Finalize** — Generate critical issues, recommendations, suggested commit message
-9. **Phase 5: Docs Triage** — Invoke `/docs-update` if staleness detected
-10. **Phase 6: Why-Review Findings Validation (REQUIRED closing task)** — Invoke `/why-review` to verify every finding is correct, proof-backed, reasonable, and best-practice; RE-DO why-review ONLY if finding issues / enhancement opportunities surface (capped)
+9. **Phase 5: Docs Triage** — Record stale-doc findings for validation/fix loop
+10. **Phase 6: Why-Review Findings Validation (standalone-only; REQUIRED before any standalone fix)** — Invoke `/why-review --validate-findings` to verify every finding is correct, proof-backed, reasonable, and best-practice before fixing. When this skill is step 1 inside `$workflow-review-changes`, stop after the report; parent step 2 owns findings validation.
+11. **Phase 7: Recursive Fix + Full Re-Review Loop (standalone-only)** — If validated findings remain in standalone mode, auto-fix them, then re-invoke `/review-changes` from Phase 0 with a fresh task breakdown over the full current diff; repeat until an entire review pass has zero findings. When inside `$workflow-review-changes`, parent steps 10-15 own plan/cook/restart.
 
 **Key Rules:**
 
@@ -41,7 +44,11 @@ description: '[Code Quality] Use when reviewing current changes, staged or unsta
 - Skeptical: every claim needs `file:line` proof
 - Verify convention by grepping 3+ existing examples before flagging violations
 - Actively check DRY violations, YAGNI/KISS over-engineering, correctness bugs
+- When changed files include source code, run the Easy-to-Change gate: estimate future edit sites, coupling, hidden state, duplicated knowledge, unclear intent, and abstraction boundary health
 - Cross-reference changed files against related docs — flag stale docs, test specs, READMEs
+- Findings are not eligible for auto-fix until Phase 6 why-review validation returns CLEAN for the current finding set
+- Every fix cycle invalidates the prior review result; restart `/review-changes` from Phase 0 and review the full updated diff, including the fixes
+- Continue review → validate findings → fix → full re-review until a complete review pass returns zero findings; do not add a fresh-context pass just because findings exist or a fix cycle restarted the review
 
 > **MANDATORY IMPORTANT MUST ATTENTION** Plan ToDo Task to discover and READ project-specific reference docs:
 >
@@ -62,11 +69,11 @@ description: '[Code Quality] Use when reviewing current changes, staged or unsta
 
 # Code Review: Current Or Branch Diff
 
-Comprehensive review of current changes or explicit branch/commit diffs following project standards.
+Review current changes or explicit branch/commit diffs against project standards.
 
 ## Review Scope
 
-Target: Current working-tree changes by default, or an explicit branch/tag/commit diff when the user asks to review a branch comparison.
+Target: current working-tree changes by default; explicit branch/tag/commit diff when user asks branch comparison.
 
 Use these sources:
 
@@ -88,22 +95,23 @@ Use these sources:
 
 ## First Principle — Easy to Change
 
-> **The success metric of every coding decision is _future change cost_.**
-> DRY, SRP, abstraction, design patterns, naming, layering, tests — every
-> technique exists to serve one goal: **making the next change cheaper**.
+Apply this gate when the diff includes source-code or code-adjacent files
+(`.cs`, `.ts`, `.html`, `.scss`, `.css`, tests, scripts, build/config-as-code).
+Pure docs-only changes skip this gate except for executable examples or code
+snippets.
 
-When evaluating code, a refactor, a test, or an abstraction, ask:
-**does this make the next change cheaper or more expensive?**
+> **Success metric: _future change cost_.**
+> DRY, SRP, abstraction, design patterns, naming, layering, tests — all serve one goal: **make the next change cheaper**.
 
-- Reject "best practices" that raise change cost (premature abstraction,
-  speculative generality, leaky indirection, ceremony without payoff).
-- Name the real enemies in findings: **coupling, hidden state, duplicated
-  knowledge, unclear intent, irreversible decisions exposed too early**.
+When evaluating code, refactor, test, or abstraction, ask: **does this make the next change cheaper or more expensive?**
+
+- Reject "best practices" raising change cost: premature abstraction, speculative generality, leaky indirection, ceremony without payoff.
+- Name real enemies in findings: **coupling, hidden state, duplicated knowledge, unclear intent, irreversible decisions exposed too early**.
+- Favor project-owned boundaries around external libraries, for example component/service input-output contracts, when they localize future library changes; reject pass-through wrappers that add ceremony without lowering change cost.
 - A simpler design that is easy to change beats a sophisticated design that
   isn't.
 
-Apply this lens **before** invoking any specific rule, pattern, or checklist
-below — if a downstream rule would raise change cost, this principle wins.
+Apply this lens **before** specific rules, patterns, or checklists below. If a downstream rule raises change cost, this principle wins.
 
 ---
 
@@ -138,7 +146,7 @@ For each changed file, trace full impact:
 2. Flag any affected file NOT covered by tests
 3. Catches cross-service impact simple diff review misses
 
-## Review Approach (Report-Driven Two-Phase — CRITICAL)
+## Review Approach (Report-Driven Multi-Phase — CRITICAL)
 
 **MANDATORY FIRST: Create Todo Tasks for Review Phases**
 Before starting, call TaskCreate with:
@@ -149,10 +157,11 @@ Before starting, call TaskCreate with:
 - [ ] `[Review Phase 0.5] Plan compliance check (skip if no active plan)` - pending
 - [ ] `[Review Phase 1] Get changes and create report file` - pending
 - [ ] `[Review Phase 2] Review file-by-file and update report` - pending
-- [ ] `[Review Phase 3] Spawn fresh-context sub-agent for holistic assessment` - pending
+- [ ] `[Review Phase 3] Evaluate fresh-context gate; skip when findings already exist` - pending
 - [ ] `[Review Phase 4] Generate final review findings` - pending
-- [ ] `[Review Phase 5] Run /docs-update if staleness detected` - pending
-- [ ] `[Review Phase 6] Why-review findings validation gate (re-do until clean, capped)` - pending **(MANDATORY CLOSING TASK — never skip when findings exist)**
+- [ ] `[Review Phase 5] Record stale-doc findings for validation/fix loop` - pending
+- [ ] `[Review Phase 6] Why-review findings validation gate before any fix` - pending **(MANDATORY when findings exist)**
+- [ ] `[Review Phase 7] Auto-fix validated findings and restart /review-changes from Phase 0` - pending **(MANDATORY when validated findings remain)**
 
 Update todo status as each phase completes.
 
@@ -312,7 +321,7 @@ For EACH identified category:
 | Infrastructure, CI/CD, config          | `general-purpose`       |
 | Mixed or default                       | `code-reviewer`         |
 
-> **UI/frontend dimension:** When a _Client-side logic_ or _Styles/Assets_ category surfaces frontend files matching the project's configured frontend/UI file patterns, apply the `/review-ui` checklist for that category — long-content overflow (wrap vs ellipsis+tooltip), responsive multi-screen via flex, flex-grow vs fixed sizing (prefer min/max + flex over fixed px), z-index scale discipline (no raw numbers, no `!important`), and SCSS/BEM quality. In a workflow, `/review-ui` runs as a dedicated parallel-batch member; standalone, fold its checks into the relevant category task. Skip entirely if no frontend files changed.
+> **UI/frontend dimension (OWNED by this skill):** When a _Client-side logic_ or _Styles/Assets_ category surfaces frontend files matching the project's configured frontend/UI file patterns, `/review-changes` owns the UI review and invokes `/review-ui` as its UI dimension — preferably as a dedicated `ui-ux-designer` sub-agent spawned in the same parallel batch as the other dimensional agents (inline-fold its checklist only when sub-agent spawning is unavailable). The checklist: long-content overflow (wrap vs ellipsis+tooltip), responsive multi-screen via flex, flex-grow vs fixed sizing (prefer min/max + flex over fixed px), z-index scale discipline (no raw numbers, no `!important`), and SCSS/BEM quality. This is the SAME behavior in both standalone and workflow contexts — `/review-ui` is NOT a separate workflow step; it always runs here. Skip entirely if no frontend files changed.
 
 **Step 3: Work through tasks in order**
 
@@ -367,12 +376,23 @@ For EACH changed file, read and **immediately update report** with:
 - Issues Found: naming, typing, responsibility, patterns, bugs, over-engineering, logic errors
 - Continue to next file, repeat
 
-**Phase 3: Second-Round Review (Conditional Protocol — branch on Phase 0.7 surface)**
+**Phase 3: Fresh-Context Gate (Conditional Protocol — branch on findings and Phase 0.7 surface)**
 
 > **Protocol:** `SYNC:double-round-trip-review` + `SYNC:fresh-context-review` + `SYNC:review-protocol-injection` (all inlined above).
-> **INVARIANT:** Phase 3 fires a fresh sub-agent ONLY after a fix cycle. If Phase 2 finds zero issues, the review ENDS — no Phase 3 needed. If Phase 2 finds issues, fix them, then Phase 3 fresh sub-agent re-review is mandatory.
+> **INVARIANT:** Phase 3 is review-only. It may add findings, but it MUST NOT fix or validate them. Existing findings do not require a fresh-context re-review; any non-zero finding set flows to Phase 6 why-review validation, then Phase 7 auto-fix + full `/review-changes` restart from Phase 0. A Phase 7 restart alone is NOT a Phase 3 trigger.
 
-Check categories from Phase 0.7 — if multiple distinct domains changed (e.g., server-side + client-side), run **Synthesis Mode**. Otherwise run **Holistic Mode**.
+**Entry gate:**
+
+1. If Phase 2 or any dimensional review already found findings, **SKIP Phase 3**. Record: `Skipped fresh-context pass because findings already exist; Phase 6 why-review validation is the required next gate.` Then proceed to Phase 4 consolidation and Phase 6 validation.
+2. If there are zero findings and no explicit independent-review trigger, **SKIP Phase 3**. Record: `Skipped fresh-context pass because the current review is clean and no second-round trigger exists.` Then proceed to Phase 4 finalization.
+3. Run Phase 3 only when the current finding set is zero **and** at least one trigger exists:
+    - the user explicitly requested a second-round/fresh-context review;
+    - the selected workflow explicitly requires an independent reviewer for this invocation;
+    - high-risk multi-domain changes need synthesis before a clean verdict.
+
+**Anti-waste rule:** Do not run Phase 3 to re-review known findings before Phase 6. Do not run Phase 3 solely because Phase 7 restarted the review after fixes. The restarted review is already the required full pass; if it has zero findings and no explicit trigger above, finalize cleanly.
+
+If the entry gate allows Phase 3, check categories from Phase 0.7 — if multiple distinct domains changed (e.g., server-side + client-side), run **Synthesis Mode**. Otherwise run **Holistic Mode**.
 
 ---
 
@@ -407,8 +427,8 @@ After sub-agent returns:
 
 1. **Read** synthesis report
 2. **Integrate** findings as `## Synthesis Round Findings` in main report — DO NOT filter or override
-3. **If FAIL:** fix issues, spawn NEW synthesis sub-agent (new Agent call)
-4. **Max 3 fresh rounds** — escalate via `AskUserQuestion` if still failing
+3. **If findings exist:** do NOT fix here; mark Phase 3 complete and proceed to Phase 6 why-review validation
+4. **If no findings exist:** proceed to Phase 4 finalization as a clean synthesis pass
 
 ---
 
@@ -428,9 +448,9 @@ After sub-agent returns:
 
 1. **Read** sub-agent's report
 2. **Integrate** findings as `## Round {N} Findings (Fresh Sub-Agent)` in main report — DO NOT filter or override
-3. **If FAIL:** fix issues, spawn NEW Round N+1 fresh sub-agent (new Agent call — never reuse Round 2's agent)
-4. **Max 3 fresh rounds** — escalate to user via `AskUserQuestion` if still failing
-5. **Final verdict** must incorporate findings from ALL rounds
+3. **If findings exist:** do NOT fix here; mark Phase 3 complete and proceed to Phase 6 why-review validation
+4. **If no findings exist:** proceed to Phase 4 finalization as a clean holistic pass
+5. **Final verdict** must incorporate findings from ALL review passes executed in this invocation
 
 The following checks are handled by sub-agent but can be verified in Phase 4:
 
@@ -448,7 +468,7 @@ For each changed file, identify related documentation:
 - Search for feature docs, architecture references, READMEs at module/service roots, API docs, test specs, setup guides
 - Flag any doc where content no longer matches the changed artifact
 - Flag missing docs for new features or components that should be documented
-- **Flag in the report** with the specific stale section and what changed, never auto-fix
+- **Flag in the report** with the specific stale section and what changed. Do not fix yet; Phase 6 must validate the finding before Phase 7 invokes `/docs-update` or applies doc edits.
 
 **Correctness & Bug Detection:** Apply `SYNC:bug-detection` — null safety, boundaries, error handling, resource cleanup, concurrency.
 
@@ -474,9 +494,10 @@ Update report with final sections:
 
 If Documentation Staleness Check in Phase 4 identified stale docs:
 
-1. Invoke `/docs-update` skill to update impacted documentation
-2. If `/docs-update` produces changes, include in review summary
-3. If no staleness detected, skip: "No doc updates needed — staleness check was clean"
+1. Record impacted documentation and the proposed sync/update path in the review report
+2. Add each stale-doc item to the Phase 6 findings validation payload
+3. Do NOT invoke `/docs-update` yet; stale-doc findings are fixed in Phase 7 only after `/why-review --validate-findings` returns CLEAN for them
+4. If Phase 7 later applies doc fixes, the next recursive `/review-changes` invocation must re-review the updated docs from Phase 0
 
 ## Readability Checklist (MUST ATTENTION evaluate)
 
@@ -699,7 +720,7 @@ With all category findings combined, assess:
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If NOT already in a workflow, MUST use `AskUserQuestion` to ask user. Do NOT judge task complexity or decide "simple enough to skip" — user decides, not you:
 >
-> 1. **Activate `review-changes` workflow** (Recommended) — review-changes → [parallel: review-architecture + review-ui (if frontend changes) + review-domain-entities (if domain entities changed) + performance + integration-test-review + security] → code-simplifier → code-review → integration-test-verify → why-review (synthesis) → plan → why-review → plan-validate → why-review → cook → workflow-review-changes (fresh-subagent re-review gate) → docs-update → watzup → workflow-end
+> 1. **Activate `review-changes` workflow** (Recommended) — run the canonical workflow from `.claude/workflows.json`; it sequences this skill, findings validation, parallel reviewers, `code-simplifier` self-review, fix-plan cycle, full re-review restart, docs, and handoff.
 > 2. **Execute `/review-changes` directly** — run this skill standalone
 
 ---
@@ -719,21 +740,23 @@ If `architectureRules` not present in project-config.json, skip silently.
 
 ---
 
-## Phase 6: Why-Review Findings Validation Gate (MANDATORY CLOSING TASK when findings exist)
+## Phase 6: Why-Review Findings Validation Gate (MANDATORY before fixing findings)
 
-> **Purpose:** Adversarial validation of own findings BEFORE handoff. Verify EVERY finding **correct, proof-backed (`file:line`), reasonable, aligned with best practices/conventions**. Catches over-flagged Highs, false positives, severity inflation, AND missed enhancement opportunities at source — before they propagate downstream.
+> **Purpose:** Validate own findings BEFORE any fix. Verify EVERY finding is **correct, proof-backed (`file:line`), reasonable, and convention-aligned**. Catch false positives, inflated severity, and missed improvements before code/doc edits.
 
-> **MANDATORY:** REQUIRED final todo task. Register via `TaskCreate` as `[Review Phase 6] Why-review findings validation gate` (already in Phase task list above). Do NOT mark review complete until gate passes CLEAN or hits re-do cap.
+> **MANDATORY:** REQUIRED todo task whenever findings exist. Register via `TaskCreate` as `[Review Phase 6] Why-review findings validation gate` (already in Phase task list above). Do NOT fix, docs-update, commit, or hand off until this gate passes CLEAN or reaches an explicit blocked state.
 
 **Trigger:** Any finding produced (Critical, High, Medium, OR Low). Skip ONLY when report verdict is unconditional PASS with literally zero findings.
+
+**Parent workflow boundary:** When this skill is invoked as step 1 inside `$workflow-review-changes`, do NOT run this Phase 6 locally. Stop after the review report and hand it to parent workflow step 2; the parent runs `/why-review --validate-findings` before any parallel reviewers or fixes.
 
 **Protocol (capped re-do loop):**
 
 1. Read own finalized report from `plans/reports/{skill}-{date}-{slug}.md`
 2. **Invoke `/why-review --validate-findings`** (terminal validate mode — runs in the SAME main-agent session, never spawns a sub-agent, never recurses) with arg: `--validate-findings plans/reports/{skill}-{date}-{slug}.md — for EACH finding verify (a) file:line proof exists and is accurate, (b) the finding is correct (re-trace the cited code), (c) severity is reasonable and not inflated, (d) it reflects project best practices/conventions; steel-man each rejected interpretation; and surface any MISSED finding or enhancement opportunity the review overlooked`
-3. Read why-review output from `plans/reports/why-review-{date}.md`
+3. Read the validation verdict path returned by why-review, expected as `plans/reports/why-review-validate-{date}.md`
 4. **Classify the why-review verdict:**
-    - **CLEAN** — all findings confirmed correct / proof-backed / reasonable / best-practice, AND no new finding issue or enhancement opportunity surfaced → append `## Why-Review Validation` line to own report ("All N findings re-validated against actual code; no changes."), gate PASSES, exit loop.
+    - **CLEAN** — all findings confirmed correct / proof-backed / reasonable / best-practice, AND no new finding issue or enhancement opportunity surfaced → append `## Why-Review Validation` line to own report ("All N findings re-validated against actual code; no changes."), gate PASSES; if N > 0, proceed immediately to Phase 7.
     - **HAS ISSUES** — why-review demotes/removes a finding, flags a missing or inaccurate proof, OR surfaces a new finding issue / enhancement opportunity → go to step 5.
 5. **Reconcile:** UPDATE own finalized report — revise severities, remove false positives, add the surfaced findings/enhancements, and record a `## Why-Review Validation Notes` section citing what changed and why.
 6. **RE-DO `/why-review --validate-findings`** on the UPDATED report (return to step 2) — re-validation is required ONLY because the report changed. Each pass is terminal (validate mode never recurses); the loop is owned and bounded HERE. Repeat until a why-review round comes back CLEAN, or **max 2 re-do rounds** (3 total validate passes) is reached.
@@ -741,10 +764,46 @@ If `architectureRules` not present in project-config.json, skip silently.
 
 **Skip conditions (record explicit reason if skipping):**
 
-- Verdict is unconditional PASS with zero findings → log "Skipped — no findings to validate"
+- Verdict is unconditional PASS with zero findings → log "Skipped — no findings to validate" and do NOT run Phase 7
 - `/why-review` itself is the active skill context → do NOT recurse; why-review re-validates via its own terminal `--validate-findings` mode (see its `Findings Validation Gate`)
 
-**Why this exists:** AI sub-agent reports inherit confirmation bias — orchestrator absorbs severity claims as ground truth. 2026-05-09 review incident produced 5 Highs; adversarial validation demoted 3. Capped re-do loop closes the gap where a single validation pass fixes findings but never re-checks the corrected report. Codify as standard practice.
+**Why this exists:** AI reports can inherit confirmation bias, false positives, and severity inflation. Validation proves findings before edits; re-validation after report changes closes the gap where corrected findings are never checked again.
+
+---
+
+## Phase 7: Recursive Auto-Fix + Full Re-Review Loop (MANDATORY when validated findings remain)
+
+> **Purpose:** Fixes change the review target. Next check MUST be a full new `/review-changes` invocation from Phase 0, not continuation from old review state.
+
+**Trigger:** Phase 6 returns CLEAN and the validated report still contains one or more findings, weaknesses, stale-doc items, missing-test items, or required improvements.
+
+**Parent workflow boundary:** When this skill is invoked as step 1 inside `$workflow-review-changes`, do NOT auto-fix or re-invoke `/review-changes` from here. Parent workflow steps 10-15 own `/plan`, `/plan-review`, `/plan-validate`, `/why-review`, `/cook`, and the full restart gate.
+
+**Protocol:**
+
+1. Create fresh fix-cycle tasks before editing: one task per validated finding, one targeted-verification task, one `/review-changes` restart task.
+2. Auto-fix validated findings at the owning layer. Stale docs: run `/docs-update` or edit canonical docs only after validation. Tests/specs: update canonical artifact before derived dashboards.
+3. Run targeted verification for the fix set: tests, lint, docs/spec sync, SDD, graph, or config checks as applicable.
+4. Append `## Fix Cycle {N}` to the review report: findings fixed, files changed, verification commands/results, and unresolved items with reasons.
+5. **Re-invoke `/review-changes` in the SAME main-agent session** on the full current review target:
+    - Create brand-new task list for all phases
+    - Re-run Phase 0 blast radius, Phase 0.3 risk detection, Phase 0.7 surface categorization, Phase 1 diff collection, and later phases
+    - Re-read all changed files from scratch, including original changes and Phase 7 fixes
+    - Treat previous report as historical context only; never reuse prior findings as truth
+6. Repeat Phase 0 → Phase 7 until one complete `/review-changes` invocation produces unconditional PASS with zero findings and Phase 6 is skipped as "no findings to validate".
+
+**Stop conditions:**
+
+- If the same validated finding repeats for 3 full review invocations with no observable progress, stop and ask the user for a decision instead of spinning.
+- If a finding cannot be safely auto-fixed without product/owner input, record the blocker and ask the user.
+- If required verification tools or sub-skills are unavailable, stop and ask before adapting the protocol.
+
+**Non-negotiable rules:**
+
+- NEVER fix findings before `/why-review --validate-findings` confirms the current finding set.
+- NEVER mark review clean after a fix without rerunning the full `/review-changes` protocol from Phase 0.
+- NEVER review only the fixed files after a fix; review the full current diff because fixes can interact with earlier changes.
+- NEVER reuse old todo tasks after restart; each recursive review invocation breaks down all phases again.
 
 ---
 
@@ -775,7 +834,7 @@ If `architectureRules` not present in project-config.json, skip silently.
 | `/feature-docs [update]`   | **Feature doc updater** — called for feature doc section changes            | Called internally by docs-update; call directly for targeted update                                         |
 | `/tdd-spec [update]`       | **Test spec updater** — called when test cases may be stale                 | Called internally by docs-update; call directly for targeted test case update                               |
 | `/integration-test-review` | **Test quality gate** — detects test/spec mismatches                        | Call when changes touch areas covered by integration tests                                                  |
-| `/review-ui`               | **UI/frontend quality gate** — overflow, responsive flex, z-index, SCSS/BEM | Parallel-batch member; call when diff has files matching the project's configured frontend/UI file patterns |
+| `/review-ui`               | **UI/frontend quality gate** — overflow, responsive flex, z-index, SCSS/BEM | Owned by this skill — invoked internally as the UI dimension (ui-ux-designer sub-agent) when the diff has frontend/UI files; NOT a separate workflow step |
 | `/code-review`             | **Code quality** — deeper review of changed code                            | Always follows review-changes quality pass                                                                  |
 
 ## Standalone Chain
@@ -788,7 +847,9 @@ review-changes (you are here)
   ├─ Code quality checks (code-simplifier → review-architecture → code-review → performance)
   │
   ├─ Phase 5: Documentation Staleness Triage
-  │    → If stale docs detected: [REQUIRED] → /docs-update
+  │    → If stale docs detected: [REQUIRED] include as finding for Phase 6 validation
+  │    → If validated in Phase 6: [REQUIRED] fix in Phase 7 via /docs-update or canonical doc edit
+  │    → Then recursively restart /review-changes from Phase 0
   │
   ├─ Integration test check (SYNC:integration-test-sync-check):
   │    → If logic changes touch tested areas: [REQUIRED] → /integration-test [from-changes]
@@ -803,14 +864,19 @@ review-changes (you are here)
   │    → If spec bug confirmed → [REQUIRED]: /spec-discovery [update] FIRST → /feature-docs [update relevant sections]
   │    → Do NOT let /docs-update update test cases to document broken behavior.
   │
-  └─ [RECOMMENDED] → /watzup
+  ├─ Phase 6 + Phase 7 recursive loop
+  │    → If ANY findings exist: /why-review --validate-findings
+  │    → If validated findings remain: auto-fix, verify, then restart /review-changes from Phase 0
+  │    → Repeat until a full review invocation has zero findings
+  │
+  └─ [RECOMMENDED after zero findings] → /watzup
         Summary of all review findings, doc changes, and test coverage status.
 ```
 
 > **[CRITICAL — TOP 3 RULES]**
 >
 > 1. **MUST ATTENTION Phase 0 graph blast-radius FIRST** — NEVER skip; informs entire review order
-> 2. **Clean Round 1 ENDS the review.** When issues found, fresh sub-agent re-review mandatory after fixing.
+> 2. **Findings trigger validate → fix → full restart.** Run `/why-review --validate-findings`, fix validated findings, then rerun `/review-changes` from Phase 0 until a full pass has zero findings.
 > 3. **MUST ATTENTION TaskCreate ALL phases** before starting; missing tests MUST surface via `AskUserQuestion` — NOT silently logged
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. Prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
@@ -962,16 +1028,16 @@ review-changes (you are here)
 
 <!-- SYNC:double-round-trip-review -->
 
-> **Fix-Triggered Re-Review Loop** — Re-review is triggered by a FIX CYCLE, not by a round number. Review purpose: `review → if issues → fix → re-review` until a round finds no issues. **A clean review ENDS the loop — no further rounds required.**
+> **Validated-Finding Fix + Full Re-Review Loop** — Re-review is triggered by a validated finding fix cycle, not by a round number. Review purpose: `review → validate findings → fix validated findings → full re-review` until a complete review pass finds no issues. **A clean review ENDS the loop — no further rounds required.**
 >
 > **Round 1:** Main-session review. Read target files, build understanding, note issues. Output findings + verdict (PASS / FAIL).
 >
 > **Decision after Round 1:**
 >
 > - **No issues found (PASS, zero findings)** → review ENDS. Do NOT spawn a fresh sub-agent for confirmation.
-> - **Issues found (FAIL, or any non-zero findings)** → fix the issues, then spawn a fresh sub-agent for Round 2 re-review.
+> - **Issues found (FAIL, or any non-zero findings)** → run the active review skill's findings-validation gate first; for review skills the default gate is `/why-review --validate-findings <report-path>`, fix only validated findings, then restart the full review protocol from the beginning with a fresh task breakdown.
 >
-> **Fresh sub-agent re-review (after every fix cycle):** Spawn a NEW `Agent` tool call — never reuse a prior agent. Sub-agent re-reads ALL files from scratch with ZERO memory of prior rounds. See `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. Each fresh round must catch:
+> **Fresh full re-review after every fix cycle:** Re-run the whole review protocol over the current full target. When sub-agents are part of that protocol, spawn NEW `Agent` calls — never reuse prior agents. Reviewers re-read ALL files from scratch with ZERO memory of prior rounds. See `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. Each fresh full review must catch:
 >
 > - Cross-cutting concerns missed in the prior round
 > - Interaction bugs between changed files
@@ -980,16 +1046,17 @@ review-changes (you are here)
 > - Subtle edge cases the prior round rationalized away
 > - Regressions introduced by the fixes themselves
 >
-> **Loop termination:** After each fresh round, repeat the same decision: clean → END; issues → fix → next fresh round. Continue until a round finds zero issues, or **3 fresh-subagent rounds max**, then escalate to user via `AskUserQuestion`.
+> **Loop termination:** After each full re-review, repeat the same decision: clean → END; issues → validate findings → fix → restart from the first review phase. Continue until a complete review pass finds zero issues. If the same validated finding repeats for 3 full invocations with no progress, or a fix requires product/owner input, escalate via `AskUserQuestion`.
 >
 > **Rules:**
 >
 > - A clean Round 1 ENDS the review — no mandatory Round 2
-> - NEVER skip the fresh sub-agent re-review after a fix cycle (every fix invalidates the prior verdict)
-> - NEVER reuse a sub-agent across rounds — every iteration spawns a NEW Agent call
+> - NEVER fix unvalidated findings; validate first using the caller's validation gate
+> - NEVER skip the full re-review after a fix cycle (every fix invalidates the prior verdict)
+> - NEVER reuse a sub-agent across rounds — every iteration that uses sub-agents spawns NEW Agent calls
 > - Main agent READS sub-agent reports but MUST NOT filter, reinterpret, or override findings
-> - Max 3 fresh-subagent rounds per review — if still FAIL, escalate via `AskUserQuestion` (do NOT silently loop)
-> - Track round count in conversation context (session-scoped)
+> - No arbitrary sub-agent-round cap replaces the clean-review requirement; use the 3 repeated-no-progress blocker rule only to avoid infinite spinning
+> - Track recursive invocation count and repeated blockers in conversation context (session-scoped)
 > - Final verdict must incorporate ALL rounds executed
 >
 > **Report must include `## Round N Findings (Fresh Sub-Agent)` for every round N≥2 that was executed.**
@@ -998,15 +1065,15 @@ review-changes (you are here)
 
 <!-- SYNC:fresh-context-review -->
 
-> **Fresh Sub-Agent Review** — Eliminate orchestrator confirmation bias via isolated sub-agents.
+> **Fresh Context Re-Review** — Eliminate orchestrator confirmation bias after fixes by restarting the full review with isolated sub-agents where applicable.
 >
 > **Why:** The main agent knows what it (or `/cook`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
 >
-> **When:** ONLY after a fix cycle. A review round that finds zero issues ENDS the loop — do NOT spawn a confirmation sub-agent. A review round that finds issues triggers: fix → fresh sub-agent re-review.
+> **When:** ONLY after a validated-finding fix cycle. A review round that finds zero issues ENDS the loop — do NOT spawn a confirmation sub-agent. A review round that finds issues triggers: validate findings → fix → full review restart from the first phase.
 >
 > **How:**
 >
-> 1. Spawn a NEW `Agent` tool call — use `code-reviewer` subagent_type for code reviews, `general-purpose` for plan/doc/artifact reviews
+> 1. Start a NEW full review invocation/task breakdown; when that protocol calls for agents, spawn NEW `Agent` tool calls — use `code-reviewer` subagent_type for code reviews, `general-purpose` for plan/doc/artifact reviews
 > 2. Inject ALL required review protocols VERBATIM into the prompt — see `SYNC:review-protocol-injection` for the full list and template. Never reference protocols by file path; AI compliance drops behind file-read indirection (see `SYNC:shared-protocol-duplication-policy`)
 > 3. Sub-agent re-reads ALL target files from scratch via its own tool calls — never pass file contents inline in the prompt
 > 4. Sub-agent writes structured report to `plans/reports/{review-type}-round{N}-{date}.md`
@@ -1014,11 +1081,11 @@ review-changes (you are here)
 >
 > **Rules:**
 >
-> - SKIP fresh sub-agent when the prior round found zero issues (no fixes = nothing new to verify)
-> - NEVER skip fresh sub-agent after a fix cycle — every fix invalidates the prior verdict
+> - SKIP fresh sub-agent when the prior full review found zero issues (no fixes = nothing new to verify)
+> - NEVER skip the full review restart after a fix cycle — every fix invalidates the prior verdict
 > - NEVER reuse a sub-agent across rounds — every fresh round spawns a NEW `Agent` call
-> - Max 3 fresh-subagent rounds per review — escalate via `AskUserQuestion` if still failing; do NOT silently loop or fall back to any prior protocol
-> - Track iteration count in conversation context (session-scoped, no persistent files)
+> - Continue until a complete full review pass has zero findings; if the same blocker repeats 3 times with no progress, escalate via `AskUserQuestion`
+> - Track iteration count and repeated blockers in conversation context (session-scoped, no persistent files)
 
 <!-- /SYNC:fresh-context-review -->
 
@@ -1393,7 +1460,7 @@ For each identified concern: create a `TaskCreate` sub-task, work through it wit
 > **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
 > **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
 > **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Business terminology in Application/Domain layers.** Comments and naming in Application/Domain must stay business-oriented and technical-agnostic; avoid implementation terms (say `background job`, not `Hangfire background job`).
+> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -1496,23 +1563,14 @@ For each identified concern: create a `TaskCreate` sub-task, work through it wit
 
 <!-- /SYNC:nested-task-creation:reminder -->
 
-<!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
-
-## Prompt-Enhance Closing Anchors
-
-**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
-**IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
-**IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
-**IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses
-
-<!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
-
 ## Closing Reminders
+
+**IMPORTANT MUST ATTENTION Final Purpose:** Ensure every reviewed change is defect-free, evidence-backed, convention-aligned, and synchronized with required tests/docs before handoff; when code files changed, also prove the code stays easy to change.
 
 > **[CRITICAL — TOP 3 RULES REPEATED]**
 >
 > 1. **MUST ATTENTION Phase 0 graph blast-radius FIRST** — NEVER skip; informs entire review priority order
-> 2. **Clean Round 1 ENDS the review.** When issues found, fresh sub-agent re-review mandatory after fixing.
+> 2. **MUST ATTENTION findings follow the active ownership boundary.** Standalone mode runs Phase 6 validate → Phase 7 fix → full `/review-changes` restart; inside `$workflow-review-changes`, stop after the report and hand findings to parent step 2, then parent steps 10-15 own plan/cook/restart.
 > 3. **MUST ATTENTION TaskCreate ALL phases** before starting; missing tests MUST surface via `AskUserQuestion`
 
 - **MANDATORY IMPORTANT MUST ATTENTION** Nested Task Expansion Contract — when invoked inside a workflow, STILL expand internal phases via `TaskCreate` with `[N.M] $review-changes — phase` prefix and `TaskUpdate(parentTaskId, addBlockedBy: [childIds])` linkage. Workflow row is container, not substitute.
@@ -1521,20 +1579,28 @@ For each identified concern: create a `TaskCreate` sub-task, work through it wit
 - **MANDATORY IMPORTANT MUST ATTENTION** add final review todo task to verify work quality
 - **MANDATORY IMPORTANT MUST ATTENTION** discover and READ project-specific reference docs before starting
 - **MANDATORY IMPORTANT MUST ATTENTION** Phase 0 graph blast-radius is FIRST step — NEVER skip it
-- **MANDATORY IMPORTANT MUST ATTENTION** fresh sub-agent re-review is mandatory ONLY after a fix cycle. Clean Round 1 ENDS the review.
+- **MANDATORY IMPORTANT MUST ATTENTION** any finding must be validated before fix; standalone mode invokes `/why-review --validate-findings`, while `$workflow-review-changes` parent mode stops after the report and delegates validation to parent step 2
+- **MANDATORY IMPORTANT MUST ATTENTION** after fixing validated findings in standalone mode, recursively invoke `/review-changes` again from Phase 0 with a brand-new task breakdown and review the full current diff, not only the fixed files; in parent mode, parent steps 10-15 own the fix plan, cook, and full restart
+- **MANDATORY IMPORTANT MUST ATTENTION** continue validate → fix → full restart until one complete review invocation has zero findings; standalone mode executes that loop locally, parent mode reports findings to `$workflow-review-changes` for the loop
 - **MANDATORY IMPORTANT MUST ATTENTION** documentation staleness check is REQUIRED in every review — flag stale docs even if not auto-fixing
 - **MANDATORY IMPORTANT MUST ATTENTION** missing tests for changed business logic MUST surface to user via `AskUserQuestion` — NOT silently logged
-- **MANDATORY IMPORTANT MUST ATTENTION** run the **Phase 6 Why-Review Findings Validation Gate** as the REQUIRED closing task whenever findings exist — invoke `/why-review --validate-findings` (terminal mode, same session) to verify every finding is correct, proof-backed, reasonable, and best-practice; RE-DO it ONLY if it surfaces finding issues or enhancement opportunities (max 2 re-dos, then escalate via `AskUserQuestion`)
+- **MANDATORY IMPORTANT MUST ATTENTION** run the **Phase 6 Why-Review Findings Validation Gate** whenever findings exist in standalone mode — invoke `/why-review --validate-findings` (terminal mode, same session) to verify every finding is correct, proof-backed, reasonable, and best-practice; RE-DO it ONLY if it surfaces finding issues or enhancement opportunities (max 2 re-dos, then escalate via `AskUserQuestion`); then Phase 7 fixes validated findings and restarts this skill. Inside `$workflow-review-changes`, do not run Phase 6/7 locally; parent step 2 and steps 10-15 own those gates.
+- **MANDATORY IMPORTANT MUST ATTENTION** follow declared step order; NEVER skip, reorder, or merge steps without explicit user approval
+- **MANDATORY IMPORTANT MUST ATTENTION** every skipped step includes explicit reason; every completed step includes concise evidence
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break into small todo tasks and sub-tasks using TaskCreate.
+**Anti-Rationalization:**
 
-> **[IMPORTANT]** Analyze task size and break into many small todo tasks systematically before starting — critical for context preservation.
+| Evasion                                | Rebuttal                                                                                 |
+| -------------------------------------- | ---------------------------------------------------------------------------------------- |
+| "Too simple for graph blast-radius"    | Phase 0 graph check sets risk order; run it or record graph unavailable.                 |
+| "No findings, skip docs/tests"         | Clean verdict still needs proof that docs/tests were checked or explicitly not relevant.              |
+| "Finding is obvious, fix now"          | Validate the finding with `/why-review --validate-findings` first; unvalidated findings are not fixes. |
+| "Only re-check fixed files"            | Fixes can interact with earlier changes; restart `/review-changes` from Phase 0 on the full diff.     |
+| "Sub-agent already reviewed"           | Main report must integrate raw findings and not override or filter them.                              |
+| "Already searched project conventions" | Show 3+ `file:line` examples. No evidence means no search.                                            |
+| "DRY/SOLID requires this abstraction"   | Prove it lowers future change cost; otherwise it is ceremony, not quality.                            |
 
----
-
-> **[FINAL PURPOSE REMINDER — MUST ATTENTION CRITICAL]**
->
-> Ensure the changes is reasonable, no potential bugs or flaws, critical thinking hard.
+**[TASK-PLANNING]** Break scope into small todo tasks before acting; maintain one `in_progress`; add final review todo.
 
 ---
 
@@ -1543,3 +1609,7 @@ For each identified concern: create a `TaskCreate` sub-task, work through it wit
 > the next change cheaper or more expensive?_ If it doesn't reduce future
 > change cost, reject it. Coupling, hidden state, duplicated knowledge, and
 > unclear intent are the real enemies — call them out by name.
+
+**IMPORTANT MUST ATTENTION** graph blast-radius runs first when `.code-graph/graph.db` exists.
+**IMPORTANT MUST ATTENTION** every claim needs `file:line` proof; every stale docs/tests decision needs evidence.
+**IMPORTANT MUST ATTENTION Final Purpose:** Ensure every reviewed change is defect-free, evidence-backed, convention-aligned, and synchronized with required tests/docs before handoff; when code files changed, also prove the code stays easy to change.

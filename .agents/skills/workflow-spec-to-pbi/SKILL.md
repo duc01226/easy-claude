@@ -192,7 +192,7 @@ Workflow can close only when:
 - The final backlog artifact ranks all PBIs and explains what to do first.
 - `$docs-update` has run as the near-final sync gate, with specs, feature docs, and TDD/spec dashboards either updated or explicitly marked unchanged.
 
-**IMPORTANT MANDATORY Steps:** $scout -> $spec-discovery -> $domain-analysis -> $why-review -> $plan -> $why-review -> $plan-review -> $why-review -> $plan-validate -> $why-review -> $refine -> $why-review -> $refine-review -> $story -> $why-review -> $story-review -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $prioritize -> $docs-update -> $watzup -> $workflow-end
+**IMPORTANT MANDATORY Steps:** $scout -> $spec-discovery -> $domain-analysis -> $why-review -> $plan -> $plan-review -> $plan-validate -> $why-review -> $refine -> $why-review -> $refine-review -> $story -> $why-review -> $story-review -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $prioritize -> $docs-update -> $watzup -> $workflow-end
 
 > **[BLOCKING]** Each step MUST invoke its skill invocation. Marking a workflow step completed without skill invocation is a workflow violation.
 
@@ -232,6 +232,7 @@ Workflow can close only when:
 > **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
 > **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
 > **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
+> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
 
 <!-- /SYNC:ai-mistake-prevention -->
 

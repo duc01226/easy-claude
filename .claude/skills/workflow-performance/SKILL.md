@@ -25,13 +25,13 @@ description: '[Workflow] Use when activating the Performance Optimization workfl
 
 ---
 
-**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /plan -> /why-review -> /plan-review -> /why-review -> /plan-validate -> /why-review -> /code -> /test -> /workflow-review-changes -> /sre-review -> /docs-update -> /watzup -> /workflow-end
+**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /plan -> /plan-review -> /plan-validate -> /why-review -> /code -> /test -> /workflow-review-changes -> /sre-review -> /docs-update -> /watzup -> /understand -> /workflow-end
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
 Activate the `performance` workflow. Run `/workflow-start performance` with the user's prompt as context.
 
-**Steps:** /scout → /investigate → /plan → /why-review → /plan-review → /why-review → /plan-validate → /why-review → /code → /test → /workflow-review-changes → /sre-review → /docs-update → /watzup → /workflow-end
+**Steps:** /scout → /investigate → /plan → /plan-review → /plan-validate → /why-review → /code → /test → /workflow-review-changes → /sre-review → /docs-update → /watzup → /understand → /workflow-end
 
 > **[PERFORMANCE-SDD ROUTE]** Performance work must be measured with target metric, baseline, measurement command, acceptable regression budget, and before/after result. Pure behavior-preserving optimization may skip new TC/integration-test generation only when it records an explicit skip reason and invariant-preservation evidence. If behavior, public contract, SLA, performance constraint, state timing boundary, or docs/spec boundary changes, update canonical specs/docs via `/tdd-spec`, `/tdd-spec-review`, `/tdd-spec [direction=sync]`, and `/docs-update`, then run relevant functional no-regression checks. `/test` remains mandatory.
 
@@ -39,7 +39,7 @@ Activate the `performance` workflow. Run `/workflow-start performance` with the 
 
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
 
-**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /plan -> /why-review -> /plan-review -> /why-review -> /plan-validate -> /why-review -> /code -> /test -> /workflow-review-changes -> /sre-review -> /docs-update -> /watzup -> /workflow-end
+**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /plan -> /plan-review -> /plan-validate -> /why-review -> /code -> /test -> /workflow-review-changes -> /sre-review -> /docs-update -> /watzup -> /understand -> /workflow-end
 
 <!-- SYNC:nested-task-creation -->
 
@@ -77,6 +77,7 @@ Activate the `performance` workflow. Run `/workflow-start performance` with the 
 > **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
 > **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
 > **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
+> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
 
 <!-- /SYNC:ai-mistake-prevention -->
 

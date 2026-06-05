@@ -9,6 +9,8 @@ disable-model-invocation: true
 
 **Goal:** [Workflow] Trigger Product Discovery workflow — raw vision or problem → structured brainstorm → prioritized opportunity map → N PBIs with stories, challenge review, DoR gate, and HTML mock-ups → cross-PBI ranked backlog ready for sprint planning.
 
+**Final Purpose:** Ensure product discovery converts raw opportunities into reviewed, prioritized PBIs ready for sprint planning.
+
 **Workflow:**
 
 1. **Detect** — classify request scope and target artifacts.
@@ -130,7 +132,7 @@ At `/workflow-end`, AI presents:
 
 - Session summary: N PBIs created, X passed DoR, Y need rework
 - Ranked backlog with RICE scores
-- Recommended next step: `/sprint-planning` (backlog ready) or `/big-feature` (single large PBI needs deep research + implementation)
+- Recommended next step: `$sprint-planning` (backlog ready) or `$big-feature` (single large PBI needs deep research + implementation)
 - Blocked PBIs: list DoR failures with specific blocking items
 
 ## Conditional Skip Rules
@@ -174,6 +176,7 @@ Activate the `product-discovery` workflow. Run `/workflow-start product-discover
 > **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
 > **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
 > **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
+> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -265,6 +268,7 @@ Activate the `product-discovery` workflow. Run `/workflow-start product-discover
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Final Purpose:** Ensure product discovery converts raw opportunities into reviewed, prioritized PBIs ready for sprint planning.
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting — one task per opportunity × step
 - **MANDATORY IMPORTANT MUST ATTENTION** brainstorm output MUST produce a scored opportunity map before any /idea step
 - **MANDATORY IMPORTANT MUST ATTENTION** why-review runs after domain-analysis — FAIL removes opportunity from selection, WARN requires user acknowledgment
@@ -276,3 +280,10 @@ Activate the `product-discovery` workflow. Run `/workflow-start product-discover
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
 
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
+**Anti-Rationalization:**
+
+| Evasion | Rebuttal |
+| ------- | -------- |
+| "Purpose obvious" | Anchor it anyway — primacy/recency keeps outcome active through long prompts. |
+| "Existing reminders enough" | Echo Final Purpose in Closing Reminders — bottom anchor prevents drift. |
+| "Skip evidence for prompt edits" | Cite changed file evidence and verify no stale protocol text remains. |

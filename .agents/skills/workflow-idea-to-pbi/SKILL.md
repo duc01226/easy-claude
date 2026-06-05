@@ -87,7 +87,6 @@ After confirming the workflow, present the full step list and let the user desel
 - [x] Refine to PBI (refine)
 - [x] Refinement rationale review (why-review)
 - [x] PBI review (refine-review)
-- [x] Reviewed-PBI rationale review (why-review)
 - [x] User stories (story)
 - [x] Story rationale review (why-review)
 - [x] Story review (story-review)
@@ -112,7 +111,6 @@ Task tracking: "Idea capture"
 Task tracking: "Refine to PBI"
 Task tracking: "Refinement rationale review (why-review after refine)"
 Task tracking: "PBI review (refine-review)"
-Task tracking: "Reviewed-PBI rationale review (why-review after refine-review)"
 Task tracking: "User stories (story)"
 Task tracking: "Story rationale review (why-review after story)"
 Task tracking: "Story review"
@@ -129,11 +127,13 @@ Task tracking: "Session summary (watzup)"
 
 One task per step. Mark each completed immediately when done — never batch.
 
-### 3. Why-Review Gate (After refine-review, Before story)
+### 3. Why-Review Gates (Purpose-Specific, Repeated)
 
-This is the adversarial design rationale check. Purpose: validate the **WHY** of this PBI before investing in stories.
+This is the adversarial design rationale check. Purpose: validate the **WHY** of each artifact before investing in the next.
 
-The workflow contains repeated `$why-review` gates. Use purpose-specific labels in sequence: refinement rationale, reviewed-PBI rationale, story rationale, and test-spec rationale. Do not deduplicate them.
+The workflow contains repeated `$why-review` gates after the non-review artifact steps. Use purpose-specific labels in sequence: refinement rationale, story rationale, and test-spec rationale. Do not deduplicate them.
+
+> The standalone gate after `refine-review` is intentionally omitted: `refine-review` (like every review skill) already self-invokes `$why-review --validate-findings` as an internal Findings Validation Gate, so a separate why-review step right after it would be duplicate work.
 
 **Challenge prompts:**
 
@@ -220,16 +220,16 @@ Purpose:
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $idea -> $review-artifact -> $handoff -> $refine -> $why-review -> $refine-review -> $why-review -> $story -> $why-review -> $story-review -> $tdd-spec -> $why-review -> $tdd-spec-review -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $prioritize -> $docs-update -> $watzup -> $workflow-end
+**IMPORTANT MANDATORY Steps:** $idea -> $review-artifact -> $handoff -> $refine -> $why-review -> $refine-review -> $story -> $why-review -> $story-review -> $tdd-spec -> $why-review -> $tdd-spec-review -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $prioritize -> $docs-update -> $watzup -> $workflow-end
 
-**IMPORTANT MANDATORY Steps:** $idea -> $review-artifact -> $handoff -> $refine -> $why-review -> $refine-review -> $why-review -> $story -> $why-review -> $story-review -> $tdd-spec -> $why-review -> $tdd-spec-review -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $prioritize -> $docs-update -> $watzup -> $workflow-end
+**IMPORTANT MANDATORY Steps:** $idea -> $review-artifact -> $handoff -> $refine -> $why-review -> $refine-review -> $story -> $why-review -> $story-review -> $tdd-spec -> $why-review -> $tdd-spec-review -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $prioritize -> $docs-update -> $watzup -> $workflow-end
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its skill invocation — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
 Activate the `idea-to-pbi` workflow. Run `$workflow-start idea-to-pbi` with the user's prompt as context.
 
 **Steps:**
-$idea → $review-artifact (conditional) → $handoff (conditional) → $refine → $why-review → $refine-review → $why-review → $story → $why-review → $story-review → $tdd-spec → $why-review → $tdd-spec-review → $pbi-challenge → $dor-gate → $pbi-mockup → $prioritize → $docs-update → $watzup → $workflow-end
+$idea → $review-artifact (conditional) → $handoff (conditional) → $refine → $why-review → $refine-review → $story → $why-review → $story-review → $tdd-spec → $why-review → $tdd-spec-review → $pbi-challenge → $dor-gate → $pbi-mockup → $prioritize → $docs-update → $watzup → $workflow-end
 
 > **Conditional steps:**
 >
@@ -253,6 +253,7 @@ $idea → $review-artifact (conditional) → $handoff (conditional) → $refine 
 > **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
 > **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
 > **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
+> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -345,7 +346,7 @@ $idea → $review-artifact (conditional) → $handoff (conditional) → $refine 
 ## Closing Reminders
 
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting — one task per step
-- **MANDATORY IMPORTANT MUST ATTENTION** run all four purpose-specific why-review gates: after refine, after refine-review, after story, and after tdd-spec; FAIL blocks the next artifact step, WARN requires user acknowledgment
+- **MANDATORY IMPORTANT MUST ATTENTION** run all three purpose-specific why-review gates: after refine, after story, and after tdd-spec; FAIL blocks the next artifact step, WARN requires user acknowledgment
 - **MANDATORY IMPORTANT MUST ATTENTION** tdd-spec and tdd-spec-review run after story-review and before pbi-challenge
 - **MANDATORY IMPORTANT MUST ATTENTION** pbi-challenge must be run by a reviewer different from the drafter
 - **MANDATORY IMPORTANT MUST ATTENTION** dor-gate must pass (PASS or WARN) before pbi-mockup is finalized

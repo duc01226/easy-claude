@@ -19,6 +19,8 @@ disable-model-invocation: true
 
 **Goal:** Single entry point for spec-driven doc generation and maintenance. Two output layers, one workflow.
 
+**Final Purpose:** Ensure specs, implementation, tests, and docs stay synchronized through a governed spec-driven workflow.
+
 **Output Layers:**
 
 | Layer                 | Path                                     | Format                                                       | Audience                         |
@@ -202,8 +204,8 @@ TaskCreate: "size-evaluation — count modules, estimate total_tasks, decide spl
   → MANDATORY: compare entity count + rule count between docs/specs/{app-bucket}/{system-name}/ and docs/business-features/
     for each module. Discrepancy >10% → flag as gap in watzup summary
   → Engineering spec authoritative for structure; feature-docs authoritative for UI/test sections
-  → Gap found → fix task → re-investigate → fix → spawn fresh code-reviewer sub-agent (max 2 rounds)
-  → NEVER inline re-review — main agent rationalizes its own output
+  → Gap found → validate findings → fix validated task/artifact gaps → restart full review-artifact pass from the first check
+  → Do not run a one-off fresh sub-agent to re-review known gaps before validation/fix; if the restarted review protocol uses sub-agents, spawn new agents for that restarted pass
 
 /docs-update
   → Near-final synchronization sweep across project docs, business feature docs, engineering specs, and TDD/spec dashboards
@@ -217,7 +219,7 @@ TaskCreate: "size-evaluation — count modules, estimate total_tasks, decide spl
     - Feature docs: N modules, X feature docs
     - Coverage gaps (PARTIAL modules — spec layer vs feature-docs layer)
     - Open questions (confidence < 80%)
-    - Next recommended actions: /product-discovery (future backlog from spec), /greenfield-init
+    - Next recommended actions: $product-discovery (future backlog from spec), $greenfield-init
       (re-implementation plan), /feature-docs (expand individual features)
 
 /workflow-end
@@ -453,7 +455,7 @@ Both layers stay in sync on every feature/bugfix/refactor workflow.
 - Compliance documentation — prove system behavior in plain language
 - Clone/fork — brief any AI agent for reimplementation
 - Verify design intent — compare spec bundle against original vision
-- Generate future backlog from spec bundle via `/product-discovery`
+- Generate future backlog from spec bundle via `$product-discovery`
 
 ### Use Standalone Skills Instead
 
@@ -516,6 +518,7 @@ Both layers stay in sync on every feature/bugfix/refactor workflow.
 > **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
 > **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
 > **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
+> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -584,6 +587,7 @@ Both layers stay in sync on every feature/bugfix/refactor workflow.
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Final Purpose:** Ensure specs, implementation, tests, and docs stay synchronized through a governed spec-driven workflow.
 - **[BLOCKING]** Confirm mode via `AskUserQuestion` BEFORE any action — NEVER skip Step 0
 - **[BLOCKING]** Invoke `Skill` tool for EACH step — NEVER batch-complete or mark done without invocation
 - **[BLOCKING]** Spawn sub-agents for 4+ modules in ONE message — NEVER sequential spawning
@@ -595,9 +599,16 @@ Both layers stay in sync on every feature/bugfix/refactor workflow.
 - **[REQUIRED]** Every claim cites `[Source: namespace/service/id]` (stack-portable abstract anchor — never physical `file:line`/`src/`) — mark `[UNVERIFIED]` not blank; all output tech-agnostic (no framework names, no language constructs)
 - **[REQUIRED]** Each sub-agent prompt MUST include: module name, task list, output path, tech-agnostic contract, SYNC protocols (critical-thinking, evidence-based, incremental-persistence, cross-scope boundary)
 - **[BLOCKING]** Context compaction / session resume → `TaskList` first, read completeness tracker, skip ✅ modules — NEVER re-run scout or plan
-- **[BLOCKING]** review-artifact: PASS = zero `[UNVERIFIED]` without exclusion reason + zero tech terms; gap found → fresh code-reviewer sub-agent (max 2 rounds) — NEVER inline re-review
+- **[BLOCKING]** review-artifact: PASS = zero `[UNVERIFIED]` without exclusion reason + zero tech terms; gap found → validate findings → fix validated gaps → restart the full review-artifact pass from the first check
 - **[BLOCKING]** Verify TaskList count ≥ N×M before any extraction begins — this is the plan completeness gate
 - **[REQUIRED]** Apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
 - **[REQUIRED]** Apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
 
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
+**Anti-Rationalization:**
+
+| Evasion | Rebuttal |
+| ------- | -------- |
+| "Purpose obvious" | Anchor it anyway — primacy/recency keeps outcome active through long prompts. |
+| "Existing reminders enough" | Echo Final Purpose in Closing Reminders — bottom anchor prevents drift. |
+| "Skip evidence for prompt edits" | Cite changed file evidence and verify no stale protocol text remains. |

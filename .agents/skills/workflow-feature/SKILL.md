@@ -67,14 +67,14 @@ This workflow has steps that appear multiple times. When creating tasks, use the
 
 | Step               | Occurrence   | Task Description                                 |
 | ------------------ | ------------ | ------------------------------------------------ |
-| `$plan`            | 1st (pos 3)  | PLAN₁: Investigation-based implementation plan   |
-| `$plan`            | 2nd (pos 9)  | PLAN₂: Sprint-ready plan incorporating TDD specs |
-| `$plan-review`     | 1st (pos 4)  | Review PLAN₁                                     |
-| `$plan-review`     | 2nd (pos 10) | Review PLAN₂                                     |
-| `$tdd-spec`        | 1st (pos 7)  | TDD-SPEC₁: Pre-implementation test specs         |
-| `$tdd-spec`        | 2nd (pos 11) | TDD-SPEC₂: Post-implementation test spec update  |
-| `$tdd-spec-review` | 1st (pos 8)  | Review TDD-SPEC₁                                 |
-| `$tdd-spec-review` | 2nd (pos 12) | Review TDD-SPEC₂                                 |
+| `$plan`            | 1st (pos 5)  | PLAN₁: Investigation-based implementation plan   |
+| `$plan`            | 2nd (pos 12)  | PLAN₂: Sprint-ready plan incorporating TDD specs |
+| `$plan-review`     | 1st (pos 6)  | Review PLAN₁                                     |
+| `$plan-review`     | 2nd (pos 13) | Review PLAN₂                                     |
+| `$tdd-spec`        | 1st (pos 9)  | TDD-SPEC₁: Pre-implementation test specs         |
+| `$tdd-spec`        | 2nd (pos 16) | TDD-SPEC₂: Post-implementation test spec update  |
+| `$tdd-spec-review` | 1st (pos 11)  | Review TDD-SPEC₁                                 |
+| `$tdd-spec-review` | 2nd (pos 18) | Review TDD-SPEC₂                                 |
 
 **NEVER deduplicate** — each occurrence is a distinct task with a different purpose.
 
@@ -98,11 +98,11 @@ Every step = `TaskUpdate in_progress` → skill invocation → complete skill �
 
 > **Existing-behavior trace gate:** If the feature modifies an existing final output, persisted state, API response, projection, or user-visible workflow, include an end-to-start trace of the existing path (final reader -> storage/projection -> writer -> producer/origin), feeder paths, invariants to preserve, and forward proof for the intended new behavior before implementation.
 
-**IMPORTANT MANDATORY Steps:** $scout -> $investigate -> $domain-analysis -> $why-review -> $plan -> $why-review -> $plan-review -> $why-review -> $plan-validate -> $why-review -> $tdd-spec -> $why-review -> $tdd-spec-review -> $plan -> $why-review -> $plan-review -> $why-review -> $cook -> $review-domain-entities -> $tdd-spec -> $why-review -> $tdd-spec-review -> $tdd-spec [direction=sync] -> $integration-test -> $integration-test-review -> $integration-test-verify -> $workflow-review-changes -> $sre-review -> $security -> $changelog -> $test -> $docs-update -> $watzup -> $workflow-end
+**IMPORTANT MANDATORY Steps:** $scout -> $investigate -> $domain-analysis -> $why-review -> $plan -> $plan-review -> $plan-validate -> $why-review -> $tdd-spec -> $why-review -> $tdd-spec-review -> $plan -> $plan-review -> $cook -> $review-domain-entities -> $tdd-spec -> $why-review -> $tdd-spec-review -> $tdd-spec [direction=sync] -> $integration-test -> $integration-test-review -> $integration-test-verify -> $workflow-review-changes -> $sre-review -> $security -> $changelog -> $test -> $docs-update -> $watzup -> $understand -> $workflow-end
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $scout -> $investigate -> $domain-analysis -> $why-review -> $plan -> $why-review -> $plan-review -> $why-review -> $plan-validate -> $why-review -> $tdd-spec -> $why-review -> $tdd-spec-review -> $plan -> $why-review -> $plan-review -> $why-review -> $cook -> $review-domain-entities -> $tdd-spec -> $why-review -> $tdd-spec-review -> $tdd-spec [direction=sync] -> $integration-test -> $integration-test-review -> $integration-test-verify -> $workflow-review-changes -> $sre-review -> $security -> $changelog -> $test -> $docs-update -> $watzup -> $workflow-end
+**IMPORTANT MANDATORY Steps:** $scout -> $investigate -> $domain-analysis -> $why-review -> $plan -> $plan-review -> $plan-validate -> $why-review -> $tdd-spec -> $why-review -> $tdd-spec-review -> $plan -> $plan-review -> $cook -> $review-domain-entities -> $tdd-spec -> $why-review -> $tdd-spec-review -> $tdd-spec [direction=sync] -> $integration-test -> $integration-test-review -> $integration-test-verify -> $workflow-review-changes -> $sre-review -> $security -> $changelog -> $test -> $docs-update -> $watzup -> $understand -> $workflow-end
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its skill invocation — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
@@ -110,7 +110,7 @@ Activate the `feature` workflow. Run `$workflow-start feature` with the user's p
 
 > **Spec check (before investigation):** If `docs/specs/` has a spec for the affected service/module, read the relevant ERD + business-rules + API-contracts files FIRST. Engineering specs provide domain context that reduces investigation time significantly. Command: `ls docs/specs/` to discover available app buckets or flat system folders; then probe `ls docs/specs/{app-bucket}/` or `ls docs/specs/{system-name}/` to find the specific service spec.
 
-**Steps:** $scout → $investigate → $domain-analysis → $why-review → $plan → $why-review → $plan-review → $why-review → $plan-validate → $why-review → $tdd-spec → $why-review → $tdd-spec-review → $plan → $why-review → $plan-review → $why-review → $cook → $review-domain-entities → $tdd-spec → $why-review → $tdd-spec-review → $tdd-spec [direction=sync] → $integration-test → $integration-test-review → $integration-test-verify → $workflow-review-changes → $sre-review → $security → $changelog → $test → $docs-update → $watzup → $workflow-end
+**Steps:** $scout → $investigate → $domain-analysis → $why-review → $plan → $plan-review → $plan-validate → $why-review → $tdd-spec → $why-review → $tdd-spec-review → $plan → $plan-review → $cook → $review-domain-entities → $tdd-spec → $why-review → $tdd-spec-review → $tdd-spec [direction=sync] → $integration-test → $integration-test-review → $integration-test-verify → $workflow-review-changes → $sre-review → $security → $changelog → $test → $docs-update → $watzup → $understand → $workflow-end
 
 > **[PERFORMANCE-SDD ROUTE]** If this feature is a performance enhancement (latency, throughput, memory, query speed, load behavior), activate `$workflow-performance` and require SLA/benchmark evidence: target metric, baseline, measurement command, and acceptable regression budget. Run `$cook` even on the performance route — never skip it. If behavior can change, run `$test` and any relevant functional no-regression checks. Update docs/specs for changed SLA, performance constraints, or behavior boundaries. Use project-specific performance docs from `docs/project-config.json` / `docs/project-reference/` when available.
 
@@ -169,6 +169,7 @@ Activate the `feature` workflow. Run `$workflow-start feature` with the user's p
 > **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
 > **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
 > **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
+> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
 
 <!-- /SYNC:ai-mistake-prevention -->
 

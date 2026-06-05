@@ -50,6 +50,8 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Implement or enhance test data seeders — simulate QC happy-path scenarios via application-layer commands; NEVER direct DB writes.
 
+**Final Purpose:** Ensure seeders create realistic, idempotent, valid test data through application paths without corrupting domain state.
+
 **Workflow:**
 
 1. **Phase 0** — Detect seeder task type (new / enhance / fix)
@@ -215,8 +217,8 @@ Review seeder at [file:path]. Verify with file:line evidence for each:
 Report: PASS or FAIL with file:line for each finding.
 ```
 
-**Round 2:** If FAIL → fix → new fresh sub-agent. Max 3 rounds → escalate to user.
-NEVER reuse sub-agent across rounds. A clean round ENDS the review; a round with issues triggers fix → fresh sub-agent re-review.
+**Fix loop:** If FAIL → validate findings → fix validated findings → restart the full review from the first phase. When the restarted review uses sub-agents, never reuse them across rounds. If the same blocker repeats across 3 full invocations with no progress, escalate to user.
+NEVER fix unvalidated findings. Do not spawn a fresh sub-agent only to re-review known findings before validation/fix.
 
 ---
 
@@ -294,6 +296,7 @@ NEVER reuse sub-agent across rounds. A clean round ENDS the review; a round with
 > **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
 > **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
 > **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
+> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -334,12 +337,13 @@ NEVER reuse sub-agent across rounds. A clean round ENDS the review; a round with
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Final Purpose:** Ensure seeders create realistic, idempotent, valid test data through application paths without corrupting domain state.
 **IMPORTANT MUST ATTENTION** task tracking — break all work into tasks BEFORE starting
 **IMPORTANT MUST ATTENTION** NEVER call repo/DB directly — use application-layer commands
 **IMPORTANT MUST ATTENTION** ALWAYS gate by environment FIRST; ALWAYS check count before seeding
 **IMPORTANT MUST ATTENTION** loop from `existing_count` to `target_count` — NEVER from 0
 **IMPORTANT MUST ATTENTION** scoped DI per iteration — shared DI scope = silent DbContext corruption
-**IMPORTANT MUST ATTENTION** fresh sub-agent re-review required ONLY after a fix cycle. Clean Round 1 ENDS the review.
+**IMPORTANT MUST ATTENTION** full re-review is required ONLY after a validated fix cycle. A clean review pass ENDS the review.
 
 **Anti-Rationalization:**
 

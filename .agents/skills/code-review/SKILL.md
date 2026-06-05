@@ -50,7 +50,11 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Ensure technical correctness: receiving feedback with verification (not performative agreement), requesting targeted systematic reviews via code-reviewer subagent, enforcing verification gates before completion claims.
 
+**Final Purpose:** Ensure reviewed code is correct, easy to change, convention-aligned, and verification-backed before acceptance or handoff.
+
 > **Routing boundary:** If the user asks to review current changes, uncommitted work, staged/unstaged diffs, or a branch-to-branch diff, use `review-changes` instead.
+
+> **Shared engine (keep in sync):** `code-review` and `review-changes` share the same review-protocol `SYNC:` blocks. Canonical source: `.claude/skills/shared/sync-inline-versions.md`; policy: `SYNC:shared-protocol-duplication-policy`. When you change a shared block in one skill, update the canonical file AND the sibling skill so the two never drift. The skills differ only in entry intent (explicit scope / feedback / completion-gate vs git diff) — not in review quality.
 
 > **MANDATORY MUST ATTENTION** Before reviewing, search for project-specific reference docs:
 >
@@ -67,20 +71,21 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 2. **Phase 0: Blast Radius** — Run graph analysis first if `.code-graph/graph.db` exists
 3. **Phase 0.3: Risk Detection** — Detect dependency, migration, bus/event, API, security, config, and infra risks
 4. **Phase 0.5: Plan Compliance** — Verify changed files and tests against active plan when present
-5. **Phase 0.7: Surface Detection** — Classify files by language + directory semantics + change nature → route sub-agents
+5. **Phase 0.7: Surface Detection** — Classify files by language + directory semantics + change nature → route sub-agents; invoke `$review-ui` when frontend/UI files are present
 6. **Phase 1: File-by-File** — Review each file, update report with correctness, convention, DRY, intent, test, and docs checks
 7. **Phase 2: Holistic** — Re-read accumulated report, assess overall approach, architecture, duplication, and cross-boundary behavior
 8. **Phase 3: Final Result** — Update report with overall assessment, critical issues, recommendations, docs staleness, and test gaps
-9. **Round 2: Fresh Sub-Agent** — After a fix cycle, run a fresh code-reviewer for cross-cutting concerns, convention drift, and edge cases
+9. **Fix Loop: Validate → Fix → Full Re-Review** — When findings exist, validate them first, fix only validated findings, then restart the full review after the fix cycle
 
 **Key Rules:**
 
 - **Report-Driven**: Build report incrementally; re-read for big picture
 - **Detect First**: Run graph blast radius when available, then classify change types and file surfaces before any review
+- **Easy to Change for Code**: Treat future change cost as the primary code-quality metric; DRY, SOLID, abstraction, and patterns are tools only when they reduce change amplification
 - **No Performative Agreement**: Technical evaluation only ("You're right!" banned)
 - **Verification Gates**: Evidence required before completion claims
 - **Review Current Diffs Elsewhere**: Current changes, staged/unstaged diffs, and branch diffs belong to `review-changes`
-- **A clean Round 1 ENDS the review.** Spawn a fresh sub-agent for Round 2 ONLY after a fix cycle.
+- **A clean review pass ENDS the review.** Do not spend a fresh-context pass re-reviewing known findings before validation/fix; only re-review after fixes change the target.
 
 # Code Review
 
@@ -110,6 +115,10 @@ When evaluating code, a refactor, a test, or an abstraction, ask:
   speculative generality, leaky indirection, ceremony without payoff).
 - Name the real enemies in findings: **coupling, hidden state, duplicated
   knowledge, unclear intent, irreversible decisions exposed too early**.
+- Favor project-owned boundaries around external libraries, for example
+  component/service input-output contracts, when they localize future library
+  changes; reject pass-through wrappers that add ceremony without lowering
+  change cost.
 - A simpler design that is easy to change beats a sophisticated design that
   isn't.
 
@@ -152,10 +161,11 @@ below — if a downstream rule would raise change cost, this principle wins.
 | `[Review Phase 0.3] Detect high-risk change types`                     | pending     |
 | `[Review Phase 0.5] Plan compliance check (skip if no active plan)`    | pending     |
 | `[Review Phase 0.7] Detect categories + route sub-agents`              | pending     |
+| `[Review Phase 0.7b] $review-ui sub-review — skip if no frontend/UI files in changeset` | pending     |
 | `[Review Phase 1] File-by-file review + update report`                 | pending     |
 | `[Review Phase 2] Holistic assessment`                                 | pending     |
 | `[Review Phase 3] Final findings, docs triage, and test sync findings` | pending     |
-| `[Review Round 2] Fresh sub-agent re-review after fix cycle`           | pending     |
+| `[Review Fix Loop] Validate findings, fix validated issues, and full re-review if fixes are applied` | pending     |
 | `[Review Final] Consolidate all rounds`                                | pending     |
 
 **Step 0: Create Report File**
@@ -200,10 +210,17 @@ Before any review — classify the changeset and route sub-agents:
 | Auth/permission/token/encryption files   | `security-auditor`                                      |
 | Query files, caching, batch processing   | `performance-optimizer`                                 |
 | Source code (logic, handlers, services)  | `code-reviewer`                                         |
+| Frontend/UI files (components, templates, `.html`/`.scss`/`.css`, design-system) | `$review-ui` skill (see Phase 0.7b) |
 | Docs, plans, specs, markdown             | `general-purpose`                                       |
 | Mixed changeset with security/perf files | Spawn specialized sub-agent first, then `code-reviewer` |
 
-**Phase 0.7: Derive Review Categories**
+**Phase 0.7b: Frontend/UI Sub-Review (CONDITIONAL — `$review-ui`)**
+
+If the changeset contains any frontend/UI files matching the project's configured UI patterns (components, templates, `.html`/`.scss`/`.css`, design-system tokens), invoke the `$review-ui` skill as a sub-review so UI-specific concerns are covered — long-content overflow (wrap vs ellipsis+tooltip), responsive multi-screen flex, flex-grow with min/max over fixed px, semantic z-index discipline (no raw numbers, no `!important`), and BEM classes on all template elements. Fold its findings into this report's Phase 3 results.
+
+**Skip (record reason)** when no frontend/UI files are present in the changeset — log "Skipped Phase 0.7b — no frontend/UI files in changeset".
+
+**Phase 0.8: Derive Review Categories**
 
 Group changed files by: file language (extension), directory semantics (path), change nature (new entity, schema, config, UI, test).
 
@@ -255,22 +272,22 @@ Update report: Overall Assessment, Critical Issues, High Priority, Architecture 
 
 If documentation staleness is detected, recommend `docs-update` and list exact stale sections; do not silently pass stale docs.
 
-## Round 2+: Fresh Sub-Agent Re-Review (MANDATORY)
+## Validated Fix + Full Re-Review (MANDATORY when findings are fixed)
 
-After Phase 3 (Round 1), spawn fresh `code-reviewer` sub-agent for Round 2 using canonical template from `SYNC:review-protocol-injection`:
+After Phase 3, do not spawn a fresh reviewer just to re-review the same finding set. First validate findings, then fix only validated findings. Because fixes change the review target, restart the full review after the fix cycle. If that restarted protocol uses sub-agents, construct each Agent call with the canonical template from `SYNC:review-protocol-injection`:
 
 1. Copy Agent call shape from `SYNC:review-protocol-injection` verbatim
 2. Embed full verbatim body of all 10 SYNC blocks: `SYNC:evidence-based-reasoning`, `SYNC:bug-detection`, `SYNC:design-patterns-quality`, `SYNC:complexity-prevention`, `SYNC:logic-and-intention-review`, `SYNC:test-spec-verification`, `SYNC:fix-layer-accountability`, `SYNC:rationalization-prevention`, `SYNC:graph-assisted-investigation`, `SYNC:understand-code-first`
-3. Task: `"Review the assigned code-review scope. Focus: cross-cutting concerns, interaction bugs, convention drift, missing pieces, subtle edge cases, logic errors, test spec gaps."`
+3. Task: `"Run a full fresh code-review pass over the current assigned scope after validated fixes were applied. Focus: cross-cutting concerns, interaction bugs, convention drift, missing pieces, subtle edge cases, logic errors, test spec gaps, and regressions introduced by the fixes."`
 4. Target Files: `"use the explicit files, plan scope, or reviewer-provided target range"`
-5. Report: `plans/reports/code-review-round{N}-{date}.md`
+5. Report: `plans/reports/code-review-rerun{N}-{date}.md`
 
 After sub-agent returns:
 
-1. **Read** report from `plans/reports/code-review-round{N}-{date}.md`
-2. **Integrate** findings as `## Round {N} Findings (Fresh Sub-Agent)` — DO NOT filter or override
-3. **If FAIL:** fix issues → spawn NEW Round N+1 fresh sub-agent (never reuse)
-4. **Max 3 fresh rounds** — escalate via a direct user question if still failing after 3 rounds
+1. **Read** report from `plans/reports/code-review-rerun{N}-{date}.md`
+2. **Integrate** findings as `## Re-Review {N} Findings` — DO NOT filter or override
+3. **If findings remain:** validate the new finding set before any additional fixes
+4. **Repeat only after another fix cycle:** restart the full review again after validated fixes are applied; if the same blocker repeats across 3 full invocations with no progress, escalate via a direct user question
 
 ## Clean Code Rules (MUST ATTENTION CHECK)
 
@@ -420,7 +437,7 @@ If `architectureRules` absent in project-config.json → skip silently.
 
 1. Read own finalized report from `plans/reports/{skill}-{date}-{slug}.md`
 2. Invoke `$why-review` skill with arg: `validate findings in plans/reports/{skill}-{date}-{slug}.md — verify each finding has file:line proof, steel-man each rejected interpretation, and stress-test severity classifications`
-3. Read why-review output from `plans/reports/why-review-{date}.md`
+3. Read the validation verdict path returned by why-review, expected as `plans/reports/why-review-validate-{date}.md`
 4. **If why-review demotes/removes any finding:** UPDATE own finalized report with revised severities, remove false positives, and add a `## Why-Review Validation Notes` section citing what changed and why
 5. **If why-review confirms all findings:** Append `## Why-Review Validation` line to own report stating "All N findings re-validated against actual code; no severity changes."
 
@@ -743,16 +760,16 @@ If `architectureRules` absent in project-config.json → skip silently.
 
 <!-- SYNC:double-round-trip-review -->
 
-> **Fix-Triggered Re-Review Loop** — Re-review is triggered by a FIX CYCLE, not by a round number. Review purpose: `review → if issues → fix → re-review` until a round finds no issues. **A clean review ENDS the loop — no further rounds required.**
+> **Validated-Finding Fix + Full Re-Review Loop** — Re-review is triggered by a validated finding fix cycle, not by a round number. Review purpose: `review → validate findings → fix validated findings → full re-review` until a complete review pass finds no issues. **A clean review ENDS the loop — no further rounds required.**
 >
 > **Round 1:** Main-session review. Read target files, build understanding, note issues. Output findings + verdict (PASS / FAIL).
 >
 > **Decision after Round 1:**
 >
 > - **No issues found (PASS, zero findings)** → review ENDS. Do NOT spawn a fresh sub-agent for confirmation.
-> - **Issues found (FAIL, or any non-zero findings)** → fix the issues, then spawn a fresh sub-agent for Round 2 re-review.
+> - **Issues found (FAIL, or any non-zero findings)** → run the active review skill's findings-validation gate first; for review skills the default gate is `$why-review --validate-findings <report-path>`, fix only validated findings, then restart the full review protocol from the beginning with a fresh task breakdown.
 >
-> **Fresh sub-agent re-review (after every fix cycle):** Spawn a NEW `spawn_agent` tool call — never reuse a prior agent. Sub-agent re-reads ALL files from scratch with ZERO memory of prior rounds. See `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. Each fresh round must catch:
+> **Fresh full re-review after every fix cycle:** Re-run the whole review protocol over the current full target. When sub-agents are part of that protocol, spawn NEW `spawn_agent` calls — never reuse prior agents. Reviewers re-read ALL files from scratch with ZERO memory of prior rounds. See `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. Each fresh full review must catch:
 >
 > - Cross-cutting concerns missed in the prior round
 > - Interaction bugs between changed files
@@ -761,16 +778,17 @@ If `architectureRules` absent in project-config.json → skip silently.
 > - Subtle edge cases the prior round rationalized away
 > - Regressions introduced by the fixes themselves
 >
-> **Loop termination:** After each fresh round, repeat the same decision: clean → END; issues → fix → next fresh round. Continue until a round finds zero issues, or **3 fresh-subagent rounds max**, then escalate to user via a direct user question.
+> **Loop termination:** After each full re-review, repeat the same decision: clean → END; issues → validate findings → fix → restart from the first review phase. Continue until a complete review pass finds zero issues. If the same validated finding repeats for 3 full invocations with no progress, or a fix requires product/owner input, escalate via a direct user question.
 >
 > **Rules:**
 >
 > - A clean Round 1 ENDS the review — no mandatory Round 2
-> - NEVER skip the fresh sub-agent re-review after a fix cycle (every fix invalidates the prior verdict)
-> - NEVER reuse a sub-agent across rounds — every iteration spawns a NEW Agent call
+> - NEVER fix unvalidated findings; validate first using the caller's validation gate
+> - NEVER skip the full re-review after a fix cycle (every fix invalidates the prior verdict)
+> - NEVER reuse a sub-agent across rounds — every iteration that uses sub-agents spawns NEW Agent calls
 > - Main agent READS sub-agent reports but MUST NOT filter, reinterpret, or override findings
-> - Max 3 fresh-subagent rounds per review — if still FAIL, escalate via a direct user question (do NOT silently loop)
-> - Track round count in conversation context (session-scoped)
+> - No arbitrary sub-agent-round cap replaces the clean-review requirement; use the 3 repeated-no-progress blocker rule only to avoid infinite spinning
+> - Track recursive invocation count and repeated blockers in conversation context (session-scoped)
 > - Final verdict must incorporate ALL rounds executed
 >
 > **Report must include `## Round N Findings (Fresh Sub-Agent)` for every round N≥2 that was executed.**
@@ -779,15 +797,15 @@ If `architectureRules` absent in project-config.json → skip silently.
 
 <!-- SYNC:fresh-context-review -->
 
-> **Fresh Sub-Agent Review** — Eliminate orchestrator confirmation bias via isolated sub-agents.
+> **Fresh Context Re-Review** — Eliminate orchestrator confirmation bias after fixes by restarting the full review with isolated sub-agents where applicable.
 >
 > **Why:** The main agent knows what it (or `$cook`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
 >
-> **When:** ONLY after a fix cycle. A review round that finds zero issues ENDS the loop — do NOT spawn a confirmation sub-agent. A review round that finds issues triggers: fix → fresh sub-agent re-review.
+> **When:** ONLY after a validated-finding fix cycle. A review round that finds zero issues ENDS the loop — do NOT spawn a confirmation sub-agent. A review round that finds issues triggers: validate findings → fix → full review restart from the first phase.
 >
 > **How:**
 >
-> 1. Spawn a NEW `spawn_agent` tool call — use `code-reviewer` agent_type for code reviews, `general-purpose` for plan/doc/artifact reviews
+> 1. Start a NEW full review invocation/task breakdown; when that protocol calls for agents, spawn NEW `spawn_agent` tool calls — use `code-reviewer` agent_type for code reviews, `general-purpose` for plan/doc/artifact reviews
 > 2. Inject ALL required review protocols VERBATIM into the prompt — see `SYNC:review-protocol-injection` for the full list and template. Never reference protocols by file path; AI compliance drops behind file-read indirection (see `SYNC:shared-protocol-duplication-policy`)
 > 3. Sub-agent re-reads ALL target files from scratch via its own tool calls — never pass file contents inline in the prompt
 > 4. Sub-agent writes structured report to `plans/reports/{review-type}-round{N}-{date}.md`
@@ -795,11 +813,11 @@ If `architectureRules` absent in project-config.json → skip silently.
 >
 > **Rules:**
 >
-> - SKIP fresh sub-agent when the prior round found zero issues (no fixes = nothing new to verify)
-> - NEVER skip fresh sub-agent after a fix cycle — every fix invalidates the prior verdict
+> - SKIP fresh sub-agent when the prior full review found zero issues (no fixes = nothing new to verify)
+> - NEVER skip the full review restart after a fix cycle — every fix invalidates the prior verdict
 > - NEVER reuse a sub-agent across rounds — every fresh round spawns a NEW `spawn_agent` call
-> - Max 3 fresh-subagent rounds per review — escalate via a direct user question if still failing; do NOT silently loop or fall back to any prior protocol
-> - Track iteration count in conversation context (session-scoped, no persistent files)
+> - Continue until a complete full review pass has zero findings; if the same blocker repeats 3 times with no progress, escalate via a direct user question
+> - Track iteration count and repeated blockers in conversation context (session-scoped, no persistent files)
 
 <!-- /SYNC:fresh-context-review -->
 
@@ -1073,7 +1091,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
 > **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
 > **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Business terminology in Application/Domain layers.** Comments and naming in Application/Domain must stay business-oriented and technical-agnostic; avoid implementation terms (say `background job`, not `Hangfire background job`).
+> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -1093,8 +1111,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 <!-- /SYNC:complexity-prevention:reminder -->
 
 <!-- SYNC:double-round-trip-review:reminder -->
-
-- **MANDATORY MUST ATTENTION** execute the review loop: review → if issues → fix → fresh sub-agent re-review. A round that finds zero issues ENDS the review.
+- **MANDATORY IMPORTANT MUST ATTENTION** execute the review loop: review → validate findings → fix validated findings → full re-review. A complete review pass with zero findings ENDS the review.
 <!-- /SYNC:double-round-trip-review:reminder -->
 
 <!-- SYNC:rationalization-prevention:reminder -->
@@ -1197,6 +1214,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Final Purpose:** Ensure reviewed code is correct, easy to change, convention-aligned, and verification-backed before acceptance or handoff.
 - **MANDATORY MUST ATTENTION** Nested Task Expansion Contract — when invoked inside a workflow, STILL expand internal phases via task tracking with `[N.M] $skill-name — phase` prefix and `TaskUpdate(parentTaskId, addBlockedBy: [childIds])` linkage. Workflow row is container, not substitute.
 - **MANDATORY MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting
 - **MANDATORY MUST ATTENTION** validate decisions with user via a direct user question — never auto-decide
@@ -1214,6 +1232,13 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > the next change cheaper or more expensive?_ If it doesn't reduce future
 > change cost, reject it. Coupling, hidden state, duplicated knowledge, and
 > unclear intent are the real enemies — call them out by name.
+**Anti-Rationalization:**
+
+| Evasion | Rebuttal |
+| ------- | -------- |
+| "Purpose obvious" | Anchor it anyway — primacy/recency keeps outcome active through long prompts. |
+| "Existing reminders enough" | Echo Final Purpose in Closing Reminders — bottom anchor prevents drift. |
+| "Skip evidence for prompt edits" | Cite changed file evidence and verify no stale protocol text remains. |
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Hookless Prompt Protocol Mirror (Auto-Synced)

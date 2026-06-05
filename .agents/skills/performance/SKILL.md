@@ -61,7 +61,9 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 3. **Measure** - Capture baseline or mark static-only risk.
 4. **Analyze** - Run serial dimension passes with evidence.
 5. **Plan** - Propose smallest fix preserving behavior.
-6. **Verify** - Re-measure, run tests, fresh-eyes review.
+6. **Verify** - Re-measure, run tests, and record evidence.
+7. **Validate Findings** - Run `$why-review --validate-findings <report-path>` before any fix.
+8. **Fix + Full Re-Review** - Fix only validated findings, then restart from Detect over the full target.
 
 **Key Rules:**
 
@@ -69,7 +71,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - MANDATORY MUST ATTENTION ALWAYS push row filters to data source before projection/caching; row-count reduction beats column trimming.
 - MANDATORY MUST ATTENTION ALWAYS verify index usability with query shape/order, not index existence alone.
 - NEVER recommend caching until query shape, indexes, pagination, batching, and data volume are understood.
-- NEVER claim PASS after one review round on non-trivial performance work; run fresh-eyes challenge.
+- Findings are not eligible for fix until `$why-review --validate-findings` confirms them; every validated fix restarts the full performance review from Phase 0.
 
 <target>$ARGUMENTS</target>
 
@@ -294,14 +296,48 @@ Sub-agent prompt MUST include target, detected scope, local context evidence, re
 
 ---
 
-## Fresh-Eyes Quality Loop
+## Phase 6: Why-Review Findings Validation Gate (MANDATORY when findings exist)
 
-1. Round 1: produce findings/plan with evidence.
-2. Round 2: spawn fresh reviewer or re-run review from zero-memory perspective; challenge missed bottlenecks, false positives, wrong root cause, and unsafe fixes.
-3. If issues found: fix plan -> re-review with new fresh reviewer.
-4. Max 3 rounds: stop and ask user for decision.
+> **Purpose:** Validate performance findings before optimization work. Performance reports are easy to overstate when evidence is static-only, a plan lacks production-like scale, or a proposed index/cache changes write cost or data freshness risk.
 
-MANDATORY clean PASS on non-trivial review requires fresh-eyes challenge or explicit skip reason.
+**Trigger:** Any performance finding or optimization recommendation (Critical, High, Medium, Low, WARN, or static risk). Skip ONLY when the report's verdict is unconditional PASS with literally zero findings.
+
+**Protocol:**
+
+1. Read own finalized report from `plans/reports/performance-{date}-{slug}.md` or the exact report path written by the caller.
+2. Invoke `$why-review --validate-findings <performance-report-path>`.
+3. Read the validation verdict path returned by why-review, expected as `plans/reports/why-review-validate-{date}.md`.
+4. **If why-review demotes/removes any finding:** update the performance report with revised severity, removed false positives, and a `## Why-Review Validation Notes` section.
+5. **If why-review confirms all findings:** append `## Why-Review Validation` stating all findings were re-validated against measurement/static evidence.
+6. **If the report changed after validation:** re-run this validation gate, maximum 2 validation passes, until the report's remaining findings are validated or zero findings remain.
+
+**Skip conditions (record explicit reason if skipping):**
+
+- Verdict is unconditional PASS with zero findings.
+- Why-review skill itself is the active context.
+
+---
+
+## Phase 7: Validated Fix + Full Performance Re-Review Loop (MANDATORY when validated findings remain)
+
+**Trigger:** Phase 6 returns CLEAN/validated and the performance report still has one or more findings that must be fixed.
+
+**Protocol:**
+
+1. Create a fresh fix-cycle task list before editing. Do not reuse the review tasks.
+2. Fix only findings that survived `$why-review --validate-findings`; if this skill is running inside a workflow, route implementation through the parent `$plan` + `$cook` flow.
+3. Re-measure or run the verification command named in the finding.
+4. Restart the full `$performance` review from Phase 0 over the complete current target, not only the fixed files.
+5. The restarted pass MUST create brand-new review tasks, re-detect scope, rediscover local context, rerun baseline/graph/profiler checks where applicable, and analyze all dimensions again from the beginning.
+6. Repeat validate → fix → full performance re-review until a complete pass has zero findings.
+7. If the same validated blocker repeats across 3 full invocations with no progress, stop and ask the user for a decision.
+
+**Non-negotiable rules:**
+
+- Never fix a performance finding before `$why-review --validate-findings` validates it.
+- Never mark performance review clean after a targeted before/after check only; the clean verdict must come from a full Phase 0 restart.
+- Never review only fixed files during the recursive pass.
+- Never reuse old todo/task items for the recursive review pass.
 
 ---
 
@@ -329,7 +365,7 @@ If evidence insufficient, output: `Insufficient evidence. Verified: [...]. Not v
 **IMPORTANT MANDATORY MUST ATTENTION** ALWAYS measure before/after; static review findings need explicit verification command.
 **IMPORTANT MANDATORY MUST ATTENTION** ALWAYS verify index usability with actual query shape/order and plan/explain; index existence alone is not proof.
 **IMPORTANT MANDATORY MUST ATTENTION** ALWAYS push row filters to data source before projection/caching; row-count reduction beats column trimming.
-**IMPORTANT MUST ATTENTION** run fresh-eyes challenge before PASS on non-trivial performance work.
+**IMPORTANT MUST ATTENTION** after any validated performance fix, restart the full performance review from Phase 0 before claiming PASS.
 **IMPORTANT MUST ATTENTION** add final review task checking doc/test/spec staleness.
 
 **Anti-Rationalization:**

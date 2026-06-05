@@ -20,17 +20,22 @@ context-budget: high
 
 **Goal:** Perform security review against OWASP Top 10 and project authorization patterns.
 
+**Final Purpose:** Ensure security-sensitive changes are reviewed for exploitable authorization, data, injection, dependency, and boundary risks.
+
 **Workflow:**
 
 1. **Scope** — Identify security-sensitive code areas
 2. **Audit** — Review against OWASP categories and platform security patterns
 3. **Report** — Document findings with severity and remediation
+4. **Validate Findings** — Run `/why-review --validate-findings <report-path>` before any fix
+5. **Fix + Full Re-Review** — Fix only validated findings, then restart full security review from Scope
 
 **Key Rules:**
 
 - Analysis Mindset: systematic review, not guesswork
 - Check both backend and frontend attack surfaces
 - Use project authorization attributes and entity-level access expressions (see docs/project-reference/backend-patterns-reference.md)
+- Findings are not eligible for fix until `/why-review --validate-findings` confirms them; every validated fix restarts the full security review from the beginning.
 
 <scope>$ARGUMENTS</scope>
 
@@ -51,16 +56,16 @@ Activate `arch-security-review` skill and follow its workflow.
 
 ## Sub-Agent Type Override
 
-> **MANDATORY:** Security reviews spawn `security-auditor` sub-agent for Round 2, NOT `code-reviewer`.
+> **MANDATORY:** When a restarted security review needs a fresh reviewer after validated fixes, spawn `security-auditor`, NOT `code-reviewer`.
 > **Rationale:** `security-auditor` has dedicated OWASP protocols, auth flow analysis, injection risk tracing, dependency CVE checking, and microservices boundary security context that `code-reviewer` lacks.
 
 ## Recursive Quality Loop
 
-1. **Round 1:** Main agent (or `arch-security-review` skill) runs analysis → draft findings report
-2. **Round 2:** Spawn fresh `security-auditor` sub-agent (`subagent_type: "security-auditor"`) — ZERO memory of Round 1. Include in prompt: OWASP Top 10 checklist, auth flows, injection risks, dependency CVEs, microservices boundary security.
-3. Issues found → fix → Round 3 with NEW fresh `security-auditor` sub-agent
-4. Max 3 rounds → escalate to user via `AskUserQuestion`
-5. **Clean Round 1 ENDS the review.** When issues are found, fix and spawn a fresh sub-agent for Round 2 — main agent rationalizes own work, fresh eyes catch what was dismissed.
+1. **Review pass:** Main agent (or `arch-security-review` skill) runs analysis → draft findings report
+2. **Findings exist:** run `/why-review --validate-findings <security-report-path>` before any fix; do not spawn a fresh sub-agent only to re-review the same findings before validation/fix
+3. **After validated fixes:** restart the full security review from Scope over the full current security target. If the restarted review needs a fresh reviewer, spawn a NEW `security-auditor` sub-agent (`subagent_type: "security-auditor"`) — ZERO memory of prior rounds. Include in prompt: OWASP Top 10 checklist, auth flows, injection risks, dependency CVEs, microservices boundary security.
+4. **Repeat:** if issues remain, validate the new findings before more fixes, then restart the full review after fixes with a brand-new task breakdown
+5. **Stop:** A clean review pass ENDS the review. If the same blocker repeats across 3 full invocations with no progress, escalate via `AskUserQuestion`.
 
 > Run `python .claude/scripts/code_graph query callers_of <function> --json` to trace all entry points into sensitive functions.
 
@@ -93,7 +98,7 @@ When graph DB is available, use `trace` to analyze data flow paths for security 
 
 ---
 
-## Phase 1: Why-Review Self-Validation Gate (MANDATORY when findings exist)
+## Phase 1: Why-Review Findings Validation Gate (MANDATORY when findings exist)
 
 > **Purpose:** Adversarial validation of own findings BEFORE handoff. Catches over-flagged Highs, false positives, and severity inflation at the source rather than letting them propagate downstream.
 
@@ -102,10 +107,11 @@ When graph DB is available, use `trace` to analyze data flow paths for security 
 **Protocol:**
 
 1. Read own finalized report from `plans/reports/{skill}-{date}-{slug}.md`
-2. Invoke `/why-review` skill with arg: `validate findings in plans/reports/{skill}-{date}-{slug}.md — verify each finding has file:line proof, steel-man each rejected interpretation, and stress-test severity classifications`
-3. Read why-review output from `plans/reports/why-review-{date}.md`
+2. Invoke `/why-review --validate-findings plans/reports/{skill}-{date}-{slug}.md`
+3. Read the validation verdict path returned by why-review, expected as `plans/reports/why-review-validate-{date}.md`
 4. **If why-review demotes/removes any finding:** UPDATE own finalized report with revised severities, remove false positives, and add a `## Why-Review Validation Notes` section citing what changed and why
 5. **If why-review confirms all findings:** Append `## Why-Review Validation` line to own report stating "All N findings re-validated against actual code; no severity changes."
+6. **If the report changed after validation:** re-run this validation gate, maximum 2 validation passes, until the report's remaining findings are validated or zero findings remain.
 
 **Skip conditions (record explicit reason if skipping):**
 
@@ -113,6 +119,29 @@ When graph DB is available, use `trace` to analyze data flow paths for security 
 - Why-review skill itself is the active context (avoid recursion)
 
 **Why this exists:** AI sub-agent reports inherit confirmation bias — the orchestrator absorbs severity claims as ground truth. The 2026-05-09 review incident produced 5 Highs; adversarial validation demoted 3 of them. Codify this as standard practice.
+
+---
+
+## Phase 2: Validated Fix + Full Security Re-Review Loop (MANDATORY when validated findings remain)
+
+**Trigger:** Phase 1 returns CLEAN/validated and the security report still has one or more findings that must be fixed.
+
+**Protocol:**
+
+1. Create a fresh fix-cycle task list before editing. Do not reuse the review tasks.
+2. Fix only findings that survived `/why-review --validate-findings`; if this skill is running inside a workflow, route implementation through the parent `/plan` + `/cook` flow.
+3. Run targeted verification for the changed security-sensitive paths.
+4. Restart the full `/security` review from Scope over the complete current target, not only the fixed files.
+5. The restarted pass MUST create brand-new review tasks, reload local security context, rerun graph/caller traces where applicable, and analyze the full target from the beginning.
+6. Repeat validate → fix → full security re-review until a complete pass has zero findings.
+7. If the same validated blocker repeats across 3 full invocations with no progress, stop and ask the user for a decision.
+
+**Non-negotiable rules:**
+
+- Never fix a security finding before `/why-review --validate-findings` validates it.
+- Never mark security review clean after a targeted fix check only; the clean verdict must come from a full restart.
+- Never review only fixed files during the recursive pass.
+- Never reuse old todo/task items for the recursive review pass.
 
 ---
 
@@ -247,6 +276,7 @@ When graph DB is available, use `trace` to analyze data flow paths for security 
 > **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
 > **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
 > **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
+> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -287,6 +317,7 @@ When graph DB is available, use `trace` to analyze data flow paths for security 
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Final Purpose:** Ensure security-sensitive changes are reviewed for exploitable authorization, data, injection, dependency, and boundary risks.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting.
 **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — never auto-decide.
 **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.
@@ -295,3 +326,10 @@ When graph DB is available, use `trace` to analyze data flow paths for security 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
 
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
+**Anti-Rationalization:**
+
+| Evasion | Rebuttal |
+| ------- | -------- |
+| "Purpose obvious" | Anchor it anyway — primacy/recency keeps outcome active through long prompts. |
+| "Existing reminders enough" | Echo Final Purpose in Closing Reminders — bottom anchor prevents drift. |
+| "Skip evidence for prompt edits" | Cite changed file evidence and verify no stale protocol text remains. |

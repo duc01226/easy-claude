@@ -86,6 +86,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 > **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
 > **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
 > **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
+> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -118,7 +119,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Referenced Skills
 
-> **`$plan-review`** — Auto-reviews plan for validity, correctness, and best practices. Recursive: on FAIL it fixes issues directly in plan files and re-reviews until PASS (max 3 iterations). PASS = all Required checks pass + ≥50% Recommended. Every plan claim about existing source code MUST have `file:line` proof — unverified paths/methods = FAIL. Plans must be detailed and small enough (≤5 files, ≤3h per phase). MUST ATTENTION run after every plan creation.
+> **`$plan-review`** — Auto-reviews plan for validity, correctness, and best practices. Recursive: fixes actionable findings directly in plan files and re-reviews until a complete pass has zero findings, unless the same blocker repeats 3 times with no progress. Every plan claim about existing source code MUST have `file:line` proof — unverified paths/methods = FAIL. Plans must be detailed and small enough (≤5 files, ≤3h per phase). MUST ATTENTION run after every plan creation.
 
 > **`$plan-validate`** — Interviews the user with critical questions to validate assumptions and surface issues BEFORE coding begins. BLOCKING: MUST use a direct user question — completing without asking at least one question is a violation. Only ask about genuine decision points; questions must have 2-4 concrete options each. Offer after plan review completes.
 

@@ -123,6 +123,7 @@ Codex does not receive Claude hook-injected project docs or project config summa
 - Front-load report writing for long reviews; append findings per section/file.
 - After compaction, re-verify claimed completed steps against real current state.
 - For OOM triage, validate row-count/unbounded-query causes before row-size micro-optimizations.
+- Keep domain concepts out of generic/shared/infra layers; push consumer-specific domain (tenant/customer/product IDs, business entities, feature rules) into the consumer via subclass/composition — a silent leak couples a reusable layer to one consumer.
 
 ## Lessons Learned (Project)
 
@@ -191,7 +192,7 @@ Workflow source: `.claude/workflows.json` (37 workflows).
 - Description: Multi-file batch operations requiring progress tracking
 - When To Use: User wants to modify multiple files at once: bulk rename, find-and-replace across codebase, update all instances
 - When Not To Use: Test-only operations, documentation
-- Sequence: `plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> code -> tdd-spec -> why-review -> tdd-spec-review -> tdd-spec [direction=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> sre-review -> test -> docs-update -> watzup -> workflow-end`
+- Sequence: `plan -> plan-review -> plan-validate -> why-review -> code -> tdd-spec -> why-review -> tdd-spec-review -> tdd-spec [direction=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> sre-review -> test -> docs-update -> watzup -> understand -> workflow-end`
 
 Protocol:
 ```text
@@ -221,7 +222,7 @@ UNIVERSAL RULES:
 - Description: Research-driven feature development for large, complex, or ambiguous features in an existing project — includes idea refinement, market research, business evaluation, domain analysis, tech stack research, and full implementation
 - When To Use: User wants to implement a large, complex, or ambiguous feature that needs research, market analysis, business evaluation, domain modeling, or tech stack analysis before implementation. Big new module, major enhancement, cross-cutting capability, or feature where scope is unclear
 - When Not To Use: Small/well-defined features (use feature), new project from scratch (use greenfield-init), bug fixes, documentation, test-only tasks
-- Sequence: `idea -> web-research -> deep-research -> business-evaluation -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> why-review -> plan -> why-review -> plan-review -> why-review -> refine -> why-review -> refine-review -> story -> why-review -> story-review -> pbi-challenge -> dor-gate -> pbi-mockup -> tdd-spec -> why-review -> tdd-spec-review -> plan -> why-review -> plan-review -> why-review -> scaffold -> plan-validate -> why-review -> cook -> review-domain-entities -> integration-test -> integration-test-review -> integration-test-verify -> tdd-spec [direction=sync] -> workflow-review-changes -> sre-review -> security -> changelog -> test -> docs-update -> watzup -> workflow-end`
+- Sequence: `idea -> web-research -> deep-research -> business-evaluation -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> why-review -> plan -> plan-review -> refine -> why-review -> refine-review -> story -> why-review -> story-review -> pbi-challenge -> dor-gate -> pbi-mockup -> tdd-spec -> why-review -> tdd-spec-review -> plan -> plan-review -> scaffold -> plan-validate -> why-review -> cook -> review-domain-entities -> integration-test -> integration-test-review -> integration-test-verify -> tdd-spec [direction=sync] -> workflow-review-changes -> sre-review -> security -> changelog -> test -> docs-update -> watzup -> understand -> workflow-end`
 
 Protocol:
 ```text
@@ -300,7 +301,7 @@ UNIVERSAL RULES:
 - Description: Systematic debugging and fix workflow with end-to-start debugger trace before fix
 - When To Use: User reports a bug, error, crash, failure, regression, stale/incorrect final output, or something not working; wants to fix/debug/troubleshoot an issue with end-to-start trace
 - When Not To Use: New feature implementation, code improvement/refactoring, investigation-only (no fix), documentation updates
-- Sequence: `scout -> investigate -> debug-investigate -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> tdd-spec -> why-review -> tdd-spec-review -> integration-test -> fix -> prove-fix -> integration-test -> integration-test-review -> integration-test-verify -> tdd-spec [direction=sync] -> workflow-review-changes -> changelog -> test -> docs-update -> watzup -> workflow-end`
+- Sequence: `scout -> investigate -> debug-investigate -> plan -> plan-review -> plan-validate -> why-review -> tdd-spec -> why-review -> tdd-spec-review -> integration-test -> fix -> prove-fix -> integration-test -> integration-test-review -> integration-test-verify -> tdd-spec [direction=sync] -> workflow-review-changes -> changelog -> test -> docs-update -> watzup -> understand -> workflow-end`
 
 Protocol:
 ```text
@@ -352,7 +353,7 @@ UNIVERSAL RULES:
 - Description: Deployment and CI/CD pipeline management
 - When To Use: User wants to set up or modify deployment, infrastructure, CI/CD pipelines, Docker configuration, Kubernetes setup, or deploy to environments
 - When Not To Use: Explaining deployment concepts, checking deployment status/history, infrastructure investigation only
-- Sequence: `scout -> investigate -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> code -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> sre-review -> test -> docs-update -> watzup -> workflow-end`
+- Sequence: `scout -> investigate -> plan -> plan-review -> plan-validate -> why-review -> code -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> sre-review -> test -> docs-update -> watzup -> workflow-end`
 
 Protocol:
 ```text
@@ -400,7 +401,7 @@ UNIVERSAL RULES:
 - Description: Documentation creation and update workflow with plan validation
 - When To Use: User wants to create, update, or improve documentation, READMEs, or code comments
 - When Not To Use: Feature implementation, bug fixes, test writing
-- Sequence: `scout -> investigate -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> docs-update -> workflow-review-changes -> review-post-task -> watzup -> workflow-end`
+- Sequence: `scout -> investigate -> plan -> plan-review -> plan-validate -> why-review -> docs-update -> workflow-review-changes -> review-post-task -> watzup -> workflow-end`
 
 Protocol:
 ```text
@@ -498,7 +499,7 @@ UNIVERSAL RULES:
 - Description: Full feature development workflow with search-first approach, planning, implementation, testing, and documentation
 - When To Use: User wants to implement a well-defined feature, add a component, build a capability, develop a module, implement/execute an existing plan, create a new API endpoint, or design an API contract
 - When Not To Use: Bug fixes, documentation, test-only tasks, feature requests/ideas (no implementation), PBI/story creation, design specs, large/ambiguous features needing research (use big-feature)
-- Sequence: `scout -> investigate -> domain-analysis -> why-review -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> tdd-spec -> why-review -> tdd-spec-review -> plan -> why-review -> plan-review -> why-review -> cook -> review-domain-entities -> tdd-spec -> why-review -> tdd-spec-review -> tdd-spec [direction=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> sre-review -> security -> changelog -> test -> docs-update -> watzup -> workflow-end`
+- Sequence: `scout -> investigate -> domain-analysis -> why-review -> plan -> plan-review -> plan-validate -> why-review -> tdd-spec -> why-review -> tdd-spec-review -> plan -> plan-review -> cook -> review-domain-entities -> tdd-spec -> why-review -> tdd-spec-review -> tdd-spec [direction=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> sre-review -> security -> changelog -> test -> docs-update -> watzup -> understand -> workflow-end`
 
 Protocol:
 ```text
@@ -548,7 +549,7 @@ UNIVERSAL RULES:
 - Description: Business feature documentation with 17-section template enforcement, plan validation, and mandatory test coverage
 - When To Use: User wants to create or update business feature documentation in the configured feature-docs root
 - When Not To Use: Bug fixes, feature implementation, test writing, debugging, refactoring
-- Sequence: `scout -> investigate -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> docs-update -> workflow-review-changes -> review-post-task -> watzup -> workflow-end`
+- Sequence: `scout -> investigate -> plan -> plan-review -> plan-validate -> why-review -> docs-update -> workflow-review-changes -> review-post-task -> watzup -> workflow-end`
 
 Protocol:
 ```text
@@ -576,7 +577,7 @@ UNIVERSAL RULES:
 - Description: Complete feature from idea to PO acceptance — PO→BA→Designer→Dev→QA→PO with formal role handoffs at every stage
 - When To Use: Full end-to-end feature delivery requiring idea → PBI → stories → design → implementation → testing → PO acceptance with all formal role handoffs
 - When Not To Use: PBI-only work (use idea-to-pbi), implementation-only work (use feature or big-feature), research-heavy new product (use big-feature or greenfield-init), bug fixes (use bugfix)
-- Sequence: `idea -> refine -> why-review -> refine-review -> domain-analysis -> why-review -> story -> why-review -> story-review -> pbi-challenge -> dor-gate -> pbi-mockup -> design-spec -> why-review -> interface-design -> frontend-design -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> cook -> review-domain-entities -> tdd-spec -> why-review -> tdd-spec-review -> integration-test -> integration-test-review -> integration-test-verify -> tdd-spec [direction=sync] -> workflow-review-changes -> sre-review -> quality-gate -> docs-update -> watzup -> acceptance -> workflow-end`
+- Sequence: `idea -> refine -> why-review -> refine-review -> domain-analysis -> why-review -> story -> why-review -> story-review -> pbi-challenge -> dor-gate -> pbi-mockup -> design-spec -> why-review -> interface-design -> frontend-design -> plan -> plan-review -> plan-validate -> why-review -> cook -> review-domain-entities -> tdd-spec -> why-review -> tdd-spec-review -> integration-test -> integration-test-review -> integration-test-verify -> tdd-spec [direction=sync] -> workflow-review-changes -> sre-review -> quality-gate -> docs-update -> watzup -> acceptance -> workflow-end`
 
 Protocol:
 ```text
@@ -590,7 +591,7 @@ MANDATORY IMPORTANT MUST ATTENTION RULES:
 4. plan-validate confirms implementation plan with user before cook
 4b. domain-analysis (after refine-review) — CONDITIONAL: skip if feature has no domain entity changes. Run to model bounded contexts, aggregates, ERD before story writing.
 4c. review-domain-entities (after cook) — CONDITIONAL: skip if no domain entity files in changeset. Reviews DDD quality of created/modified entities before integration tests.
-5. workflow-review-changes is the consolidated review + fix loop (code-simplifier → review-changes → review-architecture → code-review → performance, recursive until PASS)
+5. workflow-review-changes is the consolidated review + fix loop. Use the canonical review-changes workflow sequence from .claude/workflows.json: review-changes -> why-review findings validation -> parallel review batch -> code-simplifier -> verification -> plan/plan-review/why-review/cook -> full restart -> docs/handoff.
 6. acceptance is PO final sign-off — must have test evidence and docs-update completed first
 7. Save artifacts at every step to configured plan and product-artifact roots from docs/project-config.json or project reference docs.
 MANDATORY FULL-LIFECYCLE SYNC GATES:
@@ -609,7 +610,7 @@ UNIVERSAL RULES:
 - Description: Full waterfall project inception from idea through implementation with integration testing
 - When To Use: User wants to start a new project from scratch, init a greenfield project, plan a new application, research and plan before coding, bootstrap a new codebase, build something new
 - When Not To Use: Existing codebase with code, bug fixes, feature implementation, refactoring existing code
-- Sequence: `idea -> web-research -> deep-research -> business-evaluation -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> why-review -> plan -> why-review -> security -> performance -> plan-review -> why-review -> refine -> why-review -> refine-review -> story -> why-review -> story-review -> pbi-challenge -> dor-gate -> pbi-mockup -> plan-validate -> why-review -> tdd-spec -> why-review -> tdd-spec-review -> plan -> why-review -> plan-review -> why-review -> scaffold -> linter-setup -> harness-setup -> why-review -> cook -> review-domain-entities -> tdd-spec -> why-review -> tdd-spec-review -> plan -> why-review -> plan-review -> why-review -> integration-test -> integration-test-review -> integration-test-verify -> test -> workflow-review-changes -> sre-review -> security -> changelog -> test -> docs-update -> watzup -> workflow-end`
+- Sequence: `idea -> web-research -> deep-research -> business-evaluation -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> why-review -> plan -> plan-review -> security -> performance -> plan-review -> refine -> why-review -> refine-review -> story -> why-review -> story-review -> pbi-challenge -> dor-gate -> pbi-mockup -> plan-validate -> why-review -> tdd-spec -> why-review -> tdd-spec-review -> plan -> plan-review -> scaffold -> linter-setup -> harness-setup -> why-review -> cook -> review-domain-entities -> tdd-spec -> why-review -> tdd-spec-review -> plan -> plan-review -> integration-test -> integration-test-review -> integration-test-verify -> test -> workflow-review-changes -> sre-review -> security -> changelog -> test -> docs-update -> watzup -> workflow-end`
 
 Protocol:
 ```text
@@ -674,7 +675,7 @@ After scaffolding, the workflow continues with full implementation and integrati
 6. Third $plan + $plan-review cycle plans integration test architecture
 7. $integration-test generates integration tests from specs
 8. $test runs all tests to verify TCs pass
-9. $workflow-review-changes for quality (consolidated review: code-simplifier + review-changes + review-architecture + code-review + performance, then plan + fix + re-review recursively)
+9. $workflow-review-changes for quality (use the canonical review-changes workflow sequence from .claude/workflows.json: review-changes, why-review findings validation, parallel review batch, code-simplifier, verification, plan/plan-review/why-review/cook, and full re-review restart)
 10. $sre-review + $security for production readiness
 11. $changelog + final $test + $docs-update + $watzup to close
 This ensures greenfield projects ship with integration test coverage from day one.
@@ -687,7 +688,7 @@ UNIVERSAL RULES:
 - Description: PO/BA workflow: capture or review idea/artifact, optional PO→BA handoff, refine to PBI, create user stories, generate TDD test specs, challenge review, DoR gate, mockup, prioritize
 - When To Use: PO or BA wants to take a raw idea — OR PO is handing off an existing artifact/ticket/brief to BA — through to a grooming-ready PBI with user stories, TDD test specifications, Dev BA PIC challenge review, DoR validation, wireframes, and backlog prioritization
 - When Not To Use: Already have a drafted PBI (use pbi-challenge standalone), implementing a feature (use feature or big-feature)
-- Sequence: `idea -> review-artifact -> handoff -> refine -> why-review -> refine-review -> why-review -> story -> why-review -> story-review -> tdd-spec -> why-review -> tdd-spec-review -> pbi-challenge -> dor-gate -> pbi-mockup -> prioritize -> docs-update -> watzup -> workflow-end`
+- Sequence: `idea -> review-artifact -> handoff -> refine -> why-review -> refine-review -> story -> why-review -> story-review -> tdd-spec -> why-review -> tdd-spec-review -> pbi-challenge -> dor-gate -> pbi-mockup -> prioritize -> docs-update -> watzup -> workflow-end`
 
 Protocol:
 ```text
@@ -697,7 +698,7 @@ Capture and refine a raw idea — or a handed-off artifact/ticket/brief — into
 MANDATORY IMPORTANT MUST ATTENTION RULES:
 1. Each step must invoke its skill invocation — never batch-complete or skip steps
 2. review-artifact and handoff are CONDITIONAL — skip both if no existing artifact or no formal handoff needed; proceed straight to refine
-3. why-review runs four times with purpose-specific labels: after refine, after refine-review, after story, and after tdd-spec. Each gate validates WHY before the next artifact step proceeds. FAIL blocks the next artifact step; WARN requires user acknowledgment.
+3. why-review runs three times with purpose-specific labels: after refine, after story, and after tdd-spec. The standalone gate after refine-review is omitted because refine-review (like every review skill) self-invokes $why-review --validate-findings internally as a Findings Validation Gate. Each gate validates WHY before the next artifact step proceeds. FAIL blocks the next artifact step; WARN requires user acknowledgment.
 4. tdd-spec and tdd-spec-review run after story-review so acceptance criteria and stories are mapped into testable TC specifications before challenge and DoR gates
 5. pbi-challenge is run by a reviewer different from the drafter — confirm reviewer identity before that step
 6. dor-gate must pass (PASS or WARN) before pbi-mockup is finalized
@@ -714,7 +715,6 @@ After workflow activation, present the full step list and let user deselect irre
 - [x] Refine to PBI (refine) — hypothesis, AC, RICE, GIVEN/WHEN/THEN
 - [x] Refinement rationale review (why-review) — after refine
 - [x] PBI review (refine-review)
-- [x] Reviewed-PBI rationale review (why-review) — after refine-review
 - [x] User stories (story)
 - [x] Story rationale review (why-review) — after story
 - [x] Story review (story-review)
@@ -728,7 +728,7 @@ After workflow activation, present the full step list and let user deselect irre
 - [x] Documentation synchronization (docs-update) — near-final sync for specs, feature docs, and TDD/spec docs
 
 WHY-REVIEW GATES (repeated, purpose-specific):
-Run in sequence after refine, after refine-review, after story, and after tdd-spec. Challenge the active artifact rationale before the next artifact step:
+Run in sequence after refine, after story, and after tdd-spec (the gate after refine-review is omitted — refine-review self-invokes $why-review --validate-findings internally as a Findings Validation Gate). Challenge the active artifact rationale before the next artifact step:
 - Is this the right next artifact/solution to the stated problem? What was rejected and why?
 - Are the acceptance criteria, story, or TC constraints justified? What breaks if they change?
 - Pre-mortem: if this PBI ships and fails in 3 months, what breaks?
@@ -747,7 +747,7 @@ Before pbi-challenge and DoR, map reviewed stories and acceptance criteria into 
 HANDOFF:
 At workflow-end, AI MUST ATTENTION present:
 - Summary: PBI created, test specs created/reviewed, docs sync completed, DoR result (PASS/WARN/FAIL), any blocking items
-- Recommended next workflow: $feature, /tdd-feature, or /big-feature (if PBI is ready to implement)
+- Recommended next workflow: $workflow-start feature, $workflow-start tdd-feature, or $workflow-start big-feature (if PBI is ready to implement)
 - Any DoR failures: list specific blocking criteria that must be resolved
 UNIVERSAL RULES:
 - Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
@@ -779,7 +779,7 @@ UNIVERSAL RULES:
 - Description: Database schema and data migration workflow
 - When To Use: User wants to create or run database migrations: schema changes, data migrations, EF migrations, adding/removing/altering columns or tables
 - When Not To Use: Explaining migration concepts, checking migration history/status, schema investigation only
-- Sequence: `scout -> investigate -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> db-migrate -> code -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> sre-review -> test -> docs-update -> watzup -> workflow-end`
+- Sequence: `scout -> investigate -> plan -> plan-review -> plan-validate -> why-review -> db-migrate -> code -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> sre-review -> test -> docs-update -> watzup -> understand -> workflow-end`
 
 Protocol:
 ```text
@@ -805,7 +805,7 @@ UNIVERSAL RULES:
 - Description: Package dependency upgrade with regression verification
 - When To Use: User wants to upgrade packages, update dependencies, npm update, NuGet upgrade, version bump
 - When Not To Use: Adding new packages (use feature), removing packages (use refactor)
-- Sequence: `scout -> investigate -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> code -> integration-test -> integration-test-review -> integration-test-verify -> test -> workflow-review-changes -> docs-update -> watzup -> workflow-end`
+- Sequence: `scout -> investigate -> plan -> plan-review -> plan-validate -> why-review -> code -> integration-test -> integration-test-review -> integration-test-verify -> test -> workflow-review-changes -> docs-update -> watzup -> understand -> workflow-end`
 
 Protocol:
 ```text
@@ -846,7 +846,7 @@ UNIVERSAL RULES:
 - Description: Performance investigation and optimization workflow
 - When To Use: User reports slow performance, latency issues, optimization needed, bottleneck investigation, query optimization
 - When Not To Use: Bug fixes (use bugfix), feature implementation, refactoring without performance goals
-- Sequence: `scout -> investigate -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> code -> test -> workflow-review-changes -> sre-review -> docs-update -> watzup -> workflow-end`
+- Sequence: `scout -> investigate -> plan -> plan-review -> plan-validate -> why-review -> code -> test -> workflow-review-changes -> sre-review -> docs-update -> watzup -> understand -> workflow-end`
 
 Protocol:
 ```text
@@ -946,7 +946,7 @@ CROSS-PBI PRIORITIZE STEP:
 HANDOFF:
 At workflow-end, AI MUST ATTENTION present:
 - Summary: N PBIs created, X passed DoR, Y need rework
-- Recommended next workflow: /sprint-planning (if backlog is ready) OR /big-feature (if single large PBI needs deep research + implementation)
+- Recommended next workflow: $workflow-start sprint-planning (if backlog is ready) OR $workflow-start big-feature (if single large PBI needs deep research + implementation)
 - Any PBIs that failed DoR gate: list blocking items
 
 AUTO-SKIP RULES:
@@ -972,12 +972,12 @@ UNIVERSAL RULES:
 - Description: Quality audit: review artifacts for best practices, identify flaws and enhancements, fix if needed
 - When To Use: User wants to audit code quality, review skills/commands/hooks for best practices, find flaws and suggest enhancements
 - When Not To Use: Bug fixes, feature implementation, investigation-only, reviewing uncommitted changes, PR reviews
-- Sequence: `workflow-review-changes -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> code -> tdd-spec -> why-review -> tdd-spec-review -> integration-test -> integration-test-review -> integration-test-verify -> test -> docs-update -> watzup -> workflow-end`
+- Sequence: `workflow-review-changes -> plan -> plan-review -> plan-validate -> why-review -> code -> tdd-spec -> why-review -> tdd-spec-review -> integration-test -> integration-test-review -> integration-test-verify -> test -> docs-update -> watzup -> workflow-end`
 
 Protocol:
 ```text
 QUALITY AUDIT WORKFLOW:
-1. Review Changes (workflow-review-changes): Consolidated review (code-simplifier + review-changes + review-architecture + code-review + performance), then plan + fix + re-review recursively until clean
+1. Review Changes (workflow-review-changes): Use the canonical review-changes workflow sequence from .claude/workflows.json (review-changes -> why-review -> parallel reviewers -> code-simplifier -> verification -> plan/plan-review/why-review/cook -> full restart), then continue until clean
 2. Plan: Document additional findings, propose fixes and enhancements
 3. Plan Review: Validate fix plan before implementation
 4. Code: Implement approved fixes
@@ -1000,7 +1000,7 @@ UNIVERSAL RULES:
 - Description: Code improvement and restructuring workflow with search-first approach
 - When To Use: User wants to restructure, reorganize, clean up, or improve existing code without changing behavior; technical debt
 - When Not To Use: Bug fixes, new feature development
-- Sequence: `scout -> investigate -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> code -> tdd-spec -> why-review -> tdd-spec-review -> tdd-spec [direction=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> sre-review -> changelog -> test -> docs-update -> watzup -> workflow-end`
+- Sequence: `scout -> investigate -> plan -> plan-review -> plan-validate -> why-review -> code -> tdd-spec -> why-review -> tdd-spec-review -> tdd-spec [direction=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> sre-review -> changelog -> test -> docs-update -> watzup -> understand -> workflow-end`
 
 Protocol:
 ```text
@@ -1071,7 +1071,7 @@ UNIVERSAL RULES:
 - Description: Code review and quality check, plan and fix issues, then re-review recursively until clean
 - When To Use: User wants a code review, PR review, codebase quality audit, or code quality check
 - When Not To Use: Reviewing uncommitted changes (use review-changes), reviewing plans/designs/specs/docs
-- Sequence: `review-architecture -> review-ui -> code-simplifier -> code-review -> performance -> integration-test-review -> integration-test-verify -> plan -> why-review -> plan-validate -> why-review -> cook -> workflow-review -> docs-update -> watzup -> workflow-end`
+- Sequence: `review-architecture -> review-ui -> code-simplifier -> code-review -> performance -> integration-test-review -> integration-test-verify -> plan -> plan-review -> plan-validate -> why-review -> cook -> workflow-review -> docs-update -> watzup -> workflow-end`
 
 Protocol:
 ```text
@@ -1082,8 +1082,8 @@ CODE REVIEW PROTOCOL (RECURSIVE):
 3. Check project code review rules doc from docs/project-config.json → workflowPatterns.reviewRulesDoc
 4. Report findings with severity (Critical/Major/Minor) and file:line references
 5. Summarize with actionable recommendations
-6. If ISSUES FOUND: plan fixes, validate plan, implement fixes, then RE-REVIEW
-7. RECURSIVE: After cook, re-run review. Loop until PASS or max 3 iterations.
+6. If ISSUES FOUND: validate findings, plan fixes for validated findings, validate the plan, implement fixes, then restart the full review
+7. RECURSIVE: After cook, re-run review. Loop until one complete review pass has zero findings; stop only when the same validated blocker repeats 3 full invocations with no progress.
 - LOGIC REVIEW: Verify changes match their stated intention. Trace business logic paths. Clean code can be wrong code.
 - BUG DETECTION: Check for null safety, boundary conditions, resource leaks, concurrency issues per bug-detection-protocol.
 - TEST SPEC VERIFICATION: Cross-reference changes against TC-{FEATURE}-{NNN} test specifications. Flag untested code paths.
@@ -1101,35 +1101,37 @@ UNIVERSAL RULES:
 - Description: Review uncommitted changes, plan and fix issues, then re-review recursively until clean
 - When To Use: User wants to review current uncommitted, staged, or unstaged changes before committing
 - When Not To Use: PR reviews, codebase reviews, branch comparisons
-- Sequence: `review-changes -> review-architecture -> review-ui -> review-domain-entities -> performance -> integration-test-review -> security -> code-simplifier -> code-review -> integration-test-verify -> why-review -> plan -> why-review -> plan-validate -> why-review -> cook -> workflow-review-changes -> docs-update -> watzup -> workflow-end`
+- Sequence: `review-changes -> why-review -> review-architecture -> review-domain-entities -> performance -> integration-test-review -> security -> code-simplifier -> integration-test-verify -> plan -> plan-review -> why-review -> cook -> workflow-review-changes -> docs-update -> watzup -> understand -> workflow-end`
 
 Protocol:
 ```text
 PRE-COMMIT REVIEW (RECURSIVE):
 
-[BLOCKING] SEQUENCING RULE — review-changes (step 1) MUST run FIRST and complete before any other reviewer.
+[BLOCKING] SEQUENCING RULE — review-changes (step 1) MUST run FIRST and complete before any other reviewer; why-review (step 2) runs immediately after to validate those findings before the parallel batch.
 - Step 1 (`review-changes`) establishes the baseline: surface analysis (BE/FE/SCSS file counts), review mode (DIMENSIONAL/BE-ONLY/FE-ONLY/FE-SPLIT/TOOLING), integration test sync gaps, multilingual translation gaps. The parallel batch depends on this baseline summary.
-- The PARALLEL BATCH (`review-architecture`, `review-ui`, `review-domain-entities`, `performance`, `integration-test-review`, `security`) MUST be spawned together in a single message via `spawn_agent` tool calls, using each reviewer's required agent_type (review-ui uses ui-ux-designer; default reviewers use code-reviewer). They are read-only and independent — no shared mutable state, no ordering dependency between them.
-- `review-ui` and `review-domain-entities` are CONDITIONAL members of the batch: include `review-ui` ONLY when the diff contains files matching the project's configured frontend/UI file patterns; include `review-domain-entities` ONLY when domain entity files changed. Skip a conditional reviewer entirely (do not spawn it) when its trigger files are absent.
-- NEVER start the batch before step 1 completes. NEVER serialize the batch (burns 50K+ tokens absorbing inline reports). NEVER start `code-simplifier` until ALL spawned sub-agents return — code-simplifier modifies code and must operate on the consolidated review snapshot.
-- After the parallel batch returns: TaskUpdate the batch steps to completed, read all sub-agent reports, synthesize Critical/High findings into a consolidation summary, then proceed to `code-simplifier` sequentially.
+- Step 2 (`why-review`) is a FINDINGS-VALIDATION gate: it sanity-checks the review-changes findings (each finding warranted, evidence-backed, not a false positive) BEFORE expensive parallel reviewers run. It validates findings only — NOT the fix plan (the later why-review at step 12 does that). If step 1 found zero issues, step 2 passes through with nothing to validate.
+- The PARALLEL BATCH (`review-architecture`, `review-domain-entities`, `performance`, `integration-test-review`, `security`) MUST be spawned together in a single message via `spawn_agent` tool calls using agent_type code-reviewer. They are read-only and independent — no shared mutable state, no ordering dependency between them.
+- The UI/frontend quality gate (`$review-ui`) is NOT a separate workflow step — it is owned by `review-changes` (step 1), which invokes it internally (ui-ux-designer sub-agent) as its UI dimension whenever the diff contains files matching the project's configured frontend/UI file patterns. Skip entirely when no frontend files changed.
+- `review-domain-entities` is a CONDITIONAL member of the batch: include it ONLY when domain entity files changed. Skip it entirely (do not spawn it) when its trigger files are absent.
+- NEVER start the batch before steps 1 and 2 complete. NEVER serialize the batch (burns 50K+ tokens absorbing inline reports). NEVER start `code-simplifier` until ALL spawned sub-agents return — code-simplifier modifies code and must operate on the consolidated review snapshot.
+- After the parallel batch returns: TaskUpdate the batch steps to completed, read all sub-agent reports, synthesize Critical/High/Medium/Low findings into a consolidation summary, then proceed to `code-simplifier` sequentially.
 
 - Review all staged and unstaged changes
 - Check for: security issues, debug artifacts (console.log, debugger), incomplete code, style violations
 - Verify no sensitive files (.env, credentials) are staged
 - Check architecture compliance, naming, patterns
 - DOMAIN ENTITY REVIEW: If domain entity files in changeset (Domain/, Entities/, ValueObjects/ directories), run $review-domain-entities to check DDD quality (anemic model, VO immutability, invariant enforcement). Skip entirely if no entity files changed.
-- UI/FRONTEND REVIEW: If the changeset contains files matching the project's configured frontend/UI file patterns, run $review-ui to check long-content overflow (wrap vs ellipsis+tooltip), responsive multi-screen via flex, flex-vs-fixed sizing (prefer min/max + flex-grow over fixed px), z-index scale discipline (no raw numbers, no !important), and SCSS/BEM quality. Skip entirely if no frontend files changed.
+- UI/FRONTEND REVIEW: Owned by step 1 (`review-changes`). When the changeset contains files matching the project's configured frontend/UI file patterns, `review-changes` invokes $review-ui internally (ui-ux-designer sub-agent) as its UI dimension to check long-content overflow (wrap vs ellipsis+tooltip), responsive multi-screen via flex, flex-vs-fixed sizing (prefer min/max + flex-grow over fixed px), z-index scale discipline (no raw numbers, no !important), and SCSS/BEM quality. Not a separate workflow step. Skip entirely if no frontend files changed.
 - Report findings with file:line references
 - Output: PASS (safe to commit) or ISSUES FOUND (with list)
-- If ISSUES FOUND: plan fixes, validate plan, implement fixes, then RE-REVIEW
-- RECURSIVE: After cook, re-run review-changes. Loop until PASS or max 3 iterations.
+- If ISSUES FOUND: validate findings, plan fixes for validated findings, review and sanity-check the fix plan, implement fixes, then restart the full review
+- RECURSIVE: After cook, re-run review-changes. Loop until one complete review pass has zero findings; stop only when the same validated blocker repeats 3 full invocations with no progress.
 - LOGIC REVIEW: Verify changes match their stated intention. Trace business logic paths. Clean code can be wrong code.
 - BUG DETECTION: Check for null safety, boundary conditions, resource leaks, concurrency issues per bug-detection-protocol.
 - TEST SPEC VERIFICATION: Cross-reference changes against TC-{FEATURE}-{NNN} test specifications. Flag untested code paths.
 - INTEGRATION TEST SYNC: Identify changed business logic files (handlers, services, controllers, commands, queries, resolvers — infer from project conventions). For each, verify a corresponding test file exists. If missing, surface to user via ask the user directly — mandatory, not advisory.
 - MULTILINGUAL UI SYNC CHECK: If UI-facing files changed and project localization is multilingual (`localization.enabled` + `supportedLocales.length > 1`), verify translation file updates. If missing, surface via ask the user directly — mandatory, not advisory.
-- DOC SYNC DEFERRAL: DO NOT update feature docs, engineering specs, or test spec TCs during review steps. The dedicated docs-update step (step 14) handles all of this: $feature-docs (business feature docs) + $spec-discovery [mode=update] (engineering spec bundle) + $tdd-spec (test spec update) + $tdd-spec [direction=sync] (QA dashboard sync). TEST SPEC VERIFICATION above is READ-ONLY cross-reference only — flag gaps, do not write.
+- DOC SYNC DEFERRAL: DO NOT update feature docs, engineering specs, or test spec TCs during review steps. The dedicated docs-update step handles all of this: $feature-docs (business feature docs) + $spec-discovery [mode=update] (engineering spec bundle) + $tdd-spec (test spec update) + $tdd-spec [direction=sync] (QA dashboard sync). TEST SPEC VERIFICATION above is READ-ONLY cross-reference only — flag gaps, do not write.
 MANDATORY REVIEW-CHANGES GATES:
 - SPEC/TDD/TEST THREE-WAY SYNC is blocking: changed behavior must match specs + TCs + test code.
 - STATE MACHINE DATA ASSERT (MOST IMPORTANT MANDATORY ASSERT): for lifecycle/state-transition changes, verify persisted-state assertions and invalid-transition rejection tests.
@@ -1168,7 +1170,7 @@ UNIVERSAL RULES:
 - Description: Reverse-engineer a complete, tech-agnostic specification bundle from an existing codebase — scout holistically first, plan a per-module task breakdown, investigate each module deeply, then assemble a reimplementation-ready spec set for any AI agent or engineering team.
 - When To Use: Re-implementing the same product on a new tech stack, onboarding a new team with zero codebase knowledge, compliance documentation of system behavior, tech migration spec generation, generating a backlog from an existing system, verifying a system matches its intended design, briefing an AI agent to build a clone or fork
 - When Not To Use: Understanding one specific feature (use investigation), writing tests for existing code (use write-integration-test), updating existing documentation (use documentation), refactoring or optimizing (use refactor or performance), new project with no codebase (use greenfield-init or product-discovery)
-- Sequence: `scout -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> spec-discovery -> review-changes -> review-artifact -> watzup -> workflow-end`
+- Sequence: `scout -> plan -> plan-review -> plan-validate -> why-review -> spec-discovery -> review-changes -> review-artifact -> watzup -> workflow-end`
 
 Protocol:
 ```text
@@ -1235,7 +1237,7 @@ CONDITIONAL SKIPS:
 
 HANDOFF at workflow-end:
   Present: total spec bundle (N files, X modules), completeness matrix, open questions
-  Recommend: /product-discovery (spec → future backlog), /greenfield-init (start re-implementation planning)
+  Recommend: $workflow-start product-discovery (spec → future backlog), $workflow-start greenfield-init (start re-implementation planning)
 UNIVERSAL RULES:
 - Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
 - Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks.
@@ -1271,7 +1273,7 @@ UNIVERSAL RULES:
 - Description: Generate a complete, dependency-aware PBI backlog from an existing engineering spec bundle. Audits spec freshness, decomposes large specs by module and feature, creates PBIs/stories/DoR evidence, and produces a ranked backlog.
 - When To Use: User wants to create all PBIs from an existing spec, convert a large engineering spec into a complete prioritized backlog, generate dependent PBIs from docs/specs, split a very big spec into sprint-ready PBIs, or produce a ranked implementation order from spec modules.
 - When Not To Use: Raw product vision without an existing spec bundle (use product-discovery), one informal idea (use idea-to-pbi), implementation work after PBIs are ready (use feature or big-feature), spec generation/update only (use spec-driven-dev).
-- Sequence: `scout -> spec-discovery -> domain-analysis -> why-review -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> refine -> why-review -> refine-review -> story -> why-review -> story-review -> pbi-challenge -> dor-gate -> pbi-mockup -> prioritize -> docs-update -> watzup -> workflow-end`
+- Sequence: `scout -> spec-discovery -> domain-analysis -> why-review -> plan -> plan-review -> plan-validate -> why-review -> refine -> why-review -> refine-review -> story -> why-review -> story-review -> pbi-challenge -> dor-gate -> pbi-mockup -> prioritize -> docs-update -> watzup -> workflow-end`
 
 Protocol:
 ```text
@@ -1308,7 +1310,7 @@ UNIVERSAL RULES:
 - Description: Test-driven feature: write test specs first, then implement, then verify with integration tests
 - When To Use: TDD implementation, test-first development, spec-driven feature, write test specs before implementing
 - When Not To Use: Bug fixes, quick changes, documentation-only tasks, implement-first approach
-- Sequence: `scout -> investigate -> domain-analysis -> why-review -> tdd-spec -> why-review -> tdd-spec-review -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> cook -> review-domain-entities -> tdd-spec -> why-review -> tdd-spec-review -> tdd-spec [direction=sync] -> integration-test -> integration-test-review -> integration-test-verify -> test -> workflow-review-changes -> sre-review -> changelog -> docs-update -> watzup -> workflow-end`
+- Sequence: `scout -> investigate -> domain-analysis -> why-review -> tdd-spec -> why-review -> tdd-spec-review -> plan -> plan-review -> plan-validate -> why-review -> cook -> review-domain-entities -> tdd-spec -> why-review -> tdd-spec-review -> tdd-spec [direction=sync] -> integration-test -> integration-test-review -> integration-test-verify -> test -> workflow-review-changes -> sre-review -> changelog -> docs-update -> watzup -> understand -> workflow-end`
 
 Protocol:
 ```text
@@ -1431,7 +1433,7 @@ UNIVERSAL RULES:
 - Description: Investigate-first verification: understand context, test/check behavior, report findings with end-to-start root-cause trace, then fix only if user approves
 - When To Use: User wants to verify, validate, confirm, or ensure something is correct/working; sanity check or double-check
 - When Not To Use: Bug reports (known broken), investigation-only, feature implementation, code reviews
-- Sequence: `scout -> investigate -> test-initial -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> fix -> prove-fix -> tdd-spec -> why-review -> tdd-spec-review -> tdd-spec [direction=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> test -> docs-update -> watzup -> workflow-end`
+- Sequence: `scout -> investigate -> test-initial -> plan -> plan-review -> plan-validate -> why-review -> fix -> prove-fix -> tdd-spec -> why-review -> tdd-spec-review -> tdd-spec [direction=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> test -> docs-update -> watzup -> understand -> workflow-end`
 
 Protocol:
 ```text
@@ -1547,7 +1549,7 @@ WRITE INTEGRATION TEST PROTOCOL:
    - ALL string data uses project unique-data helper
    - Each test method has TC spec annotation linking to TC-{FEATURE}-{NNN}
    - Minimum 3 tests per command: happy path + validation failure + DB state check
-6. Integration Test Review: 6-gate quality check (assertion value, data state, repeatability, domain logic, traceability, three-way sync). Mandatory fix loop + fresh sub-agent re-check. NEVER proceed with CRITICAL/HIGH issues outstanding.
+6. Integration Test Review: 6-gate quality check (assertion value, data state, repeatability, domain logic, traceability, three-way sync). Validate findings, fix only validated issues, then restart the full integration-test review after fixes. NEVER proceed with CRITICAL/HIGH issues outstanding.
 7. Integration Test Verify: Run tests via quickRunCommand from docs/project-config.json → integrationTestVerify. Report exact pass/fail counts with test runner output. NEVER mark complete without real output.
 8. Test Specs Docs: Sync cross-module spec dashboard. Update IntegrationTest fields with {File}::{MethodName} traceability links.
 9. Docs Update: Update feature doc evidence fields and version history if test coverage changed materially.

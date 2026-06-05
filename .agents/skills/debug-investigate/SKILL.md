@@ -50,6 +50,8 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Investigate, identify root cause with `file:line` evidence. Investigation-only — hand off to `$fix` for implementation.
 
+**Final Purpose:** Deliver a Fresh-Eyes-validated root cause pinned to `file:line` at the invariant-owning layer — so `$fix` corrects the cause, not the symptom — or an honest "hypothesis, not confirmed" naming the evidence gaps.
+
 **Workflow:**
 
 1. **Classify** — Detect bug scenario type (Phase 0) → route to specialized agent
@@ -335,6 +337,7 @@ After `$fix` applies changes, `$prove-fix` MUST be run — builds code proof tra
 > **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
 > **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
 > **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
+> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -723,6 +726,7 @@ After `$fix` applies changes, `$prove-fix` MUST be run — builds code proof tra
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Final Purpose:** Deliver a Fresh-Eyes-validated root cause pinned to `file:line` at the invariant-owning layer — so `$fix` corrects the cause, not the symptom — or an honest "hypothesis, not confirmed" naming the evidence gaps.
 **MUST ATTENTION** Phase 0 FIRST — classify bug type, route to specialized agent (`performance-optimizer` / `security-auditor`) before any investigation
 **MUST ATTENTION** NEVER fix at crash site — trace full data flow, fix at invariant-owning layer
 **MUST ATTENTION** NEVER report root cause without `file:line` evidence; Confidence <60% = DO NOT recommend

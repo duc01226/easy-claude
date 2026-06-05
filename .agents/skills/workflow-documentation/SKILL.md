@@ -58,19 +58,19 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $scout -> $investigate -> $plan -> $why-review -> $plan-review -> $why-review -> $plan-validate -> $why-review -> $docs-update -> $workflow-review-changes -> $review-post-task -> $watzup -> $workflow-end
+**IMPORTANT MANDATORY Steps:** $scout -> $investigate -> $plan -> $plan-review -> $plan-validate -> $why-review -> $docs-update -> $workflow-review-changes -> $review-post-task -> $watzup -> $workflow-end
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its skill invocation — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
 Activate the `documentation` workflow. Run `$workflow-start documentation` with the user's prompt as context.
 
-**Steps:** $scout → $investigate → $plan → $why-review → $plan-review → $why-review → $plan-validate → $why-review → $docs-update → $workflow-review-changes → $review-post-task → $watzup → $workflow-end
+**Steps:** $scout → $investigate → $plan → $plan-review → $plan-validate → $why-review → $docs-update → $workflow-review-changes → $review-post-task → $watzup → $workflow-end
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
 
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
 
-**IMPORTANT MANDATORY Steps:** $scout -> $investigate -> $plan -> $why-review -> $plan-review -> $why-review -> $plan-validate -> $why-review -> $docs-update -> $workflow-review-changes -> $review-post-task -> $watzup -> $workflow-end
+**IMPORTANT MANDATORY Steps:** $scout -> $investigate -> $plan -> $plan-review -> $plan-validate -> $why-review -> $docs-update -> $workflow-review-changes -> $review-post-task -> $watzup -> $workflow-end
 
 <!-- SYNC:nested-task-creation -->
 
@@ -108,6 +108,7 @@ Activate the `documentation` workflow. Run `$workflow-start documentation` with 
 > **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
 > **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
 > **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
+> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
 
 <!-- /SYNC:ai-mistake-prevention -->
 

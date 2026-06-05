@@ -17,9 +17,11 @@ description: '[Code Quality] Use when you need to review integration tests for a
 
 **Goal:** Review integration tests for real bug-protection value, correct data assertions, infinite repeatability, spec alignment.
 
+**Final Purpose:** Ensure integration tests protect real business behavior with repeatable data-state assertions aligned to specs and implementation.
+
 **Scope:** All test files in uncommitted changes (default), or user-specified scope.
 
-**Workflow:** Phase 0 Detect → Collect → 6-Gate Review → Spec Cross-Check → Report → Fix issues → Fresh sub-agent re-review → Build & verify → If fail: investigate + fix plan
+**Workflow:** Phase 0 Detect → Collect → 6-Gate Review → Spec Cross-Check → Report → validate findings → fix validated issues → full re-review after fixes → Build & verify → If fail: investigate + fix plan
 
 **Non-negotiable rules:**
 
@@ -225,25 +227,25 @@ Use `TaskCreate` for EACH phase before starting.
 4. Re-read changed files to verify fix correctness
 5. Record each fix with `file:line` under `## Fixes Applied`
 
-**Phase 6 — Fresh Sub-Agent Re-Review (MANDATORY):**
+**Phase 6 — Validated Fix + Full Re-Review (MANDATORY when fixes are applied):**
 
-After Phase 5 fixes, spawn fresh `code-reviewer` sub-agents (parallel by module for 10+ files; single agent otherwise) using canonical Agent template from `SYNC:review-protocol-injection`. Each sub-agent re-reads ALL target test files from scratch with ZERO memory of Phase 2/5. When constructing Agent call prompt:
+Do not spawn a fresh reviewer to re-review the same findings before validation/fix. After Phase 5 applies validated fixes, run a full fresh review over the current test scope. When that review uses sub-agents, spawn fresh `code-reviewer` sub-agents (parallel by module for 10+ files; single agent otherwise) using canonical Agent template from `SYNC:review-protocol-injection`. Each sub-agent re-reads ALL target test files from scratch with ZERO memory of Phase 2/5. When constructing Agent call prompt:
 
 1. Copy Agent call shape from `SYNC:review-protocol-injection` template verbatim
 2. Set `subagent_type: "code-reviewer"`
 3. Embed full verbatim body of 9 SYNC blocks (all present inline in this skill file): `SYNC:evidence-based-reasoning`, `SYNC:bug-detection`, `SYNC:design-patterns-quality`, `SYNC:logic-and-intention-review`, `SYNC:test-spec-verification`, `SYNC:fix-layer-accountability`, `SYNC:rationalization-prevention`, `SYNC:graph-assisted-investigation`, `SYNC:understand-code-first`
-4. Task field: `"Review integration tests in {file-list} against 6 quality gates: assertion value, data state, infinite repeatability, domain logic, test-spec traceability, three-way sync. Read handler source AND feature docs before judging assertions. Flag smoke-only, existence-only, dead assertions, and repository-created invalid test data as FAIL. Source-of-truth hierarchy: feature docs > test-spec docs > implementation code > test code. Classify every disagreement as: wrong test, code bug, stale docs, or escalate (three-way conflict)."`
+4. Task field: `"Run a full fresh integration-test review pass over {file-list} after validated fixes were applied. Review against 6 quality gates: assertion value, data state, infinite repeatability, domain logic, test-spec traceability, three-way sync. Read handler source AND feature docs before judging assertions. Flag smoke-only, existence-only, dead assertions, and repository-created invalid test data as FAIL. Source-of-truth hierarchy: feature docs > test-spec docs > implementation code > test code. Classify every disagreement as: wrong test, code bug, stale docs, or escalate (three-way conflict)."`
 5. Target Files: explicit file list (never pass inline contents)
 6. Reference Docs: include `docs/project-reference/integration-test-reference.md`
-7. Report path: `plans/reports/integration-test-review-round{N}-{date}.md`
+7. Report path: `plans/reports/integration-test-review-rerun{N}-{date}.md`
 
 After sub-agents return:
 
 1. **Read** each sub-agent's report
-2. **Integrate** findings as `## Round {N} Findings (Fresh Sub-Agent)` — DO NOT filter or override
-3. **If new CRITICAL/HIGH:** fix → spawn NEW Round N+1 fresh sub-agents (never reuse prior agents)
-4. **Max 3 fresh rounds** — escalate via `AskUserQuestion` if still failing after 3 rounds
-5. **Exit criteria:** Fresh-round review returns 0 CRITICAL and 0 HIGH issues
+2. **Integrate** findings as `## Re-Review {N} Findings` — DO NOT filter or override
+3. **If new CRITICAL/HIGH:** validate the new finding set before any additional fixes
+4. **Repeat only after another fix cycle:** restart the full review again after validated fixes are applied; if the same blocker repeats across 3 full invocations with no progress, escalate via `AskUserQuestion`
+5. **Exit criteria:** A complete full review returns 0 CRITICAL and 0 HIGH issues
 
 **Phase 7 — Build & Run Tests (MANDATORY):** Build and run ALL changed/reviewed test files.
 
@@ -305,7 +307,7 @@ After sub-agents return:
 
 1. Read own finalized report from `plans/reports/{skill}-{date}-{slug}.md`
 2. Invoke `/why-review` skill with arg: `validate findings in plans/reports/{skill}-{date}-{slug}.md — verify each finding has file:line proof, steel-man each rejected interpretation, and stress-test severity classifications`
-3. Read why-review output from `plans/reports/why-review-{date}.md`
+3. Read the validation verdict path returned by why-review, expected as `plans/reports/why-review-validate-{date}.md`
 4. **If why-review demotes/removes any finding:** UPDATE own finalized report with revised severities, remove false positives, and add a `## Why-Review Validation Notes` section citing what changed and why
 5. **If why-review confirms all findings:** Append `## Why-Review Validation` line to own report stating "All N findings re-validated against actual code; no severity changes."
 
@@ -407,16 +409,16 @@ integration-test-review (you are here)
 
 <!-- SYNC:double-round-trip-review -->
 
-> **Fix-Triggered Re-Review Loop** — Re-review is triggered by a FIX CYCLE, not by a round number. Review purpose: `review → if issues → fix → re-review` until a round finds no issues. **A clean review ENDS the loop — no further rounds required.**
+> **Validated-Finding Fix + Full Re-Review Loop** — Re-review is triggered by a validated finding fix cycle, not by a round number. Review purpose: `review → validate findings → fix validated findings → full re-review` until a complete review pass finds no issues. **A clean review ENDS the loop — no further rounds required.**
 >
 > **Round 1:** Main-session review. Read target files, build understanding, note issues. Output findings + verdict (PASS / FAIL).
 >
 > **Decision after Round 1:**
 >
 > - **No issues found (PASS, zero findings)** → review ENDS. Do NOT spawn a fresh sub-agent for confirmation.
-> - **Issues found (FAIL, or any non-zero findings)** → fix the issues, then spawn a fresh sub-agent for Round 2 re-review.
+> - **Issues found (FAIL, or any non-zero findings)** → run the active review skill's findings-validation gate first; for review skills the default gate is `/why-review --validate-findings <report-path>`, fix only validated findings, then restart the full review protocol from the beginning with a fresh task breakdown.
 >
-> **Fresh sub-agent re-review (after every fix cycle):** Spawn a NEW `Agent` tool call — never reuse a prior agent. Sub-agent re-reads ALL files from scratch with ZERO memory of prior rounds. See `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. Each fresh round must catch:
+> **Fresh full re-review after every fix cycle:** Re-run the whole review protocol over the current full target. When sub-agents are part of that protocol, spawn NEW `Agent` calls — never reuse prior agents. Reviewers re-read ALL files from scratch with ZERO memory of prior rounds. See `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. Each fresh full review must catch:
 >
 > - Cross-cutting concerns missed in the prior round
 > - Interaction bugs between changed files
@@ -425,16 +427,17 @@ integration-test-review (you are here)
 > - Subtle edge cases the prior round rationalized away
 > - Regressions introduced by the fixes themselves
 >
-> **Loop termination:** After each fresh round, repeat the same decision: clean → END; issues → fix → next fresh round. Continue until a round finds zero issues, or **3 fresh-subagent rounds max**, then escalate to user via `AskUserQuestion`.
+> **Loop termination:** After each full re-review, repeat the same decision: clean → END; issues → validate findings → fix → restart from the first review phase. Continue until a complete review pass finds zero issues. If the same validated finding repeats for 3 full invocations with no progress, or a fix requires product/owner input, escalate via `AskUserQuestion`.
 >
 > **Rules:**
 >
 > - A clean Round 1 ENDS the review — no mandatory Round 2
-> - NEVER skip the fresh sub-agent re-review after a fix cycle (every fix invalidates the prior verdict)
-> - NEVER reuse a sub-agent across rounds — every iteration spawns a NEW Agent call
+> - NEVER fix unvalidated findings; validate first using the caller's validation gate
+> - NEVER skip the full re-review after a fix cycle (every fix invalidates the prior verdict)
+> - NEVER reuse a sub-agent across rounds — every iteration that uses sub-agents spawns NEW Agent calls
 > - Main agent READS sub-agent reports but MUST NOT filter, reinterpret, or override findings
-> - Max 3 fresh-subagent rounds per review — if still FAIL, escalate via `AskUserQuestion` (do NOT silently loop)
-> - Track round count in conversation context (session-scoped)
+> - No arbitrary sub-agent-round cap replaces the clean-review requirement; use the 3 repeated-no-progress blocker rule only to avoid infinite spinning
+> - Track recursive invocation count and repeated blockers in conversation context (session-scoped)
 > - Final verdict must incorporate ALL rounds executed
 >
 > **Report must include `## Round N Findings (Fresh Sub-Agent)` for every round N≥2 that was executed.**
@@ -443,15 +446,15 @@ integration-test-review (you are here)
 
 <!-- SYNC:fresh-context-review -->
 
-> **Fresh Sub-Agent Review** — Eliminate orchestrator confirmation bias via isolated sub-agents.
+> **Fresh Context Re-Review** — Eliminate orchestrator confirmation bias after fixes by restarting the full review with isolated sub-agents where applicable.
 >
 > **Why:** The main agent knows what it (or `/cook`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
 >
-> **When:** ONLY after a fix cycle. A review round that finds zero issues ENDS the loop — do NOT spawn a confirmation sub-agent. A review round that finds issues triggers: fix → fresh sub-agent re-review.
+> **When:** ONLY after a validated-finding fix cycle. A review round that finds zero issues ENDS the loop — do NOT spawn a confirmation sub-agent. A review round that finds issues triggers: validate findings → fix → full review restart from the first phase.
 >
 > **How:**
 >
-> 1. Spawn a NEW `Agent` tool call — use `code-reviewer` subagent_type for code reviews, `general-purpose` for plan/doc/artifact reviews
+> 1. Start a NEW full review invocation/task breakdown; when that protocol calls for agents, spawn NEW `Agent` tool calls — use `code-reviewer` subagent_type for code reviews, `general-purpose` for plan/doc/artifact reviews
 > 2. Inject ALL required review protocols VERBATIM into the prompt — see `SYNC:review-protocol-injection` for the full list and template. Never reference protocols by file path; AI compliance drops behind file-read indirection (see `SYNC:shared-protocol-duplication-policy`)
 > 3. Sub-agent re-reads ALL target files from scratch via its own tool calls — never pass file contents inline in the prompt
 > 4. Sub-agent writes structured report to `plans/reports/{review-type}-round{N}-{date}.md`
@@ -459,11 +462,11 @@ integration-test-review (you are here)
 >
 > **Rules:**
 >
-> - SKIP fresh sub-agent when the prior round found zero issues (no fixes = nothing new to verify)
-> - NEVER skip fresh sub-agent after a fix cycle — every fix invalidates the prior verdict
+> - SKIP fresh sub-agent when the prior full review found zero issues (no fixes = nothing new to verify)
+> - NEVER skip the full review restart after a fix cycle — every fix invalidates the prior verdict
 > - NEVER reuse a sub-agent across rounds — every fresh round spawns a NEW `Agent` call
-> - Max 3 fresh-subagent rounds per review — escalate via `AskUserQuestion` if still failing; do NOT silently loop or fall back to any prior protocol
-> - Track iteration count in conversation context (session-scoped, no persistent files)
+> - Continue until a complete full review pass has zero findings; if the same blocker repeats 3 times with no progress, escalate via `AskUserQuestion`
+> - Track iteration count and repeated blockers in conversation context (session-scoped, no persistent files)
 
 <!-- /SYNC:fresh-context-review -->
 
@@ -665,6 +668,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
 > **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
 > **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
+> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -756,6 +760,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Final Purpose:** Ensure integration tests protect real business behavior with repeatable data-state assertions aligned to specs and implementation.
 - **MANDATORY IMPORTANT MUST ATTENTION** use `TaskCreate` for ALL phases BEFORE starting
 - **MANDATORY IMPORTANT MUST ATTENTION** test that cannot fail is decoration — if it can't catch the protected business rule/invariant breaking, delete or fix it
 - **MANDATORY IMPORTANT MUST ATTENTION** read handler source BEFORE judging assertions — cannot review without understanding
@@ -765,13 +770,14 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **MANDATORY IMPORTANT MUST ATTENTION** flag smoke-only as FAIL unless justified with explicit design comment
 - **MANDATORY IMPORTANT MUST ATTENTION** write findings to report file — never just return text
 - **MANDATORY IMPORTANT MUST ATTENTION** fix ALL CRITICAL and HIGH issues BEFORE running tests — Phase 5 NOT optional
-- **MANDATORY IMPORTANT MUST ATTENTION** spawn fresh sub-agent after fixes — Phase 6 NOT optional; Round 1 alone NEVER declares PASS
+- **MANDATORY IMPORTANT MUST ATTENTION** validate findings before fixes; after validated fixes, rerun a full fresh review before declaring PASS
 - **MANDATORY IMPORTANT MUST ATTENTION** build and run ALL tests after fixes — Phase 7 NOT optional; unverified reviews have zero value
 - **MANDATORY IMPORTANT MUST ATTENTION** if tests fail, classify and investigate root cause — Phase 8 generates fix plan; NEVER retry blindly
 - **MANDATORY IMPORTANT MUST ATTENTION** Gate 6: read ALL three sources before classifying — never classify from two sources alone
 - **MANDATORY IMPORTANT MUST ATTENTION** NEVER fix a test to match broken code — hides the bug
 - **MANDATORY IMPORTANT MUST ATTENTION** NEVER self-resolve a three-way conflict — escalate via `AskUserQuestion`
 - **MANDATORY IMPORTANT MUST ATTENTION** "stale docs" requires BOTH impl code AND test to agree — one source never enough
+- **MANDATORY IMPORTANT MUST ATTENTION** validate findings before fixes; after validated fixes, rerun full integration-test review before PASS
 
 **Anti-Rationalization:**
 
@@ -779,10 +785,10 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 | ----------------------------------------- | ----------------------------------------------------------------- |
 | "Smoke test is fine for now"              | No smoke test earns its place. Fix or delete.                     |
 | "Handler source too long to read"         | Cannot judge assertion quality without reading. REQUIRED.         |
-| "Fresh sub-agent is overkill"             | Round 1 alone NEVER declares PASS. Non-negotiable.                |
+| "Re-review after fixes is overkill"       | Fixes changed the target. A full fresh review is required before PASS. |
 | "Tests were passing before"               | Passing ≠ correct. Dead assertions always pass.                   |
 | "Conflict is obvious, I can self-resolve" | Three-way conflict requires escalation. NEVER self-resolve.       |
-| "Phase 6/7/8 optional for small fixes"    | No exceptions. Every fix requires re-review + build verification. |
+| "Phase 6/7/8 optional for small fixes"    | No exceptions. Every validated fix requires full re-review + build verification. |
 | "0 test files, nothing to review"         | Report gap and ask user — do NOT silently exit.                   |
 
 ---

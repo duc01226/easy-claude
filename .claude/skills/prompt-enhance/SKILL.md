@@ -8,18 +8,22 @@ description: '[Skill Management] Use when enhancing prompts, docs, or skills wit
 
 **Goal:** Two-phase optimization: (1) Caveman Compression — strip stop words + grammatical scaffolding, preserve semantic meaning; (2) Prompt Enhancement — apply AI attention anchoring so AI reads and follows all instructions.
 
+**Final Purpose:** Every enhanced prompt or skill must clearly state its ultimate purpose in both the top summary and bottom reminders so AI optimizes for the right outcome.
+
 **Workflow:**
 
 1. **Detect** — Classify target: skill file, protocol file, or general doc
 2. **Read** — Read target file completely
-3. **Compress** — Apply caveman compression (Phase 1)
-4. **Enhance** — Apply AI attention anchoring transforms (Phase 2)
-5. **Verify** — No content loss, rule density ≥ pre-optimization
+3. **Purpose** — Derive one-sentence Final Purpose from the target's goal, task, constraints, and success criteria
+4. **Compress** — Apply caveman compression (Phase 1)
+5. **Enhance** — Apply AI attention anchoring transforms (Phase 2)
+6. **Verify** — No content loss, rule density ≥ pre-optimization, Final Purpose anchored top and bottom
 
 **Key Rules:**
 
 - NEVER skip Phase 1 (compress) before Phase 2 (enhance) — compression removes noise, enhancement structures signal
 - NEVER remove meaningful rules, constraints, code examples, or `file:line` evidence
+- MUST ATTENTION derive the target's Final Purpose and add it to both `## Quick Summary` and `## Closing Reminders`
 - Post-optimization rule density (MUST ATTENTION/NEVER/ALWAYS per 100 lines) MUST be ≥ pre-optimization
 - Caveman compression applies to prose only — NEVER compress code blocks, YAML, or structured tables
 - Prompt quality > token count, but verbose prompts degrade quality — optimize clarity-per-token
@@ -178,7 +182,8 @@ Prompt quality FIRST. Verbose prompts degrade quality — AI attention dilutes a
 1. Read target file completely
 2. Record: current line count, rule density (MUST ATTENTION/NEVER/ALWAYS count)
 3. List all READ references → classify as `.claude/` (needs inline summary) or `docs/` (skip)
-4. Identify: missing Quick Summary, missing Closing Reminders, prose-heavy sections
+4. Derive one-sentence **Final Purpose** from target goal/task/outcomes/guardrails; cite source lines or mark inferred with confidence
+5. Identify: missing Quick Summary, missing Final Purpose, missing Closing Reminders, prose-heavy sections
 
 ### Step 2: Caveman Compression Pass
 
@@ -199,13 +204,15 @@ For each `.claude/` protocol reference:
 ### Step 4: Add/Fix Top Section
 
 - Missing Quick Summary → create from file content
-- Present but weak → strengthen with Goal, Workflow, Key Rules
+- Present but weak → strengthen with Goal, Final Purpose, Workflow, Key Rules
+- Add `**Final Purpose:** [ultimate outcome this prompt/skill must cause]` directly under `**Goal:**`
 - Protocol summaries appear before Quick Summary
 
 ### Step 5: Add/Fix Bottom Section
 
 - Missing Closing Reminders → add standard section
 - Pick rules AI most commonly skips (evidence-based, task creation, pattern search)
+- Echo the same Final Purpose near the start of Closing Reminders: `**IMPORTANT MUST ATTENTION Final Purpose:** ...`
 - Remove old "IMPORTANT Task Planning Notes" if superseded by Closing Reminders
 
 ### Step 6: Verify
@@ -215,6 +222,7 @@ For each `.claude/` protocol reference:
 | No YAML corruption  | Frontmatter intact                             |
 | No content loss     | All rules, code, paths present                 |
 | Rule density        | Post ≥ pre (count MUST ATTENTION/NEVER/ALWAYS) |
+| Final Purpose       | Present in Quick Summary and Closing Reminders |
 | Line count          | Reduced (compression worked)                   |
 | Formatting          | Blank lines between sections, headers correct  |
 | READ classification | `.claude/` → inline summary, `docs/` → skipped |
@@ -338,6 +346,8 @@ For each `.claude/` protocol reference:
 >
 > **Goal:** [One sentence — what this skill achieves]
 >
+> **Final Purpose:** [One sentence — ultimate outcome this prompt/skill must cause]
+>
 > **Workflow:**
 >
 > 1. **[Step]** — [description]
@@ -356,6 +366,7 @@ For each `.claude/` protocol reference:
 >
 > ## Closing Reminders
 >
+> **IMPORTANT MUST ATTENTION Final Purpose:** [same purpose as Quick Summary]
 > **IMPORTANT MUST ATTENTION** [echo rule #1 from the top section]
 > **IMPORTANT MUST ATTENTION** [echo rule #2]
 > **IMPORTANT MUST ATTENTION** [echo rule #3]
@@ -374,17 +385,19 @@ For each `.claude/` protocol reference:
 
 <!-- SYNC:ai-mistake-prevention -->
 
-**AI Mistake Prevention** — Failure modes to avoid on every task:
-**Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-**Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-**Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-**Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-**When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-**Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-**Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-**Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-**Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-**Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
+> **AI Mistake Prevention** — Failure modes to avoid on every task:
+>
+> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
+> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
+> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
+> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
+> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
+> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
+> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
+> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
+> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
+> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -412,6 +425,7 @@ For each `.claude/` protocol reference:
 **IMPORTANT MUST ATTENTION** apply caveman compression FIRST (Phase 1) before any structural enhancement — never skip
 **IMPORTANT MUST ATTENTION** NEVER compress code blocks, YAML frontmatter, structured tables, or SYNC tags
 **IMPORTANT MUST ATTENTION** read target file completely before any changes
+**IMPORTANT MUST ATTENTION** derive the target's one-sentence Final Purpose, then place it in both `## Quick Summary` and `## Closing Reminders` — why: AI must know the ultimate outcome after enhancement
 **IMPORTANT MUST ATTENTION** read each referenced protocol file to write accurate inline summaries — NEVER guess content
 **IMPORTANT MUST ATTENTION** apply primacy-recency anchoring — 3 critical rules in first 5 AND last 5 lines of every enhanced file
 **IMPORTANT MUST ATTENTION** verify rule density: count MUST ATTENTION/NEVER/ALWAYS before and after — post ≥ pre

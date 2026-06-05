@@ -1391,15 +1391,15 @@ flowchart LR
 
 Dedicated registered workflows and workflow trigger skills support test-driven development:
 
-| Workflow                          | Sequence                                                                                                    | Use Case                                                                                                  |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| **idea-to-pbi**                   | `/idea` → `/refine` → `/story` → `/tdd-spec` → `/dor-gate`                                                  | Go from raw idea to grooming-ready PBI, stories, and reviewed test specifications                         |
-| **tdd-feature**                   | `/scout` → `/investigate` → `/tdd-spec` → `/plan` → `/cook` → `/integration-test` → `/test` → ...           | Full TDD cycle: write test specs FIRST, then implement, then generate tests and verify                    |
+| Workflow                                   | Sequence                                                                                                    | Use Case                                                                                        |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| **idea-to-pbi**                            | `/idea` → `/refine` → `/story` → `/tdd-spec` → `/dor-gate`                                                  | Go from raw idea to grooming-ready PBI, stories, and reviewed test specifications               |
+| **tdd-feature**                            | `/scout` → `/investigate` → `/tdd-spec` → `/plan` → `/cook` → `/integration-test` → `/test` → ...           | Full TDD cycle: write test specs FIRST, then implement, then generate tests and verify          |
 | **workflow-feature-with-integration-test** | `/scout` → `/investigate` → `/plan` → `/tdd-spec` → `/plan` → `/cook` → `/integration-test` → `/test` → ... | Workflow trigger skill for spec-first integration testing; not a registered `workflows.json` ID |
-| **pbi-to-tests**                  | `/tdd-spec` → `/quality-gate`                                                                               | Quick path from existing PBI to test specifications using unified TC format                               |
-| **e2e-from-recording**            | `/scout` → `/e2e-test` → `/test` → `/watzup`                                                                | Generate Playwright E2E tests from Chrome DevTools recordings                                             |
-| **e2e-update-ui**                 | `/scout` → `/e2e-test` → `/test` → `/watzup`                                                                | Update E2E screenshot baselines after UI changes                                                          |
-| **e2e-from-changes**              | `/scout` → `/e2e-test` → `/test` → `/watzup`                                                                | Sync E2E tests when test specs or source code changes                                                     |
+| **pbi-to-tests**                           | `/tdd-spec` → `/quality-gate`                                                                               | Quick path from existing PBI to test specifications using unified TC format                     |
+| **e2e-from-recording**                     | `/scout` → `/e2e-test` → `/test` → `/watzup`                                                                | Generate Playwright E2E tests from Chrome DevTools recordings                                   |
+| **e2e-update-ui**                          | `/scout` → `/e2e-test` → `/test` → `/watzup`                                                                | Update E2E screenshot baselines after UI changes                                                |
+| **e2e-from-changes**                       | `/scout` → `/e2e-test` → `/test` → `/watzup`                                                                | Sync E2E tests when test specs or source code changes                                           |
 
 #### Interactive Idea & Requirement Capture
 
@@ -1595,8 +1595,8 @@ This section provides concrete prompts and expected flows for every test generat
 ```
 tdd-feature: scout → investigate → tdd-spec → plan → plan-review →
              plan-validate → why-review → cook → integration-test →
-             test → code-simplifier → review-changes → code-review →
-             sre-review → changelog → docs-update → watzup → workflow-end
+             test → workflow-review-changes → sre-review → changelog →
+             docs-update → watzup → understand → workflow-end
 ```
 
 #### Case 2b: Feature Implementation WITH Integration Tests
@@ -1613,8 +1613,8 @@ tdd-feature: scout → investigate → tdd-spec → plan → plan-review →
 workflow-feature-with-integration-test:
   scout → investigate → plan → plan-review → plan-validate → why-review →
   tdd-spec → tdd-spec-review → plan → plan-review →
-  cook → integration-test → test → code-simplifier → review-changes →
-  code-review → sre-review → security → performance → changelog →
+  cook → integration-test → integration-test-review → test →
+  workflow-review-changes → sre-review → security → changelog →
   test → docs-update → watzup → workflow-end
 ```
 
@@ -3235,7 +3235,7 @@ Both directions are queryable without reading source code, making the spec-drive
 
 The hardest hallucination to catch is the one inside the review itself. A review agent that fabricates a finding — wrong `file:line`, inflated severity, a "bug" that re-traces as correct — poisons everything downstream: the fix targets nothing, the human burns trust, the audit trail records noise. Evidence gates (Section 8.6) protect the _implementation_; this gate protects the _review_.
 
-The mechanism is a **recursion-guarded self-review loop**: after any review produces findings, the reviewer re-reviews its own output once more in a terminal mode, and a bounded re-do loop reconciles until the findings are clean. It ships in `/why-review` and is wired as the mandatory closing gate of `/review-changes` (Phase 6).
+The mechanism is a **recursion-guarded self-review loop**: after any review produces findings, the reviewer re-reviews its own output once more in a terminal mode, and a bounded re-do loop reconciles until the findings are clean. It ships in `/why-review`; standalone `/review-changes` runs it in Phase 6, while `$workflow-review-changes` runs the findings-validation gate as parent step 2 before parallel reviewers and later fix planning.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -3269,12 +3269,12 @@ The mechanism is a **recursion-guarded self-review loop**: after any review prod
 
 A naive "review your review" instruction recurses forever — the validation pass is itself a review, which triggers another validation, and so on. Three rules make it terminate deterministically:
 
-| Rule                                                                                                              | What it prevents                                                               |
-| ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `validate-findings` is **terminal** — never calls `/why-review`, never re-runs the gate, never spawns a sub-agent | Infinite self-recursion                                                        |
-| The re-do loop lives in the **caller** (full mode / `/review-changes` Phase 6), not in validate mode              | Diffuse, unbounded looping across agents                                       |
-| **Bounded at max 2 re-dos**, then `AskUserQuestion` escalation                                                    | A finding the AI can neither prove nor drop silently looping forever           |
-| All passes run in the **same main-agent session** (never a spawned sub-agent)                                     | Context loss between validation rounds; the validator sees the real cited code |
+| Rule                                                                                                                                            | What it prevents                                                               |
+| ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `validate-findings` is **terminal** — never calls `/why-review`, never re-runs the gate, never spawns a sub-agent                               | Infinite self-recursion                                                        |
+| The re-do loop lives in the **caller** (standalone `/review-changes` Phase 6 or `$workflow-review-changes` parent step 2), not in validate mode | Diffuse, unbounded looping across agents                                       |
+| **Bounded at max 2 re-dos**, then `AskUserQuestion` escalation                                                                                  | A finding the AI can neither prove nor drop silently looping forever           |
+| All passes run in the **same main-agent session** (never a spawned sub-agent)                                                                   | Context loss between validation rounds; the validator sees the real cited code |
 
 #### Why this matters operationally
 
@@ -3507,44 +3507,44 @@ flowchart TB
 
 ### AI Best Practice → Framework Mapping
 
-| AI Agent Best Practice                         | Framework Mechanism                                           | Layer     |
-| ---------------------------------------------- | ------------------------------------------------------------- | --------- |
-| **Context injection at decision points**       | 10 context injector hooks, auto-triggered by file path        | Hooks     |
-| **Reminder rules prevent forgetting**          | 3 UserPromptSubmit hooks re-inject on every prompt            | Hooks     |
-| **Generic & configurable via config**          | project-config.json drives all context injection              | Config    |
-| **Prompt engineering quality**                 | 258 skills with YAML frontmatter + behavior protocols         | Skills    |
-| **Confirm workflow before acting**             | workflow-router.cjs → AskUserQuestion → confirm               | Workflows |
-| **Confirm plan with questions**                | /plan-validate asks 3-8 questions before implementation       | Skills    |
-| **Sequential thinking for complex problems**   | /sequential-thinking skill + /debug-investigate skill         | Skills    |
-| **Code proof tracing prevents hallucination**  | evidence-based-reasoning-protocol + /prove-fix                | Skills    |
-| **State survives context compaction**          | Swap engine + todo-tracker + compact-recovery                 | State     |
-| **Lessons persist across sessions**            | docs/project-reference/lessons.md + lessons-injector.cjs      | Hooks     |
-| **Subagents inherit project context**          | 8 subagent-init-\*.cjs hooks inject CLAUDE.md + lessons       | Hooks     |
-| **Safety boundaries**                          | path-boundary, privacy, scout blocks (exit code 2)            | Hooks     |
-| **Task-gated edits**                           | edit-enforcement.cjs requires TaskCreate before edits         | Hooks     |
-| **Auto-formatting**                            | post-edit-prettier.cjs runs formatter after every edit        | Hooks     |
-| **Doc staleness detection**                    | /watzup skill cross-references changes vs. docs/              | Skills    |
-| **Unified test specification**                 | /tdd-spec writes TCs to feature doc Section 15                | Skills    |
-| **TDD-first workflow**                         | tdd-feature: spec→plan→implement→test→verify                  | Workflows |
-| **Interactive requirement capture**            | /idea discovery interview + /refine testability check         | Skills    |
-| **Test-to-code traceability**                  | TC-{FEATURE}-{NNN} → test annotation linking to TC ID         | Skills    |
-| **E2E from browser recordings**                | /e2e-test + Chrome DevTools Recorder → Playwright             | Skills    |
-| **Screenshot assertion baselines**             | e2e-update-ui workflow + toHaveScreenshot()                   | Workflows |
-| **Greenfield project inception**               | isGreenfieldProject() detection → solution-architect agent    | Hooks     |
-| **AI as solution architect**                   | /greenfield skill + greenfield-init workflow (waterfall)      | Workflows |
-| **Research-driven big features**               | big-feature workflow with step-selection gate                 | Workflows |
-| **DDD domain modeling**                        | /domain-analysis skill: bounded contexts, ERD, aggregates     | Skills    |
-| **Tech stack comparison with evidence**        | /tech-stack-research: top 3 per layer, confidence %           | Skills    |
-| **Step-selection gate for long workflows**     | big-feature + greenfield preActions let user deselect         | Workflows |
+| AI Agent Best Practice                         | Framework Mechanism                                                 | Layer     |
+| ---------------------------------------------- | ------------------------------------------------------------------- | --------- |
+| **Context injection at decision points**       | 10 context injector hooks, auto-triggered by file path              | Hooks     |
+| **Reminder rules prevent forgetting**          | 3 UserPromptSubmit hooks re-inject on every prompt                  | Hooks     |
+| **Generic & configurable via config**          | project-config.json drives all context injection                    | Config    |
+| **Prompt engineering quality**                 | 258 skills with YAML frontmatter + behavior protocols               | Skills    |
+| **Confirm workflow before acting**             | workflow-router.cjs → AskUserQuestion → confirm                     | Workflows |
+| **Confirm plan with questions**                | /plan-validate asks 3-8 questions before implementation             | Skills    |
+| **Sequential thinking for complex problems**   | /sequential-thinking skill + /debug-investigate skill               | Skills    |
+| **Code proof tracing prevents hallucination**  | evidence-based-reasoning-protocol + /prove-fix                      | Skills    |
+| **State survives context compaction**          | Swap engine + todo-tracker + compact-recovery                       | State     |
+| **Lessons persist across sessions**            | docs/project-reference/lessons.md + lessons-injector.cjs            | Hooks     |
+| **Subagents inherit project context**          | 8 subagent-init-\*.cjs hooks inject CLAUDE.md + lessons             | Hooks     |
+| **Safety boundaries**                          | path-boundary, privacy, scout blocks (exit code 2)                  | Hooks     |
+| **Task-gated edits**                           | edit-enforcement.cjs requires TaskCreate before edits               | Hooks     |
+| **Auto-formatting**                            | post-edit-prettier.cjs runs formatter after every edit              | Hooks     |
+| **Doc staleness detection**                    | /watzup skill cross-references changes vs. docs/                    | Skills    |
+| **Unified test specification**                 | /tdd-spec writes TCs to feature doc Section 15                      | Skills    |
+| **TDD-first workflow**                         | tdd-feature: spec→plan→implement→test→verify                        | Workflows |
+| **Interactive requirement capture**            | /idea discovery interview + /refine testability check               | Skills    |
+| **Test-to-code traceability**                  | TC-{FEATURE}-{NNN} → test annotation linking to TC ID               | Skills    |
+| **E2E from browser recordings**                | /e2e-test + Chrome DevTools Recorder → Playwright                   | Skills    |
+| **Screenshot assertion baselines**             | e2e-update-ui workflow + toHaveScreenshot()                         | Workflows |
+| **Greenfield project inception**               | isGreenfieldProject() detection → solution-architect agent          | Hooks     |
+| **AI as solution architect**                   | /greenfield skill + greenfield-init workflow (waterfall)            | Workflows |
+| **Research-driven big features**               | big-feature workflow with step-selection gate                       | Workflows |
+| **DDD domain modeling**                        | /domain-analysis skill: bounded contexts, ERD, aggregates           | Skills    |
+| **Tech stack comparison with evidence**        | /tech-stack-research: top 3 per layer, confidence %                 | Skills    |
+| **Step-selection gate for long workflows**     | big-feature + greenfield preActions let user deselect               | Workflows |
 | **Workflow trigger shortcuts**                 | 53 workflow-\* skills for workflow activation and lifecycle control | Skills    |
-| **Prompt engineering (role + CoT + evidence)** | Skills use role prompting, chain-of-thought, few-shot         | Skills    |
-| **Context engineering (JIT + dedup + budget)** | Hooks manage context window with precision injection          | Hooks     |
-| **Skill chain navigation (Next Steps)**        | AskUserQuestion recommends logical next skill per step        | Skills    |
-| **Plan-aware skills (Step 0)**                 | Skills read prior workflow outputs before starting work       | Skills    |
-| **Review gates between artifacts**             | refine-review, story-review, tdd-spec-review checkpoints      | Skills    |
-| **Agent negative-prompting guardrails**        | NEVER/ALWAYS rules per agent prevent role overstepping        | Agents    |
-| **Dual planning rounds**                       | High-level arch plan → sprint-ready plan after stories        | Workflows |
-| **Conditional architecture scaffolding**       | /scaffold auto-skips when existing abstractions found         | Skills    |
+| **Prompt engineering (role + CoT + evidence)** | Skills use role prompting, chain-of-thought, few-shot               | Skills    |
+| **Context engineering (JIT + dedup + budget)** | Hooks manage context window with precision injection                | Hooks     |
+| **Skill chain navigation (Next Steps)**        | AskUserQuestion recommends logical next skill per step              | Skills    |
+| **Plan-aware skills (Step 0)**                 | Skills read prior workflow outputs before starting work             | Skills    |
+| **Review gates between artifacts**             | refine-review, story-review, tdd-spec-review checkpoints            | Skills    |
+| **Agent negative-prompting guardrails**        | NEVER/ALWAYS rules per agent prevent role overstepping              | Agents    |
+| **Dual planning rounds**                       | High-level arch plan → sprint-ready plan after stories              | Workflows |
+| **Conditional architecture scaffolding**       | /scaffold auto-skips when existing abstractions found               | Skills    |
 
 ### File Structure
 
@@ -3851,20 +3851,20 @@ A 10x faster code generator that produces incorrect code 20% of the time is wors
 
 The framework elevates the AI from a code autocomplete tool to a **strategic development partner**:
 
-| Traditional AI Coding Tool   | This Framework                                                        |
-| ---------------------------- | --------------------------------------------------------------------- |
-| Generates code from prompts  | Investigates codebase, then generates code matching existing patterns |
-| No memory between sessions   | Learned lessons persist and prevent repeated mistakes                 |
-| Implements immediately       | Plans, validates with user, reviews plan, then implements             |
-| Uses generic patterns        | Reads project-specific patterns from reference docs                   |
-| Works on existing code only  | Guides greenfield inception AND big-feature research                  |
-| Single-shot responses        | Multi-step workflows with quality gates at each stage                 |
-| User must remember all rules | Hooks inject rules automatically — human memory not required          |
-| Loads all context upfront    | JIT context injection — right docs at right time (context eng.)       |
-| One-pass generation          | Multi-pass review: cook→simplify→review→code-review→sre (prompt eng.) |
-| Skills work in isolation     | Plan-aware skills (Step 0) read prior workflow outputs automatically  |
-| Manual workflow progression  | Skill chain navigation (Next Steps) auto-recommends next action       |
-| Artifacts flow unchecked     | Review gate skills validate PBIs, stories, and test specs mid-flow    |
+| Traditional AI Coding Tool   | This Framework                                                                                      |
+| ---------------------------- | --------------------------------------------------------------------------------------------------- |
+| Generates code from prompts  | Investigates codebase, then generates code matching existing patterns                               |
+| No memory between sessions   | Learned lessons persist and prevent repeated mistakes                                               |
+| Implements immediately       | Plans, validates with user, reviews plan, then implements                                           |
+| Uses generic patterns        | Reads project-specific patterns from reference docs                                                 |
+| Works on existing code only  | Guides greenfield inception AND big-feature research                                                |
+| Single-shot responses        | Multi-step workflows with quality gates at each stage                                               |
+| User must remember all rules | Hooks inject rules automatically — human memory not required                                        |
+| Loads all context upfront    | JIT context injection — right docs at right time (context eng.)                                     |
+| One-pass generation          | Multi-pass review: cook→simplify→review→code-review→sre (prompt eng.)                               |
+| Skills work in isolation     | Plan-aware skills (Step 0) read prior workflow outputs automatically                                |
+| Manual workflow progression  | Skill chain navigation (Next Steps) auto-recommends next action                                     |
+| Artifacts flow unchecked     | Review gate skills validate PBIs, stories, and test specs mid-flow                                  |
 | Locked to one tool & repo    | One source compiles to Codex mirrors and can generate Copilot instructions; config-driven, any repo |
 
 **For greenfield projects**, the AI becomes a full Solution Architect — conducting market research, evaluating tech stacks with confidence percentages, modeling domains with DDD, and collaborating with the user at every decision point. The AI earns trust through structured thinking, not just fast output.

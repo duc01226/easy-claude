@@ -247,7 +247,7 @@ These skills auto-activate before file edits in their path patterns:
 | Kind        | Count                                       |
 | ----------- | ------------------------------------------- |
 | Skills      | <!-- COUNT:skills -->258<!-- /COUNT -->     |
-| Hooks       | <!-- COUNT:hooks -->64<!-- /COUNT -->       |
+| Hooks       | <!-- COUNT:hooks -->65<!-- /COUNT -->       |
 | Agents      | <!-- COUNT:agents -->28<!-- /COUNT -->      |
 | Workflows   | <!-- COUNT:workflows -->37<!-- /COUNT -->   |
 | Shared      | <!-- COUNT:shared -->5<!-- /COUNT -->       |
@@ -311,7 +311,7 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 
 ## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
 
-**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. Any supported AI tool may execute when this shared context and local docs are available.
+**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. If either file or a required reference doc is missing, stop immediately and ask the user to run the project-config and scan-all skills. Any supported AI tool may execute when this shared context and local docs are available.
 
 1. **DETECT:** Match prompt against workflow catalog
 2. **ANALYZE:** Find best-match workflow AND evaluate if a custom step combination would fit better
@@ -336,6 +336,7 @@ Source: `.claude/skills/shared/sync-inline-versions.md`
 > 4. Treat code-to-spec extraction as reference-only until accepted by the canonical spec owner.
 > 5. Any supported AI tool may plan, implement, review, or verify with synced context; using multiple tools is optional.
 > 6. Update `.claude` source first, then sync generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`. — why: mirrors are generated artifacts; hand-edits are overwritten on the next sync
+> 7. If `docs/project-config.json` or a required project-reference doc is missing, stop immediately and ask the user to run `$project-config` and `$scan-all`.
 >
 > **Active reference:** `shared/sdd-artifact-contract.md` in the active skills root.
 
@@ -346,6 +347,7 @@ Source: `.claude/skills/shared/sync-inline-versions.md`
 - **MANDATORY** Apply `shared/sdd-artifact-contract.md`; keep reusable AI-SDD in `.claude` and local rules in project docs.
 - **MANDATORY** Code-to-spec extraction is reference-only until canonical acceptance; any supported AI tool may execute with synced context.
 - **MANDATORY** Update `.claude` source before syncing generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`.
+- **MANDATORY** Missing project config or required reference docs block project-specific work; ask the user to run `$project-config` and `$scan-all`.
 **[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
 <!-- PROMPT-PROTOCOLS:END -->
 
@@ -371,6 +373,7 @@ Codex does not receive Claude hook-injected project docs or project config summa
 - Read `docs/project-config.json` for project-specific commands, module paths, workflow settings, and doc paths.
 - Read `docs/project-reference/docs-index-reference.md` to route to the right project-reference files.
 - Read `docs/project-reference/lessons.md` for always-on project guardrails.
+- If `docs/project-config.json`, the docs index, `lessons.md`, or any task-required reference doc is missing, stop immediately and ask the user to run `$project-config` and `$scan-all`.
 - For situation-specific work, open the referenced project doc directly; do not rely on prior conversation text as proof that the doc is loaded.
 
 ## Critical Thinking Mindset
@@ -590,8 +593,8 @@ UNIVERSAL RULES:
 ```
 
 ### bugfix — Bug Fix
-- Description: Systematic debugging and fix workflow with investigation-first approach
-- When To Use: User reports a bug, error, crash, failure, regression, or something not working; wants to fix/debug/troubleshoot an issue
+- Description: Systematic debugging and fix workflow with end-to-start debugger trace before fix
+- When To Use: User reports a bug, error, crash, failure, regression, stale/incorrect final output, or something not working; wants to fix/debug/troubleshoot an issue with end-to-start trace
 - When Not To Use: New feature implementation, code improvement/refactoring, investigation-only (no fix), documentation updates
 - Sequence: `scout -> investigate -> debug-investigate -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> tdd-spec -> why-review -> tdd-spec-review -> integration-test -> fix -> prove-fix -> integration-test -> integration-test-review -> integration-test-verify -> tdd-spec [direction=sync] -> workflow-review-changes -> changelog -> test -> docs-update -> watzup -> workflow-end`
 
@@ -606,6 +609,7 @@ PROJECT CONTEXT: Apply the shared SDD Artifact Contract from shared/sdd-artifact
    - Require grep evidence, confidence >=80%, cross-module/service checks (see docs/project-config.json → workflowPatterns.crossModuleValidation)
    - Use $investigate skill for removal/refactoring decisions
 3. Debug: Identify root cause with evidence (file:line)
+3b. END-TO-START DEBUGGER TRACE GATE: Start at the observed final symptom/output, identify the final reader, trace backward through storage/projection, writer, consumer/job, producer/origin, enumerate all feeder paths, and build a hypothesis matrix. BLOCKED until owning fix layer and forward convergence proof are written.
 4. Plan fix with minimal blast radius
 5. Validate plan before implementing
 6. Validate fix rationale with $why-review
@@ -1720,7 +1724,7 @@ UNIVERSAL RULES:
 ```
 
 ### verification — Verification & Validation
-- Description: Investigate-first verification: understand context, test/check behavior, report findings with root cause, then fix only if user approves
+- Description: Investigate-first verification: understand context, test/check behavior, report findings with end-to-start root-cause trace, then fix only if user approves
 - When To Use: User wants to verify, validate, confirm, or ensure something is correct/working; sanity check or double-check
 - When Not To Use: Bug reports (known broken), investigation-only, feature implementation, code reviews
 - Sequence: `scout -> investigate -> test-initial -> plan -> why-review -> plan-review -> why-review -> plan-validate -> why-review -> fix -> prove-fix -> tdd-spec -> why-review -> tdd-spec-review -> tdd-spec [direction=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> test -> docs-update -> watzup -> workflow-end`
@@ -1739,10 +1743,11 @@ VERIFICATION WORKFLOW PROTOCOL:
    - What was verified
    - Current behavior vs expected behavior
    - Root cause analysis (if issue found)
+   - End-to-start debugger trace: observed final symptom/output -> reader -> storage/projection -> writer -> consumer/job -> producer/origin, with feeder paths and hypothesis matrix
    - Verdict: PASS or FAIL with evidence
 5. ASK USER: 'Should I proceed to fix this?' (only if FAIL)
 6. If PASS or user declines  ->  mark remaining steps completed
-7. If user approves fix  ->  Plan fix with minimal blast radius
+7. If user approves fix  ->  Plan fix with minimal blast radius only after the end-to-start trace identifies the owning fix layer and forward convergence proof
 8. Implement fix  ->  Prove fix
 9. Update test specs — $tdd-spec UPDATE mode generates regression TCs. Review with $tdd-spec-review. Sync dashboard with $tdd-spec [direction=sync].
 10. Simplify code  ->  Review changes  ->  Code review for quality

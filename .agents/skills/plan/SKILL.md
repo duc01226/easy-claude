@@ -51,6 +51,8 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Research codebase, analyze, create detailed phased implementation plan with user collaboration.
 
+**Final Purpose:** Deliver a validated, implementation-ready plan — every phase startable immediately (exact file paths, zero open decisions, mapped TC IDs) — so coding proceeds without rework at minimum future change cost.
+
 **Workflow:**
 
 1. **Pre-Check** — Detect active/suggested plan or create new directory
@@ -674,6 +676,7 @@ After creating all phase files, run **recursive decomposition loop**:
 > **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
 > **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
 > **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
+> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -759,12 +762,22 @@ After creating all phase files, run **recursive decomposition loop**:
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Final Purpose:** deliver a validated, implementation-ready plan — every phase startable immediately (file paths, zero open decisions, mapped TCs) — so coding runs without rework at minimum future change cost
 **MANDATORY IMPORTANT MUST ATTENTION** default mode HARD — opt out to fast mode ONLY when ALL trivial-task conditions met
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks via task tracking BEFORE starting
 **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via a direct user question — never auto-decide
 **MANDATORY IMPORTANT MUST ATTENTION** every phase passes 5-point granularity check — failing phases → sub-plan
 **MANDATORY IMPORTANT MUST ATTENTION** NEVER skip `$plan-review` after plan creation
 **MANDATORY IMPORTANT MUST ATTENTION** add final review todo task to verify work quality
+
+**Anti-Rationalization:**
+
+| Evasion                         | Rebuttal                                                          |
+| ------------------------------- | ---------------------------------------------------------------- |
+| "Task too simple to plan"       | Default mode HARD. Opt out ONLY when ALL trivial conditions met. |
+| "I already know the codebase"   | Show `file:line` from 3+ patterns. No proof = not read.          |
+| "Phase is clear enough"         | Run 5-point granularity check: "Can I start coding RIGHT NOW?"   |
+| "Plan looks good, skip review"  | NEVER skip `$plan-review` — fresh eyes catch author blind spots. |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break into small todo tasks and sub-tasks via task tracking.
 

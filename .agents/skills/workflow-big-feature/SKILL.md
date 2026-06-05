@@ -62,10 +62,10 @@ This workflow has steps that appear multiple times. When creating tasks, use the
 
 | Step           | Occurrence   | Task Description                                                |
 | -------------- | ------------ | --------------------------------------------------------------- |
-| `$plan`        | 1st (pos 8)  | PLAN₁: High-level architecture plan (after architecture-design) |
-| `$plan`        | 2nd (pos 17) | PLAN₂: Sprint-ready implementation plan (after tdd-spec-review) |
-| `$plan-review` | 1st (pos 9)  | Review PLAN₁ architecture                                       |
-| `$plan-review` | 2nd (pos 18) | Review PLAN₂ implementation                                     |
+| `$plan`        | 1st (pos 10)  | PLAN₁: High-level architecture plan (after architecture-design) |
+| `$plan`        | 2nd (pos 24) | PLAN₂: Sprint-ready implementation plan (after tdd-spec-review) |
+| `$plan-review` | 1st (pos 11)  | Review PLAN₁ architecture                                       |
+| `$plan-review` | 2nd (pos 25) | Review PLAN₂ implementation                                     |
 
 **NEVER deduplicate** — each occurrence is a distinct task with a different purpose.
 
@@ -77,9 +77,9 @@ Every step = `TaskUpdate in_progress` → skill invocation → complete skill �
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $idea -> $web-research -> $deep-research -> $business-evaluation -> $domain-analysis -> $why-review -> $tech-stack-research -> $architecture-design -> $why-review -> $plan -> $why-review -> $plan-review -> $why-review -> $refine -> $why-review -> $refine-review -> $story -> $why-review -> $story-review -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $tdd-spec -> $why-review -> $tdd-spec-review -> $plan -> $why-review -> $plan-review -> $why-review -> $scaffold -> $plan-validate -> $why-review -> $cook -> $review-domain-entities -> $integration-test -> $integration-test-review -> $integration-test-verify -> $tdd-spec [direction=sync] -> $workflow-review-changes -> $sre-review -> $security -> $changelog -> $test -> $docs-update -> $watzup -> $workflow-end
+**IMPORTANT MANDATORY Steps:** $idea -> $web-research -> $deep-research -> $business-evaluation -> $domain-analysis -> $why-review -> $tech-stack-research -> $architecture-design -> $why-review -> $plan -> $plan-review -> $refine -> $why-review -> $refine-review -> $story -> $why-review -> $story-review -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $tdd-spec -> $why-review -> $tdd-spec-review -> $plan -> $plan-review -> $scaffold -> $plan-validate -> $why-review -> $cook -> $review-domain-entities -> $integration-test -> $integration-test-review -> $integration-test-verify -> $tdd-spec [direction=sync] -> $workflow-review-changes -> $sre-review -> $security -> $changelog -> $test -> $docs-update -> $watzup -> $understand -> $workflow-end
 
-**IMPORTANT MANDATORY Steps:** $idea -> $web-research -> $deep-research -> $business-evaluation -> $domain-analysis -> $why-review -> $tech-stack-research -> $architecture-design -> $why-review -> $plan -> $why-review -> $plan-review -> $why-review -> $refine -> $why-review -> $refine-review -> $story -> $why-review -> $story-review -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $tdd-spec -> $why-review -> $tdd-spec-review -> $plan -> $why-review -> $plan-review -> $why-review -> $scaffold -> $plan-validate -> $why-review -> $cook -> $review-domain-entities -> $integration-test -> $integration-test-review -> $integration-test-verify -> $tdd-spec [direction=sync] -> $workflow-review-changes -> $sre-review -> $security -> $changelog -> $test -> $docs-update -> $watzup -> $workflow-end
+**IMPORTANT MANDATORY Steps:** $idea -> $web-research -> $deep-research -> $business-evaluation -> $domain-analysis -> $why-review -> $tech-stack-research -> $architecture-design -> $why-review -> $plan -> $plan-review -> $refine -> $why-review -> $refine-review -> $story -> $why-review -> $story-review -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $tdd-spec -> $why-review -> $tdd-spec-review -> $plan -> $plan-review -> $scaffold -> $plan-validate -> $why-review -> $cook -> $review-domain-entities -> $integration-test -> $integration-test-review -> $integration-test-verify -> $tdd-spec [direction=sync] -> $workflow-review-changes -> $sre-review -> $security -> $changelog -> $test -> $docs-update -> $watzup -> $understand -> $workflow-end
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its skill invocation — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
@@ -87,7 +87,7 @@ Activate the `big-feature` workflow. Run `$workflow-start big-feature` with the 
 
 > **Spec check (before investigation):** If `docs/specs/` has a spec for the affected service/module, read the relevant ERD + business-rules + API-contracts files FIRST. Engineering specs provide domain context that reduces investigation time significantly. Command: `ls docs/specs/` to discover available app buckets or flat system folders; then probe `ls docs/specs/{app-bucket}/` or `ls docs/specs/{system-name}/` to find the specific service spec.
 
-**Steps:** $idea → $web-research → $deep-research → $business-evaluation → $domain-analysis → $why-review → $tech-stack-research → $architecture-design → $why-review → $plan → $why-review → $plan-review → $why-review → $refine → $why-review → $refine-review → $story → $why-review → $story-review → $pbi-challenge → $dor-gate → $pbi-mockup → $tdd-spec → $why-review → $tdd-spec-review → $plan → $why-review → $plan-review → $why-review → $scaffold → $plan-validate → $why-review → $cook → $review-domain-entities → $integration-test → $integration-test-review → $integration-test-verify → $tdd-spec [direction=sync] → $workflow-review-changes → $sre-review → $security → $changelog → $test → $docs-update → $watzup → $workflow-end
+**Steps:** $idea → $web-research → $deep-research → $business-evaluation → $domain-analysis → $why-review → $tech-stack-research → $architecture-design → $why-review → $plan → $plan-review → $refine → $why-review → $refine-review → $story → $why-review → $story-review → $pbi-challenge → $dor-gate → $pbi-mockup → $tdd-spec → $why-review → $tdd-spec-review → $plan → $plan-review → $scaffold → $plan-validate → $why-review → $cook → $review-domain-entities → $integration-test → $integration-test-review → $integration-test-verify → $tdd-spec [direction=sync] → $workflow-review-changes → $sre-review → $security → $changelog → $test → $docs-update → $watzup → $understand → $workflow-end
 
 <!-- SYNC:ai-mistake-prevention -->
 
@@ -103,6 +103,7 @@ Activate the `big-feature` workflow. Run `$workflow-start big-feature` with the 
 > **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
 > **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
 > **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
+> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
 
 <!-- /SYNC:ai-mistake-prevention -->
 

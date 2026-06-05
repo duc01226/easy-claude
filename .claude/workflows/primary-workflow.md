@@ -11,7 +11,7 @@
 3. **Design Review** — `/why-review` (rationale), `/tdd-spec` + `/tdd-spec-review` (test specs)
 4. **Implement** — `/cook` or `/code`, compile-check after every file change
 5. **Verify** — `/prove-fix`, `/test`, `/integration-test`, `/tdd-spec [direction=sync]`
-6. **Quality** — `/workflow-review-changes` (consolidated: code-simplifier + review-changes + review-architecture + code-review + performance)
+6. **Quality** — `/workflow-review-changes` (canonical review-changes workflow: review-changes → why-review → parallel reviewers → code-simplifier → verification → plan/cook/restart)
 7. **Ship** — `/sre-review`, `/security`, `/changelog`, `/docs-update`, `/watzup`, `/workflow-end`
 
 **Key Rules:**
@@ -67,7 +67,7 @@
 
 ## Phase 5: Quality
 
-- Use `/workflow-review-changes` for consolidated review (code-simplifier + review-changes + review-architecture + code-review + performance), then plan + fix + re-review recursively until clean
+- Use `/workflow-review-changes` for the canonical review-changes workflow (review-changes → why-review → parallel reviewers → code-simplifier → verification → plan/cook/restart), then continue until clean
 - Alternatively use individual skills: `/code-simplifier`, `/code-review`, `/review-architecture`, `/performance`
 - Follow coding standards and conventions
 - Optimize for performance and maintainability

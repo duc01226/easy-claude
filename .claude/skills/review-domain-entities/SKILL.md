@@ -17,19 +17,21 @@ description: '[DDD Quality] Use when you need to review domain entities and valu
 
 **Goal:** Detect DDD design quality violations in domain entities and value objects across any technology stack. Adapts to project-specific patterns via config/reference docs discovery.
 
+**Final Purpose:** Ensure domain entities and value objects preserve invariants, aggregate boundaries, and discovered DDD conventions.
+
 **Workflow:**
 
 1. **Phase 0** — Discover project stack + entity patterns + blast radius **(MANDATORY FIRST)**
 2. **Phase 1** — Collect entity files; run mandatory grep patterns; create report
 3. **Phase 2** — Entity-by-entity DDD review (universal checklist + project-specific rules)
-4. **Phase 3** — Fresh `code-reviewer` sub-agent holistic assessment (Round 2)
+4. **Phase 3** — Holistic synthesis in the current review pass; fresh context only after validated fixes or explicit high-risk synthesis trigger
 5. **Phase 4** — Final report: critical issues, health score, recommendations
 
 **Key Rules:**
 
 - MUST ATTENTION discover project base classes in Phase 0 — NEVER assume generic patterns apply
 - MUST ATTENTION run mandatory grep patterns in Phase 1 BEFORE reading individual files
-- Clean Round 1 ENDS the review. When issues are found, NEVER declare PASS without fresh sub-agent Round 2 after fixing.
+- A clean review pass ENDS the review. When findings exist, validate them before fixing; do not spend a fresh-context pass re-reviewing the same findings before validation/fix.
 - NEVER report finding without `file:line` evidence
 
 **Severity Classification:**
@@ -73,7 +75,7 @@ below — if a downstream rule would raise change cost, this principle wins.
 - `[Phase 0] Project stack discovery + mode detection + blast radius` — in_progress **(FIRST)**
 - `[Phase 1] Collect entity files + grep patterns + create report` — pending
 - `[Phase 2] Entity-by-entity DDD review` — pending
-- `[Phase 3] Fresh sub-agent holistic review (Round 2)` — pending
+- `[Phase 3] Holistic synthesis and fresh-context gate` — pending
 - `[Phase 4] Generate final findings` — pending
 
 ### 0.1 Discover Project Stack and Entity Conventions
@@ -346,15 +348,21 @@ For EACH entity/VO file: read file → append findings to report IMMEDIATELY. NE
 
 ---
 
-## Phase 3: Holistic Fresh Sub-Agent Review (Round 2)
+## Phase 3: Holistic Synthesis + Fresh-Context Gate
 
-After all Phase 2 files reviewed, spawn fresh `code-reviewer` sub-agent. Sub-agent has **ZERO memory of Phase 2**.
+After all Phase 2 files are reviewed, synthesize cross-entity DDD concerns in the current report. Do not spawn a fresh sub-agent only because findings exist. Findings must go through the why-review validation gate before any fix.
 
-**Build Agent call dynamically** — set Target Files and Reference Docs from Phase 0/1 discoveries:
+Spawn a fresh `code-reviewer` sub-agent only when one of these conditions is true:
+
+- A validated-finding fix cycle has already changed the entity review target and this is the full re-review restart.
+- The user/workflow explicitly requests an independent high-risk synthesis pass for broad entity-model changes.
+- Phase 2 produced contradictory evidence that cannot be resolved in the current session without an independent read.
+
+When a fresh-context pass is triggered, build the Agent call dynamically — set Target Files and Reference Docs from Phase 0/1 discoveries:
 
 ```
 Agent({
-  description: "Fresh Round 2 — DDD entity holistic review",
+  description: "Fresh full DDD entity review after validated fixes or explicit high-risk trigger",
   subagent_type: "code-reviewer",
   prompt: `
 ## Task
@@ -366,8 +374,8 @@ Review domain entity and value object files holistically for DDD design quality:
 - Ubiquitous language consistency across all entities
 - Missed cross-entity interactions
 
-## Round
-Round 2. ZERO memory of prior rounds. Re-read all target files from scratch via own tool calls.
+## Review Mode
+Fresh full review after a validated fix cycle or explicit high-risk trigger. ZERO memory of prior rounds. Re-read all target files from scratch via own tool calls.
 
 ## Protocols (follow VERBATIM)
 
@@ -412,7 +420,7 @@ If none: read 3 existing entity files to infer project conventions before review
 {insert entity/VO file list from Phase 1}
 
 ## Output
-Write to plans/reports/domain-entities-round2-{date}.md:
+Write to plans/reports/domain-entities-rerun{N}-{date}.md:
 - Status: PASS | FAIL
 - Critical Issues (file:line evidence)
 - High Priority Issues (file:line evidence)
@@ -427,11 +435,11 @@ Return report path and status. Every finding MUST have file:line evidence.
 
 After sub-agent returns:
 
-1. Read sub-agent report
-2. Integrate as `## Round 2 Findings (Fresh Sub-Agent)` in main report — NEVER filter or override
-3. If FAIL: fix issues → spawn NEW Round 3 agent (NEVER reuse Round 2 agent)
-4. Max 3 fresh rounds → escalate via `AskUserQuestion` if still failing
-5. Final verdict MUST incorporate ALL rounds
+1. Read the sub-agent report
+2. Integrate as `## Re-Review {N} Findings` in main report — NEVER filter or override
+3. If findings remain: validate the new finding set before any additional fixes
+4. Repeat only after another validated-finding fix cycle; if the same blocker repeats across 3 full invocations with no progress, escalate via `AskUserQuestion`
+5. Final verdict MUST incorporate every review pass that actually ran
 
 ---
 
@@ -464,7 +472,7 @@ Graph risk: {HIGH | MEDIUM | LOW | N/A} | Downstream consumers: {N}
 
 ## Low / Informational
 
-## Round 2 Findings (Fresh Sub-Agent)
+## Re-Review Findings (if a fresh full re-review ran)
 
 {integrated — not filtered}
 
@@ -574,7 +582,7 @@ Report: plans/reports/domain-entities-review-{date}-{slug}.md
 
 1. Read own finalized report from `plans/reports/{skill}-{date}-{slug}.md`
 2. Invoke `/why-review` skill with arg: `validate findings in plans/reports/{skill}-{date}-{slug}.md — verify each finding has file:line proof, steel-man each rejected interpretation, and stress-test severity classifications`
-3. Read why-review output from `plans/reports/why-review-{date}.md`
+3. Read the validation verdict path returned by why-review, expected as `plans/reports/why-review-validate-{date}.md`
 4. **If why-review demotes/removes any finding:** UPDATE own finalized report with revised severities, remove false positives, and add a `## Why-Review Validation Notes` section citing what changed and why
 5. **If why-review confirms all findings:** Append `## Why-Review Validation` line to own report stating "All N findings re-validated against actual code; no severity changes."
 
@@ -601,7 +609,7 @@ MUST ATTENTION use `AskUserQuestion` after completing to present:
 
 > **[IMPORTANT]** `TaskCreate` for ALL phases BEFORE starting. Mark each completed immediately.
 
-> **CRITICAL RULES** — (1) MUST ATTENTION run Phase 0 project discovery FIRST — discovered conventions override ALL generic rules. (2) When Round 1 finds issues, NEVER declare PASS without fresh sub-agent Round 2 after fixing. Clean Round 1 ENDS the review. (3) NEVER report a finding without `file:line` evidence.
+> **CRITICAL RULES** — (1) MUST ATTENTION run Phase 0 project discovery FIRST — discovered conventions override ALL generic rules. (2) Validate findings before fixes; after validated fixes, restart a full review before declaring PASS. A clean review pass ENDS the review. (3) NEVER report a finding without `file:line` evidence.
 
 ---
 
@@ -668,6 +676,7 @@ If no domain entity files match in changes mode → announce "No domain entity c
 > **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
 > **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
 > **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
+> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -750,16 +759,16 @@ If no domain entity files match in changes mode → announce "No domain entity c
 
 <!-- SYNC:double-round-trip-review -->
 
-> **Fix-Triggered Re-Review Loop** — Re-review is triggered by a FIX CYCLE, not by a round number. Review purpose: `review → if issues → fix → re-review` until a round finds no issues. **A clean review ENDS the loop — no further rounds required.**
+> **Validated-Finding Fix + Full Re-Review Loop** — Re-review is triggered by a validated finding fix cycle, not by a round number. Review purpose: `review → validate findings → fix validated findings → full re-review` until a complete review pass finds no issues. **A clean review ENDS the loop — no further rounds required.**
 >
 > **Round 1:** Main-session review. Read target files, build understanding, note issues. Output findings + verdict (PASS / FAIL).
 >
 > **Decision after Round 1:**
 >
 > - **No issues found (PASS, zero findings)** → review ENDS. Do NOT spawn a fresh sub-agent for confirmation.
-> - **Issues found (FAIL, or any non-zero findings)** → fix the issues, then spawn a fresh sub-agent for Round 2 re-review.
+> - **Issues found (FAIL, or any non-zero findings)** → run the active review skill's findings-validation gate first; for review skills the default gate is `/why-review --validate-findings <report-path>`, fix only validated findings, then restart the full review protocol from the beginning with a fresh task breakdown.
 >
-> **Fresh sub-agent re-review (after every fix cycle):** Spawn a NEW `Agent` tool call — never reuse a prior agent. Sub-agent re-reads ALL files from scratch with ZERO memory of prior rounds. See `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. Each fresh round must catch:
+> **Fresh full re-review after every fix cycle:** Re-run the whole review protocol over the current full target. When sub-agents are part of that protocol, spawn NEW `Agent` calls — never reuse prior agents. Reviewers re-read ALL files from scratch with ZERO memory of prior rounds. See `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. Each fresh full review must catch:
 >
 > - Cross-cutting concerns missed in the prior round
 > - Interaction bugs between changed files
@@ -768,16 +777,17 @@ If no domain entity files match in changes mode → announce "No domain entity c
 > - Subtle edge cases the prior round rationalized away
 > - Regressions introduced by the fixes themselves
 >
-> **Loop termination:** After each fresh round, repeat the same decision: clean → END; issues → fix → next fresh round. Continue until a round finds zero issues, or **3 fresh-subagent rounds max**, then escalate to user via `AskUserQuestion`.
+> **Loop termination:** After each full re-review, repeat the same decision: clean → END; issues → validate findings → fix → restart from the first review phase. Continue until a complete review pass finds zero issues. If the same validated finding repeats for 3 full invocations with no progress, or a fix requires product/owner input, escalate via `AskUserQuestion`.
 >
 > **Rules:**
 >
 > - A clean Round 1 ENDS the review — no mandatory Round 2
-> - NEVER skip the fresh sub-agent re-review after a fix cycle (every fix invalidates the prior verdict)
-> - NEVER reuse a sub-agent across rounds — every iteration spawns a NEW Agent call
+> - NEVER fix unvalidated findings; validate first using the caller's validation gate
+> - NEVER skip the full re-review after a fix cycle (every fix invalidates the prior verdict)
+> - NEVER reuse a sub-agent across rounds — every iteration that uses sub-agents spawns NEW Agent calls
 > - Main agent READS sub-agent reports but MUST NOT filter, reinterpret, or override findings
-> - Max 3 fresh-subagent rounds per review — if still FAIL, escalate via `AskUserQuestion` (do NOT silently loop)
-> - Track round count in conversation context (session-scoped)
+> - No arbitrary sub-agent-round cap replaces the clean-review requirement; use the 3 repeated-no-progress blocker rule only to avoid infinite spinning
+> - Track recursive invocation count and repeated blockers in conversation context (session-scoped)
 > - Final verdict must incorporate ALL rounds executed
 >
 > **Report must include `## Round N Findings (Fresh Sub-Agent)` for every round N≥2 that was executed.**
@@ -786,15 +796,15 @@ If no domain entity files match in changes mode → announce "No domain entity c
 
 <!-- SYNC:fresh-context-review -->
 
-> **Fresh Sub-Agent Review** — Eliminate orchestrator confirmation bias via isolated sub-agents.
+> **Fresh Context Re-Review** — Eliminate orchestrator confirmation bias after fixes by restarting the full review with isolated sub-agents where applicable.
 >
 > **Why:** The main agent knows what it (or `/cook`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
 >
-> **When:** ONLY after a fix cycle. A review round that finds zero issues ENDS the loop — do NOT spawn a confirmation sub-agent. A review round that finds issues triggers: fix → fresh sub-agent re-review.
+> **When:** ONLY after a validated-finding fix cycle. A review round that finds zero issues ENDS the loop — do NOT spawn a confirmation sub-agent. A review round that finds issues triggers: validate findings → fix → full review restart from the first phase.
 >
 > **How:**
 >
-> 1. Spawn a NEW `Agent` tool call — use `code-reviewer` subagent_type for code reviews, `general-purpose` for plan/doc/artifact reviews
+> 1. Start a NEW full review invocation/task breakdown; when that protocol calls for agents, spawn NEW `Agent` tool calls — use `code-reviewer` subagent_type for code reviews, `general-purpose` for plan/doc/artifact reviews
 > 2. Inject ALL required review protocols VERBATIM into the prompt — see `SYNC:review-protocol-injection` for the full list and template. Never reference protocols by file path; AI compliance drops behind file-read indirection (see `SYNC:shared-protocol-duplication-policy`)
 > 3. Sub-agent re-reads ALL target files from scratch via its own tool calls — never pass file contents inline in the prompt
 > 4. Sub-agent writes structured report to `plans/reports/{review-type}-round{N}-{date}.md`
@@ -802,11 +812,11 @@ If no domain entity files match in changes mode → announce "No domain entity c
 >
 > **Rules:**
 >
-> - SKIP fresh sub-agent when the prior round found zero issues (no fixes = nothing new to verify)
-> - NEVER skip fresh sub-agent after a fix cycle — every fix invalidates the prior verdict
+> - SKIP fresh sub-agent when the prior full review found zero issues (no fixes = nothing new to verify)
+> - NEVER skip the full review restart after a fix cycle — every fix invalidates the prior verdict
 > - NEVER reuse a sub-agent across rounds — every fresh round spawns a NEW `Agent` call
-> - Max 3 fresh-subagent rounds per review — escalate via `AskUserQuestion` if still failing; do NOT silently loop or fall back to any prior protocol
-> - Track iteration count in conversation context (session-scoped, no persistent files)
+> - Continue until a complete full review pass has zero findings; if the same blocker repeats 3 times with no progress, escalate via `AskUserQuestion`
+> - Track iteration count and repeated blockers in conversation context (session-scoped, no persistent files)
 
 <!-- /SYNC:fresh-context-review -->
 
@@ -868,12 +878,17 @@ If no domain entity files match in changes mode → announce "No domain entity c
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Final Purpose:** Ensure domain entities and value objects preserve invariants, aggregate boundaries, and discovered DDD conventions.
 - **MANDATORY MUST ATTENTION** Phase 0 project discovery FIRST — discovered conventions override ALL generic rules. NEVER apply generic patterns without verifying project base classes.
 - **MANDATORY MUST ATTENTION** run mandatory grep patterns in Phase 1 BEFORE reading individual files — fastest path to highest-signal violations.
-- **MANDATORY MUST ATTENTION** when Round 1 finds issues, always spawn fresh sub-agent for Round 2 after fixing. Clean Round 1 ENDS the review.
+- **MANDATORY MUST ATTENTION** validate findings before fixes; after validated fixes, restart the full review before declaring PASS. A clean review pass ENDS the review.
 - **MANDATORY MUST ATTENTION** NEVER report any finding without `file:line` evidence — confidence >80% to act.
 - **MANDATORY MUST ATTENTION** NEVER throw raw language exceptions for domain violations — use project's domain exception type.
 - **MANDATORY MUST ATTENTION** NEVER allow mutable properties on Value Objects — structural immutability is non-negotiable.
+- **MANDATORY MUST ATTENTION** derive entity rules from discovered project patterns before applying generic DDD judgment.
+- **MANDATORY MUST ATTENTION** inspect entity callers/usages before classifying anemic model or misplaced invariant.
+- **MANDATORY MUST ATTENTION** treat repeated entity design violations as structural findings, not isolated style notes.
+- **MANDATORY MUST ATTENTION** preserve validation-first loop: findings → validation → validated fixes → full review restart.
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
 
@@ -886,3 +901,10 @@ If no domain entity files match in changes mode → announce "No domain entity c
 > the next change cheaper or more expensive?_ If it doesn't reduce future
 > change cost, reject it. Coupling, hidden state, duplicated knowledge, and
 > unclear intent are the real enemies — call them out by name.
+**Anti-Rationalization:**
+
+| Evasion | Rebuttal |
+| ------- | -------- |
+| "Purpose obvious" | Anchor it anyway — primacy/recency keeps outcome active through long prompts. |
+| "Existing reminders enough" | Echo Final Purpose in Closing Reminders — bottom anchor prevents drift. |
+| "Skip evidence for prompt edits" | Cite changed file evidence and verify no stale protocol text remains. |
