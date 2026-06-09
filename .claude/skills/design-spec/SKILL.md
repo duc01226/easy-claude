@@ -1,7 +1,7 @@
 ---
 name: design-spec
 version: 2.0.0
-description: '[Project Management] Use when you need to create UI/UX design specifications from requirements, PBIs, or user stories.'
+description: '[Project Management] Use when you need to create UI/UX design specifications from requirements, PBIs, or user stories. Use --mode=wireframe to convert hand-drawn/digital wireframes or UI sketches into structured specs.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -28,7 +28,7 @@ description: '[Project Management] Use when you need to create UI/UX design spec
 **Key Rules:**
 
 - If Figma URL provided → auto-routes to `/figma-design` for context extraction
-- If wireframe image provided → auto-routes to `/wireframe-to-spec` for structured analysis
+- If wireframe image provided (hand-drawn/digital/tool-export) → handled internally via `--mode=wireframe` (see "Mode: wireframe" below)
 - If screenshot provided → uses `ai-multimodal` for design extraction
 - Reference existing design system tokens from `docs/project-reference/design-system/`
 - Component patterns: `docs/project-reference/frontend-patterns-reference.md` (read directly when relevant; do not rely on hook-injected conversation text)
@@ -50,9 +50,8 @@ Create structured UI/UX design specification documents from requirements or PBIs
 
 ## When NOT to Use
 
-- This skill auto-routes Figma URLs to `/figma-design` and wireframes to `/wireframe-to-spec` — no need to call those skills separately
+- This skill auto-routes Figma URLs to `/figma-design`; wireframes are handled internally via `--mode=wireframe` — no need to call a separate skill
 - Building the actual UI -- use `frontend-design`
-- Full UX research and design process -- use `ux-designer`
 - Reviewing existing UI code -- use `web-design-guidelines`
 
 ## Prerequisites
@@ -79,7 +78,7 @@ Read before executing:
     | ------------------------ | ---------------------------------------------- | ------------------------------------------------------------------------ |
     | Figma URL                | `figma.com/design` or `figma.com/file` in text | Activate `/figma-design` to extract context, then continue               |
     | Image/screenshot         | Image file attached to prompt                  | Use `ai-multimodal` to extract design guidelines, then continue          |
-    | Hand-drawn wireframe     | Image + "wireframe"/"sketch" keyword           | Activate `/wireframe-to-spec` to generate structured spec, then continue |
+    | Hand-drawn wireframe     | Image + "wireframe"/"sketch" keyword           | Run `--mode=wireframe` (internal — see "Mode: wireframe" section)         |
     | PBI/story text           | Acceptance criteria present                    | Extract UI requirements from text, continue                              |
     | Verbal/text requirements | No image, no URL, no PBI                       | Clarify with user, then continue                                         |
 
@@ -111,8 +110,65 @@ For ANY visual input: extract design context FIRST, then proceed to spec generat
     - Mobile (320-767px), Tablet (768-1023px), Desktop (1024px+)
     - What changes at each breakpoint (layout, visibility, sizing)
 
-7. **Save artifact**
-    - Path: `team-artifacts/design-specs/{YYMMDD}-designspec-{feature-slug}.md`
+7. **Save artifact** — pick the filename variant by artifact type:
+    - Design spec: `team-artifacts/design-specs/{YYMMDD}-designspec-{feature-slug}.md`
+    - Accessibility audit: `team-artifacts/design-specs/{YYMMDD}-ux-audit-{feature-slug}.md`
+    - Single-component doc: `team-artifacts/design-specs/{YYMMDD}-ux-component-{component-name}.md`
+
+## Mode: wireframe (image → spec)
+
+> **Invoke with `--mode=wireframe`** (or whenever a hand-drawn wireframe, digital wireframe, or UI sketch is the input). This mode is an INPUT adapter: it analyzes the image, then flows into the normal spec sections (Output Format) and the M1-M5 compliance gate. `design-spec` is the canonical owner of wireframe→spec conversion.
+
+### Input Routing (wireframe)
+
+| Input                   | Detection                               | Action                                       |
+| ----------------------- | --------------------------------------- | -------------------------------------------- |
+| Hand-drawn sketch photo | Image with rough/organic lines          | Analyze with wireframe prompts (this mode)   |
+| Digital wireframe       | Image with clean lines/shapes           | Analyze with wireframe prompts (this mode)   |
+| Wireframe tool export   | Image from Excalidraw/Balsamiq/MockFlow | Analyze with wireframe prompts (this mode)   |
+| Figma URL               | `figma.com` in text                     | Route to `/figma-design` instead             |
+| App screenshot          | Polished UI with real data              | Route to `/design --mode=screenshot` instead |
+
+### Wireframe Analysis
+
+Use `ai-multimodal` with these prompts:
+
+**Prompt 1: Layout Extraction** — "Analyze this wireframe image. Identify: (1) page layout regions (header, sidebar, main, footer), (2) all UI elements with approximate position and type (button, input, table, card, dropdown, modal, tabs), (3) content hierarchy (what is primary vs secondary), (4) interactive elements, (5) any text labels or annotations, (6) navigation patterns."
+
+**Prompt 2: Component Identification** — "From the wireframe, list every distinct UI component. For each: name it descriptively, classify its complexity (primitive=single element, composite=grouped elements, section=page region), note its purpose."
+
+### Wireframe Output Generation
+
+After image analysis, generate (per the `SYNC:ui-wireframe-protocol` block below):
+
+1. **ASCII Wireframe** — Recreate layout using box-drawing characters
+2. **Component Inventory** — List with tier classification (Common/Domain-Shared/Page)
+3. **States Table** — Default, Loading, Empty, Error per view
+4. **Component Decomposition Tree** — If detail level warrants (refine/story)
+5. **Responsive Suggestions** — Based on layout complexity
+
+Apply the **M1-M5 Compliance for UI Specs** gate (below) to all wireframe-derived prose: business-level component names, no code-prop refs, map to feature logic by logical ID, observable state transitions, rebuild-from-spec.
+
+### Mapped Business Operations
+
+Emit this table linking each interactive component to the feature operations/rules it drives (logical ID is the primary spine; mark `[UNVERIFIED — needs feature-spec mapping]` when the wireframe alone cannot determine it):
+
+| Interactive Component | Interaction (observable) | Feature Operation / Rule (logical ID) | Notes                            |
+| --------------------- | ------------------------ | ------------------------------------- | -------------------------------- |
+| Primary Button        | Click → submit form      | OP-XX                                 | Triggers create/update operation |
+| Filter Dropdown       | Select → reload list     | OP-XX                                 | Drives query/search operation    |
+| Row Action Menu       | Click → confirm dialog   | BR-XX                                 | Guarded by authorization rule    |
+
+### Wireframe Output Formats
+
+- **Format A: PBI Section (default)** — output a standalone `## UI Layout` section compatible with PBI/story templates (consumed by `/pbi-mockup`).
+- **Format B: Standalone Spec** — output to `team-artifacts/design-specs/{YYMMDD}-wireframe-spec-{slug}.md`.
+
+### Confidence & Review (wireframe)
+
+- **Always display confidence level** for wireframe interpretation (analysis is 70-80% accurate).
+- **Always recommend human review** before proceeding to implementation.
+- If confidence <70%: ask clarifying questions about ambiguous elements via `AskUserQuestion`.
 
 ## Output Format
 
@@ -190,6 +246,76 @@ Define every state by what a user can SEE (color, icon, position, text), the bus
 | Empty    | Placeholder illustration + guidance text, no data rows    | No records exist for the current view     | OP-XX (query returned zero results)      |
 | Success  | Confirmation toast/checkmark, updated visible data        | Operation completed and persisted         | OP-XX (operation succeeded)              |
 
+## Component States Checklist
+
+Every interactive component MUST document all 7 states by their **observable appearance and business meaning** — never by CSS class or framework prop (see M2):
+
+- **Default** — resting appearance; action available to the actor
+- **Hover** — pointer-over affordance change (cursor / elevation / color shift)
+- **Active** — pressed/engaged feedback during interaction
+- **Focus** — keyboard-focus indicator (visible ring/outline) for a11y traversal
+- **Disabled** — muted/non-interactive; precondition or permission not met
+- **Error** — validation/operation failure with inline message + alert affordance
+- **Loading** — in-progress indicator (spinner / skeleton); control non-interactive
+
+## Accessibility Audit (WCAG 2.1 AA)
+
+For an accessibility-audit deliverable, produce this checklist report and save it as `{YYMMDD}-ux-audit-{feature-slug}.md`:
+
+```markdown
+## Accessibility Audit: {Feature}
+
+**Date:** {Date}
+**Auditor:** {Name}
+**Standard:** WCAG 2.1 AA
+
+### Criteria Checklist
+
+#### Perceivable
+
+- [ ] 1.1.1 Non-text Content: Alt text for images
+- [ ] 1.3.1 Info and Relationships: Semantic HTML
+- [ ] 1.3.2 Meaningful Sequence: Logical reading order
+- [ ] 1.4.1 Use of Color: Not sole means of conveying info
+- [ ] 1.4.3 Contrast (Minimum): 4.5:1 text, 3:1 large text
+- [ ] 1.4.4 Resize Text: Readable at 200% zoom
+- [ ] 1.4.11 Non-text Contrast: 3:1 for UI components
+
+#### Operable
+
+- [ ] 2.1.1 Keyboard: All functions keyboard accessible
+- [ ] 2.1.2 No Keyboard Trap: Can navigate away
+- [ ] 2.4.1 Bypass Blocks: Skip navigation available
+- [ ] 2.4.3 Focus Order: Logical tab sequence
+- [ ] 2.4.4 Link Purpose: Clear from link text
+- [ ] 2.4.6 Headings and Labels: Descriptive
+- [ ] 2.4.7 Focus Visible: Clear focus indicator
+
+#### Understandable
+
+- [ ] 3.1.1 Language of Page: lang attribute set
+- [ ] 3.2.1 On Focus: No unexpected context change
+- [ ] 3.2.2 On Input: No unexpected context change
+- [ ] 3.3.1 Error Identification: Clear error messages
+- [ ] 3.3.2 Labels or Instructions: Form labels present
+
+#### Robust
+
+- [ ] 4.1.1 Parsing: Valid HTML
+- [ ] 4.1.2 Name, Role, Value: ARIA where needed
+
+### Issues Found
+
+| #   | Criterion | Issue | Severity | Recommendation |
+| --- | --------- | ----- | -------- | -------------- |
+| 1   |           |       | P1/P2/P3 |                |
+
+### Audit Status: PASS / FAIL / CONDITIONAL
+
+**Remediation Priority:**
+{List items by severity}
+```
+
 ## Examples
 
 ### Example 1: Simple form spec
@@ -208,7 +334,6 @@ Define every state by what a user can SEE (color, icon, position, text), the bus
 
 | Skill                   | When to use instead                  |
 | ----------------------- | ------------------------------------ |
-| `ux-designer`           | Full UX design process with research |
 | `figma-design`          | Extract specs from Figma designs     |
 | `frontend-design`       | Build the actual UI implementation   |
 | `interface-design`      | Product UI design (dashboards, apps) |
@@ -259,6 +384,12 @@ Define every state by what a user can SEE (color, icon, position, text), the bus
 
 <!-- /SYNC:ui-system-context -->
 
+<!-- SYNC:ui-wireframe-protocol -->
+
+> **UI Wireframe Protocol** — Wireframe-to-implementation flow: (1) Process design input (Figma/screenshot/sketch via ai-multimodal). (2) Create ASCII wireframe with box-drawing chars. (3) Build component inventory with tier classification (Common/Domain-Shared/Page). (4) Document states (Default/Loading/Empty/Error). (5) Map to design tokens. (6) Define responsive breakpoints. Search existing component libraries before creating new. Progressive detail by skill level (idea=sketch, story=full tree+specs).
+
+<!-- /SYNC:ui-wireframe-protocol -->
+
 <!-- SYNC:critical-thinking-mindset -->
 
 > **Critical Thinking Mindset** — Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
@@ -270,6 +401,12 @@ Define every state by what a user can SEE (color, icon, position, text), the bus
 
 - **MANDATORY IMPORTANT MUST ATTENTION** read frontend-patterns-reference, scss-styling-guide, design-system/README before any UI change.
 <!-- /SYNC:ui-system-context:reminder -->
+
+<!-- SYNC:ui-wireframe-protocol:reminder -->
+
+**IMPORTANT MUST ATTENTION** follow wireframe protocol: ASCII wireframe, component inventory with tiers, states table, design tokens, responsive breakpoints.
+
+<!-- /SYNC:ui-wireframe-protocol:reminder -->
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 

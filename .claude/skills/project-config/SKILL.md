@@ -1,6 +1,5 @@
 ---
 name: project-config
-version: 2.2.0
 description: '[Utilities] Use when you need to scan workspace and update docs/project-config JSON to match current project structure.'
 disable-model-invocation: false
 ---
@@ -16,9 +15,11 @@ disable-model-invocation: false
 **Key Rules:**
 
 - MUST ATTENTION run `node .claude/hooks/lib/project-config-schema.cjs --describe` — use field names verbatim
-- MUST ATTENTION one TaskCreate per config section — NEVER scan everything in one pass
+- MUST ATTENTION execute every required config section for every project size; small projects do not skip, defer, or require user approval to combine work
+- MUST ATTENTION one TaskCreate per config section or explicit section group — NEVER scan everything in one pass
 - MUST ATTENTION validate schema after each merge — `validateConfig(config)` returns PASSED or errors
 - MUST ATTENTION review-and-fix after each phase — read back, spot-check paths, self-review
+- MUST ATTENTION do not ask the user to choose scan granularity, combination, section ordering, or optional confirmation; auto-select the evidence-backed route and continue
 - Path regexes MUST ATTENTION use `[\\/]` for cross-platform separator matching
 - Schema enforced by `.claude/hooks/lib/project-config-schema.cjs`
 
@@ -37,21 +38,22 @@ find src/ -name "*.cs" 2>/dev/null | wc -l
 ls -d src/*/ 2>/dev/null
 ```
 
-| Scale         | Signal              | Task Approach                          |
-| ------------- | ------------------- | -------------------------------------- |
-| Small (<5)    | Few modules         | Combine 2a+2b, 2k+2l+2m — ~8 tasks     |
-| Medium (5–20) | Moderate count      | One task per section — ~15 tasks       |
-| Large (20+)   | Many service groups | Split 2a per service group — 20+ tasks |
+| Scale         | Signal              | Task Approach |
+| ------------- | ------------------- | --- |
+| Small (<5)    | Few modules         | Execute every section; use compact phase groups only for reporting, not for skipping or asking |
+| Medium (5–20) | Moderate count      | Execute every section with one task per section where practical |
+| Large (20+)   | Many service groups | Execute every section; split 2a/2b and other broad scans per service group when needed |
 
-Small projects: ask user to combine into single pass.
+Project size controls task grouping and split depth only. It does NOT permit skipping required sections, stopping for user approval, or asking whether to combine work. For small projects, auto-select the compact full-pass plan and keep validating after each merge/review phase.
 
 ### Step 2: Create Plan (`/plan`)
 
 Create `plans/{date}-project-config-scan.md`:
 
 1. Record scale classification from Step 1
-2. Group config sections into phases (≤5 tasks each)
+2. Group config sections into phases (≤5 tasks each) while preserving full section coverage
 3. Include review-and-fix cycle after each phase
+4. Include every Phase 2 section (2a–2q) as either its own task or a named task inside a compact group with explicit evidence for each section
 
 **Phase template:**
 
@@ -114,7 +116,7 @@ docs/project-config.json
 │   └── implicitConnections[] — { name, edgeKind, paths[], source{ filePattern, contentPattern, keyGroup }, target{...}, matchBy }
 ├── referenceDocs[] — { filename, purpose, sections[] }
 ├── integrationTestVerify — { guidance, referenceDocs[], quickRunCommand, testProjectPattern, testProjects[], systemCheckCommand, runScript, startupScript }
-├── workflowPatterns — { architectureStyle, codeHierarchy, cssMethodology, stateManagement, crossModuleValidation, featureDocPath, featureDocTemplate, reviewRulesDoc }
+├── workflowPatterns — { architectureStyle, codeHierarchy, cssMethodology, stateManagement, crossModuleValidation, featureDocTemplate, reviewRulesDoc }
 └── DEPRECATED: backendServices, frontendApps, scss, componentFinder, sharedNamespace
 ```
 
@@ -159,7 +161,7 @@ Read `docs/project-config.json`. Note populated vs skeleton sections.
 
 ## Phase 2: Section-by-Section Scans
 
-**Each subsection = one TaskCreate.** Per task: investigate → report → merge → validate.
+**Each subsection = one TaskCreate or an explicit named child inside a compact group.** Per task: investigate → report → merge → validate. Small projects still cover every subsection; compact grouping is an execution convenience, not permission to skip or ask.
 
 ### 2a. Modules — Backend
 
@@ -272,7 +274,7 @@ Algorithm: scan source files → extract keys via `contentPattern` regex capture
 }
 ```
 
-**IMPORTANT MUST ATTENTION** present detected rules to user before writing. **IMPORTANT MUST ATTENTION** scope `paths` to relevant dirs (not repo root).
+**IMPORTANT MUST ATTENTION** record detected rules in the plan/report before writing; do not pause for user approval. **IMPORTANT MUST ATTENTION** scope `paths` to relevant dirs (not repo root).
 
 ### 2q. Reference Docs
 
@@ -294,15 +296,15 @@ Merge section-by-section. Overwrite only with concrete scan findings. Large proj
 
 | Reference Doc                                                                 | Scan Skill                        |
 | ----------------------------------------------------------------------------- | --------------------------------- |
-| `project-structure-reference.md`                                              | `/scan-project-structure` (FIRST) |
-| `backend-patterns-reference.md`                                               | `/scan-backend-patterns`          |
+| `project-structure-reference.md`                                              | `/scan --target=project-structure` (FIRST) |
+| `backend-patterns-reference.md`                                               | `/scan --target=backend-patterns`          |
 | `seed-test-data-reference.md`                                                 | `/scan-seed-test-data`            |
 | `design-system/` + `scss-styling-guide.md` + `frontend-patterns-reference.md` | `/scan-ui-system`                 |
-| `integration-test-reference.md`                                               | `/scan-integration-tests`         |
-| `feature-docs-reference.md`                                                   | `/scan-feature-docs`              |
-| `code-review-rules.md`                                                        | `/scan-code-review-rules`         |
-| `e2e-test-reference.md`                                                       | `/scan-e2e-tests`                 |
-| `domain-entities-reference.md`                                                | `/scan-domain-entities`           |
+| `integration-test-reference.md`                                               | `/scan --target=integration-tests`         |
+| `feature-spec-reference.md`                                                   | `/scan --target=feature-spec`              |
+| `code-review-rules.md`                                                        | `/scan --target=code-review-rules`         |
+| `e2e-test-reference.md`                                                       | `/scan --target=e2e-tests`                 |
+| `domain-entities-reference.md`                                                | `/scan --target=domain-entities`           |
 
 Then: `/claude-md-init` (LAST). Optionally: `/graph-build`.
 
@@ -317,6 +319,7 @@ Re-invoke skill: `/project-config Self review and verify everything again, ensur
 ## Output
 
 Report: sections updated vs unchanged, new modules discovered, path mismatches, follow-up tasks created.
+Include the project scale, the selected full-coverage task grouping, and confirmation that no required section was skipped because the project was small.
 
 ---
 
@@ -363,6 +366,7 @@ Report: sections updated vs unchanged, new modules discovered, path mismatches, 
 
 **IMPORTANT MUST ATTENTION** classify project scale FIRST (Step 1) — drives all task granularity decisions.
 **IMPORTANT MUST ATTENTION** plan first — recon → `/plan` → `/plan-review` → execute. NEVER jump to scanning.
+**IMPORTANT MUST ATTENTION** execute all required sections for all project sizes; small projects get compact full-coverage grouping, never a permission question or skipped sections.
 **IMPORTANT MUST ATTENTION** break into phases with review cycles — scan → merge → validate → spot-check → fix per phase.
 **IMPORTANT MUST ATTENTION** use exact schema field names — run `--describe`, copy verbatim. NEVER guess.
 **IMPORTANT MUST ATTENTION** validate after EACH phase — schema errors compound across phases.
@@ -379,5 +383,6 @@ Report: sections updated vs unchanged, new modules discovered, path mismatches, 
 | "Phase N looks fine, skip validate" | Schema errors compound across phases. Validate every phase, no exceptions.     |
 | "Self-review is redundant"          | Phase 7 catches what every earlier phase missed. Never skip.                   |
 | "Small project, skip task tracking" | Task tracking prevents drift on all project sizes. Always `TaskCreate` first.  |
+| "Small project, ask before combining" | Do not ask. Auto-select compact full-coverage grouping and execute all sections with validation. |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.

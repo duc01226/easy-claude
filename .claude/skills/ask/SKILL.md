@@ -45,9 +45,9 @@ Current development workflows, system constraints, scale requirements, and busin
 ├── integration-test-reference.md
 ├── e2e-test-reference.md
 ├── scss-styling-guide.md
-├── feature-docs-reference.md
+├── feature-spec-reference.md
 ├── design-system/
-└── business-features/
+└── specs/
 ```
 
 ## Your Role

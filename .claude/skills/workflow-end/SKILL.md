@@ -15,16 +15,19 @@ description: '[Process] Use when you need end the active workflow and clear stat
 
 ## Quick Summary
 
-**Goal:** [Process] End the active workflow and clear state. Auto-added as last step of every workflow. Clears workflow tracking so next prompt gets fresh workflow detection.
+**Goal:** [Process] End the active workflow and clear state. Runs near the end of workflow sequences before the post-workflow `/watzup` handoff. Clears workflow tracking so next prompt gets fresh workflow detection. **Before clearing state, prints a one-way developer-comprehension recap** of what the workflow changed (what / purpose / how / why) so the developer understands the work without re-reading the diff.
 
 **Workflow:**
 
 1. **Detect** — classify request scope and target artifacts.
 2. **Execute** — apply required steps with evidence-backed actions.
-3. **Verify** — confirm constraints, output quality, and completion evidence.
+3. **Explain** — print the diff-gated comprehension recap (skip only when no changes).
+4. **Verify** — confirm constraints, output quality, and completion evidence.
 
 **Key Rules:**
 
+- MUST ATTENTION when the workflow produced a diff, print the comprehension recap (what changed / purpose / how it works / why) — depth throttled by `codingLevel`, but NEVER fully skip when changes exist.
+- MUST ATTENTION the recap is one-way — NO quiz, NO teach-back, NEVER blocks. Deeper comprehension is handled by the standalone `/understand` skill, which `/watzup` invokes as its final handoff and which the developer can also invoke directly for any target.
 - MUST ATTENTION keep claims evidence-based (`file:line`) with confidence >80% to act.
 - MUST ATTENTION keep task tracking updated as each step starts/completes.
 - MUST ATTENTION define success criteria before execution and loop until observable verification passes.
@@ -33,7 +36,7 @@ description: '[Process] Use when you need end the active workflow and clear stat
 
 ## When This Runs
 
-This skill is the **last step of every workflow sequence**. It runs automatically after the final functional step (e.g., `/watzup`, `/status`, `/acceptance`).
+This skill is the **workflow state-closure step**. In workflows that include `/watzup`, it runs after final verification/docs work and before `/watzup`, so the active workflow is closed before the post-workflow summary and `/understand` handoff. As its penultimate action — after all workflow work is done, before clearing state — it prints the one-way developer-comprehension recap of what the workflow changed. Use `/understand` for the deep standalone explainer of any target.
 
 **NOT for**: Manual invocation mid-workflow (use workflow switching via `/workflow-start` instead).
 
@@ -55,8 +58,37 @@ This skill is the **last step of every workflow sequence**. It runs automaticall
     ```
     Report results briefly.
 3. Mark this task as `completed` via `TaskUpdate`
-4. Announce to the user: "Workflow **[name]** completed. Next prompt will trigger fresh workflow detection."
-5. The `workflow-step-tracker` hook handles the actual state cleanup automatically when this skill completes
+
+4. **Explain the changes — developer comprehension recap** (the final teaching step; runs after everything else is done):
+
+    Scope what this workflow changed:
+
+    ```bash
+    git diff --name-only HEAD && git ls-files --others --exclude-standard
+    ```
+
+    - **No diff** (pure investigation/research/docs-only workflow with nothing built) → skip with reason `"no changes to explain"`.
+    - **Diff present** → ALWAYS print a one-way teaching recap so the developer understands the work **without re-reading the diff**. This is one-way — NO quiz, NO teach-back, NEVER blocks. For a deeper explanation of any target (a plan, subsystem, decision, concept, or bug), use `/understand`; `/watzup` invokes it as the final handoff.
+
+    **Throttle depth by coding level** (resolve first found: env `CK_CODING_LEVEL` → `.claude/.ck.json` `codingLevel` → default `3`):
+
+    | Level | Recap depth |
+    | ----- | ----------- |
+    | 4–5 | 2–4 tight sentences on the highest-blast-radius change only |
+    | 2–3 | The four-part recap below, concise |
+    | 0–1 | The four-part recap, fuller, plainest language, define non-obvious terms |
+
+    Always print at least the short recap when a diff exists — NEVER fully skip.
+
+    **Structure (optimize for easiest learning — lead with high-level motivation, then drill into low-level logic; surface what a reader would NOT guess from the diff):**
+
+    1. **What changed** — concrete edits grouped by **behaviour** (not by file); cite `file:line`.
+    2. **Purpose / kind** — feature / bug fix / enhancement / refactor / perf / security — and the problem it solves.
+    3. **How it works** — mechanism, key logic, invariants relied on, edge cases preserved; focus the **non-obvious**.
+    4. **Why this way** — rationale and trade-offs; why over the obvious alternative.
+
+5. Announce to the user: "Workflow **[name]** completed. Next prompt will trigger fresh workflow detection."
+6. The `workflow-step-tracker` hook handles the actual state cleanup automatically when this skill completes
 
 ---
 
@@ -68,9 +100,9 @@ This skill is the **last step of every workflow sequence**. It runs automaticall
 
 ---
 
-**IMPORTANT MANDATORY Steps:** integration-test-coverage-check -> spec-tdd-test-sync-gate -> verify-task-completion -> verify-workflow-state -> announce-workflow-completion -> clear-workflow-state
+**IMPORTANT MANDATORY Steps:** integration-test-coverage-check -> spec-tdd-test-sync-gate -> verify-task-completion -> verify-workflow-state -> explain-changes-recap -> announce-workflow-completion -> clear-workflow-state
 
-**IMPORTANT MANDATORY Steps:** integration-test-coverage-check -> spec-tdd-test-sync-gate -> verify-task-completion -> verify-workflow-state -> announce-workflow-completion -> clear-workflow-state
+**IMPORTANT MANDATORY Steps:** integration-test-coverage-check -> spec-tdd-test-sync-gate -> verify-task-completion -> verify-workflow-state -> explain-changes-recap -> announce-workflow-completion -> clear-workflow-state
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
@@ -110,11 +142,11 @@ Finalize and close the active workflow, clearing state so the next user prompt t
 > **Project Reference Docs Gate** — Run after task-tracking bootstrap and before target/source file reads, grep, edits, or analysis. Project docs override generic framework assumptions.
 >
 > 1. Identify scope: file types, domain area, and operation.
-> 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-docs-reference.md`; architecture/new area `project-structure-reference.md`.
-> 3. Read every required doc. If `docs/project-config.json`, the docs index, `lessons.md`, or any task-required reference doc is missing, stop immediately and ask the user to run `/project-config` and `/scan-all`.
+> 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under `docs/specs/`; architecture/new area `project-structure-reference.md`.
+> 3. Read every required doc. If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `/project-init` or the narrow lower-level route (`/project-config`, `/docs-init`, `/scan-all`, `/scan --target=<key>`, `/claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `/sync-codex`; do not auto-run it.
 > 4. Before target work, state: `Reference docs read: ... | Not applicable: ...`.
 >
-> **Blocked until:** scope evaluated, required docs checked/read, `lessons.md` confirmed, citation emitted.
+> **Ready when:** scope evaluated, required docs checked/read or setup route completed, `lessons.md` confirmed, citation emitted.
 
 <!-- /SYNC:project-reference-docs-guide -->
 
@@ -134,6 +166,7 @@ Finalize and close the active workflow, clearing state so the next user prompt t
 
 - **MANDATORY** After task-tracking bootstrap and before target/source work, read required project-reference docs and cite `Reference docs read: ...`.
 - **MANDATORY** Always include `lessons.md`; project conventions override generic defaults.
+- **MANDATORY** If project config, root instruction files, or any required reference doc is missing, stop and run or ask the user to run `/project-init`.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
 
@@ -150,6 +183,8 @@ Finalize and close the active workflow, clearing state so the next user prompt t
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION** when the workflow changed code (diff present), print the comprehension recap — what changed / purpose / how it works / why — optimized for easiest learning; depth throttled by `codingLevel`, NEVER fully skip when changes exist
+**IMPORTANT MUST ATTENTION** the recap is one-way and NEVER blocks — no quiz, no teach-back; deeper comprehension is the standalone `/understand` skill
 **IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
 **IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)

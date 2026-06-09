@@ -60,9 +60,21 @@ const AGENT_DOC_MAP = {
     tester: ['docs/project-reference/integration-test-reference.md'],
     'e2e-runner': ['docs/project-reference/e2e-test-reference.md'],
 
-    // Docs agents need feature docs + index
-    'docs-manager': ['docs/project-reference/feature-docs-reference.md', 'docs/project-reference/docs-index-reference.md'],
-    'business-analyst': ['docs/project-reference/feature-docs-reference.md', 'docs/project-reference/docs-index-reference.md']
+    // Docs agents need the full local spec routing set + index.
+    'docs-manager': [
+        'docs/project-reference/feature-spec-reference.md',
+        'docs/project-reference/spec-system-reference.md',
+        'docs/project-reference/spec-principles.md',
+        'docs/project-reference/workflow-spec-test-code-cycle-reference.md',
+        'docs/project-reference/docs-index-reference.md'
+    ],
+    'business-analyst': [
+        'docs/project-reference/feature-spec-reference.md',
+        'docs/project-reference/spec-system-reference.md',
+        'docs/project-reference/spec-principles.md',
+        'docs/project-reference/workflow-spec-test-code-cycle-reference.md',
+        'docs/project-reference/docs-index-reference.md'
+    ]
 };
 
 /**
@@ -312,7 +324,7 @@ function buildPatternsGuidance(agentType) {
             lines.push(
                 'Read before implementing:',
                 `- \`${bp}\` — CQRS commands/queries, validation, repositories, entity events, v1/v2 patterns`,
-                `- \`${fp}\` — base classes, PlatformVmStore, effectSimple(), BEM, API service pattern`,
+                `- \`${fp}\` — base classes, state-management store, reactive effects, component styling, API service pattern`,
             );
             const stylingDoc = projConfig.contextGroups?.find(g => g.stylingDoc)?.stylingDoc;
             const designSystemDoc = projConfig.contextGroups?.find(g => g.designSystemDoc)?.designSystemDoc;

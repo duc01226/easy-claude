@@ -1,7 +1,7 @@
 ---
 name: fix
 version: 1.0.0
-description: '[Implementation] Use when you need to analyze and fix issues [INTELLIGENT ROUTING].'
+description: '[Implementation] Use when you need to analyze and fix issues [INTELLIGENT ROUTING]. Flag: --target={ci|issue|logs|test|types|ui} scopes the fix; --target=types resolves TypeScript errors inline (folds former /fix-types).'
 disable-model-invocation: false
 ---
 
@@ -30,6 +30,7 @@ disable-model-invocation: false
 - Debug Mindset: every claim needs `file:line` evidence
 - Use subagents for parallel investigation of multiple hypotheses
 - Always create a plan before implementing complex fixes
+- **Target flag** (see [Target Routing](#target-routing---target)): `--target=types` runs the inline TypeScript branch; `--target={ci|issue|logs|test|ui}` delegates to the matching `/fix-*` skill. No flag = full diagnose→fix spine below.
 
 ## Default Mode Policy
 
@@ -66,6 +67,34 @@ disable-model-invocation: false
 **Ultrathink** plan and start fixing these issues; follow Orchestration Protocol, Core Responsibilities, Subagents Team, Development Rules:
 <issues>$ARGUMENTS</issues>
 
+## Target Routing (`--target=`)
+
+`/fix` is an intelligent router. With no flag it runs the full diagnose→fix spine below. Pass `--target=` to scope the run:
+
+| `--target` | Behavior                                                                  |
+| ---------- | ------------------------------------------------------------------------- |
+| `types`    | **Inline branch (below)** — TypeScript / type-error resolution.           |
+| `ci`       | Delegate to `/fix-ci` — CI / pipeline failure triage.                     |
+| `issue`    | Delegate to `/fix-issue` — tracked issue / ticket resolution.             |
+| `logs`     | Delegate to `/fix-logs` — log / stack-trace-driven debugging.             |
+| `test`     | Delegate to `/fix-test` — failing-test repair.                            |
+| `ui`       | Delegate to `/fix-ui` — UI / visual-defect fixes.                         |
+
+No `--target` (or an unrecognized value) → run the full Workflow spine below; infer the right specialization from `<issues>`.
+
+### `--target=types` — TypeScript / type-error branch
+
+Run `tsc --noEmit` (or `nx build` / `bun run typecheck` / `npx tsc`) to gather all type errors, then:
+
+1. **Collect** — Capture every type error with `file:line`.
+2. **Classify** — Group by cause: missing types, wrong signatures, import/export issues.
+3. **Fix at root** — Give each value its real, specific type (or `unknown` + a narrowing guard). Do NOT use `any` to silence the checker — `any` ships the underlying type defect. Fix the root cause (wrong interface, missing export), not the symptom site. — why: `any` silences the checker and lets the type defect ship.
+4. **Repeat** until `tsc --noEmit` is clean — zero type errors.
+5. **🛑 Validate Before Fix:** present errors + root cause via `AskUserQuestion`, get approval before code changes (skip if inside a workflow).
+6. **After fixing, run `/prove-fix`** — build code proof traces per change with confidence scores. Never skip.
+
+The Debug Mindset, Confidence & Evidence Gate, and all SYNC gates below apply to this branch unchanged.
+
 ## Workflow:
 
 If user provides screenshots or videos, use `ai-multimodal` skill to describe issue in detail; ensure developers can predict root causes from description.
@@ -82,6 +111,8 @@ If user provides screenshots or videos, use `ai-multimodal` skill to describe is
 > **End-to-Start Trace Gate:** For non-trivial bugs, failed verification, stale/incorrect final outputs, or behavior-changing fixes, the root-cause plan MUST ATTENTION include `Debugger Trace: End -> Start`, feeder paths, hypothesis matrix, owning fix layer, and forward convergence proof. If missing, STOP and run `/debug-investigate` or `/investigate` before planning code changes.
 
 ### Fix the issue
+
+**Active-goal read (BEFORE root-cause work):** resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` — active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from the reported issue via `.claude/templates/goal-contract-template.md`. The saved success criteria define what "fixed" means — a proven local fix that misses a saved required criterion is NOT complete. After proof, append root cause, proof evidence, and remaining goal gaps to the Iteration Log. Tiny fixes may skip deeper gates ONLY with user-accepted reason recorded in the goal file.
 
 Use `sequential-thinking` skill to break complex problems into sequential thought steps.
 Use `problem-solving` skills to tackle issues.
@@ -179,11 +210,11 @@ Analyze skills catalog and activate other needed skills during the process.
 > **Project Reference Docs Gate** — Run after task-tracking bootstrap and before target/source file reads, grep, edits, or analysis. Project docs override generic framework assumptions.
 >
 > 1. Identify scope: file types, domain area, and operation.
-> 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-docs-reference.md`; architecture/new area `project-structure-reference.md`.
-> 3. Read every required doc. If `docs/project-config.json`, the docs index, `lessons.md`, or any task-required reference doc is missing, stop immediately and ask the user to run `/project-config` and `/scan-all`.
+> 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under `docs/specs/`; architecture/new area `project-structure-reference.md`.
+> 3. Read every required doc. If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `/project-init` or the narrow lower-level route (`/project-config`, `/docs-init`, `/scan-all`, `/scan --target=<key>`, `/claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `/sync-codex`; do not auto-run it.
 > 4. Before target work, state: `Reference docs read: ... | Not applicable: ...`.
 >
-> **Blocked until:** scope evaluated, required docs checked/read, `lessons.md` confirmed, citation emitted.
+> **Ready when:** scope evaluated, required docs checked/read or setup route completed, `lessons.md` confirmed, citation emitted.
 
 <!-- /SYNC:project-reference-docs-guide -->
 
@@ -328,6 +359,7 @@ Analyze skills catalog and activate other needed skills during the process.
 
 - **MANDATORY** After task-tracking bootstrap and before target/source work, read required project-reference docs and cite `Reference docs read: ...`.
 - **MANDATORY** Always include `lessons.md`; project conventions override generic defaults.
+- **MANDATORY** If project config, root instruction files, or any required reference doc is missing, stop and run or ask the user to run `/project-init`.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
 
@@ -343,6 +375,13 @@ Analyze skills catalog and activate other needed skills during the process.
 - **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] $skill-name — phase` prefixes and one-`in_progress` discipline.
 
 <!-- /SYNC:nested-task-creation:reminder -->
+
+<!-- SYNC:goal-contract-satisfaction-loop:reminder -->
+
+- **MANDATORY** Resolve the active Goal Contract BEFORE work (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from current request) and read saved success criteria before editing.
+- **MANDATORY** Append iteration evidence after execution; emit a Goal Satisfaction matrix (PASS/FAIL/BLOCKED) before reporting PASS; loop on validated FAIL; escalate repeated no-progress or blockers. NEVER store secrets in goal files.
+
+<!-- /SYNC:goal-contract-satisfaction-loop:reminder -->
 
 ## Closing Reminders
 

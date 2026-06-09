@@ -41,20 +41,20 @@ description: '[Documentation] Use when you need orchestrate all reference doc sc
 
 Launch all 12 scan skills in parallel:
 
-| #   | Skill                     | Target Doc                       |
-| --- | ------------------------- | -------------------------------- |
-| 1   | `/scan-project-structure` | `project-structure-reference.md` |
-| 2   | `/scan-backend-patterns`  | `backend-patterns-reference.md`  |
-| 3   | `/scan-seed-test-data`    | `seed-test-data-reference.md`    |
-| 4   | `/scan-frontend-patterns` | `frontend-patterns-reference.md` |
-| 5   | `/scan-integration-tests` | `integration-test-reference.md`  |
-| 6   | `/scan-feature-docs`      | `feature-docs-reference.md`      |
-| 7   | `/scan-code-review-rules` | `code-review-rules.md`           |
-| 8   | `/scan-scss-styling`      | `scss-styling-guide.md`          |
-| 9   | `/scan-design-system`     | `design-system/README.md`        |
-| 10  | `/scan-e2e-tests`         | `e2e-test-reference.md`          |
-| 11  | `/scan-domain-entities`   | `domain-entities-reference.md`   |
-| 12  | `/scan-docs-index`        | `docs-index-reference.md`        |
+| #   | Invocation                         | Target Doc                       |
+| --- | ---------------------------------- | -------------------------------- |
+| 1   | `/scan --target=project-structure` | `project-structure-reference.md` |
+| 2   | `/scan --target=backend-patterns`  | `backend-patterns-reference.md`  |
+| 3   | `/scan-seed-test-data`             | `seed-test-data-reference.md`    |
+| 4   | `/scan --target=frontend-patterns` | `frontend-patterns-reference.md` |
+| 5   | `/scan --target=integration-tests` | `integration-test-reference.md`  |
+| 6   | `/scan --target=feature-spec`      | `feature-spec-reference.md`      |
+| 7   | `/scan --target=code-review-rules` | `code-review-rules.md`           |
+| 8   | `/scan --target=scss-styling`      | `scss-styling-guide.md`          |
+| 9   | `/scan --target=design-system`     | `design-system/README.md`        |
+| 10  | `/scan --target=e2e-tests`         | `e2e-test-reference.md`          |
+| 11  | `/scan --target=domain-entities`   | `domain-entities-reference.md`   |
+| 12  | `/scan --target=docs-index`        | `docs-index-reference.md`        |
 
 ## Post-Scan Cleanup
 
@@ -84,7 +84,7 @@ python .claude/scripts/code_graph build --json
 
 ## Post-Scan: Enhance Generated Docs (MANDATORY)
 
-After graph build, **MUST ATTENTION create tasks to run `/prompt-enhance` on all scanned docs.** Reference docs are injected into AI context — attention anchoring (top/bottom summaries, inline READ summaries, token density) directly improves AI output quality.
+Each scan-\* sub-skill now self-enhances its own doc as its final step. After graph build, **MUST ATTENTION confirm `/prompt-enhance` ran on every scanned doc and backfill any that were skipped.** Reference docs are injected into AI context — attention anchoring (top/bottom summaries, inline READ summaries, token density) directly improves AI output quality.
 
 **TaskCreate one task per doc, parallel OK:**
 
@@ -95,7 +95,7 @@ After graph build, **MUST ATTENTION create tasks to run `/prompt-enhance` on all
 | 3   | `docs/project-reference/seed-test-data-reference.md`    |
 | 4   | `docs/project-reference/frontend-patterns-reference.md` |
 | 5   | `docs/project-reference/integration-test-reference.md`  |
-| 6   | `docs/project-reference/feature-docs-reference.md`      |
+| 6   | `docs/project-reference/feature-spec-reference.md`      |
 | 7   | `docs/project-reference/code-review-rules.md`           |
 | 8   | `docs/project-reference/scss-styling-guide.md`          |
 | 9   | `docs/project-reference/design-system/README.md`        |

@@ -39,11 +39,11 @@ disable-model-invocation: true
 
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
 
-**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /debug-investigate -> /plan -> /plan-review -> /plan-validate -> /why-review -> /tdd-spec -> /why-review -> /tdd-spec-review -> /integration-test -> /fix -> /prove-fix -> /integration-test -> /integration-test-review -> /integration-test-verify -> /tdd-spec [direction=sync] -> /workflow-review-changes -> /changelog -> /test -> /docs-update -> /watzup -> /understand -> /workflow-end
+**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /debug-investigate -> /feature-spec [mode=amend] -> /plan -> /plan-review -> /plan-validate -> /why-review -> /spec-tests -> /why-review -> /review-artifact --type=spec-tests -> /integration-test -> /fix -> /prove-fix -> /integration-test -> /integration-test-review -> /integration-test-verify -> /spec-tests [direction=sync] -> /workflow-review-changes -> /changelog -> /test -> /docs-update -> /workflow-end -> /watzup
 
 ---
 
-**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /debug-investigate -> /plan -> /plan-review -> /plan-validate -> /why-review -> /tdd-spec -> /why-review -> /tdd-spec-review -> /integration-test -> /fix -> /prove-fix -> /integration-test -> /integration-test-review -> /integration-test-verify -> /tdd-spec [direction=sync] -> /workflow-review-changes -> /changelog -> /test -> /docs-update -> /watzup -> /understand -> /workflow-end
+**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /debug-investigate -> /feature-spec [mode=amend] -> /plan -> /plan-review -> /plan-validate -> /why-review -> /spec-tests -> /why-review -> /review-artifact --type=spec-tests -> /integration-test -> /fix -> /prove-fix -> /integration-test -> /integration-test-review -> /integration-test-verify -> /spec-tests [direction=sync] -> /workflow-review-changes -> /changelog -> /test -> /docs-update -> /workflow-end -> /watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
@@ -61,11 +61,13 @@ Activate the `bugfix` workflow. Run `/workflow-start bugfix` with the user's pro
 >
 > Include a behavior preservation note: `current behavior -> expected behavior -> unchanged behavior to preserve -> regression TC/test evidence`.
 
-> **[BLOCKING] End-to-start trace before fix plan:** Before `/plan`, `/tdd-spec`, or `/fix`, the investigation must include observed final state, final reader/query/renderer/assertion, backward hops through storage/projection/writer/consumer/producer, all feeder paths, hypothesis matrix, owning fix layer, and forward convergence proof. Missing trace evidence blocks the fix path.
+> **[BLOCKING] End-to-start trace before fix plan:** Before `/plan`, `/spec-tests`, or `/fix`, the investigation must include observed final state, final reader/query/renderer/assertion, backward hops through storage/projection/writer/consumer/producer, all feeder paths, hypothesis matrix, owning fix layer, and forward convergence proof. Missing trace evidence blocks the fix path.
 
-**Steps:** /scout → /investigate → /debug-investigate → /plan → /plan-review → /plan-validate → /why-review → /tdd-spec → /why-review → /tdd-spec-review → /integration-test → /fix → /prove-fix → /integration-test → /integration-test-review → /integration-test-verify → /tdd-spec [direction=sync] → /workflow-review-changes → /changelog → /test → /docs-update → /watzup → /understand → /workflow-end
+> **Goal Contract propagation (workflow-owned):** At workflow start, resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from the bug report). Map root cause, regression-test evidence (RED fail + GREEN pass), and `/prove-fix` proof to the saved success criteria — each criterion gets `file:line`/command/report evidence in the Iteration Log. Pass the same goal file reference to every child step. Before `/workflow-end`, emit the final Goal Satisfaction matrix (PASS/FAIL/BLOCKED); workflow completion requires every required criterion PASS or BLOCKED with a user-facing escalation.
 
-> **[PERFORMANCE-SDD ROUTE]** If this bug fix is performance-related (latency, throughput, memory, query speed, load behavior), activate `/workflow-performance` and require SLA/benchmark evidence: target metric, baseline, measurement command, and acceptable regression budget. Do not use performance scope to bypass functional no-regression checks: run `/test` and any relevant functional checks when behavior can change. Update docs/specs for changed SLA, performance constraints, or behavior boundaries.
+**Steps:** /scout → /investigate → /debug-investigate → /feature-spec [mode=amend] → /plan → /plan-review → /plan-validate → /why-review → /spec-tests → /why-review → /review-artifact --type=spec-tests → /integration-test → /fix → /prove-fix → /integration-test → /integration-test-review → /integration-test-verify → /spec-tests [direction=sync] → /workflow-review-changes → /changelog → /test → /docs-update → /workflow-end → /watzup
+
+> **[PERFORMANCE-SDD ROUTE]** If this bug fix is performance-related (latency, throughput, memory, query speed, load behavior), run `/performance-review` and require SLA/benchmark evidence: target metric, baseline, measurement command, and acceptable regression budget. Do not use performance scope to bypass functional no-regression checks: run `/test` and any relevant functional checks when behavior can change. Update docs/specs for changed SLA, performance constraints, or behavior boundaries.
 
 > **[TDD-FIRST BUG FIX]** The two `/integration-test` occurrences are intentional and serve distinct purposes:
 >
@@ -187,6 +189,13 @@ Activate the `bugfix` workflow. Run `/workflow-start bugfix` with the user's pro
 - **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] $skill-name — phase` prefixes and one-`in_progress` discipline.
 
 <!-- /SYNC:nested-task-creation:reminder -->
+
+<!-- SYNC:goal-contract-satisfaction-loop:reminder -->
+
+- **MANDATORY** Resolve the active Goal Contract BEFORE work (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from current request) and read saved success criteria before editing.
+- **MANDATORY** Append iteration evidence after execution; emit a Goal Satisfaction matrix (PASS/FAIL/BLOCKED) before reporting PASS; loop on validated FAIL; escalate repeated no-progress or blockers. NEVER store secrets in goal files.
+
+<!-- /SYNC:goal-contract-satisfaction-loop:reminder -->
 
 ## Closing Reminders
 

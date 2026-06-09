@@ -236,7 +236,7 @@ For EACH acceptance criterion, generate corresponding test case outline:
 | AC-1 | TC: Create goal with valid data → verify persisted      | P0       |
 | AC-2 | TC: Create goal without title → verify validation error | P1       |
 
-Seed for `/tdd-spec` if user chooses TDD-first. Document in PBI under `## Testability Assessment`.
+Seed for `/spec-tests` if user chooses TDD-first. Document in PBI under `## Testability Assessment`.
 
 ---
 
@@ -586,7 +586,7 @@ Then error "{message}"
 
 ## Project Integration
 
-For domain PBIs: detect module from `docs/business-features/` directory names, extract business rules from `docs/business-features/{module}/`, load entity context from feature doc. Target 8-12K tokens for feature context.
+For domain PBIs: detect module from `docs/specs/` directory names, extract business rules from `docs/specs/{module}/`, load entity context from feature doc. Target 8-12K tokens for feature context.
 
 ---
 
@@ -594,7 +594,7 @@ For domain PBIs: detect module from `docs/business-features/` directory names, e
 
 - **Role Skill:** `business-analyst` (detailed patterns)
 - **Input:** `/idea` output
-- **Next Step:** `/story`, `/tdd-spec` (Recommended for TDD), `/design-spec`
+- **Next Step:** `/story`, `/spec-tests` (Recommended for TDD), `/design-spec`
 - **Prioritization:** `/prioritize`
 
 ---
@@ -607,7 +607,7 @@ For domain PBIs: detect module from `docs/business-features/` directory names, e
 - **"/domain-analysis"** — If PBI creates/modifies domain entities, model bounded contexts before writing stories
 - **"/story"** — Break PBI into implementable user stories
 - **"/pbi-mockup"** — Generate HTML mockup from PBI
-- **"/tdd-spec"** — If using TDD approach
+- **"/spec-tests"** — If using TDD approach
 - **"Skip, continue manually"** — user decides
 
 ---
@@ -934,7 +934,7 @@ For domain PBIs: detect module from `docs/business-features/` directory names, e
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small tasks via `TaskCreate` BEFORE starting
 - **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — NEVER auto-decide
 - **MANDATORY IMPORTANT MUST ATTENTION** add final review task to verify work quality
-- **MANDATORY IMPORTANT MUST ATTENTION** add task: run `/why-review` — validate PBI design rationale before `/story` or `/tdd-spec`
+- **MANDATORY IMPORTANT MUST ATTENTION** add task: run `/why-review` — validate PBI design rationale before `/story` or `/spec-tests`
 - **MANDATORY IMPORTANT MUST ATTENTION** add task: run `/pbi-challenge` — Dev BA PIC review before `/dor-gate` or `/story`
 
 **Anti-Rationalization:**

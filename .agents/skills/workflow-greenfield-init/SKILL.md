@@ -25,12 +25,14 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 - `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
 - `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
 
-**Missing-file hard stop:** If `docs/project-config.json`, the docs index, `lessons.md`, or any task-required reference doc is missing, stop immediately and ask the user to run `$project-config` and `$scan-all`.
+**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.
 
 **Situation-based docs:**
 - Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`, `project-structure-reference.md`
 - Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md`
-- Spec/test-case planning or TC mapping: `feature-docs-reference.md`
+- Spec authoring, `docs/specs/` pathing, or TC format: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`
+- Behavior/public-contract changes or spec-test-code sync: `workflow-spec-test-code-cycle-reference.md` plus the spec docs above
+- Derived spec indexes/ERDs/reimplementation guides: `spec-system-reference.md` and source Feature Specs under `docs/specs/`
 - Integration test implementation/review: `integration-test-reference.md`
 - E2E test implementation/review: `e2e-test-reference.md`
 - Code review/audit work: `code-review-rules.md` plus domain docs above based on changed files
@@ -63,18 +65,18 @@ This workflow has steps that appear multiple times. When creating tasks, use the
 | Step                      | Occurrence   | Task Description                                                                          |
 | ------------------------- | ------------ | ----------------------------------------------------------------------------------------- |
 | `$plan`                   | 1st (pos 10)  | PLAN₁: High-level architecture plan (after architecture-design)                           |
-| `$plan`                   | 2nd (pos 29) | PLAN₂: Sprint-ready implementation plan (after tdd-spec-review)                           |
+| `$plan`                   | 2nd (pos 29) | PLAN₂: Sprint-ready implementation plan (after review-artifact --type=spec-tests)                           |
 | `$plan`                   | 3rd (pos 40) | PLAN₃: Integration test architecture plan (post-implementation)                           |
 | `$plan-review`            | 1st (pos 11) | Review PLAN₁ architecture (immediate gate; replaces former rationale why-review)                                                                 |
 | `$plan-review`            | 2nd (pos 14) | Re-review PLAN₁ after architecture-security + performance analysis                                                               |
 | `$plan-review`            | 3rd (pos 30) | Review PLAN₂ implementation                                                               |
 | `$plan-review`            | 4th (pos 41) | Review PLAN₃ integration tests                                                            |
-| `$security`               | 1st (pos 12)  | Architecture security review                                                              |
-| `$security`               | 2nd (pos 48) | Production readiness security review                                                      |
-| `$tdd-spec`               | 1st (pos 26) | TDD-SPEC₁: Feature test specs (before implementation)                                     |
-| `$tdd-spec`               | 2nd (pos 37) | TDD-SPEC₂: Post-implementation test spec update                                           |
-| `$tdd-spec-review`        | 1st (pos 28) | Review TDD-SPEC₁                                                                          |
-| `$tdd-spec-review`        | 2nd (pos 39) | Review TDD-SPEC₂                                                                          |
+| `$security-review`               | 1st (pos 12)  | Architecture security review                                                              |
+| `$security-review`               | 2nd (pos 48) | Production readiness security review                                                      |
+| `$spec-tests`               | 1st (pos 26) | TDD-SPEC₁: Feature test specs (before implementation)                                     |
+| `$spec-tests`               | 2nd (pos 37) | TDD-SPEC₂: Post-implementation test spec update                                           |
+| `$review-artifact --type=spec-tests`        | 1st (pos 28) | Review TDD-SPEC₁                                                                          |
+| `$review-artifact --type=spec-tests`        | 2nd (pos 39) | Review TDD-SPEC₂                                                                          |
 | `$test`                   | 1st (pos 45) | Test after integration tests                                                              |
 | `$test`                   | 2nd (pos 50) | Final test verification                                                                   |
 | `$review-domain-entities` | 1st (pos 36) | DDD quality review — conditional: skip if no domain entity files in changeset             |
@@ -85,15 +87,17 @@ This workflow has steps that appear multiple times. When creating tasks, use the
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $idea -> $web-research -> $deep-research -> $business-evaluation -> $domain-analysis -> $why-review -> $tech-stack-research -> $architecture-design -> $why-review -> $plan -> $plan-review -> $security -> $performance -> $plan-review -> $refine -> $why-review -> $refine-review -> $story -> $why-review -> $story-review -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $plan-validate -> $why-review -> $tdd-spec -> $why-review -> $tdd-spec-review -> $plan -> $plan-review -> $scaffold -> $linter-setup -> $harness-setup -> $why-review -> $cook -> $review-domain-entities -> $tdd-spec -> $why-review -> $tdd-spec-review -> $plan -> $plan-review -> $integration-test -> $integration-test-review -> $integration-test-verify -> $test -> $workflow-review-changes -> $sre-review -> $security -> $changelog -> $test -> $docs-update -> $watzup -> $workflow-end
+**IMPORTANT MANDATORY Steps:** $idea -> $web-research -> $deep-research -> $business-evaluation -> $domain-analysis -> $why-review -> $tech-stack-research -> $architecture-design -> $why-review -> $plan -> $plan-review -> $security-review -> $performance-review -> $plan-review -> $refine -> $why-review -> $review-artifact --type=pbi -> $story -> $why-review -> $review-artifact --type=story -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $plan-validate -> $why-review -> $spec-tests -> $why-review -> $review-artifact --type=spec-tests -> $plan -> $plan-review -> $scaffold -> $linter-setup -> $harness-setup -> $why-review -> $cook -> $review-domain-entities -> $spec-tests -> $why-review -> $review-artifact --type=spec-tests -> $plan -> $plan-review -> $integration-test -> $integration-test-review -> $integration-test-verify -> $test -> $workflow-review-changes -> $sre-review -> $security-review -> $changelog -> $test -> $docs-update -> $workflow-end -> $watzup
 
-**IMPORTANT MANDATORY Steps:** $idea -> $web-research -> $deep-research -> $business-evaluation -> $domain-analysis -> $why-review -> $tech-stack-research -> $architecture-design -> $why-review -> $plan -> $plan-review -> $security -> $performance -> $plan-review -> $refine -> $why-review -> $refine-review -> $story -> $why-review -> $story-review -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $plan-validate -> $why-review -> $tdd-spec -> $why-review -> $tdd-spec-review -> $plan -> $plan-review -> $scaffold -> $linter-setup -> $harness-setup -> $why-review -> $cook -> $review-domain-entities -> $tdd-spec -> $why-review -> $tdd-spec-review -> $plan -> $plan-review -> $integration-test -> $integration-test-review -> $integration-test-verify -> $test -> $workflow-review-changes -> $sre-review -> $security -> $changelog -> $test -> $docs-update -> $watzup -> $workflow-end
+**IMPORTANT MANDATORY Steps:** $idea -> $web-research -> $deep-research -> $business-evaluation -> $domain-analysis -> $why-review -> $tech-stack-research -> $architecture-design -> $why-review -> $plan -> $plan-review -> $security-review -> $performance-review -> $plan-review -> $refine -> $why-review -> $review-artifact --type=pbi -> $story -> $why-review -> $review-artifact --type=story -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $plan-validate -> $why-review -> $spec-tests -> $why-review -> $review-artifact --type=spec-tests -> $plan -> $plan-review -> $scaffold -> $linter-setup -> $harness-setup -> $why-review -> $cook -> $review-domain-entities -> $spec-tests -> $why-review -> $review-artifact --type=spec-tests -> $plan -> $plan-review -> $integration-test -> $integration-test-review -> $integration-test-verify -> $test -> $workflow-review-changes -> $sre-review -> $security-review -> $changelog -> $test -> $docs-update -> $workflow-end -> $watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its skill invocation — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
 Activate the `greenfield-init` workflow. Run `$workflow-start greenfield-init` with the user's prompt as context.
 
-**Steps:** $idea → $web-research → $deep-research → $business-evaluation → $domain-analysis → $why-review → $tech-stack-research → $architecture-design → $why-review → $plan → $plan-review → $security → $performance → $plan-review → $refine → $why-review → $refine-review → $story → $why-review → $story-review → $pbi-challenge → $dor-gate → $pbi-mockup → $plan-validate → $why-review → $tdd-spec → $why-review → $tdd-spec-review → $plan → $plan-review → $scaffold → $linter-setup → $harness-setup → $why-review → $cook → $review-domain-entities → $tdd-spec → $why-review → $tdd-spec-review → $plan → $plan-review → $integration-test → $integration-test-review → $integration-test-verify → $test → $workflow-review-changes → $sre-review → $security → $changelog → $test → $docs-update → $watzup → $workflow-end
+**Steps:** $idea → $web-research → $deep-research → $business-evaluation → $domain-analysis → $why-review → $tech-stack-research → $architecture-design → $why-review → $plan → $plan-review → $security-review → $performance-review → $plan-review → $refine → $why-review → $review-artifact --type=pbi → $story → $why-review → $review-artifact --type=story → $pbi-challenge → $dor-gate → $pbi-mockup → $plan-validate → $why-review → $spec-tests → $why-review → $review-artifact --type=spec-tests → $plan → $plan-review → $scaffold → $linter-setup → $harness-setup → $why-review → $cook → $review-domain-entities → $spec-tests → $why-review → $review-artifact --type=spec-tests → $plan → $plan-review → $integration-test → $integration-test-review → $integration-test-verify → $test → $workflow-review-changes → $sre-review → $security-review → $changelog → $test → $docs-update → $workflow-end → $watzup
+
+> **Lean variant (`mode=lean`)** — for low-risk or solo greenfield inception, a trimmed path is available (formerly a separate lean greenfield wrapper, now merged here). It keeps the same backbone but drops the per-step `$why-review` rationale gates (retaining only the single pre-`$cook` `$why-review`), `$pbi-challenge`, `$dor-gate`, and the `$integration-test-review` + `$integration-test-verify` gates. Use ONLY when inception risk is low; default to the full rigorous sequence above. The authoritative sequence is the `greenfield-init` entry in `workflows.json` — the lean path is a documented gate-skip option, not a separate workflow.
 
 ---
 
@@ -219,17 +223,14 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 
 ## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
 
-**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. If either file or a required reference doc is missing, stop immediately and ask the user to run the project-config and scan-all skills. Any supported AI tool may execute when this shared context and local docs are available.
+**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. Any supported AI tool may execute when this shared context and local docs are available.
 
-1. **DETECT:** Match prompt against workflow catalog
-2. **ANALYZE:** Find best-match workflow AND evaluate if a custom step combination would fit better
-3. **ASK (REQUIRED FORMAT):** Use a direct user question with this structure unless the user explicitly invoked a workflow/skill and the local protocol treats explicit invocation as confirmation:
-   - Question: "Which workflow do you want to activate?"
-   - Option 1: "Activate **[BestMatch Workflow]** (Recommended)"
-   - Option 2: "Activate custom workflow: **[step1 → step2 → ...]**" (include one-line rationale)
-4. **ACTIVATE (if confirmed):** Call `$workflow-start <workflowId>` for standard; sequence custom steps manually
-5. **CREATE TASKS:** task tracking for ALL workflow steps
-6. **EXECUTE:** Follow each step in sequence
+1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
+2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
+3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
+4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
+6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
 **AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
@@ -245,7 +246,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security`/`$lint` catch this?" — Yes → improve review skill instead.
+6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/`$lint` catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
 **[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
 

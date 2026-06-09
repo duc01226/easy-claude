@@ -121,6 +121,18 @@ Key Findings:
 # Next Action: Create query handler with GetQueryBuilder pattern
 ```
 
+#### Pre-Compaction Preservation Checklist (canonical for `/compact`)
+
+Before a manual `/compact` (or any context compaction), confirm these are saved so they survive the cut — this is the canonical checklist the user-facing `/compact` alias delegates to:
+
+- [ ] Current branch + uncommitted-changes status
+- [ ] Active file paths being modified
+- [ ] Any error messages / stack traces (preserve verbatim when mid-bug)
+- [ ] Key decisions and their rationale
+- [ ] Pending items from the todo list
+
+**Preserve** decisions, files modified, current task state. **Drop** redundant tool outputs, repeated searches, verbose logs. Compact at natural breakpoints (after commits/PR), not mid-task; after compacting, restate the current objective.
+
 ### 4. Isolating (Use Sub-Agents)
 
 Delegate specialized tasks to sub-agents:

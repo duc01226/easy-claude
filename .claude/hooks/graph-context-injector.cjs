@@ -29,8 +29,8 @@ const GRAPH_SKILLS = new Set([
     'code-simplifier',
     'refactoring',
     'prove-fix',
-    'security',
-    'performance'
+    'security-review',
+    'performance-review'
 ]);
 
 // Agent types that benefit from graph context injection

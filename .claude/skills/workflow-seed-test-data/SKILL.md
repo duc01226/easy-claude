@@ -23,7 +23,7 @@ disable-model-invocation: true
 - MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
 - NEVER skip mandatory workflow or skill gates.
 
-**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /seed-test-data -> /review-changes -> /code-simplifier -> /docs-update -> /watzup -> /workflow-end
+**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /seed-test-data -> /review-changes -> /code-simplifier -> /docs-update -> /workflow-end -> /watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
@@ -31,7 +31,7 @@ disable-model-invocation: true
 
 Activate the `workflow-seed-test-data` workflow. Run `/workflow-start workflow-seed-test-data` with the user's prompt as context.
 
-**Steps:** /scout → /investigate → /seed-test-data → /review-changes → /code-simplifier → /docs-update → /watzup → /workflow-end
+**Steps:** /scout → /investigate → /seed-test-data → /review-changes → /code-simplifier → /docs-update → /workflow-end → /watzup
 
 > **[STEP PURPOSES]** Every step has a distinct purpose — NEVER deduplicate or batch:
 >
@@ -41,11 +41,11 @@ Activate the `workflow-seed-test-data` workflow. Run `/workflow-start workflow-s
 > **`/review-changes`** — Full compliance review: environment gate present, count read from config key, idempotency correct (loop from `existing` not from `0`), no direct DB writes for domain entities, project's scoped DI mechanism used per iteration.
 > **`/code-simplifier`** — DRY and simplify the seeder without changing behavior. Merge duplication, extract reusable builders, remove unnecessary scaffolding.
 > **`/docs-update`** — Triage doc impact from changed seeder files. Update feature docs if dev-data coverage changed materially.
-> **`/watzup`** + **`/workflow-end`** — Summary report and close workflow.
+> **`/workflow-end`** + **`/watzup`** — Close workflow state, then summarize and run the final `/understand` handoff.
 
 ---
 
-**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /seed-test-data -> /review-changes -> /code-simplifier -> /docs-update -> /watzup -> /workflow-end
+**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /seed-test-data -> /review-changes -> /code-simplifier -> /docs-update -> /workflow-end -> /watzup
 
 <!-- SYNC:ai-mistake-prevention -->
 

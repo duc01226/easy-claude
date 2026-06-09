@@ -1,6 +1,6 @@
 # Hooks Reference
 
-> 64 top-level hook files + 29 lib modules for context-aware AI behavior (some hooks register on multiple events)
+> 66 top-level hook files + 31 lib modules for context-aware AI behavior (some hooks register on multiple events)
 
 ## Overview
 
@@ -18,10 +18,10 @@ SessionStart hooks → UserPromptSubmit hooks → PreToolUse hooks → [Tool run
 
 | Event              | Trigger                      | Hooks | Use Cases                                                                                        |
 | ------------------ | ---------------------------- | ----- | ------------------------------------------------------------------------------------------------ |
-| `SessionStart`     | Session begins/resumes       | 7     | Init state, recover from compaction, resume context, load docs                                   |
-| `SessionEnd`       | Session ends                 | 1     | Save state, cleanup temp/swap files, notifications                                               |
-| `UserPromptSubmit` | Before processing user input | 2     | Route workflows (3 split hooks), gate init, assemble prompt context (6 split hooks)              |
-| `PreToolUse`       | Before tool execution        | 28    | Block sensitive ops, inject context, enforce plans/todos                                         |
+| `SessionStart`     | Session begins/resumes       | 9     | Verify install, init state, recover from compaction, resume context, load docs                   |
+| `SessionEnd`       | Session ends                 | 2     | Save state, cleanup temp/swap files, notifications                                               |
+| `UserPromptSubmit` | Before processing user input | 11    | Route workflows (3 split hooks), gate init, assemble prompt context (6 split hooks)              |
+| `PreToolUse`       | Before tool execution        | 30    | Block sensitive ops, inject context, enforce plans/todos, warn on doc⇄code drift                 |
 | `PostToolUse`      | After tool completes         | 8     | Externalize outputs, format code, track events                                                   |
 | `PreCompact`       | Before context compaction    | 1     | Write compaction marker; capture git status snapshot for post-compact re-verify warning          |
 | `SubagentStart`    | Subagent spawning            | 8     | Inject project context as 8 lightweight guidance pointers (read-on-demand — no full doc content) |
@@ -36,14 +36,15 @@ SessionStart hooks → UserPromptSubmit hooks → PreToolUse hooks → [Tool run
 
 | Hook                                          | Event                          | Matcher                           | Purpose                                                                                                                                                                               |
 | --------------------------------------------- | ------------------------------ | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `verify-install.cjs`                          | SessionStart                   | `startup\|resume\|clear\|compact` | Install integrity preflight (runs first): detect partial `.claude` copy with missing hook `lib/*.cjs` files, emit one actionable message                                              |
 | `session-init.cjs`                            | SessionStart                   | `startup\|resume\|clear\|compact` | Initialize session: detect project, write env vars                                                                                                                                    |
 | `post-compact-recovery.cjs`                   | SessionStart                   | `resume\|compact`                 | Restore workflow state, todos, and swap inventory after compaction; scan tmp/ for [partial] subagent progress files (session-scoped)                                                  |
 | `session-resume.cjs`                          | SessionStart                   | `resume`                          | Inject pending-tasks warning from prev session, restore todos from checkpoint                                                                                                         |
 | `npm-auto-install.cjs`                        | SessionStart                   | `startup`                         | Auto-install missing npm packages from root `package.json`                                                                                                                            |
 | `session-init-docs.cjs`                       | SessionStart                   | `startup`                         | Config skeleton + reference doc placeholder creation                                                                                                                                  |
-| `workflow-router.cjs`                         | SessionStart, UserPromptSubmit | `startup`, `*`                    | Inject first third of 37-workflow catalog + detection instructions (part 1 of 3)                                                                                                      |
-| `workflow-router-p2.cjs`                      | SessionStart, UserPromptSubmit | `startup`, `*`                    | Inject second third of 37-workflow catalog (part 2 of 3)                                                                                                                              |
-| `workflow-router-p3.cjs`                      | SessionStart, UserPromptSubmit | `startup`, `*`                    | Inject final third of 37-workflow catalog (part 3 of 3)                                                                                                                               |
+| `workflow-router.cjs`                         | SessionStart, UserPromptSubmit | `startup`, `*`                    | Inject first third of 21-workflow catalog + detection instructions (part 1 of 3)                                                                                                      |
+| `workflow-router-p2.cjs`                      | SessionStart, UserPromptSubmit | `startup`, `*`                    | Inject second third of 21-workflow catalog (part 2 of 3)                                                                                                                              |
+| `workflow-router-p3.cjs`                      | SessionStart, UserPromptSubmit | `startup`, `*`                    | Inject final third of 21-workflow catalog (part 3 of 3)                                                                                                                               |
 | `prompt-context-assembler.cjs`                | SessionStart, UserPromptSubmit | `startup`, `*`                    | Assemble session context, rules, modularization guidance, lessons (part 1 of 2)                                                                                                       |
 | `prompt-context-assembler-closers.cjs`        | SessionStart, UserPromptSubmit | `startup`, `*`                    | Inject graph protocol tier 1, graph compact reminder, workflow gate, lesson-learned reminder                                                                                          |
 | `prompt-context-assembler-docs.cjs`           | SessionStart, UserPromptSubmit | `startup`, `*`                    | Guidance pointer for project-structure-reference.md (merged from former p1+p2 full-content hooks)                                                                                     |
@@ -64,27 +65,29 @@ SessionStart hooks → UserPromptSubmit hooks → PreToolUse hooks → [Tool run
 
 ### Context Injection (PreToolUse)
 
-| Hook                             | Matcher                                                                           | Purpose                                                                                                                                                                                                                                   |
-| -------------------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `backend-context.cjs`            | `Edit\|Write\|MultiEdit`                                                          | Inject C#/CQRS patterns when editing backend files                                                                                                                                                                                        |
-| `frontend-context.cjs`           | `Edit\|Write\|MultiEdit`                                                          | Inject Angular/TS patterns when editing frontend files                                                                                                                                                                                    |
-| `design-system-context.cjs`      | `Edit\|Write\|MultiEdit`                                                          | Inject design tokens when editing UI components                                                                                                                                                                                           |
-| `scss-styling-context.cjs`       | `Edit\|Write\|MultiEdit`                                                          | Inject BEM/SCSS patterns when editing style files                                                                                                                                                                                         |
-| `code-patterns-injector.cjs`     | `Edit\|Write\|MultiEdit`                                                          | Inject discovered codebase patterns before edits                                                                                                                                                                                          |
-| `role-context-injector.cjs`      | `Write`                                                                           | Inject role-specific context (PO, BA, QA, etc.)                                                                                                                                                                                           |
-| `figma-context-extractor.cjs`    | `Read`                                                                            | Extract and inject Figma design context                                                                                                                                                                                                   |
-| `code-review-rules-injector.cjs` | `Skill`                                                                           | Inject YourProject code review rules on review skill activation                                                                                                                                                                           |
-| `dev-rules-injector.cjs`         | `Edit\|Write\|MultiEdit`, `Skill`                                                 | Inject development-rules.md before edits and review/coding skills                                                                                                                                                                         |
-| `knowledge-context.cjs`          | `Edit\|Write\|MultiEdit`                                                          | Inject knowledge work guidelines for docs/knowledge/ files                                                                                                                                                                                |
-| `ba-refinement-context.cjs`      | `Write\|Edit`                                                                     | Inject BA team refinement context when editing PBI artifacts                                                                                                                                                                              |
-| `feature-docs-context.cjs`       | `Write\|Edit\|MultiEdit`                                                          | Inject feature-docs reference context when editing business feature docs                                                                                                                                                                  |
-| `test-specs-context.cjs`         | `Write\|Edit\|MultiEdit`                                                          | Inject test-specs reference context when editing test specification files                                                                                                                                                                 |
-| `artifact-path-resolver.cjs`     | `Write`                                                                           | Resolve correct artifact output paths (plans/, reports/)                                                                                                                                                                                  |
-| `graph-context-injector.cjs`     | `Skill`                                                                           | Auto-inject blast radius when review/debug skills invoked                                                                                                                                                                                 |
-| `mindset-injector.cjs`           | `Skill\|Agent\|Edit\|Write\|MultiEdit\|TaskCreate\|TaskUpdate` (in_progress only) | Inject critical thinking mindset + AI mistake prevention reminders; full re-anchor before Agent spawns; compact context on task ops                                                                                                       |
-| `mindset-compact-injector.cjs`   | `Read\|Grep\|Glob\|Bash`                                                          | Lightweight critical-thinking re-anchor on read-only tools; deduped via DEDUP_LINES.CRITICAL_THINKING — no spam on consecutive greps                                                                                                      |
-| `python-call-guide.cjs`          | `Bash`                                                                            | Inject platform-aware Python invocation guide when Bash command matches `/\bpython3?\b/`; highlights current platform's rule (`py`/`python` on Windows, `python3` on macOS/Linux); deduped via DEDUP_LINES.PYTHON_GUIDE (100-line window) |
-| `git-commit-block.cjs`           | `Bash`                                                                            | Block git commit/push unless /commit skill is active                                                                                                                                                                                      |
+| Hook                                | Matcher                                                                           | Purpose                                                                                                                                                                                                                                   |
+| ----------------------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `backend-context.cjs`               | `Edit\|Write\|MultiEdit`                                                          | Inject C#/CQRS patterns when editing backend files                                                                                                                                                                                        |
+| `frontend-context.cjs`              | `Edit\|Write\|MultiEdit`                                                          | Inject Angular/TS patterns when editing frontend files                                                                                                                                                                                    |
+| `design-system-context.cjs`         | `Edit\|Write\|MultiEdit`                                                          | Inject design tokens when editing UI components                                                                                                                                                                                           |
+| `scss-styling-context.cjs`          | `Edit\|Write\|MultiEdit`                                                          | Inject BEM/SCSS patterns when editing style files                                                                                                                                                                                         |
+| `code-patterns-injector.cjs`        | `Edit\|Write\|MultiEdit`                                                          | Inject discovered codebase patterns before edits                                                                                                                                                                                          |
+| `role-context-injector.cjs`         | `Write`                                                                           | Inject role-specific context (PO, BA, QA, etc.)                                                                                                                                                                                           |
+| `figma-context-extractor.cjs`       | `Read`                                                                            | Extract and inject Figma design context                                                                                                                                                                                                   |
+| `code-review-rules-injector.cjs`    | `Skill`                                                                           | Inject YourProject code review rules on review skill activation                                                                                                                                                                           |
+| `dev-rules-injector.cjs`            | `Edit\|Write\|MultiEdit`, `Skill`                                                 | Inject development-rules.md before edits and review/coding skills                                                                                                                                                                         |
+| `knowledge-context.cjs`             | `Edit\|Write\|MultiEdit`                                                          | Inject knowledge work guidelines for docs/knowledge/ files                                                                                                                                                                                |
+| `ba-refinement-context.cjs`         | `Write\|Edit`                                                                     | Inject BA team refinement context when editing PBI artifacts                                                                                                                                                                              |
+| `feature-spec-context.cjs`          | `Write\|Edit\|MultiEdit`                                                          | Inject feature-spec reference context when editing docs/specs/ Feature Specs (8-section)                                                                                                                                                  |
+| `artifact-path-resolver.cjs`        | `Write`                                                                           | Resolve correct artifact output paths (plans/, reports/)                                                                                                                                                                                  |
+| `doc-sync-gate.cjs`                 | `Bash` + `Write\|Edit\|MultiEdit`                                                 | Doc⇄Code sync gate — WARN-only (every path exits 0, never blocks): warns when a `git commit` stages behavioral code in an enforced area without touching its Feature Spec, and per-edit when enforced-area code drifts past `last_synced` |
+| `agent-files-skill-gate.cjs`        | `Skill`                                                                           | Project-context router: if a non-meta skill runs while CLAUDE.md / AGENTS.md is missing, guide the model to the generator skill (`/claude-md-init`, `/sync-codex`)                                                                        |
+| `design-system-canonical-guide.cjs` | `Read\|Skill`, `Edit\|Write\|MultiEdit`, UserPromptSubmit                         | Inject read-guide for the canonical design-system doc when reading/editing HTML/CSS/SCSS, invoking skills, or on prompt (deduped)                                                                                                         |
+| `graph-context-injector.cjs`        | `Skill`                                                                           | Auto-inject blast radius when review/debug skills invoked                                                                                                                                                                                 |
+| `mindset-injector.cjs`              | `Skill\|Agent\|Edit\|Write\|MultiEdit\|TaskCreate\|TaskUpdate` (in_progress only) | Inject critical thinking mindset + AI mistake prevention reminders; full re-anchor before Agent spawns; compact context on task ops                                                                                                       |
+| `mindset-compact-injector.cjs`      | `Read\|Grep\|Glob\|Bash`                                                          | Lightweight critical-thinking re-anchor on read-only tools; deduped via DEDUP_LINES.CRITICAL_THINKING — no spam on consecutive greps                                                                                                      |
+| `python-call-guide.cjs`             | `Bash`                                                                            | Inject platform-aware Python invocation guide when Bash command matches `/\bpython3?\b/`; highlights current platform's rule (`py`/`python` on Windows, `python3` on macOS/Linux); deduped via DEDUP_LINES.PYTHON_GUIDE (100-line window) |
+| `git-commit-block.cjs`              | `Bash`                                                                            | Block git commit/push unless /commit skill is active                                                                                                                                                                                      |
 
 ### Lessons Injection
 
@@ -97,17 +100,17 @@ Lessons are managed via `/learn` skill. See `.claude/skills/learn/SKILL.md`.
 
 ### Workflow Automation
 
-| Hook                                                                     | Event                                             | Purpose                                                             |
-| ------------------------------------------------------------------------ | ------------------------------------------------- | ------------------------------------------------------------------- |
-| `init-prompt-gate.cjs`                                                   | UserPromptSubmit                                  | Block prompts until config populated + graph built (exit 2 = block) |
-| `workflow-router.cjs` (+ p2, p3)                                         | SessionStart, UserPromptSubmit                    | Inject 37-workflow catalog in three parts (split for size safety)   |
-| `prompt-context-assembler.cjs` (+ closers, docs, claude, project-config) | SessionStart, UserPromptSubmit                    | Assemble all session context in 5 parts (split for size safety)     |
-| `session-init-docs.cjs`                                                  | SessionStart:`startup`                            | Config skeleton + reference doc placeholder creation                |
-| `workflow-step-tracker.cjs`                                              | PostToolUse:`Skill`                               | Track workflow step completion                                      |
-| `edit-enforcement.cjs`                                                   | PreToolUse:`Edit\|Write\|MultiEdit\|NotebookEdit` | Track edits, plan warnings at 4/8 files, block without TaskCreate   |
-| `skill-enforcement.cjs`                                                  | PreToolUse:`Skill`                                | Block implementation skills without TaskCreate                      |
-| `todo-tracker.cjs`                                                       | PostToolUse:`TaskCreate\|TaskUpdate`              | Persist todo state to disk for cross-compaction recovery            |
-| `workflow-task-guard.cjs`                                                | PreToolUse:`TaskUpdate`                           | Block completing workflow tasks without Skill invocation            |
+| Hook                                                                     | Event                                             | Purpose                                                                         |
+| ------------------------------------------------------------------------ | ------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `init-prompt-gate.cjs`                                                   | UserPromptSubmit                                  | Block prompts until config populated + graph built (exit 2 = block)             |
+| `workflow-router.cjs` (+ p2, p3)                                         | SessionStart, UserPromptSubmit                    | Inject 21-workflow catalog in three parts (split for size safety)               |
+| `prompt-context-assembler.cjs` (+ closers, docs, claude, project-config) | SessionStart, UserPromptSubmit                    | Assemble all session context in 5 parts (split for size safety)                 |
+| `session-init-docs.cjs`                                                  | SessionStart:`startup`                            | Config skeleton + reference doc placeholder creation                            |
+| `workflow-step-tracker.cjs`                                              | PostToolUse:`Skill`                               | Track workflow step completion (accelerator only — advancement is model-driven) |
+| `edit-enforcement.cjs`                                                   | PreToolUse:`Edit\|Write\|MultiEdit\|NotebookEdit` | Track edits, plan warnings at 4/8 files, block without TaskCreate               |
+| `skill-enforcement.cjs`                                                  | PreToolUse:`Skill`                                | Block implementation skills without TaskCreate                                  |
+| `todo-tracker.cjs`                                                       | PostToolUse:`TaskCreate\|TaskUpdate`              | Persist todo state to disk for cross-compaction recovery                        |
+| `workflow-task-guard.cjs`                                                | PreToolUse:`TaskUpdate`                           | Block completing workflow tasks without Skill invocation                        |
 
 ### Safety & Privacy
 
@@ -201,25 +204,29 @@ SESSION START (8 hooks)                         DURING SESSION
 
 ### ClaudeKit (CK) Infrastructure
 
-| Module                 | Purpose                                                        |
-| ---------------------- | -------------------------------------------------------------- |
-| `ck-paths.cjs`         | Centralized path constants (`/tmp/ck/`, swap, edit, todo dirs) |
-| `ck-config-loader.cjs` | Config loading and merging                                     |
-| `ck-config-utils.cjs`  | Facade for config utilities                                    |
-| `ck-env-utils.cjs`     | Environment variable detection                                 |
-| `ck-git-utils.cjs`     | Low-level git utilities                                        |
-| `ck-path-utils.cjs`    | Path resolution and normalization                              |
-| `ck-plan-resolver.cjs` | Resolve active plan from session or branch context             |
+| Module                  | Purpose                                                                                         |
+| ----------------------- | ----------------------------------------------------------------------------------------------- |
+| `ck-paths.cjs`          | Centralized path constants (`/tmp/ck/`, swap, edit, todo dirs)                                  |
+| `ck-config-loader.cjs`  | Config loading and merging                                                                      |
+| `ck-config-schema.cjs`  | Validate `.claude/.ck.json` against expected schema (warns on typos/unknown keys, never blocks) |
+| `agent-files-state.cjs` | Shared detection of missing root agent-instruction files (CLAUDE.md / AGENTS.md)                |
+| `ck-config-utils.cjs`   | Facade for config utilities                                                                     |
+| `ck-env-utils.cjs`      | Environment variable detection                                                                  |
+| `ck-git-utils.cjs`      | Low-level git utilities                                                                         |
+| `ck-path-utils.cjs`     | Path resolution and normalization                                                               |
+| `ck-plan-resolver.cjs`  | Resolve active plan from session or branch context                                              |
 
 ### Context Injection
 
-| Module                      | Purpose                                                                                                                              |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `context-injector-base.cjs` | Shared base for PreToolUse context injection hooks                                                                                   |
-| `prompt-injections.cjs`     | Shared prompt injection helpers (critical context, AI mistake prevention, lessons, lesson-learned, workflow protocol)                |
-| `session-init-helpers.cjs`  | SessionStart helpers: reference doc placeholders, config init                                                                        |
-| `dedup-constants.cjs`       | Centralized dedup markers and dynamic line count calculation                                                                         |
-| `transcript-utils.cjs`      | Shared transcript helpers: `isMarkerInContext` (dedup check) + `loadTranscriptLines` (safe file read); used by all 6 assembler hooks |
+| Module                          | Purpose                                                                                                                              |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `context-injector-base.cjs`     | Shared base for PreToolUse context injection hooks                                                                                   |
+| `prompt-injections.cjs`         | Shared prompt injection helpers (critical context, AI mistake prevention, lessons, lesson-learned, workflow protocol)                |
+| `session-init-helpers.cjs`      | SessionStart helpers: reference doc placeholders, config init                                                                        |
+| `dedup-constants.cjs`           | Centralized dedup markers and dynamic line count calculation                                                                         |
+| `transcript-utils.cjs`          | Shared transcript helpers: `isMarkerInContext` (dedup check) + `loadTranscriptLines` (safe file read); used by all 6 assembler hooks |
+| `subagent-context-builders.cjs` | Shared builders for the 8 subagent-init hooks (read-guidance pointers, execution order)                                              |
+| `doc-sync-classify.cjs`         | Pure classification shared by both `doc-sync-gate.cjs` matchers (commit-time WARN + per-edit WARN, both advisory exit 0)             |
 
 ### Configuration
 
@@ -271,7 +278,7 @@ Text printed to stdout is injected into conversation context. Hooks use `console
 | `0`  | Success, allow operation to proceed            |
 | `2`  | Block operation (with error message on stderr) |
 
-> All hooks exit 0 (non-blocking) except safety hooks (`path-boundary-block`, `privacy-block`, `scout-block`, `init-prompt-gate`) which exit 2 to block.
+> All hooks exit 0 (non-blocking) except safety hooks (`path-boundary-block`, `privacy-block`, `scout-block`, `init-prompt-gate`, `git-commit-block`) which exit 2 to block. Note: `doc-sync-gate.cjs` is explicitly WARN-only — every code path exits 0.
 
 ---
 
@@ -325,11 +332,11 @@ Hooks are registered in `settings.json` under `hooks.{EventName}[].hooks[]`. Eac
 
 ## Testing
 
-Current primary hook test status: `test-all-hooks.cjs` passes with 369 tests, 0 failures. The suite runner also exposes 16 discoverable suites, including `count-drift`.
+Current primary hook test status: `test-all-hooks.cjs` passes with 372 tests, 0 failures (live run 2026-06-11). The suite runner also exposes 16 discoverable suites, including `count-drift`.
 
 | Test Surface          | Count | File/Location                            |
 | --------------------- | ----- | ---------------------------------------- |
-| Primary hook runner   | 369   | `tests/test-all-hooks.cjs`               |
+| Primary hook runner   | 372   | `tests/test-all-hooks.cjs`               |
 | Discoverable suites   | 16    | `tests/suites/*.test.cjs`                |
 | Standalone test files | 13    | `tests/test-*.cjs/.js` excluding runner  |
 | Scout-block tests     | 7     | `scout-block/tests/test-*.js`            |

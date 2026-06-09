@@ -44,9 +44,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 #  Validation Gate across .claude/skills/*. why-review itself is excluded.)
 REVIEW_SKILLS = {
     "review-architecture", "review-ui", "review-domain-entities",
-    "review-artifact", "review-post-task", "plan-review", "refine-review",
-    "story-review", "tdd-spec-review", "knowledge-review", "integration-test-review",
-    "code-review", "sre-review", "security", "performance", "arch-security-review",
+    "review-artifact", "review-post-task", "plan-review",
+    "knowledge-review", "integration-test-review",
+    "code-review", "sre-review", "security-review", "performance",
 }
 
 

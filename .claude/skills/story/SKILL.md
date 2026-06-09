@@ -277,7 +277,7 @@ If running within a workflow (big-feature, greenfield-init, etc.):
 6. Create user stories with GIVEN/WHEN/THEN (min 3 scenarios)
 7. Save to `team-artifacts/pbis/stories/`
 8. **Validate stories** (MANDATORY) - Interview user to confirm slicing, acceptance criteria, and effort
-9. Suggest next: `/tdd-spec` or `/design-spec`
+9. Suggest next: `/spec-tests` or `/design-spec`
 
 ### Output
 
@@ -295,12 +295,12 @@ When slicing domain-related PBIs, automatically load business context.
 **From PBI frontmatter:**
 
 1. Check `module` field
-2. If missing, detect module from `docs/business-features/` directory names
+2. If missing, detect module from `docs/specs/` directory names
 
 ### Step 2: Load Feature Context
 
 ```
-Glob("docs/business-features/{module}/detailed-features/*.md")
+Glob("docs/specs/{module}/*.md")
 ```
 
 1. Read module README (first 200 lines)
@@ -310,7 +310,7 @@ Glob("docs/business-features/{module}/detailed-features/*.md")
 
 ### Step 3: Apply Domain Vocabulary
 
-Read `docs/project-config.json` modules[] and `docs/business-features/` to detect domain vocabulary per module. Use entity names from feature docs — avoid ambiguous synonyms.
+Read `docs/project-config.json` modules[] and `docs/specs/` to detect domain vocabulary per module. Use entity names from feature docs — avoid ambiguous synonyms.
 
 ### Step 4: Include in Story
 
@@ -670,7 +670,7 @@ After creating user stories, validate with user.
 | **Role Skill** | `business-analyst`                          |
 | **Command**    | `/story`                                    |
 | **Input**      | `/refine` output (PBI)                      |
-| **Next Steps** | `/tdd-spec`, `/design-spec`, `/prioritize` |
+| **Next Steps** | `/spec-tests`, `/design-spec`, `/prioritize` |
 
 ---
 
@@ -715,7 +715,7 @@ Example for a "Create Goal" story:
 ## Next Steps
 
 **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use `AskUserQuestion` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
-- **"/tdd-spec (Recommended)"** — Generate test specifications from stories
+- **"/spec-tests (Recommended)"** — Generate test specifications from stories
 - **"/pbi-mockup"** — Generate HTML mockup report from PBI and stories
 - **"/plan-validate"** — If stories need validation against plan
 - **"Skip, continue manually"** — user decides

@@ -63,6 +63,42 @@ Define pass/fail criteria at each stage:
 - [ ] Regression suite passed
 - [ ] PO sign-off received
 
+#### PO Acceptance Decision (per-AC verdict — how "PO sign-off received" is earned)
+
+For each acceptance criterion from the PBI/story:
+
+1. **Read criterion** — Ensure it's testable and measurable
+2. **Check evidence** — Review test results, screenshots, demo recordings
+3. **Verify** — Does the implementation satisfy the criterion?
+4. **Verdict** — PASS or FAIL with specific evidence
+
+**Decision rules:** Every acceptance criterion must have a PASS/FAIL verdict. REJECT must list the specific items that failed. CONDITIONAL ACCEPT must list conditions and a timeline.
+
+```
+## Acceptance Decision
+
+**Feature/PBI:** {Reference}
+**Reviewer:** {PO name/role}
+**Date:** {date}
+**Verdict:** ACCEPT | REJECT | CONDITIONAL ACCEPT
+
+### Criteria Review
+
+| # | Criterion | Verdict | Evidence |
+|---|-----------|---------|----------|
+| 1 | {AC text} | PASS | {Evidence} |
+| 2 | {AC text} | FAIL | {Why it failed} |
+
+### Decision Details
+- {Rationale for overall verdict}
+
+### Conditions (if CONDITIONAL)
+- {Condition — deadline}
+
+### Rejected Items (if REJECT)
+- {Item — what needs to change}
+```
+
 ### 2. Compliance Verification
 
 - Code follows architecture patterns
@@ -246,7 +282,7 @@ Before completing QC artifacts:
 
 ## Related
 
-- `tdd-spec`
+- `spec-tests`
 - `code-review`
 
 ---

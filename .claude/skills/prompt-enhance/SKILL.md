@@ -1,7 +1,7 @@
 ---
 name: prompt-enhance
 version: 3.2.0
-description: '[Skill Management] Use when enhancing prompts, docs, or skills with compression and attention anchoring.'
+description: '[Skill Management] Use when enhancing, compressing, or expanding prompts, docs, or skills with attention anchoring [INTELLIGENT ROUTING]. Flag: --op={compress|expand|enhance} (default enhance); --op=compress strips token bloat, --op=expand reconstructs compressed text, folds former /prompt-compress + /prompt-expand.'
 ---
 
 ## Quick Summary
@@ -21,6 +21,7 @@ description: '[Skill Management] Use when enhancing prompts, docs, or skills wit
 
 **Key Rules:**
 
+- **Operation flag** (see [Operation Mode](#operation-mode---op)): `--op=enhance` (default) = compress + anchor + skill-principles; `--op=compress` = token-strip only; `--op=expand` = reconstruct compressed text into fluent form (inverse Phase 1 + structural Transform 4)
 - NEVER skip Phase 1 (compress) before Phase 2 (enhance) — compression removes noise, enhancement structures signal
 - NEVER remove meaningful rules, constraints, code examples, or `file:line` evidence
 - MUST ATTENTION derive the target's Final Purpose and add it to both `## Quick Summary` and `## Closing Reminders`
@@ -36,6 +37,37 @@ Compress and enhance this file:
 <target>$ARGUMENTS</target>
 
 No file? Ask via `AskUserQuestion`. Text passed (not file path)? Apply caveman compression directly and output result.
+
+---
+
+## Operation Mode (`--op=`)
+
+Route on `--op` (default `enhance`). Transforms 1-3 (inline summaries, top summary, closing reminders — the shared SYNC base block below) are identical across all ops; only Phase 1 and Transform 4 differ:
+
+| `--op`                | Phase 1                                        | Transform 4            | Skill-principles + Final Purpose | Former skill       |
+| --------------------- | ---------------------------------------------- | ---------------------- | -------------------------------- | ------------------ |
+| `enhance` *(default)* | Caveman Compression                            | Conciseness pass       | Applied (skill files)            | host               |
+| `compress`            | Caveman Compression                            | Conciseness pass       | Skipped (pure token strip)       | `/prompt-compress` |
+| `expand`              | **Language Expansion** (inverse — branch below) | **Structural Clarity** | Skipped                          | `/prompt-expand`   |
+
+- `enhance` / `compress` → run **Phase 1: Caveman Compression** + **Transform 4: Conciseness** below. `enhance` additionally derives the Final Purpose and (for skill files) applies the Universal Skill-Building Principles; `compress` skips both for a pure token-reduction pass.
+- `expand` → run the **Language Expansion branch** below INSTEAD of Caveman Compression, and the **Structural Clarity** Transform 4 instead of conciseness.
+- No `--op` provided → `enhance`.
+
+### `--op=expand` — Language Expansion branch
+
+Reconstruct fluent, grammatically correct English from caveman-compressed text while preserving ALL semantic content (inverse of Phase 1). Run INSTEAD of Caveman Compression.
+
+**Restore** (add back): articles (`a/an/the`); connectives matching the logical relationship (`because/however/in order to`); auxiliary verbs (`is/are/was/has`); clarifying prepositions; pronouns referencing prior nouns; subordinate clauses merging choppy sentences.
+**Preserve exactly** (never paraphrase/omit): all nouns + main verbs + adjectives, numbers/quantifiers, uncertainty qualifiers, negations (`not/no/never/without`), technical/domain terms, `file:line` paths, names/titles, time/frequency words.
+
+**Connective selection** (match relationship, never arbitrary): cause→effect `because/since/as a result`; contrast `however/although/despite`; addition `additionally/furthermore`; sequence `first/then/finally`; purpose `in order to/so that`; condition `if/when/unless`; clarification `specifically/that is`.
+
+Per sentence: identify core S-V-O (non-negotiable) → restore articles/auxiliaries/connectives/prepositions → merge related shorts → target 10-25 words. Skip code blocks, YAML, tables, SYNC tags, paths.
+
+**Transform 4 (expand) — Structural Clarity pass:** convert prose rule-lists → bullets, enumerated conditions → decision tables, before/after examples → two-column tables. Keep as prose: explanatory context (why a rule exists), workflow narratives, anti-pattern rationale.
+
+Verify (expand): no semantic loss (all facts/numbers/paths present), rule density post ≥ pre, no telegraphic 2-5 word prose sentences remain, code blocks untouched.
 
 ---
 
@@ -76,6 +108,8 @@ After caveman compression, evaluate skill against each principle, add missing st
 ---
 
 ## Phase 1: Caveman Compression
+
+> Applies to `--op=compress|enhance`. For `--op=expand`, run the Language Expansion branch (above) instead.
 
 Aggressively remove stop words + grammatical scaffolding preserving meaning. Use only content words carrying semantic weight.
 
@@ -143,6 +177,8 @@ Do NOT compress:
 ## Phase 2: Prompt Enhancement
 
 ### Transform 4: Token Optimization (Conciseness Pass)
+
+> Applies to `--op=compress|enhance`. For `--op=expand`, use the Structural Clarity pass (see expand branch above).
 
 Prompt quality FIRST. Verbose prompts degrade quality — AI attention dilutes across unnecessary tokens. Optimize **clarity-per-token**: maximum signal, minimum noise.
 
@@ -270,7 +306,7 @@ For each `.claude/` protocol reference:
 > 6. **Embed Protocols Verbatim, Never Reference** — Shared protocols MUST be copied inline into every sub-agent prompt — never referenced by file path or tag name. AI compliance drops significantly behind file-read indirection. Maintain canonical source; embed body at every call site.
 > 7. **Search-Based Discovery** — Never hardcode project-specific paths, formats, or identifiers. Teach skill to discover them:
 >     - "Search for `coding-standards`, `style-guide`, `contributing`" not "read `docs/X/code-review-rules.md`"
->     - "Find the project's test format near changed files" not "look for `TC-{FEATURE}-{NNN}` in `docs/business-features/`"
+>     - "Find the project's test format near changed files" not "look for `TC-{FEATURE}-{NNN}` in `docs/specs/`"
 >       This is what makes a skill work across any project without modification.
 > 8. **Dimensions > Checklists** — Structure review/analysis as named thinking dimensions, each with a `Think:` prompt that forces first-principles reasoning: (1) state dimension's role, (2) derive what could go wrong if weak, (3) apply to artifact with evidence. Produces targeted, evidence-backed findings — not generic "add more detail" suggestions.
 >    **Serial attention:** When applying a dimension-based framework, NEVER scan all dimensions simultaneously. One focused pass per dimension. AI misses violations when attention is split across concurrent concerns. Pattern: identify applicable dimensions → sequential focused passes → aggregate.
@@ -306,7 +342,7 @@ For each `.claude/` protocol reference:
 
 <!-- SYNC:prompt-enhancement-transforms-base -->
 
-> **Prompt Enhancement Transforms (Base)** — Transforms 1-3 are identical across `prompt-enhance` / `prompt-expand`. Transform 4 is per-skill (conciseness pass for enhance; structural clarity pass for expand) and stays local to each skill.
+> **Prompt Enhancement Transforms (Base)** — Transforms 1-3 are identical across all `/prompt-enhance` ops (`--op=compress|expand|enhance`). Transform 4 is per-op (conciseness pass for compress/enhance; structural clarity pass for expand) and stays local to each op branch.
 >
 > ### Transform 1: Inline Summaries for READ References
 >
@@ -422,7 +458,7 @@ For each `.claude/` protocol reference:
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION** apply caveman compression FIRST (Phase 1) before any structural enhancement — never skip
+**IMPORTANT MUST ATTENTION** select `--op` FIRST (default `enhance`) — `compress`/`enhance` apply caveman compression FIRST (Phase 1) before structural enhancement (never skip); `expand` applies Language Expansion (inverse) instead — why: expand reconstructs, it does not strip
 **IMPORTANT MUST ATTENTION** NEVER compress code blocks, YAML frontmatter, structured tables, or SYNC tags
 **IMPORTANT MUST ATTENTION** read target file completely before any changes
 **IMPORTANT MUST ATTENTION** derive the target's one-sentence Final Purpose, then place it in both `## Quick Summary` and `## Closing Reminders` — why: AI must know the ultimate outcome after enhancement

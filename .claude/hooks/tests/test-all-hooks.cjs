@@ -378,8 +378,12 @@ async function testGraphSessionInit() {
     }
 
     // Test 2: Config populated → produces graph-related output
+    // Pin CLAUDE_PROJECT_DIR to the repo root: without it the loader falls back to
+    // process.cwd(), which resolves to the empty tests/docs fixture when the suite
+    // is launched from the tests directory (cwd-sensitive false failure).
     {
-        const result = await runHook('graph-session-init.cjs', { source: 'startup' }, { timeout: 30000 });
+        const repoRoot = path.resolve(__dirname, '..', '..', '..');
+        const result = await runHook('graph-session-init.cjs', { source: 'startup' }, { timeout: 30000, env: { CLAUDE_PROJECT_DIR: repoRoot } });
         logResult('Exits 0 when config populated', result.code === 0);
         logResult('Produces graph output when config populated', result.stdout.includes('code-graph') || result.stdout.includes('graph'));
     }
@@ -934,7 +938,16 @@ async function testSubagentInitContextGuard() {
 // ============================================================================
 
 async function testInitPromptGate() {
-    logSection('UserPromptSubmit: init-prompt-gate.cjs (blocking gate)');
+    logSection('UserPromptSubmit: init-prompt-gate.cjs (project-context router)');
+    const completeAgentFileStub = [
+        '<!-- CK:UNIVERSAL-GUIDES v2 -->',
+        '## First Action Decision',
+        '## Workflow Step Advancement',
+        '## IMPORTANT: Task Planning Rules',
+        '## Code Responsibility Hierarchy',
+        '## Evidence-Based Reasoning',
+        ''
+    ].join('\n');
 
     // Test 1: Populated config → exit 0 (silent pass-through)
     {
@@ -954,6 +967,9 @@ async function testInitPromptGate() {
                 })
             );
             fs.writeFileSync(path.join(graphDir, 'graph.db'), 'fake-db');
+            // Root agent files present and complete so the agent-files gate passes through to the gate under test.
+            fs.writeFileSync(path.join(tmpDir, 'CLAUDE.md'), completeAgentFileStub);
+            fs.writeFileSync(path.join(tmpDir, 'AGENTS.md'), completeAgentFileStub);
             const result = await runHook('init-prompt-gate.cjs', { prompt: 'implement feature X' }, { env: { CLAUDE_PROJECT_DIR: tmpDir } });
             logResult('Exit 0 when config populated', result.code === 0);
             logResult('No stderr when config populated', result.stderr.trim() === '');
@@ -962,12 +978,14 @@ async function testInitPromptGate() {
         }
     }
 
-    // Test 2: Unpopulated config → exit 2 (blocked)
+    // Test 2: Unpopulated config → exit 0 with setup guidance
     {
         const tmpDir = createTempDir();
         try {
             const docsDir = path.join(tmpDir, 'docs');
+            const srcDir = path.join(tmpDir, 'src');
             fs.mkdirSync(docsDir, { recursive: true });
+            fs.mkdirSync(srcDir, { recursive: true });
             // Write skeleton config with empty project name
             fs.writeFileSync(
                 path.join(docsDir, 'project-config.json'),
@@ -984,9 +1002,9 @@ async function testInitPromptGate() {
                     env: { CLAUDE_PROJECT_DIR: tmpDir }
                 }
             );
-            logResult('Exit 2 when config unpopulated', result.code === 2);
-            logResult('Block message mentions /project-config', result.stderr.includes('/project-config'));
-            logResult('Block message mentions skip init', result.stderr.includes('skip init'));
+            logResult('Exit 0 when config unpopulated', result.code === 0);
+            logResult('Guidance mentions /project-init', result.stdout.includes('/project-init'));
+            logResult('Guidance mentions /project-config', result.stdout.includes('/project-config'));
         } finally {
             cleanupTempDir(tmpDir);
         }
@@ -1018,7 +1036,7 @@ async function testInitPromptGate() {
         }
     }
 
-    // Test 4: Unpopulated config BUT /scan-backend-patterns → exit 0 (allowlisted)
+    // Test 4: Unpopulated config BUT /scan --target=backend-patterns → exit 0 (allowlisted)
     {
         const tmpDir = createTempDir();
         try {
@@ -1033,12 +1051,12 @@ async function testInitPromptGate() {
             );
             const result = await runHook(
                 'init-prompt-gate.cjs',
-                { prompt: '/scan-backend-patterns' },
+                { prompt: '/scan --target=backend-patterns' },
                 {
                     env: { CLAUDE_PROJECT_DIR: tmpDir }
                 }
             );
-            logResult('Allowlist: /scan-* passes through', result.code === 0);
+            logResult('Allowlist: /scan host passes through', result.code === 0);
         } finally {
             cleanupTempDir(tmpDir);
         }
@@ -1135,17 +1153,18 @@ async function testInitPromptGate() {
                     env: { CLAUDE_PROJECT_DIR: tmpDir }
                 }
             );
-            logResult('Dismiss: expired flag blocks prompt', result.code === 2);
+            logResult('Dismiss: expired flag warns/allows prompt', result.code === 0);
         } finally {
             cleanupTempDir(tmpDir);
         }
     }
 
-    // Test 8: Missing config file entirely → exit 2
+    // Test 8: Missing config file entirely → exit 0 with setup guidance
     {
         const tmpDir = createTempDir();
         try {
             fs.mkdirSync(path.join(tmpDir, 'docs'), { recursive: true });
+            fs.mkdirSync(path.join(tmpDir, 'src'), { recursive: true });
             // No project-config.json at all
             const result = await runHook(
                 'init-prompt-gate.cjs',
@@ -1154,7 +1173,8 @@ async function testInitPromptGate() {
                     env: { CLAUDE_PROJECT_DIR: tmpDir }
                 }
             );
-            logResult('Missing config file blocks prompt', result.code === 2);
+            logResult('Missing config file warns/allows prompt', result.code === 0);
+            logResult('Missing config guidance mentions /project-init', result.stdout.includes('/project-init'));
         } finally {
             cleanupTempDir(tmpDir);
         }
@@ -1169,11 +1189,20 @@ async function testInitPromptGate() {
         const result = await runHook('init-prompt-gate.cjs', 'not-json');
         logResult('Malformed input: fail-open exit 0', result.code === 0);
     }
+    // Test 9b: agent-files-skill-gate fail-open on empty/malformed stdin → exit 0
+    {
+        const result = await runHook('agent-files-skill-gate.cjs', '');
+        logResult('Skill gate empty input: fail-open exit 0', result.code === 0);
+    }
+    {
+        const result = await runHook('agent-files-skill-gate.cjs', 'not-json');
+        logResult('Skill gate malformed input: fail-open exit 0', result.code === 0);
+    }
 
     // ── Graph Gate: Config Guard Tests ──
     logSubsection('Graph Gate — Config Guard');
 
-    // Test 10: Config populated + no graph.db + no dismiss → exit 2 (graph gate blocks)
+    // Test 10: Config populated + no graph.db + no dismiss → exit 0 with graph guidance
     {
         const tmpDir = createTempDir();
         try {
@@ -1188,17 +1217,20 @@ async function testInitPromptGate() {
                     modules: [{ name: 'mod', kind: 'library', pathRegex: 'src/' }]
                 })
             );
+            // Root agent files present and complete so the agent-files gate passes through to the graph gate under test.
+            fs.writeFileSync(path.join(tmpDir, 'CLAUDE.md'), completeAgentFileStub);
+            fs.writeFileSync(path.join(tmpDir, 'AGENTS.md'), completeAgentFileStub);
             // No .code-graph/graph.db, no dismiss flag
             const result = await runHook('init-prompt-gate.cjs', { prompt: 'implement feature X' }, { env: { CLAUDE_PROJECT_DIR: tmpDir } });
-            logResult('Graph gate blocks when config populated + no graph.db', result.code === 2);
-            logResult('Graph block message mentions /graph-build', result.stderr.includes('/graph-build'));
-            logResult('Graph block message mentions skip graph', result.stderr.includes('skip graph'));
+            logResult('Graph gate warns/allows when config populated + no graph.db', result.code === 0);
+            logResult('Graph guidance mentions /graph-build', result.stdout.includes('/graph-build'));
+            logResult('Graph guidance avoids skip prompt', !result.stdout.includes('skip graph'));
         } finally {
             cleanupTempDir(tmpDir);
         }
     }
 
-    // Test 11: Config NOT populated + no graph.db → exit 2 for config (NOT graph)
+    // Test 11: Config NOT populated + no graph.db → exit 0 with config guidance (NOT graph)
     {
         const tmpDir = createTempDir();
         try {
@@ -1208,8 +1240,8 @@ async function testInitPromptGate() {
             fs.mkdirSync(srcDir, { recursive: true });
             fs.writeFileSync(path.join(docsDir, 'project-config.json'), JSON.stringify({ project: { name: '' }, modules: [] }));
             const result = await runHook('init-prompt-gate.cjs', { prompt: 'implement feature X' }, { env: { CLAUDE_PROJECT_DIR: tmpDir } });
-            logResult('Config gate blocks before graph gate', result.code === 2);
-            logResult('Block message is config (not graph)', result.stderr.includes('/project-config') && !result.stderr.includes('/graph-build'));
+            logResult('Config gate warns/allows before graph guidance', result.code === 0);
+            logResult('Guidance message is config (not graph)', result.stdout.includes('/project-config') && !result.stdout.includes('/graph-build'));
         } finally {
             cleanupTempDir(tmpDir);
         }
@@ -1233,6 +1265,9 @@ async function testInitPromptGate() {
                 })
             );
             fs.writeFileSync(path.join(graphDir, 'graph.db'), 'fake-db');
+            // Root agent files present and complete so the agent-files gate passes through.
+            fs.writeFileSync(path.join(tmpDir, 'CLAUDE.md'), completeAgentFileStub);
+            fs.writeFileSync(path.join(tmpDir, 'AGENTS.md'), completeAgentFileStub);
             const result = await runHook('init-prompt-gate.cjs', { prompt: 'implement feature X' }, { env: { CLAUDE_PROJECT_DIR: tmpDir } });
             logResult('Both gates pass when config + graph.db exist', result.code === 0);
         } finally {
@@ -2783,13 +2818,74 @@ async function runAllTests() {
     }
 
     console.log(`${COLORS.dim}Duration: ${duration}s${COLORS.reset}`);
+
+    // Hook-test count drift guard (N2). A NON-recursive, post-summary hard assertion —
+    // deliberately NOT a counted test: a counted test reads results.passed before its own
+    // increment (off-by-one), and count-drift.test.cjs cannot assert this row from inside
+    // its own subprocess (it can't see the parent runner's live total). Only meaningful on
+    // a full run — a --filter run executes a subset, so its total is not the canonical figure.
+    let countGuardFailed = false;
+    if (!FILTER) {
+        const liveTotal = results.passed + results.failed + results.skipped;
+        const repoRoot = path.join(HOOKS_DIR, '..', '..');
+        const docsDir = path.join(repoRoot, '.claude', 'docs');
+        const countTargets = [
+            {
+                file: path.join(docsDir, 'README.md'),
+                label: 'docs/README.md "Hook Tests" row',
+                pattern: /\|\s*Hook Tests\s*\|\s*(\d+)\s*\|/
+            },
+            {
+                file: path.join(docsDir, 'hooks', 'README.md'),
+                label: 'docs/hooks/README.md "Primary hook runner" row',
+                pattern: /\|\s*Primary hook runner\s*\|\s*(\d+)\s*\|/
+            },
+            {
+                file: path.join(docsDir, 'hooks', 'README.md'),
+                label: 'docs/hooks/README.md "passes with N tests" prose',
+                pattern: /passes with (\d+) tests/
+            }
+        ];
+
+        const mismatches = [];
+        for (const target of countTargets) {
+            let content;
+            try {
+                content = fs.readFileSync(target.file, 'utf8');
+            } catch (err) {
+                mismatches.push(`${target.label}: cannot read (${err.code || err.message})`);
+                continue;
+            }
+            const match = content.match(target.pattern);
+            if (!match) {
+                mismatches.push(`${target.label}: no count matching ${target.pattern} found`);
+                continue;
+            }
+            const documented = Number(match[1]);
+            if (documented !== liveTotal) {
+                mismatches.push(`${target.label}: documents ${documented}, runner ran ${liveTotal}`);
+            }
+        }
+
+        if (mismatches.length > 0) {
+            countGuardFailed = true;
+            console.log(`${COLORS.red}Hook-test count drift:${COLORS.reset}`);
+            for (const m of mismatches) {
+                console.log(`  ${COLORS.red}✗${COLORS.reset} ${m}`);
+            }
+            console.log(`  ${COLORS.dim}Fix: set the count to ${liveTotal} in the file(s) above.${COLORS.reset}`);
+        } else {
+            console.log(`${COLORS.green}Count guard:${COLORS.reset} docs agree (${liveTotal} tests)`);
+        }
+    }
+
     console.log(`${'═'.repeat(60)}\n`);
 
     // Clean up
     cleanupAllTestDirs();
 
     // Exit with appropriate code
-    process.exit(results.failed > 0 ? 1 : 0);
+    process.exit(results.failed > 0 || countGuardFailed ? 1 : 0);
 }
 
 // Run tests

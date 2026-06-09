@@ -17,44 +17,31 @@ const verifyScript = path.join(
   "codex",
   "verify-workflow-cycle-compliance.mjs"
 );
-const { checkWorkflowDebuggerTracePolicy } = await import(pathToFileURL(verifyScript).href);
+const {
+  checkWorkflowDebuggerTracePolicy,
+  checkGoalContractSkillCompliance,
+  checkGoalContractFileLifecycle,
+} = await import(pathToFileURL(verifyScript).href);
 
 const workflowIds = [
-  "batch-operation",
   "big-feature",
   "bugfix",
   "feature",
   "full-feature-lifecycle",
-  "tdd-feature",
-  "test-spec-update",
-  "test-to-integration",
-  "test-verify",
-  "verification",
+  "spec-sync",
 ];
 
 const sequenceByWorkflow = {
-  "batch-operation": [
-    "plan",
-    "tdd-spec",
-    "tdd-spec-review",
-    "code",
-    "integration-test",
-    "integration-test-review",
-    "integration-test-verify",
-    "tdd-spec [direction=sync]",
-    "workflow-review-changes",
-    "docs-update",
-    "workflow-end",
-  ],
   "big-feature": [
     "plan",
-    "tdd-spec",
-    "tdd-spec-review",
+    "feature-spec",
+    "spec-tests",
+    "review-artifact --type=spec-tests",
     "cook",
     "integration-test",
     "integration-test-review",
     "integration-test-verify",
-    "tdd-spec [direction=sync]",
+    "spec-tests [direction=sync]",
     "workflow-review-changes",
     "docs-update",
     "workflow-end",
@@ -62,13 +49,15 @@ const sequenceByWorkflow = {
   bugfix: [
     "scout",
     "investigate",
-    "tdd-spec",
-    "tdd-spec-review",
+    "feature-spec [mode=amend]",
+    "plan",
+    "spec-tests",
+    "review-artifact --type=spec-tests",
     "fix",
     "integration-test",
     "integration-test-review",
     "integration-test-verify",
-    "tdd-spec [direction=sync]",
+    "spec-tests [direction=sync]",
     "workflow-review-changes",
     "docs-update",
     "workflow-end",
@@ -76,83 +65,41 @@ const sequenceByWorkflow = {
   feature: [
     "scout",
     "investigate",
-    "tdd-spec",
-    "tdd-spec-review",
+    "feature-spec",
+    "plan",
+    "spec-tests",
+    "review-artifact --type=spec-tests",
     "cook",
     "integration-test",
     "integration-test-review",
     "integration-test-verify",
-    "tdd-spec [direction=sync]",
+    "spec-tests [direction=sync]",
     "workflow-review-changes",
     "docs-update",
     "workflow-end",
   ],
   "full-feature-lifecycle": [
+    "feature-spec",
     "plan",
-    "tdd-spec",
-    "tdd-spec-review",
+    "spec-tests",
+    "review-artifact --type=spec-tests",
     "cook",
     "integration-test",
     "integration-test-review",
     "integration-test-verify",
-    "tdd-spec [direction=sync]",
+    "spec-tests [direction=sync]",
     "workflow-review-changes",
     "docs-update",
     "workflow-end",
   ],
-  "tdd-feature": [
-    "scout",
-    "investigate",
-    "tdd-spec",
-    "tdd-spec-review",
-    "cook",
-    "integration-test",
-    "integration-test-review",
-    "integration-test-verify",
-    "tdd-spec [direction=sync]",
+  "spec-sync": [
     "workflow-review-changes",
-    "docs-update",
-    "workflow-end",
-  ],
-  "test-spec-update": [
-    "workflow-review-changes",
-    "tdd-spec",
-    "tdd-spec-review",
-    "tdd-spec [direction=sync]",
+    "spec-tests",
+    "review-artifact --type=spec-tests",
+    "spec-tests [direction=sync]",
     "integration-test",
     "integration-test-review",
     "integration-test-verify",
-    "docs-update",
-    "workflow-end",
-  ],
-  "test-to-integration": [
-    "scout",
-    "integration-test",
-    "integration-test-review",
-    "integration-test-verify",
-    "docs-update",
-    "workflow-end",
-  ],
-  "test-verify": [
-    "scout",
-    "integration-test",
-    "integration-test-review",
-    "integration-test-verify",
-    "docs-update",
-    "workflow-end",
-  ],
-  verification: [
-    "scout",
-    "investigate",
-    "test-initial",
-    "tdd-spec",
-    "tdd-spec-review",
-    "fix",
-    "integration-test",
-    "integration-test-review",
-    "integration-test-verify",
-    "tdd-spec [direction=sync]",
-    "workflow-review-changes",
     "docs-update",
     "workflow-end",
   ],
@@ -171,15 +118,6 @@ function makeWorkflowJson() {
   workflows.bugfix.whenToUse =
     "Use for bug reports with observed final output, all feeder paths, hypothesis matrix, owning fix layer, and forward convergence proof";
   workflows.bugfix.preActions = {
-    injectContext:
-      "END-TO-START TRACE: observed final state, feeder paths, hypothesis matrix, owning fix layer, forward convergence proof",
-  };
-
-  workflows.verification.description =
-    "Verification workflow with end-to-start trace before FAIL-to-fix";
-  workflows.verification.whenToUse =
-    "Use verification FAIL-to-fix with observed final output, all feeder paths, hypothesis matrix, owning fix layer, and forward convergence proof";
-  workflows.verification.preActions = {
     injectContext:
       "END-TO-START TRACE: observed final state, feeder paths, hypothesis matrix, owning fix layer, forward convergence proof",
   };
@@ -241,8 +179,19 @@ function buildTaskTable(steps) {
   ].join("\n");
 }
 
+function buildDisplaySteps(steps, { agents = false } = {}) {
+  const prefix = agents ? "$" : "/";
+  return steps.map((step) => `${prefix}${toSkillStepToken(step)}`).join(" → ");
+}
+
 async function writeSkillFile(root, workflowId, stepsLine, options = {}) {
-  const { taskTableSteps = null, closingTaskCount = null } = options;
+  const {
+    taskTableSteps = null,
+    closingTaskCount = null,
+    displaySteps = null,
+    goalMarker = true,
+    goalSatisfaction = true,
+  } = options;
   const targetDir = path.join(root, `workflow-${workflowId}`);
   await fs.mkdir(targetDir, { recursive: true });
   const content = [
@@ -255,8 +204,27 @@ async function writeSkillFile(root, workflowId, stepsLine, options = {}) {
     "",
   ];
 
+  if (goalMarker) {
+    content.push(
+      "<!-- SYNC:goal-contract-satisfaction-loop:reminder -->",
+      "",
+      "Resolve the active Goal Contract before work.",
+      "",
+      "<!-- /SYNC:goal-contract-satisfaction-loop:reminder -->",
+      ""
+    );
+  }
+
+  if (goalSatisfaction) {
+    content.push("Emit the Goal Satisfaction matrix (PASS/FAIL/BLOCKED) before reporting PASS.", "");
+  }
+
   if (taskTableSteps) {
     content.push("## Mandatory Task Creation", "", buildTaskTable(taskTableSteps), "");
+  }
+
+  if (displaySteps) {
+    content.push(`**Steps:** ${buildDisplaySteps(displaySteps, { agents: root.includes(".agents") })}`, "");
   }
 
   if (closingTaskCount !== null) {
@@ -366,6 +334,7 @@ test("verify-workflow-cycle-compliance validates task tables and closing counts"
         {
           taskTableSteps: sequenceByWorkflow[workflowId],
           closingTaskCount: sequenceByWorkflow[workflowId].length,
+          displaySteps: sequenceByWorkflow[workflowId],
         }
       );
       await writeSkillFile(
@@ -375,11 +344,115 @@ test("verify-workflow-cycle-compliance validates task tables and closing counts"
         {
           taskTableSteps: sequenceByWorkflow[workflowId],
           closingTaskCount: sequenceByWorkflow[workflowId].length,
+          displaySteps: sequenceByWorkflow[workflowId],
         }
       );
     }
 
     await execFileAsync(process.execPath, [verifyScript], { cwd: tempRoot });
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("verify-workflow-cycle-compliance fails when display steps drift", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-verify-cycle-display-fail-"));
+
+  try {
+    await fs.mkdir(path.join(tempRoot, ".claude"), { recursive: true });
+    await fs.mkdir(path.join(tempRoot, ".claude", "skills"), { recursive: true });
+    await fs.mkdir(path.join(tempRoot, ".agents", "skills"), { recursive: true });
+
+    await fs.writeFile(
+      path.join(tempRoot, ".claude", "workflows.json"),
+      `${JSON.stringify(makeWorkflowJson(), null, 2)}\n`,
+      "utf8"
+    );
+
+    for (const workflowId of workflowIds) {
+      await writeSkillFile(
+        path.join(tempRoot, ".claude", "skills"),
+        workflowId,
+        buildSkillStepLine(workflowId)
+      );
+      await writeSkillFile(
+        path.join(tempRoot, ".agents", "skills"),
+        workflowId,
+        buildSkillStepLine(workflowId, { agents: true })
+      );
+    }
+
+    await writeSkillFile(
+      path.join(tempRoot, ".claude", "skills"),
+      "feature",
+      buildSkillStepLine("feature"),
+      {
+        displaySteps: sequenceByWorkflow.feature.filter((step) => step !== "feature-spec"),
+      }
+    );
+
+    await assert.rejects(
+      execFileAsync(process.execPath, [verifyScript], { cwd: tempRoot }),
+      /Display-steps drift detected/
+    );
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("verify-workflow-cycle-compliance enforces spec before implementation planning", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-verify-cycle-spec-order-fail-"));
+
+  try {
+    await fs.mkdir(path.join(tempRoot, ".claude"), { recursive: true });
+    await fs.mkdir(path.join(tempRoot, ".claude", "skills"), { recursive: true });
+    await fs.mkdir(path.join(tempRoot, ".agents", "skills"), { recursive: true });
+
+    const workflowsJson = makeWorkflowJson();
+    workflowsJson.workflows.feature.sequence = [
+      "scout",
+      "investigate",
+      "plan",
+      "feature-spec",
+      "spec-tests",
+      "review-artifact --type=spec-tests",
+      "cook",
+      "integration-test",
+      "integration-test-review",
+      "integration-test-verify",
+      "spec-tests [direction=sync]",
+      "workflow-review-changes",
+      "docs-update",
+      "workflow-end",
+    ];
+
+    await fs.writeFile(
+      path.join(tempRoot, ".claude", "workflows.json"),
+      `${JSON.stringify(workflowsJson, null, 2)}\n`,
+      "utf8"
+    );
+
+    for (const workflowId of workflowIds) {
+      const steps =
+        workflowId === "feature"
+          ? workflowsJson.workflows.feature.sequence
+          : sequenceByWorkflow[workflowId];
+      await writeSkillFile(
+        path.join(tempRoot, ".claude", "skills"),
+        workflowId,
+        steps.map((step) => `/${toSkillStepToken(step)}`).join(" -> ")
+      );
+      await writeSkillFile(
+        path.join(tempRoot, ".agents", "skills"),
+        workflowId,
+        steps.map((step) => `$${toSkillStepToken(step)}`).join(" -> ")
+      );
+    }
+
+    await assert.rejects(
+      execFileAsync(process.execPath, [verifyScript], { cwd: tempRoot }),
+      /canonical Feature Spec step must run before the first implementation plan/
+    );
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
   }
@@ -471,6 +544,188 @@ test("verify-workflow-cycle-compliance fails on closing task-count drift", async
     await assert.rejects(
       execFileAsync(process.execPath, [verifyScript], { cwd: tempRoot }),
       /Closing task-count drift detected/
+    );
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("checkGoalContractSkillCompliance accepts marker or active-goal wording, fails when both absent", () => {
+  assert.deepEqual(
+    checkGoalContractSkillCompliance("cook", "<!-- SYNC:goal-contract-satisfaction-loop:reminder -->"),
+    []
+  );
+  assert.deepEqual(
+    checkGoalContractSkillCompliance("cook", "Resolve the active goal before implementing."),
+    []
+  );
+
+  const failures = checkGoalContractSkillCompliance("cook", "Implement the feature with tests.");
+  assert.equal(failures.length, 1);
+  assert.match(failures[0], /Goal-contract violation \(cook\): missing active-goal lifecycle marker/);
+});
+
+test("checkGoalContractSkillCompliance requires Goal Satisfaction wording on review/workflow surfaces", () => {
+  const markerOnly = "<!-- SYNC:goal-contract-satisfaction-loop:reminder -->";
+  const failures = checkGoalContractSkillCompliance("review-changes", markerOnly, {
+    requireSatisfaction: true,
+  });
+  assert.equal(failures.length, 1);
+  assert.match(failures[0], /missing 'Goal Satisfaction' wording/);
+
+  assert.deepEqual(
+    checkGoalContractSkillCompliance(
+      "review-changes",
+      `${markerOnly}\nEmit the Goal Satisfaction matrix before PASS.`,
+      { requireSatisfaction: true }
+    ),
+    []
+  );
+});
+
+test("checkGoalContractFileLifecycle validates a full goal-contract lifecycle", () => {
+  const validGoalFile = [
+    "# Goal Contract",
+    "",
+    "## Original Request",
+    "Implement the goal contract satisfaction loop.",
+    "",
+    "## Purpose",
+    "Persist the user goal so loops converge on saved criteria.",
+    "",
+    "## Success Criteria",
+    "- [ ] (required) Verifier checks goal-contract markers",
+    "",
+    "## Constraints",
+    "- No new packages",
+    "",
+    "## Evidence Required",
+    "- Verifier + node:test output",
+    "",
+    "## Iteration Log",
+    "### Iteration 1",
+    "- Result: verifier extended",
+    "",
+    "## Goal Satisfaction",
+    "| Success Criterion | Evidence | Status |",
+    "| --- | --- | --- |",
+    "| Verifier checks markers | tests pass | PASS |",
+    "",
+    "**Overall:** PASS",
+  ].join("\n");
+
+  assert.deepEqual(checkGoalContractFileLifecycle(validGoalFile), []);
+
+  const missingSection = validGoalFile.replace("## Iteration Log", "## Other");
+  assert.ok(
+    checkGoalContractFileLifecycle(missingSection).some((f) =>
+      /missing required section 'Iteration Log'/.test(f)
+    )
+  );
+
+  const missingMatrix = validGoalFile.replace(
+    "| Success Criterion | Evidence | Status |",
+    "| Criterion | Proof | State |"
+  );
+  assert.ok(
+    checkGoalContractFileLifecycle(missingMatrix).some((f) =>
+      /missing Goal Satisfaction matrix header/.test(f)
+    )
+  );
+
+  const blockedWithoutEscalation = validGoalFile
+    .replaceAll("PASS", "BLOCKED")
+    .replace("**Overall:** BLOCKED", "**Overall:** BLOCKED — env unavailable");
+  assert.ok(
+    checkGoalContractFileLifecycle(blockedWithoutEscalation).some((f) =>
+      /BLOCKED status requires a user-facing escalation reason/.test(f)
+    )
+  );
+
+  const blockedWithEscalation = `${blockedWithoutEscalation}\nEscalation: needs user decision on env access.`;
+  assert.deepEqual(checkGoalContractFileLifecycle(blockedWithEscalation), []);
+});
+
+test("verify-workflow-cycle-compliance fails when a goal-contract skill lacks the lifecycle marker", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-verify-goal-marker-fail-"));
+
+  try {
+    await fs.mkdir(path.join(tempRoot, ".claude"), { recursive: true });
+    await fs.mkdir(path.join(tempRoot, ".claude", "skills"), { recursive: true });
+    await fs.mkdir(path.join(tempRoot, ".agents", "skills"), { recursive: true });
+
+    await fs.writeFile(
+      path.join(tempRoot, ".claude", "workflows.json"),
+      `${JSON.stringify(makeWorkflowJson(), null, 2)}\n`,
+      "utf8"
+    );
+
+    for (const workflowId of workflowIds) {
+      await writeSkillFile(
+        path.join(tempRoot, ".claude", "skills"),
+        workflowId,
+        buildSkillStepLine(workflowId)
+      );
+      await writeSkillFile(
+        path.join(tempRoot, ".agents", "skills"),
+        workflowId,
+        buildSkillStepLine(workflowId, { agents: true })
+      );
+    }
+
+    await writeSkillFile(
+      path.join(tempRoot, ".claude", "skills"),
+      "bugfix",
+      buildSkillStepLine("bugfix"),
+      { goalMarker: false, goalSatisfaction: false }
+    );
+
+    await assert.rejects(
+      execFileAsync(process.execPath, [verifyScript], { cwd: tempRoot }),
+      /Goal-contract violation \(workflow-bugfix\): missing active-goal lifecycle marker/
+    );
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("verify-workflow-cycle-compliance fails when a workflow surface lacks Goal Satisfaction wording", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-verify-goal-satisfaction-fail-"));
+
+  try {
+    await fs.mkdir(path.join(tempRoot, ".claude"), { recursive: true });
+    await fs.mkdir(path.join(tempRoot, ".claude", "skills"), { recursive: true });
+    await fs.mkdir(path.join(tempRoot, ".agents", "skills"), { recursive: true });
+
+    await fs.writeFile(
+      path.join(tempRoot, ".claude", "workflows.json"),
+      `${JSON.stringify(makeWorkflowJson(), null, 2)}\n`,
+      "utf8"
+    );
+
+    for (const workflowId of workflowIds) {
+      await writeSkillFile(
+        path.join(tempRoot, ".claude", "skills"),
+        workflowId,
+        buildSkillStepLine(workflowId)
+      );
+      await writeSkillFile(
+        path.join(tempRoot, ".agents", "skills"),
+        workflowId,
+        buildSkillStepLine(workflowId, { agents: true })
+      );
+    }
+
+    await writeSkillFile(
+      path.join(tempRoot, ".claude", "skills"),
+      "feature",
+      buildSkillStepLine("feature"),
+      { goalSatisfaction: false }
+    );
+
+    await assert.rejects(
+      execFileAsync(process.execPath, [verifyScript], { cwd: tempRoot }),
+      /Goal-contract violation \(workflow-feature\): missing 'Goal Satisfaction' wording/
     );
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });

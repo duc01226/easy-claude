@@ -66,12 +66,12 @@ Expected behavior:
 
 ---
 
-### feature-implementation
+### feature
 
 Direct invocation:
 
 ```
-$feature-implementation
+$feature
 ```
 
 Inference test prompts:
@@ -284,12 +284,12 @@ Expected: Message bus patterns, event-driven architecture
 
 ---
 
-### arch-performance-optimization
+### performance-review
 
 Direct invocation:
 
 ```
-$arch-performance-optimization
+$performance-review
 ```
 
 Test prompts:
@@ -298,18 +298,19 @@ Test prompts:
 "Analyze performance bottlenecks in the dashboard"
 "Optimize the employee search feature"
 "Review API response times"
+"Review this service design for performance at architecture altitude"
 ```
 
-Expected: Profiling, caching strategies, query optimization
+Expected: Profiling, caching strategies, query optimization, architecture-altitude layer review
 
 ---
 
-### arch-security-review
+### security-review
 
 Direct invocation:
 
 ```
-$arch-security-review
+$security-review
 ```
 
 Test prompts:

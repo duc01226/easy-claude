@@ -24,12 +24,14 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 - `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
 - `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
 
-**Missing-file hard stop:** If `docs/project-config.json`, the docs index, `lessons.md`, or any task-required reference doc is missing, stop immediately and ask the user to run `$project-config` and `$scan-all`.
+**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.
 
 **Situation-based docs:**
 - Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`, `project-structure-reference.md`
 - Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md`
-- Spec/test-case planning or TC mapping: `feature-docs-reference.md`
+- Spec authoring, `docs/specs/` pathing, or TC format: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`
+- Behavior/public-contract changes or spec-test-code sync: `workflow-spec-test-code-cycle-reference.md` plus the spec docs above
+- Derived spec indexes/ERDs/reimplementation guides: `spec-system-reference.md` and source Feature Specs under `docs/specs/`
 - Integration test implementation/review: `integration-test-reference.md`
 - E2E test implementation/review: `e2e-test-reference.md`
 - Code review/audit work: `code-review-rules.md` plus domain docs above based on changed files
@@ -60,7 +62,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - MUST ATTENTION search existing patterns FIRST before generating any test
 - MUST ATTENTION READ `references/integration-test-patterns.md` before writing
 - Organize by domain feature NEVER by CQRS type — NEVER create `Queries/` or `Commands/` folders
-- Every test method MUST have TC annotation — auto-create in Section 15 if missing
+- Every test method MUST have TC annotation — auto-create in Section 8 if missing
 - Minimum 3 tests per command
 - NEVER mark done until the relevant suite passes 3 consecutive `$integration-test-verify` runs without DB reset
 
@@ -82,7 +84,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 > **CRITICAL: Async Polling for ALL Data Assertions.** ALWAYS wrap data state assertions in async polling/retry helper. DEFAULT for ALL data verification — not just async handlers. Data persistence may be delayed by event handlers, message bus consumers, background jobs, DB write latency. **Rule: If asserting data in DB → use async polling. No exceptions.**
 
-> **For test specifications and test case generation from PBIs, use `$tdd-spec` skill instead.**
+> **For test specifications and test case generation from PBIs, use `$spec-tests` skill instead.**
 
 > **External Memory:** Complex/lengthy work → write findings to `plans/reports/` — prevents context loss.
 
@@ -140,18 +142,17 @@ Before implementation, search codebase for patterns:
 - Minimum 3 test methods: happy path, validation failure, DB state check
 - **Authorization tests:** Multiple user contexts — authorized succeeds AND unauthorized rejected
 - Every test method MUST have `// TC-{FEATURE}-{NNN}: Description` comment + test-spec annotation — before method, outside body
-- No TC in feature docs → **auto-create** in Section 15 before generating test
-- For comprehensive spec generation before coding → `$tdd-spec` first
+- No TC in feature docs → **auto-create** in Section 8 before generating test
+- For comprehensive spec generation before coding → `$spec-tests` first
 
 ## Mandatory Task Ordering (MUST ATTENTION FOLLOW)
 
 ALWAYS create and execute tasks in this exact order:
 
 1. **FIRST: Verify/upsert test specs in feature docs**
-    - Read feature doc Section 15 (`docs/business-features/{App}/detailed-features/`) for target domain
-    - Read test-specs doc (`docs/specs/{App}/README.md`) if exists
+    - Read feature doc Section 8 (`docs/specs/{App}/README.{Feature}.md`) for target domain
     - For each test case: verify matching `TC-{FEATURE}-{NNN}` exists
-    - TC MISSING → create entry in Section 15 with Priority, Status, GIVEN/WHEN/THEN, Evidence
+    - TC MISSING → create entry in Section 8 with Priority, Status, GIVEN/WHEN/THEN, Evidence
     - TC INCORRECT → update to reflect current behavior
     - Output: TC mapping list (TC code → test method name)
 
@@ -168,7 +169,7 @@ ALWAYS create and execute tasks in this exact order:
 
 3. **FINAL: Verify bidirectional traceability**
     - Grep test-spec annotations in test project
-    - Grep all `TC-{FEATURE}-{NNN}` in feature doc Section 15 / specs doc
+    - Grep all `TC-{FEATURE}-{NNN}` in feature doc Section 8 / specs doc
     - Verify: every test method → doc TC, every doc TC → test method
     - Flag orphans: tests without doc TCs, doc TCs without matching tests
     - Update `IntegrationTest` field in feature doc TCs with `{File}::{MethodName}`
@@ -189,7 +190,7 @@ ALWAYS create and execute tasks in this exact order:
 
 Creating new `TC-{FEATURE}-{NNN}` codes:
 
-1. Check feature doc first — `docs/business-features/{App}/detailed-features/` has existing codes. New codes must not collide.
+1. Check feature doc first — `docs/specs/{App}/README.{Feature}.md` has existing codes. New codes must not collide.
 2. Decade-based grouping — e.g., OM: 001-004 (CRUD), 011-013 (validation), 021-023 (permissions), 031-033 (events). Find next free decade.
 3. Unavoidable collision → renumber in doc only. Keep test-spec annotation unchanged; add renumbering note in doc.
 4. Feature doc = canonical registry. Test-spec annotation = traceability only, not numbering source.
@@ -258,14 +259,13 @@ For each target, read in parallel:
 
 For each target domain, read:
 
-- `docs/business-features/{App}/detailed-features/` Section 15 (primary source)
-- `docs/specs/{App}/README.md` (secondary reference)
+- `docs/specs/{App}/README.{Feature}.md` Section 8 (primary source)
 
 Build mapping: test case description → TC code (e.g., "create valid order" → TC-OM-001).
 
-- No TC exists → **CREATE IT** in Section 15 before generating test. NOT optional.
+- No TC exists → **CREATE IT** in Section 8 before generating test. NOT optional.
 - TC outdated/incorrect → **UPDATE IT** first.
-- Section 15 missing → run `$tdd-spec` first.
+- Section 8 missing → run `$spec-tests` first.
 
 ## Step 3: Generate Test File
 
@@ -335,13 +335,13 @@ find . -name "*IntegrationTestFixture.*" -type f
 
 ### How to Use for Each Case
 
-**Case: Generate tests from existing test specs (feature docs Section 15)**
+**Case: Generate tests from existing test specs (feature docs Section 8)**
 
 ```
 $integration-test CreateOrderCommand
 ```
 
-→ Reads Section 15 TCs, generates test file with TC annotations
+→ Reads Section 8 TCs, generates test file with TC annotations
 
 **Case: Generate tests from git changes (default)**
 
@@ -349,15 +349,15 @@ $integration-test CreateOrderCommand
 $integration-test
 ```
 
-→ Detects changed command/query files, checks Section 15 for matching TCs, generates tests
+→ Detects changed command/query files, checks Section 8 for matching TCs, generates tests
 
-**Case: Generate tests after $tdd-spec created new TCs**
+**Case: Generate tests after $spec-tests created new TCs**
 
 ```
-$tdd-spec → $integration-test
+$spec-tests → $integration-test
 ```
 
-→ tdd-spec writes TCs to Section 15, then integration-test generates tests from those TCs
+→ spec-tests writes TCs to Section 8, then integration-test generates tests from those TCs
 
 **Case: Review existing tests for quality**
 
@@ -564,8 +564,8 @@ Mode = VERIFY: bidirectional traceability check between test code, test specs, f
 ## Verify Workflow
 
 1. **Collect test methods** — Grep for test spec annotations in test project
-2. **Collect doc TCs** — Read feature doc Section 15 for all TC entries
-3. **Build 3-way matrix** — Test code ↔ specs/ ↔ feature doc Section 15
+2. **Collect doc TCs** — Read feature doc Section 8 for all TC entries
+3. **Build 3-way matrix** — Test code ↔ specs/ ↔ feature doc Section 8
 4. **Identify mismatches** — Orphans, stale references, behavior drift
 5. **Classify mismatches** — Which source is correct?
 6. **Report** — Traceability matrix + recommended fixes
@@ -586,13 +586,13 @@ Mode = VERIFY: bidirectional traceability check between test code, test specs, f
 
 MUST ATTENTION verify ALL of the following:
 
-- Every test method has matching TC in feature doc Section 15
-- Every TC in Section 15 has matching test method (or marked `Status: Untested`)
+- Every test method has matching TC in feature doc Section 8
+- Every TC in Section 8 has matching test method (or marked `Status: Untested`)
 - TC descriptions in docs match what test actually validates
 - Evidence file paths in TCs point to current (not stale) code locations
 - Test annotations match TC IDs (no typos, no orphaned IDs)
 - Priority levels in docs match test categorization
-- `docs/specs/` dashboard is in sync with feature doc Section 15
+- `docs/specs/` dashboard is in sync with feature doc Section 8
 
 ## Verify Report Format
 
@@ -626,7 +626,7 @@ MUST ATTENTION verify ALL of the following:
 
 | TC ID     | Doc Location | Priority | Action                              |
 | --------- | ------------ | -------- | ----------------------------------- |
-| TC-OM-005 | Section 15   | P0       | Generate test via $integration-test |
+| TC-OM-005 | Section 8    | P0       | Generate test via $integration-test |
 
 ## Behavior Mismatches
 
@@ -663,7 +663,7 @@ MUST ATTENTION verify ALL of the following:
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** NOT in workflow? a direct user question — do NOT decide complexity yourself. User decides:
 >
-> 1. **`test-to-integration` workflow** (Recommended) — scout → integration-test → integration-test-review → integration-test-verify → test → docs-update → watzup → workflow-end
+> 1. **`write-integration-test` workflow** (Recommended) — scout → investigate → spec-tests → why-review → review-artifact --type=spec-tests → integration-test → integration-test-review → integration-test-verify → spec-tests [direction=sync] → docs-update → workflow-end → watzup
 > 2. **`$integration-test` directly** — standalone
 
 ---
@@ -689,14 +689,14 @@ MUST ATTENTION verify ALL of the following:
 
 | Skill                        | Relationship                                                                         | When to Call                                                                                               |
 | ---------------------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| `$tdd-spec`                  | **Producer** — TCs in feature doc Section 15 are the source for test generation      | Must run tdd-spec before integration-test (CREATE or UPDATE mode). TCs must exist before generating tests. |
-| `$tdd-spec-review`           | **Upstream reviewer** — validates TC quality before test generation                  | Run before integration-test to ensure TCs have real assertion value                                        |
-| `$tdd-spec [direction=sync]` | **Dashboard** — syncs QA dashboard after TCs are linked to test files                | Run after integration-test to update `IntegrationTest:` fields in dashboard                                |
-| `$feature-docs`              | **TC host** — Section 15 of feature doc is where TCs live                            | If feature doc is missing or Section 15 is empty → run $feature-docs first                                 |
-| `$spec-discovery`            | **Upstream spec** — engineering spec is source of truth for what tests should assert | If tests diverge from spec → check spec-discovery output for correct behavior                              |
-| `$integration-test-review`   | **Reviewer** — 6-gate quality audit of generated tests                               | Always call after generating integration tests                                                             |
+| `$spec-tests`                  | **Producer** — TCs in feature doc Section 8 are the source for test generation       | Must run spec-tests before integration-test (CREATE or UPDATE mode). TCs must exist before generating tests. |
+| `$review-artifact --type=spec-tests`           | **Upstream reviewer** — validates TC quality before test generation                  | Run before integration-test to ensure TCs have real assertion value                                        |
+| `$spec-tests [direction=sync]` | **Sync** — reconciles §8 TCs ↔ integration test code after tests are linked          | Run after integration-test to update the §8 `IntegrationTest:` fields with the covering test links         |
+| `$feature-spec`              | **TC host** — Section 8 of feature doc is where TCs live                             | If feature doc is missing or Section 8 is empty → run $feature-spec first                                  |
+| `$spec-index`                | **Derived index** — regenerable navigation catalog over the Feature Specs (never a source of truth) | After §8 changes, to refresh the bucket `INDEX.md` TC counts                          |
+| `$integration-test-review`   | **Reviewer** — 7-gate quality audit of generated tests + change coverage             | Always call after generating integration tests                                                             |
 | `$integration-test-verify`   | **Runner** — executes tests and reports pass/fail                                    | Always call after integration-test-review clears                                                           |
-| `$docs-update`               | **Orchestrator** — calls tdd-spec sync (Phase 4) with test traceability              | Run for full doc sync after integration test files updated                                                 |
+| `$docs-update`               | **Orchestrator** — calls spec-tests sync (Phase 4) with test traceability              | Run for full doc sync after integration test files updated                                                 |
 
 ## Standalone Chain
 
@@ -705,35 +705,36 @@ MUST ATTENTION verify ALL of the following:
 ```
 integration-test (you are here)
   │
-  ├─ PREREQUISITE: TCs must exist in feature doc Section 15
-  │    [REQUIRED] Verify: docs/business-features/{Module}/README.md Section 15 has TC-{FEATURE}-{NNN} entries
-  │    If empty → run $tdd-spec [CREATE mode] first
+  ├─ PREREQUISITE: TCs must exist in feature doc Section 8
+  │    [REQUIRED] Verify: docs/specs/{Bucket}/README.{Feature}.md Section 8 has TC-{FEATURE}-{NNN} entries
+  │    If empty → run $spec-tests [CREATE mode] first
   │
   ├─ [REQUIRED] → $integration-test-review
-  │     6-gate quality audit: assertion value, data state, repeatability, domain logic, traceability, three-way sync.
-  │     Never skip — Gate 6 (three-way sync) is the only place where spec/code/test conflicts surface.
+  │     7-gate quality audit: assertion value, data state, repeatability, domain logic, traceability, three-way sync, change coverage.
+  │     Never skip — Gate 6 (three-way sync) is the only place where spec/code/test conflicts surface,
+  │     and Gate 7 (change coverage) is the only place where untested changed behavior surfaces.
   │
   ├─ [REQUIRED] → $integration-test-verify
   │     Runs tests and reports pass/fail counts. Never mark complete without real runner output.
   │
-  ├─ [REQUIRED] → $tdd-spec [direction=sync]
-  │     Updates QA dashboard with IntegrationTest: file::method traceability links.
+  ├─ [REQUIRED] → $spec-tests [direction=sync]
+  │     Updates the §8 TCs' IntegrationTest: file::method traceability links.
   │
   ├─ [RECOMMENDED] → $docs-update
   │     Updates feature doc evidence fields and version history if test coverage changed materially.
   │
-  └─ [RECOMMENDED] → $tdd-spec-review
+  └─ [RECOMMENDED] → $review-artifact --type=spec-tests
         Re-run if integration-test-review (Gate 6) flagged TC issues requiring TC edits.
 
 ### Mode-Specific Chains
 
 | Mode | Pre-step | Post-step |
 |------|---------|-----------|
-| from-changes | verify TCs updated (run $tdd-spec UPDATE first) | $integration-test-review → /verify → /sync |
+| from-changes | verify TCs updated (run $spec-tests UPDATE first) | $integration-test-review → /verify → /sync |
 | from-prompt | confirm TC exists for target feature | $integration-test-review → /verify → /sync |
-| review | N/A (read-only) | report findings → $tdd-spec UPDATE if TCs need fixes |
+| review | N/A (read-only) | report findings → $spec-tests UPDATE if TCs need fixes |
 | diagnose | run $test to see failures first | fix identified issue → re-run $integration-test-verify |
-| verify-traceability | N/A (read-only) | if orphaned TCs: $tdd-spec UPDATE → $integration-test [from-prompt] |
+| verify-traceability | N/A (read-only) | if orphaned TCs: $spec-tests UPDATE → $integration-test [from-prompt] |
 ```
 
 > **[IMPORTANT]** task tracking — break ALL work into small tasks BEFORE starting. NEVER skip task creation.
@@ -909,11 +910,11 @@ integration-test (you are here)
 > **Project Reference Docs Gate** — Run after task-tracking bootstrap and before target/source file reads, grep, edits, or analysis. Project docs override generic framework assumptions.
 >
 > 1. Identify scope: file types, domain area, and operation.
-> 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-docs-reference.md`; architecture/new area `project-structure-reference.md`.
-> 3. Read every required doc. If `docs/project-config.json`, the docs index, `lessons.md`, or any task-required reference doc is missing, stop immediately and ask the user to run `$project-config` and `$scan-all`.
+> 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under `docs/specs/`; architecture/new area `project-structure-reference.md`.
+> 3. Read every required doc. If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow lower-level route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.
 > 4. Before target work, state: `Reference docs read: ... | Not applicable: ...`.
 >
-> **Blocked until:** scope evaluated, required docs checked/read, `lessons.md` confirmed, citation emitted.
+> **Ready when:** scope evaluated, required docs checked/read or setup route completed, `lessons.md` confirmed, citation emitted.
 
 <!-- /SYNC:project-reference-docs-guide -->
 
@@ -974,6 +975,7 @@ integration-test (you are here)
 
 - **MANDATORY** After task-tracking bootstrap and before target/source work, read required project-reference docs and cite `Reference docs read: ...`.
 - **MANDATORY** Always include `lessons.md`; project conventions override generic defaults.
+- **MANDATORY** If project config, root instruction files, or any required reference doc is missing, stop and run or ask the user to run `$project-init`.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
 
@@ -1003,7 +1005,7 @@ integration-test (you are here)
 - **MANDATORY IMPORTANT MUST ATTENTION** a direct user question — validate decisions with user. NEVER auto-decide.
 - **MANDATORY IMPORTANT MUST ATTENTION** READ `references/integration-test-patterns.md` BEFORE writing any test
 - **MANDATORY IMPORTANT MUST ATTENTION** NEVER create `Queries/` or `Commands/` folders — organize by domain feature
-- **MANDATORY IMPORTANT MUST ATTENTION** NEVER generate tests without TC annotation — auto-create in Section 15 if missing
+- **MANDATORY IMPORTANT MUST ATTENTION** NEVER generate tests without TC annotation — auto-create in Section 8 if missing
 - **MANDATORY IMPORTANT MUST ATTENTION** NEVER mark done until tests pass via `$integration-test-verify`
 - **MANDATORY IMPORTANT MUST ATTENTION** search 3+ existing patterns, cite `file:line` before modifying anything
 
@@ -1037,17 +1039,14 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 
 ## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
 
-**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. If either file or a required reference doc is missing, stop immediately and ask the user to run the project-config and scan-all skills. Any supported AI tool may execute when this shared context and local docs are available.
+**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. Any supported AI tool may execute when this shared context and local docs are available.
 
-1. **DETECT:** Match prompt against workflow catalog
-2. **ANALYZE:** Find best-match workflow AND evaluate if a custom step combination would fit better
-3. **ASK (REQUIRED FORMAT):** Use a direct user question with this structure unless the user explicitly invoked a workflow/skill and the local protocol treats explicit invocation as confirmation:
-   - Question: "Which workflow do you want to activate?"
-   - Option 1: "Activate **[BestMatch Workflow]** (Recommended)"
-   - Option 2: "Activate custom workflow: **[step1 → step2 → ...]**" (include one-line rationale)
-4. **ACTIVATE (if confirmed):** Call `$workflow-start <workflowId>` for standard; sequence custom steps manually
-5. **CREATE TASKS:** task tracking for ALL workflow steps
-6. **EXECUTE:** Follow each step in sequence
+1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
+2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
+3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
+4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
+6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
 **AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
@@ -1063,7 +1062,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security`/`$lint` catch this?" — Yes → improve review skill instead.
+6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/`$lint` catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
 **[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
 

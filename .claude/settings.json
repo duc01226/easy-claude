@@ -26,6 +26,7 @@
     "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "250000",
     "CLAUDE_CODE_DISABLE_1M_CONTEXT": "0",
     "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1",
+    "CLAUDE_CODE_STOP_HOOK_BLOCK_CAP": "1000",
     "MCP_TIMEOUT": "30000"
   },
   "hooks": {
@@ -148,6 +149,10 @@
           {
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/git-commit-block.cjs",
             "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/doc-sync-gate.cjs",
+            "type": "command"
           }
         ],
         "matcher": "Bash"
@@ -187,6 +192,10 @@
         "hooks": [
           {
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/skill-enforcement.cjs",
+            "type": "command"
+          },
+          {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/agent-files-skill-gate.cjs",
             "type": "command"
           }
         ],
@@ -294,7 +303,7 @@
       {
         "hooks": [
           {
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/feature-docs-context.cjs",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/feature-spec-context.cjs",
             "type": "command"
           }
         ],
@@ -303,7 +312,7 @@
       {
         "hooks": [
           {
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/test-specs-context.cjs",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/doc-sync-gate.cjs",
             "type": "command"
           }
         ],

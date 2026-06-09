@@ -14,7 +14,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { loadProjectConfig, isKnowledgePath } = require('./lib/project-config-loader.cjs');
+const { loadProjectConfig, isKnowledgePath, getSpecDocsPathRegex } = require('./lib/project-config-loader.cjs');
 
 const {
     CODE_PATTERNS: DEDUP_MARKER,
@@ -37,7 +37,7 @@ const E2E_CODE_EXTS = new Set(['.ts', '.tsx', '.js', '.jsx', '.cs', '.feature'])
 const E2E_FILE_RE = /\.(spec|test|cy|e2e)\./i;
 const E2E_FALLBACK_RE = /[\\/](automation|e2e|spec|playwright|cypress)[\\/]/i;
 const INTEG_TEST_PATH_RE = /IntegrationTests?[\\/]/i;
-const FEATURE_DOCS_PATH_RE = /docs[\\/]business-features[\\/]/i;
+const FEATURE_DOCS_PATH_RE = getSpecDocsPathRegex();
 
 // ── Path regexes ────────────────────────────────────────────────────────────
 
@@ -106,7 +106,7 @@ function backendFrontendGuidance(backend, frontend) {
     }
     if (frontend) {
         const fp = config.framework?.frontendPatternsDoc || 'docs/project-reference/frontend-patterns-reference.md';
-        lines.push(`- \`${fp}\` — base classes, PlatformVmStore, effectSimple(), BEM`);
+        lines.push(`- \`${fp}\` — base classes, state-management store, reactive effects, component styling`);
     }
     lines.push('', '> **[ROOT-CAUSE-FIX]** Fix at correct layer (Entity > Service > Handler) — never patch symptoms.', '');
     return lines.join('\n');
@@ -140,7 +140,8 @@ function featureDocsGuidance() {
         '',
         FEATURE_DOCS_DEDUP_MARKER,
         '',
-        'Read: `docs/project-reference/feature-docs-reference.md` — 17-section template, TC-{FEATURE}-{NNN} IDs, Section 15 as canonical TC source.',
+        'Read: `docs/project-reference/feature-spec-reference.md`, `docs/project-reference/spec-system-reference.md`, and `docs/project-reference/spec-principles.md` — fixed spec root, tech-free 8-section Feature Spec, TC-{FEATURE}-{NNN} IDs, Section 8 as canonical TC source, and spec quality gates.',
+        'For behavior or public-contract changes, also read `docs/project-reference/workflow-spec-test-code-cycle-reference.md` before syncing specs/tests/code.',
         ''
     ].join('\n');
 }

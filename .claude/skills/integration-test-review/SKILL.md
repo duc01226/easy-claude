@@ -1,7 +1,7 @@
 ---
 name: integration-test-review
-version: 1.1.0
-description: '[Code Quality] Use when you need to review integration tests for assertion quality, bug protection, repeatability, and test-spec traceability.'
+version: 1.2.0
+description: '[Code Quality] Use when you need to review integration tests for assertion quality, bug protection, repeatability, and test-spec traceability — AND verify the review target (changed production code) has test coverage (integration-first) with spec↔test↔code alignment.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -15,16 +15,20 @@ description: '[Code Quality] Use when you need to review integration tests for a
 
 ## Quick Summary
 
-**Goal:** Review integration tests for real bug-protection value, correct data assertions, infinite repeatability, spec alignment.
+**Goal:** Review integration tests for real bug-protection value, correct data assertions, infinite repeatability, spec alignment — AND verify every behavior change in the review target has test coverage (integration-first, unit fallback) aligned with spec docs.
 
-**Final Purpose:** Ensure integration tests protect real business behavior with repeatable data-state assertions aligned to specs and implementation.
+**Final Purpose:** Ensure the review target (changed production code) is covered by tests that protect real business behavior with repeatable data-state assertions, and that specs ↔ tests ↔ code stay aligned (spec-driven development).
 
-**Scope:** All test files in uncommitted changes (default), or user-specified scope.
+**Scope:** The FULL change set — changed production code AND changed test files — from uncommitted changes (default), user-specified files, or a user-specified diff (branch/PR). The review target is never "just the test files".
 
-**Workflow:** Phase 0 Detect → Collect → 6-Gate Review → Spec Cross-Check → Report → validate findings → fix validated issues → full re-review after fixes → Build & verify → If fail: investigate + fix plan
+**Workflow:** Phase 0 Detect → Collect → Coverage Map (Gate 7) → 7-Gate Review → Spec Cross-Check → Report → validate findings → fix validated issues (including writing missing tests) → full re-review after fixes → Build & verify → If fail: investigate + fix plan
 
 **Non-negotiable rules:**
 
+- MUST collect BOTH changed production code AND changed test files — coverage of the change is part of the review, not an optional extra
+- MUST verify every behavior-changing production change maps to a covering test — integration test FIRST; unit test ONLY with recorded justification (Gate 7)
+- MUST treat an uncovered changed behavior as a HIGH finding minimum — fix by writing the missing test in Phase 5, not just reporting
+- MUST verify spec↔test↔code alignment for changed code, not only for existing tests — a changed behavior with no TC in spec docs is a spec gap finding
 - MUST read handler/service source BEFORE judging any test assertions
 - MUST flag smoke-only tests (no-exception-only checks) as FAIL
 - MUST flag DI-resolution-only tests (resolve + not-null) as FAIL — NOT integration tests
@@ -64,19 +68,24 @@ below — if a downstream rule would raise change cost, this principle wins.
 
 Classify BEFORE any gate review. Route wrong → waste all effort.
 
-| Signal                  | Classification      | Action                                                         |
-| ----------------------- | ------------------- | -------------------------------------------------------------- |
-| No user-specified files | Uncommitted changes | Run `git diff --name-only` to collect scope                    |
-| User specifies files    | Explicit scope      | Use provided list directly                                     |
-| 10+ test files          | Large scope         | Parallel sub-agents grouped by module                          |
-| 1-9 test files          | Normal scope        | Single review pass                                             |
-| 0 test files in changes | No tests            | Report gap — ask user for explicit scope via `AskUserQuestion` |
+| Signal                                       | Classification      | Action                                                                                                       |
+| -------------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------ |
+| No user-specified files                      | Uncommitted changes | Run `git diff --name-only` (staged + unstaged) to collect scope — BOTH production code AND test files         |
+| User specifies files/diff (branch, PR, etc.) | Explicit scope      | Use provided list/diff directly — still split into production vs test files                                   |
+| 10+ test files                               | Large scope         | Parallel sub-agents grouped by module                                                                        |
+| 1-9 test files                               | Normal scope        | Single review pass                                                                                           |
+| 0 test files BUT production code changed     | Coverage-gap review | Gate 7 IS the review — map every changed behavior to existing tests; uncovered behavior = finding. Do NOT exit |
+| 0 changes at all                             | Empty target        | Ask user for explicit scope via `AskUserQuestion`                                                            |
+
+**The review target is the CHANGE, not the test files.** Changed test files are reviewed for quality (Gates 1-6); changed production files are checked for coverage and spec alignment (Gate 7). Both halves are mandatory.
 
 **Search for test reference docs** — NEVER hardcode paths. Grep for `integration-test-reference`, `test-patterns`, `integration-test-guide` near changed test files to discover project-specific conventions before starting gate review.
 
 ---
 
-## The 6 Quality Gates
+## The 7 Quality Gates
+
+> Gates 1-6 apply per changed/target TEST file. Gate 7 applies to the CHANGE SET — every behavior-changing production file must map to a covering test and a spec TC.
 
 ### Gate 1: Assertion Value — "Would this catch the bug?"
 
@@ -152,7 +161,7 @@ Hardest gate. Identify discrepancy, classify using source-of-truth hierarchy —
 
 | Priority    | Source                                                   | Why                                                                |
 | ----------- | -------------------------------------------------------- | ------------------------------------------------------------------ |
-| 1 (Highest) | Feature docs (`docs/business-features/…/Section 15 TCs`) | Business intent — defines WHAT must happen                         |
+| 1 (Highest) | Feature docs (`docs/specs/…/Section 8 TCs`)  | Business intent — defines WHAT must happen                         |
 | 2           | Test-spec docs (`docs/specs/`)                           | TC scenarios derived from feature docs — defines HOW to verify     |
 | 3           | Implementation code (handler/entity/service)             | What WAS built — may reflect intentional evolution not yet in docs |
 | 4 (Lowest)  | Integration test code                                    | What IS being tested — most likely to be wrong or stale            |
@@ -180,7 +189,7 @@ Hardest gate. Identify discrepancy, classify using source-of-truth hierarchy —
 
 #### Verify Each Source
 
-1. **Feature doc:** Read Section 15 — scenario title, preconditions, steps, expected results
+1. **Feature doc:** Read Section 8 — scenario title, preconditions, steps, expected results
 2. **Test-spec doc:** Find same TC — Planned/Implemented status and described scenario
 3. **Implementation code:** Read handler/entity/service — fields written, events fired, validation rules
 4. **Test code:** Read test method — arrange, execute, assert
@@ -189,33 +198,77 @@ Compare each pair with `file:line` evidence for each source.
 
 **PASS:** All three agree. **WARN:** Minor wording, same semantic. **FAIL:** Semantic disagreement on field/rule/outcome. **ESCALATE:** All three differ and evidence cannot resolve.
 
+### Gate 7: Change Coverage — "Is every changed behavior tested AND specced?"
+
+> **Think:** For each behavior-changing production file in the review target, which test would FAIL if this change were broken? If NONE → coverage gap. Which spec TC describes this behavior? If NONE → spec gap.
+
+This gate makes the skill verify the REVIEW TARGET has coverage — not merely review tests that happen to exist.
+
+**Protocol:**
+
+1. **Collect changed production files** from the review target (Phase 0 scope): commands, queries, handlers, entities, services, event handlers, consumers, controllers, frontend services/stores with business logic.
+2. **Filter to behavior-changing files.** Exclude: migrations (one-time execution paths), generated code, pure renames/formatting, config-only, DI registration-only changes. Record each exclusion with reason.
+3. **Find covering tests** per changed behavior — use graph (`query tests_for <fn>`, `trace <file> --direction both`) plus grep for the handler/class name under test directories. A test COVERS a change only if it exercises the changed path and asserts the changed outcome — read the test; name match alone is NOT coverage.
+4. **Apply test-type priority:** integration test FIRST (subcutaneous CQRS through real DI, data-state assertions). Unit test is an acceptable fallback ONLY when integration coverage is infeasible (pure function/calculation logic, no observable data state, no DI path) — record the justification per fallback.
+5. **Check spec alignment for the change:** each changed behavior must map to a TC in spec docs (feature doc Section 8 / test-spec docs). New behavior with no TC, or changed behavior whose TC still describes the OLD behavior → spec gap (spec-driven development violation).
+
+**Coverage Mapping Table (MANDATORY output):**
+
+| Changed File / Behavior | Spec TC | Covering Test | Test Type | Verdict |
+| ----------------------- | ------- | ------------- | --------- | ------- |
+| {file:line — behavior}  | TC-X-NNN / MISSING | {test file:method} / NONE | integration / unit (justified) / — | COVERED / COVERED-UNIT / GAP / SPEC-GAP |
+
+**Verdicts:**
+
+- **COVERED** — integration test exercises the changed path with data-state assertions
+- **COVERED-UNIT** — unit test covers it, integration infeasible, justification recorded
+- **GAP (FAIL)** — no test would fail if the change broke. Severity: HIGH minimum; CRITICAL when the change touches authorization, money, or data integrity. Fix in Phase 5 by WRITING the missing test (integration-first) — reporting alone does not clear this gate
+- **SPEC-GAP (FAIL)** — behavior has no TC or a stale TC in spec docs. Fix via `/spec-tests` UPDATE (and `/feature-spec` when business rules changed)
+
+**FAIL:**
+
+- Changed handler/command/entity rule with zero covering test
+- Unit test substituted where an integration test is feasible, with no justification
+- Test exists but does not assert the changed outcome (stale coverage counted as coverage)
+- New/changed behavior absent from spec docs, or TC describing superseded behavior
+
+**Explicit user waiver** (recorded verbatim in the report with the user's reason) is the ONLY alternative to closing a GAP.
+
 ---
 
 ## Review Protocol (9 Phases)
 
 Use `TaskCreate` for EACH phase before starting.
 
-**Phase 1 — Collect:** Categorize changed files: new (full review), modified (changed methods only), new projects (infra + samples).
+**Phase 1 — Collect:** Split the change set: production files (Gate 7 coverage targets) vs test files. Categorize test files: new (full review), modified (changed methods only), new projects (infra + samples). Categorize production files: behavior-changing vs excluded (with reason).
 
-**Phase 2 — Gate Review:** Per file, apply all 6 gates. Record per-file verdict table:
+**Phase 2 — Gate Review:** Per test file, apply Gates 1-6. Apply Gate 7 once across the change set and produce the Coverage Mapping Table. Record per-file verdict table:
 
-| Gate               | Verdict                 | Evidence    |
-| ------------------ | ----------------------- | ----------- |
-| 1. Assertion Value | PASS/FAIL               | {file:line} |
-| 2. Data State      | PASS/FAIL               | {file:line} |
-| 3. Repeatability   | PASS/FAIL               | {file:line} |
-| 4. Domain Logic    | PASS/FAIL               | {file:line} |
-| 5. Traceability    | PASS/WARN               | {file:line} |
-| 6. Three-Way Sync  | PASS/WARN/FAIL/ESCALATE | {file:line} |
+| Gate                              | Verdict                 | Evidence    |
+| --------------------------------- | ----------------------- | ----------- |
+| 1. Assertion Value                | PASS/FAIL               | {file:line} |
+| 2. Data State                     | PASS/FAIL               | {file:line} |
+| 3. Repeatability                  | PASS/FAIL               | {file:line} |
+| 4. Domain Logic                   | PASS/FAIL               | {file:line} |
+| 5. Traceability                   | PASS/WARN               | {file:line} |
+| 6. Three-Way Sync                 | PASS/WARN/FAIL/ESCALATE | {file:line} |
+| 7. Change Coverage (per change set) | COVERED/COVERED-UNIT/GAP/SPEC-GAP | {coverage mapping table} |
 
-**Phase 3 — Spec Cross-Check + Three-Way Diff:** For each TC ID in code:
+**Phase 3 — Spec Cross-Check + Three-Way Diff:** Two directions — from tests AND from changed code.
 
-1. Verify TC entry exists in both `docs/business-features/` (Section 15) and `docs/specs/`
+For each TC ID in code:
+
+1. Verify TC entry exists in both `docs/specs/` (Section 8) and `docs/specs/`
 2. Read what TC describes in each doc
 3. Read what implementation code actually does
 4. Read what test asserts
 5. Classify conflict pattern (Gate 6 table) and record action
 6. Flag gaps both directions: TC in code but not in docs, or "Implemented" TC in docs but no test found
+
+For each behavior-changing production file in the review target (reverse direction — spec-driven development check):
+
+7. Verify a TC exists describing the changed behavior; if the TC still describes the OLD behavior, flag it as stale (route to `/spec-tests` UPDATE)
+8. New behavior with no TC anywhere → SPEC-GAP finding (Gate 7); recommend `/spec-tests` (and `/feature-spec` when business rules changed)
 
 **Phase 4 — Initial Report:** Write to `plans/reports/integration-test-review-{date}-{slug}.md`
 
@@ -223,9 +276,10 @@ Use `TaskCreate` for EACH phase before starting.
 
 1. Prioritize: CRITICAL → HIGH → MEDIUM
 2. Per fix: read handler source, understand domain logic, write/fix assertion
-3. NEVER weaken assertions to make tests pass — fix root cause (timing, data, setup) instead
-4. Re-read changed files to verify fix correctness
-5. Record each fix with `file:line` under `## Fixes Applied`
+3. **Gate 7 GAP fixes:** WRITE the missing test — integration test first (route through `/integration-test` patterns); unit test only with recorded justification. SPEC-GAP fixes: run `/spec-tests` UPDATE to add/correct the TC before or alongside writing the test
+4. NEVER weaken assertions to make tests pass — fix root cause (timing, data, setup) instead
+5. Re-read changed files to verify fix correctness
+6. Record each fix with `file:line` under `## Fixes Applied`
 
 **Phase 6 — Validated Fix + Full Re-Review (MANDATORY when fixes are applied):**
 
@@ -234,7 +288,7 @@ Do not spawn a fresh reviewer to re-review the same findings before validation/f
 1. Copy Agent call shape from `SYNC:review-protocol-injection` template verbatim
 2. Set `subagent_type: "code-reviewer"`
 3. Embed full verbatim body of 9 SYNC blocks (all present inline in this skill file): `SYNC:evidence-based-reasoning`, `SYNC:bug-detection`, `SYNC:design-patterns-quality`, `SYNC:logic-and-intention-review`, `SYNC:test-spec-verification`, `SYNC:fix-layer-accountability`, `SYNC:rationalization-prevention`, `SYNC:graph-assisted-investigation`, `SYNC:understand-code-first`
-4. Task field: `"Run a full fresh integration-test review pass over {file-list} after validated fixes were applied. Review against 6 quality gates: assertion value, data state, infinite repeatability, domain logic, test-spec traceability, three-way sync. Read handler source AND feature docs before judging assertions. Flag smoke-only, existence-only, dead assertions, and repository-created invalid test data as FAIL. Source-of-truth hierarchy: feature docs > test-spec docs > implementation code > test code. Classify every disagreement as: wrong test, code bug, stale docs, or escalate (three-way conflict)."`
+4. Task field: `"Run a full fresh integration-test review pass over {file-list} after validated fixes were applied. Review against 7 quality gates: assertion value, data state, infinite repeatability, domain logic, test-spec traceability, three-way sync, change coverage. Read handler source AND feature docs before judging assertions. Flag smoke-only, existence-only, dead assertions, and repository-created invalid test data as FAIL. Gate 7: map every behavior-changing production file in {changed-production-file-list} to a covering test (integration-first; unit fallback requires justification) AND a spec TC — uncovered behavior is a HIGH finding minimum, missing/stale TC is a SPEC-GAP finding. Source-of-truth hierarchy: feature docs > test-spec docs > implementation code > test code. Classify every disagreement as: wrong test, code bug, stale docs, or escalate (three-way conflict)."`
 5. Target Files: explicit file list (never pass inline contents)
 6. Reference Docs: include `docs/project-reference/integration-test-reference.md`
 7. Report path: `plans/reports/integration-test-review-rerun{N}-{date}.md`
@@ -263,7 +317,7 @@ After sub-agents return:
 5. **Environment blockers:** Document as `BLOCKED — requires running system`; do NOT mark as test failures
 6. Append under `## Failure Investigation`
 
-**10+ files:** Parallel sub-agents grouped by module. Each gets file list + 6 gates + handler paths + feature doc paths. Consolidate into single report.
+**10+ files:** Parallel sub-agents grouped by module. Each gets file list + 7 gates + handler paths + feature doc paths + the changed-production-file list for its module (Gate 7). Consolidate into single report — the orchestrator merges per-module coverage tables into ONE Coverage Mapping Table covering the whole change set.
 
 ---
 
@@ -285,6 +339,10 @@ After sub-agents return:
 | **Test fixed to match broken code**                                  | Hides the bug — docs still say it's wrong            |
 | **Self-resolved three-way conflict**                                 | AI picked winner without evidence — silent lie       |
 | **Stale docs assumed without two-source proof**                      | Docs may be right; code may be the bug               |
+| **Test-files-only scope** (production changes ignored)               | Reviews tests that exist, misses behavior with none  |
+| **Name-match counted as coverage** (test never reads changed path)   | Stale coverage — test passes while change is broken  |
+| **Unjustified unit-test substitution**                               | Skips DI/data-state verification integration gives   |
+| **Spec-less change** (no TC for new/changed behavior)                | Breaks spec-driven development — specs drift silently |
 
 ---
 
@@ -292,7 +350,7 @@ After sub-agents return:
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If NOT already in a workflow, MUST use `AskUserQuestion` to ask user:
 >
-> 1. **Activate `write-integration-test` workflow** (Recommended) — scout → investigate → tdd-spec → tdd-spec-review → integration-test → integration-test-review → integration-test-verify → tdd-spec [direction=sync] → docs-update → watzup → workflow-end
+> 1. **Activate `write-integration-test` workflow** (Recommended) — scout → investigate → spec-tests → review-artifact --type=spec-tests → integration-test → integration-test-review → integration-test-verify → spec-tests [direction=sync] → docs-update → workflow-end → watzup
 > 2. **Execute `/integration-test-review` directly** — run standalone
 
 ---
@@ -335,11 +393,11 @@ After sub-agents return:
 | Skill                      | Relationship                                                           | When to Call                                                                   |
 | -------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | `/integration-test`        | **Producer** — generates tests this skill reviews                      | Always preceded by /integration-test                                           |
-| `/integration-test-verify` | **Successor** — runs tests after review clears                         | Call after review passes all 6 gates                                           |
-| `/tdd-spec`                | **TC source** — Gate 5 checks TCs exist in feature doc Section 15      | If Gate 5 fails (orphaned test) → run /tdd-spec UPDATE                         |
-| `/spec-discovery`          | **Spec authority** — Gate 6 compares test code vs spec bundle          | If Gate 6 finds conflict: spec is authority                                    |
-| `/feature-docs`            | **Business doc** — Gate 6 compares tests vs feature doc business rules | If Gate 6 finds conflict: check feature-docs vs spec-discovery alignment first |
-| `/docs-update`             | **Orchestrator** — includes tdd-spec sync                              | Call when Gate 6 reveals doc staleness                                         |
+| `/integration-test-verify` | **Successor** — runs tests after review clears                         | Call after review passes all 7 gates                                           |
+| `/spec-tests`                | **TC source** — Gate 5 checks TCs exist in feature doc Section 8       | If Gate 5 fails (orphaned test) → run /spec-tests UPDATE                         |
+| `/spec-index`              | **Spec authority** — Gate 6 compares test code vs spec bundle          | If Gate 6 finds conflict: spec is authority                                    |
+| `/feature-spec`            | **Business doc** — Gate 6 compares tests vs feature doc business rules | If Gate 6 finds conflict: check feature-spec vs spec-index alignment first |
+| `/docs-update`             | **Orchestrator** — includes spec-tests sync                              | Call when Gate 6 reveals doc staleness                                         |
 
 ## Standalone Chain
 
@@ -348,32 +406,44 @@ After sub-agents return:
 ```
 integration-test-review (you are here)
   │
-  ├─ PREREQUISITE: integration tests must already exist
-  │    [REQUIRED] Verify: IntegrationTests/ directory has test files with [Trait("TestSpec", ...)] annotations
+  ├─ SCOPE: the full change set — changed production code AND changed test files
+  │    Tests may NOT exist yet for changed code — that is a Gate 7 finding, not an exit condition
   │
   ├─ Gate 1-5 findings → fix tests (re-run integration-test if test code needs regeneration)
+  │
+  ├─ Gate 7 (Change Coverage) gap resolution:
+  │    │
+  │    ├─ GAP (changed behavior, no covering test):
+  │    │    → Write the missing test — integration-first via /integration-test
+  │    │    → Unit test fallback ONLY when integration infeasible — record justification
+  │    │    → User waiver (verbatim, with reason) is the only alternative
+  │    │
+  │    └─ SPEC-GAP (changed behavior, no/stale TC in spec docs):
+  │         → /spec-tests UPDATE to add or correct the TC
+  │         → /feature-spec [update] when business rules changed
+  │         → Then link the new/updated TC to the covering test (Gate 5)
   │
   ├─ Gate 6 (Three-Way Sync) conflict resolution:
   │    │
   │    ├─ Test code ≠ spec (feature doc says behavior A, test asserts behavior B):
   │    │    → Determine: spec authoritative or test authoritative?
   │    │    → If SPEC is correct: fix test → re-run /integration-test
-  │    │    → If TEST reflects correct new behavior (spec stale): /spec-discovery [update] → /feature-docs [update] → /tdd-spec [UPDATE] → update test
+  │    │    → If TEST reflects correct new behavior (spec stale): /feature-spec [update] → /spec-tests [UPDATE] → update test
   │    │
   │    ├─ Test code ≠ implementation (test asserts X, code does Y):
-  │    │    → If CODE is correct: fix test → /tdd-spec UPDATE (update TC to match code's correct behavior)
+  │    │    → If CODE is correct: fix test → /spec-tests UPDATE (update TC to match code's correct behavior)
   │    │    → If TEST is correct (code bug): do NOT update test → fix code → /prove-fix → re-run tests
   │    │
-  │    └─ Feature doc ≠ spec bundle (business doc says A, engineering spec says B):
-  │         → Feature doc has higher authority for business rules
-  │         → Run /spec-discovery [update] to reconcile engineering spec with business doc
+  │    └─ Derived index ≠ Feature Spec (the bucket INDEX.md / ERD disagrees with the canonical §1-8):
+  │         → The Feature Spec is canonical; the index is regenerable, never authoritative
+  │         → Run /spec-index to re-derive the index from the specs
   │         → Do NOT self-resolve — escalate to user if ambiguous
   │
   ├─ [REQUIRED] → /integration-test-verify
   │     After all fixes, run actual tests to confirm all gates pass.
   │
-  ├─ [REQUIRED] → /tdd-spec [direction=sync]
-  │     If TCs were updated (Gate 5/6 fix), sync QA dashboard.
+  ├─ [REQUIRED] → /spec-tests [direction=sync]
+  │     If TCs were updated (Gate 5/6 fix), reconcile §8 TCs ↔ integration test code.
   │
   └─ [RECOMMENDED] → /docs-update
         If Gate 6 revealed doc staleness, /docs-update runs full chain to update all layers.
@@ -692,11 +762,11 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > **Project Reference Docs Gate** — Run after task-tracking bootstrap and before target/source file reads, grep, edits, or analysis. Project docs override generic framework assumptions.
 >
 > 1. Identify scope: file types, domain area, and operation.
-> 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-docs-reference.md`; architecture/new area `project-structure-reference.md`.
-> 3. Read every required doc. If `docs/project-config.json`, the docs index, `lessons.md`, or any task-required reference doc is missing, stop immediately and ask the user to run `/project-config` and `/scan-all`.
+> 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under `docs/specs/`; architecture/new area `project-structure-reference.md`.
+> 3. Read every required doc. If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `/project-init` or the narrow lower-level route (`/project-config`, `/docs-init`, `/scan-all`, `/scan --target=<key>`, `/claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `/sync-codex`; do not auto-run it.
 > 4. Before target work, state: `Reference docs read: ... | Not applicable: ...`.
 >
-> **Blocked until:** scope evaluated, required docs checked/read, `lessons.md` confirmed, citation emitted.
+> **Ready when:** scope evaluated, required docs checked/read or setup route completed, `lessons.md` confirmed, citation emitted.
 
 <!-- /SYNC:project-reference-docs-guide -->
 
@@ -737,6 +807,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 - **MANDATORY** After task-tracking bootstrap and before target/source work, read required project-reference docs and cite `Reference docs read: ...`.
 - **MANDATORY** Always include `lessons.md`; project conventions override generic defaults.
+- **MANDATORY** If project config, root instruction files, or any required reference doc is missing, stop and run or ask the user to run `/project-init`.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
 
@@ -760,8 +831,11 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Final Purpose:** Ensure integration tests protect real business behavior with repeatable data-state assertions aligned to specs and implementation.
+**IMPORTANT MUST ATTENTION Final Purpose:** Ensure the review target (changed production code) has test coverage (integration-first) and that integration tests protect real business behavior with repeatable data-state assertions aligned to specs and implementation.
 - **MANDATORY IMPORTANT MUST ATTENTION** use `TaskCreate` for ALL phases BEFORE starting
+- **MANDATORY IMPORTANT MUST ATTENTION** scope = the CHANGE SET (production + tests) — never review only the test files; Gate 7 coverage mapping is NOT optional
+- **MANDATORY IMPORTANT MUST ATTENTION** every behavior-changing production change needs a covering test — integration-first; unit fallback requires recorded justification; GAP = HIGH minimum, fixed by WRITING the test
+- **MANDATORY IMPORTANT MUST ATTENTION** spec-driven alignment runs BOTH directions — from TCs in tests AND from changed code back to spec docs; missing/stale TC = SPEC-GAP finding
 - **MANDATORY IMPORTANT MUST ATTENTION** test that cannot fail is decoration — if it can't catch the protected business rule/invariant breaking, delete or fix it
 - **MANDATORY IMPORTANT MUST ATTENTION** read handler source BEFORE judging assertions — cannot review without understanding
 - **MANDATORY IMPORTANT MUST ATTENTION** tests MUST be infinitely repeatable — unique data per run, no cleanup, no rollback
@@ -789,7 +863,10 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 | "Tests were passing before"               | Passing ≠ correct. Dead assertions always pass.                   |
 | "Conflict is obvious, I can self-resolve" | Three-way conflict requires escalation. NEVER self-resolve.       |
 | "Phase 6/7/8 optional for small fixes"    | No exceptions. Every validated fix requires full re-review + build verification. |
-| "0 test files, nothing to review"         | Report gap and ask user — do NOT silently exit.                   |
+| "0 test files, nothing to review"         | Production changes without tests ARE the review — run Gate 7 coverage mapping. |
+| "A unit test is enough here"              | Integration-first. Unit fallback requires recorded infeasibility justification. |
+| "Test with matching name exists = covered" | Read it. Coverage means it exercises the changed path and asserts the changed outcome. |
+| "Specs can be updated later"              | Spec-driven development: missing/stale TC is a SPEC-GAP finding, fixed in this review. |
 
 ---
 

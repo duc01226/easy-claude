@@ -81,7 +81,7 @@ Save ALL changed files AND related files to `## Comprehensive File List` with:
 
 For each file, document in `## Knowledge Graph`:
 
-- All standard fields from feature-implementation skill
+- All standard fields from feature skill
 - Focus on change-specific context
 
 ### PHASE 1C: OVERALL ANALYSIS

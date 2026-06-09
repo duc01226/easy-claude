@@ -25,12 +25,14 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 - `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
 - `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
 
-**Missing-file hard stop:** If `docs/project-config.json`, the docs index, `lessons.md`, or any task-required reference doc is missing, stop immediately and ask the user to run `$project-config` and `$scan-all`.
+**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.
 
 **Situation-based docs:**
 - Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`, `project-structure-reference.md`
 - Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md`
-- Spec/test-case planning or TC mapping: `feature-docs-reference.md`
+- Spec authoring, `docs/specs/` pathing, or TC format: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`
+- Behavior/public-contract changes or spec-test-code sync: `workflow-spec-test-code-cycle-reference.md` plus the spec docs above
+- Derived spec indexes/ERDs/reimplementation guides: `spec-system-reference.md` and source Feature Specs under `docs/specs/`
 - Integration test implementation/review: `integration-test-reference.md`
 - E2E test implementation/review: `e2e-test-reference.md`
 - Code review/audit work: `code-review-rules.md` plus domain docs above based on changed files
@@ -40,7 +42,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** [Workflow] Trigger Idea to PBI workflow — capture or review idea/artifact, optional handoff, refine to PBI, validate design rationale, create stories, generate TDD test specs, challenge review, DoR gate, mockup, prioritize.
+**Goal:** [Workflow] Trigger Idea to PBI workflow — capture or review idea/artifact, refine to PBI, validate design rationale, create stories, generate TDD test specs, challenge review, DoR gate, mockup, prioritize.
 
 **Workflow:**
 
@@ -86,13 +88,13 @@ After confirming the workflow, present the full step list and let the user desel
 - [ ] PO → BA handoff (handoff)                    — CONDITIONAL
 - [x] Refine to PBI (refine)
 - [x] Refinement rationale review (why-review)
-- [x] PBI review (refine-review)
+- [x] PBI review (review-artifact --type=pbi)
 - [x] User stories (story)
 - [x] Story rationale review (why-review)
-- [x] Story review (story-review)
-- [x] Test specifications (tdd-spec)
+- [x] Story review (review-artifact --type=story)
+- [x] Test specifications (spec-tests)
 - [x] Test-spec rationale review (why-review)
-- [x] Test specification review (tdd-spec-review)
+- [x] Test specification review (review-artifact --type=spec-tests)
 - [x] Dev BA PIC challenge (pbi-challenge)
 - [x] Definition of Ready gate (dor-gate)
 - [x] PBI HTML mock-up (pbi-mockup)                — CONDITIONAL
@@ -110,13 +112,13 @@ Mark skipped steps as completed immediately.
 Task tracking: "Idea capture"
 Task tracking: "Refine to PBI"
 Task tracking: "Refinement rationale review (why-review after refine)"
-Task tracking: "PBI review (refine-review)"
+Task tracking: "PBI review (review-artifact --type=pbi)"
 Task tracking: "User stories (story)"
 Task tracking: "Story rationale review (why-review after story)"
 Task tracking: "Story review"
-Task tracking: "Test specifications (tdd-spec)"
-Task tracking: "Test-spec rationale review (why-review after tdd-spec)"
-Task tracking: "Test specification review (tdd-spec-review)"
+Task tracking: "Test specifications (spec-tests)"
+Task tracking: "Test-spec rationale review (why-review after spec-tests)"
+Task tracking: "Test specification review (review-artifact --type=spec-tests)"
 Task tracking: "Dev BA PIC challenge"
 Task tracking: "Definition of Ready gate"
 Task tracking: "PBI HTML mock-up" [if UI]
@@ -133,7 +135,7 @@ This is the adversarial design rationale check. Purpose: validate the **WHY** of
 
 The workflow contains repeated `$why-review` gates after the non-review artifact steps. Use purpose-specific labels in sequence: refinement rationale, story rationale, and test-spec rationale. Do not deduplicate them.
 
-> The standalone gate after `refine-review` is intentionally omitted: `refine-review` (like every review skill) already self-invokes `$why-review --validate-findings` as an internal Findings Validation Gate, so a separate why-review step right after it would be duplicate work.
+> The standalone gate after `review-artifact --type=pbi` is intentionally omitted: `review-artifact --type=pbi` (like every review skill) already self-invokes `$why-review --validate-findings` as an internal Findings Validation Gate, so a separate why-review step right after it would be duplicate work.
 
 **Challenge prompts:**
 
@@ -151,18 +153,18 @@ The workflow contains repeated `$why-review` gates after the non-review artifact
 | WARN   | Document risk, proceed with user acknowledgment |
 | FAIL   | Revise PBI in `$refine` before continuing       |
 
-### 4. TDD-Spec Gate (After story-review, Before pbi-challenge)
+### 4. TDD-Spec Gate (After review-artifact --type=story, Before pbi-challenge)
 
 Generate and review test specifications before challenge and DoR gates so reviewers evaluate a testable PBI.
 
-AI-generated TC drafts are reference-only until `$tdd-spec-review`, `$pbi-challenge`, and `$dor-gate` accept them for delivery planning.
+AI-generated TC drafts are reference-only until `$review-artifact --type=spec-tests`, `$pbi-challenge`, and `$dor-gate` accept them for delivery planning.
 
 **Output requirements:**
 
 - Map material acceptance criteria and user stories to TC IDs
-- Route planned TC IDs to Feature doc Section 15 through `$tdd-spec`; `$docs-update` later verifies feature docs and dashboard sync.
+- Route planned TC IDs to Feature doc Section 8 through `$spec-tests`; `$docs-update` later verifies feature docs and §8 TC ↔ integration test code sync.
 - Cover happy path, validation failure, authorization/permission, and important edge cases where applicable
-- Run `$tdd-spec-review` before `$pbi-challenge`
+- Run `$review-artifact --type=spec-tests` before `$pbi-challenge`
 
 ### 5. PBI Output Format
 
@@ -187,7 +189,7 @@ Each PBI artifact must contain:
 | Idea           | `team-artifacts/ideas/{YYMMDD}-{role}-idea-{slug}.md` |
 | PBI            | `team-artifacts/pbis/{YYMMDD}-pbi-{slug}.md`          |
 | Stories        | Added to PBI artifact                                 |
-| Test specs     | Feature doc Section 15 / docs/specs dashboard sync    |
+| Test specs     | Feature doc Section 8 (canonical TC registry)         |
 | DoR result     | Added to PBI artifact                                 |
 | Mockup         | HTML mock-up file saved beside PBI artifact           |
 | Prioritization | `team-artifacts/backlog/{YYMMDD}-backlog-update.md`   |
@@ -202,39 +204,37 @@ Write output IMMEDIATELY after each step — never batch across steps.
 | Step               | Skip When                             |
 | ------------------ | ------------------------------------- |
 | `$review-artifact` | No existing artifact — raw idea input |
-| `$handoff`         | No formal PO→BA handoff needed        |
 | `$pbi-mockup`      | Backend-only PBI — no UI changes      |
 
 ---
 
 ### 8. Near-Final Documentation Synchronization
 
-Run `$docs-update` after `$prioritize` and before `$watzup`.
+Run `$docs-update` after `$prioritize` and before `$workflow-end`.
 
 Purpose:
 
 - Sync refined PBI/story outputs into business feature docs where applicable.
-- Sync feature doc Section 15 test specifications and `docs/specs/` dashboards after `$tdd-spec-review`.
+- Sync feature doc Section 8 test specifications and `docs/specs/` dashboards after `$review-artifact --type=spec-tests`.
 - Verify specs, feature docs, and TDD/spec docs do not drift before workflow closure.
 - Record skipped sub-phases explicitly when no impacted docs exist.
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $idea -> $review-artifact -> $handoff -> $refine -> $why-review -> $refine-review -> $story -> $why-review -> $story-review -> $tdd-spec -> $why-review -> $tdd-spec-review -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $prioritize -> $docs-update -> $watzup -> $workflow-end
+**IMPORTANT MANDATORY Steps:** $idea -> $review-artifact -> $refine -> $why-review -> $review-artifact --type=pbi -> $story -> $why-review -> $review-artifact --type=story -> $spec-tests -> $why-review -> $review-artifact --type=spec-tests -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $prioritize -> $docs-update -> $workflow-end -> $watzup
 
-**IMPORTANT MANDATORY Steps:** $idea -> $review-artifact -> $handoff -> $refine -> $why-review -> $refine-review -> $story -> $why-review -> $story-review -> $tdd-spec -> $why-review -> $tdd-spec-review -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $prioritize -> $docs-update -> $watzup -> $workflow-end
+**IMPORTANT MANDATORY Steps:** $idea -> $review-artifact -> $refine -> $why-review -> $review-artifact --type=pbi -> $story -> $why-review -> $review-artifact --type=story -> $spec-tests -> $why-review -> $review-artifact --type=spec-tests -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $prioritize -> $docs-update -> $workflow-end -> $watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its skill invocation — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
 Activate the `idea-to-pbi` workflow. Run `$workflow-start idea-to-pbi` with the user's prompt as context.
 
 **Steps:**
-$idea → $review-artifact (conditional) → $handoff (conditional) → $refine → $why-review → $refine-review → $story → $why-review → $story-review → $tdd-spec → $why-review → $tdd-spec-review → $pbi-challenge → $dor-gate → $pbi-mockup → $prioritize → $docs-update → $watzup → $workflow-end
+$idea → $review-artifact (conditional) → $refine → $why-review → $review-artifact --type=pbi → $story → $why-review → $review-artifact --type=story → $spec-tests → $why-review → $review-artifact --type=spec-tests → $pbi-challenge → $dor-gate → $pbi-mockup → $prioritize → $docs-update → $workflow-end → $watzup
 
 > **Conditional steps:**
 >
 > - `$review-artifact` — skip if no existing artifact/ticket/PRD; proceed straight to `$refine`
-> - `$handoff` — skip if no formal PO→BA handoff needed
 > - `$pbi-mockup` — skip if PBI is backend-only (no UI changes)
 
 ---
@@ -346,12 +346,12 @@ $idea → $review-artifact (conditional) → $handoff (conditional) → $refine 
 ## Closing Reminders
 
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting — one task per step
-- **MANDATORY IMPORTANT MUST ATTENTION** run all three purpose-specific why-review gates: after refine, after story, and after tdd-spec; FAIL blocks the next artifact step, WARN requires user acknowledgment
-- **MANDATORY IMPORTANT MUST ATTENTION** tdd-spec and tdd-spec-review run after story-review and before pbi-challenge
+- **MANDATORY IMPORTANT MUST ATTENTION** run all three purpose-specific why-review gates: after refine, after story, and after spec-tests; FAIL blocks the next artifact step, WARN requires user acknowledgment
+- **MANDATORY IMPORTANT MUST ATTENTION** spec-tests and review-artifact --type=spec-tests run after review-artifact --type=story and before pbi-challenge
 - **MANDATORY IMPORTANT MUST ATTENTION** pbi-challenge must be run by a reviewer different from the drafter
 - **MANDATORY IMPORTANT MUST ATTENTION** dor-gate must pass (PASS or WARN) before pbi-mockup is finalized
 - **MANDATORY IMPORTANT MUST ATTENTION** write each artifact immediately — never batch output across steps
-- **MANDATORY IMPORTANT MUST ATTENTION** docs-update runs after prioritize and before watzup to sync specs, feature docs, and TDD/spec dashboards
+- **MANDATORY IMPORTANT MUST ATTENTION** docs-update runs after prioritize and before workflow-end to sync specs, feature docs, and TDD/spec dashboards
 - **MANDATORY IMPORTANT MUST ATTENTION** add a final watzup summary: PBI title, DoR result, any blocking items, recommended next step
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
@@ -365,17 +365,14 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 
 ## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
 
-**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. If either file or a required reference doc is missing, stop immediately and ask the user to run the project-config and scan-all skills. Any supported AI tool may execute when this shared context and local docs are available.
+**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. Any supported AI tool may execute when this shared context and local docs are available.
 
-1. **DETECT:** Match prompt against workflow catalog
-2. **ANALYZE:** Find best-match workflow AND evaluate if a custom step combination would fit better
-3. **ASK (REQUIRED FORMAT):** Use a direct user question with this structure unless the user explicitly invoked a workflow/skill and the local protocol treats explicit invocation as confirmation:
-   - Question: "Which workflow do you want to activate?"
-   - Option 1: "Activate **[BestMatch Workflow]** (Recommended)"
-   - Option 2: "Activate custom workflow: **[step1 → step2 → ...]**" (include one-line rationale)
-4. **ACTIVATE (if confirmed):** Call `$workflow-start <workflowId>` for standard; sequence custom steps manually
-5. **CREATE TASKS:** task tracking for ALL workflow steps
-6. **EXECUTE:** Follow each step in sequence
+1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
+2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
+3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
+4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
+6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
 **AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
@@ -391,7 +388,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security`/`$lint` catch this?" — Yes → improve review skill instead.
+6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/`$lint` catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
 **[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
 

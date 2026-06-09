@@ -40,16 +40,15 @@ The tool auto-creates `.code-graph/.gitignore` with `*` content (prevents commit
 
 ## Usage
 
-| Command                 | Description                                        |
-| ----------------------- | -------------------------------------------------- |
-| `/graph-build`          | Build or update the knowledge graph                |
-| `/graph-blast-radius`   | Analyze impact of current changes                  |
-| `/graph-export`         | Export full graph to JSON file                     |
-| `/graph-export-mermaid` | Export single-file graph as Mermaid diagram        |
-| `/graph-query`          | Natural language queries (callers, imports, tests) |
-| `/graph-connect-api`    | Detect frontend-backend API connections            |
-| `/graph-trace`          | Trace full system flow (upstream/downstream/both)  |
-| `/graph-sync`           | Sync graph with git state after pull/checkout      |
+| Command                     | Description                                                                                     |
+| --------------------------- | ----------------------------------------------------------------------------------------------- |
+| `/graph-build`              | Build or update the knowledge graph                                                             |
+| `/graph-blast-radius`       | Analyze impact of current changes                                                               |
+| `/graph-export`             | Export full graph to JSON (`--format=json`) or single-file Mermaid diagram (`--format=mermaid`) |
+| `/graph-query`              | Natural language queries (callers, imports, tests)                                              |
+| `/graph-connect-api`        | Detect frontend-backend API connections                                                         |
+| `/graph-trace`              | Trace full system flow (upstream/downstream/both)                                               |
+| `/graph-build --scope=sync` | Sync graph with git state after pull/checkout                                                   |
 
 ### CLI Commands
 

@@ -24,12 +24,14 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 - `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
 - `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
 
-**Missing-file hard stop:** If `docs/project-config.json`, the docs index, `lessons.md`, or any task-required reference doc is missing, stop immediately and ask the user to run `$project-config` and `$scan-all`.
+**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.
 
 **Situation-based docs:**
 - Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`, `project-structure-reference.md`
 - Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md`
-- Spec/test-case planning or TC mapping: `feature-docs-reference.md`
+- Spec authoring, `docs/specs/` pathing, or TC format: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`
+- Behavior/public-contract changes or spec-test-code sync: `workflow-spec-test-code-cycle-reference.md` plus the spec docs above
+- Derived spec indexes/ERDs/reimplementation guides: `spec-system-reference.md` and source Feature Specs under `docs/specs/`
 - Integration test implementation/review: `integration-test-reference.md`
 - E2E test implementation/review: `e2e-test-reference.md`
 - Code review/audit work: `code-review-rules.md` plus domain docs above based on changed files
@@ -39,12 +41,12 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Detect user intent → present catalog/custom options → activate with full task tracking plan.
+**Goal:** Detect user intent → auto-select direct/skill/standard/custom path → activate with full task tracking plan.
 
 **Workflow:**
 
-1. **Detect** — Match prompt against workflow catalog; identify best catalog workflow + optional custom pipeline
-2. **Ask/Confirm** — Ask for auto-detected workflows; explicit `/workflow-*` or `$workflow-start <id>` invocation counts as confirmation when local protocol allows.
+1. **Detect** — Execute explicit `/workflow-*` or `$workflow-start <id>` directly; otherwise match prompt against workflow catalog and skill list
+2. **Auto-select** — Choose direct execution, a skill, a standard workflow, or a custom pipeline without asking the user to pick the path
 3. **Activate** — Create ALL task tracking items for chosen sequence; mark first `in_progress`
 
 **Key Rules:**
@@ -52,8 +54,8 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - MUST ATTENTION define success criteria before execution and loop until observable verification passes.
 - MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
 
-- MUST ATTENTION **ALWAYS** call a direct user question before activating auto-detected workflows — NEVER auto-activate an inferred workflow. Explicit `/workflow-*` or `$workflow-start <id>` invocation counts as confirmation when local project protocol allows. — why: silent activation runs a multi-step plan the user never agreed to.
-- Present the required standard-vs-custom choice: `A) Activate [Workflow] (Recommended)` | `B) Custom Pipeline: [step → ...]`
+- MUST ATTENTION auto-select the best execution path for ordinary prompts. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
+- Explicit `/workflow-*` or `$workflow-start <id>` invocation counts as the user choosing that workflow; execute it directly.
 - Propose Custom Pipeline when no catalog workflow is a strong fit (>80% steps relevant = use catalog)
 - `workflows.json` `workflows` field is an **OBJECT** — use `workflows[workflowId]`, NEVER `.find()` or `[index]`
 - Create ALL task tracking items BEFORE marking the first task `in_progress` — batch creation, then execute
@@ -61,7 +63,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - ALWAYS check context for `## Workflow Catalog` first (Tier 1) — NEVER read `workflows.json` directly when catalog is in context
 - If another workflow is active, it auto-switches (ends current, starts new) — no manual cleanup needed
 
-**NOT for:** Manual step execution (follow task tracking items), workflow design (use `planning`), catalog management.
+**NOT for:** Manual step execution (follow task tracking items), workflow design (use `plan`), catalog management.
 
 **Related:** `$workflow-start <workflowId>` | Hook: `workflow-step-tracker.cjs` | Hook: `workflow-router.cjs`
 
@@ -166,6 +168,8 @@ Then Grep '"<workflowId>":' context=30
 
 ## After Activation — Task Creation Protocol (ZERO TOLERANCE)
 
+**Active-goal resolution (BEFORE child task creation):** resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` — active plan `goal.md`, else `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md`, else create one from the current user request using `.claude/templates/goal-contract-template.md`. Record the resolved goal path and pass it to every child step/sub-agent so the whole workflow executes against the same saved success criteria. The workflow may end only when the goal's Goal Satisfaction matrix passes or a blocker is escalated.
+
 FIRST action after activation: create EXACTLY one task tracking for EACH entry in the workflow's `sequence` array.
 
 ### How to read `workflows.json` — CRITICAL SCHEMA
@@ -194,7 +198,6 @@ slashCmd = commandMapping[stepId].claude   // commandMapping["scout"].claude →
 | Field                        | Type     | Notes                                   |
 | ---------------------------- | -------- | --------------------------------------- |
 | `name`                       | string   | Display name                            |
-| `confirmFirst`               | boolean  | Prompt user before starting             |
 | `sequence`                   | string[] | Ordered step IDs — SOLE source of truth |
 | `whenToUse` / `whenNotToUse` | string   | Natural language intent matching        |
 | `preActions`                 | object   | Optional `injectContext` / `readFiles`  |
@@ -255,7 +258,6 @@ Some workflow steps ARE themselves full workflows. Running them inline causes th
 | Step                       | Workflow activated | Step count source                           | Agent type      |
 | -------------------------- | ------------------ | ------------------------------------------- | --------------- |
 | `$workflow-review-changes` | `review-changes`   | `len(workflows["review-changes"].sequence)` | `code-reviewer` |
-| `$workflow-review`         | `review`           | `len(workflows["review"].sequence)`         | `code-reviewer` |
 
 **Protocol when these steps appear in the active workflow sequence:**
 
@@ -270,12 +272,12 @@ Some workflow steps ARE themselves full workflows. Running them inline causes th
 
 ---
 
-**IMPORTANT MANDATORY Steps:** detect-workflow -> analyze-best-match -> ask-or-confirm-workflow-choice -> activate-workflow -> create-task-tracking -> execute-sequence
+**IMPORTANT MANDATORY Steps:** detect-workflow -> analyze-best-match -> auto-select-execution-path -> activate-workflow -> create-task-tracking -> execute-sequence
 
-**IMPORTANT MANDATORY Steps:** detect-workflow -> analyze-best-match -> ask-or-confirm-workflow-choice -> activate-workflow -> create-task-tracking -> execute-sequence
+**IMPORTANT MANDATORY Steps:** detect-workflow -> analyze-best-match -> auto-select-execution-path -> activate-workflow -> create-task-tracking -> execute-sequence
 
 > **[MANDATORY]** task tracking FIRST — break every workflow into tasks before any action. NEVER skip.
-> **[MANDATORY]** a direct user question ALWAYS for auto-detected workflows — present the standard-vs-custom (A/B) choice; NEVER auto-activate inferred workflows. Explicit workflow invocation may satisfy confirmation when local protocol allows.
+> **[MANDATORY]** Auto-select the best path for auto-detected workflows; do not use a direct user question for workflow-selection confirmation. Explicit workflow invocation executes directly.
 > **[MANDATORY]** skill invocation REQUIRED per step — NEVER mark a task `completed` without invoking it.
 
 <!-- SYNC:ai-mistake-prevention -->
@@ -360,9 +362,16 @@ Some workflow steps ARE themselves full workflows. Running them inline causes th
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
+<!-- SYNC:goal-contract-satisfaction-loop:reminder -->
+
+- **MANDATORY** Resolve the active Goal Contract BEFORE work (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from current request) and read saved success criteria before editing.
+- **MANDATORY** Append iteration evidence after execution; emit a Goal Satisfaction matrix (PASS/FAIL/BLOCKED) before reporting PASS; loop on validated FAIL; escalate repeated no-progress or blockers. NEVER store secrets in goal files.
+
+<!-- /SYNC:goal-contract-satisfaction-loop:reminder -->
+
 ## Closing Reminders
 
-**MUST ATTENTION** call a direct user question before activating auto-detected workflows; explicit `/workflow-*` or `$workflow-start <id>` invocation may satisfy confirmation when local protocol allows. Never auto-activate inferred workflows.
+**MUST ATTENTION** auto-select the best path for ordinary prompts; explicit `/workflow-*` or `$workflow-start <id>` invocation executes directly. Do not ask for workflow-selection confirmation.
 **MUST ATTENTION** `workflows` is an OBJECT — `workflows[workflowId]`, NEVER `.find()` / `[index]` / `.forEach()`
 **MUST ATTENTION** create ALL task tracking items for the full sequence BEFORE marking the first task `in_progress`
 **MUST ATTENTION** never mark a task `completed` without invoking its skill invocation — skip means comment + completed, not delete
@@ -380,17 +389,14 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 
 ## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
 
-**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. If either file or a required reference doc is missing, stop immediately and ask the user to run the project-config and scan-all skills. Any supported AI tool may execute when this shared context and local docs are available.
+**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. Any supported AI tool may execute when this shared context and local docs are available.
 
-1. **DETECT:** Match prompt against workflow catalog
-2. **ANALYZE:** Find best-match workflow AND evaluate if a custom step combination would fit better
-3. **ASK (REQUIRED FORMAT):** Use a direct user question with this structure unless the user explicitly invoked a workflow/skill and the local protocol treats explicit invocation as confirmation:
-   - Question: "Which workflow do you want to activate?"
-   - Option 1: "Activate **[BestMatch Workflow]** (Recommended)"
-   - Option 2: "Activate custom workflow: **[step1 → step2 → ...]**" (include one-line rationale)
-4. **ACTIVATE (if confirmed):** Call `$workflow-start <workflowId>` for standard; sequence custom steps manually
-5. **CREATE TASKS:** task tracking for ALL workflow steps
-6. **EXECUTE:** Follow each step in sequence
+1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
+2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
+3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
+4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
+6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
 **AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
@@ -406,7 +412,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security`/`$lint` catch this?" — Yes → improve review skill instead.
+6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/`$lint` catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
 **[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
 

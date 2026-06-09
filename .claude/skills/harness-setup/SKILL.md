@@ -136,7 +136,7 @@ Configure which AI review skills fire at each lifecycle stage. Present to user v
 **Pre-release (mandatory gates):**
 
 - `/sre-review` — reliability and operational readiness
-- `/security` — security review before production release
+- `/security-review` — security review before production release
 
 **Recurring drift detection:**
 
@@ -152,8 +152,8 @@ Define the project's behaviour harness plan:
 
 **Functional spec format:**
 
-- `AskUserQuestion`: "Feature documentation format?" Options: feature-docs (17-section), TDD specs only, lightweight ADRs
-- Establish `docs/business-features/` or equivalent spec home
+- `AskUserQuestion`: "Feature documentation format?" Options: feature-spec (8-section tech-free), TDD specs only, lightweight ADRs
+- Establish `docs/specs/` or equivalent spec home
 
 **Test strategy pyramid:**
 
@@ -211,7 +211,7 @@ Stack: {detected stack from Phase A}
 | Pre-commit          | /code-review            | Convention drift, logic errors |
 | Post-implementation | /review-domain-entities | Domain model quality           |
 | Pre-release         | /sre-review             | Operational readiness          |
-| Pre-release         | /security               | Security vulnerabilities       |
+| Pre-release         | /security-review               | Security vulnerabilities       |
 
 ## Open Gaps
 
@@ -272,7 +272,7 @@ Present inventory to user for review via `AskUserQuestion`.
 > | Feedforward | Computational | `.editorconfig`, strict compiler flags, enforced module boundaries            | Always-on        |
 > | Feedforward | Inferential   | `CLAUDE.md` conventions, skill prompts, architecture notes, pattern catalogs  | Always-on        |
 > | Feedback    | Computational | Linters, type checks, pre-commit hooks, ArchUnit/arch-fitness tests, CI gates | Pre-commit → CI  |
-> | Feedback    | Inferential   | `/code-review` skill, `/sre-review`, `/security`, LLM-as-judge passes         | Post-commit → CI |
+> | Feedback    | Inferential   | `/code-review` skill, `/sre-review`, `/security-review`, LLM-as-judge passes         | Post-commit → CI |
 >
 > **Three harness types:**
 >

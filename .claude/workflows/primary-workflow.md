@@ -8,11 +8,11 @@
 
 1. **Discover** — Scout files, investigate patterns, run graph traces
 2. **Plan** — `/plan` + `/plan-review` + `/plan-validate`, save in `./plans/`
-3. **Design Review** — `/why-review` (rationale), `/tdd-spec` + `/tdd-spec-review` (test specs)
+3. **Design Review** — `/why-review` (rationale), `/spec-tests` + `/review-artifact --type=spec-tests` (test specs)
 4. **Implement** — `/cook` or `/code`, compile-check after every file change
-5. **Verify** — `/prove-fix`, `/test`, `/integration-test`, `/tdd-spec [direction=sync]`
+5. **Verify** — `/prove-fix`, `/test`, `/integration-test`, `/spec-tests [direction=sync]`
 6. **Quality** — `/workflow-review-changes` (canonical review-changes workflow: review-changes → why-review → parallel reviewers → code-simplifier → verification → plan/cook/restart)
-7. **Ship** — `/sre-review`, `/security`, `/changelog`, `/docs-update`, `/watzup`, `/workflow-end`
+7. **Ship** — `/sre-review`, `/security-review`, `/changelog`, `/docs-update`, `/watzup`, `/workflow-end`
 
 **Key Rules:**
 
@@ -44,8 +44,8 @@
 ## Phase 2: Design Review
 
 - Use `/why-review` to validate design rationale before implementation
-- Use `/tdd-spec` to write test specifications (feature doc Section 15) — CREATE mode before implementation, UPDATE mode after
-- Use `/tdd-spec-review` to review test specs for coverage and correctness
+- Use `/spec-tests` to write test specifications (feature doc Section 8) — CREATE mode before implementation, UPDATE mode after
+- Use `/review-artifact --type=spec-tests` to review test specs for coverage and correctness
 - For features: two planning rounds — PLAN1 (architecture) then PLAN2 (incorporating test strategy)
 
 ## Phase 3: Implementation
@@ -61,21 +61,21 @@
 - Use `/prove-fix` to build code proof traces (confidence scores, stack-trace-style evidence) — MANDATORY for bugfixes
 - Use `/test` skill to run tests and analyze results
 - Use `/integration-test` to generate integration tests from specs
-- Use `/tdd-spec [direction=sync]` to sync test spec dashboard
+- Use `/spec-tests [direction=sync]` to sync test spec dashboard
 - **IMPORTANT:** Never use fake data, mocks, cheats, or tricks just to pass the build
 - **IMPORTANT:** Fix failing tests and re-run until all pass
 
 ## Phase 5: Quality
 
 - Use `/workflow-review-changes` for the canonical review-changes workflow (review-changes → why-review → parallel reviewers → code-simplifier → verification → plan/cook/restart), then continue until clean
-- Alternatively use individual skills: `/code-simplifier`, `/code-review`, `/review-architecture`, `/performance`
+- Alternatively use individual skills: `/code-simplifier`, `/code-review`, `/review-architecture`, `/performance-review`
 - Follow coding standards and conventions
 - Optimize for performance and maintainability
 
 ## Phase 6: Ship
 
 - Use `/sre-review` for production readiness (service-layer/API changes)
-- Use `/security` for security review
+- Use `/security-review` for security review
 - Use `/changelog` to update changelog entries
 - Use `/docs-update` to update documentation if needed
 - Use `/watzup` for summary report of all changes
@@ -93,72 +93,58 @@
 
 ## Workflow Catalog Reference
 
-All workflows are defined in `.claude/workflows.json`. Each workflow composes a subset of the phases above into a specific sequence. Key workflows:
+All workflows are defined in `.claude/workflows.json` — the canonical catalog (21 workflows). Each workflow composes a subset of the phases above into a specific sequence. Tables below are regenerated from the live catalog.
 
-| Workflow                          | Phases Used                        | When To Use                                                     |
-| --------------------------------- | ---------------------------------- | --------------------------------------------------------------- |
-| **feature**                       | 0→1→2→3→4→5→6                      | Well-defined feature implementation                             |
-| **bugfix**                        | 0→1→3→4→5→6→7                      | Bug reports, debugging, troubleshooting with end-to-start trace |
-| **hotfix**                        | 0→1→3→4→5→6                        | P0/P1 production emergencies (lightweight planning)             |
-| **refactor**                      | 0→1→2→3→4→5→6                      | Code restructuring without behavior change                      |
-| **investigation**                 | 0 only                             | Read-only codebase exploration                                  |
-| **review-changes**                | 5→3→5→6                            | Pre-commit review of uncommitted changes                        |
-| **review**                        | 5→3→5→6                            | Code review, PR review, quality audit                           |
-| **verification**                  | 0→4→(3→4→5 if fix needed)→6        | Verify correctness; FAIL-to-fix requires end-to-start trace     |
-| **big-feature**                   | Full lifecycle with research       | Large/ambiguous features needing market research                |
-| **feature-with-integration-test** | 0→1→2→3→4→5→6                      | Feature + spec-first integration testing                        |
-| **tdd-feature**                   | 0→2→1→3→4→5→6                      | Test-first development (specs before plan)                      |
-| **batch-operation**               | 1→2→3→4→5→6                        | Bulk multi-file modifications                                   |
-| **documentation**                 | 0→1→3→5→6                          | Documentation creation/update                                   |
-| **feature-docs**                  | 0→1→3→5→6                          | Business feature docs (17-section template)                     |
-| **testing**                       | 4 only                             | Run test suites                                                 |
-| **performance**                   | 0→1→2→3→4→5→6                      | Performance investigation and optimization                      |
-| **migration**                     | 0→1→3→5→6                          | Database schema/data migrations                                 |
-| **deployment**                    | 0→1→3→5→6                          | CI/CD, Docker, K8s setup                                        |
-| **package-upgrade**               | 0→1→3→4→5→6                        | Dependency upgrades                                             |
-| **security-audit**                | 0→6                                | Security review and vulnerability assessment                    |
-| **quality-audit**                 | 5→1→3→4→6                          | Code quality audit with fix loop                                |
-| **release-prep**                  | 6 only                             | Pre-release quality gate                                        |
-| **research**                      | Web research → synthesis → review  | Topic research and report generation                            |
-| **greenfield-init**               | Full inception + implementation    | New project from scratch                                        |
-| **full-feature-lifecycle**        | All roles PO→BA→Designer→Dev→QA→PO | End-to-end with formal handoffs                                 |
+### Core Development Workflows
 
-### Role-Based Handoff Workflows
+| Workflow                   | Phases Used                     | When To Use                                                                 |
+| -------------------------- | ------------------------------- | --------------------------------------------------------------------------- |
+| **feature**                | 0→1→2→3→4→5→6                   | Well-defined feature implementation (spec-driven, test specs before code)   |
+| **bugfix**                 | 0→7→1→2→3→4→5→6                 | Bug reports, debugging, troubleshooting with end-to-start trace + RED/GREEN |
+| **refactor**               | 0→1→2→3→4→5→6                   | Code restructuring without behavior change, technical debt                  |
+| **big-feature**            | Full lifecycle with research    | Large/ambiguous features needing market research, domain modeling           |
+| **review-changes**         | 5→3→5→6                         | Pre-commit review of uncommitted changes (recursive fix loop)               |
+| **documentation**          | 0→1→2→6                         | Documentation creation/update (READMEs, code comments)                      |
+| **feature-spec**           | 0→1→2→6                         | Business feature docs (tech-free 8-section template, TCs in Section 8)      |
+| **greenfield-init**        | Full inception + implementation | New project from scratch                                                    |
+| **full-feature-lifecycle** | PO→BA→Designer→Dev→QA           | End-to-end idea → PBI → stories → design → implementation → testing → docs  |
 
-| Workflow               | Flow                                                                              |
-| ---------------------- | --------------------------------------------------------------------------------- |
-| **idea-to-pbi**        | PO/BA: idea (or PO artifact) → review → refine → stories → TDD specs → prioritize |
-| **ba-dev-handoff**     | BA → Dev: quality gate → plan                                                     |
-| **design-dev-handoff** | Designer → Dev: design spec → plan                                                |
-| **dev-qa-handoff**     | Dev → QA: handoff → test spec                                                     |
-| **qa-po-acceptance**   | QA → PO: quality gate → acceptance                                                |
-| **sprint-planning**    | PO: prioritize → dependency → team-sync                                           |
-| **sprint-retro**       | PM: status → retrospective                                                        |
-| **pre-development**    | QC: quality gate → plan → validate                                                |
-| **pbi-to-tests**       | QA: generate TDD specs from PBI                                                   |
-| **pm-reporting**       | PM: status report → dependency analysis                                           |
+### PBI & Discovery Workflows
 
-### Content & Research Workflows
+| Workflow              | Flow                                                                                                           |
+| --------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **idea-to-pbi**       | PO/BA: idea (or PO artifact) → review → refine → stories → TDD specs → DoR gate → prioritize                   |
+| **product-discovery** | Raw vision/problem → brainstorm → N PBIs with stories, challenge review, DoR gate, wireframes → ranked backlog |
+| **spec-to-pbi**       | Existing Feature Specs → dependency-aware PBI backlog with stories, DoR gate, prioritization                   |
 
-| Workflow                | Purpose                                           |
-| ----------------------- | ------------------------------------------------- |
-| **research**            | Web research → deep research → synthesis → review |
-| **course-building**     | Research → course material with Bloom taxonomy    |
-| **marketing-strategy**  | Research → market analysis → strategy             |
-| **business-evaluation** | Research → BMC → financials → risk → verdict      |
-| **visualize**           | Codebase or knowledge → Excalidraw diagrams       |
-| **design-workflow**     | Design spec → interface/frontend design → review  |
+### Spec-Driven Workflows
 
-### E2E Test Workflows
+| Workflow            | Purpose                                                                                                                |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **spec-driven-dev** | Author/maintain the canonical tech-free 8-section Feature Spec — initial generation, sync after changes, health audits |
+| **spec-index**      | Regenerate DERIVED navigation aids from Feature Specs: per-bucket INDEX, cross-capability ERD, reimplementation guide  |
+| **spec-sync**       | Update test specs and feature docs after code changes, bug fixes, or PR reviews                                        |
 
-| Workflow                | Purpose                                                |
-| ----------------------- | ------------------------------------------------------ |
-| **e2e-from-recording**  | Chrome DevTools recording → Playwright test            |
-| **e2e-update-ui**       | Update screenshot baselines after UI changes           |
-| **e2e-from-changes**    | Sync E2E tests with code/spec changes                  |
-| **test-spec-update**    | Update test specs after code changes                   |
-| **test-to-integration** | Generate integration tests from test specs             |
-| **test-verify**         | Test quality audit, flaky test detection, traceability |
+### Test & Data Workflows
+
+| Workflow                                           | Purpose                                                                                                                       |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| **e2e** (`--source=recording\|update-ui\|changes`) | Recording → Playwright (recording), update screenshot baselines (update-ui), or sync E2E tests to code/spec changes (changes) |
+| **write-integration-test**                         | Spec-first integration test authoring for existing code: specs → test code → review gates → run and verify                    |
+| **workflow-seed-test-data**                        | Generate/enhance idempotent test-data seeders simulating QC happy-path scenarios                                              |
+
+### Design & Visualization Workflows
+
+| Workflow            | Purpose                                          |
+| ------------------- | ------------------------------------------------ |
+| **design-workflow** | Design spec → interface/frontend design → review |
+| **visualize**       | Codebase or knowledge → Excalidraw diagrams      |
+
+### Research & Content Workflows
+
+| Workflow                                                              | Purpose                                                                                                                    |
+| --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| **research** (`--output=synthesis\|business-eval\|marketing\|course`) | Web sources → synthesize into a cited knowledge report, business/market evaluation, marketing strategy, or course material |
 
 ---
 
@@ -168,5 +154,5 @@ All workflows are defined in `.claude/workflows.json`. Each workflow composes a 
 **MANDATORY IMPORTANT MUST ATTENTION** compile-check after every code file change
 **MANDATORY IMPORTANT MUST ATTENTION** never use fake data/mocks/cheats just to pass tests — fix real issues
 **MANDATORY IMPORTANT MUST ATTENTION** activate relevant skills from catalog during the process
-**MANDATORY IMPORTANT MUST ATTENTION** detect nearest matching workflow from catalog and ask user to confirm activation
+**MANDATORY IMPORTANT MUST ATTENTION** auto-select the best-matching workflow from the catalog and activate it via `/workflow-start <workflowId>` — selection is model-driven; do not ask the user to confirm activation
 **MANDATORY IMPORTANT MUST ATTENTION** run at least ONE graph command on key files before concluding investigation/plan/fix

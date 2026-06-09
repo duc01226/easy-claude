@@ -7,10 +7,10 @@
 | Goal                         | Document                                                                                        |
 | ---------------------------- | ----------------------------------------------------------------------------------------------- |
 | **New to Claude Code?**      | [quick-start.md](./quick-start.md) - 5-minute onboarding                                        |
-| **Need a skill?**            | [skills/README.md](./skills/README.md) - 258 skills catalog                                     |
+| **Need a skill?**            | [skills/README.md](./skills/README.md) - 185 skills catalog                                     |
 | **Building a feature?**      | [skills/README.md](./skills/README.md) + `docs/project-reference/` patterns                     |
-| **Understanding hooks?**     | [hooks/README.md](./hooks/README.md) - 65 top-level hook files deep-dive                        |
-| **Understanding workflows?** | `CLAUDE.md` workflow catalog (project root) - 37 workflows                                      |
+| **Understanding hooks?**     | [hooks/README.md](./hooks/README.md) - 66 top-level hook files deep-dive                        |
+| **Understanding workflows?** | `CLAUDE.md` workflow catalog (project root) - 21 workflows                                      |
 | **Configuring Claude?**      | [configuration/README.md](./configuration/README.md)                                            |
 | **Team collaboration?**      | [team-collaboration-guide.md](./team-collaboration-guide.md) - PO, BA, QA, QC, UX, PM workflows |
 | **Graph intelligence?**      | [code-graph-mechanism.md](./code-graph-mechanism.md) - How structural code analysis works       |
@@ -23,11 +23,11 @@
 |-- README.md                 <- You are here (Navigation hub)
 |-- quick-start.md            5-minute onboarding guide
 |
-|-- skills/                   258 skills across 15+ domains
+|-- skills/                   185 skills across 15+ domains
 |   |-- README.md             Skills overview + full catalog
 |   +-- (patterns)           → docs/project-reference/
 |
-|-- hooks/                    65 top-level hook files, 29 lib modules
+|-- hooks/                    66 top-level hook files, 31 lib modules
 |   |-- README.md             Hooks overview, lessons system, session lifecycle
 |   +-- extending-hooks.md    How to create custom hooks
 |
@@ -56,17 +56,17 @@
 | ------------------------ | -------------------------- | ------------------------- |
 | Implement a feature      | `/cook`                    | `feature`                 |
 | Fix a bug                | `/fix`                     | `debug-investigate`       |
-| Create a PR              | `/git/pr`                  | `commit`                  |
+| Create a PR              | `/commit --push`           | `commit`                  |
 | Understand code          | `/scout`                   | `feature-investigation`   |
-| Plan implementation      | `/plan`                    | `planning`                |
-| Run tests                | `/test`                    | `tdd-spec`                |
+| Plan implementation      | `/plan`                    | `plan`                    |
+| Run tests                | `/test`                    | `test`                    |
 | Review code              | `/review`                  | `code-review`             |
 | Debug issues             | `/debug-investigate`       | `debug-investigate`       |
 | Create user story        | `/story`                   | `business-analyst`        |
 | Prioritize backlog       | `/prioritize`              | `product-owner`           |
-| Create test cases        | `/tdd-spec`                | `tdd-spec`                |
+| Create test cases        | `/spec-tests`              | `spec-tests`              |
 | Quality checkpoint       | `/quality-gate`            | `qc-specialist`           |
-| Create design spec       | `/design-spec`             | `ux-designer`             |
+| Create design spec       | `/design-spec`             | `design-spec`             |
 | Analyze blast radius     | `/graph-blast-radius`      | `graph-blast-radius`      |
 | Build code graph         | `/graph-build`             | `graph-build`             |
 | Review integration tests | `/integration-test-review` | `integration-test-review` |
@@ -111,7 +111,7 @@
 | `docs/project-reference/backend-patterns-reference.md`       | Backend development tasks (project-specific companion doc)  |
 | `docs/project-reference/frontend-patterns-reference.md`      | Frontend development tasks (project-specific companion doc) |
 | `docs/project-reference/integration-test-reference.md`       | Test fixtures, patterns, module abbreviations               |
-| `docs/project-reference/feature-docs-reference.md`           | Feature doc templates, app/service mapping                  |
+| `docs/project-reference/feature-spec-reference.md`           | Feature doc templates, app/service mapping                  |
 | `docs/project-reference/domain-entities-reference.md`        | Domain entity catalog, relationships, cross-service sync    |
 | [skill-naming-conventions.md](./skill-naming-conventions.md) | Skill naming rules and prefix guide                         |
 | [configuration/README.md](./configuration/README.md)         | Settings schema, permissions, hooks config                  |
@@ -128,7 +128,7 @@
 | --------------------------------------- | ------------------------------------- |
 | `CLAUDE.md` (project root)              | Root instructions (always read first) |
 | `docs/project-reference/design-system/` | Frontend design system                |
-| `docs/business-features/`               | Business feature docs                 |
+| `docs/specs/`                           | Tech-free 8-section Feature Specs     |
 
 ## How to Use This Documentation
 
@@ -143,15 +143,15 @@
 
 | Category               | Count |
 | ---------------------- | ----- |
-| Skills                 | 258   |
-| Hook files (top-level) | 65    |
-| Lib Modules            | 29    |
+| Skills                 | 185   |
+| Hook files (top-level) | 66    |
+| Lib Modules            | 31    |
 | Hook Events            | 9     |
-| Agents                 | 28    |
-| Workflows              | 37    |
-| Hook Tests             | 369   |
+| Agents                 | 29    |
+| Workflows              | 21    |
+| Hook Tests             | 372   |
 | Documentation Files    | 28    |
 
 ---
 
-_Last updated: 2026-05-14 | Source: `.claude/` directory analysis_
+_Last updated: 2026-06-11 | Source: `.claude/` directory analysis_

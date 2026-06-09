@@ -17,7 +17,7 @@ description: '[Project Management] Use when creating user stories, writing accep
 
 **Key Rules:**
 
-- Always reference existing business rules from `docs/business-features/` before creating new ones
+- Always reference existing business rules from `docs/specs/` before creating new ones
 - User stories must pass INVEST criteria (Independent, Negotiable, Valuable, Estimable, Small, Testable)
 - Include entity context and related domain model in every story
 - MUST ATTENTION include `story_points` and `complexity` in all PBI/story outputs
@@ -41,8 +41,8 @@ When refining domain-related PBIs, automatically extract and reference existing 
 
 **Dynamic Discovery:**
 
-1. Run: `Glob("docs/business-features/{module}/detailed-features/*.md")` for feature docs
-2. Or: `Glob("docs/business-features/{module}/detailed-features/**/*.md")` for nested features
+1. Run: `Glob("docs/specs/{module}/*.md")` for feature docs
+2. Or: `Glob("docs/specs/{module}/**/*.md")` for nested features
 
 From PBI frontmatter or module detection:
 
@@ -96,7 +96,7 @@ When refining domain-related PBIs, investigate related entities using feature do
 ### Step 1: Load Feature Doc
 
 ```
-Glob("docs/business-features/{module}/detailed-features/*.md")
+Glob("docs/specs/{module}/*.md")
 ```
 
 Select file matching feature from PBI context.
@@ -185,7 +185,7 @@ Scenario: {Descriptive title}
 
 1. Reference existing test case patterns from feature docs
 2. Use TC-{FEATURE}-{NNN} format (e.g., TC-GM-001)
-3. Include Evidence field: `[Source: namespace/service/id]` abstract-anchor format — never `file:line` or `src/` paths (stack-portable; see `shared/tc-format.md` + `docs/specs/MIGRATION.md`)
+3. Include Evidence field: `[Source: namespace/service/id]` abstract-anchor format — never `file:line` or `src/` paths (stack-portable; see `shared/tc-format.md`)
 4. Example from GoalManagement feature:
     ```
     TC-GRO-GOAL-001: Create goal with valid data
@@ -233,9 +233,9 @@ Add to user story:
 ```markdown
 ## Reference Documentation
 
-- Feature Doc: `docs/business-features/{module}/detailed-features/{feature}.md`
-- Related Entities: `docs/business-features/{module}/detailed-features/*.md`
-- Existing Test Cases: See feature doc Section 15 (Test Specifications)
+- Feature Doc: `docs/specs/{module}/{feature}.md`
+- Related Entities: `docs/specs/{module}/*.md`
+- Existing Test Cases: See feature doc Section 8 (Test Specifications)
 ```
 
 If conflicts found, note in "Unresolved Questions" section.

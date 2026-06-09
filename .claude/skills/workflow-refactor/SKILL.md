@@ -26,21 +26,21 @@ disable-model-invocation: true
 
 ---
 
-**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /plan -> /plan-review -> /plan-validate -> /why-review -> /code -> /tdd-spec -> /why-review -> /tdd-spec-review -> /tdd-spec [direction=sync] -> /integration-test -> /integration-test-review -> /integration-test-verify -> /workflow-review-changes -> /sre-review -> /changelog -> /test -> /docs-update -> /watzup -> /understand -> /workflow-end
+**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /plan -> /plan-review -> /plan-validate -> /why-review -> /code -> /spec-tests -> /why-review -> /review-artifact --type=spec-tests -> /spec-tests [direction=sync] -> /integration-test -> /integration-test-review -> /integration-test-verify -> /workflow-review-changes -> /sre-review -> /changelog -> /test -> /docs-update -> /workflow-end -> /watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
 Activate the `refactor` workflow. Run `/workflow-start refactor` with the user's prompt as context.
 
-**Steps:** /scout → /investigate → /plan → /plan-review → /plan-validate → /why-review → /code → /tdd-spec → /why-review → /tdd-spec-review → /tdd-spec [direction=sync] → /integration-test → /integration-test-review → /integration-test-verify → /workflow-review-changes → /sre-review → /changelog → /test → /docs-update → /watzup → /understand → /workflow-end
+**Steps:** /scout → /investigate → /plan → /plan-review → /plan-validate → /why-review → /code → /spec-tests → /why-review → /review-artifact --type=spec-tests → /spec-tests [direction=sync] → /integration-test → /integration-test-review → /integration-test-verify → /workflow-review-changes → /sre-review → /changelog → /test → /docs-update → /workflow-end → /watzup
 
-> **[PERFORMANCE-SDD ROUTE]** If this refactor is performance-driven (query optimization, caching, reducing allocations, improving throughput), activate `/workflow-performance` for benchmark evidence while preserving observable behavior. Do not use performance/refactor scope to bypass spec, test, or docs sync when behavior, public contract, SLA, performance constraint, state timing boundary, or docs/spec boundary changes. Pure behavior-preserving optimization may skip new TC/integration-test generation only with explicit skip reason and invariant-preservation evidence. `/test` remains mandatory.
+> **[PERFORMANCE-SDD ROUTE]** If this refactor is performance-driven (query optimization, caching, reducing allocations, improving throughput), run `/performance-review` for benchmark evidence while preserving observable behavior. Do not use performance/refactor scope to bypass spec, test, or docs sync when behavior, public contract, SLA, performance constraint, state timing boundary, or docs/spec boundary changes. Pure behavior-preserving optimization may skip new TC/integration-test generation only with explicit skip reason and invariant-preservation evidence. `/test` remains mandatory.
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
 
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
 
-**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /plan -> /plan-review -> /plan-validate -> /why-review -> /code -> /tdd-spec -> /why-review -> /tdd-spec-review -> /tdd-spec [direction=sync] -> /integration-test -> /integration-test-review -> /integration-test-verify -> /workflow-review-changes -> /sre-review -> /changelog -> /test -> /docs-update -> /watzup -> /understand -> /workflow-end
+**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /plan -> /plan-review -> /plan-validate -> /why-review -> /code -> /spec-tests -> /why-review -> /review-artifact --type=spec-tests -> /spec-tests [direction=sync] -> /integration-test -> /integration-test-review -> /integration-test-verify -> /workflow-review-changes -> /sre-review -> /changelog -> /test -> /docs-update -> /workflow-end -> /watzup
 
 <!-- SYNC:nested-task-creation -->
 

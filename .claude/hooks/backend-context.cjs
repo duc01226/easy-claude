@@ -58,7 +58,7 @@ function buildGuidance(filePath) {
         '- `docs/project-reference/domain-entities-reference.md` — entity catalog, relationships, cross-service sync',
     ];
 
-    if (repoType) lines.push(`\n**Repository:** Use \`${repoType}\` — NEVER generic IPlatformRootRepository`);
+    if (repoType) lines.push(`\n**Repository:** Use \`${repoType}\` — NEVER the generic root repository base`);
 
     if (rules.length > 0) {
         lines.push('', '**Critical Rules:**');

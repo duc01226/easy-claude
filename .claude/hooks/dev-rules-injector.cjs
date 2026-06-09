@@ -45,9 +45,6 @@ const REVIEW_SKILLS = new Set([
     'why-review',
     'workflow-review-changes',
     'simplify',
-    'story-review',
-    'tdd-spec-review',
-    'refine-review',
     'knowledge-review',
     'plan-review'
 ]);
@@ -56,11 +53,8 @@ const REVIEW_SKILLS = new Set([
 const CODING_SKILLS = new Set([
     'cook',
     'code',
-    'code-auto',
-    'code-no-test',
     'fix',
     'fix-issue',
-    'fix-types',
     'fix-ui',
     'fix-logs',
     'fix-ci'

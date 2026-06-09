@@ -25,19 +25,19 @@ disable-model-invocation: true
 
 ---
 
-**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /plan -> /plan-review -> /plan-validate -> /why-review -> /docs-update -> /workflow-review-changes -> /review-post-task -> /watzup -> /workflow-end
+**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /plan -> /plan-review -> /plan-validate -> /why-review -> /docs-update -> /workflow-review-changes -> /review-post-task -> /workflow-end -> /watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
 Activate the `documentation` workflow. Run `/workflow-start documentation` with the user's prompt as context.
 
-**Steps:** /scout → /investigate → /plan → /plan-review → /plan-validate → /why-review → /docs-update → /workflow-review-changes → /review-post-task → /watzup → /workflow-end
+**Steps:** /scout → /investigate → /plan → /plan-review → /plan-validate → /why-review → /docs-update → /workflow-review-changes → /review-post-task → /workflow-end → /watzup _(sequence is shared with the `feature-spec` workflow; this workflow is differentiated by its injectContext domain: **generic README / code-comment editing** — match existing doc style, update TOC & cross-references, never create new doc files when existing ones should be updated; for tech-free 8-section business feature docs use the `feature-spec` workflow instead — see `workflows.json` `documentation.injectContext`)._
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
 
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
 
-**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /plan -> /plan-review -> /plan-validate -> /why-review -> /docs-update -> /workflow-review-changes -> /review-post-task -> /watzup -> /workflow-end
+**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /plan -> /plan-review -> /plan-validate -> /why-review -> /docs-update -> /workflow-review-changes -> /review-post-task -> /workflow-end -> /watzup
 
 <!-- SYNC:nested-task-creation -->
 

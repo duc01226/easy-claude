@@ -23,30 +23,30 @@ SKILLS_DIR = PROJECT_ROOT / ".claude" / "skills"
 
 SKILL_NAMES = [
     # Plan family
-    "plan", "plan-analysis", "plan-archive", "plan-ci", "plan-cro",
-    "plan-review", "plan-validate", "planning",
+    "plan", "plan-analysis", "plan-archive",
+    "plan-review", "plan-validate",
     # Cook family
     "cook",
     # Code family
-    "code", "code-auto", "code-no-test", "code-parallel",
+    "code",
     # Fix family
     "fix", "fix-ci", "fix-issue", "fix-logs",
-    "fix-test", "fix-types", "fix-ui",
+    "fix-test", "fix-ui",
     # Feature family
-    "feature", "feature-implementation", "create-feature",
+    "feature", "create-feature",
     # Investigate / scout family
     "investigate", "debug-investigate", "feature-investigation",
     "scout", "scout-ext",
     # Refactor / migration / scaffold
-    "refactoring", "migration", "db-migrate", "scaffold",
+    "refactoring", "db-migrate", "scaffold",
     # Review family
-    "arch-security-review", "code-review", "integration-test-review",
-    "knowledge-review", "refine-review", "review-architecture",
+    "security-review", "code-review", "integration-test-review",
+    "knowledge-review", "review-architecture",
     "review-artifact", "review-changes", "review-domain-entities",
-    "review-post-task", "sre-review", "story-review", "tdd-spec-review",
-    "why-review", "workflow-review", "workflow-review-changes",
+    "review-post-task", "sre-review",
+    "why-review", "workflow-review-changes",
     # Workflow step skills
-    "tdd-spec", "integration-test", "integration-test-verify",
+    "spec-tests", "integration-test", "integration-test-verify",
     "docs-update", "watzup", "workflow-write-integration-test",
 ]
 

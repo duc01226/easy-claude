@@ -221,6 +221,8 @@ Verification Method:
 Recommendation: [SHIP / SHIP WITH CAVEATS / INVESTIGATE FURTHER / BLOCK]
 ```
 
+**Goal Satisfaction update (MANDATORY after verdict):** resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` and map each proof trace to the saved success criterion it satisfies. Append proof evidence and remaining gaps to the goal file's Iteration Log and update its Goal Satisfaction matrix (PASS/FAIL/BLOCKED per criterion). A SHIP recommendation does NOT close the work while any required goal criterion remains FAIL — route the validated gap into another bounded fix loop or escalate a blocker.
+
 ---
 
 ## Example: Proof Trace for NgRx Effect Fix
@@ -500,6 +502,13 @@ This skill is the **mandatory verification gate** between `/fix` and `/code-simp
 **IMPORTANT MUST ATTENTION** debugger trace gate: for non-trivial bug/fix/investigation/review work, start at the observed final output and trace backward through reader -> storage/projection -> writer -> consumer/job -> producer/trigger. Enumerate all feeder paths and hypotheses before fixing. **BLOCKED until** trace, hypothesis matrix, owning fix layer, and forward convergence proof exist.
 
 <!-- /SYNC:end-to-start-debugger-trace:reminder -->
+
+<!-- SYNC:goal-contract-satisfaction-loop:reminder -->
+
+- **MANDATORY** Resolve the active Goal Contract BEFORE work (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from current request) and read saved success criteria before editing.
+- **MANDATORY** Append iteration evidence after execution; emit a Goal Satisfaction matrix (PASS/FAIL/BLOCKED) before reporting PASS; loop on validated FAIL; escalate repeated no-progress or blockers. NEVER store secrets in goal files.
+
+<!-- /SYNC:goal-contract-satisfaction-loop:reminder -->
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
 

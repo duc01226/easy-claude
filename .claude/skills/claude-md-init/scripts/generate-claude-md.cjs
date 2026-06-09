@@ -6,13 +6,146 @@ const path = require('path');
 const builders = require('./section-builders.cjs');
 
 const PROJECT_DIR = process.env.CLAUDE_PROJECT_DIR || process.cwd();
-const CONFIG_PATH = path.join(PROJECT_DIR, 'docs', 'project-config.json');
+let CONFIG_PATH = path.join(PROJECT_DIR, 'docs', 'project-config.json');
+try {
+    const { getConfiguredProjectConfigPath } = require('../../../hooks/lib/project-config-loader.cjs');
+    CONFIG_PATH = getConfiguredProjectConfigPath();
+} catch {
+    // Keep the historical default when the portability loader is unavailable.
+}
 const CLAUDE_MD_PATH = path.join(PROJECT_DIR, 'CLAUDE.md');
 const BACKUP_PATH = path.join(PROJECT_DIR, '.claude-md.backup');
 const TEMPLATE_PATH = path.join(__dirname, '..', 'references', 'claude-md-template.md');
 
 const SECTION_OPEN = /^<!-- SECTION:(\S+) -->$/;
 const SECTION_CLOSE = /^<!-- \/SECTION:(\S+) -->$/;
+
+// Universal-guides sentinel — stamped at the top of every generated/updated CLAUDE.md.
+// The agent-files bootstrap gate reads this to tell a complete file from a project-only
+// one. MUST match agent-files-state.cjs UNIVERSAL_GUIDES_VERSION / SENTINEL_RE — the
+// agent-files-gate.test.cjs sync test enforces the lockstep.
+const UNIVERSAL_GUIDES_VERSION = 2;
+const SENTINEL = `<!-- CK:UNIVERSAL-GUIDES v${UNIVERSAL_GUIDES_VERSION} -->`;
+const SENTINEL_RE = /<!--\s*CK:UNIVERSAL-GUIDES\s+v(\d+)\s*-->/i;
+// Static portable-guide headings the universal section always ships. MUST match
+// agent-files-state.cjs REQUIRED_ANCHORS — the agent-files-gate.test.cjs sync test
+// enforces the lockstep. The sentinel is a content-presence promise: it may ONLY be
+// stamped when these guides are actually in the file, else the bootstrap gate would
+// read a false "complete" on a project-only file that never received the guides.
+const REQUIRED_ANCHORS = [
+    /first action decision/i,
+    /workflow step advancement/i,
+    /task planning rules/i,
+    /code responsibility hierarchy/i,
+    /evidence-based reasoning/i
+];
+
+function hasGuides(text) {
+    return REQUIRED_ANCHORS.every(re => re.test(text));
+}
+
+/**
+ * Ensure the sentinel state matches the actual content (idempotent).
+ * The sentinel asserts "universal guides present", so it is stamped ONLY when the
+ * guides are really in `content`; when they are absent the sentinel is stripped
+ * (never stamped) so the bootstrap gate keeps flagging the file as incomplete
+ * instead of being fooled by a promise the content does not keep.
+ *   - guides present + no/old sentinel  → stamp current-version sentinel at the top
+ *   - guides present + current sentinel → normalize in place (idempotent)
+ *   - guides absent                     → strip any stale/false sentinel, no stamp
+ */
+function ensureSentinel(content) {
+    const text = content.replace(/^﻿/, '');
+    if (!hasGuides(text)) {
+        return text.replace(SENTINEL_RE, '').replace(/^\n+/, '');
+    }
+    if (SENTINEL_RE.test(text)) {
+        return text.replace(SENTINEL_RE, SENTINEL);
+    }
+    return `${SENTINEL}\n${text}`;
+}
+
+/**
+ * Extract the static portable-guide sections from the template, keyed by heading.
+ * A section spans from a top-level `## ` heading up to the next `## ` heading or a
+ * SECTION marker (marker-wrapped sections are generated, not portable), with trailing
+ * `---` separators and whitespace stripped. Only placeholder-free sections qualify —
+ * the universal guides carry no `{token}` substitutions, so this never injects raw
+ * template placeholders.
+ * @param {string} templateText
+ * @returns {Array<{heading:string, text:string}>}
+ */
+function extractPortableGuideSections(templateText) {
+    const lines = templateText.split('\n');
+    const collected = [];
+    let current = null;
+    const flush = () => {
+        if (!current) return;
+        let text = current.join('\n').replace(/\s+$/, '');
+        text = text.replace(/\n+\s*-{3,}\s*$/, '').replace(/\s+$/, '');
+        if (text) collected.push({ heading: current[0].trim(), text });
+        current = null;
+    };
+    for (const line of lines) {
+        const trimmed = line.trim();
+        if (/^##\s+/.test(trimmed)) {
+            flush();
+            current = [line];
+            continue;
+        }
+        if (current) {
+            if (SECTION_OPEN.test(trimmed) || SECTION_CLOSE.test(trimmed)) {
+                flush();
+                continue;
+            }
+            current.push(line);
+        }
+    }
+    flush();
+    return collected.filter(s => !/\{[a-z0-9-]+\}/i.test(s.text));
+}
+
+/**
+ * Back-fill universal-guide sections that drifted out of an existing managed file.
+ * For each REQUIRED_ANCHOR not already present in `content`, pull its section from the
+ * template and insert the missing block (in anchor order) after the tldr close marker
+ * (fallbacks: after the H1 title, else prepend). Idempotent — anchors already present
+ * are skipped, so re-runs add nothing.
+ *
+ * CALLER CONTRACT: invoke ONLY for marker-managed files (hasMarkers === true). A
+ * markerless file is project-only / pre-marker; force-injecting guides there would
+ * violate the bootstrap-gate "content-presence promise" (see agent-files-state.cjs and
+ * the agent-files-gate F1 invariant) and hijack a deliberately project-only CLAUDE.md.
+ * @param {string} content
+ * @param {string} templateText
+ * @returns {string}
+ */
+function backfillPortableGuides(content, templateText) {
+    if (REQUIRED_ANCHORS.every(re => re.test(content))) return content;
+    const sections = extractPortableGuideSections(templateText);
+    const blocks = [];
+    for (const re of REQUIRED_ANCHORS) {
+        if (re.test(content)) continue;
+        const sec = sections.find(s => re.test(s.heading));
+        if (sec) blocks.push(sec.text);
+    }
+    if (blocks.length === 0) return content;
+    const block = `\n${blocks.join('\n\n---\n\n')}\n\n---\n`;
+
+    const TLDR_CLOSE = '<!-- /SECTION:tldr -->';
+    const closeIdx = content.indexOf(TLDR_CLOSE);
+    if (closeIdx !== -1) {
+        const nl = content.indexOf('\n', closeIdx + TLDR_CLOSE.length);
+        const at = nl === -1 ? content.length : nl + 1;
+        return content.slice(0, at) + block + content.slice(at);
+    }
+    const h1 = content.match(/^#[ \t]+.*$/m);
+    if (h1) {
+        const at = content.indexOf(h1[0]) + h1[0].length;
+        return `${content.slice(0, at)}\n${block}${content.slice(at)}`;
+    }
+    return `${block.replace(/^\n/, '')}\n${content}`;
+}
 
 // Heading patterns for smart-merge (no markers)
 const HEADING_MAP = [
@@ -203,7 +336,7 @@ function main() {
         const projectName = config.project?.name || 'Project';
         const finalOutput = output.replace(/\{project-name\}/g, projectName).replace(/\{project-description\}/g, config.project?.description || '');
 
-        fs.writeFileSync(CLAUDE_MD_PATH, finalOutput, 'utf-8');
+        fs.writeFileSync(CLAUDE_MD_PATH, ensureSentinel(finalOutput), 'utf-8');
         console.log(`[OK] CLAUDE.md created (init mode)`);
     } else if (mode === 'update') {
         if (!fs.existsSync(CLAUDE_MD_PATH)) {
@@ -212,8 +345,23 @@ function main() {
         }
         createBackup();
         const existing = fs.readFileSync(CLAUDE_MD_PATH, 'utf-8');
-        const output = updateMarkedSections(existing, sections);
-        fs.writeFileSync(CLAUDE_MD_PATH, output, 'utf-8');
+        let output = updateMarkedSections(existing, sections);
+
+        // Back-fill universal-guide sections that drifted out of a managed file (e.g. a
+        // CLAUDE.md authored before the current template version). Marker-managed files
+        // only — a markerless file is project-only/pre-marker and must not be force-
+        // converted (preserves the bootstrap-gate F1 content-presence invariant). The
+        // back-fill is what lets ensureSentinel() stamp; without it the gate keeps
+        // flagging the file incomplete forever and --mode update is a dead end.
+        if (hasMarkers(existing) && fs.existsSync(TEMPLATE_PATH)) {
+            const merged = backfillPortableGuides(output, fs.readFileSync(TEMPLATE_PATH, 'utf-8'));
+            if (merged !== output) {
+                output = merged;
+                console.log('[OK] Back-filled missing universal-guide section(s) from template');
+            }
+        }
+
+        fs.writeFileSync(CLAUDE_MD_PATH, ensureSentinel(output), 'utf-8');
         console.log(`[OK] CLAUDE.md updated (${generated.length} sections synced)`);
     } else if (mode === 'smart-merge') {
         console.log('[INFO] Smart-merge: CLAUDE.md has no markers. AI should handle migration.');

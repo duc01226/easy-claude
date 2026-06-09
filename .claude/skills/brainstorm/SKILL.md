@@ -75,7 +75,7 @@ Ask:
 
 ### 0.2 — Context Loading
 
-- If project codebase exists: read `docs/business-features/` to understand domain
+- If project codebase exists: read `docs/specs/` to understand domain
 - If greenfield: skip codebase reading; rely on user input and web research
 - Load `docs/project-reference/domain-entities-reference.md` if entity context needed
 - Use `WebSearch` for market/competitor context when scenario = New Product or Enhancement

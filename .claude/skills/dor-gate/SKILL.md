@@ -46,7 +46,7 @@ description: '[Code Quality] Use when you need validate PBI against Definition o
 - [ ] **AC testable** — All AC use GIVEN/WHEN/THEN, no vague language, min 3 scenarios
 - [ ] **Wireframes/mockups** — Present or explicit "N/A" for backend-only
 - [ ] **UI design ready** — Completed or "N/A" for backend-only
-- [ ] **AI pre-review** — `/refine-review` or `/pbi-challenge` result is PASS or WARN
+- [ ] **AI pre-review** — `/review-artifact --type=pbi` or `/pbi-challenge` result is PASS or WARN
 - [ ] **Story points** — Valid Fibonacci (1-21) + complexity (Low/Medium/High)
 - [ ] **Dependencies table** — Complete with Type column (must-before/can-parallel/blocked-by/independent)
 
@@ -107,7 +107,7 @@ If ANY box fails → DoR result is FAIL; list each violated mandate ID with its 
 
 **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use `AskUserQuestion` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
 
-- **"/handoff (Recommended)"** — If PASS: hand off to grooming presentation
+- **"/prioritize (Recommended)"** — If PASS: PBI is grooming-ready; prioritize into the backlog
 - **"/refine"** — If FAIL: revise PBI
 - **"/pbi-challenge"** — If collaborative review needed before re-checking DoR
 - **"Skip, continue manually"** — user decides

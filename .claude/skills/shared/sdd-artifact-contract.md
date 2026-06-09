@@ -64,7 +64,7 @@ Every AI-SDD artifact (feature doc, engineering spec, test spec, PBI/story, idea
 | ------ | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------- |
 | **M1** | Tech-agnostic prose           | Narrative, headings, summaries, tables, glossaries MUST NOT name frameworks, products, language-native types, or product/design-pattern class names.                           | Tech-Agnostic Spec Writing   |
 | **M2** | No source code in prose       | Prose MUST NOT contain class/method names, file paths, namespaces, or language constructs; use business operation names. Source identifiers live only inside evidence carriers. | Tech-Agnostic Spec Writing   |
-| **M3** | Abstract-IDs-first trace      | Logical IDs (FR-/BR-/OP-/TC-) are the PRIMARY citation spine in prose; evidence rides on stack-portable abstract anchors (`[Source: namespace/service/id]`), NEVER physical `file:line`. Physical coordinates live only in the provenance sidecar. See `docs/specs/MIGRATION.md`. | Traceability Schema          |
+| **M3** | Abstract-IDs-first trace      | Logical IDs (FR-/BR-/OP-/TC-) are the PRIMARY citation spine in prose; evidence rides on stack-portable abstract anchors (`[Source: namespace/service/id]`), NEVER physical `file:line`. Physical coordinates live only in the provenance sidecar. Taxonomy: `shared/tc-format.md`. | Traceability Schema          |
 | **M4** | AI-implementability           | One valid interpretation per requirement; observable completion states; named failure modes; no hallucination bait.                                                            | AI-Implementability Gate     |
 | **M5** | Rebuild-from-scratch purpose  | A competent team with zero codebase knowledge can re-implement identical business behavior on ANY stack from the artifact alone.                                                | Implementation-Complete Gate |
 | **M6** | Review enforces M1-M5         | Every review/gate skill MUST check M1-M5 and FAIL with the specific mandate ID(s) violated and a concrete reason.                                                               | Enforcement Roles            |
@@ -98,7 +98,7 @@ Bugfix workflows use the same cycle with a root-cause gate before regression tes
 | Task graph                   | Multi-step work                    | independently verifiable tasks, dependencies, safe parallelization notes                    |
 | Test specs                   | Behavior change                    | TC IDs, intent/invariant guarded, priority, evidence, expected failure mode                 |
 | Implementation evidence      | Code changes                       | files changed, source references, verification output                                       |
-| Docs/spec sync               | Behavior or public contract change | updated canonical spec/docs, dashboard sync if applicable, skipped reason if not applicable |
+| Docs/spec sync               | Behavior or public contract change | updated canonical spec/docs, §8 TC ↔ test-code sync if applicable, skipped reason if not applicable |
 | Handoff/closeout             | All workflows                      | remaining risks, commands run, artifacts updated                                            |
 
 ## Requirement Quality
@@ -184,7 +184,7 @@ Public API paths, product-specific role names, domain terms, or externally visib
 
 ## Traceability Schema
 
-**[M3 — Abstract-IDs-first]** Logical identifiers (`RequirementId`/`Invariant`, `TC`) are the PRIMARY citation spine and MUST appear in requirement and rule statements. `Source` evidence uses stack-portable abstract anchors (`[Source: namespace/service/id]`), NEVER physical `file:line` — an anchor names WHICH logical artifact implements/verifies behavior, never WHAT the requirement is, and stays out of narrative prose. Physical coordinates are recoverable only via the provenance sidecar (`docs/specs/.sdd-provenance-map.jsonl`; format in `docs/specs/MIGRATION.md`). Keeping the logical spine + abstract anchors stable lets specs survive a stack migration with zero re-pointing.
+**[M3 — Abstract-IDs-first]** Logical identifiers (`RequirementId`/`Invariant`, `TC`) are the PRIMARY citation spine and MUST appear in requirement and rule statements. `Source` evidence uses stack-portable abstract anchors (`[Source: namespace/service/id]`), NEVER physical `file:line` — an anchor names WHICH logical artifact implements/verifies behavior, never WHAT the requirement is, and stays out of narrative prose. Physical coordinates are recoverable only via the provenance sidecar (`docs/specs/.sdd-provenance-map.jsonl`, created on demand; anchor taxonomy in `shared/tc-format.md`). Keeping the logical spine + abstract anchors stable lets specs survive a stack migration with zero re-pointing.
 
 Each requirement or bugfix invariant should trace through this chain:
 
@@ -203,7 +203,7 @@ Minimum trace fields:
 
 Use `N/A` only with evidence:
 
-`N/A - <reason>; Evidence: <file:line or command output>`
+`N/A - <reason>; Evidence: <command output or [Source: namespace/service/id]>`
 
 ## Code-To-Spec And Spec-To-Code
 
@@ -285,7 +285,7 @@ This contract defines generic artifact mechanics. Before applying it in a reposi
 2. Read `docs/project-reference/docs-index-reference.md` to discover the relevant reference docs.
 3. Read only the reference docs needed for the active task.
 4. Follow the target repository's canonical spec/test/doc owners.
-5. If `docs/project-config.json` or a required project-reference doc is missing, stop immediately and ask the user to run `/project-config` and `/scan-all` before applying project-specific rules.
+5. If `docs/project-config.json` or a required project-reference doc is missing or stale, auto-run `/project-init` or the narrow setup route (`/project-config`, `/docs-init`, `/scan-all`, or `/scan --target=<key>`) before applying project-specific rules.
 
 ## Source Practices
 
@@ -305,5 +305,5 @@ Useful external references to re-check when changing the contract:
 - MUST ATTENTION shared reusable principles live in `.claude` and sync to generated agent mirrors; project-reference docs only add local repository extensions.
 - MUST ATTENTION core cycle is `spec -> plan -> tasks -> implement -> verify -> update spec/docs`.
 - MUST ATTENTION specs, tests, and code stay traceable through requirements, decisions, tasks, TCs, evidence, and docs.
-- MUST ATTENTION when adapting this contract, read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`; if either file or a required reference doc is missing, stop and ask the user to run `/project-config` and `/scan-all`.
+- MUST ATTENTION when adapting this contract, read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`; if either file or a required reference doc is missing or stale, auto-run `/project-init` or the narrow setup route before ordinary project-specific work.
 - NEVER edit `.agents`, `.codex`, or `AGENTS.md` mirrors directly; source change belongs in `.claude`, sync happens later.

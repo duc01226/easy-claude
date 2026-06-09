@@ -22,6 +22,37 @@ description: '[Documentation] Use when you need initialize, update, or refactor 
 - Conditional sections — generated ONLY when config has matching data; empty config = section omitted
 - Static framework sections (8 total) are portable across all projects
 
+## Bootstrap Gate (when CLAUDE.md is missing or incomplete)
+
+This skill is the **AI-runnable** route the agent-files bootstrap gate offers when a portable
+`.claude` install lands in a project without a root `CLAUDE.md` — or with one that carries only
+project-specific knowledge and is missing the universal portable guides. Two hooks detect the gap
+and route here (shared detection lib: `.claude/hooks/lib/agent-files-state.cjs`):
+
+- `init-prompt-gate.cjs` (UserPromptSubmit) — blocks the first prompt once `project-config.json`
+  is populated but `CLAUDE.md` / `AGENTS.md` is missing **or incomplete**.
+- `agent-files-skill-gate.cjs` (PreToolUse: Skill) — blocks non-meta skills under the same condition.
+
+**Three-state detection** per root file: `missing` → routes to `--mode init` (fresh from template);
+`incomplete` → routes to `--mode update` (smart-merge — preserves your project content, injects the
+guides); `ok` → no block. Completeness is decided by `hasUniversalGuides()`: a current-or-newer
+sentinel (`<!-- CK:UNIVERSAL-GUIDES v1 -->`) → complete; an older sentinel → flag for update; no
+sentinel → fall back to scanning required anchors (First Action Decision, Workflow Step Advancement,
+Task Planning Rules, Code Responsibility Hierarchy, Evidence-Based Reasoning) so legacy/hand-written
+complete files still pass.
+
+Run `/claude-md-init` (or the generator directly) to produce `CLAUDE.md` from
+`docs/project-config.json` + template. The generated file ships the universal session-start guides
+(workflow ask-confirm gate, workflow step-advancement + parallel-phase barrier, task-planning rules,
+code hierarchy, naming, evidence/confidence rules) and stamps the sentinel at the top so the gate
+recognizes it as complete.
+
+**Opt-out** — to keep a project-only `CLAUDE.md`/`AGENTS.md` (your custom knowledge, none of the
+universal guides), set `portability.requireUniversalGuides: false` in `docs/project-config.json`
+(persistent; default `true`). The gate then checks only existence, never completeness. The transient
+`skip init` escape still dismisses both hooks for 24h. The gate is dormant in empty/greenfield folders
+and before config is populated. `AGENTS.md` is generated separately by `/sync-codex` (user-invoke-only).
+
 ## Modes
 
 | Mode       | When                                     | Behavior                                                                                                                |
@@ -142,8 +173,10 @@ See `references/section-registry.md` for full mapping. Summary:
 
 ## Running Tests
 
+Generator + bootstrap-gate coverage lives in the hooks test suite:
+
 ```bash
-node .claude/skills/claude-md-init/scripts/test-generate-claude-md.cjs
+node .claude/hooks/tests/run-all-tests.cjs --filter=agent-files
 ```
 
 ---

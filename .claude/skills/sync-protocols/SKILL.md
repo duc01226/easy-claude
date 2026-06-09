@@ -122,11 +122,25 @@ REMINDERS = {
 }
 ```
 
-3. Add the block name to `BLOCK_ORDER` list (controls insertion order):
+3. Add the block name to the relevant tier list(s) (controls which targets receive it + insertion order):
 
 ```python
-BLOCK_ORDER = ["critical-thinking-mindset", "ai-mistake-prevention", "new-block-name"]
+# Skills keep the original 2-block set — do NOT add agent-only rules here.
+SKILL_BLOCK_ORDER = ["critical-thinking-mindset", "ai-mistake-prevention"]
+
+# Core-5: every agent (skills/SKILL.md is unaffected).
+CORE_BLOCK_ORDER = ["critical-thinking-mindset", "ai-mistake-prevention",
+                    "sequential-thinking-protocol", "task-tracking-external-report",
+                    "project-reference-docs-guide"]
+
+# Code-9: Core-5 + code-investigation blocks, for agents that read/review code.
+CODE_BLOCK_ORDER = CORE_BLOCK_ORDER + ["understand-code-first", "evidence-based-reasoning",
+                                       "cross-service-check", "fix-layer-accountability"]
 ```
+
+**Agent tiering (added 2026-06):** agents no longer share one block list. `find_target_files()` classifies each `.claude/agents/*.md` by explicit membership in `CODE_AGENTS` (20 code/review agents → `CODE_BLOCK_ORDER`) or `CORE_ONLY_AGENTS` (8 non-code agents → `CORE_BLOCK_ORDER`). An agent in **neither set (or both)** raises `SystemExit` — no silent default; classify it before the script will run. Skills always use `SKILL_BLOCK_ORDER`. Pass `--agents-only` to scope a run to agents (skip skills).
+
+> **Adding a new agent:** add its basename to exactly one of `CODE_AGENTS` / `CORE_ONLY_AGENTS` in `sync-hooks-to-skills.py` **and** in the regression suite `.claude/hooks/tests/suites/agent-universal-rules.test.cjs` (TC-UAR-005 fails until both agree). The two enforce one invariant.
 
 #### Step B3: Run the script (dry-run first)
 
@@ -141,12 +155,18 @@ python .claude/scripts/sync-hooks-to-skills.py --verbose
 #### Step B4: Verify
 
 ```bash
-# Confirm all target files now contain the new block
+# Confirm target files now contain the new block. Expected count is TIER-AWARE:
+#   - block in SKILL_BLOCK_ORDER  → all skills + all agents
+#   - block in CORE_BLOCK_ORDER   → all 29 agents (skills excluded)
+#   - block in CODE_BLOCK_ORDER   → 21 code agents only
 grep -rl "SYNC:new-block-name" .claude/skills/*/SKILL.md .claude/agents/*.md | wc -l
-# Should equal total file count (288)
+
+# Then run the agent-coverage regression suite — it asserts tier membership,
+# disjointness, and SYNC tag balance across all 29 agents.
+node .claude/hooks/tests/run-all-tests.cjs --filter=agent-universal
 ```
 
-Check a representative file manually to confirm correct placement and formatting.
+Check a representative file of each affected tier manually to confirm placement and formatting.
 
 ---
 

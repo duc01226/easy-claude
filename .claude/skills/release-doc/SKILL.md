@@ -347,7 +347,7 @@ The skill auto-derives categories from file paths. For projects without `.claude
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, use `AskUserQuestion` to ask the user:
 >
 > 1. **Execute `/release-doc` directly (Recommended)** — Standalone analysis and doc generation
-> 2. **Activate `workflow-release-prep`** — Full pre-release quality gate + release doc
+> 2. **Run `/sre-review` + `/quality-gate` first** — Pre-release quality gate, then release doc
 
 ---
 

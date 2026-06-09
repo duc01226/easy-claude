@@ -1,21 +1,21 @@
 ---
 name: workflow-spec-to-pbi
-version: 1.0.0
-description: '[Workflow] Use when activating the Spec to PBI Backlog workflow for convert an existing engineering spec bundle into complete, prioritized, dependency-aware PBIs and stories.'
+version: 2.0.0
+description: '[Workflow] Use when activating the Spec to PBI Backlog workflow to convert canonical tech-free Feature Specs into complete, prioritized, dependency-aware PBIs and stories.'
 disable-model-invocation: true
 ---
 
 ## Quick Summary
 
-**Goal:** Convert an existing engineering spec bundle into a complete, sprint-ready PBI backlog.
+**Goal:** Convert one or more canonical 8-section Feature Specs into a complete, sprint-ready PBI backlog.
 
-**Canonical input:** `docs/specs/{app-bucket}/{system-name}/`
+**Canonical input:** `docs/specs/{Bucket}/README.{Feature}.md` (one tech-free 8-section Feature Spec per capability). There is no separate A-E engineering bundle — code is the technical source of truth.
 
 **Primary outputs:**
 
 - `team-artifacts/pbis/{date}-pbi-{slug}.md` for each generated PBI.
 - `team-artifacts/backlog/spec-to-pbi-{date}-backlog.md` with priority order and dependency graph.
-- `plans/reports/spec-to-pbi-{date}-{system-name}.md` with coverage matrix and unresolved questions.
+- `plans/reports/spec-to-pbi-{date}-{bucket}.md` with coverage matrix and unresolved questions.
 
 **Universal Rules:**
 
@@ -26,14 +26,14 @@ disable-model-invocation: true
 
 ## When to Use
 
-- User wants to create all PBIs from an existing engineering spec.
-- User wants to split a very large spec into small sprint-ready PBIs.
+- User wants to create all PBIs from an existing Feature Spec (or a bucket of them).
+- User wants to split a very large Feature Spec into small sprint-ready PBIs.
 - User wants a dependency-aware and priority-ranked backlog from `docs/specs/`.
 - User wants shared/foundation tasks identified before feature PBIs.
 
 ## When Not to Use
 
-- Raw product vision without a spec bundle -> use `/workflow-product-discovery`.
+- Raw product vision without any Feature Spec -> use `/workflow-product-discovery`.
 - One informal idea -> use `/workflow-idea-to-pbi`.
 - Spec creation/update only -> use `/workflow-spec-driven-dev`.
 - Implementation after PBIs are ready -> use `/workflow-feature` or `/workflow-big-feature`.
@@ -46,18 +46,22 @@ Run `/workflow-start spec-to-pbi` with the user's prompt as context.
 
 ### 2. Load Spec Context
 
-Locate and read:
+Locate and read, per target capability:
 
-- `docs/specs/{app-bucket}/{system-name}/README.md`
-- `docs/specs/{app-bucket}/{system-name}/00-module-registry.md`
-- `docs/specs/{app-bucket}/{system-name}/01-domain-erd.md`
-- Per-module `README.md`, `A-domain-model.md`, `B-business-rules.md`, `C-api-contracts.md`, `D-events-jobs.md`, and `E-user-journeys.md`
+- `docs/specs/{Bucket}/INDEX.md` — the bucket catalog (which capabilities exist)
+- `docs/specs/{Bucket}/README.{Feature}.md` — the canonical 8-section Feature Spec. Each PBI is decomposed from its sections:
+    - §1 Overview / §3 User Stories & Acceptance Criteria → PBI scope + acceptance criteria
+    - §4 Business Rules (`BR-`) + §3 (`US-`/`AC-`) → logical-ID citation spine (M3)
+    - §5 Domain Model (Mermaid ERD) → entity/aggregate impact for `## Domain Impact`
+    - §6 Process Flows → vertical-slice story boundaries
+    - §7 Permissions & Roles → access-control acceptance criteria
+    - §8 Test Specifications (`TC-`) → expected TC categories per PBI
 
-If the spec path is missing or ambiguous, ask the user for the exact spec bundle path before generating PBIs.
+If the spec path is missing or ambiguous, ask the user for the exact bucket / Feature Spec path before generating PBIs.
 
 ### 3. Freshness Gate
 
-Run `/spec-discovery` in audit mode before PBI generation.
+Run `/spec-index` in audit mode before PBI generation.
 
 - If stale behavior is found, run/update the impacted spec sections before generating PBIs.
 - If only structural/doc formatting is stale, record the risk and continue.
@@ -67,9 +71,9 @@ Run `/spec-discovery` in audit mode before PBI generation.
 
 Create a matrix with one row per independently deliverable item:
 
-| Spec Source      | Module     | Feature/Operation | Domain Impact             | Shared Dependency | PBI Type                                      | Status  |
-| ---------------- | ---------- | ----------------- | ------------------------- | ----------------- | --------------------------------------------- | ------- |
-| `{file:section}` | `{module}` | `{feature}`       | entity/state/event/API/UI | yes/no            | feature/foundation/shared/migration/test-data | planned |
+| Spec Source        | Capability     | Feature/Operation | Domain Impact             | Shared Dependency | PBI Type                                      | Status  |
+| ------------------ | -------------- | ----------------- | ------------------------- | ----------------- | --------------------------------------------- | ------- |
+| `{Feature §sec}`   | `{capability}` | `{feature}`       | entity/state/event/API/UI | yes/no            | feature/foundation/shared/migration/test-data | planned |
 
 Every source feature/operation must map to exactly one of:
 
@@ -82,13 +86,13 @@ Every source feature/operation must map to exactly one of:
 
 Apply these scale rules before creating PBIs:
 
-| Scope                      | Required Breakdown                                                |
-| -------------------------- | ----------------------------------------------------------------- |
-| 1-3 modules                | Process inline with one task per module and feature group         |
-| 4-10 modules               | Split by module, then feature/operation group                     |
-| 10+ modules                | Incremental module-group batches with coverage matrix checkpoints |
-| Any PBI > 8 story points   | Split with SPIDR until each PBI is <= 8 story points              |
-| Cross-cutting prerequisite | Create shared/foundation PBI before dependent feature PBIs        |
+| Scope                      | Required Breakdown                                                       |
+| -------------------------- | ----------------------------------------------------------------------- |
+| 1-3 capabilities           | Process inline with one task per capability and feature group           |
+| 4-10 capabilities          | Split by capability, then feature/operation group                       |
+| 10+ capabilities           | Incremental capability-group batches with coverage matrix checkpoints   |
+| Any PBI > 8 story points   | Split with SPIDR until each PBI is <= 8 story points                    |
+| Cross-cutting prerequisite | Create shared/foundation PBI before dependent feature PBIs              |
 
 ### 6. Domain Analysis Gate
 
@@ -106,9 +110,9 @@ Record domain findings in each affected PBI under `## Domain Impact`.
 For each matrix row that needs a new PBI:
 
 1. Run `/refine` to create the PBI artifact.
-2. Run `/refine-review`.
+2. Run `/review-artifact --type=pbi`.
 3. Run `/story` to create vertical-slice stories.
-4. Run `/story-review`.
+4. Run `/review-artifact --type=story`.
 5. Run `/pbi-challenge`.
 6. Run `/dor-gate`.
 7. Run `/pbi-mockup` only when UI is involved.
@@ -139,13 +143,13 @@ The backlog artifact MUST include:
 
 ### 8.5 Near-Final Documentation Synchronization
 
-Run `/docs-update` after `/prioritize` and before `/watzup`.
+Run `/docs-update` after `/prioritize` and before `/workflow-end`.
 
 Purpose:
 
-- Sync generated PBIs/stories/backlog outputs back into business feature docs where applicable.
-- Sync feature doc Section 15 test specifications and `docs/specs/` dashboards.
-- Verify engineering spec bundle indexes, feature docs, and TDD/spec docs do not drift after PBI generation.
+- Sync generated PBIs/stories/backlog outputs back into the canonical Feature Specs where applicable.
+- Sync Feature Spec §8 Test Specifications with the generated TC needs.
+- Verify Feature Specs, derived bucket `INDEX.md`, and TDD/spec docs do not drift after PBI generation.
 - Record skipped sub-phases explicitly when no impacted docs exist.
 
 ### 9. Completion Criteria
@@ -157,9 +161,9 @@ Workflow can close only when:
 - Shared/foundation PBIs are explicit and ordered before dependents.
 - Domain-analysis findings are attached where domain changes are implied.
 - The final backlog artifact ranks all PBIs and explains what to do first.
-- `/docs-update` has run as the near-final sync gate, with specs, feature docs, and TDD/spec dashboards either updated or explicitly marked unchanged.
+- `/docs-update` has run as the near-final sync gate, with Feature Specs (§8) and derived bucket indexes either updated or explicitly marked unchanged.
 
-**IMPORTANT MANDATORY Steps:** /scout -> /spec-discovery -> /domain-analysis -> /why-review -> /plan -> /plan-review -> /plan-validate -> /why-review -> /refine -> /why-review -> /refine-review -> /story -> /why-review -> /story-review -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /prioritize -> /docs-update -> /watzup -> /workflow-end
+**IMPORTANT MANDATORY Steps:** /scout -> /spec-index -> /domain-analysis -> /why-review -> /plan -> /plan-review -> /plan-validate -> /why-review -> /refine -> /why-review -> /review-artifact --type=pbi -> /story -> /why-review -> /review-artifact --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /prioritize -> /docs-update -> /workflow-end -> /watzup
 
 > **[BLOCKING]** Each step MUST invoke its Skill tool. Marking a workflow step completed without skill invocation is a workflow violation.
 
@@ -257,9 +261,9 @@ Workflow can close only when:
 
 ## Closing Reminders
 
-- **MUST** use the spec bundle as canonical input; do not invent unrelated opportunities.
-- **MUST** decompose big specs into small PBIs before story generation.
+- **MUST** use the canonical Feature Specs as input; do not invent unrelated opportunities.
+- **MUST** decompose big Feature Specs into small PBIs before story generation.
 - **MUST** include dependency, priority, domain impact, and shared-task details.
-- **MUST** write artifacts incrementally after each module/feature.
+- **MUST** write artifacts incrementally after each capability/feature.
 - **MUST** run `/prioritize` once at the end across all generated PBIs.
-- **MUST** run `/docs-update` after `/prioritize` and before `/watzup` to keep specs, feature docs, and TDD/spec docs synchronized.
+- **MUST** run `/docs-update` after `/prioritize` and before `/workflow-end` to keep specs, feature docs, and TDD/spec docs synchronized.

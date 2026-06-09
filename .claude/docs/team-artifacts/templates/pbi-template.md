@@ -41,7 +41,7 @@ dependencies: [] # Other PBIs this depends on
 <!-- Auto-extracted by `/refine` or BA skill -->
 
 - **BR-{MOD}-XXX**: {Description of existing rule}
-    - Source: `docs/business-features/{module}/detailed-features/{feature}.md`
+    - Source: `docs/specs/{module}/{feature}.md`
     - Impact: {How this PBI relates to this rule}
 
 - **BR-{MOD}-YYY**: {Description of existing rule}
@@ -81,7 +81,7 @@ Follow test case patterns from related feature docs:
 
 - **Format:** TC-{FEATURE}-{NNN}
 - **Evidence:** `[Source: namespace/service/id]` abstract anchor (stack-portable — physical `file:line` lives only in the provenance sidecar, never in the PBI body)
-- **Reference:** See existing patterns in feature doc Section 15 (Test Cases)
+- **Reference:** See existing patterns in feature doc Section 8 (Test Specifications)
 
 ### Acceptance Criteria List
 
@@ -180,7 +180,7 @@ THEN {error handling}
 
 ### Existing Test Cases
 
-See Section 15 (Test Cases & Scenarios) in primary feature doc for patterns:
+See Section 8 (Test Specifications) in primary feature doc for patterns:
 
 - TC-{FEATURE}-{NNN} format
 - GIVEN/WHEN/THEN structure
@@ -248,4 +248,4 @@ Node ID: Use URL format (e.g., 1-3), extraction converts to API format (1:3)
 ---
 
 _To create user stories, run: `/story {this-file}`_
-_To create test spec, run: `/test-spec {this-file}`_
+_To create test spec, run: `/spec-tests {this-file}`_

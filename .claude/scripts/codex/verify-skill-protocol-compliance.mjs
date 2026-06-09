@@ -40,13 +40,9 @@ const DEBUGGER_TRACE_REQUIRED_SOURCE_PATHS = [
     '.claude/skills/prove-fix/SKILL.md',
     '.claude/skills/fix-ci/SKILL.md',
     '.claude/skills/fix-test/SKILL.md',
-    '.claude/skills/fix-types/SKILL.md',
     '.claude/skills/fix-ui/SKILL.md',
     '.claude/skills/fix-logs/SKILL.md',
     '.claude/skills/code/SKILL.md',
-    '.claude/skills/code-auto/SKILL.md',
-    '.claude/skills/code-parallel/SKILL.md',
-    '.claude/skills/code-no-test/SKILL.md',
     '.claude/skills/cook/SKILL.md',
     '.claude/skills/review-changes/SKILL.md',
     '.claude/skills/workflow-review-changes/SKILL.md',
@@ -54,9 +50,7 @@ const DEBUGGER_TRACE_REQUIRED_SOURCE_PATHS = [
     '.claude/skills/why-review/skill.md',
     '.claude/agents/code-reviewer.md',
     '.claude/skills/workflow-bugfix/SKILL.md',
-    '.claude/skills/workflow-investigation/SKILL.md',
-    '.claude/skills/workflow-feature/SKILL.md',
-    '.claude/skills/workflow-verification/SKILL.md'
+    '.claude/skills/workflow-feature/SKILL.md'
 ];
 
 const DEBUGGER_TRACE_REQUIRED_GENERATED_SKILLS = DEBUGGER_TRACE_REQUIRED_SOURCE_PATHS
@@ -260,7 +254,7 @@ export function checkMainContentBeforeSyncBlocks(content, relativePath) {
         .slice(0, 3)
         .map(h => `line ${h.line}: ${h.text.slice(0, 60)}`)
         .join('; ');
-    return `${relativePath} layout invalid: ${offendingH2s.length} "## H2" heading(s) appear AFTER first <!-- SYNC:${firstSyncOpenerTag} --> opener at line ${firstSyncOpenerLine}; main content must consolidate ABOVE all SYNC blocks. Examples: ${firstFew}. Re-run \`python .claude/scripts/refactor_skill_layout.py\` then codex-sync.`;
+    return `${relativePath} layout invalid: ${offendingH2s.length} "## H2" heading(s) appear AFTER first <!-- SYNC:${firstSyncOpenerTag} --> opener at line ${firstSyncOpenerLine}; main content must consolidate ABOVE all SYNC blocks. Examples: ${firstFew}. Re-run \`python .claude/scripts/refactor_skill_layout.py\` then /sync-codex.`;
 }
 
 // Orphan-heading hygiene (authoring quality on SOURCE skills; the mirror inherits it).

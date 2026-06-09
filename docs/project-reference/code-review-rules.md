@@ -75,10 +75,10 @@ module.exports = {
 
 ### Exit Code Rules
 
-| Code | Meaning                              | Use Case                                                                                      |
-| ---- | ------------------------------------ | --------------------------------------------------------------------------------------------- |
-| `0`  | Success / allow / non-critical error | Default for all hooks                                                                         |
-| `2`  | Block operation                      | Safety hooks only (`privacy-block`, `path-boundary-block`, `scout-block`, `init-prompt-gate`) |
+| Code | Meaning                              | Use Case                                                                                                                |
+| ---- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| `0`  | Success / allow / non-critical error | Default for all hooks                                                                                                   |
+| `2`  | Block operation                      | Safety hooks only (`privacy-block`, `path-boundary-block`, `scout-block`, `init-prompt-gate`, `agent-files-skill-gate`) |
 
 **Rule:** Always exit `0` on errors unless the hook is explicitly a safety blocker. Hooks must be non-blocking by default.
 

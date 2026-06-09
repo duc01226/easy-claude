@@ -320,6 +320,22 @@ const winFlagAllowTests = [
         name: 'powershell -Command - should allow',
         input: { tool_input: { command: 'powershell /c "Get-ChildItem"' } },
         expectBlock: false
+    },
+    {
+        // Git Bash (MSYS) doubles the leading slash so cmd.exe receives /c.
+        // Regression: real user report — `cmd //c start ...` blocked as path "//c".
+        name: 'cmd //c start (Git Bash doubled-slash flag) - should allow',
+        input: {
+            tool_input: {
+                command: 'cmd //c start "Claude xhigh" pwsh -NoExit -ExecutionPolicy Bypass -File ".ai\\workspace\\dual-ai\\launch-claude.ps1"'
+            }
+        },
+        expectBlock: false
+    },
+    {
+        name: 'cmd //c dir (Git Bash doubled-slash flag) - should allow',
+        input: { tool_input: { command: 'cmd //c dir' } },
+        expectBlock: false
     }
 ];
 
@@ -391,6 +407,18 @@ const fuzzNonFlagWordPathTests = [
     {
         name: 'cat /foobar (arbitrary, no Win tool) - should block',
         input: { tool_input: { command: 'cat /foobar' } },
+        expectBlock: true
+    },
+    {
+        // Doubled-slash flag skip must NOT exempt //word when no Win tool is present.
+        name: 'cat //foobar (doubled slash, no Win tool) - should block',
+        input: { tool_input: { command: 'cat //foobar' } },
+        expectBlock: true
+    },
+    {
+        // UNC paths have a nested separator → never match the //Flag skip, even with a Win tool.
+        name: 'type //server/share/secret.txt (UNC with Win tool) - should block',
+        input: { tool_input: { command: 'type //server/share/secret.txt' } },
         expectBlock: true
     }
 ];

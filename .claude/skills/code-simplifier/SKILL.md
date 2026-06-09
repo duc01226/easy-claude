@@ -236,7 +236,7 @@ When used standalone (outside a review workflow), this self-review gate is suffi
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If NOT already in workflow, use `AskUserQuestion` to ask user. Do NOT decide this is "simple enough to skip" — the user decides:
 >
-> 1. **Activate `quality-audit` workflow** (Recommended) — full review-changes restart gate → validated fix cycle (plan → plan-review → plan-validate → why-review → code) → tests → docs
+> 1. **Activate `review-changes` workflow** (Recommended) — full review-changes restart gate → validated fix cycle (plan → plan-review → cook) → re-review → docs
 > 2. **Execute `/code-simplifier` directly** — run standalone (this skill self-reviews its own changes via the Self-Review Gate)
 
 ---

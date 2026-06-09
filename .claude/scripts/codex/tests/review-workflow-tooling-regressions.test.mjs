@@ -6,7 +6,7 @@ import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createRequire } from 'node:module';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const execFileAsync = promisify(execFile);
 const require = createRequire(import.meta.url);
@@ -36,7 +36,7 @@ test('TC-WFPROTO-005: redundant why-review sweep preserves review-changes valida
                             sequence: [
                                 'review-changes',
                                 'why-review',
-                                'security',
+                                'security-review',
                                 'why-review',
                                 'docs-update'
                             ]
@@ -54,7 +54,7 @@ test('TC-WFPROTO-005: redundant why-review sweep preserves review-changes valida
             [
                 '# Workflow Test',
                 '',
-                '**Steps:** /review-changes -> /why-review -> /security -> /why-review -> /docs-update',
+                '**Steps:** /review-changes -> /why-review -> /security-review -> /why-review -> /docs-update',
                 ''
             ].join('\n'),
             'utf8'
@@ -69,13 +69,13 @@ test('TC-WFPROTO-005: redundant why-review sweep preserves review-changes valida
         );
         assert.deepEqual(
             workflowConfig.workflows['review-changes'].sequence,
-            ['review-changes', 'why-review', 'security', 'docs-update'],
+            ['review-changes', 'why-review', 'security-review', 'docs-update'],
             'sweep must preserve review-changes -> why-review while removing a redundant control pair'
         );
 
         const skillText = normalizeEol(await fs.readFile(path.join(tempSkillDir, 'SKILL.md'), 'utf8'));
-        assert.match(skillText, /\/review-changes -> \/why-review -> \/security -> \/docs-update/);
-        assert.doesNotMatch(skillText, /\/security -> \/why-review/);
+        assert.match(skillText, /\/review-changes -> \/why-review -> \/security-review -> \/docs-update/);
+        assert.doesNotMatch(skillText, /\/security-review -> \/why-review/);
     } finally {
         await fs.rm(tempRoot, { recursive: true, force: true });
     }
@@ -96,9 +96,15 @@ test('TC-WFPROTO-006: common protocol instructions are reproducible from workflo
     const workflow = workflowConfig.workflows['review-changes'];
     const commandMapping = workflowConfig.commandMapping || {};
     const arrow = '\u2192';
-    const expectedSequence = workflow.sequence
-        .map(step => commandMapping[step]?.copilot || step)
-        .join(` ${arrow} `);
+    // Reproduce the generator's barrier-aware rendering (parallelGroups collapse to one token)
+    // via its own exported renderer \u2014 single source of truth, no re-flattening drift.
+    const parallelGroups = Array.isArray(workflow.parallelGroups) ? workflow.parallelGroups : [];
+    const expectedSequence = generator.renderSequenceWithBarriers(
+        workflow.sequence,
+        parallelGroups,
+        ` ${arrow} `,
+        step => commandMapping[step]?.copilot || step
+    );
     const sectionStart = tracked.indexOf('**review-changes**');
     assert.notEqual(sectionStart, -1, 'generated workflow catalog must include review-changes');
     const nextSectionStart = tracked.indexOf('\n**', sectionStart + 1);
@@ -149,4 +155,65 @@ test('TC-WFPROTO-007: prompt surfaces do not retain stale review workflow guidan
             `${promptSurfacePath} must not describe review-ui as an external sibling reviewer`
         );
     }
+});
+
+test('TC-WFPROTO-008: review workflow batch prompt uses canonical skill ids and specialized agent types', async () => {
+    const workflowText = normalizeEol(await fs.readFile(path.join(repoRoot, '.claude', 'workflows.json'), 'utf8'));
+    const skillText = normalizeEol(
+        await fs.readFile(path.join(repoRoot, '.claude', 'skills', 'workflow-review-changes', 'SKILL.md'), 'utf8')
+    );
+    const combined = `${workflowText}\n${skillText}`;
+
+    assert.doesNotMatch(combined, /`performance`, `integration-test-review`, `security`/);
+    assert.doesNotMatch(combined, /Agent\(security,/);
+    assert.doesNotMatch(combined, /subagent_type(?:`|":\s*)\s*`?code-reviewer`?[^.\n]*Steps 3[–-]7/);
+    assert.match(combined, /`performance-review`, `integration-test-review`, `security-review`/);
+    assert.match(combined, /Agent\(security-review, subagent_type="security-auditor"/);
+    assert.match(combined, /Agent\(review-architecture, subagent_type="architect"/);
+});
+
+test('TC-WFADV-021: parallelGroups structural guards reject malformed barrier configs (no silent false-pass)', async () => {
+    const { checkParallelGroupsStructure } = await import(
+        pathToFileURL(path.join(repoRoot, '.claude', 'scripts', 'codex', 'verify-workflow-cycle-compliance.mjs')).href
+    );
+    const sequence = ['a', 'b', 'c', 'd'];
+    const collect = workflow => {
+        const failures = [];
+        checkParallelGroupsStructure('wf', workflow, sequence, failures);
+        return failures;
+    };
+
+    // A well-formed group must pass silently (no false-positive).
+    assert.deepEqual(
+        collect({ parallelGroups: [{ id: 'reviewers', members: ['a', 'b'], barrier: true, conditionalMembers: ['b'] }] }),
+        [],
+        'well-formed parallel group must produce zero structural failures'
+    );
+
+    // present-but-non-array parallelGroups must FAIL, not be silently treated as "no groups".
+    const nonArray = collect({ parallelGroups: { id: 'x', members: ['a', 'b'], barrier: true } });
+    assert.ok(
+        nonArray.some(f => /must be an array/.test(f)),
+        'non-array parallelGroups must be flagged'
+    );
+
+    // a group without a usable id must FAIL — the mirror renderers dedup by id, so a missing id
+    // would silently drop the barrier token from the rendered mirror.
+    const missingId = collect({ parallelGroups: [{ members: ['a', 'b'], barrier: true }] });
+    assert.ok(
+        missingId.some(f => /non-empty string id/.test(f)),
+        'group missing a string id must be flagged'
+    );
+
+    // duplicate group ids must FAIL — renderer dedup would collapse them to one token.
+    const dupId = collect({
+        parallelGroups: [
+            { id: 'dup', members: ['a', 'b'], barrier: true },
+            { id: 'dup', members: ['c', 'd'], barrier: true }
+        ]
+    });
+    assert.ok(
+        dupId.some(f => /duplicate group id/.test(f)),
+        'duplicate group id must be flagged'
+    );
 });

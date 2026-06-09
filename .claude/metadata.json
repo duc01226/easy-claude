@@ -2225,12 +2225,6 @@
           "installedVersion": "v2.1.0"
         },
         {
-          "path": "skills/planning/SKILL.md",
-          "checksum": "63d61df71fdb3c978157f026d199cb33029fe51292a62306feef81f45112e0d2",
-          "ownership": "user",
-          "installedVersion": "v2.1.0"
-        },
-        {
           "path": "skills/plans-kanban/assets/dashboard-template.html",
           "checksum": "b3948e08afe2689875992686e186907ae458a2cb70ca4a1c8f615ff630a1cecd",
           "ownership": "user",

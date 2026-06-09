@@ -50,7 +50,7 @@ function buildGuidance(filePath) {
         `**File:** ${path.basename(filePath)}${app ? ` | **App:** ${app}` : ''}`,
         '',
         'Before implementing, read:',
-        `- \`${patternsDoc}\` — base classes, PlatformVmStore, effectSimple(), BEM, API service pattern`,
+        `- \`${patternsDoc}\` — base classes, state-management store, reactive effects, component styling, API service pattern`,
         '- `docs/project-reference/domain-entities-reference.md` — domain models, API services',
     ];
 

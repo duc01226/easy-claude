@@ -23,7 +23,7 @@ $cook add dark mode toggle to settings
 
 ```bash
 $fix login button not working
-$fix-types  # Fix TypeScript errors
+$fix --target=types  # Fix TypeScript errors
 ```
 
 **Complex debugging:**
@@ -69,7 +69,7 @@ $fix-test payment tests failing
 ## Git Operations
 
 ```bash
-$git-cp                        # Stage and commit
+$commit --push                 # Stage, commit, and push
 /git:cp                        # Stage, commit, and push
 /git:pr feature-branch main    # Create pull request from feature-branch to main
 ```
@@ -79,9 +79,9 @@ $git-cp                        # Stage and commit
 **UI/UX design:**
 
 ```bash
-/design:fast create landing page for SaaS product
-/design:good build immersive dashboard with data viz
-/design:screenshot analyze this design and suggest improvements
+$design:fast create landing page for SaaS product
+$design:good build immersive dashboard with data viz
+$design:screenshot analyze this design and suggest improvements
 ```
 
 **Content creation:**

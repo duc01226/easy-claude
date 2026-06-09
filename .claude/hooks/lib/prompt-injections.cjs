@@ -166,7 +166,7 @@ function injectLessonReminder(transcriptPath) {
         `3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.`,
         `4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.`,
         `5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip \`/learn\`.`,
-        `6. **Auto-fix gate:** "Could \`/code-review\`/\`/simplify\`/\`/security\`/\`/lint\` catch this?" — Yes → improve review skill instead.`,
+        `6. **Auto-fix gate:** "Could \`/code-review\`/\`/simplify\`/\`/security-review\`/\`/lint\` catch this?" — Yes → improve review skill instead.`,
         `7. BOTH gates pass → ask user to run \`/learn\`.`,
         ``
     ].join('\n');
@@ -177,49 +177,32 @@ function buildPortabilityBoundary(portability = {}) {
     const docsIndexPath = portability.docsIndexPath || DEFAULT_PORTABILITY.docsIndexPath;
     const rule = portability.rule || DEFAULT_PORTABILITY.rule;
 
-    return `**Generic portability boundary:** ${rule} Apply shared AI-SDD from \`shared/sdd-artifact-contract.md\`. Read \`${projectConfigPath}\` and \`${docsIndexPath}\`, then open the project reference docs named there. If either file or a required reference doc is missing, stop immediately and ask the user to run the project-config and scan-all skills. Any supported AI tool may execute when this shared context and local docs are available.`;
+    return `**Generic portability boundary:** ${rule} Apply shared AI-SDD from \`shared/sdd-artifact-contract.md\`. Read \`${projectConfigPath}\` and \`${docsIndexPath}\`, then open the project reference docs named there. For spec, test-case, behavior-change, public-contract, or \`docs/specs/\` work, route through the local spec docs named by the docs index: \`feature-spec-reference.md\`, \`spec-system-reference.md\`, \`spec-principles.md\`, and \`workflow-spec-test-code-cycle-reference.md\` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run \`/project-init\` (or the narrow lower-level route such as \`/project-config\`, \`/docs-init\`, \`/scan-all\`, or \`/scan --target=<key>\`) before ordinary project-specific work. Any supported AI tool may execute when this shared context and local docs are available.`;
 }
 
 /**
  * Return workflow execution protocol text (detection + task breakdown guidance).
- * Content varies by confirmationMode: "always" asks user, "never" auto-executes.
  * @param {string} transcriptPath - Path to transcript for dedup check
- * @param {string} confirmationMode - "always" | "never"
  * @param {object} portability - Configured portability paths and rule text
  * @returns {string|null} Protocol text or null if recently injected
  */
-function injectWorkflowProtocol(transcriptPath, confirmationMode, portability = {}) {
+function injectWorkflowProtocol(transcriptPath, portability = {}) {
     if (wasMarkerRecentlyInjected(transcriptPath, WORKFLOW_PROTOCOL_MARKER, DEDUP_LINES.WORKFLOW_PROTOCOL)) {
         return null;
     }
 
     const portabilityBoundary = buildPortabilityBoundary(portability);
 
-    if (confirmationMode === 'never') {
-        return `## ${WORKFLOW_PROTOCOL_MARKER} [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
-
-${portabilityBoundary}
-
-1. **DETECT:** Match prompt against workflow catalog
-2. **ANALYZE:** Find best-match workflow; if no clean fit, compose a custom step combination that better serves the prompt
-3. **ACTIVATE:** Call \`/workflow-start <workflowId>\` for best-match; or sequence custom steps directly
-4. **CREATE TASKS:** \`TaskCreate\` for ALL workflow steps
-5. **EXECUTE:** Follow each step in sequence`;
-    }
-
     return `## ${WORKFLOW_PROTOCOL_MARKER} [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
 
 ${portabilityBoundary}
 
-1. **DETECT:** Match prompt against workflow catalog
-2. **ANALYZE:** Find best-match workflow AND evaluate if a custom step combination would fit better
-3. **ASK (REQUIRED FORMAT):** Use \`AskUserQuestion\` with this structure unless the user explicitly invoked a workflow/skill and the local protocol treats explicit invocation as confirmation:
-   - Question: "Which workflow do you want to activate?"
-   - Option 1: "Activate **[BestMatch Workflow]** (Recommended)"
-   - Option 2: "Activate custom workflow: **[step1 → step2 → ...]**" (include one-line rationale)
-4. **ACTIVATE (if confirmed):** Call \`/workflow-start <workflowId>\` for standard; sequence custom steps manually
-5. **CREATE TASKS:** \`TaskCreate\` for ALL workflow steps
-6. **EXECUTE:** Follow each step in sequence`;
+1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
+2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
+3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
+4. **ACTIVATE:** For a selected workflow, call \`/workflow-start <workflowId>\`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+5. **CREATE TASKS:** \`TaskCreate\` for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
+6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)`;
 }
 
 module.exports = {

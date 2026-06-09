@@ -2,13 +2,13 @@
 title: 'Canonical TC Format'
 version: 1.1.0
 last_reviewed: 2026-06-01
-authority: tdd-spec
-consumers: [feature-docs, tdd-spec, tdd-spec (sync mode)]
+authority: spec-tests
+consumers: [feature-spec, spec-tests, spec-tests (sync mode)]
 ---
 
 # Canonical TC Format
 
-> **Single source of truth** for TC entry format. Referenced by: `feature-docs`, `tdd-spec`, `tdd-spec (sync mode)`.
+> **Single source of truth** for TC entry format. Referenced by: `feature-spec`, `spec-tests`, `spec-tests (sync mode)`.
 > To update TC format: edit THIS file only, then update all consumer skills to reflect the change.
 
 ## Quick Summary
@@ -89,11 +89,12 @@ And {additional verification}
 
 > **Stack-portable evidence (M2/M3/M5).** `Evidence` and `Related Behaviors` carriers use **abstract anchors**
 > `[Source: namespace/service/id]` — never donor `file:line`, `.cs`, or `src/` paths. Namespace ∈
-> `operation | event | component | schema | requirement | rule | constraint | test`. Physical coordinates
-> are recoverable only through the provenance sidecar. Full contract: `docs/specs/MIGRATION.md`.
+> `operation | event | component | schema | requirement | rule | constraint | test`; service = the owning
+> module/service (lowercased); id = the artifact concept with code suffixes stripped. Physical coordinates
+> are recoverable only through the provenance sidecar. This section is the canonical anchor-taxonomy contract.
 >
 > **`IntegrationTest` is the one exception** — it is operational QA glue (a traceability link to the actual
-> executable test, consumed by the `integration-test` skill and the QA dashboard). It stays a physical
+> executable test, consumed by the `integration-test` skill and surfaced in the §8 TC's `IntegrationTest` field). It stays a physical
 > `{TestFile}::{MethodName}` link, is exempt from the prose gate, and is regenerated per-stack on rebuild.
 >
 > **Configurable roots (never donor paths).** When physical coordinates are emitted on rebuild, root them at the
@@ -126,13 +127,13 @@ Group TCs by category using decade blocks to prevent collisions:
 
 **Collision prevention:**
 
-1. Check existing TC IDs in the feature doc's Section 15 first
+1. Check existing TC IDs in the feature doc's Section 8 (Test Specifications) first
 2. Find the next free decade for the category
 3. Mark deprecated TCs with a `[DEPRECATED]` suffix instead — never reuse a deprecated TC ID
 
 ## TC Category Sections
 
-Organize TCs into named category sections. Minimum 3 categories required (query-only features exempt — see tdd-spec for exception rules):
+Organize TCs into named category sections. Minimum 3 categories required (query-only features exempt — see spec-tests for exception rules):
 
 ```markdown
 ### CRUD Tests
@@ -196,13 +197,12 @@ And {no orphan/side-effect created in downstream store}
 
 When a behavior is removed:
 
-1. Find the TC in feature doc Section 15
+1. Find the TC in feature doc Section 8 (Test Specifications)
 2. Add `[DEPRECATED: {date} — {reason}]` to the TC title
 3. Change `**Status:**` to `Deprecated`
 4. Do NOT delete — keep for audit trail
-5. Note in Section 17 (Version History): "TC-{ID} deprecated"
 
-## Section 15 Header Template
+## Section 8 (Test Specifications) Header Template
 
 ```markdown
 ## Test Specifications
@@ -224,5 +224,5 @@ When a behavior is removed:
 - MUST ATTENTION keep this file canonical; update consumer skills only after this format changes.
 - MUST ATTENTION every TC protects a named behavior, invariant, or regression path.
 - MUST ATTENTION preserve evidence links and deprecated TC history for traceability.
-- MUST ATTENTION emit evidence as stack-portable abstract anchors `[Source: namespace/service/id]` — never `file:line`, `.cs`, or `src/` paths (see `docs/specs/MIGRATION.md`).
+- MUST ATTENTION emit evidence as stack-portable abstract anchors `[Source: namespace/service/id]` — never `file:line`, `.cs`, or `src/` paths (taxonomy: Stack-portable evidence section above).
 - NEVER replace specific assertions with smoke checks or existence-only checks.

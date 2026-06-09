@@ -1,7 +1,7 @@
 ---
 name: compact
-version: 1.0.0
-description: '[Utilities] Use when you need to compress context to optimize token usage.'
+version: 2.0.0
+description: '[Utilities] Use when you need to compress context to optimize token usage (user-facing alias for context-optimization Strategy #3 Compress).'
 disable-model-invocation: false
 ---
 
@@ -9,77 +9,46 @@ disable-model-invocation: false
 
 **Goal:** Compress conversation context to optimize token usage while preserving critical information.
 
+> **Thin alias.** `/compact` is the user-facing entry point to the **Compress** strategy (Strategy #3) owned by `context-optimization`. That skill is `disable-model-invocation: true` (not directly user-invocable), so this command is the canonical way to trigger a manual compaction. `/compact` is also a **CLI-native command** — this alias keeps the harness-specific preservation guidance attached to it without re-implementing the compress logic, which lives once in `context-optimization`.
+
 **Workflow:**
 
-1. **Analyze** -- Identify essential vs. expendable context
-2. **Compress** -- Remove redundant information, summarize findings
-3. **Verify** -- Ensure critical decisions and progress are preserved
+1. **Analyze** — Identify essential vs. expendable context
+2. **Compress** — Remove redundant tool outputs / repeated searches / verbose logs; summarize findings
+3. **Verify** — Ensure critical decisions, files modified, and current task state are preserved
 
 **Key Rules:**
 
-- Preserve: decisions made, files modified, current task state
-- Remove: redundant tool outputs, repeated searches, verbose logs
-- Use when context window approaches limits
+- Canonical compress protocol + the full 4-strategy framework (write/select/compress/isolate) + token thresholds live in `context-optimization` — this skill is the command surface only
+- Preserve: decisions made, files modified, current task state, error/stack traces, todos
+- Use `/compact` at natural breakpoints (after commits, PR), not mid-task
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
 # Compact Context
 
-Proactively compress the current conversation context to optimize token usage.
+Proactively compress the current conversation context to optimize token usage. This is the user-invocable alias for `context-optimization`'s Compress strategy.
 
 ## When to Use
 
 - Before starting a new task in a long session
 - When working on multiple unrelated features
 - At natural workflow checkpoints (after commits, PR creation)
-- When context indicator shows high usage
+- When the context indicator shows high usage (≥100K tokens → required; ≥150K → critical)
 
-## Actions
+## Instructions
 
-1. **Summarize completed work** - What was done, key decisions made
-2. **Preserve essential context** - Active file paths, current task, blockers
-3. **Clear redundant history** - Old exploration, superseded plans
-4. **Update memory** - Save important patterns to `.claude/memory/`
+1. **Run the Pre-Compaction Preservation Checklist** — canonical in `.claude/skills/context-optimization/SKILL.md` (Strategy #3 → "Pre-Compaction Preservation Checklist"): branch + uncommitted-changes status, active file paths, error messages / stack traces, key decisions + rationale, pending todos.
+2. **Compress** — summarize completed work + key decisions; clear redundant history (old exploration, superseded plans); keep active file paths, current task, blockers.
+3. **Restate objective** — after compacting, briefly restate the current objective and confirm critical file paths are still accessible.
 
-## Best Practices
+For the full context-management framework (Write / Select / Compress / Isolate strategies, context-anchor protocol, memory commands, token-efficient patterns), see `context-optimization`.
 
-- Use `/compact` at natural breakpoints, not mid-task
-- After compacting, briefly restate the current objective
-- Check that critical file paths are still accessible
-- If working on a bug, preserve error messages and stack traces
+## Related Commands
 
-## Context Preservation Checklist
-
-Before compacting, ensure you've saved:
-
-- [ ] Current branch and uncommitted changes status
-- [ ] Active file paths being modified
-- [ ] Any error messages or stack traces
-- [ ] Key decisions and their rationale
-- [ ] Pending items from todo list
-
-## Example Usage
-
-```
-User: /compact
-Claude: Compacting context...
-
-## Session Summary
-- Implemented employee export feature
-- Fixed validation bug in SaveEmployeeCommand
-- Created unit tests for EmployeeHelper
-
-## Active Context
-- Branch: feature/employee-export
-- Files: Employee.Application/Commands/ExportEmployees/
-- Current task: Add pagination to export
-
-## Cleared
-- Exploration of unrelated notification code
-- Superseded implementation approaches
-
-Ready to continue with pagination implementation.
-```
+- `context-optimization` — full 4-strategy context-management framework (canonical owner)
+- `/checkpoint` — save analysis context to an external file before compaction
+- `/recover` — restore workflow context from the latest checkpoint
 
 ---
 

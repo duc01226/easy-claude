@@ -19,10 +19,10 @@ const SURFACE_BUCKETS = [
 const TASKS = [
     '[1] Triage: git diff → surface bucket',
     '[2] Update project docs (architectural)',
-    '[3] /feature-docs — business feature docs',
-    '[4] /spec-discovery — engineering spec bundle',
-    '[5] /tdd-spec — update test specifications',
-    '[6] /tdd-spec [sync] — QA dashboard',
+    '[3] /feature-spec — business feature docs',
+    '[4] /spec-index — thin capability index',
+    '[5] /spec-tests — update Section 8 test specs',
+    '[6] /spec-tests — reconcile §8 ⇄ integration tests',
     '[7] Write summary report',
     '[8] Final review — verify all phases'
 ];
@@ -162,9 +162,9 @@ export const Scene13SurfaceReview: React.FC = () => {
                         <br />
                         during review steps. The dedicated docs-update step handles all of
                         <br />
-                        this: /feature-docs + /spec-discovery [mode=update] + /tdd-spec
+                        this: /feature-spec + /spec-index [mode=index] + /spec-tests
                         <br />
-                        + /tdd-spec [direction=sync].
+                        + /spec-tests [direction=sync].
                         <br />
                         <span style={{ color: C.dim }}>
                             TEST SPEC VERIFICATION above is READ-ONLY cross-reference only

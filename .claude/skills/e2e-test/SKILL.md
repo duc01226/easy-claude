@@ -40,7 +40,7 @@ head -100 docs/project-reference/e2e-test-reference.md
 grep -A 50 '"e2eTesting"' docs/project-config.json
 
 # 3. Find TC codes you need to implement
-grep -r "TC-.*-E2E-" docs/specs/ docs/business-features/
+grep -r "TC-.*-E2E-" docs/specs/ docs/specs/
 ```
 
 **The `e2eTesting` section in `docs/project-config.json` contains:**
@@ -204,7 +204,7 @@ Spawn `e2e-runner` sub-agent for:
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use `AskUserQuestion` to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
 >
-> 1. **Activate `e2e-from-changes` workflow** (Recommended) — scout → e2e-test → test → watzup
+> 1. **Activate `e2e --source=changes` workflow** (Recommended) — scout → e2e-test → test → watzup
 > 2. **Execute `/e2e-test` directly** — run this skill standalone
 
 ---

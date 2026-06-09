@@ -263,7 +263,7 @@ Before delivering UI code, verify these items:
 - `frontend-design`
 - `interface-design` — Product UIs (dashboards, admin panels, SaaS apps)
 - `shadcn-tailwind`
-- `ux-designer`
+- `design-spec`
 
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: watzup
-version: 1.1.0
+version: 1.2.0
 description: '[Utilities] Use when you need to review recent changes and wrap up the work.'
 ---
 
@@ -23,13 +23,15 @@ description: '[Utilities] Use when you need to review recent changes and wrap up
 2. **Summarize** — Provide detailed change summary with quality assessment
 3. **Doc Check** — Cross-reference changed files against docs/ for staleness
 4. **Lesson Learned** — Analyze AI mistakes/issues during the task and capture lessons
+5. **Understand Handoff** — Invoke `/understand` as the final mandatory task so the developer gets a Purpose → How → Why explanation of the completed work
 
 **Key Rules:**
 
 - READ-ONLY: only flag findings, never implement or fix anything
 - Doc staleness check is REQUIRED (see mapping table below)
 - Lesson-learned analysis is REQUIRED (see section below)
-- Final review task MUST ATTENTION include doc-staleness check AND lesson-learned analysis
+- Final review task MUST ATTENTION include doc-staleness check, lesson-learned analysis, AND the final `/understand` handoff
+- MUST ATTENTION call `/understand` after the watzup summary/doc/mistake analysis and before the final Next Steps prompt
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
@@ -50,7 +52,7 @@ After the change summary, run `git diff --name-only` (against base branch or rec
 | `.claude/hooks/**`      | `.claude/docs/hooks/README.md`, hook count tables in `.claude/docs/hooks/*.md`                |
 | `.claude/skills/**`     | `.claude/docs/skills/README.md`, skill count/catalog tables                                   |
 | `.claude/workflows/**`  | `CLAUDE.md` workflow catalog table, `.claude/docs/` workflow references                       |
-| `src/{services-dir}/**` | `docs/business-features/` doc for the affected service (path from `docs/project-config.json`) |
+| `src/{services-dir}/**` | `docs/specs/` doc for the affected service (path from `docs/project-config.json`) |
 | `src/{frontend-dir}/**` | `docs/project-reference/frontend-patterns-reference.md`, relevant business-feature docs       |
 | `CLAUDE.md`             | `.claude/docs/README.md` (navigation hub must stay in sync)                                   |
 
@@ -67,18 +69,18 @@ After the change summary, run `git diff --name-only` (against base branch or rec
 
 Run this check when `git diff --name-only` includes ANY `src/Services/**` or frontend app/domain files.
 
-### Step 1 — Engineering Spec Bundle Check
+### Step 1 — Feature Spec Root Check
 
 ```bash
 ls docs/specs/ 2>/dev/null
 ```
 
-> **Note:** Results may be **app-bucket** names rather than service names. To find a specific service spec, probe `ls docs/specs/{app-bucket}/`; some projects may use flat `docs/specs/{system-name}/` directories.
+> **Note:** Results are **app-bucket** names. To find a specific Feature Spec, probe `ls docs/specs/{app-bucket}/` for canonical `README.{Feature}.md` files and derived bucket indexes/ERDs.
 
 | Result                     | Action                                                                                                                                                                |
 | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Directory missing or empty | ⚠️ Flag: `"No engineering spec bundle found. Consider running /workflow-spec-driven-dev (mode: init-full) to bootstrap spec-driven documentation for this codebase."` |
-| Bundle exists              | Proceed to Step 2                                                                                                                                                     |
+| Directory missing or empty | ⚠️ Flag: `"No Feature Specs found under docs/specs/. Consider running /workflow-spec-driven-dev (mode: init-full) to bootstrap spec-driven documentation for this codebase."` |
+| Feature Specs exist        | Proceed to Step 2                                                                                                                                                     |
 
 ### Step 2 — Spec Staleness Check (only if bundle exists)
 
@@ -96,7 +98,7 @@ git log --since="30 days ago" --name-only -- docs/specs/ | head -10
 ### Step 3 — Feature Docs Freshness Check
 
 ```bash
-git log --since="30 days ago" --name-only -- docs/business-features/ | head -10
+git log --since="30 days ago" --name-only -- docs/specs/ | head -10
 ```
 
 | Result                                               | Action                                                                                  |
@@ -169,7 +171,9 @@ Wait for user confirmation before invoking `/learn`.
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use `AskUserQuestion` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** before presenting these options, invoke `/understand` as the final mandatory todo task using the watzup summary and current change set as scope. If `/understand` is unavailable, stop and report that blocker instead of silently skipping the handoff.
+
+After `/understand` completes, you MUST ATTENTION use `AskUserQuestion` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
 
 - **"/workflow-end (Recommended)"** — Complete and close the active workflow
 - **"/commit"** — Commit changes if not using workflow
@@ -201,11 +205,11 @@ Wait for user confirmation before invoking `/learn`.
 > **Project Reference Docs Gate** — Run after task-tracking bootstrap and before target/source file reads, grep, edits, or analysis. Project docs override generic framework assumptions.
 >
 > 1. Identify scope: file types, domain area, and operation.
-> 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-docs-reference.md`; architecture/new area `project-structure-reference.md`.
-> 3. Read every required doc. If `docs/project-config.json`, the docs index, `lessons.md`, or any task-required reference doc is missing, stop immediately and ask the user to run `/project-config` and `/scan-all`.
+> 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under `docs/specs/`; architecture/new area `project-structure-reference.md`.
+> 3. Read every required doc. If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `/project-init` or the narrow lower-level route (`/project-config`, `/docs-init`, `/scan-all`, `/scan --target=<key>`, `/claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `/sync-codex`; do not auto-run it.
 > 4. Before target work, state: `Reference docs read: ... | Not applicable: ...`.
 >
-> **Blocked until:** scope evaluated, required docs checked/read, `lessons.md` confirmed, citation emitted.
+> **Ready when:** scope evaluated, required docs checked/read or setup route completed, `lessons.md` confirmed, citation emitted.
 
 <!-- /SYNC:project-reference-docs-guide -->
 
@@ -293,6 +297,7 @@ Wait for user confirmation before invoking `/learn`.
 
 - **MANDATORY** After task-tracking bootstrap and before target/source work, read required project-reference docs and cite `Reference docs read: ...`.
 - **MANDATORY** Always include `lessons.md`; project conventions override generic defaults.
+- **MANDATORY** If project config, root instruction files, or any required reference doc is missing, stop and run or ask the user to run `/project-init`.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
 
@@ -319,6 +324,7 @@ Wait for user confirmation before invoking `/learn`.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting.
 **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — never auto-decide.
 **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.
+**MANDATORY IMPORTANT MUST ATTENTION** invoke `/understand` as the final watzup handoff before asking the Next Steps question.
 **MANDATORY IMPORTANT MUST ATTENTION** READ the following files before starting:
 
 **IMPORTANT MUST ATTENTION** READ `CLAUDE.md` before starting

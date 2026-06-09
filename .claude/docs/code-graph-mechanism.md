@@ -247,7 +247,7 @@ Claude sees:
 | `/investigate` invoked       | (in-skill RECOMMENDED)       | Callers, imports, tests, inheritance queries for target             |
 | `/feature-investigation`     | (in-skill RECOMMENDED)       | Same graph queries for workflow-driven investigation                |
 | `/graph-query` invoked       | (standalone skill)           | Natural language graph queries, 8 patterns                          |
-| `/graph-sync` invoked        | (standalone skill)           | Git-aware sync: diff last_synced_commit vs HEAD, re-parse changed   |
+| `/graph-build --scope=sync`  | (standalone skill)           | Git-aware sync: diff last_synced_commit vs HEAD, re-parse changed   |
 | Session starts               | `graph-session-init.cjs`     | Auto-sync with git state, report stale files                        |
 | File edited                  | `graph-auto-update.cjs`      | Nothing visible — silently updates graph.db                         |
 
@@ -450,16 +450,14 @@ The BFS trace algorithm (`tools.py:trace_connections`) follows both structural e
 
 ### Skills (`.claude/skills/`)
 
-| Skill                  | Purpose                                                                                        |
-| ---------------------- | ---------------------------------------------------------------------------------------------- |
-| `graph-build`          | Build or update the knowledge graph (auto-runs noise filter + resolve_bare_calls + connectors) |
-| `graph-sync`           | Sync graph with git state after pull/checkout/merge                                            |
-| `graph-trace`          | Trace full system flow (upstream/downstream/both) with auto-discovered edge kinds              |
-| `graph-blast-radius`   | Analyze structural impact of changes                                                           |
-| `graph-query`          | Natural language graph queries (8 query patterns)                                              |
-| `graph-connect-api`    | Detect frontend-backend API connections via graph                                              |
-| `graph-export`         | Export full graph to JSON file                                                                 |
-| `graph-export-mermaid` | Export single-file graph as Mermaid diagram                                                    |
+| Skill                | Purpose                                                                                                                                                                                            |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `graph-build`        | Build, update, or sync the knowledge graph via `--scope={full\|update\|sync}` (auto-runs noise filter + resolve_bare_calls + connectors; `--scope=sync` syncs git state after pull/checkout/merge) |
+| `graph-trace`        | Trace full system flow (upstream/downstream/both) with auto-discovered edge kinds                                                                                                                  |
+| `graph-blast-radius` | Analyze structural impact of changes                                                                                                                                                               |
+| `graph-query`        | Natural language graph queries (8 query patterns)                                                                                                                                                  |
+| `graph-connect-api`  | Detect frontend-backend API connections via graph                                                                                                                                                  |
+| `graph-export`       | Export graph to JSON (`--format=json`) or single-file Mermaid diagram (`--format=mermaid`)                                                                                                         |
 
 **Skills with graph integration** (RECOMMENDED if graph.db exists):
 scout, debug, code-review, review-changes, sre-review, investigate, feature-investigation
@@ -590,18 +588,17 @@ sequenceDiagram
 
 ### Graph-Powered Skills
 
-| Skill                   | How Graph Enhances It                                                     |
-| ----------------------- | ------------------------------------------------------------------------- |
-| `/graph-build`          | Builds the knowledge graph from scratch or updates incrementally          |
-| `/graph-blast-radius`   | Direct blast radius analysis — shows impacted files, functions, test gaps |
-| `/graph-query`          | Natural language queries: "who calls login?", "tests for AuthService?"    |
-| `/graph-export`         | Export full graph to JSON for external analysis                           |
-| `/graph-export-mermaid` | Export single-file graph as Mermaid diagram                               |
-| `/graph-connect-api`    | Detect frontend-backend API connections via graph edges                   |
-| `/code-review`          | Auto-receives blast radius context when graph exists                      |
-| `/scout`                | Auto-receives structural overview when graph exists                       |
-| `/debug-investigate`    | Auto-receives dependency context for tracing                              |
-| `/sre-review`           | Auto-receives impact assessment for prod readiness                        |
+| Skill                 | How Graph Enhances It                                                                           |
+| --------------------- | ----------------------------------------------------------------------------------------------- |
+| `/graph-build`        | Builds the knowledge graph from scratch or updates incrementally                                |
+| `/graph-blast-radius` | Direct blast radius analysis — shows impacted files, functions, test gaps                       |
+| `/graph-query`        | Natural language queries: "who calls login?", "tests for AuthService?"                          |
+| `/graph-export`       | Export full graph to JSON (`--format=json`) or single-file Mermaid diagram (`--format=mermaid`) |
+| `/graph-connect-api`  | Detect frontend-backend API connections via graph edges                                         |
+| `/code-review`        | Auto-receives blast radius context when graph exists                                            |
+| `/scout`              | Auto-receives structural overview when graph exists                                             |
+| `/debug-investigate`  | Auto-receives dependency context for tracing                                                    |
+| `/sre-review`         | Auto-receives impact assessment for prod readiness                                              |
 
 ## Real-World Use Cases (Angular + .NET Microservices)
 

@@ -88,11 +88,11 @@ grep -rh "BR-[A-Z]\{3\}-[0-9]\{3\}" team-artifacts/ 2>/dev/null | sort | uniq
 
 ### Issue: Module not detected
 
-**Fix:** Add keywords matching `docs/business-features/` module names to idea description
+**Fix:** Add keywords matching `docs/specs/` module names to idea description
 
 ### Issue: related_features list empty
 
-**Fix:** Manually read `docs/business-features/{module}/README.md` and extract from Quick Navigation
+**Fix:** Manually read `docs/specs/{module}/README.md` and extract from Quick Navigation
 
 ### Issue: Business rule IDs don't match docs
 
@@ -100,7 +100,7 @@ grep -rh "BR-[A-Z]\{3\}-[0-9]\{3\}" team-artifacts/ 2>/dev/null | sort | uniq
 
 ### Issue: Test case format inconsistent
 
-**Fix:** Check Section 15 of related feature doc for correct TC-{FEATURE}-{NNN} format
+**Fix:** Check Section 8 of related feature doc for correct TC-{FEATURE}-{NNN} format
 
 ### Issue: Entity names don't match domain vocabulary
 

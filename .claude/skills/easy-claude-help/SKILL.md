@@ -38,45 +38,17 @@ disable-model-invocation: true
 .claude/.ck.local.json    ← personal override (gitignored, per-developer)
 ```
 
-Each layer overrides the previous via deep merge — you only need to set values you want to override. Use `.ck.local.json` for personal preferences that shouldn't be committed (e.g., your own `codingLevel` or `workflow.confirmationMode`).
+Each layer overrides the previous via deep merge — you only need to set values you want to override. Use `.ck.local.json` for personal preferences that shouldn't be committed (e.g., your own `codingLevel`).
 
 ---
 
 ## Key Settings
 
-### 1. Workflow Confirmation Mode
+### 1. Workflow Auto-Selection
 
-Controls whether workflow detection requires user confirmation before activating.
+Workflow detection auto-selects the best execution path by default: direct execution, a skill, a standard workflow, or a custom workflow. Explicit `/skill`, `/workflow-*`, or `/workflow-start <id>` prompts execute directly.
 
-**Location:** `.claude/.ck.json` → `workflow.confirmationMode`
-
-| Value      | Behavior                                                                                                                             |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `"always"` | (default) Always asks via AskUserQuestion before activating any workflow. Collaborative mode — best for most users.                  |
-| `"never"`  | Auto-executes detected workflow without asking. Use `quick:` prefix behavior globally. Best for power users who trust the detection. |
-| `"off"`    | Disables workflow detection entirely. Plain Claude behavior — no catalog injection, no confirmation gate, no overhead.               |
-
-**Example — disable confirmation gate:**
-
-```json
-{
-    "workflow": {
-        "confirmationMode": "never"
-    }
-}
-```
-
-**Example — full opt-out (plain Claude):**
-
-```json
-{
-    "workflow": {
-        "confirmationMode": "off"
-    }
-}
-```
-
-> **Tip:** Even in `"always"` mode, you can prefix any prompt with `quick:` to skip confirmation for that prompt only (e.g., `quick: review the auth code`).
+There is no workflow confirmation-mode setting. Do not add `workflow.confirmationMode` or `quick:` bypass configuration to `.ck.json`.
 
 ---
 
@@ -206,34 +178,18 @@ Controls how old reference docs can be before the staleness gate activates.
 
 ## Quick Configuration Examples
 
-### Power User Setup (minimal overhead)
+### Power User Setup
 
 ```json
 {
-    "workflow": {
-        "confirmationMode": "never"
-    },
     "codingLevel": 5
 }
 ```
 
-### Opt-out Setup (plain Claude)
+### Team Setup (Vietnamese responses)
 
 ```json
 {
-    "workflow": {
-        "confirmationMode": "off"
-    }
-}
-```
-
-### Team Setup (collaborative, Vietnamese responses)
-
-```json
-{
-    "workflow": {
-        "confirmationMode": "always"
-    },
     "codingLevel": 3,
     "locale": {
         "responseLanguage": "vi"
@@ -268,7 +224,6 @@ Controls how old reference docs can be before the staleness gate activates.
 
 **What gets checked:**
 
-- `confirmationMode` must be one of `"always"`, `"never"`, `"off"`
 - `codingLevel` must be a number between -1 and 5
 - `assertions` must be an array of strings
 - Unknown top-level keys produce warnings (catches typos like `workfow`)
@@ -286,9 +241,7 @@ node .claude/hooks/lib/ck-config-schema.cjs .claude/.ck.json
 The workflow catalog itself lives in `.claude/workflows.json`. You can:
 
 - Set `settings.enabled: false` to disable workflow injection entirely
-- Change `settings.overridePrefix` (default `"quick:"`) for the per-prompt skip prefix
-
-> **Note:** Prefer `.ck.json → workflow.confirmationMode` over editing `workflows.json` directly, as `.ck.json` supports global+local cascading.
+- Edit workflow definitions, command mappings, and workflow sequences when catalog behavior changes
 
 ---
 
@@ -304,10 +257,9 @@ Optional feature that builds a knowledge graph of your codebase for graph-blast-
 | ----------------------- | -------------------------------------------------- |
 | `/graph-build`          | Build or update the knowledge graph                |
 | `/graph-blast-radius`   | Analyze impact of current changes                  |
-| `/graph-export`         | Export graph to JSON                               |
+| `/graph-export`         | Export graph to JSON (`--format=json`) or single-file Mermaid diagram (`--format=mermaid`) |
 | `/graph-connect-api`    | Detect frontend→backend API connections            |
 | `/graph-query`          | Query code relationships (callers, imports, tests) |
-| `/graph-export-mermaid` | Export single-file graph as Mermaid diagram        |
 
 **Auto-features (when graph is built):**
 

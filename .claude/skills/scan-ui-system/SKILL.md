@@ -69,17 +69,17 @@ Run the applicable sub-skills simultaneously. Each sub-skill is FULLY self-conta
 
 ### Scan 1: Design System
 
-Activate `/scan-design-system` → populates `docs/project-reference/design-system/README.md`
+Activate `/scan --target=design-system` → populates `docs/project-reference/design-system/README.md`
 
 Passes: detected `project-config.json` `designSystem` config to sub-skill if available.
 
 ### Scan 2: SCSS/Styling
 
-Activate `/scan-scss-styling` → populates `docs/project-reference/scss-styling-guide.md`
+Activate `/scan --target=scss-styling` → populates `docs/project-reference/scss-styling-guide.md`
 
 ### Scan 3: Frontend Patterns
 
-Activate `/scan-frontend-patterns` → populates `docs/project-reference/frontend-patterns-reference.md`
+Activate `/scan --target=frontend-patterns` → populates `docs/project-reference/frontend-patterns-reference.md`
 
 ## Phase 3: Verify Sub-Skill Outputs
 
@@ -141,6 +141,22 @@ This skill replaces 3 separate scan entries in the `project-config` scan table:
 | -------------------------------------------------------------------------------------- | ----------------- |
 | `design-system/README.md` + `scss-styling-guide.md` + `frontend-patterns-reference.md` | `/scan-ui-system` |
 
+<!-- SCAN:prompt-enhance-final-step -->
+
+## Final Step: Confirm Docs Enhanced (MANDATORY)
+
+Each UI sub-skill (`/scan --target=design-system`, `/scan --target=scss-styling`, `/scan --target=frontend-patterns`) self-enhances its own doc as its final step. After all sub-scans complete, **MUST ATTENTION** confirm each doc was prompt-enhanced; backfill any that were skipped by running `/prompt-enhance` on it — why: these reference docs are injected into AI context; attention-anchoring directly raises downstream AI output quality.
+
+**TaskCreate (required, last task) — one per doc, backfill only if a sub-skill skipped enhancement:**
+
+| # | Target Doc |
+| --- | --- |
+| 1 | `docs/project-reference/design-system/README.md` |
+| 2 | `docs/project-reference/scss-styling-guide.md` |
+| 3 | `docs/project-reference/frontend-patterns-reference.md` |
+
+<!-- /SCAN:prompt-enhance-final-step -->
+
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting.
@@ -198,6 +214,7 @@ This skill replaces 3 separate scan entries in the `project-config` scan table:
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Final Step:** confirm all 3 UI docs were prompt-enhanced by their sub-skills; backfill any skipped via `/prompt-enhance` — never end the scan with an un-enhanced doc.
 **IMPORTANT MUST ATTENTION** break work into small `TaskCreate` tasks BEFORE starting — one per sub-skill, one per verification, one for summary
 **IMPORTANT MUST ATTENTION** run pre-flight check in Phase 0 — never launch scans on backend-only projects
 **IMPORTANT MUST ATTENTION** verify each sub-skill output doc has real content — "it ran" ≠ "it produced output"

@@ -42,8 +42,8 @@ const ROLE_PATH_MAPPINGS = {
         context: 'PBI CREATION: GIVEN/WHEN/THEN format required, INVEST criteria, numeric priority.'
     },
     'team-artifacts/design-specs/': {
-        role: 'ux-designer',
-        skill: 'ux-designer',
+        role: 'ui-ux-designer',
+        skill: 'design-spec',
         template: '.claude/docs/team-artifacts/templates/design-spec-template.md',
         context: 'DESIGN SPEC: Include component states, design tokens, accessibility requirements.'
     },
@@ -60,7 +60,7 @@ const NAMING_CONVENTIONS = {
     'product-owner': '{YYMMDD}-po-{type}-{slug}.md',
     'business-analyst': '{YYMMDD}-ba-{type}-{slug}.md',
     'qa-engineer': '{YYMMDD}-qa-{type}-{slug}.md',
-    'ux-designer': '{YYMMDD}-ux-{type}-{slug}.md',
+    'ui-ux-designer': '{YYMMDD}-ux-{type}-{slug}.md',
     'project-manager': '{YYMMDD}-pm-{type}-{slug}.md',
     'qc-specialist': '{YYMMDD}-qc-{type}-{slug}.md'
 };
@@ -80,7 +80,7 @@ const QUALITY_CHECKLISTS = {
         '- [ ] INVEST criteria met'
     ],
     'qa-engineer': ['- [ ] TC-{FEATURE}-{NNN} IDs assigned', '- [ ] Evidence field has [Source: namespace/service/id] abstract anchor (never file:line)', '- [ ] Summary counts match', '- [ ] No template placeholders'],
-    'ux-designer': [
+    'ui-ux-designer': [
         '- [ ] All states documented',
         '- [ ] Design tokens specified',
         '- [ ] Accessibility notes included',

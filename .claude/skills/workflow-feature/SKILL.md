@@ -1,13 +1,13 @@
 ---
 name: workflow-feature
 version: 1.0.0
-description: '[Workflow] Use when activating the Feature Implementation workflow for implement a well-defined feature with investigation, planning, implementation, and review.'
+description: '[Workflow] Use when activating the Feature Implementation workflow for implement a well-defined feature with investigation, planning, implementation, and review. Also covers TDD/test-first development and spec-driven feature implementation with test specs written before code.'
 disable-model-invocation: true
 ---
 
 ## Quick Summary
 
-**Goal:** [Workflow] Trigger Feature Implementation workflow — implement a well-defined feature with investigation, planning, implementation, and review.
+**Goal:** [Workflow] Trigger Feature Implementation workflow — implement a well-defined feature with investigation, planning, implementation, and review. This workflow is spec-driven with tests by default: test specs (`/spec-tests`) are written and reviewed BEFORE implementation (`/cook`), covering former TDD/test-first use cases.
 
 **Workflow:**
 
@@ -34,14 +34,14 @@ This workflow has steps that appear multiple times. When creating tasks, use the
 
 | Step               | Occurrence   | Task Description                                 |
 | ------------------ | ------------ | ------------------------------------------------ |
-| `/plan`            | 1st (pos 5)  | PLAN₁: Investigation-based implementation plan   |
-| `/plan`            | 2nd (pos 12)  | PLAN₂: Sprint-ready plan incorporating TDD specs |
-| `/plan-review`     | 1st (pos 6)  | Review PLAN₁                                     |
-| `/plan-review`     | 2nd (pos 13) | Review PLAN₂                                     |
-| `/tdd-spec`        | 1st (pos 9)  | TDD-SPEC₁: Pre-implementation test specs         |
-| `/tdd-spec`        | 2nd (pos 16) | TDD-SPEC₂: Post-implementation test spec update  |
-| `/tdd-spec-review` | 1st (pos 11)  | Review TDD-SPEC₁                                 |
-| `/tdd-spec-review` | 2nd (pos 18) | Review TDD-SPEC₂                                 |
+| `/plan`            | 1st (pos 6)  | PLAN₁: Feature Spec-backed implementation plan   |
+| `/plan`            | 2nd (pos 13)  | PLAN₂: Sprint-ready plan incorporating TDD specs |
+| `/plan-review`     | 1st (pos 7)  | Review PLAN₁                                     |
+| `/plan-review`     | 2nd (pos 14) | Review PLAN₂                                     |
+| `/spec-tests`        | 1st (pos 10)  | TDD-SPEC₁: Pre-implementation test specs         |
+| `/spec-tests`        | 2nd (pos 17) | TDD-SPEC₂: Post-implementation test spec update  |
+| `/review-artifact --type=spec-tests` | 1st (pos 12)  | Review TDD-SPEC₁                                 |
+| `/review-artifact --type=spec-tests` | 2nd (pos 19) | Review TDD-SPEC₂                                 |
 
 **NEVER deduplicate** — each occurrence is a distinct task with a different purpose.
 
@@ -51,7 +51,7 @@ This workflow has steps that appear multiple times. When creating tasks, use the
 
 When a feature involves UI changes (detected during `/scout` or `/feature-investigation`):
 
-- If image/wireframe/Figma URL is provided → route to `/wireframe-to-spec` or `/figma-design` before `/plan`
+- If image/wireframe/Figma URL is provided → route to `/design-spec --mode=wireframe` or `/figma-design` before `/plan`
 - If `/plan` detects frontend phases → ensure `ui-wireframe-protocol.md` sections are included in plan phases
 - This is advisory — NOT a mandatory workflow step change. The existing workflow sequence remains unchanged.
 
@@ -65,11 +65,13 @@ Every step = `TaskUpdate in_progress` → `Skill` tool → complete skill → `T
 
 > **Existing-behavior trace gate:** If the feature modifies an existing final output, persisted state, API response, projection, or user-visible workflow, include an end-to-start trace of the existing path (final reader -> storage/projection -> writer -> producer/origin), feeder paths, invariants to preserve, and forward proof for the intended new behavior before implementation.
 
-**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /domain-analysis -> /why-review -> /plan -> /plan-review -> /plan-validate -> /why-review -> /tdd-spec -> /why-review -> /tdd-spec-review -> /plan -> /plan-review -> /cook -> /review-domain-entities -> /tdd-spec -> /why-review -> /tdd-spec-review -> /tdd-spec [direction=sync] -> /integration-test -> /integration-test-review -> /integration-test-verify -> /workflow-review-changes -> /sre-review -> /security -> /changelog -> /test -> /docs-update -> /watzup -> /understand -> /workflow-end
+> **Goal Contract propagation (workflow-owned):** At workflow start, resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from the feature request). Before `/cook`, verify the plan's feature success criteria map to the saved criteria. Pass the same goal file reference to every child step — child skills read the SAME saved goal, never a re-derived one from chat memory. Before `/workflow-end`, emit the final Goal Satisfaction matrix (PASS/FAIL/BLOCKED); workflow completion requires every required criterion PASS or BLOCKED with a user-facing escalation.
+
+**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /domain-analysis -> /why-review -> /feature-spec -> /plan -> /plan-review -> /plan-validate -> /why-review -> /spec-tests -> /why-review -> /review-artifact --type=spec-tests -> /plan -> /plan-review -> /cook -> /review-domain-entities -> /spec-tests -> /why-review -> /review-artifact --type=spec-tests -> /spec-tests [direction=sync] -> /integration-test -> /integration-test-review -> /integration-test-verify -> /workflow-review-changes -> /sre-review -> /security-review -> /changelog -> /test -> /docs-update -> /workflow-end -> /watzup
 
 ---
 
-**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /domain-analysis -> /why-review -> /plan -> /plan-review -> /plan-validate -> /why-review -> /tdd-spec -> /why-review -> /tdd-spec-review -> /plan -> /plan-review -> /cook -> /review-domain-entities -> /tdd-spec -> /why-review -> /tdd-spec-review -> /tdd-spec [direction=sync] -> /integration-test -> /integration-test-review -> /integration-test-verify -> /workflow-review-changes -> /sre-review -> /security -> /changelog -> /test -> /docs-update -> /watzup -> /understand -> /workflow-end
+**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /domain-analysis -> /why-review -> /feature-spec -> /plan -> /plan-review -> /plan-validate -> /why-review -> /spec-tests -> /why-review -> /review-artifact --type=spec-tests -> /plan -> /plan-review -> /cook -> /review-domain-entities -> /spec-tests -> /why-review -> /review-artifact --type=spec-tests -> /spec-tests [direction=sync] -> /integration-test -> /integration-test-review -> /integration-test-verify -> /workflow-review-changes -> /sre-review -> /security-review -> /changelog -> /test -> /docs-update -> /workflow-end -> /watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
@@ -77,9 +79,9 @@ Activate the `feature` workflow. Run `/workflow-start feature` with the user's p
 
 > **Spec check (before investigation):** If `docs/specs/` has a spec for the affected service/module, read the relevant ERD + business-rules + API-contracts files FIRST. Engineering specs provide domain context that reduces investigation time significantly. Command: `ls docs/specs/` to discover available app buckets or flat system folders; then probe `ls docs/specs/{app-bucket}/` or `ls docs/specs/{system-name}/` to find the specific service spec.
 
-**Steps:** /scout → /investigate → /domain-analysis → /why-review → /plan → /plan-review → /plan-validate → /why-review → /tdd-spec → /why-review → /tdd-spec-review → /plan → /plan-review → /cook → /review-domain-entities → /tdd-spec → /why-review → /tdd-spec-review → /tdd-spec [direction=sync] → /integration-test → /integration-test-review → /integration-test-verify → /workflow-review-changes → /sre-review → /security → /changelog → /test → /docs-update → /watzup → /understand → /workflow-end
+**Steps:** /scout → /investigate → /domain-analysis → /why-review → /feature-spec → /plan → /plan-review → /plan-validate → /why-review → /spec-tests → /why-review → /review-artifact --type=spec-tests → /plan → /plan-review → /cook → /review-domain-entities → /spec-tests → /why-review → /review-artifact --type=spec-tests → /spec-tests [direction=sync] → /integration-test → /integration-test-review → /integration-test-verify → /workflow-review-changes → /sre-review → /security-review → /changelog → /test → /docs-update → /workflow-end → /watzup
 
-> **[PERFORMANCE-SDD ROUTE]** If this feature is a performance enhancement (latency, throughput, memory, query speed, load behavior), activate `/workflow-performance` and require SLA/benchmark evidence: target metric, baseline, measurement command, and acceptable regression budget. Run `/cook` even on the performance route — never skip it. If behavior can change, run `/test` and any relevant functional no-regression checks. Update docs/specs for changed SLA, performance constraints, or behavior boundaries. Use project-specific performance docs from `docs/project-config.json` / `docs/project-reference/` when available.
+> **[PERFORMANCE-SDD ROUTE]** If this feature is a performance enhancement (latency, throughput, memory, query speed, load behavior), run `/performance-review` and require SLA/benchmark evidence: target metric, baseline, measurement command, and acceptable regression budget. Run `/cook` even on the performance route — never skip it. If behavior can change, run `/test` and any relevant functional no-regression checks. Update docs/specs for changed SLA, performance constraints, or behavior boundaries. Use project-specific performance docs from `docs/project-config.json` / `docs/project-reference/` when available.
 
 > **[AI-SDD CLOSURE]** Before `/workflow-end`, confirm changed behavior, unchanged behavior, TCs/tests, docs/specs, and generated mirror sync are either completed or explicitly skipped with evidence.
 
@@ -197,6 +199,13 @@ Activate the `feature` workflow. Run `/workflow-start feature` with the user's p
 - **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] $skill-name — phase` prefixes and one-`in_progress` discipline.
 
 <!-- /SYNC:nested-task-creation:reminder -->
+
+<!-- SYNC:goal-contract-satisfaction-loop:reminder -->
+
+- **MANDATORY** Resolve the active Goal Contract BEFORE work (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from current request) and read saved success criteria before editing.
+- **MANDATORY** Append iteration evidence after execution; emit a Goal Satisfaction matrix (PASS/FAIL/BLOCKED) before reporting PASS; loop on validated FAIL; escalate repeated no-progress or blockers. NEVER store secrets in goal files.
+
+<!-- /SYNC:goal-contract-satisfaction-loop:reminder -->
 
 ## Closing Reminders
 

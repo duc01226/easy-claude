@@ -75,7 +75,7 @@ description: '[Project Management] Use when capturing new ideas, feature request
 
 **Dynamic Discovery:**
 
-1. Run: `Glob("docs/business-features/*/README.md")`
+1. Run: `Glob("docs/specs/*/README.md")`
 2. Extract module names from paths
 3. Match idea keywords against module keywords
 
@@ -87,7 +87,7 @@ description: '[Project Management] Use when capturing new ideas, feature request
 
 **If module detected:**
 
-1. Read `docs/business-features/{module}/README.md` (first 200 lines)
+1. Read `docs/specs/{module}/README.md` (first 200 lines)
 2. Extract feature list from Quick Navigation section
 3. Add to frontmatter: `module: {detected_module}`, `related_features: [Feature1, Feature2]`
 
@@ -161,7 +161,7 @@ Document under `## Validation Summary`. Update artifact based on answers.
 `AskUserQuestion` after capture:
 
 1. `/refine` — Refine into PBI (Recommended)
-2. `/tdd-spec` — Jump straight to test spec
+2. `/spec-tests` — Jump straight to test spec
 3. `/plan` — Start implementation planning
 
 Output: "Idea captured! To refine into a PBI, run: `/refine {filename}`"
@@ -226,7 +226,7 @@ Module detected: "Module context from {module} will be used during refinement."
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** Not already in workflow → MUST ATTENTION use `AskUserQuestion`:
 >
-> 1. **Activate `idea-to-pbi` workflow** (Recommended) — idea → refine → refine-review → story → story-review → prioritize
+> 1. **Activate `idea-to-pbi` workflow** (Recommended) — idea → refine → review-artifact --type=pbi → story → review-artifact --type=story → prioritize
 > 2. **Execute `/idea` directly** — run standalone
 
 ---

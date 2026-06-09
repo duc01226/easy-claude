@@ -6,7 +6,7 @@
  * Ensures consistent naming and folder placement.
  *
  * @trigger PreToolUse (Write)
- * @resolves Output paths for /idea, /refine, /story, /tdd-spec, /design-spec
+ * @resolves Output paths for /idea, /refine, /story, /spec-tests, /design-spec
  *
  * Input: JSON via stdin with tool_name, tool_input
  * Output: Context string via stdout with resolved path info
@@ -19,20 +19,21 @@
 const fs = require('fs');
 const path = require('path');
 const { normalizePath } = require('./lib/ck-path-utils.cjs');
+const { getSpecDocsPath } = require('./lib/project-config-loader.cjs');
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════
 
-// Command to artifact folder mappings
+// Command to artifact folder mappings.
+// 'spec-tests' writes to the fixed feature/spec root.
 const COMMAND_PATH_MAPPINGS = {
   'idea': 'team-artifacts/ideas/',
   'refine': 'team-artifacts/pbis/',
   'story': 'team-artifacts/pbis/stories/',
-  'tdd-spec': 'docs/specs/',
+  'spec-tests': getSpecDocsPath(),
   'design-spec': 'team-artifacts/design-specs/',
-  'quality-gate': 'team-artifacts/qc-reports/',
-  'status': 'plans/reports/'
+  'quality-gate': 'team-artifacts/qc-reports/'
 };
 
 // Type mapping for file naming
@@ -40,10 +41,9 @@ const TYPE_MAPPING = {
   'idea': 'idea',
   'refine': 'pbi',
   'story': 'story',
-  'tdd-spec': 'testspec',
+  'spec-tests': 'testspec',
   'design-spec': 'designspec',
-  'quality-gate': 'gate',
-  'status': 'status'
+  'quality-gate': 'gate'
 };
 
 // Role mapping for file naming
@@ -51,10 +51,9 @@ const ROLE_MAPPING = {
   'idea': 'po',
   'refine': 'ba',
   'story': 'ba',
-  'tdd-spec': 'qa',
+  'spec-tests': 'qa',
   'design-spec': 'ux',
-  'quality-gate': 'qc',
-  'status': 'pm'
+  'quality-gate': 'qc'
 };
 
 // ═══════════════════════════════════════════════════════════════════════════

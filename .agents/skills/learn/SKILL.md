@@ -25,12 +25,14 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 - `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
 - `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
 
-**Missing-file hard stop:** If `docs/project-config.json`, the docs index, `lessons.md`, or any task-required reference doc is missing, stop immediately and ask the user to run `$project-config` and `$scan-all`.
+**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.
 
 **Situation-based docs:**
 - Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`, `project-structure-reference.md`
 - Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md`
-- Spec/test-case planning or TC mapping: `feature-docs-reference.md`
+- Spec authoring, `docs/specs/` pathing, or TC format: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`
+- Behavior/public-contract changes or spec-test-code sync: `workflow-spec-test-code-cycle-reference.md` plus the spec docs above
+- Derived spec indexes/ERDs/reimplementation guides: `spec-system-reference.md` and source Feature Specs under `docs/specs/`
 - Integration test implementation/review: `integration-test-reference.md`
 - E2E test implementation/review: `e2e-test-reference.md`
 - Code review/audit work: `code-review-rules.md` plus domain docs above based on changed files
@@ -53,6 +55,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Key Rules:**
 
+- **GENERALIZE FIRST (the #1 protocol):** Extract the GENERIC lesson that applies to many cases — NEVER save the specific case as-is. The user's words describe one incident; your job is to climb from that incident to the reusable rule. Strip every project/file/tool/domain name. If the saved text only helps on this exact ticket, you failed — abstract it up a level. (Enforced by the Lesson Quality Gate below.)
 - Triggers on "remember this", "always do X", "never do Y"
 - **Triage first:** pass Recurrence gate + Auto-fix gate BEFORE routing or saving
 - Smart-route to the most relevant file, NOT always `docs/project-reference/lessons.md`
@@ -95,19 +98,19 @@ Each `docs/project-reference/` file is auto-initialized by `session-init-docs.cj
 
 | File                             | Role & Content                                                                                   | Injected By                                          | Injection Trigger                   | Scan Skill                |
 | -------------------------------- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------- | ----------------------------------- | ------------------------- |
-| `project-structure-reference.md` | Architecture, directory tree, tech stack, module registry, service map                           | `subagent-init-*.cjs` (8 hooks)                      | Agent spawn                         | `$scan-project-structure` |
-| `backend-patterns-reference.md`  | Backend/hook patterns: CJS modules, CQRS, repositories, validation, message bus, background jobs | `code-patterns-injector.cjs`, `backend-context.cjs`  | Edit/Write backend files            | `$scan-backend-patterns`  |
+| `project-structure-reference.md` | Architecture, directory tree, tech stack, module registry, service map                           | `subagent-init-*.cjs` (8 hooks)                      | Agent spawn                         | `$scan --target=project-structure` |
+| `backend-patterns-reference.md`  | Backend/hook patterns: CJS modules, CQRS, repositories, validation, message bus, background jobs | `code-patterns-injector.cjs`, `backend-context.cjs`  | Edit/Write backend files            | `$scan --target=backend-patterns`  |
 | `seed-test-data-reference.md`    | Seed/dev-data patterns: environment gate, idempotency loop, DI scope safety, command-dispatch    | Referenced in config + seed workflows                | Seeder/DataSeeder file edits        | `$scan-seed-test-data`    |
-| `frontend-patterns-reference.md` | Frontend patterns: components, state mgmt, API services, styling conventions, directives         | `code-patterns-injector.cjs`, `frontend-context.cjs` | Edit/Write frontend files           | `$scan-frontend-patterns` |
-| `integration-test-reference.md`  | Test architecture: base classes, fixtures, helpers, service-specific setup, test runners         | Referenced in config                                 | Test file edits                     | `$scan-integration-tests` |
-| `feature-docs-reference.md`      | Feature doc templates, app-to-service mapping, doc structure conventions                         | On-demand (skill reads)                              | Skill activation                    | `$scan-feature-docs`      |
-| `code-review-rules.md`           | Review rules, conventions, anti-patterns, decision trees, checklists                             | `code-review-rules-injector.cjs`                     | Review skill activation             | `$scan-code-review-rules` |
+| `frontend-patterns-reference.md` | Frontend patterns: components, state mgmt, API services, styling conventions, directives         | `code-patterns-injector.cjs`, `frontend-context.cjs` | Edit/Write frontend files           | `$scan --target=frontend-patterns` |
+| `integration-test-reference.md`  | Test architecture: base classes, fixtures, helpers, service-specific setup, test runners         | Referenced in config                                 | Test file edits                     | `$scan --target=integration-tests` |
+| `feature-spec-reference.md`      | Feature doc templates, app-to-service mapping, doc structure conventions                         | On-demand (skill reads)                              | Skill activation                    | `$scan --target=feature-spec`      |
+| `code-review-rules.md`           | Review rules, conventions, anti-patterns, decision trees, checklists                             | `code-review-rules-injector.cjs`                     | Review skill activation             | `$scan --target=code-review-rules` |
 | `lessons.md`                     | General lessons — fallback catch-all. **Injected on EVERY prompt** (budget-controlled)           | `prompt-injections.cjs`                              | Every UserPromptSubmit + Edit/Write | Managed by `$learn`       |
-| `scss-styling-guide.md`          | SCSS/CSS: BEM methodology, mixins, variables, theming, responsive patterns                       | `design-system-context.cjs`                          | Styling file edits                  | `$scan-scss-styling`      |
-| `design-system/README.md`        | Design system: tokens overview, component inventory, app-to-doc mapping                          | `design-system-context.cjs`                          | Design file edits                   | `$scan-design-system`     |
-| `e2e-test-reference.md`          | E2E test patterns: framework, page objects, config, best practices                               | `code-patterns-injector.cjs`                         | E2E file edits                      | `$scan-e2e-tests`         |
-| `domain-entities-reference.md`   | Domain entities, data models, DTOs, aggregate boundaries, ER diagrams, cross-service sync        | `backend-context.cjs`, `frontend-context.cjs`        | Backend/frontend file edits         | `$scan-domain-entities`   |
-| `docs-index-reference.md`        | Documentation tree, file counts, doc relationships, keyword-to-doc lookup                        | On-demand (manual)                                   | Manual reference                    | `$scan-docs-index`        |
+| `scss-styling-guide.md`          | SCSS/CSS: BEM methodology, mixins, variables, theming, responsive patterns                       | `design-system-context.cjs`                          | Styling file edits                  | `$scan --target=scss-styling`      |
+| `design-system/README.md`        | Design system: tokens overview, component inventory, app-to-doc mapping                          | `design-system-context.cjs`                          | Design file edits                   | `$scan --target=design-system`     |
+| `e2e-test-reference.md`          | E2E test patterns: framework, page objects, config, best practices                               | `code-patterns-injector.cjs`                         | E2E file edits                      | `$scan --target=e2e-tests`         |
+| `domain-entities-reference.md`   | Domain entities, data models, DTOs, aggregate boundaries, ER diagrams, cross-service sync        | `backend-context.cjs`, `frontend-context.cjs`        | Backend/frontend file edits         | `$scan --target=domain-entities`   |
+| `docs-index-reference.md`        | Documentation tree, file counts, doc relationships, keyword-to-doc lookup                        | On-demand (manual)                                   | Manual reference                    | `$scan --target=docs-index`        |
 
 **Key insight:** Files injected automatically by hooks have higher visibility — lessons placed enforced during edits. Files injected on-demand are only seen when skills explicitly read them. Prefer auto-injected files for high-recurrence lessons.
 
@@ -120,7 +123,7 @@ Each `docs/project-reference/` file is auto-initialized by `session-init-docs.cj
 | Gate           | Question                                                                               | Pass           | Fail → Action                                        |
 | -------------- | -------------------------------------------------------------------------------------- | -------------- | ---------------------------------------------------- |
 | **Recurrence** | "Would this mistake recur in a future session WITHOUT this reminder?"                  | Yes → continue | No → skip `$learn`; mistake is situational           |
-| **Auto-fix**   | "Could `$code-review`, `$code-simplifier`, `$security`, or `$lint` catch this automatically?" | No → continue  | Yes → skip `$learn`; update the review skill instead |
+| **Auto-fix**   | "Could `$code-review`, `$code-simplifier`, `$security-review`, or `$lint` catch this automatically?" | No → continue  | Yes → skip `$learn`; update the review skill instead |
 
 **Both gates must pass.** A lesson review skills already catch adds noise without value. A one-off situational mistake won't be prevented by a persisted rule.
 
@@ -141,7 +144,7 @@ Route to the **most relevant file** based on lesson content:
 | Project structure, directory organization, module boundaries, tech stack choices, service architecture                                   | `docs/project-reference/project-structure-reference.md` | Add to relevant architecture section                            |
 | SCSS/CSS styling, BEM methodology, mixins, variables, theming, responsive design, CSS conventions                                        | `docs/project-reference/scss-styling-guide.md`          | Add to relevant styling section                                 |
 | Design system, design tokens, component library, UI kit conventions, Figma-to-code patterns                                              | `docs/project-reference/design-system/README.md`        | Add to relevant design section                                  |
-| Feature documentation, doc templates, doc structure conventions, app-to-service doc mapping                                              | `docs/project-reference/feature-docs-reference.md`      | Add to relevant conventions section                             |
+| Feature documentation, doc templates, doc structure conventions, app-to-service doc mapping                                              | `docs/project-reference/feature-spec-reference.md`      | Add to relevant conventions section                             |
 | Documentation indexing, doc organization, doc-to-code relationships, doc lookup patterns                                                 | `docs/project-reference/docs-index-reference.md`        | Add to relevant section                                         |
 | General lessons, workflow tips, tooling, AI behavior, project conventions, anything not matching above                                   | `docs/project-reference/lessons.md`                     | Append as dated list entry                                      |
 
@@ -191,7 +194,9 @@ After generalizing a lesson, evaluate whether it qualifies as a **System Lesson*
 
 **If NOT qualified:** Explain why (e.g., "Too project-specific", "Already covered by existing System Lesson about X", "Low recurrence — only happens in rare edge cases"). Proceed with doc-only or prompt-rule option.
 
-### Lesson Quality Gate (MANDATORY before saving)
+### Lesson Quality Gate (BLOCKING — generalize before you save)
+
+> **CORE PROTOCOL — do not skip:** A `$learn` request always arrives as a SPECIFIC case ("don't migrate via the bus and spam Elasticsearch"). Saving it verbatim is the default failure mode. You MUST transform specific → generic BEFORE writing: name the underlying class of mistake, drop the incident's nouns, and write a rule that fires across many future cases ("migrations write the DB directly, never via message bus — applies to all migrations"). If you cannot state the lesson without naming this ticket's files/services/tools, it is NOT generic yet — climb one more abstraction level. When in doubt, save the MORE generic version; a too-specific lesson is dead weight injected on every prompt.
 
 Every lesson MUST be **root-cause level and generic across any codebase**. Apply this 3-step extraction before saving:
 
@@ -249,7 +254,7 @@ Run these 2 tasks at the end of every `$learn` operation:
 - Verify:
     - Why this lesson prevents repeated mistakes,
     - Why this should be a lesson instead of a one-time note,
-    - Why auto-checks (`$code-review`, `$code-simplifier`, `$security`, `$lint`, hook/test) are insufficient.
+    - Why auto-checks (`$code-review`, `$code-simplifier`, `$security-review`, `$lint`, hook/test) are insufficient.
 - If rationale is weak, rewrite at higher abstraction or skip `$learn`.
 
 ### Routing Decision Process
@@ -407,6 +412,7 @@ $prompt-enhance docs/project-reference/<modified-file>.md
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION** GENERALIZE FIRST — extract the generic, many-cases rule; NEVER persist the specific incident as written. Strip all ticket/file/service/tool names before saving.
 **IMPORTANT MUST ATTENTION** run Triage Gate FIRST — if recurrence is low OR review skills can catch it, skip `$learn` entirely
 **IMPORTANT MUST ATTENTION** check Reference Doc Catalog to find the best target file — NOT always `lessons.md`
 **IMPORTANT MUST ATTENTION** mandatory end tasks are ALWAYS: `Learn Review` → `$why-review` → `$prompt-enhance <modified-file>` (in order)
@@ -422,17 +428,14 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 
 ## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
 
-**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. If either file or a required reference doc is missing, stop immediately and ask the user to run the project-config and scan-all skills. Any supported AI tool may execute when this shared context and local docs are available.
+**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. Any supported AI tool may execute when this shared context and local docs are available.
 
-1. **DETECT:** Match prompt against workflow catalog
-2. **ANALYZE:** Find best-match workflow AND evaluate if a custom step combination would fit better
-3. **ASK (REQUIRED FORMAT):** Use a direct user question with this structure unless the user explicitly invoked a workflow/skill and the local protocol treats explicit invocation as confirmation:
-   - Question: "Which workflow do you want to activate?"
-   - Option 1: "Activate **[BestMatch Workflow]** (Recommended)"
-   - Option 2: "Activate custom workflow: **[step1 → step2 → ...]**" (include one-line rationale)
-4. **ACTIVATE (if confirmed):** Call `$workflow-start <workflowId>` for standard; sequence custom steps manually
-5. **CREATE TASKS:** task tracking for ALL workflow steps
-6. **EXECUTE:** Follow each step in sequence
+1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
+2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
+3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
+4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
+6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
 **AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
@@ -448,7 +451,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security`/`$lint` catch this?" — Yes → improve review skill instead.
+6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/`$lint` catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
 **[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
 

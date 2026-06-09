@@ -18,7 +18,7 @@ disable-model-invocation: true
 **Key Rules:**
 
 - Requires `npm install` before first use (gray-matter)
-- Use `/kanban` slash command for quick access
+- Use `/plans-kanban` slash command for quick access
 - Scans for directories containing `plan.md` files
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
@@ -78,11 +78,11 @@ node .claude/skills/plans-kanban/scripts/server.cjs --stop
 
 ## Slash Command
 
-Use `/kanban` for quick access:
+Use `/plans-kanban` for quick access:
 
 ```bash
-/kanban plans/           # View plans dashboard
-/kanban --stop           # Stop kanban server
+/plans-kanban plans/           # View plans dashboard
+/plans-kanban --stop           # Stop kanban server
 ```
 
 ## Features

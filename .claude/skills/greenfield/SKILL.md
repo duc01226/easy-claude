@@ -18,13 +18,13 @@ description: '[Planning] Use when you need to start a new project from scratch w
 6. **Tech Stack Research** (`/tech-stack-research`) — Derive technical requirements from business + domain analysis. Research top 3 options per stack layer (backend, frontend, database, messaging, infra). Detailed pros/cons matrix, team-fit scoring, market analysis. Present comparison report for user to decide.
 7. **Architecture Design** (`/architecture-design`) — Research and compare top 3 architecture styles (Clean, Hexagonal, Vertical Slice, etc.). Evaluate design patterns (CQRS, Repository, Mediator). Audit against SOLID, DRY, KISS, YAGNI. Validate scalability, maintainability, IoC, technical agnosticism. Present comparison with recommendation. **Harness output required:** produce a "Scaffold Handoff — Harness Plan" table in the architecture report: (a) feedforward guides to create (AGENTS.md sections, skill activation rules, pattern catalog), (b) computational feedback sensors to install (linter, formatter, pre-commit, CI), (c) inferential feedback sensors to configure (review skills, AI gates). This table feeds `/scaffold` → `/linter-setup` → `/harness-setup`.
 8. **Implementation Plan** (`/plan`) — Create phased plan using confirmed tech stack + architecture + domain model
-9. **Security Audit** (`/security`) — Review plan for OWASP Top 10, auth patterns, data protection concerns
-10. **Performance Audit** (`/performance`) — Review plan for performance bottlenecks, scalability, query optimization
+9. **Security Audit** (`/security-review`) — Review plan for OWASP Top 10, auth patterns, data protection concerns
+10. **Performance Audit** (`/performance-review`) — Review plan for performance bottlenecks, scalability, query optimization
 11. **Plan Review** (`/plan-review`) — Full plan review, risk assessment, approval
 12. **Refine to PBI** (`/refine`) — Transform idea + reviewed plan into actionable PBI with acceptance criteria
 13. **User Stories** (`/story`) — Break PBI into implementable user stories
 14. **Plan Validation** (`/plan-validate`) — Interview user with critical questions to validate plan + stories
-15. **Test Strategy** (`/tdd-spec`) — Test pyramid, frameworks, spec outline
+15. **Test Strategy** (`/spec-tests`) — Test pyramid, frameworks, spec outline
 16. **Workflow End** (`/workflow-end`) — Clean up, announce completion
 
 **Key Rules:**

@@ -17,21 +17,21 @@ description: '[Code Quality] Use when you need aI-assisted Dev BA PIC review of 
 
 **Goal:** Help **Dev BA PIC** (Person In Charge — the development Business Analyst responsible for technical review sign-off per squad) review BA drafters' PBI drafts by generating specific, actionable challenge prompts. AI provides analysis; human makes the decision.
 
-**Key distinction:** Collaborative review tool (drafter → reviewer flow), NOT self-review (use `/refine-review` for AI self-review).
+**Key distinction:** Collaborative review tool (drafter → reviewer flow), NOT self-review (use `/review-artifact --type=pbi` for AI self-review).
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
 ## Why This Skill Exists
 
-PBI drafts routinely pass informal review without being challenged on architectural feasibility, vague AC, missing auth scenarios, or cross-service impact. The `/refine` skill generates PBIs but does not adversarially challenge them — it is a creation tool, not a review tool. The `/refine-review` skill provides AI self-review for the drafter, but the drafter has inherent blind spots about their own assumptions. A separate reviewer (Dev BA PIC) applying AI-assisted challenge prompts breaks the drafter's confirmation bias before grooming. This skill exists to catch gaps the drafter cannot catch themselves.
+PBI drafts routinely pass informal review without being challenged on architectural feasibility, vague AC, missing auth scenarios, or cross-service impact. The `/refine` skill generates PBIs but does not adversarially challenge them — it is a creation tool, not a review tool. The `/review-artifact --type=pbi` skill provides AI self-review for the drafter, but the drafter has inherent blind spots about their own assumptions. A separate reviewer (Dev BA PIC) applying AI-assisted challenge prompts breaks the drafter's confirmation bias before grooming. This skill exists to catch gaps the drafter cannot catch themselves.
 
-**Why not just use `/refine-review`?** `/refine-review` is run by the drafter on their own work. Even with adversarial prompts, the drafter rationalizes their own choices. `pbi-challenge` is invoked by a different person with a different mandate — external skepticism requires a different author, not a different tool on the same author.
+**Why not just use `/review-artifact --type=pbi`?** `/review-artifact --type=pbi` is run by the drafter on their own work. Even with adversarial prompts, the drafter rationalizes their own choices. `pbi-challenge` is invoked by a different person with a different mandate — external skepticism requires a different author, not a different tool on the same author.
 
 ## Alternatives Considered
 
 | Approach                                                                      | Pros                                                                     | Cons                                                                                                                | Decision                                                                                         |
 | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Extend `/refine-review` with a reviewer-role flag                             | No new skill, single codebase                                            | Drafter runs it themselves in practice; role separation breaks down without enforcement                             | Rejected — role separation requires a distinct invocation point owned by a different person      |
+| Extend `/review-artifact --type=pbi` with a reviewer-role flag                             | No new skill, single codebase                                            | Drafter runs it themselves in practice; role separation breaks down without enforcement                             | Rejected — role separation requires a distinct invocation point owned by a different person      |
 | Fully autonomous AI verdict (no human decision)                               | Faster, no Dev BA PIC scheduling needed                                  | Automation bias: AI wrong on domain specifics propagates unchecked; no human accountability for false APPROVE       | Rejected — cost of false APPROVE on infeasible PBIs exceeds review time saved                    |
 | Static DoR checklist given to Dev BA PIC (no AI)                              | Simple, no AI dependency                                                 | No domain entity context loading, no AC vagueness flagging; manual effort is high and inconsistent across reviewers | Rejected — AI domain lookup provides non-trivial value for cross-service entity detection        |
 | Async comment-thread model (AI generates questions posted as ticket comments) | Eliminates scheduling bottleneck; drafter can research before responding | Slower feedback loop; requires external ticket integration                                                          | Valid alternative for async teams; prefer if Dev BA PIC availability is chronically a bottleneck |
@@ -59,7 +59,7 @@ PBI drafts routinely pass informal review without being challenged on architectu
 1. **Locate PBI draft** — Find BA drafters' draft PBI in `team-artifacts/pbis/` or path provided by user
 2. **Load domain context** — Auto-detect module from PBI content. **MANDATORY: Use `AskUserQuestion` to confirm detected module with Dev BA PIC before loading domain docs.** Wrong module = wrong entity context = false APPROVE risk. Then load:
     - `docs/project-reference/domain-entities-reference.md` (entity definitions)
-    - Relevant feature docs from `docs/business-features/{App}/`
+    - Relevant feature docs from `docs/specs/{App}/`
     - Existing business rules (BR-{MOD}-XXX) from feature docs
 3. **Technical Feasibility Analysis:**
     - Can described features be built with the project's architecture?
@@ -231,7 +231,7 @@ If ANY box fails → AI Verdict is REQUEST_REVISION; tag each violated mandate I
 > 2. **AC testable & unambiguous** — GIVEN/WHEN/THEN. No "should/might/TBD/various/appropriate". Min 3 scenarios (happy, edge, error) + 1 auth scenario
 > 3. **Wireframes attached** — UI features: `## UI Layout` with wireframe + components + states + tokens. Backend-only: explicit "N/A"
 > 4. **UI design ready** — Visual design + component decomposition tree. Backend-only: "N/A"
-> 5. **AI pre-review passed** — `/refine-review` or `/pbi-challenge` returned PASS or WARN (not FAIL)
+> 5. **AI pre-review passed** — `/review-artifact --type=pbi` or `/pbi-challenge` returned PASS or WARN (not FAIL)
 > 6. **Story points estimated** — Fibonacci 1-21 + complexity (Low/Medium/High). >13 SP → recommend split
 > 7. **Dependencies table complete** — Dependency, Type (must-before/can-parallel/blocked-by/independent), Status
 >

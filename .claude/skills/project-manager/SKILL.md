@@ -37,16 +37,13 @@ Help Project Managers generate status reports, track dependencies, manage risks,
 
 | Capability          | Command         | Key Activities                                                            |
 | ------------------- | --------------- | ------------------------------------------------------------------------- |
-| Status Reports      | `/status`       | Aggregate sprint progress, summarize completions/blockers, track velocity |
+| Status Reports      | (this skill)    | Aggregate sprint progress, summarize completions/blockers, track velocity |
 | Dependency Tracking | `/dependency`   | Map inter-feature dependencies, identify critical path, alert on risks    |
 | Risk Management     | Update register | Score probability x impact, define mitigations, escalate critical         |
-| Team Sync           | `/team-sync`    | Generate agendas, track action items, document decisions                  |
 
 ---
 
 ## Status Report Generation
-
-**Command:** `/status`
 
 Generate from:
 
@@ -83,16 +80,6 @@ Maintain risk register with probability x impact scoring (1-9 scale).
 
 ---
 
-## Team Sync Facilitation
-
-**Command:** `/team-sync`
-
-Generate meeting agenda covering: sprint health, role updates, blockers, risks, action items.
-
-**⚠️ MUST ATTENTION READ:** `references/report-templates.md` for agenda template and sprint ceremonies checklists.
-
----
-
 ## Output Conventions
 
 ### File Naming
@@ -116,10 +103,9 @@ Generate meeting agenda covering: sprint health, role updates, blockers, risks, 
 
 | When            | Trigger         | Action                  |
 | --------------- | --------------- | ----------------------- |
-| End of day      | `/status`       | Generate daily status   |
+| End of day      | (this skill)    | Generate daily status   |
 | Sprint start    | `/dependency`   | Map sprint dependencies |
 | Risk identified | Update register | Score and assign        |
-| Before sync     | `/team-sync`    | Generate agenda         |
 
 ---
 
@@ -135,7 +121,7 @@ Generate meeting agenda covering: sprint health, role updates, blockers, risks, 
 ## Related
 
 - `product-owner`
-- `planning`
+- `plan`
 
 ## References
 

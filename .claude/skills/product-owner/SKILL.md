@@ -45,9 +45,9 @@ When working on domain ideas, automatically detect and load business feature con
 
 **Dynamic Discovery:**
 
-1. Run: `Glob("docs/business-features/*/README.md")`
+1. Run: `Glob("docs/specs/*/README.md")`
 2. Extract module names from paths
-3. Match keywords (detect module from docs/business-features/ directory names)
+3. Match keywords (detect module from docs/specs/ directory names)
 
 **Detection Approach (silent auto-detect):**
 
@@ -58,7 +58,7 @@ When working on domain ideas, automatically detect and load business feature con
 
 Once module detected:
 
-1. Read `docs/business-features/{module}/README.md` (first 200 lines for overview)
+1. Read `docs/specs/{module}/README.md` (first 200 lines for overview)
 2. Extract feature list from Quick Navigation
 3. Identify closest matching feature(s)
 4. Note related entities and services
@@ -151,7 +151,7 @@ Include in frontmatter (if project domain):
 ```yaml
 module: ServiceB # Detected module
 related_features: [OrderManagement, Feedback] # From README feature list
-feature_doc_path: docs/business-features/ServiceB/detailed-features/README.GoalManagementFeature.md
+feature_doc_path: docs/specs/ServiceB/README.GoalManagementFeature.md
 entities: [Goal, Employee, OrganizationalUnit] # From feature doc
 ```
 
@@ -172,7 +172,7 @@ When user says "new idea" or "feature request":
 
 1. Use `/idea` command workflow
 2. **Detect module** from conversation keywords
-3. **Load feature context** from docs/business-features/
+3. **Load feature context** from docs/specs/
 4. Populate idea-template.md with domain fields
 5. Save to `team-artifacts/ideas/`
 6. Suggest next step: `/refine {idea-file}`

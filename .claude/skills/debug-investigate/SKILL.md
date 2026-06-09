@@ -17,7 +17,7 @@ description: '[Fix & Debug] Use when bugfix workflow reaches debug step.'
 
 **Goal:** Investigate, identify root cause with `file:line` evidence. Investigation-only — hand off to `/fix` for implementation.
 
-**Final Purpose:** Deliver a Fresh-Eyes-validated root cause pinned to `file:line` at the invariant-owning layer — so `/fix` corrects the cause, not the symptom — or an honest "hypothesis, not confirmed" naming the evidence gaps.
+**Final Purpose:** Deliver a `/why-review`-validated root cause pinned to `file:line` at the invariant-owning layer — so `/fix` corrects the cause, not the symptom — or an honest "hypothesis, not confirmed" naming the evidence gaps.
 
 **Workflow:**
 
@@ -26,14 +26,14 @@ description: '[Fix & Debug] Use when bugfix workflow reaches debug step.'
 3. **Hypothesize** — Form 2-3 ranked theories
 4. **Trace** — Follow code paths; collect `file:line` proof per hypothesis
 5. **Confirm** — Single root cause explains ALL symptoms
-6. **Validate** — Fresh Eyes round 2 before declaring confirmed
+6. **Validate** — Trigger `/why-review` on findings/root cause before declaring confirmed
 7. **Report** — Confidence-tagged finding + hand off to `/fix`
 
 **Key Rules:**
 
 - NEVER patch symptoms — trace full call chain, fix at owning layer
 - NEVER report root cause without `file:line` evidence
-- NEVER declare confirmed root cause after Round 1 alone (Fresh Eyes required)
+- NEVER declare confirmed root cause without passing the `/why-review` validation gate
 - Output: confirmed root cause OR "hypothesis, not confirmed" + evidence gaps
 
 ## Phase 0: Classify Bug Scenario (BLOCKING — Do Before ANY Investigation)
@@ -142,23 +142,23 @@ python .claude/scripts/code_graph trace <suspect-file> --direction upstream --js
 
 Graph reveals implicit connections (MESSAGE_BUS, event handlers) that propagate issues across services — invisible to grep.
 
-## Root Cause Validation (Fresh Eyes Protocol)
+## Root Cause Validation (`/why-review` Gate)
 
-NEVER declare confirmed root cause after Round 1 alone. Main agent rationalizes its own findings — a zero-memory sub-agent catches what main agent dismissed.
+NEVER declare a confirmed root cause straight from investigation. Run `/why-review` as a quality validation gate on the findings and root cause — in the SAME session, SAME main agent (do NOT spawn a sub-agent) — before handing off to `/fix`.
 
-**Round 1 (main agent):** Identify root cause + full evidence chain. Write findings to report file.
+**Step 1 — Investigate (main agent):** Identify root cause + full evidence chain. Write findings to report file.
 
-**Round 2 (fresh `debugger` sub-agent, zero memory of Round 1):** Spawn with:
+**Step 2 — Validate (`/why-review`, same main agent):** Trigger `/why-review` on the findings/root cause. The gate must confirm:
 
-- Suspected root cause statement
-- All `file:line` evidence collected
-- Ask: "Does this evidence conclusively prove the stated root cause, or are there gaps?"
+- Root cause is correct and reasonable, with `file:line` evidence that conclusively supports it
+- Evidence has no gaps and explains ALL symptoms
+- The proposed fix direction would NOT introduce other bugs or regressions (check downstream consumers, bypass paths, owning layer)
 
 **Decision:**
 
-- Sub-agent CONFIRMS → declare confirmed, proceed to `/fix`
-- Sub-agent finds GAPS → collect additional evidence, repeat
-- 2 rounds without confirmation → STOP, escalate to user via `AskUserQuestion`
+- `/why-review` PASSES → declare confirmed, proceed to `/fix`
+- `/why-review` finds GAPS/risks → collect additional evidence, repeat
+- 2 validation rounds without passing → STOP, escalate to user via `AskUserQuestion`
 
 ## ⚠️ MANDATORY: Post-Fix Verification
 
@@ -176,7 +176,7 @@ After `/fix` applies changes, `/prove-fix` MUST be run — builds code proof tra
 | "It works on my machine"               | Reproduce in the failing environment. Your environment hides bugs.              |
 | "This can't be the cause"              | Verify with evidence, not intuition. Unlikely causes are still causes.          |
 | "It's OOM, must be a large object"     | Check row COUNT before row SIZE. Unbounded query > large single row.            |
-| "Round 2 fresh agent unnecessary"      | Main agent rationalizes its own findings. Zero-memory agent catches dismissals. |
+| "Skip `/why-review`, findings look solid" | Self-confirmed findings rationalize their own gaps. The `/why-review` gate is non-negotiable. |
 | "Graph.db not needed for this bug"     | Cross-service bugs are invisible to grep. Run trace first.                      |
 
 ---
@@ -328,11 +328,11 @@ After `/fix` applies changes, `/prove-fix` MUST be run — builds code proof tra
 > **Project Reference Docs Gate** — Run after task-tracking bootstrap and before target/source file reads, grep, edits, or analysis. Project docs override generic framework assumptions.
 >
 > 1. Identify scope: file types, domain area, and operation.
-> 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-docs-reference.md`; architecture/new area `project-structure-reference.md`.
-> 3. Read every required doc. If `docs/project-config.json`, the docs index, `lessons.md`, or any task-required reference doc is missing, stop immediately and ask the user to run `/project-config` and `/scan-all`.
+> 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under `docs/specs/`; architecture/new area `project-structure-reference.md`.
+> 3. Read every required doc. If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `/project-init` or the narrow lower-level route (`/project-config`, `/docs-init`, `/scan-all`, `/scan --target=<key>`, `/claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `/sync-codex`; do not auto-run it.
 > 4. Before target work, state: `Reference docs read: ... | Not applicable: ...`.
 >
-> **Blocked until:** scope evaluated, required docs checked/read, `lessons.md` confirmed, citation emitted.
+> **Ready when:** scope evaluated, required docs checked/read or setup route completed, `lessons.md` confirmed, citation emitted.
 
 <!-- /SYNC:project-reference-docs-guide -->
 
@@ -664,6 +664,7 @@ After `/fix` applies changes, `/prove-fix` MUST be run — builds code proof tra
 
 - **MANDATORY** After task-tracking bootstrap and before target/source work, read required project-reference docs and cite `Reference docs read: ...`.
 - **MANDATORY** Always include `lessons.md`; project conventions override generic defaults.
+- **MANDATORY** If project config, root instruction files, or any required reference doc is missing, stop and run or ask the user to run `/project-init`.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
 
@@ -693,11 +694,11 @@ After `/fix` applies changes, `/prove-fix` MUST be run — builds code proof tra
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Final Purpose:** Deliver a Fresh-Eyes-validated root cause pinned to `file:line` at the invariant-owning layer — so `/fix` corrects the cause, not the symptom — or an honest "hypothesis, not confirmed" naming the evidence gaps.
+**IMPORTANT MUST ATTENTION Final Purpose:** Deliver a `/why-review`-validated root cause pinned to `file:line` at the invariant-owning layer — so `/fix` corrects the cause, not the symptom — or an honest "hypothesis, not confirmed" naming the evidence gaps.
 **MUST ATTENTION** Phase 0 FIRST — classify bug type, route to specialized agent (`performance-optimizer` / `security-auditor`) before any investigation
 **MUST ATTENTION** NEVER fix at crash site — trace full data flow, fix at invariant-owning layer
 **MUST ATTENTION** NEVER report root cause without `file:line` evidence; Confidence <60% = DO NOT recommend
-**MUST ATTENTION** NEVER declare confirmed root cause after Round 1 alone — Fresh Eyes Protocol required
+**MUST ATTENTION** NEVER declare confirmed root cause without passing the `/why-review` validation gate (same session, same main agent)
 **MUST ATTENTION** run graph trace when graph.db exists — reveals bus consumers and event handlers grep cannot see
 **MUST ATTENTION** OOM → check row COUNT before row SIZE; 3+ failed fixes → STOP, escalate to user
 **MUST ATTENTION** `TaskCreate` before starting; `/prove-fix` MUST run after `/fix` applies changes
@@ -708,7 +709,7 @@ After `/fix` applies changes, `/prove-fix` MUST be run — builds code proof tra
 | ---------------------------------- | ------------------------------------------------------------------------------ |
 | "Too simple for Phase 0"           | Root cause assumptions waste more time than classification. Apply anyway.      |
 | "Already traced, no graph needed"  | Show `file:line` evidence. No proof = no trace.                                |
-| "Round 2 fresh agent wastes time"  | Main agent rationalizes its own mistakes. Zero-memory agent is non-negotiable. |
+| "Skip `/why-review`, wastes time"  | Self-confirmed findings rationalize their own gaps. The `/why-review` gate is non-negotiable. |
 | "This is a frontend bug, no graph" | Frontend → backend → bus chains exist. Run trace first.                        |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.

@@ -6,12 +6,12 @@ description: '[Skill Management] Use when starting a detected workflow, initiali
 
 ## Quick Summary
 
-**Goal:** Detect user intent → present catalog/custom options → activate with full TaskCreate plan.
+**Goal:** Detect user intent → auto-select direct/skill/standard/custom path → activate with full TaskCreate plan.
 
 **Workflow:**
 
-1. **Detect** — Match prompt against workflow catalog; identify best catalog workflow + optional custom pipeline
-2. **Ask/Confirm** — Ask for auto-detected workflows; explicit `/workflow-*` or `/workflow-start <id>` invocation counts as confirmation when local protocol allows.
+1. **Detect** — Execute explicit `/workflow-*` or `/workflow-start <id>` directly; otherwise match prompt against workflow catalog and skill list
+2. **Auto-select** — Choose direct execution, a skill, a standard workflow, or a custom pipeline without asking the user to pick the path
 3. **Activate** — Create ALL TaskCreate items for chosen sequence; mark first `in_progress`
 
 **Key Rules:**
@@ -19,8 +19,8 @@ description: '[Skill Management] Use when starting a detected workflow, initiali
 - MUST ATTENTION define success criteria before execution and loop until observable verification passes.
 - MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
 
-- MUST ATTENTION **ALWAYS** call `AskUserQuestion` before activating auto-detected workflows — NEVER auto-activate an inferred workflow. Explicit `/workflow-*` or `/workflow-start <id>` invocation counts as confirmation when local project protocol allows. — why: silent activation runs a multi-step plan the user never agreed to.
-- Present the required standard-vs-custom choice: `A) Activate [Workflow] (Recommended)` | `B) Custom Pipeline: [step → ...]`
+- MUST ATTENTION auto-select the best execution path for ordinary prompts. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
+- Explicit `/workflow-*` or `/workflow-start <id>` invocation counts as the user choosing that workflow; execute it directly.
 - Propose Custom Pipeline when no catalog workflow is a strong fit (>80% steps relevant = use catalog)
 - `workflows.json` `workflows` field is an **OBJECT** — use `workflows[workflowId]`, NEVER `.find()` or `[index]`
 - Create ALL `TaskCreate` items BEFORE marking the first task `in_progress` — batch creation, then execute
@@ -28,7 +28,7 @@ description: '[Skill Management] Use when starting a detected workflow, initiali
 - ALWAYS check context for `## Workflow Catalog` first (Tier 1) — NEVER read `workflows.json` directly when catalog is in context
 - If another workflow is active, it auto-switches (ends current, starts new) — no manual cleanup needed
 
-**NOT for:** Manual step execution (follow TaskCreate items), workflow design (use `planning`), catalog management.
+**NOT for:** Manual step execution (follow TaskCreate items), workflow design (use `plan`), catalog management.
 
 **Related:** `/workflow-start <workflowId>` | Hook: `workflow-step-tracker.cjs` | Hook: `workflow-router.cjs`
 
@@ -133,6 +133,8 @@ Then Grep '"<workflowId>":' context=30
 
 ## After Activation — Task Creation Protocol (ZERO TOLERANCE)
 
+**Active-goal resolution (BEFORE child task creation):** resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` — active plan `goal.md`, else `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md`, else create one from the current user request using `.claude/templates/goal-contract-template.md`. Record the resolved goal path and pass it to every child step/sub-agent so the whole workflow executes against the same saved success criteria. The workflow may end only when the goal's Goal Satisfaction matrix passes or a blocker is escalated.
+
 FIRST action after activation: create EXACTLY one `TaskCreate` for EACH entry in the workflow's `sequence` array.
 
 ### How to read `workflows.json` — CRITICAL SCHEMA
@@ -161,7 +163,6 @@ slashCmd = commandMapping[stepId].claude   // commandMapping["scout"].claude →
 | Field                        | Type     | Notes                                   |
 | ---------------------------- | -------- | --------------------------------------- |
 | `name`                       | string   | Display name                            |
-| `confirmFirst`               | boolean  | Prompt user before starting             |
 | `sequence`                   | string[] | Ordered step IDs — SOLE source of truth |
 | `whenToUse` / `whenNotToUse` | string   | Natural language intent matching        |
 | `preActions`                 | object   | Optional `injectContext` / `readFiles`  |
@@ -222,7 +223,6 @@ Some workflow steps ARE themselves full workflows. Running them inline causes th
 | Step                       | Workflow activated | Step count source                           | Agent type      |
 | -------------------------- | ------------------ | ------------------------------------------- | --------------- |
 | `/workflow-review-changes` | `review-changes`   | `len(workflows["review-changes"].sequence)` | `code-reviewer` |
-| `/workflow-review`         | `review`           | `len(workflows["review"].sequence)`         | `code-reviewer` |
 
 **Protocol when these steps appear in the active workflow sequence:**
 
@@ -237,12 +237,12 @@ Some workflow steps ARE themselves full workflows. Running them inline causes th
 
 ---
 
-**IMPORTANT MANDATORY Steps:** detect-workflow -> analyze-best-match -> ask-or-confirm-workflow-choice -> activate-workflow -> create-task-tracking -> execute-sequence
+**IMPORTANT MANDATORY Steps:** detect-workflow -> analyze-best-match -> auto-select-execution-path -> activate-workflow -> create-task-tracking -> execute-sequence
 
-**IMPORTANT MANDATORY Steps:** detect-workflow -> analyze-best-match -> ask-or-confirm-workflow-choice -> activate-workflow -> create-task-tracking -> execute-sequence
+**IMPORTANT MANDATORY Steps:** detect-workflow -> analyze-best-match -> auto-select-execution-path -> activate-workflow -> create-task-tracking -> execute-sequence
 
 > **[MANDATORY]** `TaskCreate` FIRST — break every workflow into tasks before any action. NEVER skip.
-> **[MANDATORY]** `AskUserQuestion` ALWAYS for auto-detected workflows — present the standard-vs-custom (A/B) choice; NEVER auto-activate inferred workflows. Explicit workflow invocation may satisfy confirmation when local protocol allows.
+> **[MANDATORY]** Auto-select the best path for auto-detected workflows; do not use `AskUserQuestion` for workflow-selection confirmation. Explicit workflow invocation executes directly.
 > **[MANDATORY]** `Skill` tool REQUIRED per step — NEVER mark a task `completed` without invoking it.
 
 <!-- SYNC:ai-mistake-prevention -->
@@ -327,9 +327,16 @@ Some workflow steps ARE themselves full workflows. Running them inline causes th
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
+<!-- SYNC:goal-contract-satisfaction-loop:reminder -->
+
+- **MANDATORY** Resolve the active Goal Contract BEFORE work (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from current request) and read saved success criteria before editing.
+- **MANDATORY** Append iteration evidence after execution; emit a Goal Satisfaction matrix (PASS/FAIL/BLOCKED) before reporting PASS; loop on validated FAIL; escalate repeated no-progress or blockers. NEVER store secrets in goal files.
+
+<!-- /SYNC:goal-contract-satisfaction-loop:reminder -->
+
 ## Closing Reminders
 
-**MUST ATTENTION** call `AskUserQuestion` before activating auto-detected workflows; explicit `/workflow-*` or `/workflow-start <id>` invocation may satisfy confirmation when local protocol allows. Never auto-activate inferred workflows.
+**MUST ATTENTION** auto-select the best path for ordinary prompts; explicit `/workflow-*` or `/workflow-start <id>` invocation executes directly. Do not ask for workflow-selection confirmation.
 **MUST ATTENTION** `workflows` is an OBJECT — `workflows[workflowId]`, NEVER `.find()` / `[index]` / `.forEach()`
 **MUST ATTENTION** create ALL `TaskCreate` items for the full sequence BEFORE marking the first task `in_progress`
 **MUST ATTENTION** never mark a task `completed` without invoking its `Skill` tool — skip means comment + completed, not delete

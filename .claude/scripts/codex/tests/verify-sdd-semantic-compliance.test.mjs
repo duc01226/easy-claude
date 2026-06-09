@@ -129,7 +129,7 @@ test("runChecks scans prompt surfaces for stale placeholders and unconfigured ar
     await fs.writeFile(staleClaudeMd, "Root context uses TC-{FEAT}-{NNN}\n", "utf8");
     await fs.writeFile(
       staleTemplate,
-      "**Evidence:** `{FilePath}:{LineRange}` or `TBD (pre-implementation)`\n",
+      "**Evidence:** `{FilePath}:{LineRange}` or **Evidence:** `{FilePath}:{LineNumber}` or Evidence: {file}:{line} or Evidence field with file:line format\n",
       "utf8"
     );
 
@@ -146,13 +146,25 @@ test("runChecks scans prompt surfaces for stale placeholders and unconfigured ar
     assert.ok(result.failures.some((failure) => /configured-idea-artifact-root/.test(failure.message)));
     assert.ok(result.failures.some((failure) => /docs\/specs\/\{Module\}/.test(failure.message)));
     assert.ok(result.failures.some((failure) => /\*\*Evidence:\*\* `\{FilePath\}:\{LineRange\}`/.test(failure.message)));
+    assert.ok(result.failures.some((failure) => /\*\*Evidence:\*\* `\{FilePath\}:\{LineNumber\}`/.test(failure.message)));
+    assert.ok(result.failures.some((failure) => /Evidence: \{file\}:\{line\}/.test(failure.message)));
+    assert.ok(result.failures.some((failure) => /Evidence field with file:line format/.test(failure.message)));
     assert.equal(result.sddMetrics.staleTcPlaceholderFindings, 9);
-    assert.equal(result.sddMetrics.staleTcEvidenceFormatFindings, 1);
+    assert.equal(result.sddMetrics.staleTcEvidenceFormatFindings, 4);
     assert.equal(result.sddMetrics.staleQaDashboardPathFindings, 1);
     assert.equal(result.sddMetrics.unconfiguredArtifactRootFindings, 1);
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
   }
+});
+
+test("canonical Feature Spec template requires business intent on every test case", async () => {
+  const template = await fs.readFile(
+    path.join(repoRoot, ".claude", "templates", "detailed-feature-spec-template.md"),
+    "utf8"
+  );
+
+  assert.match(template, /\*\*Business Intent \/ Invariant Guarded:\*\*/);
 });
 
 test("runChecks fails SDD022 banned tech terms in changed feature/spec prose only", async () => {
@@ -199,15 +211,15 @@ test("runChecks skips SDD022 carrier lines and documented exempt guide files", a
   try {
     const files = new Map([
       [
-        "docs/business-features/DOCUMENTATION-GUIDE.md",
+        "docs/specs/DOCUMENTATION-GUIDE.md",
         "This guide may mention Angular and CQRS while explaining documentation rules.",
       ],
       [
-        "docs/specs/06-reimplementation-guide.md",
-        "The rebuild guide may mention .NET and RabbitMQ by design.",
+        "docs/specs/CandidateApp/CandidateApp.reimplementation-guide.md",
+        "The derived rebuild guide may mention .NET and RabbitMQ by design.",
       ],
       [
-        "docs/business-features/candidate-profile.md",
+        "docs/specs/CandidateApp/README.CandidateProfileFeature.md",
         [
           "---",
           "service: Angular",
@@ -235,7 +247,17 @@ test("runChecks skips SDD022 carrier lines and documented exempt guide files", a
     assert.deepEqual(result.failures.filter((failure) => failure.code !== "SDD023"), []);
     assert.equal(result.sddMetrics.bannedProseTechTermFindings, 0);
     assert.equal(result.sddMetrics.proseSourceIdentifierFindings, 0);
-    assert.equal(isSdd022TargetFile("docs/business-features/DOCUMENTATION-GUIDE.md"), false);
+    // Exempt guide (exact path), derived reimplementation guide (suffix), and post-move scan root.
+    assert.equal(isSdd022TargetFile("docs/specs/DOCUMENTATION-GUIDE.md"), false);
+    assert.equal(
+      isSdd022TargetFile("docs/specs/CandidateApp/CandidateApp.reimplementation-guide.md"),
+      false
+    );
+    assert.equal(isSdd022TargetFile("docs/business-features/anything.md"), false);
+    assert.equal(
+      isSdd022TargetFile("docs/specs/CandidateApp/README.CandidateProfileFeature.md"),
+      true
+    );
     assert.deepEqual(findBannedProseTechTerms("Manual OAuth text"), ["OAuth"]);
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
@@ -377,15 +399,15 @@ test("runChecks passes positive SDD fixture", async () => {
     const files = new Map([
       [
         ".claude/skills/workflow-feature/SKILL.md",
-        "shared/sdd-artifact-contract.md workflow-performance SLA functional no-regression docs/project-config.json",
+        "shared/sdd-artifact-contract.md performance-review SLA functional no-regression docs/project-config.json",
       ],
       [
         ".claude/skills/workflow-bugfix/SKILL.md",
-        "Code Bug vs Spec Bug Spec Bug Code Bug workflow-performance SLA functional no-regression docs/project-config.json",
+        "Code Bug vs Spec Bug Spec Bug Code Bug performance-review SLA functional no-regression docs/project-config.json",
       ],
       [
         ".claude/skills/workflow-idea-to-pbi/SKILL.md",
-        "Feature doc Section 15 TC IDs docs-update docs/project-config.json team-artifacts/ideas team-artifacts/pbis plans/reports/docs-update",
+        "Feature doc Section 8 TC IDs docs-update docs/project-config.json team-artifacts/ideas team-artifacts/pbis plans/reports/docs-update",
       ],
       [
         ".claude/skills/docs-update/SKILL.md",
@@ -396,12 +418,12 @@ test("runChecks passes positive SDD fixture", async () => {
         "adjudication required canonical product/spec intent",
       ],
       [
-        ".claude/skills/tdd-spec/SKILL.md",
+        ".claude/skills/spec-tests/SKILL.md",
         "emergency recovery AskUserQuestion recovery report target-source-path",
       ],
       [
-        ".claude/skills/feature-docs/SKILL.md",
-        "Section 15 owned exclusively by /tdd-spec",
+        ".claude/skills/feature-spec/SKILL.md",
+        "Section 8 owned exclusively by /spec-tests",
       ],
       [
         ".claude/skills/shared/sdd-artifact-contract.md",
@@ -412,24 +434,20 @@ test("runChecks passes positive SDD fixture", async () => {
         "SYNC:ai-sdd-artifact-contract reference-only until accepted Any supported AI tool shared/sdd-artifact-contract.md",
       ],
       [
-        ".claude/skills/workflow-performance/SKILL.md",
-        "PERFORMANCE-SDD ROUTE baseline acceptable regression budget behavior docs/spec",
-      ],
-      [
         ".claude/skills/workflow-refactor/SKILL.md",
-        "PERFORMANCE-SDD ROUTE workflow-performance observable behavior docs/spec",
+        "PERFORMANCE-SDD ROUTE performance-review observable behavior docs/spec",
       ],
       [
         ".claude/workflows.json",
-        "PERFORMANCE-SDD ROUTE workflow-performance SLA functional no-regression",
+        "PERFORMANCE-SDD ROUTE performance-review SLA functional no-regression",
       ],
       [
         ".codex/CODEX_CONTEXT.md",
-        "PERFORMANCE-SDD ROUTE workflow-performance shared/sdd-artifact-contract.md SYNC:ai-sdd-artifact-contract reference-only until accepted Any supported AI tool",
+        "PERFORMANCE-SDD ROUTE performance-review shared/sdd-artifact-contract.md SYNC:ai-sdd-artifact-contract reference-only until accepted Any supported AI tool",
       ],
       [
         "AGENTS.md",
-        "PERFORMANCE-SDD ROUTE workflow-performance shared/sdd-artifact-contract.md SYNC:ai-sdd-artifact-contract reference-only until accepted Any supported AI tool",
+        "PERFORMANCE-SDD ROUTE performance-review shared/sdd-artifact-contract.md SYNC:ai-sdd-artifact-contract reference-only until accepted Any supported AI tool",
       ],
       [
         ".claude/hooks/session-init-docs.cjs",
@@ -449,22 +467,22 @@ test("runChecks passes positive SDD fixture", async () => {
       ],
       [
         ".agents/skills/workflow-idea-to-pbi/SKILL.md",
-        "Feature doc Section 15 TC IDs docs-update shared/sdd-artifact-contract.md team-artifacts/ideas team-artifacts/pbis plans/reports/docs-update",
+        "Feature doc Section 8 TC IDs docs-update shared/sdd-artifact-contract.md team-artifacts/ideas team-artifacts/pbis plans/reports/docs-update",
       ],
       [
         ".agents/skills/docs-update/SKILL.md",
         "configured PBI/idea artifact roots detection/delegation docs/project-config.json",
       ],
       [
-        ".agents/skills/tdd-spec/SKILL.md",
+        ".agents/skills/spec-tests/SKILL.md",
         "emergency recovery AskUserQuestion recovery report target-source-path",
       ],
       [
-        ".claude/skills/tdd-spec/references/tdd-spec-template.md",
+        ".claude/skills/spec-tests/references/spec-tests-template.md",
         "configured-source-path configured-test-path",
       ],
       [
-        ".agents/skills/tdd-spec/references/tdd-spec-template.md",
+        ".agents/skills/spec-tests/references/spec-tests-template.md",
         "configured-source-path configured-test-path",
       ],
       [

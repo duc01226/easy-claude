@@ -431,8 +431,7 @@ For more detail on specific topics:
 
 - `frontend-design` — Marketing pages, landing pages, screenshot replication
 - `ui-ux-pro-max` — Searchable design DB (50 styles, 21 palettes, 50 font pairings)
-- `design-spec` — Create design specifications from requirements
-- `ux-designer` — UX design principles, user research
+- `design-spec` — Create design specifications from requirements (incl. UX research notes, accessibility audit)
 - `web-design-guidelines` — WCAG 2.2, accessibility review
 
 ---

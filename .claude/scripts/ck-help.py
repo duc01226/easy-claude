@@ -111,7 +111,7 @@ CATEGORY_GUIDES = {
         "title": "Git Workflow",
         "workflow": [
             ("Commit", "`/commit`"),
-            ("Push", "`/git-cp`"),
+            ("Push", "`/commit --push`"),
             ("PR", "`/pr`"),
         ],
         "tip": "Commit often with clear messages",
@@ -119,8 +119,8 @@ CATEGORY_GUIDES = {
     "design": {
         "title": "Design",
         "workflow": [
-            ("Quick design", "`/design-fast` \"description\""),
-            ("From screenshot", "`/design-screenshot` <path>"),
+            ("Quick design", "`/design --mode=fast` \"description\""),
+            ("From screenshot", "`/design --mode=screenshot` <path>"),
             ("3D design", "`/design-3d` \"description\""),
         ],
         "tip": "Reference existing designs for consistency",
@@ -151,7 +151,7 @@ CATEGORY_GUIDES = {
     "skill": {
         "title": "Skill Management",
         "workflow": [
-            ("Create", "`/skill-create`"),
+            ("Create", "`/skill-creator`"),
             ("Optimize", "`/skill-optimize`"),
         ],
         "tip": "Skills extend agent capabilities",

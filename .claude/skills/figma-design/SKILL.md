@@ -103,18 +103,18 @@ Save to `team-artifacts/design-specs/{YYMMDD}-figma-extract-{slug}.md`:
 
 - Figma URL detected in PBI, design-spec, or user prompt
 - Called by `design-spec` when Figma URL is present
-- Called by `planning` skill during Design Context Extraction step
+- Called by `plan` skill during Design Context Extraction step
 
 ## When NOT to Use
 
 - No Figma URL present — skip, proceed to `design-spec` directly
-- Hand-drawn wireframe — use `wireframe-to-spec` instead
-- Screenshot of existing app — use `design-screenshot` instead
+- Hand-drawn wireframe — use `design-spec --mode=wireframe` instead
+- Screenshot of existing app — use `design --mode=screenshot` instead
 
 ## See Also
 
 - `references/figma-mcp-setup.md` — MCP server setup guide (created in Phase 09)
-- `.claude/skills/planning/references/figma-integration.md` — integration protocol
+- `.claude/skills/plan/references/engine-figma.md` — integration protocol
 - `.claude/hooks/figma-context-extractor.cjs` — URL detection hook
 
 ---

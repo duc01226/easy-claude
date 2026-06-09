@@ -1,7 +1,7 @@
 ---
 name: code
 version: 1.0.0
-description: '[Implementation] Use when you need to start coding & testing an existing plan.'
+description: '[Implementation] Use when you need to start coding & testing an existing plan. Flags: --approval=off (auto/trust mode, no approval gate), --tests=off (skip the test step), --parallel (parallel phase execution via subagents). Folds the former /code-auto, /code-no-test, /code-parallel skills into these flags — those names no longer resolve as slash commands.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -16,6 +16,8 @@ description: '[Implementation] Use when you need to start coding & testing an ex
 ## Quick Summary
 
 **Goal:** Execute an existing implementation plan phase-by-phase with testing, code review, and user approval gates.
+
+> **Renamed:** folds the former `/code-auto` (→ `--approval=off`), `/code-no-test` (→ `--tests=off`), and `/code-parallel` (→ `--parallel`) skills — those names no longer resolve as slash commands; use `/code` with the matching flag.
 
 **Workflow:**
 
@@ -33,12 +35,35 @@ description: '[Implementation] Use when you need to start coding & testing an ex
 - Critical issues must be 0 (Step 4 gate)
 - User must explicitly approve before finalize (Step 5 gate)
 - One plan phase per command run
+- **Mode flags** (see [Mode Flags](#mode-flags)): `--approval=off` (auto/trust, no approval gate + optional all-phases loop), `--tests=off` (skip the test step), `--parallel` (dispatch parallel phases to subagents). No flags = full 7-step spine below.
 
 **MUST ATTENTION READ** `CLAUDE.md` then **THINK HARDER** to start working on the following plan:
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
 <plan>$ARGUMENTS</plan>
+
+---
+
+## Mode Flags
+
+`/code` runs the full step spine below by default. Optional flags adapt the spine for the cases formerly served by dedicated skills — each flag only adds or removes a single step against the **host step numbering** (Step 3 Testing, Step 4 Code Review, Step 5 User Approval, Step 6 Finalize); the shared spine and every quality bar are otherwise unchanged.
+
+| Flag | Default | Effect |
+| ---- | ------- | ------ |
+| `--approval={on\|off}` | `on` | `off` = **trust/auto mode**: skip the Step 5 user-approval blocking gate and finalize without waiting. Pair with `$ALL_PHASES` to run every incomplete phase in one pass. |
+| `--tests={on\|off}` | `on` | `off` = skip the Step 3 Testing gate entirely (Implementation → Code Review → Approval → Finalize only). Use ONLY when the plan explicitly defers tests. |
+| `--parallel` | off | In Step 2, dispatch `fullstack-developer` subagents per parallel phase with strict file-ownership boundaries instead of implementing sequentially in the main agent. |
+
+**`$ALL_PHASES` (only meaningful with `--approval=off`):** `Yes` (default in auto mode) processes ALL incomplete phases in one run, auto-looping to the next phase after each Finalize; `No` implements one phase then asks before continuing. With `--approval=on` (default), always one phase per run.
+
+### Flag-modified step behavior
+
+- **`--parallel` → Step 2 (Implementation):** First read the plan for a Dependency graph / Execution strategy / Parallelization info / File-ownership matrix. **If** the plan declares parallel-executable phases → launch multiple `fullstack-developer` subagents simultaneously, passing each its phase-file path, environment info, and exact file-ownership boundaries (no cross-boundary edits); wait for the parallel group, verify no file conflicts, then run any dependent sequential phases one agent at a time. **Else** → fall back to normal sequential main-agent implementation. All later steps (Testing, Review, Approval, Finalize) run unchanged on the merged result.
+- **`--tests=off` → Step 3 (Testing):** Skip entirely. Proceed Implementation → Code Review. The Source/test drift check still applies to any tests that already exist. Keep existing tests real and genuinely passing — NEVER comment out tests, weaken assertions, or use fake data to make them pass — why: faked green hides the regression the test exists to catch.
+- **`--approval=off` → Step 5 (User Approval):** Skip the blocking gate. Finalize (status, docs, auto-commit) runs once Steps 1-4 pass. When `$ALL_PHASES=Yes`, loop back to Step 0 for the next incomplete phase; on the last phase, generate the summary report and ask about `/preview` and `/plan-archive`.
+
+> **Behavior preserved:** the debugger-trace gate, granularity gate, testing/review quality bars, and all SYNC blocks apply in EVERY mode. Flags change *which gates run*, never *how rigorously a running gate is enforced*.
 
 ---
 
@@ -74,6 +99,8 @@ Implement only phases with named files, concrete actions, and resolved decisions
 ## Step 1: Analysis & Task Extraction
 
 Read plan file completely. Map dependencies. List ambiguities. Identify required skills and activate from catalog. If the plan references analysis files in `.ai/workspace/analysis/`, re-read them before implementation.
+
+**Goal Contract read (BEFORE any code change):** resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` — active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from the current request via `.claude/templates/goal-contract-template.md` — and read its saved success criteria. After implementation/verification (Step 3+), append an Iteration Log entry with evidence and remaining gaps.
 
 **Pre-Implementation Trace Gate:** If the plan is for a bugfix, failed verification, stale/incorrect final output, regression, or behavior-changing fix, MUST ATTENTION verify the plan or referenced analysis includes `Debugger Trace: End -> Start`, all feeder paths, hypothesis matrix, owning fix layer, and forward convergence proof. If missing, STOP and report the missing trace links instead of implementing.
 
@@ -277,11 +304,11 @@ Execute every step in declared order; proceed only when validation passes and th
 > **Project Reference Docs Gate** — Run after task-tracking bootstrap and before target/source file reads, grep, edits, or analysis. Project docs override generic framework assumptions.
 >
 > 1. Identify scope: file types, domain area, and operation.
-> 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-docs-reference.md`; architecture/new area `project-structure-reference.md`.
-> 3. Read every required doc. If `docs/project-config.json`, the docs index, `lessons.md`, or any task-required reference doc is missing, stop immediately and ask the user to run `/project-config` and `/scan-all`.
+> 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under `docs/specs/`; architecture/new area `project-structure-reference.md`.
+> 3. Read every required doc. If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `/project-init` or the narrow lower-level route (`/project-config`, `/docs-init`, `/scan-all`, `/scan --target=<key>`, `/claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `/sync-codex`; do not auto-run it.
 > 4. Before target work, state: `Reference docs read: ... | Not applicable: ...`.
 >
-> **Blocked until:** scope evaluated, required docs checked/read, `lessons.md` confirmed, citation emitted.
+> **Ready when:** scope evaluated, required docs checked/read or setup route completed, `lessons.md` confirmed, citation emitted.
 
 <!-- /SYNC:project-reference-docs-guide -->
 
@@ -360,6 +387,7 @@ Execute every step in declared order; proceed only when validation passes and th
 
 - **MANDATORY** After task-tracking bootstrap and before target/source work, read required project-reference docs and cite `Reference docs read: ...`.
 - **MANDATORY** Always include `lessons.md`; project conventions override generic defaults.
+- **MANDATORY** If project config, root instruction files, or any required reference doc is missing, stop and run or ask the user to run `/project-init`.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
 
@@ -375,6 +403,13 @@ Execute every step in declared order; proceed only when validation passes and th
 - **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] $skill-name — phase` prefixes and one-`in_progress` discipline.
 
 <!-- /SYNC:nested-task-creation:reminder -->
+
+<!-- SYNC:goal-contract-satisfaction-loop:reminder -->
+
+- **MANDATORY** Resolve the active Goal Contract BEFORE work (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from current request) and read saved success criteria before editing.
+- **MANDATORY** Append iteration evidence after execution; emit a Goal Satisfaction matrix (PASS/FAIL/BLOCKED) before reporting PASS; loop on validated FAIL; escalate repeated no-progress or blockers. NEVER store secrets in goal files.
+
+<!-- /SYNC:goal-contract-satisfaction-loop:reminder -->
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
 

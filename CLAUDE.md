@@ -1,3 +1,5 @@
+<!-- CK:UNIVERSAL-GUIDES v2 -->
+
 # easy-claude - Code Instructions
 
 <!-- SECTION:tldr -->
@@ -9,6 +11,19 @@
 > **Apps/Services:** hooks, hooks-lib, skills, agents, scripts, workflows, docs-framework
 
 <!-- /SECTION:tldr -->
+
+## Workflow Step Advancement & Parallel Phases
+
+<!-- Universal portable rule shipped by claude-md-init into every project — model-driven workflow progression, identical across Claude, Codex (AGENTS.md whole-file mirror), and Copilot (baked common-protocol), none of which depend on a hook. The runtime workflow-protocol injector and any step-tracker hook are accelerators only. -->
+
+Workflow progression is **model-driven** — your responsibility, not a tool/hook/harness signal:
+
+1. **Advancement.** A step is complete when its work returns — whether run **inline** (a skill/step call) OR dispatched as a **sub-agent** (Agent / Task tool). A sub-agent completion advances the step **identically** to an inline call. Do not wait for any hook or tool event to advance; advance by judgment and your task list.
+2. **Parallel phase = all-return barrier.** When steps are declared a parallel-phase group, spawn **ALL** members together (one message), then advance **only after EVERY member returns**. Never start the next step — and never start any code-mutating step (e.g. `code-simplifier`) — until the whole group has returned. A conditional member whose trigger is absent counts as "returned."
+3. **Workflow-in-workflow → sub-agent.** A step that itself activates a multi-step workflow MUST run as a sub-agent; it returns only a summary and writes full findings to `plans/reports/`. This preserves context containment.
+4. **Hooks/trackers are accelerators only.** Any step-tracking hook (e.g. Claude's `workflow-step-tracker.cjs`) is an optimization that may emit "next step" hints; correctness MUST NOT depend on it. Codex and Copilot run with no hooks and advance entirely by this rule.
+
+---
 
 **Sections:** [TL;DR](#tldr--what-you-must-know-before-writing-any-code) | [Search First](#search-existing-code-first) | [Task Planning](#task-planning-rules) | [Code Hierarchy](#code-responsibility-hierarchy) | [Naming](#naming-conventions) | [Key Locations](#key-file-locations) | [Dev Commands](#development-commands) | [Evidence](#evidence-based-reasoning--investigation) | [Graph Intelligence](#graph-intelligence-when-code-graphgraphdb-exists) | [Skill Activation](#automatic-skill-activation)
 
@@ -48,15 +63,10 @@
 
 **Decision Quick-Ref:**
 
-| Task                  | Pattern                                                                     |
-| --------------------- | --------------------------------------------------------------------------- |
-| New hook              | `.claude/hooks/<name>.cjs` — CJS, reads stdin JSON, writes stdout/stderr    |
-| Shared hook utility   | `.claude/hooks/lib/<name>.cjs` — extracted module for reuse across hooks    |
-| New skill             | `.claude/skills/<skill-name>/SKILL.md` + optional `scripts/`, `references/` |
-| New agent             | `.claude/agents/<agent-name>.md` — markdown definition                      |
-| New workflow          | `.claude/workflows.json` entry + skill definitions for each step            |
-| Test hooks            | `node .claude/hooks/tests/test-all-hooks.cjs`                               |
-| Project config change | Update `docs/project-config.json`, validate with schema                     |
+| Task | Pattern |
+|---|---|
+| New API endpoint | Controller + CQRS Command |
+| Business logic | Command Handler (Application layer) |
 
 <!-- /SECTION:decision-quick-ref -->
 
@@ -130,37 +140,24 @@ Entity/Model (Lowest)  >  Service  >  Component/Handler (Highest)
 
 <!-- SECTION:key-locations -->
 
-## Key File Locations
-
 ```
-.claude/hooks/              # Runtime hooks (CJS modules) — context injection, enforcement, session mgmt
-.claude/hooks/lib/          # Shared hook utility modules
-.claude/hooks/tests/        # Hook test suites
-.claude/skills/             # Skill definitions (SKILL.md + scripts/)
-.claude/agents/             # Agent definitions (markdown)
-.claude/scripts/            # Utility scripts — catalog gen, code graph, skill mgmt
-.claude/workflows/          # Workflow definitions and orchestration
-.claude/docs/               # Framework documentation
-docs/project-config.json    # Project config consumed by hooks at runtime
-docs/project-reference/     # Reference docs populated by /scan-* skills
+/\.claude/hooks/                         # Runtime hooks for context injection, enforcement, and session management
+/\.claude/hooks/lib/                     # Shared utility modules consumed by hooks
+/\.claude/skills/                        # 258 skill definitions for task automation (SKILL.md + scripts)
+/\.claude/agents/                        # 28 agent definitions for specialized subagent roles
+/\.claude/scripts/                       # Utility scripts for catalog generation, skill management, and worktree operations
+/\.claude/workflows/                     # Workflow definitions for orchestrating multi-step task sequences
+/\.claude/docs/                          # Framework documentation — agents, skills, hooks, configuration guides
 ```
 
 <!-- /SECTION:key-locations -->
 
 <!-- SECTION:dev-commands -->
 
-## Development Commands
-
 ```bash
-node .claude/hooks/tests/test-all-hooks.cjs                          # Run all hook tests
-node .claude/hooks/tests/run-all-tests.cjs                           # Run full test suite (includes count-drift)
-python .claude/scripts/generate_catalogs.py --skills                 # Generate skills catalog
-python .claude/scripts/generate_catalogs.py --commands               # Generate commands catalog
-python .claude/scripts/generate_catalogs.py --inject-counts <file>   # Refresh marker counts in <file>
-python .claude/scripts/generate_catalogs.py --check-counts <file>    # CI drift check (exit 1 on mismatch)
+node .claude/hooks/tests/test-all-hooks.cjs   # all
+node .claude/hooks/tests/run-all-tests.cjs    # suite
 ```
-
-> **If `count-drift` test fails in CI:** run `--inject-counts` against the offending file (path appears in the DRIFT line on stderr), commit the regenerated digits. Canonical metrics live in `docs/adr/0002-canonical-count-metrics.md`.
 
 <!-- /SECTION:dev-commands -->
 
@@ -223,11 +220,11 @@ python .claude/scripts/code_graph search <keyword> --kind Function --json       
 
 These skills auto-activate before file edits in their path patterns:
 
-| Path Pattern                 | Skill / Auto-Context | Pre-Read Files                  |
-| ---------------------------- | -------------------- | ------------------------------- |
-| `.claude/hooks/**/*.cjs`     | _(auto-context)_     | `.claude/docs/hooks/README.md`  |
-| `.claude/skills/**/SKILL.md` | _(auto-context)_     | `.claude/docs/skills/README.md` |
-| `.claude/agents/**/*.md`     | _(auto-context)_     | `.claude/docs/agents/README.md` |
+| Path Pattern | Skill / Auto-Context | Pre-Read Files |
+|---|---|---|
+| `/\.claude/hooks/.*\.cjs$**` | _(auto-context)_ | `.claude/docs/hooks/README.md` |
+| `/\.claude/skills/.*SKILL\.md$**` | _(auto-context)_ | `.claude/docs/skills/README.md` |
+| `/\.claude/agents/.*\.md$**` | _(auto-context)_ | `.claude/docs/agents/README.md` |
 
 <!-- /SECTION:skill-activation -->
 
@@ -239,43 +236,34 @@ These skills auto-activate before file edits in their path patterns:
 
 | Kind        | Count                                       |
 | ----------- | ------------------------------------------- |
-| Skills      | <!-- COUNT:skills -->258<!-- /COUNT -->     |
-| Hooks       | <!-- COUNT:hooks -->65<!-- /COUNT -->       |
-| Agents      | <!-- COUNT:agents -->28<!-- /COUNT -->      |
-| Workflows   | <!-- COUNT:workflows -->37<!-- /COUNT -->   |
+| Skills      | <!-- COUNT:skills -->185<!-- /COUNT -->     |
+| Hooks       | <!-- COUNT:hooks -->66<!-- /COUNT -->       |
+| Agents      | <!-- COUNT:agents -->29<!-- /COUNT -->      |
+| Workflows   | <!-- COUNT:workflows -->21<!-- /COUNT -->   |
 | Shared      | <!-- COUNT:shared -->5<!-- /COUNT -->       |
-| Lib modules | <!-- COUNT:lib-modules -->29<!-- /COUNT --> |
+| Lib modules | <!-- COUNT:lib-modules -->31<!-- /COUNT --> |
 
 ---
 
 <!-- SECTION:doc-index -->
 
-## Documentation Index
-
 ```
-docs/project-config.json           # Project configuration (hooks read this at runtime)
-docs/project-reference/            # 12 reference docs populated by /scan-* skills
-  project-structure-reference.md   # Directory tree, module overview
-  domain-entities-reference.md     # Hook, Skill, Agent, Workflow domain model
-  integration-test-reference.md    # Integration test conventions
-  code-review-rules.md             # Code review checklist
-  feature-docs-reference.md        # Business feature doc index
+docs/adr/  (2 files)
+docs/project-reference/  (16 files)
+docs/release/  (1 files)
 ```
 
 <!-- /SECTION:doc-index -->
 
 <!-- SECTION:doc-lookup -->
 
-### Doc Lookup Guide
-
-| If user prompt mentions...        | Read first                                              |
-| --------------------------------- | ------------------------------------------------------- |
-| Hook development, hook patterns   | `.claude/docs/hooks/README.md`                          |
-| Skill creation, skill structure   | `.claude/docs/skills/README.md`                         |
-| Agent patterns, agent definitions | `.claude/docs/agents/README.md`                         |
-| Domain model, entities            | `docs/project-reference/domain-entities-reference.md`   |
-| Project structure, modules        | `docs/project-reference/project-structure-reference.md` |
-| Code review rules                 | `docs/project-reference/code-review-rules.md`           |
-| Integration testing               | `docs/project-reference/integration-test-reference.md`  |
+| If user prompt mentions... | Read first |
+|---|---|
+| Feature specs, capability behavior, business rules, test cases | `docs/specs/` + `docs/project-reference/feature-spec-reference.md` |
+| Spec paths, TC format, canonical vs derived spec artifacts | `docs/project-reference/spec-system-reference.md` |
+| Spec quality, AI-implementability, tech-agnostic prose | `docs/project-reference/spec-principles.md` |
+| Behavior or public contract changes, spec-test-code sync | `docs/project-reference/workflow-spec-test-code-cycle-reference.md` |
+| Backend patterns, CQRS, validation | `docs/project-reference/backend-patterns-reference.md` |
+| Frontend patterns, components, stores | `docs/project-reference/frontend-patterns-reference.md` |
 
 <!-- /SECTION:doc-lookup -->

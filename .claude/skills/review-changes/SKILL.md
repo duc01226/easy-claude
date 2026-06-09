@@ -1,6 +1,6 @@
 ---
 name: review-changes
-version: 2.3.1
+version: 2.6.0
 description: '[Code Quality] Use when reviewing current changes, staged or unstaged diffs, or branch-to-branch diffs.'
 ---
 
@@ -21,7 +21,7 @@ description: '[Code Quality] Use when reviewing current changes, staged or unsta
 
 > **Routing boundary:** This skill reviews a **git diff** — working-tree (default), staged, branch, or commit. For an explicit file-set or SHA-range review, processing received review feedback, or a pre-completion verification gate over already-known scope, use `code-review` instead.
 
-> **Shared engine (keep in sync):** `review-changes` and `code-review` share the same review-protocol `SYNC:` blocks. Canonical source: `.claude/skills/shared/sync-inline-versions.md`; policy: `SYNC:shared-protocol-duplication-policy`. When you change a shared block in one skill, update the canonical file AND the sibling skill so the two never drift. The skills differ only in entry intent (diff vs explicit scope) and diff-specific gates (integration-test-sync, translation-sync) — not in review quality.
+> **Shared engine (keep in sync):** `review-changes` and `code-review` share the same review-protocol `SYNC:` blocks. Canonical source: `.claude/skills/shared/sync-inline-versions.md`; policy: `SYNC:shared-protocol-duplication-policy`. When you change a shared block in one skill, update the canonical file AND the sibling skill so the two never drift. The skills differ only in entry intent (diff vs explicit scope) and diff-specific gates (integration-test-sync, translation-sync, the Phase 3.7 integration-test-review coverage gate) — not in review quality.
 
 **Workflow:**
 
@@ -32,10 +32,13 @@ description: '[Code Quality] Use when reviewing current changes, staged or unsta
 5. **Phase 1: Collect** — Run git status/diff, create report file
 6. **Phase 2: File Review** — Review each changed file, update report incrementally
 7. **Phase 3: Fresh-Context Gate** — Skip when findings already exist; run a second-round sub-agent only for an explicit user/workflow/high-risk synthesis trigger
-8. **Phase 4: Finalize** — Generate critical issues, recommendations, suggested commit message
-9. **Phase 5: Docs Triage** — Record stale-doc findings for validation/fix loop
-10. **Phase 6: Why-Review Findings Validation (standalone-only; REQUIRED before any standalone fix)** — Invoke `/why-review --validate-findings` to verify every finding is correct, proof-backed, reasonable, and best-practice before fixing. When this skill is step 1 inside `$workflow-review-changes`, stop after the report; parent step 2 owns findings validation.
-11. **Phase 7: Recursive Fix + Full Re-Review Loop (standalone-only)** — If validated findings remain in standalone mode, auto-fix them, then re-invoke `/review-changes` from Phase 0 with a fresh task breakdown over the full current diff; repeat until an entire review pass has zero findings. When inside `$workflow-review-changes`, parent steps 10-15 own plan/cook/restart.
+8. **Phase 3.5: Code-Simplifier Optimization (MANDATORY when code files changed)** — Invoke `/code-simplifier` scoped to the changed code files to surface clarity/consistency/maintainability simplifications; record them as findings that flow into the same validation/fix loop (skip docs-only diffs)
+9. **Phase 3.7: Integration-Test-Review Coverage Gate (MANDATORY when behavior-bearing code changed)** — Invoke `/integration-test-review` over the full diff; its 7 quality gates audit changed tests AND its Gate 7 (Change Coverage) maps every behavior-changing production file to a covering test (integration-first; unit fallback needs justification) and a spec TC. GAP/SPEC-GAP results become findings for the same validation/fix loop (skip docs-only diffs; deferred to the parent's dedicated step inside `$workflow-review-changes`)
+10. **Phase 4: Finalize** — Generate critical issues, recommendations, suggested commit message
+11. **Phase 5: Docs Triage** — Record stale-doc findings for validation/fix loop
+12. **Phase 6: Why-Review Findings Validation (standalone-only; REQUIRED before any standalone fix)** — Invoke `/why-review --validate-findings` to verify every finding is correct, proof-backed, reasonable, and best-practice before fixing. When this skill is step 1 inside `$workflow-review-changes`, stop after the report; parent step 2 owns findings validation.
+13. **Phase 7: Recursive Fix + Full Re-Review Loop (standalone-only)** — If validated findings remain in standalone mode, auto-fix them, then re-invoke `/review-changes` from Phase 0 with a fresh task breakdown over the full current diff; repeat until an entire review pass has zero findings. When inside `$workflow-review-changes`, parent steps 10-15 own plan/cook/restart.
+14. **Phase 8: Mandatory Final Docs-Update Gate (MANDATORY — runs once the review/fix loop converges clean)** — After the review reaches zero findings and all fixes are applied, ALWAYS invoke `/docs-update` over the full changeset as the terminal step so no stale docs survive. This is unconditional (not gated on a flagged finding) — `/docs-update` independently detects impacted docs the review may not have surfaced. When inside `$workflow-review-changes`, the parent workflow's `/docs-update` step owns this; do not run it locally.
 
 **Key Rules:**
 
@@ -45,7 +48,10 @@ description: '[Code Quality] Use when reviewing current changes, staged or unsta
 - Verify convention by grepping 3+ existing examples before flagging violations
 - Actively check DRY violations, YAGNI/KISS over-engineering, correctness bugs
 - When changed files include source code, run the Easy-to-Change gate: estimate future edit sites, coupling, hidden state, duplicated knowledge, unclear intent, and abstraction boundary health
+- When changed files include source code, run the Phase 3.5 `/code-simplifier` optimization gate over the changed code files — its simplification opportunities are findings that flow through the same Phase 6 validation → Phase 7 fix loop (never auto-applied unvalidated)
+- When changed files include behavior-bearing code, run the Phase 3.7 `/integration-test-review` coverage gate over the full diff — every behavior change must map to a covering test (integration-first) and a spec TC; GAP/SPEC-GAP verdicts are findings for the same Phase 6 → Phase 7 loop, never silently logged
 - Cross-reference changed files against related docs — flag stale docs, test specs, READMEs
+- MANDATORY FINAL step: once the review/fix loop converges to zero findings, ALWAYS run the Phase 8 `/docs-update` sweep over the full changeset — unconditional, never skipped on a clean verdict — why: a clean code review still leaves docs stale unless docs-update reconciles them against the actual changes
 - Findings are not eligible for auto-fix until Phase 6 why-review validation returns CLEAN for the current finding set
 - Every fix cycle invalidates the prior review result; restart `/review-changes` from Phase 0 and review the full updated diff, including the fixes
 - Continue review → validate findings → fix → full re-review until a complete review pass returns zero findings; do not add a fresh-context pass just because findings exist or a fix cycle restarted the review
@@ -158,15 +164,18 @@ Before starting, call TaskCreate with:
 - [ ] `[Review Phase 1] Get changes and create report file` - pending
 - [ ] `[Review Phase 2] Review file-by-file and update report` - pending
 - [ ] `[Review Phase 3] Evaluate fresh-context gate; skip when findings already exist` - pending
+- [ ] `[Review Phase 3.5] Run /code-simplifier on changed code files to optimize code quality` - pending **(MANDATORY when code files changed; skip docs-only diffs)**
+- [ ] `[Review Phase 3.7] Run /integration-test-review coverage gate over full diff` - pending **(MANDATORY when behavior-bearing code changed; skip docs-only diffs; deferred to parent step inside `$workflow-review-changes`)**
 - [ ] `[Review Phase 4] Generate final review findings` - pending
 - [ ] `[Review Phase 5] Record stale-doc findings for validation/fix loop` - pending
 - [ ] `[Review Phase 6] Why-review findings validation gate before any fix` - pending **(MANDATORY when findings exist)**
 - [ ] `[Review Phase 7] Auto-fix validated findings and restart /review-changes from Phase 0` - pending **(MANDATORY when validated findings remain)**
+- [ ] `[Review Phase 8] Run /docs-update over full changeset to sync all impacted docs` - pending **(MANDATORY FINAL — always runs once review converges to zero findings; never skipped)**
 
 Update todo status as each phase completes.
 
 > **Note:** If Phase 1 reveals 10+ changed files, replace Phase 2-4 tasks with Systematic Review Protocol tasks:
-> `[Review Phase 2] Categorize and fire parallel sub-agents`, `[Review Phase 3] Synchronize and cross-reference`, `[Review Phase 4] Generate consolidated report`
+> `[Review Phase 2] Categorize and fire parallel sub-agents`, `[Review Phase 3] Synchronize and cross-reference`, `[Review Phase 3.5] Run /code-simplifier on changed code files`, `[Review Phase 3.7] Run /integration-test-review coverage gate`, `[Review Phase 4] Generate consolidated report`
 
 **Phase 0: Run Graph Blast Radius Analysis (MANDATORY FIRST STEP)**
 
@@ -232,9 +241,9 @@ ApiContract: [YES/NO] | SecurityChange: [YES/NO] | ConfigChange: [YES/NO] | Infr
 | Lens                     | Review focus                                                                                   |
 | ------------------------ | ---------------------------------------------------------------------------------------------- |
 | Contract/API/routes      | Public behavior, clients, generated specs, and regression tests still agree.                   |
-| Permissions/security     | Enforcement, display controls, negative tests, and authoritative permission definitions align. |
+| Permissions/security-review     | Enforcement, display controls, negative tests, and authoritative permission definitions align. |
 | Config/flags             | All environments, examples, fail-fast behavior, and docs are current.                          |
-| Docs/spec/test drift     | Canonical specs, Section 15 TCs, dashboards, and test code are synchronized or explicitly N/A. |
+| Docs/spec/test drift     | Canonical specs, Section 8 TCs, dashboards, and test code are synchronized or explicitly N/A.  |
 | Generated mirrors        | Shared skill/workflow/tooling changes were synced to generated agent surfaces.                 |
 | Reference-only artifacts | AI-extracted specs/TCs remain draft/reference until accepted by the owning review gate.        |
 
@@ -478,6 +487,46 @@ For each changed file, identify related documentation:
 
 **Translation Sync:** Apply `SYNC:translation-sync-check` — for multilingual UI text changes, require translation updates or explicit user risk acceptance.
 
+**Phase 3.5: Code-Simplifier Quality Optimization (MANDATORY when code files changed)**
+
+> **Purpose:** A correctness review proves the change WORKS; this gate proves the changed code stays **easy to read, consistent, and cheap to change**. Bug-finding (Phases 2-3) and simplification optimization are different lenses — run both. `/code-simplifier` is the canonical owner of clarity/consistency/maintainability refinement, so this skill delegates to it rather than duplicating that logic.
+
+**Entry gate:**
+
+- Run when the diff includes source-code or code-adjacent files (`.cs`, `.ts`, `.tsx`, `.html`, `.scss`, `.css`, tests, scripts, build/config-as-code).
+- **SKIP** for docs-only / markdown-only diffs. Record: `Skipped Phase 3.5 — no code files in diff.`
+
+**Protocol:**
+
+1. Set the `[Review Phase 3.5]` task to `in_progress`.
+2. **Invoke `/code-simplifier`** scoped to the **changed code files only** (pass the Phase 1 diff source — working-tree, staged, branch, or commit range — so it refines the related changed files, NOT the whole codebase). Direct it to surface reuse, DRY, KISS/YAGNI, naming, dead-code, altitude/layer-placement, and readability simplifications.
+3. **Capture, do NOT auto-apply.** In review context, `/code-simplifier` runs in *report* mode: integrate its recommendations into the main report under `## Code-Simplifier Optimization Findings` with `file:line` evidence and a one-line rationale each. These are findings, not edits.
+4. Set the `[Review Phase 3.5]` task to `completed`.
+
+**Pipeline integration:** Phase 3.5 findings are ordinary findings — they consolidate in Phase 4, are validated in Phase 6 (`/why-review --validate-findings` filters false-positive or change-cost-raising simplifications), and only validated ones are fixed in Phase 7. NEVER let `/code-simplifier` mutate the working tree before Phase 6 validates its suggestions.
+
+**Parent workflow boundary:** When this skill is invoked as step 1 inside `$workflow-review-changes`, still run Phase 3.5 (it is a review dimension, producing findings for the report) but do NOT fix here — the parent workflow's `/code-simplifier` self-review and `/cook` fix cycle own application. Record the findings and hand the report to parent step 2.
+
+**Phase 3.7: Integration-Test-Review Coverage Gate (MANDATORY when behavior-bearing code changed)**
+
+> **Purpose:** Phases 2-3 prove the change is correct as written; this gate proves the change is **covered and specced**. `/integration-test-review` is the canonical owner of the 7-gate test-quality audit — its Gate 7 (Change Coverage) maps every behavior-changing production file in the diff to a covering test (integration-first; unit fallback needs explicit justification) AND a spec TC. This skill delegates to it rather than duplicating that logic. `SYNC:integration-test-sync-check` stays as the lightweight file-pairing check; this gate goes deeper — assertion quality, data-state verification, repeatability, and bidirectional spec↔test↔code alignment over the full change set.
+
+**Entry gate:**
+
+- Run when the diff includes behavior-bearing source code: handlers, commands, queries, services, entities, event consumers, controllers, background jobs, or frontend logic.
+- **SKIP** for docs-only / markdown-only / pure styling-asset diffs. Record: `Skipped Phase 3.7 — no behavior-bearing code in diff.`
+
+**Protocol:**
+
+1. Set the `[Review Phase 3.7]` task to `in_progress`.
+2. **Invoke `/integration-test-review`** scoped to the Phase 1 diff source (working-tree, staged, branch, or commit range) so it audits the **FULL change set** — changed production code AND changed test files, never just the test files. It runs all 7 quality gates, builds the Gate 7 Coverage Mapping Table, and cross-checks spec TCs in both directions.
+3. **Capture, do NOT auto-fix.** Integrate its output into the main report under `## Integration-Test-Review Findings`: per-gate verdicts, the Coverage Mapping Table, and every GAP / SPEC-GAP / unjustified COVERED-UNIT as a finding (GAP = HIGH severity minimum; CRITICAL for auth/money/data-integrity paths).
+4. Set the `[Review Phase 3.7]` task to `completed`.
+
+**Pipeline integration:** Phase 3.7 findings are ordinary findings — consolidated in Phase 4, validated in Phase 6, fixed in Phase 7. GAP fixes WRITE the missing test via `/integration-test`; SPEC-GAP fixes run `/spec-tests [update]`. The Phase 7 restart then re-audits coverage over the full updated diff, including the new tests.
+
+**Parent workflow boundary:** When this skill is invoked as step 1 inside `$workflow-review-changes`, do NOT run Phase 3.7 locally — the parent workflow's dedicated `/integration-test-review` step owns the 7-gate audit and coverage mapping. Record `Phase 3.7 deferred to parent workflow /integration-test-review step.` (`SYNC:integration-test-sync-check` still applies locally as the lightweight pairing check.)
+
 **Phase 4: Generate Final Review Result**
 
 Update report with final sections:
@@ -498,6 +547,8 @@ If Documentation Staleness Check in Phase 4 identified stale docs:
 2. Add each stale-doc item to the Phase 6 findings validation payload
 3. Do NOT invoke `/docs-update` yet; stale-doc findings are fixed in Phase 7 only after `/why-review --validate-findings` returns CLEAN for them
 4. If Phase 7 later applies doc fixes, the next recursive `/review-changes` invocation must re-review the updated docs from Phase 0
+
+> **Phase 5 triages only the docs the review FLAGGED.** Regardless of whether anything is flagged here, the **mandatory Phase 8 final `/docs-update` gate** still runs once the review converges clean — it independently detects impacted docs this triage may have missed. Phase 5 is conditional; Phase 8 is unconditional.
 
 ## Readability Checklist (MUST ATTENTION evaluate)
 
@@ -591,7 +642,7 @@ For bugfix, failed-verification, stale/incorrect final output, regression, or be
 
 > **Contract:** See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6)". This review enforces M6 for any spec/feature-doc/PBI/story/test-spec touched by — or supposed to be synced by — this change. Frame each check as: **did this change introduce M1/M2 prose leakage, break a logical-ID mapping (M3), or create AC/expected-result ambiguity (M4)?** A FAIL must name the violated mandate ID and cite the changed file + line. Passing an introduced M1-M5 violation makes this review itself defective.
 >
-> Carriers are EXEMPT from M1/M2 — source identifiers stay CORRECT inside `[Source: ...]`, `**Evidence**`, `**IntegrationTest**` fields, YAML frontmatter, and ` ```mermaid ``` ` blocks. Only flag leakage in spec/doc narrative prose. Banned prose token list: `docs/project-reference/spec-principles.md` §3.2. Scope this gate to changed artifact files (`docs/specs/**`, `docs/business-features/**`, PBI/story/test-spec files in the diff); SKIP with a one-line note when the diff touches no such artifact.
+> Carriers are EXEMPT from M1/M2 — source identifiers stay CORRECT inside `[Source: ...]`, `**Evidence**`, `**IntegrationTest**` fields, YAML frontmatter, and ` ```mermaid ``` ` blocks. Only flag leakage in spec/doc narrative prose. Banned prose token list: `docs/project-reference/spec-principles.md` §3.2. Scope this gate to changed artifact files (`docs/specs/**`, PBI/story/test-spec files in the diff); SKIP with a one-line note when the diff touches no such artifact.
 
 - MUST ATTENTION **M1 — No introduced tech leakage in prose.** FAIL if the diff adds a framework/product, language-native type, or product/design-pattern class name to spec/doc narrative prose, headings, or AC text (banned list in `spec-principles.md` §3.2). Cite the changed file + line + token.
 - MUST ATTENTION **M2 — No introduced source code in prose.** FAIL if the diff expresses a requirement as a class/method/file-path/namespace used as a noun instead of a business operation. Source identifiers belong only in evidence carriers. Cite the changed line.
@@ -628,6 +679,17 @@ Provide feedback in this format:
 
 - `Trace complete` — if the required trace, feeder paths, hypothesis matrix, owner, and forward proof are present
 - Gap 1: Missing or weak trace evidence and why it blocks PASS
+
+**Goal Satisfaction:** (MANDATORY before any PASS verdict — resolve the active Goal Contract per the goal-contract-satisfaction-loop protocol: active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md`; if none exists, record `No active goal — skipped: {one-line reason}`)
+
+| Success Criterion | Evidence | Status |
+| --- | --- | --- |
+| {saved criterion} | {file:line, command output, report path} | PASS/FAIL/BLOCKED |
+
+- Overall PASS is BLOCKED while any required criterion is FAIL — a code-quality-clean review that misses the saved goal is NOT a PASS.
+- BLOCKED status requires a user-facing escalation reason recorded in the matrix row and the goal file.
+- Cite evidence references; never restate the goal text or copy secrets/sensitive payloads into the matrix or goal file.
+- After the verdict, update the goal file: append an Iteration Log entry and sync its Goal Satisfaction matrix.
 
 **Positive Notes:**
 
@@ -804,6 +866,29 @@ If `architectureRules` not present in project-config.json, skip silently.
 - NEVER mark review clean after a fix without rerunning the full `/review-changes` protocol from Phase 0.
 - NEVER review only the fixed files after a fix; review the full current diff because fixes can interact with earlier changes.
 - NEVER reuse old todo tasks after restart; each recursive review invocation breaks down all phases again.
+- NEVER declare unconditional PASS without the Output Format's Goal Satisfaction matrix showing every required saved criterion PASS (or BLOCKED with a user-facing escalation reason). A required-criterion FAIL is a validated finding for this fix loop.
+
+---
+
+## Phase 8: Mandatory Final Docs-Update Gate (MANDATORY — always runs after the review/fix loop converges clean)
+
+> **Purpose:** Guarantee **no stale docs survive the change**. Phases 5-7 fix only docs the review *flagged* as findings; this terminal gate runs `/docs-update` unconditionally so impacted docs the dimensional review never surfaced still get reconciled against the actual changes. A clean code-review verdict does NOT imply docs are current.
+
+**Trigger:** The review has converged — one full `/review-changes` pass produced zero findings and all validated fixes are applied. This gate ALWAYS runs in standalone mode; it is NOT gated on a flagged staleness finding.
+
+**Parent workflow boundary:** When this skill is invoked as step 1 inside `$workflow-review-changes`, do NOT run Phase 8 locally — the parent workflow's own `/docs-update` step (after `/cook` and the restart gate) owns the final docs sync. Record `Phase 8 deferred to parent workflow /docs-update step.`
+
+**Protocol:**
+
+1. Set the `[Review Phase 8]` task to `in_progress`.
+2. **Invoke `/docs-update`** over the FULL changeset (the Phase 1 diff source plus any Phase 7 fixes). Let it detect impacted docs from the changes — feature docs, architecture references, READMEs, API docs, test specs, setup/getting-started guides.
+3. If a spec-was-wrong scenario was detected during review (post-bugfix where the spec documents the bug as correct behavior), run `/feature-spec [update]` BEFORE `/docs-update` so the canonical Feature Spec is corrected first — never let docs-update codify broken behavior.
+4. Record applied doc updates (or `No impacted docs — verified N changed files against related docs`) under `## Phase 8 Docs-Update` in the review report.
+5. Set the `[Review Phase 8]` task to `completed`.
+
+**Termination guarantee:** Phase 8 doc edits are docs-only and do NOT re-trigger the full Phase 0 code-review loop (no code behavior changed). They ARE subject to the M1-M6 spec-drift check (Review Checklist §8) and a final read-back. This keeps the skill terminating instead of looping review↔docs forever.
+
+> **MANDATORY IMPORTANT MUST ATTENTION:** Never declare the review complete or hand off until Phase 8 has run (or been explicitly deferred to the parent workflow). A passing review with skipped docs-update is an INCOMPLETE review.
 
 ---
 
@@ -829,12 +914,13 @@ If `architectureRules` not present in project-config.json, skip silently.
 
 | Skill                      | Relationship                                                                | When to Call                                                                                                |
 | -------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `/docs-update`             | **Primary downstream** — called when staleness detected                     | Triggered by Documentation Staleness findings                                                               |
-| `/spec-discovery [update]` | **Spec updater** — called when artifact behavior differs from spec bundle   | Call BEFORE docs-update if spec-was-wrong scenario detected                                                 |
-| `/feature-docs [update]`   | **Feature doc updater** — called for feature doc section changes            | Called internally by docs-update; call directly for targeted update                                         |
-| `/tdd-spec [update]`       | **Test spec updater** — called when test cases may be stale                 | Called internally by docs-update; call directly for targeted test case update                               |
-| `/integration-test-review` | **Test quality gate** — detects test/spec mismatches                        | Call when changes touch areas covered by integration tests                                                  |
+| `/docs-update`             | **Mandatory terminal gate (Phase 8)** — final docs sync after the review/fix loop converges; also the primary fix path for flagged staleness | ALWAYS at Phase 8 once review is clean (standalone) — unconditional; AND during Phase 7 for validated staleness findings. Deferred to parent in `$workflow-review-changes`. |
+| `/spec-index`              | **Derived index** — regenerates the bucket `INDEX.md`/ERD FROM the Feature Specs (never a source of truth) | After specs change, to refresh navigation aids — NOT for correcting specs |
+| `/feature-spec [update]`   | **Canonical spec updater** — corrects feature doc §1-8 (the single source of truth) | Called internally by docs-update; call directly for targeted update — and BEFORE docs-update if a spec-was-wrong scenario is detected |
+| `/spec-tests [update]`       | **Test spec updater** — called when test cases may be stale                 | Called internally by docs-update; call directly for targeted test case update                               |
+| `/integration-test-review` | **Mandatory coverage gate (Phase 3.7)** — 7-gate test-quality audit + Gate 7 change-coverage mapping (every behavior change → covering test + spec TC) | ALWAYS at Phase 3.7 when behavior-bearing code changed (standalone); deferred to the parent's dedicated step in `$workflow-review-changes`. Skip only docs-only diffs |
 | `/review-ui`               | **UI/frontend quality gate** — overflow, responsive flex, z-index, SCSS/BEM | Owned by this skill — invoked internally as the UI dimension (ui-ux-designer sub-agent) when the diff has frontend/UI files; NOT a separate workflow step |
+| `/code-simplifier`         | **Quality-optimization dimension** — clarity/consistency/maintainability simplifications | Owned by this skill — invoked internally in Phase 3.5 (report mode) when the diff has code files; its findings flow through Phase 6 validation → Phase 7 fix |
 | `/code-review`             | **Code quality** — deeper review of changed code                            | Always follows review-changes quality pass                                                                  |
 
 ## Standalone Chain
@@ -844,7 +930,15 @@ If `architectureRules` not present in project-config.json, skip silently.
 ```
 review-changes (you are here)
   │
-  ├─ Code quality checks (code-simplifier → review-architecture → code-review → performance)
+  ├─ Phase 3.5: Code-simplifier optimization (INTERNAL — /code-simplifier over changed code files, report mode)
+  │    → Simplification findings feed Phase 6 validation → Phase 7 fix (skip docs-only diffs)
+  │
+  ├─ Phase 3.7: Integration-test-review coverage gate (INTERNAL — /integration-test-review over the FULL diff, 7 gates)
+  │    → Gate 7 maps every behavior-changing production file to a covering test (integration-first) + spec TC
+  │    → GAP/SPEC-GAP verdicts feed Phase 6 validation → Phase 7 fix
+  │    → GAP fix = WRITE the missing test via /integration-test; SPEC-GAP fix = /spec-tests [update] (skip docs-only diffs)
+  │
+  ├─ Follow-on quality checks (review-architecture → code-review → performance)
   │
   ├─ Phase 5: Documentation Staleness Triage
   │    → If stale docs detected: [REQUIRED] include as finding for Phase 6 validation
@@ -861,7 +955,7 @@ review-changes (you are here)
   ├─ Bugfix-specific: "Was spec wrong?" check:
   │    If this review is post-bugfix AND spec describes the bug as expected behavior:
   │    → [REQUIRED] Flag to user: "The spec may document the bug as correct behavior."
-  │    → If spec bug confirmed → [REQUIRED]: /spec-discovery [update] FIRST → /feature-docs [update relevant sections]
+  │    → If spec bug confirmed → [REQUIRED]: /feature-spec [update relevant sections]
   │    → Do NOT let /docs-update update test cases to document broken behavior.
   │
   ├─ Phase 6 + Phase 7 recursive loop
@@ -869,7 +963,12 @@ review-changes (you are here)
   │    → If validated findings remain: auto-fix, verify, then restart /review-changes from Phase 0
   │    → Repeat until a full review invocation has zero findings
   │
-  └─ [RECOMMENDED after zero findings] → /watzup
+  ├─ Phase 8: [MANDATORY FINAL after zero findings] → /docs-update over the full changeset
+  │    → ALWAYS runs (unconditional) — syncs every impacted doc so none stay stale
+  │    → docs-only edits; M1-M6 check + read-back, NO full code re-review (guarantees termination)
+  │    → A passing review with skipped docs-update is an INCOMPLETE review
+  │
+  └─ [RECOMMENDED after Phase 8] → /watzup
         Summary of all review findings, doc changes, and test coverage status.
 ```
 
@@ -1418,11 +1517,11 @@ For each identified concern: create a `TaskCreate` sub-task, work through it wit
 > **Project Reference Docs Gate** — Run after task-tracking bootstrap and before target/source file reads, grep, edits, or analysis. Project docs override generic framework assumptions.
 >
 > 1. Identify scope: file types, domain area, and operation.
-> 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-docs-reference.md`; architecture/new area `project-structure-reference.md`.
-> 3. Read every required doc. If `docs/project-config.json`, the docs index, `lessons.md`, or any task-required reference doc is missing, stop immediately and ask the user to run `/project-config` and `/scan-all`.
+> 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under `docs/specs/`; architecture/new area `project-structure-reference.md`.
+> 3. Read every required doc. If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `/project-init` or the narrow lower-level route (`/project-config`, `/docs-init`, `/scan-all`, `/scan --target=<key>`, `/claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `/sync-codex`; do not auto-run it.
 > 4. Before target work, state: `Reference docs read: ... | Not applicable: ...`.
 >
-> **Blocked until:** scope evaluated, required docs checked/read, `lessons.md` confirmed, citation emitted.
+> **Ready when:** scope evaluated, required docs checked/read or setup route completed, `lessons.md` confirmed, citation emitted.
 
 <!-- /SYNC:project-reference-docs-guide -->
 
@@ -1547,6 +1646,7 @@ For each identified concern: create a `TaskCreate` sub-task, work through it wit
 
 - **MANDATORY** After task-tracking bootstrap and before target/source work, read required project-reference docs and cite `Reference docs read: ...`.
 - **MANDATORY** Always include `lessons.md`; project conventions override generic defaults.
+- **MANDATORY** If project config, root instruction files, or any required reference doc is missing, stop and run or ask the user to run `/project-init`.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
 
@@ -1562,6 +1662,13 @@ For each identified concern: create a `TaskCreate` sub-task, work through it wit
 - **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] $skill-name — phase` prefixes and one-`in_progress` discipline.
 
 <!-- /SYNC:nested-task-creation:reminder -->
+
+<!-- SYNC:goal-contract-satisfaction-loop:reminder -->
+
+- **MANDATORY** Resolve the active Goal Contract BEFORE work (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from current request) and read saved success criteria before editing.
+- **MANDATORY** Append iteration evidence after execution; emit a Goal Satisfaction matrix (PASS/FAIL/BLOCKED) before reporting PASS; loop on validated FAIL; escalate repeated no-progress or blockers. NEVER store secrets in goal files.
+
+<!-- /SYNC:goal-contract-satisfaction-loop:reminder -->
 
 ## Closing Reminders
 
@@ -1583,6 +1690,9 @@ For each identified concern: create a `TaskCreate` sub-task, work through it wit
 - **MANDATORY IMPORTANT MUST ATTENTION** after fixing validated findings in standalone mode, recursively invoke `/review-changes` again from Phase 0 with a brand-new task breakdown and review the full current diff, not only the fixed files; in parent mode, parent steps 10-15 own the fix plan, cook, and full restart
 - **MANDATORY IMPORTANT MUST ATTENTION** continue validate → fix → full restart until one complete review invocation has zero findings; standalone mode executes that loop locally, parent mode reports findings to `$workflow-review-changes` for the loop
 - **MANDATORY IMPORTANT MUST ATTENTION** documentation staleness check is REQUIRED in every review — flag stale docs even if not auto-fixing
+- **MANDATORY IMPORTANT MUST ATTENTION** run the **Phase 8 final `/docs-update` gate** once the review/fix loop converges to zero findings — ALWAYS, unconditional, never skipped on a clean verdict (deferred only inside `$workflow-review-changes` to the parent's docs-update step) — why: a passing code review still leaves docs stale until docs-update reconciles every impacted doc against the actual changes; a clean review with skipped docs-update is INCOMPLETE
+- **MANDATORY IMPORTANT MUST ATTENTION** run the **Phase 3.5 Code-Simplifier Optimization gate** whenever the diff includes code files — invoke `/code-simplifier` (report mode) over the changed code files, record its clarity/consistency/maintainability findings in the report, and route them through Phase 6 validation → Phase 7 fix; skip ONLY for docs-only diffs (record the skip reason) — why: correctness review proves it works, the simplifier gate proves it stays cheap to change, and the step is silently dropped without an anchored reminder
+- **MANDATORY IMPORTANT MUST ATTENTION** run the **Phase 3.7 Integration-Test-Review Coverage Gate** whenever the diff includes behavior-bearing code — invoke `/integration-test-review` over the FULL change set (production code AND tests); its Gate 7 must map every behavior change to a covering test (integration-first; unit fallback justified) and a spec TC, and every GAP/SPEC-GAP becomes a finding for Phase 6 validation → Phase 7 fix (GAP fix = write the missing test); skip ONLY for docs-only diffs with recorded reason, and defer to the parent's dedicated `/integration-test-review` step inside `$workflow-review-changes` — why: a correct-looking change with no covering test or stale spec ships unprotected behavior; the pairing check alone proves file names, not coverage
 - **MANDATORY IMPORTANT MUST ATTENTION** missing tests for changed business logic MUST surface to user via `AskUserQuestion` — NOT silently logged
 - **MANDATORY IMPORTANT MUST ATTENTION** run the **Phase 6 Why-Review Findings Validation Gate** whenever findings exist in standalone mode — invoke `/why-review --validate-findings` (terminal mode, same session) to verify every finding is correct, proof-backed, reasonable, and best-practice; RE-DO it ONLY if it surfaces finding issues or enhancement opportunities (max 2 re-dos, then escalate via `AskUserQuestion`); then Phase 7 fixes validated findings and restarts this skill. Inside `$workflow-review-changes`, do not run Phase 6/7 locally; parent step 2 and steps 10-15 own those gates.
 - **MANDATORY IMPORTANT MUST ATTENTION** follow declared step order; NEVER skip, reorder, or merge steps without explicit user approval
@@ -1599,6 +1709,10 @@ For each identified concern: create a `TaskCreate` sub-task, work through it wit
 | "Sub-agent already reviewed"           | Main report must integrate raw findings and not override or filter them.                              |
 | "Already searched project conventions" | Show 3+ `file:line` examples. No evidence means no search.                                            |
 | "DRY/SOLID requires this abstraction"   | Prove it lowers future change cost; otherwise it is ceremony, not quality.                            |
+| "Review found no bugs, skip simplifier" | Bug-finding ≠ simplification. Run Phase 3.5 `/code-simplifier` on changed code files anyway.          |
+| "No test files changed, skip test review" | The review target is the CHANGE, not the test files. Phase 3.7 Gate 7 maps every behavior change to a covering test + spec TC. |
+| "Test file with matching name exists"   | Name pairing ≠ coverage. Phase 3.7 `/integration-test-review` proves assertion-level coverage of the changed behavior. |
+| "Clean review, docs surely fine"        | Clean code ≠ current docs. Run the Phase 8 `/docs-update` sweep before handoff — it is mandatory, not conditional. |
 
 **[TASK-PLANNING]** Break scope into small todo tasks before acting; maintain one `in_progress`; add final review todo.
 

@@ -30,9 +30,9 @@ This workflow has steps that appear multiple times. When creating tasks, use the
 | Step           | Occurrence   | Task Description                                                |
 | -------------- | ------------ | --------------------------------------------------------------- |
 | `/plan`        | 1st (pos 10)  | PLAN₁: High-level architecture plan (after architecture-design) |
-| `/plan`        | 2nd (pos 24) | PLAN₂: Sprint-ready implementation plan (after tdd-spec-review) |
+| `/plan`        | 2nd (pos 25) | PLAN₂: Sprint-ready implementation plan (after review-artifact --type=spec-tests) |
 | `/plan-review` | 1st (pos 11)  | Review PLAN₁ architecture                                       |
-| `/plan-review` | 2nd (pos 25) | Review PLAN₂ implementation                                     |
+| `/plan-review` | 2nd (pos 26) | Review PLAN₂ implementation                                     |
 
 **NEVER deduplicate** — each occurrence is a distinct task with a different purpose.
 
@@ -44,9 +44,9 @@ Every step = `TaskUpdate in_progress` → `Skill` tool → complete skill → `T
 
 ---
 
-**IMPORTANT MANDATORY Steps:** /idea -> /web-research -> /deep-research -> /business-evaluation -> /domain-analysis -> /why-review -> /tech-stack-research -> /architecture-design -> /why-review -> /plan -> /plan-review -> /refine -> /why-review -> /refine-review -> /story -> /why-review -> /story-review -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /tdd-spec -> /why-review -> /tdd-spec-review -> /plan -> /plan-review -> /scaffold -> /plan-validate -> /why-review -> /cook -> /review-domain-entities -> /integration-test -> /integration-test-review -> /integration-test-verify -> /tdd-spec [direction=sync] -> /workflow-review-changes -> /sre-review -> /security -> /changelog -> /test -> /docs-update -> /watzup -> /understand -> /workflow-end
+**IMPORTANT MANDATORY Steps:** /idea -> /web-research -> /deep-research -> /business-evaluation -> /domain-analysis -> /why-review -> /tech-stack-research -> /architecture-design -> /why-review -> /plan -> /plan-review -> /refine -> /why-review -> /review-artifact --type=pbi -> /story -> /why-review -> /review-artifact --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /feature-spec -> /spec-tests -> /why-review -> /review-artifact --type=spec-tests -> /plan -> /plan-review -> /scaffold -> /plan-validate -> /why-review -> /cook -> /review-domain-entities -> /integration-test -> /integration-test-review -> /integration-test-verify -> /spec-tests [direction=sync] -> /workflow-review-changes -> /sre-review -> /security-review -> /changelog -> /test -> /docs-update -> /workflow-end -> /watzup
 
-**IMPORTANT MANDATORY Steps:** /idea -> /web-research -> /deep-research -> /business-evaluation -> /domain-analysis -> /why-review -> /tech-stack-research -> /architecture-design -> /why-review -> /plan -> /plan-review -> /refine -> /why-review -> /refine-review -> /story -> /why-review -> /story-review -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /tdd-spec -> /why-review -> /tdd-spec-review -> /plan -> /plan-review -> /scaffold -> /plan-validate -> /why-review -> /cook -> /review-domain-entities -> /integration-test -> /integration-test-review -> /integration-test-verify -> /tdd-spec [direction=sync] -> /workflow-review-changes -> /sre-review -> /security -> /changelog -> /test -> /docs-update -> /watzup -> /understand -> /workflow-end
+**IMPORTANT MANDATORY Steps:** /idea -> /web-research -> /deep-research -> /business-evaluation -> /domain-analysis -> /why-review -> /tech-stack-research -> /architecture-design -> /why-review -> /plan -> /plan-review -> /refine -> /why-review -> /review-artifact --type=pbi -> /story -> /why-review -> /review-artifact --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /feature-spec -> /spec-tests -> /why-review -> /review-artifact --type=spec-tests -> /plan -> /plan-review -> /scaffold -> /plan-validate -> /why-review -> /cook -> /review-domain-entities -> /integration-test -> /integration-test-review -> /integration-test-verify -> /spec-tests [direction=sync] -> /workflow-review-changes -> /sre-review -> /security-review -> /changelog -> /test -> /docs-update -> /workflow-end -> /watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
@@ -54,7 +54,7 @@ Activate the `big-feature` workflow. Run `/workflow-start big-feature` with the 
 
 > **Spec check (before investigation):** If `docs/specs/` has a spec for the affected service/module, read the relevant ERD + business-rules + API-contracts files FIRST. Engineering specs provide domain context that reduces investigation time significantly. Command: `ls docs/specs/` to discover available app buckets or flat system folders; then probe `ls docs/specs/{app-bucket}/` or `ls docs/specs/{system-name}/` to find the specific service spec.
 
-**Steps:** /idea → /web-research → /deep-research → /business-evaluation → /domain-analysis → /why-review → /tech-stack-research → /architecture-design → /why-review → /plan → /plan-review → /refine → /why-review → /refine-review → /story → /why-review → /story-review → /pbi-challenge → /dor-gate → /pbi-mockup → /tdd-spec → /why-review → /tdd-spec-review → /plan → /plan-review → /scaffold → /plan-validate → /why-review → /cook → /review-domain-entities → /integration-test → /integration-test-review → /integration-test-verify → /tdd-spec [direction=sync] → /workflow-review-changes → /sre-review → /security → /changelog → /test → /docs-update → /watzup → /understand → /workflow-end
+**Steps:** /idea → /web-research → /deep-research → /business-evaluation → /domain-analysis → /why-review → /tech-stack-research → /architecture-design → /why-review → /plan → /plan-review → /refine → /why-review → /review-artifact --type=pbi → /story → /why-review → /review-artifact --type=story → /pbi-challenge → /dor-gate → /pbi-mockup → /feature-spec → /spec-tests → /why-review → /review-artifact --type=spec-tests → /plan → /plan-review → /scaffold → /plan-validate → /why-review → /cook → /review-domain-entities → /integration-test → /integration-test-review → /integration-test-verify → /spec-tests [direction=sync] → /workflow-review-changes → /sre-review → /security-review → /changelog → /test → /docs-update → /workflow-end → /watzup
 
 <!-- SYNC:ai-mistake-prevention -->
 

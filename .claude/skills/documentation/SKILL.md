@@ -19,7 +19,7 @@ description: '[Code Quality] Use when the user asks to enhance documentation, ad
 
 - Proceed only after explicit user approval of the documentation plan — never without it
 - Verify every documented feature against actual code (no assumptions)
-- For business feature docs, use `feature-docs` skill instead
+- For business feature docs, use `feature-spec` skill instead
 - Include practical examples and copy-pasteable code snippets
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
@@ -28,7 +28,7 @@ description: '[Code Quality] Use when the user asks to enhance documentation, ad
 
 ## Disambiguation
 
-- For **business feature docs** → use `feature-docs`
+- For **business feature docs** → use `feature-spec`
 - This skill covers **code documentation** and **README files**
 
 # Documentation Enhancement
@@ -266,7 +266,7 @@ Every 10 operations:
 
 ## Related
 
-- `feature-docs`
+- `feature-spec`
 - `changelog`
 - `release-notes`
 

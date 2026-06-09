@@ -34,20 +34,21 @@ Check that `session-init-docs.cjs` has created the project reference docs declar
 Common mappings when configured:
 
 ```
-docs/project-reference/project-structure-reference.md     -> /scan-project-structure
-docs/project-reference/backend-patterns-reference.md      -> /scan-backend-patterns
+docs/project-reference/project-structure-reference.md     -> /scan --target=project-structure
+docs/project-reference/backend-patterns-reference.md      -> /scan --target=backend-patterns
 docs/project-reference/seed-test-data-reference.md       -> /scan-seed-test-data
-docs/project-reference/frontend-patterns-reference.md     -> /scan-frontend-patterns
-docs/project-reference/integration-test-reference.md      -> /scan-integration-tests
-docs/project-reference/feature-docs-reference.md          -> /scan-feature-docs
+docs/project-reference/frontend-patterns-reference.md     -> /scan --target=frontend-patterns
+docs/project-reference/integration-test-reference.md      -> /scan --target=integration-tests
+docs/project-reference/feature-spec-reference.md          -> /scan --target=feature-spec
+docs/project-reference/spec-system-reference.md           -> static template (no scan skill)
 docs/project-reference/spec-principles.md                -> static template (no scan skill)
 docs/project-reference/workflow-spec-test-code-cycle-reference.md -> static template (no scan skill)
-docs/project-reference/code-review-rules.md              -> /scan-code-review-rules
-docs/project-reference/scss-styling-guide.md             -> /scan-scss-styling
-docs/project-reference/design-system/README.md           -> /scan-design-system
-docs/project-reference/e2e-test-reference.md             -> /scan-e2e-tests
-docs/project-reference/domain-entities-reference.md      -> /scan-domain-entities
-docs/project-reference/docs-index-reference.md           -> /scan-docs-index
+docs/project-reference/code-review-rules.md              -> /scan --target=code-review-rules
+docs/project-reference/scss-styling-guide.md             -> /scan --target=scss-styling
+docs/project-reference/design-system/README.md           -> /scan --target=design-system
+docs/project-reference/e2e-test-reference.md             -> /scan --target=e2e-tests
+docs/project-reference/domain-entities-reference.md      -> /scan --target=domain-entities
+docs/project-reference/docs-index-reference.md           -> /scan --target=docs-index
 docs/project-reference/lessons.md                        -> /learn (managed separately)
 ```
 
@@ -66,7 +67,7 @@ Use `AskUserQuestion` to present:
 3. **"Select specific skills"** -- Let user choose which ones to run
 4. **"Skip -- docs are already populated"** -- Exit if all docs have content
 
-For each selected scan skill, invoke it via the Skill tool (e.g., `/scan-backend-patterns`).
+For each selected scan target, invoke it via the Skill tool (e.g., `/scan --target=backend-patterns`).
 
 ## Step 4: M1-M5 Compliance Gate (BLOCKING)
 

@@ -1,7 +1,7 @@
 ---
 name: commit
 version: 2.0.0
-description: '[Git] Use when asked to "commit", "stage and commit", "save changes", or after completing implementation tasks.'
+description: '[Git] Use when asked to "commit", "stage and commit", "save changes", or after completing implementation tasks. Flag: --push (a.k.a. "commit and push") stages + commits + pushes to remote in one shot, folds former /git-cp.'
 ---
 
 ## Quick Summary
@@ -12,13 +12,14 @@ description: '[Git] Use when asked to "commit", "stage and commit", "save change
 
 1. **Analyze Changes** — Run git status/diff to understand staged and unstaged changes
 2. **Stage Changes** — Add relevant files (specific or all)
-3. **Generate Message** — Detect type (feat/fix/refactor/etc.), extract scope from paths, write subject, and add detailed summary body
+3. **Generate Message** — Detect type (feat/fix/refactor/etc.), extract scope from paths, write subject, and add a detailed body structured as **purpose/kind → what changed → how it works**
 4. **Commit** — Create commit with HEREDOC (title + detailed summary + attribution footer)
 5. **Verify** — Confirm with git status and git log
 
 **Key Rules:**
 
-- Stop after the commit; push only when the user explicitly requests it
+- Write a detailed body — **purpose/kind → what changed → how it works** — so the next human reading `git log`/`git blame` understands the change without opening the diff. As detailed as the change needs (wrap ~72 chars); no title-only commits for non-trivial changes
+- Stop after the commit; push only when the user explicitly requests it (or passes `--push` / says "commit and push" → stage + commit + push via `git-manager`)
 - Never commit secrets, credentials, or .env files
 - Never use `--amend` or `--no-verify` unless explicitly requested
 - Include `Generated with [Claude Code]` attribution footer
@@ -77,7 +78,7 @@ Before committing, check if staged files impact documentation:
 
 1. Run `git diff --name-only --cached` to list staged files
 2. Check if any staged file matches doc-impact patterns:
-    - `src/Services/**` → may impact `docs/business-features/`
+    - `src/Services/**` → may impact `docs/specs/`
     - `.claude/skills/**` → may impact `.claude/docs/skills/`
     - `.claude/hooks/**` → may impact `.claude/docs/hooks/`
     - `.claude/workflows.json` → may impact `CLAUDE.md` workflow table
@@ -124,12 +125,25 @@ Extract from file paths:
 - No period at end
 - Max 50 characters
 
-#### Body Rules (MANDATORY)
+#### Body Rules (MANDATORY) — write so a human understands fastest
 
-- Include a detailed summary body (not title-only commits)
-- Describe what changed and why in 2-6 concise bullet points
-- Keep each bullet specific to files/behavior changed
-- Write specific bullets tied to the files and behavior changed, never vague lines like "update code" or "minor fixes"
+> Body is the deliverable. Optimize for the next person running `git log` / `git blame` — they understand the change **without opening the diff**. As detailed as the change needs; no artificial brevity limit — wrap ~72 chars, stop once nothing new said. Title-only commit FORBIDDEN for any non-trivial change. — why: the diff shows WHAT; the body must carry WHY + HOW, which the diff cannot.
+
+Structure body in three parts (omit a part only when genuinely empty):
+
+1. **Purpose / kind** — Name **what kind of change and why it exists**: feature, bug fix (state symptom removed), enhancement, refactor (state behaviour-preserving), perf, security, chore. 1–2 sentences answering _"what problem does this solve?"_.
+2. **What changed** — Concrete edits grouped by **behaviour** (not by file). Each bullet specific to behaviour/files touched — NEVER vague lines ("update code", "fix stuff", "minor fixes").
+3. **How it works / why this way** — The part reviewers need. Explain **mechanism, key logic, invariants relied on, edge cases preserved**, and any non-obvious decision ("did X instead of obvious Y because Z"). Focus **non-obvious** — never narrate boilerplate. Ordering/timing/security-review invariant or subtle failure mode → call out explicitly.
+
+> **Teach-the-reader mindset (from the `understand` skill):** cover BOTH high-level motivation (why it matters) AND low-level logic (business rules, edge cases). Surface what a reader would NOT guess from the diff — write the explanation you would want to receive.
+
+**Detail dial — scale body to the change:**
+
+| Change size                          | Body depth                                                                              |
+| ------------------------------------ | --------------------------------------------------------------------------------------- |
+| Trivial (typo, rename, formatting)   | Purpose line + 1 bullet; skip "how it works"                                             |
+| Normal (feature/fix, single area)    | Purpose + 2–5 "what" bullets + a short "how it works"                                    |
+| Complex (cross-cutting, subtle bug)  | Purpose + grouped "what" + a full "how it works" that spells out the key invariant / edge case / why-this-over-that |
 
 ### Step 4: Commit
 
@@ -177,12 +191,15 @@ fix(validation): handle empty date range
 - **Never commit** secrets, credentials, or .env files
 - **Never use** `git commit --amend` unless explicitly requested AND the commit was created in this session AND not yet pushed
 - **Never skip** hooks with `--no-verify` unless explicitly requested
-- Commit message must include both a Conventional Commit title and a detailed summary body
+- Commit message MUST include a Conventional Commit title AND a detailed body — **purpose/kind → what changed → how it works**. As detailed as the change needs (wrap ~72 chars); title-only commit FORBIDDEN for non-trivial changes
+- Optimize body for the next human reading `git log` / `git blame` — surface the non-obvious (key logic, invariants, edge cases, why-this-over-that), not just a list of touched files
 - Include attribution footer: `Generated by AI`
 
 ## Push & PR Operations
 
-This skill handles **commit only**. Push-to-remote and pull request creation are delegated to `git-manager` sub-agent (`subagent_type: "git-manager"`).
+**Arg `--push` (a.k.a. "commit and push"):** stage all changes + create the commit + push to remote in one shot — spawn `git-manager` immediately after committing to push. This is the former standalone stage-commit-push entry point folded into `commit`; it adds no logic beyond the push delegation already described below.
+
+This skill handles **commit** by default. Push-to-remote and pull request creation are delegated to `git-manager` sub-agent (`subagent_type: "git-manager"`).
 
 `git-manager` handles:
 

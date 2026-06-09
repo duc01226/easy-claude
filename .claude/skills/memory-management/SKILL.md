@@ -444,7 +444,7 @@ All long-running workflows should follow this pattern:
 | Manual checkpoint | `checkpoint-{YYMMDD}-{HHMM}-{slug}.md`      | `checkpoint-250106-1430-user-auth.md`  |
 | Auto checkpoint   | `memory-checkpoint-{timestamp}.md`          | `memory-checkpoint-20250106-143000.md` |
 | Analysis notes    | `{type}-{date}-{slug}.md`                   | `analysis-250106-payment-flow.md`      |
-| Task notes        | `.ai/workspace/analysis/{slug}.analysis.md` | Used by feature-implementation         |
+| Task notes        | `.ai/workspace/analysis/{slug}.analysis.md` | Used by feature                        |
 
 ### Related Commands & Skills
 
@@ -454,7 +454,7 @@ All long-running workflows should follow this pattern:
 | `/context`               | Load project context                |
 | `/compact`               | Manually trigger context compaction |
 | `/watzup`                | Generate progress summary           |
-| `feature-implementation` | Uses task analysis notes pattern    |
+| `feature`                | Uses task analysis notes pattern    |
 | `debug-investigate`      | Uses investigation logs             |
 | `feature-investigation`  | Uses analysis report pattern        |
 

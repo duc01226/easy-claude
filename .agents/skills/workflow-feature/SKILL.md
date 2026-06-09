@@ -1,6 +1,6 @@
 ---
 name: workflow-feature
-description: '[Workflow] Use when activating the Feature Implementation workflow for implement a well-defined feature with investigation, planning, implementation, and review.'
+description: '[Workflow] Use when activating the Feature Implementation workflow for implement a well-defined feature with investigation, planning, implementation, and review. Also covers TDD/test-first development and spec-driven feature implementation with test specs written before code.'
 disable-model-invocation: true
 ---
 
@@ -25,12 +25,14 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 - `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
 - `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
 
-**Missing-file hard stop:** If `docs/project-config.json`, the docs index, `lessons.md`, or any task-required reference doc is missing, stop immediately and ask the user to run `$project-config` and `$scan-all`.
+**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.
 
 **Situation-based docs:**
 - Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`, `project-structure-reference.md`
 - Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md`
-- Spec/test-case planning or TC mapping: `feature-docs-reference.md`
+- Spec authoring, `docs/specs/` pathing, or TC format: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`
+- Behavior/public-contract changes or spec-test-code sync: `workflow-spec-test-code-cycle-reference.md` plus the spec docs above
+- Derived spec indexes/ERDs/reimplementation guides: `spec-system-reference.md` and source Feature Specs under `docs/specs/`
 - Integration test implementation/review: `integration-test-reference.md`
 - E2E test implementation/review: `e2e-test-reference.md`
 - Code review/audit work: `code-review-rules.md` plus domain docs above based on changed files
@@ -40,7 +42,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** [Workflow] Trigger Feature Implementation workflow — implement a well-defined feature with investigation, planning, implementation, and review.
+**Goal:** [Workflow] Trigger Feature Implementation workflow — implement a well-defined feature with investigation, planning, implementation, and review. This workflow is spec-driven with tests by default: test specs (`$spec-tests`) are written and reviewed BEFORE implementation (`$cook`), covering former TDD/test-first use cases.
 
 **Workflow:**
 
@@ -67,14 +69,14 @@ This workflow has steps that appear multiple times. When creating tasks, use the
 
 | Step               | Occurrence   | Task Description                                 |
 | ------------------ | ------------ | ------------------------------------------------ |
-| `$plan`            | 1st (pos 5)  | PLAN₁: Investigation-based implementation plan   |
-| `$plan`            | 2nd (pos 12)  | PLAN₂: Sprint-ready plan incorporating TDD specs |
-| `$plan-review`     | 1st (pos 6)  | Review PLAN₁                                     |
-| `$plan-review`     | 2nd (pos 13) | Review PLAN₂                                     |
-| `$tdd-spec`        | 1st (pos 9)  | TDD-SPEC₁: Pre-implementation test specs         |
-| `$tdd-spec`        | 2nd (pos 16) | TDD-SPEC₂: Post-implementation test spec update  |
-| `$tdd-spec-review` | 1st (pos 11)  | Review TDD-SPEC₁                                 |
-| `$tdd-spec-review` | 2nd (pos 18) | Review TDD-SPEC₂                                 |
+| `$plan`            | 1st (pos 6)  | PLAN₁: Feature Spec-backed implementation plan   |
+| `$plan`            | 2nd (pos 13)  | PLAN₂: Sprint-ready plan incorporating TDD specs |
+| `$plan-review`     | 1st (pos 7)  | Review PLAN₁                                     |
+| `$plan-review`     | 2nd (pos 14) | Review PLAN₂                                     |
+| `$spec-tests`        | 1st (pos 10)  | TDD-SPEC₁: Pre-implementation test specs         |
+| `$spec-tests`        | 2nd (pos 17) | TDD-SPEC₂: Post-implementation test spec update  |
+| `$review-artifact --type=spec-tests` | 1st (pos 12)  | Review TDD-SPEC₁                                 |
+| `$review-artifact --type=spec-tests` | 2nd (pos 19) | Review TDD-SPEC₂                                 |
 
 **NEVER deduplicate** — each occurrence is a distinct task with a different purpose.
 
@@ -84,7 +86,7 @@ This workflow has steps that appear multiple times. When creating tasks, use the
 
 When a feature involves UI changes (detected during `$scout` or `$feature-investigation`):
 
-- If image/wireframe/Figma URL is provided → route to `$wireframe-to-spec` or `$figma-design` before `$plan`
+- If image/wireframe/Figma URL is provided → route to `$design-spec --mode=wireframe` or `$figma-design` before `$plan`
 - If `$plan` detects frontend phases → ensure `ui-wireframe-protocol.md` sections are included in plan phases
 - This is advisory — NOT a mandatory workflow step change. The existing workflow sequence remains unchanged.
 
@@ -98,11 +100,13 @@ Every step = `TaskUpdate in_progress` → skill invocation → complete skill �
 
 > **Existing-behavior trace gate:** If the feature modifies an existing final output, persisted state, API response, projection, or user-visible workflow, include an end-to-start trace of the existing path (final reader -> storage/projection -> writer -> producer/origin), feeder paths, invariants to preserve, and forward proof for the intended new behavior before implementation.
 
-**IMPORTANT MANDATORY Steps:** $scout -> $investigate -> $domain-analysis -> $why-review -> $plan -> $plan-review -> $plan-validate -> $why-review -> $tdd-spec -> $why-review -> $tdd-spec-review -> $plan -> $plan-review -> $cook -> $review-domain-entities -> $tdd-spec -> $why-review -> $tdd-spec-review -> $tdd-spec [direction=sync] -> $integration-test -> $integration-test-review -> $integration-test-verify -> $workflow-review-changes -> $sre-review -> $security -> $changelog -> $test -> $docs-update -> $watzup -> $understand -> $workflow-end
+> **Goal Contract propagation (workflow-owned):** At workflow start, resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from the feature request). Before `$cook`, verify the plan's feature success criteria map to the saved criteria. Pass the same goal file reference to every child step — child skills read the SAME saved goal, never a re-derived one from chat memory. Before `$workflow-end`, emit the final Goal Satisfaction matrix (PASS/FAIL/BLOCKED); workflow completion requires every required criterion PASS or BLOCKED with a user-facing escalation.
+
+**IMPORTANT MANDATORY Steps:** $scout -> $investigate -> $domain-analysis -> $why-review -> $feature-spec -> $plan -> $plan-review -> $plan-validate -> $why-review -> $spec-tests -> $why-review -> $review-artifact --type=spec-tests -> $plan -> $plan-review -> $cook -> $review-domain-entities -> $spec-tests -> $why-review -> $review-artifact --type=spec-tests -> $spec-tests [direction=sync] -> $integration-test -> $integration-test-review -> $integration-test-verify -> $workflow-review-changes -> $sre-review -> $security-review -> $changelog -> $test -> $docs-update -> $workflow-end -> $watzup
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $scout -> $investigate -> $domain-analysis -> $why-review -> $plan -> $plan-review -> $plan-validate -> $why-review -> $tdd-spec -> $why-review -> $tdd-spec-review -> $plan -> $plan-review -> $cook -> $review-domain-entities -> $tdd-spec -> $why-review -> $tdd-spec-review -> $tdd-spec [direction=sync] -> $integration-test -> $integration-test-review -> $integration-test-verify -> $workflow-review-changes -> $sre-review -> $security -> $changelog -> $test -> $docs-update -> $watzup -> $understand -> $workflow-end
+**IMPORTANT MANDATORY Steps:** $scout -> $investigate -> $domain-analysis -> $why-review -> $feature-spec -> $plan -> $plan-review -> $plan-validate -> $why-review -> $spec-tests -> $why-review -> $review-artifact --type=spec-tests -> $plan -> $plan-review -> $cook -> $review-domain-entities -> $spec-tests -> $why-review -> $review-artifact --type=spec-tests -> $spec-tests [direction=sync] -> $integration-test -> $integration-test-review -> $integration-test-verify -> $workflow-review-changes -> $sre-review -> $security-review -> $changelog -> $test -> $docs-update -> $workflow-end -> $watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its skill invocation — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
@@ -110,9 +114,9 @@ Activate the `feature` workflow. Run `$workflow-start feature` with the user's p
 
 > **Spec check (before investigation):** If `docs/specs/` has a spec for the affected service/module, read the relevant ERD + business-rules + API-contracts files FIRST. Engineering specs provide domain context that reduces investigation time significantly. Command: `ls docs/specs/` to discover available app buckets or flat system folders; then probe `ls docs/specs/{app-bucket}/` or `ls docs/specs/{system-name}/` to find the specific service spec.
 
-**Steps:** $scout → $investigate → $domain-analysis → $why-review → $plan → $plan-review → $plan-validate → $why-review → $tdd-spec → $why-review → $tdd-spec-review → $plan → $plan-review → $cook → $review-domain-entities → $tdd-spec → $why-review → $tdd-spec-review → $tdd-spec [direction=sync] → $integration-test → $integration-test-review → $integration-test-verify → $workflow-review-changes → $sre-review → $security → $changelog → $test → $docs-update → $watzup → $understand → $workflow-end
+**Steps:** $scout → $investigate → $domain-analysis → $why-review → $feature-spec → $plan → $plan-review → $plan-validate → $why-review → $spec-tests → $why-review → $review-artifact --type=spec-tests → $plan → $plan-review → $cook → $review-domain-entities → $spec-tests → $why-review → $review-artifact --type=spec-tests → $spec-tests [direction=sync] → $integration-test → $integration-test-review → $integration-test-verify → $workflow-review-changes → $sre-review → $security-review → $changelog → $test → $docs-update → $workflow-end → $watzup
 
-> **[PERFORMANCE-SDD ROUTE]** If this feature is a performance enhancement (latency, throughput, memory, query speed, load behavior), activate `$workflow-performance` and require SLA/benchmark evidence: target metric, baseline, measurement command, and acceptable regression budget. Run `$cook` even on the performance route — never skip it. If behavior can change, run `$test` and any relevant functional no-regression checks. Update docs/specs for changed SLA, performance constraints, or behavior boundaries. Use project-specific performance docs from `docs/project-config.json` / `docs/project-reference/` when available.
+> **[PERFORMANCE-SDD ROUTE]** If this feature is a performance enhancement (latency, throughput, memory, query speed, load behavior), run `$performance-review` and require SLA/benchmark evidence: target metric, baseline, measurement command, and acceptable regression budget. Run `$cook` even on the performance route — never skip it. If behavior can change, run `$test` and any relevant functional no-regression checks. Update docs/specs for changed SLA, performance constraints, or behavior boundaries. Use project-specific performance docs from `docs/project-config.json` / `docs/project-reference/` when available.
 
 > **[AI-SDD CLOSURE]** Before `$workflow-end`, confirm changed behavior, unchanged behavior, TCs/tests, docs/specs, and generated mirror sync are either completed or explicitly skipped with evidence.
 
@@ -231,6 +235,13 @@ Activate the `feature` workflow. Run `$workflow-start feature` with the user's p
 
 <!-- /SYNC:nested-task-creation:reminder -->
 
+<!-- SYNC:goal-contract-satisfaction-loop:reminder -->
+
+- **MANDATORY** Resolve the active Goal Contract BEFORE work (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from current request) and read saved success criteria before editing.
+- **MANDATORY** Append iteration evidence after execution; emit a Goal Satisfaction matrix (PASS/FAIL/BLOCKED) before reporting PASS; loop on validated FAIL; escalate repeated no-progress or blockers. NEVER store secrets in goal files.
+
+<!-- /SYNC:goal-contract-satisfaction-loop:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION** apply Phase 1 compression before structural enhancement; preserve semantic meaning.
@@ -245,17 +256,14 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 
 ## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
 
-**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. If either file or a required reference doc is missing, stop immediately and ask the user to run the project-config and scan-all skills. Any supported AI tool may execute when this shared context and local docs are available.
+**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. Any supported AI tool may execute when this shared context and local docs are available.
 
-1. **DETECT:** Match prompt against workflow catalog
-2. **ANALYZE:** Find best-match workflow AND evaluate if a custom step combination would fit better
-3. **ASK (REQUIRED FORMAT):** Use a direct user question with this structure unless the user explicitly invoked a workflow/skill and the local protocol treats explicit invocation as confirmation:
-   - Question: "Which workflow do you want to activate?"
-   - Option 1: "Activate **[BestMatch Workflow]** (Recommended)"
-   - Option 2: "Activate custom workflow: **[step1 → step2 → ...]**" (include one-line rationale)
-4. **ACTIVATE (if confirmed):** Call `$workflow-start <workflowId>` for standard; sequence custom steps manually
-5. **CREATE TASKS:** task tracking for ALL workflow steps
-6. **EXECUTE:** Follow each step in sequence
+1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
+2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
+3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
+4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
+6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
 **AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
@@ -271,7 +279,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security`/`$lint` catch this?" — Yes → improve review skill instead.
+6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/`$lint` catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
 **[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
 

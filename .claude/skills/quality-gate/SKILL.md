@@ -95,7 +95,17 @@ description: '[Code Quality] Use when you need to run quality gate checklist.'
 
 ### Blocking Items (if FAIL)
 1. [Specific item that must be resolved]
+
+### Goal Satisfaction (when an active Goal Contract exists)
+
+| Success Criterion | Evidence | Status |
+| --- | --- | --- |
+| {saved criterion} | {file:line, command output, report path} | PASS/FAIL/BLOCKED |
+
+Goal status: PASS | FAIL | BLOCKED — {escalation reason for any BLOCKED criterion}
 ```
+
+**Goal Satisfaction audit (MANDATORY when an active Goal Contract exists):** Resolve the active goal per the goal-contract-satisfaction-loop protocol (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md`). The gate verdict reports the Goal Satisfaction matrix above against the SAVED criteria: gate PASS requires every required criterion PASS; any BLOCKED criterion carries a user-facing escalation reason. Sync the verdict back to the goal file (Iteration Log + matrix). Record `No active goal — checklist verdict only.` when none exists.
 
 ## IMPORTANT Task Planning Notes (MUST ATTENTION FOLLOW)
 
@@ -108,7 +118,7 @@ description: '[Code Quality] Use when you need to run quality gate checklist.'
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use `AskUserQuestion` to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
 >
-> 1. **Activate `pre-development` workflow** (Recommended) — quality-gate → plan → plan-review → plan-validate
+> 1. **Continue into planning** (Recommended) — quality-gate → `/plan` → `/plan-review` → `/plan-validate`
 > 2. **Execute `/quality-gate` directly** — run this skill standalone
 
 ---
@@ -213,6 +223,13 @@ description: '[Code Quality] Use when you need to run quality gate checklist.'
 **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
+
+<!-- SYNC:goal-contract-satisfaction-loop:reminder -->
+
+- **MANDATORY** Resolve the active Goal Contract BEFORE work (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from current request) and read saved success criteria before editing.
+- **MANDATORY** Append iteration evidence after execution; emit a Goal Satisfaction matrix (PASS/FAIL/BLOCKED) before reporting PASS; loop on validated FAIL; escalate repeated no-progress or blockers. NEVER store secrets in goal files.
+
+<!-- /SYNC:goal-contract-satisfaction-loop:reminder -->
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
 

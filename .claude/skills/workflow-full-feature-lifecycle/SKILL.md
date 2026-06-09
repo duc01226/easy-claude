@@ -1,13 +1,13 @@
 ---
 name: workflow-full-feature-lifecycle
 version: 1.0.0
-description: '[Workflow] Use when activating the Full Feature Lifecycle workflow for complete feature from idea to release with formal role handoffs (PO→BA→Designer→Dev→QA→PO acceptance).'
+description: '[Workflow] Use when activating the Full Feature Lifecycle workflow for complete feature from idea through implementation, testing, and documentation (PO→BA→Designer→Dev→QA).'
 disable-model-invocation: true
 ---
 
 ## Quick Summary
 
-**Goal:** [Workflow] Trigger Full Feature Lifecycle workflow — complete feature from idea to release with formal role handoffs (PO→BA→Designer→Dev→QA→PO acceptance).
+**Goal:** [Workflow] Trigger Full Feature Lifecycle workflow — complete feature from idea through implementation, testing, and documentation (PO→BA→Designer→Dev→QA).
 
 **Workflow:**
 
@@ -32,17 +32,19 @@ Every step = `TaskUpdate in_progress` → `Skill` tool → complete skill → `T
 
 ---
 
-**IMPORTANT MANDATORY Steps:** /idea -> /refine -> /why-review -> /refine-review -> /domain-analysis -> /why-review -> /story -> /why-review -> /story-review -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /design-spec -> /why-review -> /interface-design -> /frontend-design -> /plan -> /plan-review -> /plan-validate -> /why-review -> /cook -> /review-domain-entities -> /tdd-spec -> /why-review -> /tdd-spec-review -> /integration-test -> /integration-test-review -> /integration-test-verify -> /tdd-spec [direction=sync] -> /workflow-review-changes -> /sre-review -> /quality-gate -> /docs-update -> /watzup -> /acceptance -> /workflow-end
+**IMPORTANT MANDATORY Steps:** /idea -> /refine -> /why-review -> /review-artifact --type=pbi -> /domain-analysis -> /why-review -> /story -> /why-review -> /review-artifact --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /design-spec -> /why-review -> /interface-design -> /frontend-design -> /feature-spec -> /plan -> /plan-review -> /plan-validate -> /why-review -> /cook -> /review-domain-entities -> /spec-tests -> /why-review -> /review-artifact --type=spec-tests -> /integration-test -> /integration-test-review -> /integration-test-verify -> /spec-tests [direction=sync] -> /workflow-review-changes -> /sre-review -> /quality-gate -> /docs-update -> /workflow-end -> /watzup
 
-**IMPORTANT MANDATORY Steps:** /idea -> /refine -> /why-review -> /refine-review -> /domain-analysis -> /why-review -> /story -> /why-review -> /story-review -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /design-spec -> /why-review -> /interface-design -> /frontend-design -> /plan -> /plan-review -> /plan-validate -> /why-review -> /cook -> /review-domain-entities -> /tdd-spec -> /why-review -> /tdd-spec-review -> /integration-test -> /integration-test-review -> /integration-test-verify -> /tdd-spec [direction=sync] -> /workflow-review-changes -> /sre-review -> /quality-gate -> /docs-update -> /watzup -> /acceptance -> /workflow-end
+**IMPORTANT MANDATORY Steps:** /idea -> /refine -> /why-review -> /review-artifact --type=pbi -> /domain-analysis -> /why-review -> /story -> /why-review -> /review-artifact --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /design-spec -> /why-review -> /interface-design -> /frontend-design -> /feature-spec -> /plan -> /plan-review -> /plan-validate -> /why-review -> /cook -> /review-domain-entities -> /spec-tests -> /why-review -> /review-artifact --type=spec-tests -> /integration-test -> /integration-test-review -> /integration-test-verify -> /spec-tests [direction=sync] -> /workflow-review-changes -> /sre-review -> /quality-gate -> /docs-update -> /workflow-end -> /watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
 Activate the `full-feature-lifecycle` workflow. Run `/workflow-start full-feature-lifecycle` with the user's prompt as context.
 
-**Steps:** /idea → /refine → /why-review → /refine-review → /domain-analysis → /why-review → /story → /why-review → /story-review → /pbi-challenge → /dor-gate → /pbi-mockup → /design-spec → /why-review → /interface-design → /frontend-design → /plan → /plan-review → /plan-validate → /why-review → /cook → /review-domain-entities → /tdd-spec → /why-review → /tdd-spec-review → /integration-test → /integration-test-review → /integration-test-verify → /tdd-spec [direction=sync] → /workflow-review-changes → /sre-review → /quality-gate → /docs-update → /watzup → /acceptance → /workflow-end
+**Steps:** /idea → /refine → /why-review → /review-artifact --type=pbi → /domain-analysis → /why-review → /story → /why-review → /review-artifact --type=story → /pbi-challenge → /dor-gate → /pbi-mockup → /design-spec → /why-review → /interface-design → /frontend-design → /feature-spec → /plan → /plan-review → /plan-validate → /why-review → /cook → /review-domain-entities → /spec-tests → /why-review → /review-artifact --type=spec-tests → /integration-test → /integration-test-review → /integration-test-verify → /spec-tests [direction=sync] → /workflow-review-changes → /sre-review → /quality-gate → /docs-update → /workflow-end → /watzup
 
 > **[AI-SDD CLOSURE]** Before `/workflow-end`, confirm accepted artifacts, behavior evidence, TCs/tests, docs/specs, and generated mirror sync are current or explicitly skipped with evidence.
+
+> **Goal Contract propagation (workflow-owned):** At workflow start, resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from the idea/request). This workflow spans PO→BA→Designer→Dev→QA — carry the SAME goal file reference across every child workflow and skill step; child workflows (e.g. `/workflow-review-changes`) read the saved goal, never re-derive it from chat memory. Each lifecycle stage appends its evidence to the Iteration Log. Before `/workflow-end`, emit the final Goal Satisfaction matrix (PASS/FAIL/BLOCKED); completion requires every required criterion PASS or BLOCKED with a user-facing escalation.
 
 <!-- SYNC:ai-mistake-prevention -->
 
@@ -147,6 +149,13 @@ Activate the `full-feature-lifecycle` workflow. Run `/workflow-start full-featur
 - **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] $skill-name — phase` prefixes and one-`in_progress` discipline.
 
 <!-- /SYNC:nested-task-creation:reminder -->
+
+<!-- SYNC:goal-contract-satisfaction-loop:reminder -->
+
+- **MANDATORY** Resolve the active Goal Contract BEFORE work (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from current request) and read saved success criteria before editing.
+- **MANDATORY** Append iteration evidence after execution; emit a Goal Satisfaction matrix (PASS/FAIL/BLOCKED) before reporting PASS; loop on validated FAIL; escalate repeated no-progress or blockers. NEVER store secrets in goal files.
+
+<!-- /SYNC:goal-contract-satisfaction-loop:reminder -->
 
 ## Closing Reminders
 

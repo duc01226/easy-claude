@@ -96,6 +96,10 @@
         {
           "type": "command",
           "command": "node ./.claude/hooks/git-commit-block.cjs"
+        },
+        {
+          "type": "command",
+          "command": "node ./.claude/hooks/doc-sync-gate.cjs"
         }
       ],
       "matcher": "Bash"
@@ -136,6 +140,10 @@
         {
           "type": "command",
           "command": "node ./.claude/hooks/skill-enforcement.cjs"
+        },
+        {
+          "type": "command",
+          "command": "node ./.claude/hooks/agent-files-skill-gate.cjs"
         }
       ],
       "matcher": "Skill"
@@ -243,7 +251,7 @@
       "hooks": [
         {
           "type": "command",
-          "command": "node ./.claude/hooks/feature-docs-context.cjs"
+          "command": "node ./.claude/hooks/feature-spec-context.cjs"
         }
       ],
       "matcher": "Write|Edit|MultiEdit"
@@ -252,7 +260,7 @@
       "hooks": [
         {
           "type": "command",
-          "command": "node ./.claude/hooks/test-specs-context.cjs"
+          "command": "node ./.claude/hooks/doc-sync-gate.cjs"
         }
       ],
       "matcher": "Write|Edit|MultiEdit"

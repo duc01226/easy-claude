@@ -1,6 +1,6 @@
 ---
 name: review-artifact
-description: '[Code Quality] Use when you need to review artifact quality before handoff.'
+description: '[Code Quality] Use when you need to review artifact quality (PBI, user story, test spec, design spec) before handoff. Supports --type={pbi|story|spec-tests|design}.'
 ---
 
 > Codex compatibility note:
@@ -24,12 +24,14 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 - `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
 - `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
 
-**Missing-file hard stop:** If `docs/project-config.json`, the docs index, `lessons.md`, or any task-required reference doc is missing, stop immediately and ask the user to run `$project-config` and `$scan-all`.
+**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.
 
 **Situation-based docs:**
 - Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`, `project-structure-reference.md`
 - Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md`
-- Spec/test-case planning or TC mapping: `feature-docs-reference.md`
+- Spec authoring, `docs/specs/` pathing, or TC format: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`
+- Behavior/public-contract changes or spec-test-code sync: `workflow-spec-test-code-cycle-reference.md` plus the spec docs above
+- Derived spec indexes/ERDs/reimplementation guides: `spec-system-reference.md` and source Feature Specs under `docs/specs/`
 - Integration test implementation/review: `integration-test-reference.md`
 - E2E test implementation/review: `e2e-test-reference.md`
 - Code review/audit work: `code-review-rules.md` plus domain docs above based on changed files
@@ -132,9 +134,18 @@ Before writing any verdict, generate at least 2 sentences arguing the OPPOSITE c
 
 If any box is unchecked → adversarial review incomplete. Go back.
 
-## Type-Specific Checklists
+## Type-Specific Checklists (`--type` dispatch)
 
-### PBI Review
+Select the checklist + output template by artifact type. Pass `--type={pbi|story|spec-tests|design}` to force a type; if omitted, infer from the artifact (Phase 1 "Identify"). Each type scores **Required (all must pass)** + **Recommended (≥50% should pass)** → verdict **PASS** (all Required + ≥50% Recommended) | **WARN** (all Required, <50% Recommended) | **FAIL** (any Required fails).
+
+| `--type`    | Artifact             | Output template                             |
+| ----------- | -------------------- | ------------------------------------------- |
+| `pbi`       | Product Backlog Item | PBI Review Result                           |
+| `story`     | User story set       | Story Review Result (+ AC Coverage Matrix)  |
+| `spec-tests` | Test specification   | Test Spec Review Result (+ Coverage Matrix) |
+| `design`    | Design spec          | Artifact Review                             |
+
+### PBI Review (`--type=pbi`)
 
 | #   | Check                                                                                                      | Presence                                                  | Quality Depth                                                                                                                                                                                  |
 | --- | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -145,7 +156,7 @@ If any box is unchecked → adversarial review incomplete. Go back.
 | 5   | **Business value is articulated** — the why behind the PBI is stated in terms of user or business outcome  | Is business value described?                              | Is the value quantified or just stated? Does it connect to a user outcome, not just a feature delivery? "Users can now do X" is better than "we implemented feature Y".                        |
 | 6   | **Priority is assigned** — the PBI has an explicit priority level                                          | Is a priority level assigned?                             | Is priority justified with data (RICE/MoSCoW), or arbitrary? Is it consistent with other PBIs in the same sprint? A PBI that is "high priority" without justification is unranked.             |
 
-### User Story Review
+### User Story Review (`--type=story`)
 
 | #   | Check                                                                                                                    | Presence                                                       | Quality Depth                                                                                                                                                 |
 | --- | ------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -155,7 +166,7 @@ If any box is unchecked → adversarial review incomplete. Go back.
 | 4   | **Is small enough for one sprint** — the story fits within a single sprint's capacity                                    | Is the story sized at ≤8 story points or scoped to one sprint? | Could this be split further? Stories >8SP should always be split. A story that "could fit" in a sprint but requires multiple sub-systems is likely too large. |
 | 5   | **Has acceptance criteria** — the story defines measurable conditions for completion                                     | Are acceptance criteria present?                               | Are criteria testable? Would they catch a bug if the feature works in 9/10 cases? ACs that only describe the happy path are incomplete.                       |
 
-### Design Spec Review
+### Design Spec Review (`--type=design`)
 
 | #   | Check                                                                                                                                         | Presence                                            | Quality Depth                                                                                                                                                                                   |
 | --- | --------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -165,15 +176,39 @@ If any box is unchecked → adversarial review incomplete. Go back.
 | 4   | **Accessibility requirements noted** — WCAG-relevant requirements (color contrast, keyboard nav, ARIA) are documented                         | Are accessibility notes present?                    | Are requirements specific (WCAG level, contrast ratio) or vague ("should be accessible")? Vague accessibility notes produce non-compliant implementations. Is keyboard navigation flow defined? |
 | 5   | **Interaction patterns documented** — animations, transitions, and user interaction flows are specified                                       | Are interaction behaviors described?                | Are timing and easing values specified? Is behavior defined for both forward and reverse interactions (e.g., open AND close)? Unspecified interactions are implemented inconsistently.          |
 
-### Test Spec Review
+### Test Spec Review (`--type=spec-tests`)
 
-| #   | Check                                                                                                | Presence                                    | Quality Depth                                                                                                                                                                |
-| --- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **Coverage adequate for acceptance criteria** — each AC maps to at least one test case               | Is there a test for each AC?                | Is coverage 1:1 (each AC has one test) or is each AC covered by multiple test angles (boundary, happy path, error)? Single-test-per-AC misses edge cases.                    |
-| 2   | **Edge cases included** — boundary conditions and atypical inputs are tested                         | Are edge case tests present?                | Are edge cases derived from the AC boundaries (min/max values, empty inputs, nulls), or are they generic? Edge cases that aren't tied to actual boundaries are noise.        |
-| 3   | **Test data requirements specified** — the data setup needed to run each test is documented          | Are test data requirements stated per test? | Is test data specific enough to create fixtures without guessing? Vague data requirements ("a valid user") will cause test setup divergence across environments.             |
-| 4   | **GIVEN/WHEN/THEN format used** — tests follow the structured BDD format                             | Are all tests written in GIVEN/WHEN/THEN?   | Are the THEN clauses assertions on observable outcomes, or on internal state? Tests asserting on internal state are brittle and break on refactoring.                        |
-| 5   | **Negative test cases included** — tests cover rejection, failure, and unauthorized access scenarios | Are negative tests present?                 | Do negative tests assert on specific error conditions (error code, message) or just that an error occurred? Unspecific negative tests don't verify correct failure behavior. |
+> **[BLOCKING] Read** `docs/project-reference/spec-principles.md` — use Section 5 (Test Case Registry — TC ID format, priorities, minimum coverage) and Section 6 (Evidence Format) as review criteria in addition to the checklist below.
+> **[BLOCKING] Tech-agnostic check:** flag framework/product/language/design-pattern names in a TC's behavioral prose as findings (per `spec-principles.md` §3). Source paths, class names, and test identifiers (e.g. `{File}::{Method}`) are CORRECT in evidence fields (`**Evidence**`, `IntegrationTest`, `[Source:]`), frontmatter, and Mermaid — never flag those.
+
+#### Required (all must pass)
+
+| #   | Check                                                                                                                              | Presence                                                                          | Quality Depth                                                                                               |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| 1   | **TC ID format** — All TCs follow `TC-{FEATURE}-{NNN}` format                                                                      | Do all TCs use the `TC-{FEATURE}-{NNN}` pattern?                                  | Are IDs unique per TC? Does the FEATURE code match the actual feature?                                      |
+| 2   | **Story coverage** — Every user story has at least one corresponding TC                                                            | Does every story ID appear in at least one TC?                                    | Does each TC actually test the story behavior, or does it just reference the story ID in a comment?         |
+| 3   | **AC coverage** — Every acceptance criterion has a test case                                                                       | Is every AC traceable to at least one TC?                                         | Does each AC have a TC that would FAIL if the AC is violated? Single-test-per-AC misses edge cases.         |
+| 4   | **Happy path** — Each story has at least one happy path TC                                                                         | Is a happy path TC present per story?                                             | Does the happy path TC verify the full end-to-end scenario, or just a happy-path stub?                      |
+| 5   | **Error path** — Each story has at least one error/failure TC                                                                      | Is an error/failure TC present per story?                                         | Does the error TC verify the exact error response (code + message), not just that an error occurred?        |
+| 6   | **No duplicates** — No duplicate TCs testing the same scenario                                                                     | Are all TC IDs unique with distinct scenarios?                                    | Are there TCs that test the same scenario with slightly different input? Flag near-duplicates.              |
+| 7   | **Testable assertions** — Each TC has clear expected result (not vague "should work")                                              | Does each TC have a specific expected result?                                     | Is each assertion specific enough to catch regressions? Would it pass if the return value is wrong?         |
+| 8   | **Business intent / invariant guarded** — Each TC names the rule it protects                                                       | Does every meaningful TC include `Business Intent / Invariant Guarded`?           | Would the TC fail if that business rule/invariant breaks, or does it only mirror implementation details?    |
+| 9   | **Authorization TCs** — At least 1 TC per story verifying unauthorized access is rejected                                          | Is an authorization TC present per story?                                         | Does the authorization TC test a realistic access scenario, not just "wrong role → 403 without body check"? |
+| 10  | **TC format completeness** — Every TC has Related Behaviors anchor table and IntegrationTest field                                  | Does every TC include a Related Behaviors anchor table and `IntegrationTest:` field? | Is IntegrationTest populated with `{TestFile}::{MethodName}` (not `Untested` for Tested-status TCs)?      |
+| 11  | **Preservation Tests (bugfix context)** — When fixing a bug, at least 1 TC verifies the pre-fix behavior is no longer reproducible | If this is a bugfix: is there a TC that would have CAUGHT the bug before the fix? | Does the preservation TC assert the exact broken behavior (not just "no exception")?                        |
+
+#### Recommended (≥50% should pass)
+
+| #   | Check                                                                                                                                                       | Presence                                                                 | Quality Depth                                                                                                               |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Edge cases** — Boundary values, empty inputs, max limits tested                                                                                           | Are edge case TCs listed?                                                | Are these the RIGHT edge cases? Do they cover the 3 most likely production failure modes for this feature?                  |
+| 2   | **Integration points** — Cross-service scenarios covered                                                                                                    | Are cross-service TCs present where applicable?                          | Do integration TCs verify actual data flow across services, or just that a downstream call was made?                        |
+| 3   | **Performance TCs** — Response time or throughput expectations where relevant; production-like data volume TCs if >1000 records expected                    | Are performance TCs present where data volume or SLA expectations exist? | Do performance TCs use production-like data volumes, not toy datasets that trivially pass?                                  |
+| 4   | **Security TCs** — Auth, authorization, input validation tested                                                                                             | Are security TCs present for auth, authz, and input validation?          | Do security TCs attempt realistic attack vectors (SQLi, over-posting, privilege escalation) not just "invalid token → 401"? |
+| 5   | **Seed data TCs** — If feature needs reference data, TCs verify data exists and seeder runs correctly                                                       | If reference data is needed, does a seed data TC exist (or N/A)?         | If present, does the TC assert the exact seeded data shape, not just that the seeder ran without error?                     |
+| 6   | **Data migration TCs** — If schema changes exist, TCs verify data transforms correctly, rollback works, no data loss                                        | If schema changes exist, does a migration TC exist (or N/A)?             | If present, does the TC verify rollback behavior and zero data loss, not just forward migration success?                    |
+| 7   | **Test data requirements specified** — the data setup needed to run each test is documented                                                                 | Are test data requirements stated per test?                              | Is test data specific enough to create fixtures without guessing? Vague data requirements ("a valid user") will cause test setup divergence across environments. |
+| 8   | **GIVEN/WHEN/THEN format used** — tests follow the structured BDD format                                                                                    | Are all tests written in GIVEN/WHEN/THEN?                                | Are the THEN clauses assertions on observable outcomes, or on internal state? Tests asserting on internal state are brittle and break on refactoring.            |
 
 ## M1-M6 Compliance Gate (BLOCKING — applies to ALL artifact types)
 
@@ -199,7 +234,11 @@ Before approving, verify the code is **easy to read, easy to maintain, easy to u
 - **Magic values** — Unexplained numbers/strings should be named constants or have inline rationale
 - **Naming clarity** — Variables/functions should reveal intent without reading the implementation
 
-## Output Format
+## Output Format (per `--type`)
+
+Pick the template matching `--type`. All templates lead with a **Status/Verdict** and `### Required`/`### Recommended` tallies; the `pbi`/`story`/`spec-tests` shapes add their own evidence sections (preserved verbatim from the former `refine-review`, `story-review`, `tdd-spec-review` skills).
+
+### `--type=design` (default shape)
 
 ```
 ## Artifact Review
@@ -215,6 +254,98 @@ Before approving, verify the code is **easy to read, easy to maintain, easy to u
 
 ### Action Items (if NEEDS WORK)
 1. [Specific actionable item]
+```
+
+### `--type=pbi`
+
+```markdown
+## PBI Review Result
+
+**Status:** PASS | WARN | FAIL
+**Artifact:** {pbi-path}
+
+### Required ({X}/{Y})
+
+- ✅/❌ Check description
+
+### Recommended ({X}/{Y})
+
+- ✅/⚠️ Check description
+
+### Issues Found
+
+- ❌ FAIL: {issue}
+- ⚠️ WARN: {issue}
+
+### Verdict
+
+{PROCEED | REVISE_FIRST}
+```
+
+### `--type=story`
+
+```markdown
+## Story Review Result
+
+**Status:** PASS | WARN | FAIL
+**Stories reviewed:** {count}
+**Source PBI:** {pbi-path}
+
+### AC Coverage Matrix
+
+| Acceptance Criterion | Covered By Story | Status |
+| -------------------- | ---------------- | ------ |
+
+### Required ({X}/{Y})
+
+- ✅/❌ Check description
+
+### Recommended ({X}/{Y})
+
+- ✅/⚠️ Check description
+
+### Missing Stories
+
+- {Any PBI AC not covered}
+
+### Dependency Issues
+
+- {Circular deps, missing ordering}
+
+### Verdict
+
+{PROCEED | REVISE_FIRST}
+```
+
+### `--type=spec-tests`
+
+```markdown
+## Test Spec Review Result
+
+**Status:** PASS | WARN | FAIL
+**TCs reviewed:** {count}
+**Coverage:** {X}% of stories, {Y}% of acceptance criteria
+
+### Coverage Matrix
+
+| Story/AC | TC IDs | Happy | Error | Edge |
+| -------- | ------ | ----- | ----- | ---- |
+
+### Required ({X}/{Y})
+
+- ✅/❌ Check description
+
+### Recommended ({X}/{Y})
+
+- ✅/⚠️ Check description
+
+### Missing Coverage
+
+- {Stories/AC without TCs}
+
+### Verdict
+
+{PROCEED | REVISE_FIRST}
 ```
 
 ## Validated Fix + Full Re-Review (MANDATORY when fixes are applied)
@@ -287,11 +418,11 @@ After sub-agent returns:
 > **Project Reference Docs Gate** — Run after task-tracking bootstrap and before target/source file reads, grep, edits, or analysis. Project docs override generic framework assumptions.
 >
 > 1. Identify scope: file types, domain area, and operation.
-> 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-docs-reference.md`; architecture/new area `project-structure-reference.md`.
-> 3. Read every required doc. If `docs/project-config.json`, the docs index, `lessons.md`, or any task-required reference doc is missing, stop immediately and ask the user to run `$project-config` and `$scan-all`.
+> 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under `docs/specs/`; architecture/new area `project-structure-reference.md`.
+> 3. Read every required doc. If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow lower-level route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.
 > 4. Before target work, state: `Reference docs read: ... | Not applicable: ...`.
 >
-> **Blocked until:** scope evaluated, required docs checked/read, `lessons.md` confirmed, citation emitted.
+> **Ready when:** scope evaluated, required docs checked/read or setup route completed, `lessons.md` confirmed, citation emitted.
 
 <!-- /SYNC:project-reference-docs-guide -->
 
@@ -635,6 +766,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 - **MANDATORY** After task-tracking bootstrap and before target/source work, read required project-reference docs and cite `Reference docs read: ...`.
 - **MANDATORY** Always include `lessons.md`; project conventions override generic defaults.
+- **MANDATORY** If project config, root instruction files, or any required reference doc is missing, stop and run or ask the user to run `$project-init`.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
 
@@ -691,17 +823,14 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 
 ## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
 
-**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. If either file or a required reference doc is missing, stop immediately and ask the user to run the project-config and scan-all skills. Any supported AI tool may execute when this shared context and local docs are available.
+**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. Any supported AI tool may execute when this shared context and local docs are available.
 
-1. **DETECT:** Match prompt against workflow catalog
-2. **ANALYZE:** Find best-match workflow AND evaluate if a custom step combination would fit better
-3. **ASK (REQUIRED FORMAT):** Use a direct user question with this structure unless the user explicitly invoked a workflow/skill and the local protocol treats explicit invocation as confirmation:
-   - Question: "Which workflow do you want to activate?"
-   - Option 1: "Activate **[BestMatch Workflow]** (Recommended)"
-   - Option 2: "Activate custom workflow: **[step1 → step2 → ...]**" (include one-line rationale)
-4. **ACTIVATE (if confirmed):** Call `$workflow-start <workflowId>` for standard; sequence custom steps manually
-5. **CREATE TASKS:** task tracking for ALL workflow steps
-6. **EXECUTE:** Follow each step in sequence
+1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
+2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
+3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
+4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
+6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
 **AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
@@ -717,7 +846,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security`/`$lint` catch this?" — Yes → improve review skill instead.
+6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/`$lint` catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
 **[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
 

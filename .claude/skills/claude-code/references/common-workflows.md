@@ -23,7 +23,7 @@
 
 ```bash
 /fix login button not working
-/fix-types  # Fix TypeScript errors
+/fix --target=types  # Fix TypeScript errors
 ```
 
 **Complex debugging:**
@@ -69,7 +69,7 @@ claude "analyze the changes in PR #42"
 ## Git Operations
 
 ```bash
-/git-cp                        # Stage and commit
+/commit --push                 # Stage, commit, and push
 /git:cp                        # Stage, commit, and push
 /git:pr feature-branch main    # Create pull request from feature-branch to main
 ```

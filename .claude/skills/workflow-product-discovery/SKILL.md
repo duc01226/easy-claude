@@ -108,9 +108,9 @@ For **each selected opportunity**, the following steps run in sequence:
 | ---------------- | --------------------------------------------------------------------------- | ----------------------------------------------- |
 | `/idea`          | Capture as structured artifact                                              | `team-artifacts/ideas/{date}-po-idea-{slug}.md` |
 | `/refine`        | PBI with hypothesis, AC (GIVEN/WHEN/THEN), RICE                             | `team-artifacts/pbis/{date}-pbi-{slug}.md`      |
-| `/refine-review` | BA quality check on PBI                                                     | Reviewed PBI                                    |
+| `/review-artifact --type=pbi` | BA quality check on PBI                                                     | Reviewed PBI                                    |
 | `/story`         | User stories per PBI                                                        | Stories in PBI artifact                         |
-| `/story-review`  | Story quality and completeness check                                        | Reviewed stories                                |
+| `/review-artifact --type=story`  | Story quality and completeness check                                        | Reviewed stories                                |
 | `/pbi-challenge` | Dev BA PIC review — challenge prompts, AC quality, feasibility              | Challenge log                                   |
 | `/dor-gate`      | INVEST check — PASS/WARN/FAIL                                               | DoR result                                      |
 | `/pbi-mockup`    | HTML mock-up based on project reference design docs (skip for backend-only) | HTML mock-up file beside PBI artifact           |
@@ -132,7 +132,7 @@ At `/workflow-end`, AI presents:
 
 - Session summary: N PBIs created, X passed DoR, Y need rework
 - Ranked backlog with RICE scores
-- Recommended next step: `$sprint-planning` (backlog ready) or `$big-feature` (single large PBI needs deep research + implementation)
+- Recommended next step: `/full-feature-lifecycle` (backlog ready for delivery) or `/big-feature` (single large PBI needs deep research + implementation)
 - Blocked PBIs: list DoR failures with specific blocking items
 
 ## Conditional Skip Rules
@@ -146,9 +146,9 @@ At `/workflow-end`, AI presents:
 
 ---
 
-**IMPORTANT MANDATORY Steps:** /brainstorm -> /web-research -> /domain-analysis -> /why-review -> /idea -> /refine -> /why-review -> /refine-review -> /story -> /why-review -> /story-review -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /review-changes -> /prioritize -> /watzup -> /workflow-end
+**IMPORTANT MANDATORY Steps:** /brainstorm -> /web-research -> /domain-analysis -> /why-review -> /idea -> /refine -> /why-review -> /review-artifact --type=pbi -> /story -> /why-review -> /review-artifact --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /review-changes -> /prioritize -> /workflow-end -> /watzup
 
-**IMPORTANT MANDATORY Steps:** /brainstorm -> /web-research -> /domain-analysis -> /why-review -> /idea -> /refine -> /why-review -> /refine-review -> /story -> /why-review -> /story-review -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /review-changes -> /prioritize -> /watzup -> /workflow-end
+**IMPORTANT MANDATORY Steps:** /brainstorm -> /web-research -> /domain-analysis -> /why-review -> /idea -> /refine -> /why-review -> /review-artifact --type=pbi -> /story -> /why-review -> /review-artifact --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /review-changes -> /prioritize -> /workflow-end -> /watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
@@ -157,8 +157,8 @@ Activate the `product-discovery` workflow. Run `/workflow-start product-discover
 **Steps:**
 /brainstorm → /web-research → /domain-analysis → /why-review
 → **[TASK DECOMPOSITION GATE]** Create TaskCreate for every opportunity × step BEFORE looping
-→ [**loop per opportunity**] /idea → /refine → /refine-review → /story → /story-review → /pbi-challenge → /dor-gate → /pbi-mockup
-→ /review-changes → /prioritize → /watzup → /workflow-end
+→ [**loop per opportunity**] /idea → /refine → /review-artifact --type=pbi → /story → /review-artifact --type=story → /pbi-challenge → /dor-gate → /pbi-mockup
+→ /review-changes → /prioritize → /workflow-end → /watzup
 
 > **Scale awareness:** This workflow can generate 8 opportunities × 8 steps = 64 artifact units plus a ranked backlog. Use the Task Decomposition Gate and incremental-write patterns to prevent context overrun. For 6+ opportunities, use sub-agent parallel processing (one sub-agent per opportunity, main context assembles at /prioritize).
 

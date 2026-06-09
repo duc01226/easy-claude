@@ -272,15 +272,14 @@ Returns a multi-level tree of connected nodes grouped by BFS depth, with edge ty
 - **Don't rebuild graph** -- use `/graph-build` for that. This skill only queries.
 - **Don't use for change-driven analysis** -- use `/graph-blast-radius` for git-diff-based impact.
 - **Don't use for bulk export** -- use `/graph-export` for full graph dump.
-- **Don't use for diagrams** -- use `/graph-export-mermaid` for Mermaid visualization.
+- **Don't use for diagrams** -- use `/graph-export --format=mermaid` for Mermaid visualization.
 - **Always use `--json` flag** -- ensures structured parseable output.
 
 ## Related Skills
 
 - `/graph-build` -- Build or update the graph (prerequisite)
 - `/graph-blast-radius` -- Change-driven impact analysis from git diff
-- `/graph-export` -- Export full graph to JSON
-- `/graph-export-mermaid` -- Export file graph as Mermaid diagram
+- `/graph-export` -- Export full graph to JSON (`--format=json`) or a single file as a Mermaid diagram (`--format=mermaid`)
 
 ---
 

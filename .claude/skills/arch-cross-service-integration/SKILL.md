@@ -267,7 +267,7 @@ if (existing.LastMessageSyncDate <= message.CreatedUtcDate)
 
 ## Related
 
-- `arch-security-review`
+- `security-review`
 - `api-design`
 
 ---

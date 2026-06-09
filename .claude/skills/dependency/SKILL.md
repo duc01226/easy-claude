@@ -41,8 +41,8 @@ Analyze and visualize dependencies between features, services, modules, or work 
 ## When NOT to Use
 
 - Single-service code changes with no cross-boundary impact -- just implement directly
-- Performance analysis -- use `arch-performance-optimization` instead
-- Security dependency auditing -- use `arch-security-review` instead
+- Performance analysis -- use `performance` instead
+- Security dependency auditing -- use `security-review` instead
 - Package/npm dependency upgrades -- use `package-upgrade` instead
 
 ## Prerequisites
@@ -173,7 +173,7 @@ graph TD
 ## Related Skills
 
 - `project-manager` -- for sprint planning and status tracking
-- `feature-implementation` -- for implementing features after dependency analysis
+- `feature` -- for implementing features after dependency analysis
 - `arch-cross-service-integration` -- for designing cross-service communication
 - `package-upgrade` -- for npm/NuGet package dependency upgrades
 

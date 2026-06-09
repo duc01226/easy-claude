@@ -30,14 +30,11 @@ const { isMarkerInContext, loadTranscriptLines } = require('./lib/transcript-uti
 const MINDSET_SKILLS = new Set([
     'plan',
     'plan-validate',
-    'planning',
     'cook',
     'code',
     'fix',
     'fix-issue',
-    'fix-types',
     'feature',
-    'feature-implementation',
     'refactoring',
     'refine',
     'debug',
@@ -47,14 +44,14 @@ const MINDSET_SKILLS = new Set([
     'review-post-task',
     'integration-test',
     'integration-test-review',
-    'tdd-spec',
+    'spec-tests',
     // Investigation skills — also get graph protocol reminder
     'scout',
     'investigate',
     'feature-investigation',
     'prove-fix',
-    'security',
-    'performance'
+    'security-review',
+    'performance-review'
 ]);
 
 // Subset of skills that REQUIRE graph trace — gets extra graph protocol injection
@@ -68,8 +65,8 @@ const GRAPH_REQUIRED_SKILLS = new Set([
     'prove-fix',
     'code-review',
     'review-changes',
-    'security',
-    'performance',
+    'security-review',
+    'performance-review',
     'plan'
 ]);
 

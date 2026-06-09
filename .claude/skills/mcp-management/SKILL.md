@@ -1,8 +1,8 @@
 ---
 name: mcp-management
 version: 1.0.0
-description: '[AI & Tools] Use when discovering, filtering, executing, or integrating MCP tools, prompts, and resources.'
-disable-model-invocation: true
+description: '[AI & Tools] Use when discovering, filtering, executing, or integrating MCP tools, prompts, and resources — or working with Model Context Protocol (MCP) server tools (invoke mode).'
+disable-model-invocation: false
 ---
 
 ## Quick Summary
@@ -54,6 +54,25 @@ Use this skill when:
 3. **Executing MCP Tools**: Calling MCP tools programmatically with proper parameter handling
 4. **MCP Integration**: Building or debugging MCP client implementations
 5. **Context Management**: Avoiding context pollution by delegating MCP operations to subagents
+
+## Invocation Modes
+
+This skill is **auto-invocable** — Claude fires it on MCP-work detection (it absorbs the former `use-mcp` shim) — and user-invocable as `/mcp-management`. Three modes:
+
+| Mode     | Trigger                         | Behavior                                                                            |
+| -------- | ------------------------------- | ----------------------------------------------------------------------------------- |
+| `list`   | discovery request               | `npx tsx scripts/cli.ts list-tools` / `list-prompts` / `list-resources` → `assets/tools.json` |
+| `call`   | explicit tool execution         | `npx tsx scripts/cli.ts call-tool <server> <tool> <json>`                           |
+| `invoke` | a task string needing MCP tools | Pipe the task to Gemini CLI (stdin, MCP-init preserved); `general-purpose` subagent fallback |
+
+**`invoke` (former `use-mcp` behavior):** execute an MCP task in one shot while preserving context budget:
+
+```bash
+# IMPORTANT: stdin piping, NOT -p flag (deprecated, skips MCP init)
+echo "$ARGUMENTS. Return JSON only per GEMINI.md instructions." | gemini -y -m gemini-2.5-flash
+```
+
+If Gemini CLI is unavailable, fall back to the `general-purpose` subagent (see Pattern 2 — Subagent-Based Execution).
 
 ## Core Capabilities
 
@@ -150,6 +169,13 @@ See [references/gemini-cli-integration.md](references/gemini-cli-integration.md)
 ### Pattern 2: Subagent-Based Execution (Fallback)
 
 Use `general-purpose` agent when Gemini CLI unavailable. Subagent discovers tools, selects relevant ones, executes tasks, reports back.
+
+**Fallback guardrails (from the absorbed `use-mcp` invoke path):**
+
+- If the subagent hits issues with this skill's scripts, use the `mcp-builder` skill to fix them.
+- **Reuse the existing `mcp-management`/`mcp-builder` scripts only — DO NOT create ANY new scripts.**
+- The subagent may only use MCP tools (if any) to achieve the task.
+- If no suitable MCP tool exists, report back to the main agent to move on — do not improvise.
 
 **Benefit**: Main context stays clean, only relevant tool definitions loaded when needed.
 

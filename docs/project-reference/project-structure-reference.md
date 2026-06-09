@@ -11,16 +11,16 @@
 
 | Component      | Count                                                                                         | Location                      | Format                                                                             |
 | -------------- | --------------------------------------------------------------------------------------------- | ----------------------------- | ---------------------------------------------------------------------------------- |
-| Hooks          | <!-- COUNT:hooks -->65<!-- /COUNT -->                                                         | `.claude/hooks/*.cjs`         | Top-level CommonJS Node.js hook scripts counted by ADR-0002                        |
-| Hook Libraries | <!-- COUNT:lib-modules -->29<!-- /COUNT -->                                                   | `.claude/hooks/lib/*.cjs`     | CommonJS utility modules                                                           |
-| Skills         | <!-- COUNT:skills -->258<!-- /COUNT -->                                                       | `.claude/skills/*/SKILL.md`   | Markdown + YAML frontmatter                                                        |
-| Agents         | <!-- COUNT:agents -->28<!-- /COUNT -->                                                        | `.claude/agents/*.md`         | Markdown definitions                                                               |
-| Workflows      | <!-- COUNT:workflows -->37<!-- /COUNT -->                                                     | `.claude/workflows.json`      | JSON workflow definitions                                                          |
+| Hooks          | <!-- COUNT:hooks -->66<!-- /COUNT -->                                                         | `.claude/hooks/*.cjs`         | Top-level CommonJS Node.js hook scripts counted by ADR-0002                        |
+| Hook Libraries | <!-- COUNT:lib-modules -->31<!-- /COUNT -->                                                   | `.claude/hooks/lib/*.cjs`     | CommonJS utility modules                                                           |
+| Skills         | <!-- COUNT:skills -->185<!-- /COUNT -->                                                       | `.claude/skills/*/SKILL.md`   | Markdown + YAML frontmatter                                                        |
+| Agents         | <!-- COUNT:agents -->29<!-- /COUNT -->                                                        | `.claude/agents/*.md`         | Markdown definitions                                                               |
+| Workflows      | <!-- COUNT:workflows -->21<!-- /COUNT -->                                                     | `.claude/workflows.json`      | JSON workflow definitions                                                          |
 | Output Styles  | 6                                                                                             | `.claude/output-styles/*.md`  | Coding level presets (ELI5→God)                                                    |
 | Scripts        | 28                                                                                            | `.claude/scripts/*`           | CJS + Python utilities (top-level; excludes code_graph package internals + tests/) |
 | Codex Scripts  | 10                                                                                            | `.claude/scripts/codex/*.mjs` | ESM sync, migration, notification, and verification tools                          |
 | Hook Tests     | 16 suites + 13 standalone                                                                     | `.claude/hooks/tests/`        | CJS/JS test files; 14 `test-*` files including primary runner                      |
-| Codex Mirrors  | <!-- COUNT:skills -->258<!-- /COUNT --> skills, <!-- COUNT:agents -->28<!-- /COUNT --> agents | `.agents/`, `.codex/`         | Generated Codex-compatible copy                                                    |
+| Codex Mirrors  | <!-- COUNT:skills -->185<!-- /COUNT --> skills, <!-- COUNT:agents -->29<!-- /COUNT --> agents | `.agents/`, `.codex/`         | Generated Codex-compatible copy                                                    |
 
 ## Project Directory Tree
 
@@ -278,11 +278,11 @@ easy-claude/
 
 | Code | Module         | Location                       | Description                                                                                                                 |
 | ---- | -------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
-| HK   | Hooks          | `.claude/hooks/`               | <!-- COUNT:hooks -->65<!-- /COUNT --> top-level `.cjs` runtime enforcement & context injection hook files                   |
-| HL   | Hook Libraries | `.claude/hooks/lib/`           | <!-- COUNT:lib-modules -->29<!-- /COUNT --> shared utility modules for hooks                                                |
-| SK   | Skills         | `.claude/skills/`              | <!-- COUNT:skills -->258<!-- /COUNT --> task automation skill definitions                                                   |
-| AG   | Agents         | `.claude/agents/`              | <!-- COUNT:agents -->28<!-- /COUNT --> specialized subagent role definitions                                                |
-| WF   | Workflows      | `.claude/workflows.json`       | <!-- COUNT:workflows -->37<!-- /COUNT --> end-to-end process orchestrations                                                 |
+| HK   | Hooks          | `.claude/hooks/`               | <!-- COUNT:hooks -->66<!-- /COUNT --> top-level `.cjs` runtime enforcement & context injection hook files                   |
+| HL   | Hook Libraries | `.claude/hooks/lib/`           | <!-- COUNT:lib-modules -->31<!-- /COUNT --> shared utility modules for hooks                                                |
+| SK   | Skills         | `.claude/skills/`              | <!-- COUNT:skills -->185<!-- /COUNT --> task automation skill definitions                                                   |
+| AG   | Agents         | `.claude/agents/`              | <!-- COUNT:agents -->29<!-- /COUNT --> specialized subagent role definitions                                                |
+| WF   | Workflows      | `.claude/workflows.json`       | <!-- COUNT:workflows -->21<!-- /COUNT --> end-to-end process orchestrations                                                 |
 | SC   | Scripts        | `.claude/scripts/`             | 28 top-level utility scripts (catalog gen, audit, worktree, statusline-tps); excludes code_graph package internals + tests/ |
 | CX   | Codex Tooling  | `.claude/scripts/codex/`       | 10 sync, migration, notification, and verification scripts                                                                  |
 | CM   | Codex Mirrors  | `.agents/`, `.codex/`          | Generated Codex-compatible skills, agents, hooks                                                                            |
@@ -291,7 +291,7 @@ easy-claude/
 | SB   | Scout Block    | `.claude/hooks/scout-block/`   | Broad search prevention subsystem (4 modules)                                                                               |
 | HT   | Hook Tests     | `.claude/hooks/tests/`         | 16 test suites + 13 standalone tests; 14 `test-*` files including primary runner                                            |
 
-## Hooks (<!-- COUNT:hooks -->65<!-- /COUNT --> top-level `.cjs` files)
+## Hooks (<!-- COUNT:hooks -->66<!-- /COUNT --> top-level `.cjs` files)
 
 ### Safety Hooks
 
@@ -366,7 +366,7 @@ easy-claude/
 | `subagent-init-todos`             | SubagentStart     | 8/8: Parent todo list handoff                        |
 | `notify-waiting`                  | Stop/Notification | Cross-platform desktop notifications                 |
 
-## Workflows (<!-- COUNT:workflows -->37<!-- /COUNT -->)
+## Workflows (<!-- COUNT:workflows -->21<!-- /COUNT -->)
 
 | Category                       | Registered Workflows                                                                                                                                                                           |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -383,7 +383,7 @@ easy-claude/
 > `pm-reporting`, `pre-development`, `qa-po-acceptance`, `research`, `seed-test-data`,
 > `sprint-planning`, `sprint-retro`, `start`, `testing`
 
-## Agents (<!-- COUNT:agents -->28<!-- /COUNT -->)
+## Agents (<!-- COUNT:agents -->29<!-- /COUNT -->)
 
 | Agent                      | Specialization                               |
 | -------------------------- | -------------------------------------------- |
@@ -424,7 +424,7 @@ easy-claude/
 | `.claude/hooks/session-init.cjs`             | Session startup — loads config, sets state                         |
 | `.claude/hooks/workflow-router.cjs`          | Intent matching — routes to workflows                              |
 | `.claude/hooks/prompt-context-assembler.cjs` | Assembles full prompt context                                      |
-| `.claude/workflows.json`                     | All <!-- COUNT:workflows -->37<!-- /COUNT --> workflow definitions |
+| `.claude/workflows.json`                     | All <!-- COUNT:workflows -->21<!-- /COUNT --> workflow definitions |
 | `docs/project-config.json`                   | Project-specific runtime configuration                             |
 | `.claude/hooks/tests/test-all-hooks.cjs`     | Main test runner                                                   |
 | `CLAUDE.md`                                  | Project instructions for Claude                                    |

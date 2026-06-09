@@ -348,13 +348,6 @@
   argument_hint: ''
   power_level: 1
   category: core
-- name: /ck:use-mcp
-  path: use-mcp.md
-  description: Utilize tools of Model Context Protocol (MCP) servers
-  argument_hint:
-  - task
-  power_level: 0
-  category: core
 - name: /ck:watzup
   path: watzup.md
   description: Review recent changes and wrap up the work

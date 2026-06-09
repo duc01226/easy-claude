@@ -165,6 +165,28 @@
       "sections": []
     },
     {
+      "filename": "feature-spec-reference.md",
+      "purpose": "Feature Spec structure, authoring rules, and test case format",
+      "sections": [
+        "Directory Convention",
+        "8-Section Structure",
+        "Test Case ID Format",
+        "Evidence Rule"
+      ],
+      "templatePath": ".claude/templates/reference-docs/feature-spec-reference.md"
+    },
+    {
+      "filename": "spec-system-reference.md",
+      "purpose": "Project-specific extension for local spec routing, canonical artifact ownership, and generated-artifact rules",
+      "sections": [
+        "Fixed Spec Root",
+        "Canonical Artifact",
+        "Test Case Registry",
+        "Derived Artifacts"
+      ],
+      "templatePath": ".claude/templates/reference-docs/spec-system-reference.md"
+    },
+    {
       "filename": "spec-principles.md",
       "purpose": "Project-specific extension for local spec, test, and documentation rules",
       "sections": [

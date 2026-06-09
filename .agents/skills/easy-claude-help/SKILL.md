@@ -25,12 +25,14 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 - `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
 - `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
 
-**Missing-file hard stop:** If `docs/project-config.json`, the docs index, `lessons.md`, or any task-required reference doc is missing, stop immediately and ask the user to run `$project-config` and `$scan-all`.
+**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.
 
 **Situation-based docs:**
 - Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`, `project-structure-reference.md`
 - Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md`
-- Spec/test-case planning or TC mapping: `feature-docs-reference.md`
+- Spec authoring, `docs/specs/` pathing, or TC format: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`
+- Behavior/public-contract changes or spec-test-code sync: `workflow-spec-test-code-cycle-reference.md` plus the spec docs above
+- Derived spec indexes/ERDs/reimplementation guides: `spec-system-reference.md` and source Feature Specs under `docs/specs/`
 - Integration test implementation/review: `integration-test-reference.md`
 - E2E test implementation/review: `e2e-test-reference.md`
 - Code review/audit work: `code-review-rules.md` plus domain docs above based on changed files
@@ -71,45 +73,17 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 .claude/.ck.local.json    ← personal override (gitignored, per-developer)
 ```
 
-Each layer overrides the previous via deep merge — you only need to set values you want to override. Use `.ck.local.json` for personal preferences that shouldn't be committed (e.g., your own `codingLevel` or `workflow.confirmationMode`).
+Each layer overrides the previous via deep merge — you only need to set values you want to override. Use `.ck.local.json` for personal preferences that shouldn't be committed (e.g., your own `codingLevel`).
 
 ---
 
 ## Key Settings
 
-### 1. Workflow Confirmation Mode
+### 1. Workflow Auto-Selection
 
-Controls whether workflow detection requires user confirmation before activating.
+Workflow detection auto-selects the best execution path by default: direct execution, a skill, a standard workflow, or a custom workflow. Explicit `/skill`, `/workflow-*`, or `$workflow-start <id>` prompts execute directly.
 
-**Location:** `.claude/.ck.json` → `workflow.confirmationMode`
-
-| Value      | Behavior                                                                                                                             |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `"always"` | (default) Always asks via ask the user directly before activating any workflow. Collaborative mode — best for most users.                  |
-| `"never"`  | Auto-executes detected workflow without asking. Use `quick:` prefix behavior globally. Best for power users who trust the detection. |
-| `"off"`    | Disables workflow detection entirely. Plain Claude behavior — no catalog injection, no confirmation gate, no overhead.               |
-
-**Example — disable confirmation gate:**
-
-```json
-{
-    "workflow": {
-        "confirmationMode": "never"
-    }
-}
-```
-
-**Example — full opt-out (plain Claude):**
-
-```json
-{
-    "workflow": {
-        "confirmationMode": "off"
-    }
-}
-```
-
-> **Tip:** Even in `"always"` mode, you can prefix any prompt with `quick:` to skip confirmation for that prompt only (e.g., `quick: review the auth code`).
+There is no workflow confirmation-mode setting. Do not add `workflow.confirmationMode` or `quick:` bypass configuration to `.ck.json`.
 
 ---
 
@@ -239,34 +213,18 @@ Controls how old reference docs can be before the staleness gate activates.
 
 ## Quick Configuration Examples
 
-### Power User Setup (minimal overhead)
+### Power User Setup
 
 ```json
 {
-    "workflow": {
-        "confirmationMode": "never"
-    },
     "codingLevel": 5
 }
 ```
 
-### Opt-out Setup (plain Claude)
+### Team Setup (Vietnamese responses)
 
 ```json
 {
-    "workflow": {
-        "confirmationMode": "off"
-    }
-}
-```
-
-### Team Setup (collaborative, Vietnamese responses)
-
-```json
-{
-    "workflow": {
-        "confirmationMode": "always"
-    },
     "codingLevel": 3,
     "locale": {
         "responseLanguage": "vi"
@@ -301,7 +259,6 @@ Controls how old reference docs can be before the staleness gate activates.
 
 **What gets checked:**
 
-- `confirmationMode` must be one of `"always"`, `"never"`, `"off"`
 - `codingLevel` must be a number between -1 and 5
 - `assertions` must be an array of strings
 - Unknown top-level keys produce warnings (catches typos like `workfow`)
@@ -319,9 +276,7 @@ node .claude/hooks/lib/ck-config-schema.cjs .claude/.ck.json
 The workflow catalog itself lives in `.claude/workflows.json`. You can:
 
 - Set `settings.enabled: false` to disable workflow injection entirely
-- Change `settings.overridePrefix` (default `"quick:"`) for the per-prompt skip prefix
-
-> **Note:** Prefer `.ck.json → workflow.confirmationMode` over editing `workflows.json` directly, as `.ck.json` supports global+local cascading.
+- Edit workflow definitions, command mappings, and workflow sequences when catalog behavior changes
 
 ---
 
@@ -337,10 +292,9 @@ Optional feature that builds a knowledge graph of your codebase for graph-blast-
 | ----------------------- | -------------------------------------------------- |
 | `$graph-build`          | Build or update the knowledge graph                |
 | `$graph-blast-radius`   | Analyze impact of current changes                  |
-| `$graph-export`         | Export graph to JSON                               |
+| `$graph-export`         | Export graph to JSON (`--format=json`) or single-file Mermaid diagram (`--format=mermaid`) |
 | `$graph-connect-api`    | Detect frontend→backend API connections            |
 | `$graph-query`          | Query code relationships (callers, imports, tests) |
-| `$graph-export-mermaid` | Export single-file graph as Mermaid diagram        |
 
 **Auto-features (when graph is built):**
 
@@ -411,17 +365,14 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 
 ## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
 
-**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. If either file or a required reference doc is missing, stop immediately and ask the user to run the project-config and scan-all skills. Any supported AI tool may execute when this shared context and local docs are available.
+**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. Any supported AI tool may execute when this shared context and local docs are available.
 
-1. **DETECT:** Match prompt against workflow catalog
-2. **ANALYZE:** Find best-match workflow AND evaluate if a custom step combination would fit better
-3. **ASK (REQUIRED FORMAT):** Use a direct user question with this structure unless the user explicitly invoked a workflow/skill and the local protocol treats explicit invocation as confirmation:
-   - Question: "Which workflow do you want to activate?"
-   - Option 1: "Activate **[BestMatch Workflow]** (Recommended)"
-   - Option 2: "Activate custom workflow: **[step1 → step2 → ...]**" (include one-line rationale)
-4. **ACTIVATE (if confirmed):** Call `$workflow-start <workflowId>` for standard; sequence custom steps manually
-5. **CREATE TASKS:** task tracking for ALL workflow steps
-6. **EXECUTE:** Follow each step in sequence
+1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
+2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
+3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
+4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
+6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
 **AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
@@ -437,7 +388,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security`/`$lint` catch this?" — Yes → improve review skill instead.
+6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/`$lint` catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
 **[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
 

@@ -67,7 +67,7 @@ Before applying any rule, ask: **does this lower or raise future change cost?**
 
 ## Quality Tooling Principle — Tech-Stack Adaptive
 
-> Architecture review includes automated quality guardrails. Without stack-appropriate linting, formatting, type checks, static analysis, dependency/security scanning, and CI enforcement, defects depend on reviewer memory.
+> Architecture review includes automated quality guardrails. Without stack-appropriate linting, formatting, type checks, static analysis, dependency/security-review scanning, and CI enforcement, defects depend on reviewer memory.
 
 Evaluate detected stacks, not a fixed tool list:
 
@@ -134,6 +134,8 @@ For EACH file in scope, evaluate against ALL applicable categories. Skip categor
 
 MUST ATTENTION review serially. For each applicable category: read docs/source evidence → derive risk with `Think:` → grep 3+ examples/counterexamples → record PASS/WARN/BLOCKED. NEVER scan categories simultaneously.
 
+> **Portability note (MUST ATTENTION):** The concrete framework symbols, base-class names, and directory conventions in Categories 2–8 below are **this project's examples**, sourced from the Phase 0 reference docs (`backend-patterns-reference.md`, `frontend-patterns-reference.md`, `project-structure-reference.md`) — they are authoritative **for this repository**, so verify code against them here. On a different stack, map each to that project's equivalent as named in its own reference docs, and flag deviations from the project's **actual** convention — never from these literal names. Same discipline as Category 5: read project docs at review time; never treat a hardcoded name as universal.
+
 ---
 
 ### Category 0: Quality Tooling Baseline — Severity: BLOCKED/WARN
@@ -184,11 +186,11 @@ BLOCKED: {layer} layer file {filePath}:{line} imports from {forbiddenLayer} laye
 - Request messages: `{ConsumerServiceName}{Feature}RequestBusMessage`
 - Grep existing examples before flagging: `grep -r "EventBusMessage" --include="*.cs"`
 
-**Base classes (BLOCKED):**
+**Base classes (BLOCKED):** Verify against the bus base types named in `backend-patterns-reference.md` (Phase 0); concrete names are this project's examples.
 
-- Bus messages MUST extend `PlatformTrackableBusMessage` or `PlatformBusMessage<TPayload>`
-- Consumers MUST extend `PlatformApplicationMessageBusConsumer<TMessage>`
-- Producers MUST extend `PlatformCqrsEventBusMessageProducer<TEvent, TMessage>`
+- Bus messages MUST extend the project's trackable/payload bus-message base _(e.g. this project: `PlatformTrackableBusMessage` / `PlatformBusMessage<TPayload>`)_
+- Consumers MUST extend the project's message-bus consumer base _(e.g. `PlatformApplicationMessageBusConsumer<TMessage>`)_
+- Producers MUST extend the project's event-bus-message producer base _(e.g. `PlatformCqrsEventBusMessageProducer<TEvent, TMessage>`)_
 
 **Upstream/Downstream (BLOCKED):**
 
@@ -221,19 +223,17 @@ BLOCKED: {layer} layer file {filePath}:{line} imports from {forbiddenLayer} laye
 
 **Validation (BLOCKED):**
 
-- MUST use `PlatformValidationResult` fluent API (`.And()`, `.AndAsync()`)
-- NEVER throw exceptions for validation — return validation result
-- Sync validation in `command.Validate()`, async in `ValidateRequestAsync()`
+- MUST use the project's validation-result fluent API — NEVER thrown exceptions for validation; return a validation result _(e.g. this project: `PlatformValidationResult` with `.And()`/`.AndAsync()`; verify the exact type in `backend-patterns-reference.md`)_
+- Sync validation in the command's validate hook, async in the request-validation hook _(e.g. `command.Validate()` / `ValidateRequestAsync()`)_
 
 **DTO mapping (BLOCKED):**
 
-- DTOs MUST own mapping via `MapToEntity()` or `MapToObject()`
-- NEVER map in command handlers
+- DTOs MUST own entity mapping via the project's DTO base mapping methods — NEVER map in command handlers _(e.g. this project: `MapToEntity()` / `MapToObject()`)_
 
 **Side effects (BLOCKED):**
 
 - NEVER put side effects (notifications, sync, cascade updates) in command handlers
-- Side effects go in Entity Event Handlers under `UseCaseEvents/`
+- Side effects go in Entity Event Handlers under the project's event-handler directory _(e.g. this project: `UseCaseEvents/`)_
 - Each handler = one independent concern (failures don't cascade)
 
 ---
@@ -242,9 +242,8 @@ BLOCKED: {layer} layer file {filePath}:{line} imports from {forbiddenLayer} laye
 
 **Think:** Is this using a service-specific repo interface, not the generic one? Are complex queries extracted to RepositoryExtensions?
 
-- MUST use service-specific repo: `I{ServiceName}PlatformRootRepository<TEntity>` (e.g., `IGrowthRootRepository<T>`, `ICandidatePlatformRootRepository<T>`)
-- NEVER use generic `IPlatformRootRepository<T>` directly
-- Complex queries MUST use `RepositoryExtensions` with static expressions
+- MUST use the project's service-specific repository abstraction — NEVER the generic root-repository base directly; the per-service naming scheme is defined in `backend-patterns-reference.md` _(e.g. this project: `I{ServiceName}PlatformRootRepository<TEntity>` such as `IGrowthRootRepository<T>`; the forbidden generic is `IPlatformRootRepository<T>`)_
+- Complex queries MUST use the project's repository-extension pattern with static expressions _(e.g. `RepositoryExtensions`)_
 - All query filter/FK/sort columns MUST have database indexes
 
 **Violation format:**
@@ -273,13 +272,13 @@ BLOCKED: {filePath}:{line} uses generic IPlatformRootRepository instead of servi
 
 **Location (BLOCKED):**
 
-- Entity event handlers MUST be in `UseCaseEvents/` directory
+- Entity event handlers MUST be in the project's event-handler directory _(e.g. this project: `UseCaseEvents/`)_
 - NEVER inline side effects in command handlers
 
 **Implementation (BLOCKED):**
 
-- MUST extend `PlatformCqrsEntityEventApplicationHandler<TEntity>`
-- MUST implement `HandleWhen()` to filter by CRUD action
+- MUST extend the project's entity-event application-handler base _(e.g. this project: `PlatformCqrsEntityEventApplicationHandler<TEntity>`; see `backend-patterns-reference.md`)_
+- MUST implement the CRUD-action filter hook _(e.g. `HandleWhen()`)_
 - One handler = one independent concern
 
 **Naming (WARN):**
@@ -289,8 +288,8 @@ BLOCKED: {filePath}:{line} uses generic IPlatformRootRepository instead of servi
 
 **Producer patterns (BLOCKED):**
 
-- Bus message producers MUST extend `PlatformCqrsEventBusMessageProducer<TEvent, TMessage>`
-- MUST implement `BuildMessage()` and `HandleWhen()`
+- Bus message producers MUST extend the project's event-bus-message producer base _(e.g. this project: `PlatformCqrsEventBusMessageProducer<TEvent, TMessage>`)_
+- MUST implement the message-build and action-filter hooks _(e.g. `BuildMessage()` / `HandleWhen()`)_
 
 ---
 
@@ -316,14 +315,16 @@ BLOCKED: {filePath}:{line} references {otherService} domain/persistence directly
 
 **Think:** Are components extending the right base class? Is state going through the store? Are subscriptions properly cleaned up?
 
-- Components MUST extend `AppBaseComponent`, `AppBaseVmStoreComponent`, or `AppBaseFormComponent` (BLOCKED)
-- State MUST use `PlatformVmStore` + `effectSimple()` — NEVER manual signals or direct HttpClient (BLOCKED)
-- API services MUST extend `PlatformApiService` (BLOCKED)
-- All subscriptions MUST use `.pipe(this.untilDestroyed())` — NEVER manual unsubscribe (BLOCKED)
-- All template elements MUST have BEM classes (WARN)
+Verify against `frontend-patterns-reference.md` (Phase 0, frontend files); concrete names are this project's examples.
+
+- Components MUST extend the project's component base classes (BLOCKED) _(e.g. this project: `AppBaseComponent` / `AppBaseVmStoreComponent` / `AppBaseFormComponent`)_
+- State MUST use the project's view-model store + reactive-effect pattern — NEVER manual signals or a direct HTTP client (BLOCKED) _(e.g. `PlatformVmStore` + `effectSimple()`)_
+- API services MUST extend the project's API-service base (BLOCKED) _(e.g. `PlatformApiService`)_
+- All subscriptions MUST use the project's auto-teardown operator — NEVER manual unsubscribe (BLOCKED) _(e.g. `.pipe(this.untilDestroyed())`)_
+- All template elements MUST carry the project's CSS-naming-convention classes (WARN) _(e.g. BEM `block__element --modifier`)_
 - Logic in lowest layer: Model > Service > Component (WARN)
 
-> **Boundary with `/review-ui`:** This category owns frontend ARCHITECTURE — base classes, `PlatformVmStore`/`effectSimple`, `PlatformApiService`, subscription teardown, layer placement, BEM-class presence. VISUAL/styling quality — long-content overflow, responsive multi-screen flex, flex-vs-fixed sizing, z-index discipline, and SCSS/CSS detail — is owned by `/review-ui`, which `/review-changes` invokes as its UI dimension when frontend changes are present. Flag missing base classes / store / teardown here; defer SCSS-quality depth and visual-layout findings to review-ui to avoid double-reporting.
+> **Boundary with `/review-ui`:** This category owns frontend ARCHITECTURE — base classes, the view-model store / reactive-effect pattern, the API-service base, subscription teardown, layer placement, CSS-naming-class presence. VISUAL/styling quality — long-content overflow, responsive multi-screen flex, flex-vs-fixed sizing, z-index discipline, and SCSS/CSS detail — is owned by `/review-ui`, which `/review-changes` invokes as its UI dimension when frontend changes are present. Flag missing base classes / store / teardown here; defer SCSS-quality depth and visual-layout findings to review-ui to avoid double-reporting.
 
 ---
 
@@ -687,11 +688,11 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > **Project Reference Docs Gate** — Run after task-tracking bootstrap and before target/source file reads, grep, edits, or analysis. Project docs override generic framework assumptions.
 >
 > 1. Identify scope: file types, domain area, and operation.
-> 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-docs-reference.md`; architecture/new area `project-structure-reference.md`.
-> 3. Read every required doc. If `docs/project-config.json`, the docs index, `lessons.md`, or any task-required reference doc is missing, stop immediately and ask the user to run `/project-config` and `/scan-all`.
+> 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under `docs/specs/`; architecture/new area `project-structure-reference.md`.
+> 3. Read every required doc. If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `/project-init` or the narrow lower-level route (`/project-config`, `/docs-init`, `/scan-all`, `/scan --target=<key>`, `/claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `/sync-codex`; do not auto-run it.
 > 4. Before target work, state: `Reference docs read: ... | Not applicable: ...`.
 >
-> **Blocked until:** scope evaluated, required docs checked/read, `lessons.md` confirmed, citation emitted.
+> **Ready when:** scope evaluated, required docs checked/read or setup route completed, `lessons.md` confirmed, citation emitted.
 
 <!-- /SYNC:project-reference-docs-guide -->
 
@@ -865,6 +866,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 - **MANDATORY** After task-tracking bootstrap and before target/source work, read required project-reference docs and cite `Reference docs read: ...`.
 - **MANDATORY** Always include `lessons.md`; project conventions override generic defaults.
+- **MANDATORY** If project config, root instruction files, or any required reference doc is missing, stop and run or ask the user to run `/project-init`.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
 

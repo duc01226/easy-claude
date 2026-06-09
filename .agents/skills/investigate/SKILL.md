@@ -1,6 +1,6 @@
 ---
 name: investigate
-description: '[Fix & Debug] Use when you need investigate and explain how existing features or logic work.'
+description: '[Fix & Debug] Use when you need investigate and explain how existing features or logic work. Flag: --mode=explain produces a one-way developer-narrative explanation (Purpose → How → Why → Impact) tuned by coding level; use /understand for the standalone prompt-driven explainer.'
 ---
 
 > Codex compatibility note:
@@ -24,12 +24,14 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 - `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
 - `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
 
-**Missing-file hard stop:** If `docs/project-config.json`, the docs index, `lessons.md`, or any task-required reference doc is missing, stop immediately and ask the user to run `$project-config` and `$scan-all`.
+**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.
 
 **Situation-based docs:**
 - Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`, `project-structure-reference.md`
 - Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md`
-- Spec/test-case planning or TC mapping: `feature-docs-reference.md`
+- Spec authoring, `docs/specs/` pathing, or TC format: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`
+- Behavior/public-contract changes or spec-test-code sync: `workflow-spec-test-code-cycle-reference.md` plus the spec docs above
+- Derived spec indexes/ERDs/reimplementation guides: `spec-system-reference.md` and source Feature Specs under `docs/specs/`
 - Integration test implementation/review: `integration-test-reference.md`
 - E2E test implementation/review: `e2e-test-reference.md`
 - Code review/audit work: `code-review-rules.md` plus domain docs above based on changed files
@@ -52,6 +54,11 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 7. **Synthesis** — Write executive summary to `.ai/workspace/analysis/[feature]-investigation.md`
 8. **Present** — Deliver structured findings, offer deeper dives
 
+**Modes:**
+
+- **Default (analysis)** — investigate for an engineer audience: structured findings + analysis file. Everything below applies.
+- **`--mode=explain`** (developer narrative) — same READ-ONLY evidence gate, but the deliverable is a one-way developer explanation (Purpose → How → Why → Impact), tuned by coding level, written to a git-ignored ledger. See [Mode: Explain](#mode-explain-developer-narrative). Use `$understand [target]` when you want the standalone prompt-driven explainer instead of a full investigation run.
+
 **Key Rules:**
 
 - Strictly READ-ONLY — NEVER make code changes
@@ -69,9 +76,11 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 | **Deep**           | Multi-service, cross-boundary, ambiguous scope | Full workflow + knowledge graph template + analysis file |
 | **Debug**          | Error/crash/unexpected behavior                | Root-cause-debugging protocol above                      |
 | **Recommendation** | Code change suggested (removal, refactor)      | Validation chain protocol below — MANDATORY              |
+| **Explain**        | `--mode=explain` flag | Investigation-local developer narrative — see [Mode: Explain](#mode-explain-developer-narrative). Use `$understand` for the standalone prompt-driven explainer. |
 
 Quick scope: Skip knowledge graph template + analysis file. Grep → graph trace → present findings.
 Deep scope: MUST ATTENTION write to `.ai/workspace/analysis/[feature]-investigation.md`.
+Explain scope: same READ-ONLY evidence gate; deliverable is an in-chat developer narrative + a git-ignored ledger (NOT the analysis file).
 
 ## Investigation Mindset (NON-NEGOTIABLE)
 
@@ -202,6 +211,86 @@ For bug, failed-verification, or behavior-changing investigations, MUST ATTENTIO
 
 ---
 
+## Mode: Explain (Developer Narrative)
+
+**Trigger:** `$investigate --mode=explain [target]`. Manual-only — never auto-inserted into workflows. Use `$understand [target]` for the standalone prompt-driven explainer.
+
+**What changes vs default investigate:** ONLY the deliverable's audience, shape, and write target. The evidence gate is **identical and NON-NEGOTIABLE** — strictly READ-ONLY on code & plans, every concrete claim cites `file:line`, at least ONE graph command runs on key files before concluding, confidence >80% to assert. Explain mode NEVER relaxes any of these. If a narrative point lacks `file:line` proof, mark it "inferred" exactly as in default mode.
+
+**Goal:** make the **developer** understand the work via a clear, detailed, **one-way** explanation of **WHAT** it is, its **PURPOSE** (why it exists), **HOW** it works (mechanics), and **WHY this way** (trade-offs + rejected alternatives). AI derives WHAT to explain from the prompt. No fixed agenda; scope flexes to whatever is named.
+
+### Contract (read first)
+
+- **DERIVE SCOPE FROM THE PROMPT.** No target named → default to the **current working context**: active tasks (the current task list) + working-tree changes (`git diff --name-only` + untracked via `git ls-files --others --exclude-standard`) + active plan / latest `$watzup` summary if present.
+- **NEVER ASK THE USER A QUESTION.** Strictly one-way: no teach-back, no quiz, no a direct user question, no ambiguity question, no comprehension gate. Infer the most likely target, state the assumption in one line, proceed. (The pre-skill workflow-detection gate is a separate concern, already exempt when the developer explicitly invokes the skill.)
+- **OPT-IN, NEVER BLOCKS.** Explain and end. Never traps the developer in a loop; never gates commit/implementation/workflow progress.
+- **ALWAYS EXPLAIN IN FULL — REGARDLESS OF CODING LEVEL.** Always cover purpose + how + why. Coding level only tunes vocabulary/analogy density (ELI5 ↔ terse-for-experts) — it NEVER decides *whether* to explain and NEVER trims the three sections.
+- **EXPLAIN THE WHOLE SCOPE, LEAD WITH THE NON-OBVIOUS.** Cover everything in scope, but order by leverage — open with highest-blast-radius / highest-future-change-cost / most-surprising parts; treat boilerplate/CRUD briefly. Nothing silently omitted.
+- **WRITES ONLY to a project-root temp folder.** Never edits source or plan files; never writes the `.ai/workspace/analysis/...` analysis file. Its only write target is the ledger at `tmp/understand/{branch}.md` (see Step E3).
+
+### Step E0 — Resolve scope & read the style dial
+
+1. **Derive scope from the prompt:**
+
+   | Prompt signal | Scope to explain |
+   | ------------- | ---------------- |
+   | Bare invocation, no target named | **Default: current working context** — active tasks + working-tree changes + active plan / latest `$watzup`. |
+   | Names a change set / PR / "what I just did" | The diff and its rationale. |
+   | Names a plan / "the approach" / "before we build" | The active plan: problem, approach, rejected alternatives, risks, phase order. |
+   | Names a subsystem / file / feature / "how does X work" | That code path — read files, run a graph trace, explain the flow. |
+   | Names a single decision / "why X over Y" | That decision and its trade-offs. |
+   | Names a concept / bug / error | That concept or root cause. |
+   | Ambiguous / multiple plausible targets | **Do NOT ask.** Infer most likely (default current context), state the assumption in one line, proceed. |
+
+   State the resolved scope in one line before continuing (e.g. `Explaining: current working changes (3 files) + active task #42`).
+
+2. **Read the style dial (NOT a skip gate).** Resolve coding level (first found wins): env `CK_CODING_LEVEL` → `.claude/.ck.json` `codingLevel` → default `3`. Level tunes how the explanation reads only — it NEVER drops purpose/how/why. `5/-1` God Mode (terse, lead with the non-obvious trade-off) · `4` Tech Lead (concise, design trade-offs) · `3` Senior (balanced) · `2` Mid (fuller mechanics) · `1` Junior (WHY before HOW, step-by-step) · `0` ELI5 (one concept at a time, analogies). Note the level in one line, then explain. Do not offer a skip; do not ask anything.
+
+### Step E1 — Gather the material (proportional to scope)
+
+- **Current working context:** the current task list; `git diff --name-only` (+ untracked); active plan + latest `$watzup`. Extract: what's being worked on, what changed, why, new behavior.
+- **A plan:** read `plan.md` + `phase-*.md`. Extract: problem, chosen approach, rejected alternatives, design decisions, risks, phase order.
+- **A subsystem / "how does X work":** read the files; run `python .claude/scripts/code_graph trace <file> --direction both --json`. Extract: entry points, data flow, key invariants.
+- **A single decision:** the relevant code + rationale (comments, git blame, the plan's alternatives section).
+
+Don't read the whole repo to explain one decision.
+
+### Step E2 — Order topics by leverage
+
+Cover the whole scope; use this only to ORDER. **Blast radius** (run `$graph-blast-radius` or graph trace on key files — high reach → explain first, deepest) · **Future-change-cost** (schema, public contract, cross-service message, shared/framework layer → high priority) · **Surprise** (anything a competent engineer would NOT guess — call out explicitly). Boilerplate/generated/mechanical renames get a one-line mention.
+
+### Step E3 — Maintain the understanding ledger
+
+> **[HARD RULE] Write the ledger ONLY to a project-root temp folder — NEVER inside `.claude/`, the source tree, or any tracked path.**
+>
+> Path: `tmp/understand/{branch}.md` (use `temp/understand/{branch}.md` if the project already uses `temp/`). Create the `understand/` subdir if absent. `{branch}` = current git branch with `/` → `-`. Ensure the temp folder is git-ignored.
+>
+> **[ANNOUNCE — the chat is the deliverable]** The understanding lives in the **in-chat explanation**, not the file. Whenever you write/append the ledger, state its path inline (`Understanding ledger updated → tmp/understand/{branch}.md`). NEVER let the explanation exist only inside the temp file.
+
+Append (never overwrite) a checklist with three groups: **Problem** (why it exists, prior limitation, the branches) · **Solution** (design, business logic, edge cases, why this over alternatives) · **Impact** (what/who changes, blast radius, follow-ups).
+
+### Step E4 — Explain: Purpose → How → Why (the deliverable)
+
+Deliver in-chat, in this order, for **every** level (depth/vocabulary tuned per E0; all sections always present). Cite `file:line` for every concrete claim.
+
+1. **WHAT** — one-line orientation: name the thing and where it lives.
+2. **PURPOSE (why-it-exists)** — what problem it solves; the prior limitation / alternative branch that made it necessary. Lead here.
+3. **HOW (mechanics)** — walk the flow: entry points, data flow, key invariants, what calls what (use the graph trace). Show code paths + business logic + handled edge cases.
+4. **WHY-this-way (trade-offs)** — why this over the obvious alternative(s); what it cost, what it bought, what is now expensive to reverse. Surface non-obvious decisions explicitly ("we did X instead of Y because Z").
+5. **IMPACT (blast radius & follow-ups)** — what/who changes, upstream/downstream reach, open follow-ups.
+
+Proactively offer a simpler restatement/analogy for any dense point. Responding to a developer's `eli5`/`elii` follow-up is fine — what's forbidden is *you* posing questions to them.
+
+### Step E5 — Recap & close (no quiz, no loop)
+
+Mark ledger items `explained`. Close with a 2–3 line recap (purpose in one sentence, key mechanic in one, highest-leverage trade-off / blast-radius note in one). End there. Do NOT quiz, do NOT ask the developer to restate, do NOT loop, NEVER block the next step.
+
+**NOT for:** investigation/docs/design/research where nothing was built or planned to understand; forcing comprehension as a hard gate; reviewing code quality (use `$code-review`, `$review-changes`).
+
+**Anti-Rationalization:** "Senior dev, skip it" → NEVER skip by level. · "I'll quiz them" → one-way only, never ask. · "Ambiguous — I'll ask which" → infer + state assumption, proceed. · "Dump everything" → derive scope first, order by leverage. · "Skip trade-offs" → WHY-this-way is mandatory. · "Drop ledger by the skill" → only `tmp/understand/{branch}.md`. · "Write the doc and move on silently" → the chat is the deliverable; announce the ledger path.
+
+---
+
 ## Investigation & Recommendation Protocol
 
 Applies when recommending code changes (removal, refactoring, replacement). MUST ATTENTION complete full validation chain.
@@ -311,11 +400,11 @@ Find working reference → compare implementations → identify differences → 
 > **Project Reference Docs Gate** — Run after task-tracking bootstrap and before target/source file reads, grep, edits, or analysis. Project docs override generic framework assumptions.
 >
 > 1. Identify scope: file types, domain area, and operation.
-> 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-docs-reference.md`; architecture/new area `project-structure-reference.md`.
-> 3. Read every required doc. If `docs/project-config.json`, the docs index, `lessons.md`, or any task-required reference doc is missing, stop immediately and ask the user to run `$project-config` and `$scan-all`.
+> 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under `docs/specs/`; architecture/new area `project-structure-reference.md`.
+> 3. Read every required doc. If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow lower-level route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.
 > 4. Before target work, state: `Reference docs read: ... | Not applicable: ...`.
 >
-> **Blocked until:** scope evaluated, required docs checked/read, `lessons.md` confirmed, citation emitted.
+> **Ready when:** scope evaluated, required docs checked/read or setup route completed, `lessons.md` confirmed, citation emitted.
 
 <!-- /SYNC:project-reference-docs-guide -->
 
@@ -521,6 +610,7 @@ Find working reference → compare implementations → identify differences → 
 
 - **MANDATORY** After task-tracking bootstrap and before target/source work, read required project-reference docs and cite `Reference docs read: ...`.
 - **MANDATORY** Always include `lessons.md`; project conventions override generic defaults.
+- **MANDATORY** If project config, root instruction files, or any required reference doc is missing, stop and run or ask the user to run `$project-init`.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
 
@@ -565,17 +655,14 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 
 ## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
 
-**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. If either file or a required reference doc is missing, stop immediately and ask the user to run the project-config and scan-all skills. Any supported AI tool may execute when this shared context and local docs are available.
+**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. Any supported AI tool may execute when this shared context and local docs are available.
 
-1. **DETECT:** Match prompt against workflow catalog
-2. **ANALYZE:** Find best-match workflow AND evaluate if a custom step combination would fit better
-3. **ASK (REQUIRED FORMAT):** Use a direct user question with this structure unless the user explicitly invoked a workflow/skill and the local protocol treats explicit invocation as confirmation:
-   - Question: "Which workflow do you want to activate?"
-   - Option 1: "Activate **[BestMatch Workflow]** (Recommended)"
-   - Option 2: "Activate custom workflow: **[step1 → step2 → ...]**" (include one-line rationale)
-4. **ACTIVATE (if confirmed):** Call `$workflow-start <workflowId>` for standard; sequence custom steps manually
-5. **CREATE TASKS:** task tracking for ALL workflow steps
-6. **EXECUTE:** Follow each step in sequence
+1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
+2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
+3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
+4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
+6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
 **Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
 **AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
@@ -591,7 +678,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
 4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security`/`$lint` catch this?" — Yes → improve review skill instead.
+6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/`$lint` catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
 **[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
 

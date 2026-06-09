@@ -358,10 +358,13 @@ function extractPaths(toolInput, toolName) {
         extractMatches(/(?:^|\s)(?:"([A-Za-z]:[/\\][^"]+|\/[^"]+)"|'([A-Za-z]:[/\\][^']+|\/[^']+)'|([A-Za-z]:[/\\][^\s"'|><&;]+|\/[^\s"'|><&;]+))/g, cmd, m => {
             if (/^\/(?:dev|proc|sys)\//.test(m)) return false;
             // Windows command flags: /Letter, /Word, or /Word:value — no nested path separators.
+            // Also //Flag: Git Bash (MSYS) requires doubling the leading slash so the flag
+            // survives MSYS path conversion (`cmd //c` reaches cmd.exe as `/c`). UNC paths
+            // (//server/share/...) contain a nested separator so they never match this skip.
             // Skip ONLY on Windows AND when the command line contains a Windows-only tool token
             // (findstr, cmd, xcopy, etc.). This prevents Linux paths /etc, /var, /home from
             // being misclassified as flags.
-            if (cmdHasWinTool && /^\/[A-Za-z][A-Za-z0-9_-]*(?::[^\s/\\]*)?$/.test(m)) return false;
+            if (cmdHasWinTool && /^\/{1,2}[A-Za-z][A-Za-z0-9_-]*(?::[^\s/\\]*)?$/.test(m)) return false;
             return true;
         }).forEach(p => addPath(p, 'command'));
     }

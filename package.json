@@ -27,10 +27,14 @@
     "codex:sync:copy-skills": "node .claude/scripts/codex/migrate-claude-to-codex.mjs --copy-skills && npm run codex:sync:hooks && npm run codex:sync:context && npm run codex:verify:all",
     "codex:sync:hooks": "node .claude/scripts/codex/sync-hooks.mjs",
     "codex:test:tooling": "node --test .claude/scripts/codex/tests/*.test.mjs",
-    "codex:verify:all": "npm run codex:test:tooling && npm run codex:verify:workflow-cycle && npm run codex:verify:skill-protocol && npm run codex:verify:no-project-residue",
+    "codex:verify:all": "npm run codex:test:tooling && npm run codex:verify:workflow-cycle && npm run codex:verify:skill-protocol && npm run codex:verify:no-project-residue && npm run codex:verify:sdd && npm run codex:verify:sync-divergence",
     "codex:verify:no-project-residue": "node .claude/scripts/codex/verify-no-project-residue.mjs",
+    "codex:verify:sdd": "node .claude/scripts/codex/verify-sdd-semantic-compliance.mjs",
     "codex:verify:skill-protocol": "node .claude/scripts/codex/verify-skill-protocol-compliance.mjs",
-    "codex:verify:workflow-cycle": "node .claude/scripts/codex/verify-workflow-cycle-compliance.mjs"
+    "codex:verify:sync-divergence": "node .claude/scripts/codex/verify-sync-divergence.mjs",
+    "codex:verify:workflow-cycle": "node .claude/scripts/codex/verify-workflow-cycle-compliance.mjs",
+    "copilot:test:tooling": "node --test .claude/scripts/tests/*.test.mjs",
+    "copilot:verify:divergence": "node .claude/scripts/verify-copilot-divergence.cjs"
   },
   "version": "1.0.0"
 }

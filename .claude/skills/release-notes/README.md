@@ -27,7 +27,7 @@ Generate or update release notes for project features.
 ## Usage
 
 ```bash
-/release-notes feature-name --source=docs/business-features/{Module}/detailed-features/README.{Feature}.md
+/release-notes feature-name --source=docs/specs/{Bucket}/README.{Feature}.md
 /release-notes employee-export --compare=develop:main
 /release-notes authentication --investigate
 ```
