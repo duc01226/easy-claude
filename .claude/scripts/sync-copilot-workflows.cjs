@@ -48,6 +48,24 @@ const INSTRUCTIONS_DIR = path.join(ROOT, '.github', 'instructions');
 const OLD_COPILOT_PATH = path.join(ROOT, '.github', 'common.copilot-instructions.md');
 // Universal rules the Claude hooks inject per-prompt — baked into the Copilot mirror (Copilot has no hooks).
 const PROMPT_INJECTIONS_PATH = path.join(ROOT, '.claude', 'hooks', 'lib', 'prompt-injections.cjs');
+// Canonical hook-independent Workflow-First Gate — baked at the top of copilot-instructions.md so
+// Copilot (no hooks, no runtime injection) gets the same routing rule as Claude/Codex.
+const WORKFLOW_GATE_PATH = path.join(ROOT, '.claude', 'skills', 'shared', 'workflow-first-gate.md');
+
+/**
+ * Load the marker-delimited Workflow-First Gate block from the shared canonical file.
+ * Returns null when unavailable so the generator simply omits it rather than failing the sync.
+ * @returns {string|null}
+ */
+function loadWorkflowGate() {
+    try {
+        const raw = fs.readFileSync(WORKFLOW_GATE_PATH, 'utf8');
+        const m = raw.match(/<!-- CK:WORKFLOW-GATE -->[\s\S]*?<!-- \/CK:WORKFLOW-GATE -->/);
+        return m ? m[0] : null;
+    } catch {
+        return null;
+    }
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // REGISTRY
@@ -304,6 +322,13 @@ function generateProjectSpecificFile(registry, projectInstructions, projectConfi
 
     if (projDesc) {
         lines.push(`> ${projDesc}`);
+        lines.push('');
+    }
+
+    // Workflow-First Gate — primacy anchor, before any other instruction (Copilot has no hooks).
+    const workflowGate = loadWorkflowGate();
+    if (workflowGate) {
+        lines.push(workflowGate);
         lines.push('');
     }
 

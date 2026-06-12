@@ -304,7 +304,7 @@ async function main() {
             includeAssertions: false
         });
         // Tier 1: compact gate — no dedup, always at top (primacy anchor)
-        console.log(`**[BLOCKING] [WORKFLOW-GATE] MANDATORY IMPORTANT MUST ATTENTION CRITICAL \u2014 Do not skip for any reason. First action: workflow detection. If prompt starts with explicit /skill or /workflow command, execute it directly. Otherwise auto-select the best path: direct, skill, standard workflow, or custom workflow. Do not ask the user to choose.**`);
+        console.log(`**[BLOCKING] [WORKFLOW-GATE] MANDATORY IMPORTANT MUST ATTENTION CRITICAL \u2014 Do not skip for any reason. First action: workflow detection. If prompt starts with explicit /skill or /workflow command, execute it directly. Otherwise auto-select the best path: direct, skill, standard workflow, or custom workflow — do not ask the user to choose. Then ACTIVATE the route: for a workflow, invoke /workflow-start <id> as a tool call (it loads the canonical step sequence and builds the task list 1:1) — declaring \`Route: ...\` in prose or hand-writing your own task list is NOT activation.**`);
         // Tier 2: full protocol — deduped (100-line window)
         const workflowProtocol = injectWorkflowProtocol(payload.transcript_path, wfConfig.portability);
         if (workflowProtocol) console.log(workflowProtocol);

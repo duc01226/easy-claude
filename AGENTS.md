@@ -5,7 +5,34 @@
 This block is auto-generated from `CLAUDE.md` by `npm run codex:sync:context`.
 Do not edit manually; update `CLAUDE.md` and re-sync.
 
-<!-- CK:UNIVERSAL-GUIDES v2 -->
+<!-- CK:UNIVERSAL-GUIDES v3 -->
+
+<!-- CK:WORKFLOW-GATE -->
+
+> **[WORKFLOW-GATE] — routing is your FIRST action, before any tool call.**
+> This rule is hook-independent: it binds Claude, Codex, and Copilot equally. Do not wait for any injected reminder to apply it.
+>
+> Classify the request, then route it:
+>
+> | Request is about… | Default route |
+> | --- | --- |
+> | A bug, error, crash, regression, or wrong/stale output | **`bugfix` workflow** — `$workflow-start bugfix` |
+> | A new feature, capability, or enhancement | **`feature` workflow** — `$workflow-start feature` (use `big-feature` when scope is large, ambiguous, or research-heavy) |
+> | Anything matching a skill's or workflow's "Use" clause | that skill / workflow |
+> | A one-off question, or a truly trivial edit | direct execution |
+>
+> 1. **An explicit `/skill` or `/workflow` in the prompt is the user's choice — execute it directly.** Otherwise auto-select the route yourself; never ask the user which path to take.
+> 2. **Prefer the workflow for bug fixes and for feature/enhancement work** — workflows force the investigation, tests, and review that ad-hoc edits silently skip.
+> 3. **Declare the route, then ACTIVATE it — declaring is not activating.** State `Route: {workflow-id | skill | direct} — because {reason}`, then:
+>     - **Workflow route →** invoke `$workflow-start <id>` as a tool call. That skill loads the workflow's canonical step `sequence` and creates the task list **1:1** from it. You MUST NOT hand-author your own task list for a workflow route — the canonical `sequence` is the only source of truth. Writing `Route: …` in prose and then improvising a few tasks is the failure this gate exists to prevent.
+>     - **Skill route →** invoke that skill via the skill invocation.
+>     - **Direct route →** build the task list yourself, then proceed.
+>   In every case the route must be activated BEFORE the first edit, sub-agent, or command.
+> 4. **Direct execution is a legitimate route** for trivial or one-off work — but the declare-route and activate steps still apply.
+
+<!-- /CK:WORKFLOW-GATE -->
+
+
 
 # easy-claude - Code Instructions
 
@@ -256,8 +283,9 @@ These skills auto-activate before file edits in their path patterns:
 
 ```
 docs/adr/  (2 files)
-docs/project-reference/  (16 files)
+docs/project-reference/  (15 files)
 docs/release/  (1 files)
+docs/templates/  (1 files)
 ```
 
 <!-- /SECTION:doc-index -->
@@ -762,22 +790,21 @@ FEATURE IMPLEMENTATION PROTOCOL:
 1. Scout: Find similar features, patterns, and implementation examples using Grep/Glob
 2. Investigate: Study existing patterns - validate with 3+ codebase examples (NOT generic framework docs)
 2b. Domain Analysis — CONDITIONAL: if feature creates/modifies domain entities, run $domain-analysis after investigate to model bounded contexts and ERD before planning.
-3. Plan: Design solution following discovered project patterns (architecture, state management, CSS — see docs/project-config.json → workflowPatterns). Include expected behavior, unchanged behavior, and docs/spec/test sync when behavior can change.
-4. Validate plan via $plan-review before any code changes
-5. Validate design rationale with $why-review (features/refactors)
+3. Author Feature Spec: with $feature-spec BEFORE planning, capture intended behavior — §1-7 business rules, invariants, and acceptance criteria the plan and tests are built against. Validate investigation + spec rationale with $why-review.
+4. Plan: Design solution following discovered project patterns (architecture, state management, CSS — see docs/project-config.json → workflowPatterns). Include expected behavior, unchanged behavior, and docs/spec/test sync when behavior can change.
+5. Validate plan via $plan-review then $plan-validate before any code changes; confirm design rationale with $why-review.
 6. Write test specifications with $spec-tests CREATE mode (before implementation). Review with $review-artifact --type=spec-tests.
 7. Update plan with test strategy via $plan (re-plan cycle). Review with $plan-review.
 8. Implement with $cook (backend + frontend) — guided by test specs
 8b. Domain Entity Review — CONDITIONAL: if domain entity files created/modified, run $review-domain-entities before updating test specs to catch DDD quality issues early.
 9. Update test specs to catch implementation gaps with $spec-tests UPDATE mode. Review with $review-artifact --type=spec-tests. Sync §8 TCs ↔ integration test code with $spec-tests [direction=sync].
-10. Generate/update integration tests with $integration-test — creates actual test files from TC specifications.
-11. Simplify code for readability and consistency
-12. Code review for quality, security, patterns compliance
-13. SRE review for production readiness
-14. Update changelog with feature entry
-15. Run tests to verify no regressions
-16. Update documentation if feature impacts business docs
-17. Summary report of all changes
+10. Generate/update integration tests with $integration-test — creates actual test files from TC specifications — then verify with $integration-test-review and $integration-test-verify.
+11. Review the full change set with $workflow-review-changes (simplification, code quality, UI, architecture, and patterns compliance).
+12. SRE review for production readiness with $sre-review; security review with $security-review.
+13. Update changelog with feature entry
+14. Run tests to verify no regressions
+15. Update documentation if feature impacts business docs
+16. Summary report of all changes ($workflow-end + $watzup)
 
 PLAN PHASES:
 - PLAN₁ (after investigate): Feature design plan. Scope: architecture, file changes, implementation approach.
@@ -791,6 +818,7 @@ MANDATORY SPEC-DRIVEN + INVARIANT + TEST HARNESS LOOP:
 - $spec-tests MUST map every invariant to TC IDs in §8 Test Specifications.
 - STATE MACHINE DATA ASSERT (MOST IMPORTANT MANDATORY ASSERT): for lifecycle behavior, tests MUST assert persisted entity state transitions and invalid-transition rejection.
 - $workflow-end is BLOCKED until Feature Spec §1-7, §8 TCs, and test code are synchronized via $spec-tests + $review-artifact --type=spec-tests + $integration-test + $integration-test-review + $integration-test-verify + $spec-tests [direction=sync] + $docs-update. Performance-related work may delegate measurement to $performance-review, but spec/test/docs sync remains required whenever behavior, public contract, SLA, performance constraints, or docs/spec boundaries change.
+- POST-IMPLEMENTATION SPEC RE-VERIFY (MANDATORY): the $feature-spec authored BEFORE $plan captured intended behavior; after $cook the implemented behavior may have diverged. Before closure, re-verify Feature Spec §1-7 against what was actually built and adjudicate any divergence per SYNC:spec-drift-adjudication (shared/sdd-artifact-contract.md Drift Gates) — CODE-WRONG -> fix code; SPEC-STALE -> run $feature-spec [update] to record the new intended behavior. This is not optional cleanup: a feature that shipped behavior the spec does not describe leaves the spec stale.
 - If mismatch exists (spec vs code vs tests), run $feature-spec [update] + $spec-tests [update] before closure.
 - Code-to-spec extraction is reference-only until accepted by the canonical spec owner.
 UNIVERSAL RULES:
@@ -1206,6 +1234,7 @@ PRE-COMMIT REVIEW (RECURSIVE):
 - DOC SYNC DEFERRAL: DO NOT update Feature Specs or test spec TCs during review steps. The dedicated docs-update step handles all of this: $feature-spec (§1-7 Feature Spec) + $spec-tests (§8 test spec update) + $spec-tests [direction=sync] (§8 TCs ↔ test code) + optional $spec-index [mode=index] (derived bucket INDEX/ERD refresh). TEST SPEC VERIFICATION above is READ-ONLY cross-reference only — flag gaps, do not write.
 MANDATORY REVIEW-CHANGES GATES:
 - SPEC/TDD/TEST THREE-WAY SYNC is blocking: changed behavior must match specs + TCs + test code.
+- SPEC DRIFT ADJUDICATION (apply SYNC:spec-drift-adjudication): for every behavior-changing file, do NOT silently flag a one-directional 'stale doc'. Adjudicate per shared/sdd-artifact-contract.md Drift Gates whether the divergence is CODE-WRONG (change violates an intended spec rule/AC/invariant -> BLOCKING finding, fix code/test against intended behavior) or SPEC-STALE (intentional new behavior the spec no longer reflects -> run $feature-spec [update] FIRST, then $spec-tests [update] + [direction=sync]); AMBIGUOUS -> ask the user directly before editing either side. Never normalize drift just because code/tests are green. Unadjudicated behavior-vs-spec divergence is a blocking finding.
 - STATE MACHINE DATA ASSERT (MOST IMPORTANT MANDATORY ASSERT): for lifecycle/state-transition changes, verify persisted-state assertions and invalid-transition rejection tests.
 - Missing or stale docs/tests are blocking findings; route fixes through $spec-tests + $review-artifact --type=spec-tests + $integration-test + $integration-test-review + $integration-test-verify + $spec-tests [direction=sync] + $docs-update.
 UNIVERSAL RULES:

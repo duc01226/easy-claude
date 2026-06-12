@@ -86,82 +86,19 @@ Source: `.claude/skills/shared/sync-inline-versions.md`
 - **Keep domain concepts out of generic/shared/infrastructure layers.** Reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. Leak compiles + runs → passes review silently while coupling the "reusable" layer to one consumer. Keep shared type domain-free; push domain fields/logic down into the consumer via subclass/composition. — why: a layer coupled to one consumer's domain is no longer reusable.
 ## Learned Lessons
 
-# Lessons Learned
+# Lessons
 
-> **[CRITICAL]** Hard-won project debugging/architecture rules. MUST ATTENTION apply BEFORE forming hypothesis or writing code.
+<!-- This file is referenced by Claude skills and agents for project-specific context. -->
+<!-- Fill in your project's details below. -->
 
-## Quick Summary
-
-**Goal:** Prevent recurrence of known failure patterns — debugging, architecture, naming, AI orchestration, environment.
-
-**Top Rules (apply always):**
-
-- MUST ATTENTION verify ALL preconditions (config, env, DB names, DI regs) BEFORE code-layer hypothesis
-- MUST ATTENTION fix responsible layer — NEVER patch symptom sites with caller-specific defensive code
-- MUST ATTENTION use `ExecuteInjectScopedAsync` for parallel async + repo/UoW — NEVER `ExecuteUowTask`
-- MUST ATTENTION name by PURPOSE not CONTENT — adding member forces rename = abstraction broken
-- MUST ATTENTION persist sub-agent findings incrementally after each file — NEVER batch at end
-- MUST ATTENTION Windows bash: verify Python alias (`where python`/`where py`) — NEVER assume `python`/`python3` resolves
-
----
-
-## Debugging & Root Cause Reasoning
-
-- [2026-04-11] **Holistic-first: verify environment before code.** Failure → list ALL preconditions (config, env vars, DB names, endpoints, DI regs, credentials, permissions, data prerequisites) → verify each via evidence (grep/cat/query) BEFORE code-layer hypothesis. Worst rabbit holes: diving nearest layer while bug sits elsewhere — e.g., hours debugging "sync timeout", real cause: test appsettings pointing wrong DB. ALWAYS cheapest check first.
-- [2026-04-01] **Ask "whose responsibility?" before fixing.** Trace: bug caller (wrong data) or callee (wrong handling)? Fix responsible layer — NEVER patch symptom site masking real issue.
-- [2026-04-01] **Trace data lifecycle, not error site.** Follow data: creation → transformation → consumption. Bug usually where data created wrong, not consumed.
-- [2026-04-01] **Code caller-agnostic.** Functions/handlers/consumers don't know who invokes them. Comments/guards/messages describe business intent — NEVER reference specific callers (tests, seeders, scripts).
-
-## Architecture Invariants
-
-- [2026-05-09] **User name materialization MUST ATTENTION go through `User.UpdateName(firstName, middleName, lastName)`.** Domain method (`src/Services/bravoTALENTS/Employee.Domain/AggregatesModel/User.cs:202-209`) recomputes `FullName` as single source of truth. Three sites still manually patch `user.FullName = user.GetFullName()` after assigning name fields — `src/Services/bravoTALENTS/Employee.Application/Factories/UserFactory.cs:50`, `src/Services/bravoSURVEYS/LearningPlatform.Application/ApplyPlatform/MessageBus/Consumers/AccountUserDeletedEventBusConsumer.cs:102`, `src/Services/bravoINSIGHTS/Analyze/Analyze.Application/MessageBus/Consumers/AccountUserDeletedEventBusConsumer.cs:66`. Next time touching any: replace manual patch with `user.UpdateName(...)` to maintain invariant.
-- [2026-03-31] **ParallelAsync + repo/UoW MUST ATTENTION use `ExecuteInjectScopedAsync`, NEVER `ExecuteUowTask`.** `ExecuteUowTask` creates new UoW but reuses outer DI scope (same DbContext) — parallel iterations sharing non-thread-safe DbContext silently corrupt data. `ExecuteInjectScopedAsync` creates new UoW + new DI scope (fresh repo per iteration).
-- [2026-03-31] **Bus message naming MUST ATTENTION include service name prefix — core services NEVER consume feature events.** Prefix declares schema ownership (`AccountUserEntityEventBusMessage` = Accounts owns). Core services (Accounts, Communication) leaders. Feature services (Growth, Talents) sending to core MUST ATTENTION use `{CoreServiceName}...RequestBusMessage` — NEVER define own event for core to consume.
-
-## Naming & Abstraction
-
-- [2026-04-12] **Name PURPOSE not CONTENT — "OrXxx" anti-pattern.** `HrManagerOrHrOrPayrollHrOperationsPolicy` names set members, not what guards. Add role → rename = broken abstraction. **Rule:** names express DOES/GUARDS, not CONTAINS. **Test:** adding/removing member forces rename? YES = content-driven = bad → rename to purpose (e.g., `HrOperationsAccessPolicy`). **Nuance:** "Or" fine behavioral idioms (`FirstOrDefault`, `SuccessOrThrow`) — expresses HAPPENS, not membership.
-
-## Environment & Tooling
-
-- [2026-04-20] **Windows bash: NEVER assume `python`/`python3` resolves — verify alias first.** Python may not be bash PATH under those names. Check: `where python` / `where py`. ALWAYS prefer `py` (Windows Python Launcher) one-liners, `node` if JS alternative exists.
-- [2026-05-29] **New skills in `.claude/skills/` MUST ATTENTION be project-agnostic — NEVER hardcode `bravo`/`BravoSuite`, repo-specific component libs, design tokens, or `file:line` citations.** `.claude/scripts/codex/verify-no-project-residue.mjs` scans `.claude/skills/` as a `genericSourceRoot` with NO managed-block exemption and fails the build on literal `bravo`/`BravoSuite` (case-insensitive). Put project-specifics in `docs/project-reference/*` (NOT residue-scanned, single source of truth) and have the skill instruct the AI to read them — pattern proven by sibling `review-architecture` (0 residue, defers to docs). The `.agents/` tree is a GENERATED mirror: never hand-edit; adding/editing a skill requires running `npm run codex:sync` (`--copy-skills` for bodies), which regenerates the mirror AND propagates shared SYNC blocks into `.claude` sources — expect a wider diff than the one skill you touched. Verified: `review-ui` authored 0-residue this way; all gates (residue/skill-protocol/workflow-cycle/sdd) green.
-
-- [2026-05-29] **Bulk prohibition→affirmative rewrites MUST ATTENTION gate on a per-file guardrail-density invariant + A/B triage — NEVER blanket-rewrite.** Converting "don't X"/"never X" to affirmative "do X" form (principles #10/#11) across many skill files silently weakens hard guardrails if done blindly. Gate each occurrence: class A (uppercase `NEVER`/`MANDATORY`/`BLOCKING`/`HARD-GATE`/`MUST ATTENTION` = hard invariant → keep verbatim, only ADD positive path/`— why:`) vs class B (lowercase soft `do not`/`don't`/`avoid` → rewrite affirmative-lead, prohibition becomes trailing contrast). Verify per file that the count of uppercase guardrail lexemes does NOT decrease — a scalar count is gameable by downcasing `NEVER`→`never`, so use a casing-complete count + per-guardrail fingerprint set-diff. Class-B-only edits preserve density by construction. SYNC-managed regions are edited ONLY via canonical `shared/sync-inline-versions.md`, never the propagated copy. Reference: `plans/260529-affirmative-directive-skill-enhancement`.
-
-> Test-specific lessons → `docs/project-reference/integration-test-reference.md` Lessons Learned section. Production-code anti-patterns → `docs/project-reference/backend-patterns-reference.md` Anti-Patterns section. Generic debugging/refactoring reminders → System Lessons `.claude/hooks/lib/prompt-injections.cjs`.
-
----
-
-## Documentation & Spec Review
-
-- [2026-06-04] **Partial-read completeness trap.** Declaring document "verified current" requires ALL sections covered — entity tables, version history, test case evidence, narrative body. Reading only most-likely-changed section ≠ full coverage.
-- [2026-06-04] **Variant-file exhaustion.** When scoping updates matching naming pattern (e.g., `A-domain-model.md`), glob ALL variant types in same directory (e.g., `A-domain-erd.md`) before declaring scope complete. One match ≠ exhausted set.
-- [2026-06-04] **Reference field propagation.** When renaming field, grep old name across ALL doc locations: entity table, API contract, test case evidence, integration test method references, narrative text, diagram blocks. Rename complete only when ALL string occurrences verified across all file types.
-
----
-
-## Telemetry Governance Patterns
-
-- [2026-05-21] **Pattern B — every telemetry counter needs an explicit operational posture.** Each PBI that introduces or changes a telemetry counter MUST declare either an alert threshold plus rolling window, or mark the counter `observability-only` with no alert. Alerting counters also need an owner/on-call path. `observability-only` counters are valid for baselining and audit signals, but they MUST NOT be treated as production alarms until a later calibration decision promotes them.
-- [2026-05-21] **Pattern C — temporary counters need sunset triggers.** Any counter introduced for migration, adoption baselining, or rollout diagnostics MUST define the condition that retires, downgrades, or promotes it. Examples: "after 4 weeks of baseline," "after every active tenant has at least one mapped item," or "after calibration PBI owner accepts threshold change."
-- [2026-05-21] **Pattern D — compliance verdicts need stable vocabulary.** Use consistent verdict labels in reviews and addendums: `HEALTHY`, `WARN`, `FAIL`, and explicit sub-verdicts such as `telemetry-gap` when a supposedly live counter returns zero events across its expected observation window.
-
----
-
-## Closing Reminders
-
-- **IMPORTANT MUST ATTENTION** holistic-first: verify ALL preconditions (config, env, DB names, endpoints, DI regs) BEFORE code-layer hypothesis — cheapest check first
-- **IMPORTANT MUST ATTENTION** fix responsible layer — NEVER patch symptom site; trace caller (wrong data) vs callee (wrong handling), fix root owner
-- **IMPORTANT MUST ATTENTION** parallel async + repo/UoW → ALWAYS `ExecuteInjectScopedAsync`, NEVER `ExecuteUowTask` (shared DbContext = silent data corruption)
-- **IMPORTANT MUST ATTENTION** bus message prefix = schema ownership; feature services NEVER define events for core services — use `{CoreServiceName}...RequestBusMessage`
-- **IMPORTANT MUST ATTENTION** name by PURPOSE — adding/removing member forces rename = broken abstraction
-- **IMPORTANT MUST ATTENTION** sub-agents MUST write findings after each file/section — NEVER batch all findings into one final write
-- **IMPORTANT MUST ATTENTION** Windows bash: NEVER assume `python`/`python3` resolves — run `where python`/`where py` first, use `py` launcher or `node`
-- **IMPORTANT MUST ATTENTION** every claim needs `file:line` evidence — confidence >80% to act, NEVER speculate
-- **IMPORTANT MUST ATTENTION** doc completeness — declaring "verified current" requires ALL sections read (entity table, TC evidence, narrative body), not just most-likely-changed
-- **IMPORTANT MUST ATTENTION** variant-file scope — glob `A-*.md` in same directory to find all variant types before declaring scope complete; one match ≠ exhausted set
-- **IMPORTANT MUST ATTENTION** field rename propagation — grep old name in test evidence, integration test method references in docs, narrative text, and diagram blocks — not just entity table and API contract
+- [2026-03-10] **Mirror copies create staleness traps.** Editing a canonical source is insufficient when mirror copies exist — must trace and update ALL mirrored files (configs, skill definitions, docs). Grep verification after edits catches missed mirrors.
+- [2026-03-10] **Docs embedding derived data stale on source modification.** Documentation that inlines data from a canonical source (e.g., workflow sequences, API schemas) goes stale silently when the source changes. Map all docs that embed canonical data and update them alongside the source.
+- [2026-04-14] **Front-load report-write in sub-agent prompts for large reviews.** Sub-agents reviewing many files exhaust token budget before writing the final report — all findings lost. Design prompts so: (1) report-write is the explicit first deliverable, (2) findings appended per-file immediately (not batched), (3) scope is bounded. If sub-agent returns truncated output with no report, spawn a new one with narrower scope.
+- [2026-04-14] **After context compaction, re-verify all prior phase outcomes before continuing.** Session summaries describe what the AI intended — not what persisted in the environment. When resuming a multi-phase task, the first action must be a state audit: re-check git status, re-read files, verify filesystem state. Treat every "completed" phase claim as an untested hypothesis.
+- [2026-06-09] **A sub-agent "X does not exist" verdict is only as wide as its search scope.** An Explore agent grepped only `.claude/hooks` + `.claude/skills` and concluded `AGENTS.md` did not exist — it is a generated artifact produced under `.claude/scripts/codex/`, and the false premise nearly drove a duplicate parallel generator (a mirror-staleness trap). Before acting on a "missing/absent" finding, confirm the search covered generators, scripts, and build outputs — not just the obvious source dirs. For generated files, grep for the writer (`writeFileSync.*<name>`), not just the file.
+- [2026-06-09] **In-process hook tests that mutate `process.env` MUST restore it in `finally`, or they silently break later suites.** A new suite set `process.env.CLAUDE_PROJECT_DIR` to a temp dir without restoring it; the leaked (deleted) path made a _downstream_ suite (`dev-rules-injector`) fail 9 tests in the full run while passing when filtered. Symptom signature: a suite passes in isolation (`--filter`) but fails in the full run → suspect global-state pollution from an earlier suite, not the failing suite itself. Wrap every env mutation in a save/restore helper; a `git stash -u` + re-run pinpoints ownership.
+- [2026-06-09] **Inserting a gate earlier in a precondition chain breaks existing tests that exercise downstream gates.** Adding `handleAgentFilesGate` to the front of `init-prompt-gate`'s config-populated fast-path made older inline tests (which set up populated config but no `CLAUDE.md`/`AGENTS.md`) block on the new gate instead of reaching the staleness/graph gate they assert on. When a new gate runs before others, audit and update the setup of every test that depends on reaching a later gate — provision the new precondition so the gate passes through.
+- [2026-06-09] **Adding a hook or lib module drifts canonical inventory counts — regenerate, don't hand-edit.** New `agent-files-skill-gate.cjs` (+1 hook) and `agent-files-state.cjs` (+1 lib) failed `count-drift` across CLAUDE.md, the structure reference, SKILLS.yaml, and the docs README. Fix is the documented reconcile: `generate_catalogs.py --inject-counts <file>` per marker file + `--skills --output .claude/SKILLS.yaml`, then update the manual README table. Distinguish drift you caused (hooks/lib) from incidental drift already in the working tree (e.g. an unrelated skill add) — regenerating reconciles both to filesystem truth.
 <!-- PROMPT-PROTOCOLS:END -->
 
 # Codex Context (Hookless Parity)

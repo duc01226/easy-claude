@@ -56,7 +56,7 @@ function clearStateCache() {
 }
 
 // Minimal complete file: just the current sentinel (hasUniversalGuides → true via sentinel branch).
-const COMPLETE_FILE = '<!-- CK:UNIVERSAL-GUIDES v2 -->\n# Project\n';
+const COMPLETE_FILE = '<!-- CK:UNIVERSAL-GUIDES v3 -->\n# Project\n';
 // Legacy complete file: no sentinel, but every required anchor heading present.
 const LEGACY_COMPLETE_FILE = [
     '# Project',
@@ -521,7 +521,7 @@ const universalGuidesTests = [
             try {
                 withEnv(tmpDir, () => {
                     const { hasUniversalGuides } = freshState(tmpDir);
-                    assertTrue(hasUniversalGuides('<!-- CK:UNIVERSAL-GUIDES v2 -->\n# x'), 'v2 (current) sentinel passes');
+                    assertTrue(hasUniversalGuides('<!-- CK:UNIVERSAL-GUIDES v3 -->\n# x'), 'v3 (current) sentinel passes');
                 });
             } finally { cleanupTempDir(tmpDir); }
         }
@@ -533,7 +533,7 @@ const universalGuidesTests = [
             try {
                 withEnv(tmpDir, () => {
                     const { hasUniversalGuides } = freshState(tmpDir);
-                    assertTrue(hasUniversalGuides('<!-- CK:UNIVERSAL-GUIDES v3 -->\n# x'), 'v3 >= v2 passes');
+                    assertTrue(hasUniversalGuides('<!-- CK:UNIVERSAL-GUIDES v4 -->\n# x'), 'v4 >= v3 passes');
                 });
             } finally { cleanupTempDir(tmpDir); }
         }
@@ -545,7 +545,7 @@ const universalGuidesTests = [
             try {
                 withEnv(tmpDir, () => {
                     const { hasUniversalGuides } = freshState(tmpDir);
-                    assertTrue(!hasUniversalGuides('<!-- CK:UNIVERSAL-GUIDES v1 -->\n# x'), 'v1 < v2 flagged (bump re-offers update)');
+                    assertTrue(!hasUniversalGuides('<!-- CK:UNIVERSAL-GUIDES v2 -->\n# x'), 'v2 < v3 flagged (bump re-offers update)');
                 });
             } finally { cleanupTempDir(tmpDir); }
         }

@@ -940,7 +940,7 @@ async function testSubagentInitContextGuard() {
 async function testInitPromptGate() {
     logSection('UserPromptSubmit: init-prompt-gate.cjs (project-context router)');
     const completeAgentFileStub = [
-        '<!-- CK:UNIVERSAL-GUIDES v2 -->',
+        '<!-- CK:UNIVERSAL-GUIDES v3 -->',
         '## First Action Decision',
         '## Workflow Step Advancement',
         '## IMPORTANT: Task Planning Rules',

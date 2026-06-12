@@ -16,6 +16,45 @@ try {
 const CLAUDE_MD_PATH = path.join(PROJECT_DIR, 'CLAUDE.md');
 const BACKUP_PATH = path.join(PROJECT_DIR, '.claude-md.backup');
 const TEMPLATE_PATH = path.join(__dirname, '..', 'references', 'claude-md-template.md');
+// Canonical hook-independent Workflow-First Gate (primacy anchor). Stamped at the top of every
+// generated/updated CLAUDE.md so the routing rule survives in Codex/Copilot mirrors with no hooks.
+const WORKFLOW_GATE_PATH = path.join(__dirname, '..', '..', 'shared', 'workflow-first-gate.md');
+const GATE_OPEN = '<!-- CK:WORKFLOW-GATE -->';
+const GATE_CLOSE = '<!-- /CK:WORKFLOW-GATE -->';
+const GATE_BLOCK_RE = /<!-- CK:WORKFLOW-GATE -->[\s\S]*?<!-- \/CK:WORKFLOW-GATE -->/g;
+// Inline fallback keeps the generator portable if the shared file is absent in a partial install.
+const WORKFLOW_GATE_FALLBACK = `${GATE_OPEN}
+
+> **[WORKFLOW-GATE] — routing is your FIRST action, before any tool call.**
+> This rule is hook-independent: it binds Claude, Codex, and Copilot equally.
+>
+> | Request is about… | Default route |
+> | --- | --- |
+> | A bug, error, crash, regression, or wrong/stale output | **\`bugfix\` workflow** — \`/workflow-start bugfix\` |
+> | A new feature, capability, or enhancement | **\`feature\` workflow** — \`/workflow-start feature\` (use \`big-feature\` when scope is large/ambiguous) |
+> | Anything matching a skill's or workflow's "Use" clause | that skill / workflow |
+> | A one-off question, or a truly trivial edit | direct execution |
+>
+> 1. An explicit \`/skill\` or \`/workflow\` in the prompt is the user's choice — execute it. Otherwise auto-select; never ask which path to take.
+> 2. Prefer the workflow for bug fixes and feature/enhancement work — they force investigation, tests, and review.
+> 3. Declare the route (\`Route: {workflow-id | skill | direct} — because {reason}\`) and create the task list BEFORE the first edit, sub-agent, or command.
+
+${GATE_CLOSE}`;
+
+/**
+ * Load the canonical Workflow-First Gate block from the shared file, falling back to the inline
+ * copy. Returns ONLY the marker-delimited block (drops the file's leading authoring comment).
+ */
+function loadWorkflowGate() {
+    try {
+        const raw = fs.readFileSync(WORKFLOW_GATE_PATH, 'utf-8');
+        const m = raw.match(/<!-- CK:WORKFLOW-GATE -->[\s\S]*?<!-- \/CK:WORKFLOW-GATE -->/);
+        if (m) return m[0];
+    } catch {
+        // Shared file unavailable — use the inline fallback below.
+    }
+    return WORKFLOW_GATE_FALLBACK;
+}
 
 const SECTION_OPEN = /^<!-- SECTION:(\S+) -->$/;
 const SECTION_CLOSE = /^<!-- \/SECTION:(\S+) -->$/;
@@ -24,7 +63,7 @@ const SECTION_CLOSE = /^<!-- \/SECTION:(\S+) -->$/;
 // The agent-files bootstrap gate reads this to tell a complete file from a project-only
 // one. MUST match agent-files-state.cjs UNIVERSAL_GUIDES_VERSION / SENTINEL_RE — the
 // agent-files-gate.test.cjs sync test enforces the lockstep.
-const UNIVERSAL_GUIDES_VERSION = 2;
+const UNIVERSAL_GUIDES_VERSION = 3;
 const SENTINEL = `<!-- CK:UNIVERSAL-GUIDES v${UNIVERSAL_GUIDES_VERSION} -->`;
 const SENTINEL_RE = /<!--\s*CK:UNIVERSAL-GUIDES\s+v(\d+)\s*-->/i;
 // Static portable-guide headings the universal section always ships. MUST match
@@ -63,6 +102,26 @@ function ensureSentinel(content) {
         return text.replace(SENTINEL_RE, SENTINEL);
     }
     return `${SENTINEL}\n${text}`;
+}
+
+/**
+ * Stamp the top-of-file header: sentinel first, then the Workflow-First Gate immediately after it.
+ * Idempotent — strips any existing gate block (wherever it sits) and re-inserts it right below the
+ * sentinel so the routing rule is always the first thing the model reads. The gate is bound to the
+ * same content-presence contract as the sentinel (only stamped when the universal guides are
+ * present), so project-only files are never force-injected.
+ */
+function stampHeader(content) {
+    let text = ensureSentinel(content);
+    text = text.replace(GATE_BLOCK_RE, '').replace(/^\n+/, '').replace(/\n{3,}/g, '\n\n');
+    if (!hasGuides(text)) return text;
+    const gate = loadWorkflowGate();
+    const m = text.match(SENTINEL_RE);
+    if (m) {
+        const at = text.indexOf(m[0]) + m[0].length;
+        return `${text.slice(0, at)}\n\n${gate}\n\n${text.slice(at).replace(/^\n+/, '')}`;
+    }
+    return `${gate}\n\n${text}`;
 }
 
 /**
@@ -336,7 +395,7 @@ function main() {
         const projectName = config.project?.name || 'Project';
         const finalOutput = output.replace(/\{project-name\}/g, projectName).replace(/\{project-description\}/g, config.project?.description || '');
 
-        fs.writeFileSync(CLAUDE_MD_PATH, ensureSentinel(finalOutput), 'utf-8');
+        fs.writeFileSync(CLAUDE_MD_PATH, stampHeader(finalOutput), 'utf-8');
         console.log(`[OK] CLAUDE.md created (init mode)`);
     } else if (mode === 'update') {
         if (!fs.existsSync(CLAUDE_MD_PATH)) {
@@ -361,7 +420,7 @@ function main() {
             }
         }
 
-        fs.writeFileSync(CLAUDE_MD_PATH, ensureSentinel(output), 'utf-8');
+        fs.writeFileSync(CLAUDE_MD_PATH, stampHeader(output), 'utf-8');
         console.log(`[OK] CLAUDE.md updated (${generated.length} sections synced)`);
     } else if (mode === 'smart-merge') {
         console.log('[INFO] Smart-merge: CLAUDE.md has no markers. AI should handle migration.');

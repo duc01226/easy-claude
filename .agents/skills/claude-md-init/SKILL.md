@@ -80,7 +80,10 @@ Run `$claude-md-init` (or the generator directly) to produce `CLAUDE.md` from
 `docs/project-config.json` + template. The generated file ships the universal session-start guides
 (workflow ask-confirm gate, workflow step-advancement + parallel-phase barrier, task-planning rules,
 code hierarchy, naming, evidence/confidence rules) and stamps the sentinel at the top so the gate
-recognizes it as complete.
+recognizes it as complete. It also stamps the hook-independent **Workflow-First Gate** (from
+`.claude/skills/shared/workflow-first-gate.md`, via `stampHeader()`) immediately after the sentinel —
+the primacy-anchor routing rule (bug→`bugfix` workflow, feature/enhancement→`feature` workflow) that
+mirrors into `AGENTS.md` and survives with no hooks.
 
 **Opt-out** — to keep a project-only `CLAUDE.md`/`AGENTS.md` (your custom knowledge, none of the
 universal guides), set `portability.requireUniversalGuides: false` in `docs/project-config.json`

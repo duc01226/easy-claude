@@ -35,7 +35,7 @@ const DISMISS_TTL_MS = 24 * 60 * 60 * 1000; // 1 day — matches the other init 
 // stamps the sentinel below; bumping UNIVERSAL_GUIDES_VERSION re-offers an update on
 // every previously-stamped file. The agent-files-gate.test.cjs sync test asserts the
 // generator emits a marker matching this version — keep them in lockstep.
-const UNIVERSAL_GUIDES_VERSION = 2;
+const UNIVERSAL_GUIDES_VERSION = 3;
 const SENTINEL_RE = /<!--\s*CK:UNIVERSAL-GUIDES\s+v(\d+)\s*-->/i;
 // Fallback for legacy/hand-written files with no sentinel: the static portable
 // section headings the template always ships (see claude-md-template.md).

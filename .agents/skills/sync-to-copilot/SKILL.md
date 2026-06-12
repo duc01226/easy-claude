@@ -62,6 +62,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **What gets synced:**
 
+- Workflow-First Gate (from `.claude/skills/shared/workflow-first-gate.md`) — **SCRIPT-GENERATED**, stamped at the top of `copilot-instructions.md` so Copilot (no hooks) gets the same bug→`bugfix` / feature→`feature` routing rule
 - Workflow catalog (from workflows.json) — **SCRIPT-GENERATED**
 - Dev rules (from development-rules.md) — **SCRIPT-GENERATED**
 - Project-reference summaries (from copilot-registry.json) — **SCRIPT-GENERATED**

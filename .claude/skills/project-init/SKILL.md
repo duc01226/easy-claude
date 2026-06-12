@@ -191,6 +191,7 @@ Spec workflow verification before declaring setup complete:
 - Confirm `/why-review` ran after `/review-changes`, or stopped with an explicit missing-tool blocker.
 - Confirm `Spawn background /graph-build sub-agent` ran after setup/review/verification was otherwise done, or stopped with an explicit missing-tool/dependency blocker.
 - Confirm the Feature Spec root is the fixed path `docs/specs/`.
+- Confirm the hook-independent Workflow-First Gate (`<!-- CK:WORKFLOW-GATE -->` block) is present at the TOP of `CLAUDE.md`, `AGENTS.md`, and `.github/copilot-instructions.md` so routing survives without hooks. If missing, re-run `/claude-md-init` (CLAUDE.md), then ask the user to run `/sync-codex` (AGENTS.md mirror) and re-run the Copilot sync (copilot-instructions.md).
 - For grown projects, confirm large scope is split per `/workflow-spec-driven-dev` (`>10` capabilities grouped; `4-10` capabilities sub-agented).
 
 If Codex mirrors were changed, run:

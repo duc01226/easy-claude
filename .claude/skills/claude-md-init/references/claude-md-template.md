@@ -1,4 +1,8 @@
-<!-- CK:UNIVERSAL-GUIDES v2 -->
+<!-- CK:UNIVERSAL-GUIDES v3 -->
+
+<!-- The hook-independent Workflow-First Gate (CK:WORKFLOW-GATE block) is stamped here automatically
+     by generate-claude-md.cjs `stampHeader()`, sourced from .claude/skills/shared/workflow-first-gate.md,
+     on every init/update — it is intentionally NOT inlined in this template to avoid drift. -->
 
 # {project-name} - Code Instructions
 
