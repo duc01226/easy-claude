@@ -93,12 +93,12 @@ If `FIGMA_ACCESS_TOKEN` environment variable exists:
 2. Parse response for: component names, styles, layout properties
 3. Limited — no screenshot, no Code Connect
 
-### Level 4: Screenshot + ai-multimodal (Always Available)
+### Level 4: Screenshot + visual analysis tooling (Always Available)
 
 If no MCP and no API token:
 
 1. Ask user via a direct user question: "Please screenshot the Figma frame and paste here"
-2. Analyze via `ai-multimodal` skill with design extraction prompts
+2. Analyze via `visual analysis tooling` skill with design extraction prompts
 3. Extract: approximate colors, fonts, spacing, layout, components
 
 ## Output Format

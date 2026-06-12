@@ -16,7 +16,7 @@ const INJECTIONS = [
     {
         trigger: 'Edit Feature Spec (docs/specs/)',
         context: '8-section tech-free format + TC-{FEATURE}-{NNN} pattern + Section 8 TC registry',
-        hook: 'feature-spec-context.cjs',
+        hook: 'spec-context.cjs',
         color: C.cyan
     },
     { trigger: 'Activate code-review', context: 'Code review rules + quality checklist', hook: 'code-review-rules-injector', color: C.amber },

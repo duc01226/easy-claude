@@ -58,6 +58,29 @@ test("evaluateCheck fails stale performance exception wording", () => {
   assert.ok(failures.some((failure) => failure.includes("PERFORMANCE EXCEPTION routes")));
 });
 
+test("evaluateCheck fails renamed spec tests skip wording", () => {
+  const failures = evaluateCheck(
+    {
+      requireAll: ["PERFORMANCE-SDD ROUTE"],
+      forbidAny: STALE_PERFORMANCE_SKIP_TERMS,
+      message: "workflow prompt surfaces must not preserve stale performance skip rules.",
+    },
+    "PERFORMANCE-SDD ROUTE says skip /spec [mode=tests] for this route"
+  );
+
+  assert.ok(failures.some((failure) => failure.includes("skip /spec [mode=tests]")));
+
+  const featureCheck = CHECKS.find(
+    (check) => check.code === "SDD008" && check.file === ".claude/skills/workflow-feature/SKILL.md"
+  );
+  assert.ok(featureCheck);
+  const patternFailures = evaluateCheck(
+    featureCheck,
+    "performance-review SLA functional no-regression but skip /spec [mode=tests]"
+  );
+  assert.ok(patternFailures.some((failure) => failure.includes("forbidden pattern found")));
+});
+
 test("evaluateCheck fails stale TC placeholder wording", () => {
   const failures = evaluateCheck(
     {
@@ -418,12 +441,12 @@ test("runChecks passes positive SDD fixture", async () => {
         "adjudication required canonical product/spec intent",
       ],
       [
-        ".claude/skills/spec-tests/SKILL.md",
-        "emergency recovery AskUserQuestion recovery report target-source-path",
+        ".claude/skills/spec/references/sync.md",
+        "emergency recovery AskUserQuestion recovery report from-integration-tests",
       ],
       [
-        ".claude/skills/feature-spec/SKILL.md",
-        "Section 8 owned exclusively by /spec-tests",
+        ".claude/skills/spec/SKILL.md",
+        "Section 8 is the canonical TC registry tests mode owns generation MUST NOT be overwritten during update",
       ],
       [
         ".claude/skills/shared/sdd-artifact-contract.md",
@@ -474,15 +497,15 @@ test("runChecks passes positive SDD fixture", async () => {
         "configured PBI/idea artifact roots detection/delegation docs/project-config.json",
       ],
       [
-        ".agents/skills/spec-tests/SKILL.md",
-        "emergency recovery AskUserQuestion recovery report target-source-path",
+        ".agents/skills/spec/references/sync.md",
+        "emergency recovery AskUserQuestion recovery report from-integration-tests",
       ],
       [
-        ".claude/skills/spec-tests/references/spec-tests-template.md",
+        ".claude/skills/spec/references/spec-tests-template.md",
         "configured-source-path configured-test-path",
       ],
       [
-        ".agents/skills/spec-tests/references/spec-tests-template.md",
+        ".agents/skills/spec/references/spec-tests-template.md",
         "configured-source-path configured-test-path",
       ],
       [

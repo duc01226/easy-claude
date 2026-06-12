@@ -1,6 +1,6 @@
 ---
 name: graph-build
-description: '[Code Intelligence] Use when you need to build, update, or sync the code review knowledge graph. Flag: --scope={full|update|sync} (default auto-detect); --scope=full forces a full rebuild, --scope=update re-parses uncommitted working-tree changes, --scope=sync syncs committed git changes then updates the working tree, folds former /graph-update + /graph-sync.'
+description: '[Code Intelligence] Use when you need to build, update, or sync the code review knowledge graph. Flag: --scope={full|update|sync} (default auto-detect); --scope=full forces a full rebuild, --scope=update re-parses uncommitted working-tree changes, --scope=sync syncs committed git changes then updates the working tree.'
 ---
 
 > Codex compatibility note:

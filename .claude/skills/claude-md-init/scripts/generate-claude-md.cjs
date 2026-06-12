@@ -28,16 +28,22 @@ const WORKFLOW_GATE_FALLBACK = `${GATE_OPEN}
 > **[WORKFLOW-GATE] — routing is your FIRST action, before any tool call.**
 > This rule is hook-independent: it binds Claude, Codex, and Copilot equally.
 >
+> Classify complexity and risk first, then route it:
+>
 > | Request is about… | Default route |
 > | --- | --- |
-> | A bug, error, crash, regression, or wrong/stale output | **\`bugfix\` workflow** — \`/workflow-start bugfix\` |
-> | A new feature, capability, or enhancement | **\`feature\` workflow** — \`/workflow-start feature\` (use \`big-feature\` when scope is large/ambiguous) |
+> | A simple, straightforward task with a clear target and low risk | **direct execution** — do it without a workflow |
+> | A simple task that needs a few coordinated steps or skills | **custom simple workflow** — sequence only the necessary skills/steps |
+> | A non-trivial bug, error, crash, regression, or wrong/stale output | **\`bugfix\` workflow** — \`/workflow-start bugfix\` |
+> | A non-trivial new feature, capability, or enhancement | **\`feature\` workflow** — \`/workflow-start feature\` (use \`big-feature\` when scope is large/ambiguous) |
 > | Anything matching a skill's or workflow's "Use" clause | that skill / workflow |
 > | A one-off question, or a truly trivial edit | direct execution |
 >
 > 1. An explicit \`/skill\` or \`/workflow\` in the prompt is the user's choice — execute it. Otherwise auto-select; never ask which path to take.
-> 2. Prefer the workflow for bug fixes and feature/enhancement work — they force investigation, tests, and review.
-> 3. Declare the route (\`Route: {workflow-id | skill | direct} — because {reason}\`) and create the task list BEFORE the first edit, sub-agent, or command.
+> 2. Analyze whether the task is simple and straightforward before defaulting to a standard workflow. If the target is clear, the change is low-risk, and a short direct execution can satisfy it, choose direct execution.
+> 3. For simple but multi-step work, build a custom simple workflow with only the few relevant skills/steps.
+> 4. Use standard workflows for non-trivial bugs and feature/enhancement work — they force investigation, tests, and review.
+> 5. Declare the route (\`Route: {workflow-id | skill | custom-simple | direct} — because {reason}\`) and create the task list BEFORE the first edit, sub-agent, or command.
 
 ${GATE_CLOSE}`;
 

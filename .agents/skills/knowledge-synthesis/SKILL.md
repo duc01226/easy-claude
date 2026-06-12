@@ -1,6 +1,6 @@
 ---
 name: knowledge-synthesis
-description: '[Research] Use when you need synthesize research findings into structured report using template.'
+description: '[Research] Use when you need to synthesize research findings into structured report using template.'
 ---
 
 > Codex compatibility note:

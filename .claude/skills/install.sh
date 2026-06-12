@@ -348,10 +348,10 @@ install_system_deps() {
         sudo apt-get update -qq
     fi
 
-    # FFmpeg (required for media-processing skill)
+    # FFmpeg (required for media processing tooling)
     install_system_package "ffmpeg" "FFmpeg" "ffmpeg"
 
-    # ImageMagick (required for media-processing skill)
+    # ImageMagick (required for media processing tooling)
     install_system_package "imagemagick" "ImageMagick" "magick,convert"
 
     # PostgreSQL client (optional - just check)
@@ -420,25 +420,11 @@ install_node_deps() {
     # Install local npm packages for skills
     print_info "Installing local npm packages for skills..."
 
-    # chrome-devtools
-    if [ -d "$SCRIPT_DIR/chrome-devtools/scripts" ] && [ -f "$SCRIPT_DIR/chrome-devtools/scripts/package.json" ]; then
-        print_info "Installing chrome-devtools dependencies..."
-        (cd "$SCRIPT_DIR/chrome-devtools/scripts" && npm install --quiet)
-        print_success "chrome-devtools dependencies installed"
-    fi
-
     # sequential-thinking
     if [ -d "$SCRIPT_DIR/sequential-thinking" ] && [ -f "$SCRIPT_DIR/sequential-thinking/package.json" ]; then
         print_info "Installing sequential-thinking dependencies..."
         (cd "$SCRIPT_DIR/sequential-thinking" && npm install --quiet)
         print_success "sequential-thinking dependencies installed"
-    fi
-
-    # mcp-management
-    if [ -d "$SCRIPT_DIR/mcp-management/scripts" ] && [ -f "$SCRIPT_DIR/mcp-management/scripts/package.json" ]; then
-        print_info "Installing mcp-management dependencies..."
-        (cd "$SCRIPT_DIR/mcp-management/scripts" && npm install --quiet)
-        print_success "mcp-management dependencies installed"
     fi
 
     # markdown-to-pdf (md-to-pdf, gray-matter)

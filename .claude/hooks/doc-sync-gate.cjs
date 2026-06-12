@@ -8,7 +8,7 @@
  *   1. Bash `git commit`  → WARN (process.exit(0)) when the staged set
  *      contains a BEHAVIORAL code change in an ENFORCED area but touches NO
  *      Feature Spec under that area's fixed docs/specs/{Area}/ bucket. The model should route to
- *      /feature-spec, /spec-tests, or /docs-update, but the hook must not stop
+ *      /spec, /spec [mode=tests], or /docs-update, but the hook must not stop
  *      the user's flow.
  *
  *   2. Write/Edit/MultiEdit on `src/**` → per-edit WARN (exit 0, never blocks)
@@ -21,7 +21,7 @@
  *   - NEVER blocks editing the Feature Spec doc itself (FR-4, no deadlock).
  *   - Fast-exits docs/tooling/test/generated/migration + non-enforced areas.
  *   - Refactor/whitespace/rename noop never false-positive-denies (FR-3a).
- *   - Reuses spec-tests `last_synced` + git drift as the staleness signal (FR-5).
+ *   - Reuses spec [mode=sync] `last_synced` + git drift as the staleness signal (FR-5).
  *   - Fail-OPEN on any internal error (a broken gate must not halt all commits).
  *   - Composes after git-commit-block.cjs: that hook denies unauthorised
  *     commits first; this gate only runs once a commit is authorised.
@@ -165,7 +165,7 @@ function handleCommit(cfg) {
   lines.push('Auto-route before or immediately after this commit when behavior changed:');
   lines.push('  1. Update the matching README.{Feature}.md — §3 Acceptance Criteria, §4 Business Rules,');
   lines.push('     and/or §8 Test Specifications — for the behavior you changed, then stage it.');
-  lines.push('  2. Run /feature-spec (amend), /spec-tests, or /docs-update for the touched module.');
+  lines.push('  2. Run /spec [mode=amend], /spec [mode=tests], or /docs-update for the touched module.');
   lines.push('  3. If the change is doc-neutral, mention that in the final review evidence.');
   console.log(lines.join('\n'));
   process.exit(0);

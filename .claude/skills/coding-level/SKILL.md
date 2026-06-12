@@ -37,7 +37,9 @@ Set your coding experience level for tailored explanations and output format.
 | 2     | Mid-Level | 3-5 years - design patterns, system thinking                |
 | 3     | Senior    | 5-8 years - trade-offs, business context, architecture      |
 | 4     | Tech Lead | 8-10 years - risk assessment, business impact, strategy     |
-| 5     | God Mode  | Expert - default behavior, maximum efficiency (default)     |
+| 5     | God Mode  | Expert - maximum efficiency, minimal explanation            |
+
+> **Default when unset:** `-1` (disabled — no style injection, saves tokens). Levels 0–5 are opt-in via `codingLevel` in `.claude/.ck.json`. (Canonical default `-1` — matches `ck-config-loader.cjs:284`; full settings reference: `/ck-help config`.)
 
 ## How It Works
 

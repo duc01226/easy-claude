@@ -213,7 +213,7 @@ mistakes compound through later tasks.
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. Prevents context loss from long files. For simple tasks, MUST ATTENTION ask user whether to skip.
 
 - `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models) (read directly when relevant; do not rely on hook-injected conversation text)
-- `docs/specs/` — Test specifications by module (read existing TCs; generate/update via `/spec-tests` after implementation)
+- `docs/specs/` — Test specifications by module (read existing TCs; generate/update via `/spec [mode=tests]` after implementation)
 
 <!-- SYNC:end-to-start-debugger-trace -->
 
@@ -366,7 +366,7 @@ mistakes compound through later tasks.
 > 5. On context compaction: call `TaskList` FIRST — never create duplicate tasks
 > 6. Verify TC satisfaction per phase before marking complete (evidence must be `file:line`, not TBD)
 >
-> **Mode:** TDD-first → reference existing TCs with `Evidence: TBD`. Implement-first → use TBD → `/spec-tests` fills after.
+> **Mode:** TDD-first → reference existing TCs with `Evidence: TBD`. Implement-first → use TBD → `/spec [mode=tests]` fills after.
 
 <!-- /SYNC:plan-quality -->
 

@@ -33,6 +33,30 @@
 
 ---
 
+## TL;DR - Golden Rules
+
+1. Hooks use CommonJS (require/module.exports)
+2. Hook files read stdin JSON and write to stdout/stderr
+3. Shared utilities go in .claude/hooks/lib/
+4. Test hooks via node .claude/hooks/tests/test-all-hooks.cjs
+5. Each skill is a directory with SKILL.md as entry point
+6. Skills may have scripts/, references/, and tests/ subdirectories
+7. Follow naming conventions in .claude/docs/skill-naming-conventions.md
+8. Agent definitions are markdown files in .claude/agents/
+9. Follow patterns in .claude/docs/agents/agent-patterns.md
+
+**Architecture Hierarchy** - Place logic in LOWEST layer: `Entity/Model > Service > Component/Handler`
+
+**Decision Quick-Ref:**
+
+| Task | Pattern |
+| ---- | ------- |
+| New API endpoint | Controller + CQRS Command |
+| Business logic | Command Handler or lowest responsible layer |
+| Hook change | CommonJS hook + hook-runner conventions + hook tests |
+| Skill change | Update source .claude/skills, regenerate mirrors, verify divergence |
+| Generated mirror change | Edit canonical source, never hand-edit generated mirror files |
+
 ---
 
 ## Search Existing Code FIRST
@@ -45,9 +69,65 @@ Before writing ANY code:
 
 ---
 
+## Key File Locations
+
+```
+.claude/hooks/          # Runtime hooks for context injection, enforcement, and session management
+.claude/hooks/lib/      # Shared hook utilities consumed by hooks
+.claude/skills/         # Canonical skill definitions
+.agents/skills/         # Generated Codex skill mirror
+.claude/agents/         # Canonical Claude subagent definitions
+.codex/agents/          # Generated Codex agent mirror
+.claude/workflows.json  # Workflow catalog source of truth
+.github/instructions/   # Generated GitHub Copilot instruction files
+docs/project-reference/ # Project-specific reference docs
+plans/                  # Plans, reports, and task artifacts
+```
+
+---
+
 ## Project Reference Docs Index
 
 > These docs contain detailed patterns and conventions. **READ the full file** when working in the matching context.
 > Summaries below are concise — always read the source doc for complete guidance.
 
-_No project reference docs registered. Run /scan --target=project-structure to populate._
+| Doc | Summary | READ When |
+| --- | ------- | --------- |
+| [Project Structure Reference](docs/project-reference/project-structure-reference.md) | Project directory structure, module boundaries, inventory counts, framework entry points, and scan targets. | changing framework layout, module ownership, inventory counts, generated mirrors, or onboarding docs |
+| [Backend Patterns Reference](docs/project-reference/backend-patterns-reference.md) | Hook architecture, hook composition, shared hook libraries, state management, error handling, security, and hook testing patterns. | changing hook code, hook libraries, hook state, hook error handling, security checks, or hook tests |
+| [Frontend Patterns Reference](docs/project-reference/frontend-patterns-reference.md) | Frontend pattern status for this framework repository and guidance for target projects that define product UI conventions. | working on frontend, component, store, or API-service conventions for a target project |
+| [Integration Test Reference](docs/project-reference/integration-test-reference.md) | Hook test architecture, suite organization, standalone test files, and local commands for running integration-style tests. | adding, reviewing, or verifying hook integration tests, test suites, fixtures, or coverage gates |
+| [Feature Docs Reference](docs/project-reference/feature-docs-reference.md) | Legacy feature documentation structure, category organization, and conventions for adding feature docs. | checking feature documentation availability, legacy feature-doc routing, or feature doc organization |
+| [Feature Documentation Reference](docs/project-reference/feature-spec-reference.md) | Feature Spec directory conventions, 8-section structure, test-case ID format, evidence rules, and spec-to-code registries. | creating or updating Feature Specs, test cases, behavior docs, evidence mappings, or thin spec indexes |
+| [Spec System Reference](docs/project-reference/spec-system-reference.md) | Local spec root, canonical artifact ownership, test-case registry, derived artifact rules, and companion docs. | changing spec paths, canonical spec ownership, generated spec aids, ERDs, indexes, or spec routing |
+| [Project Spec Principles](docs/project-reference/spec-principles.md) | Local spec authority, source routing, prose rules, evidence format, test mapping, generated artifact rules, and verification commands. | writing spec prose, syncing specs with tests, reviewing SDD compliance, or refreshing generated prompt surfaces |
+| [Workflow Spec Test Code Cycle Reference](docs/project-reference/workflow-spec-test-code-cycle-reference.md) | Local workflow sequence, artifact owners, and closure gates for keeping specs, tests, code, docs, and generated mirrors aligned. | coordinating behavior changes across specs, tests, implementation, docs, and generated mirrors |
+| [Code Review Rules](docs/project-reference/code-review-rules.md) | Review rules for hooks, skills, agents, tests, naming, evidence, anti-patterns, review checklists, and blocking red flags. | reviewing code, hooks, skills, agents, documentation, tests, generated artifacts, or change quality |
+| [SCSS Styling Guide](docs/project-reference/scss-styling-guide.md) | Styling status for this framework repository and guidance for target projects that define SCSS or theming conventions. | working on CSS, SCSS, styling conventions, theming, or target-project design-system setup |
+| [Domain Entities Reference](docs/project-reference/domain-entities-reference.md) | Framework domain concepts and relationships for hooks, skills, agents, workflows, context groups, and modules. | changing framework entity concepts, catalogs, routing rules, workflow relationships, or domain documentation |
+| [E2E Test Reference](docs/project-reference/e2e-test-reference.md) | E2E test status for this framework repository plus target-project guidance for Playwright and page-object workflows. | adding or reviewing E2E guidance, Playwright setup, page objects, or target-project browser tests |
+| [Documentation Index Reference](docs/project-reference/docs-index-reference.md) | Documentation inventory, documentation graph, key doc relationships, and keyword-to-doc lookup routing. | locating project documentation, updating doc inventories, routing to reference docs, or checking doc counts |
+| [Lessons](docs/project-reference/lessons.md) | Project lessons learned and recurring failure-mode guardrails from prior framework maintenance work. | starting non-trivial work, debugging recurring issues, reviewing generated mirrors, or extracting new lessons |
+| [Design System](docs/project-reference/design-system/README.md) | Design-system status for this framework repository and guidance that target projects should define their own UI inventory. | working on design-system guidance, target-project tokens, component inventory, or UI convention setup |
+
+> **How to use:** When your task matches a "READ When" trigger above, **read the full file** before writing code. These docs contain project-specific patterns that differ from generic framework defaults.
+
+---
+
+## Development Commands
+
+```bash
+# tests
+node .claude/hooks/tests/test-all-hooks.cjs
+node .claude/hooks/tests/run-all-tests.cjs
+node --test .claude/scripts/codex/tests/*.test.mjs
+
+# sync
+node .claude/scripts/sync-copilot-workflows.cjs
+npm run codex:sync
+
+# verify
+npm run copilot:verify:divergence
+npm run codex:verify:sync-divergence
+npm run codex:verify:sdd
+```

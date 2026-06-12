@@ -12,25 +12,34 @@ Do not edit manually; update `CLAUDE.md` and re-sync.
 > **[WORKFLOW-GATE] — routing is your FIRST action, before any tool call.**
 > This rule is hook-independent: it binds Claude, Codex, and Copilot equally. Do not wait for any injected reminder to apply it.
 >
-> Classify the request, then route it:
+> Classify complexity and risk first, then route it:
 >
 > | Request is about… | Default route |
 > | --- | --- |
-> | A bug, error, crash, regression, or wrong/stale output | **`bugfix` workflow** — `$workflow-start bugfix` |
-> | A new feature, capability, or enhancement | **`feature` workflow** — `$workflow-start feature` (use `big-feature` when scope is large, ambiguous, or research-heavy) |
+> | A simple, straightforward task with a clear target and low risk | **direct execution** — do it without a workflow |
+> | A simple task that needs a few coordinated steps or skills | **custom simple workflow** — sequence only the necessary skills/steps |
+> | A non-trivial bug, error, crash, regression, or wrong/stale output | **`bugfix` workflow** — `$workflow-start bugfix` |
+> | A non-trivial new feature, capability, or enhancement | **`feature` workflow** — `$workflow-start feature` (use `big-feature` when scope is large, ambiguous, or research-heavy) |
 > | Anything matching a skill's or workflow's "Use" clause | that skill / workflow |
 > | A one-off question, or a truly trivial edit | direct execution |
 >
 > 1. **An explicit `/skill` or `/workflow` in the prompt is the user's choice — execute it directly.** Otherwise auto-select the route yourself; never ask the user which path to take.
-> 2. **Prefer the workflow for bug fixes and for feature/enhancement work** — workflows force the investigation, tests, and review that ad-hoc edits silently skip.
-> 3. **Declare the route, then ACTIVATE it — declaring is not activating.** State `Route: {workflow-id | skill | direct} — because {reason}`, then:
+> 2. **Analyze whether the task is simple and straightforward before defaulting to a standard workflow.** If the target is clear, the change is low-risk, and a short direct execution can satisfy it, choose direct execution.
+> 3. **For simple but multi-step work, build a custom simple workflow with only the few relevant skills/steps.** Do not expand to a full standard workflow when a small custom sequence is enough.
+> 4. **Use standard workflows for non-trivial bugs and feature/enhancement work** — they force the investigation, tests, and review that risky or broad changes need.
+> 5. **Declare the route, then ACTIVATE it — declaring is not activating.** State `Route: {workflow-id | skill | custom-simple | direct} — because {reason}`, then:
 >     - **Workflow route →** invoke `$workflow-start <id>` as a tool call. That skill loads the workflow's canonical step `sequence` and creates the task list **1:1** from it. You MUST NOT hand-author your own task list for a workflow route — the canonical `sequence` is the only source of truth. Writing `Route: …` in prose and then improvising a few tasks is the failure this gate exists to prevent.
 >     - **Skill route →** invoke that skill via the skill invocation.
+>     - **Custom simple workflow →** create a small task list from the selected skills/steps, then execute them in order.
 >     - **Direct route →** build the task list yourself, then proceed.
 >   In every case the route must be activated BEFORE the first edit, sub-agent, or command.
-> 4. **Direct execution is a legitimate route** for trivial or one-off work — but the declare-route and activate steps still apply.
+> 6. **Direct execution is a legitimate route** for trivial, one-off, or simple straightforward work — but the declare-route and activate steps still apply.
 
 <!-- /CK:WORKFLOW-GATE -->
+
+
+
+
 
 
 
@@ -177,8 +186,8 @@ Entity/Model (Lowest)  >  Service  >  Component/Handler (Highest)
 ```
 /\.claude/hooks/                         # Runtime hooks for context injection, enforcement, and session management
 /\.claude/hooks/lib/                     # Shared utility modules consumed by hooks
-/\.claude/skills/                        # 258 skill definitions for task automation (SKILL.md + scripts)
-/\.claude/agents/                        # 28 agent definitions for specialized subagent roles
+/\.claude/skills/                        # Skill definitions for task automation (SKILL.md + scripts)
+/\.claude/agents/                        # Agent definitions for specialized subagent roles
 /\.claude/scripts/                       # Utility scripts for catalog generation, skill management, and worktree operations
 /\.claude/workflows/                     # Workflow definitions for orchestrating multi-step task sequences
 /\.claude/docs/                          # Framework documentation — agents, skills, hooks, configuration guides
@@ -270,11 +279,11 @@ These skills auto-activate before file edits in their path patterns:
 
 | Kind        | Count                                       |
 | ----------- | ------------------------------------------- |
-| Skills      | <!-- COUNT:skills -->185<!-- /COUNT -->     |
+| Skills      | <!-- COUNT:skills -->160<!-- /COUNT -->     |
 | Hooks       | <!-- COUNT:hooks -->66<!-- /COUNT -->       |
 | Agents      | <!-- COUNT:agents -->29<!-- /COUNT -->      |
 | Workflows   | <!-- COUNT:workflows -->21<!-- /COUNT -->   |
-| Shared      | <!-- COUNT:shared -->5<!-- /COUNT -->       |
+| Shared      | <!-- COUNT:shared -->6<!-- /COUNT -->       |
 | Lib modules | <!-- COUNT:lib-modules -->31<!-- /COUNT --> |
 
 ---
@@ -579,7 +588,7 @@ Workflow source: `.claude/workflows.json` (21 workflows).
 - Description: Research-driven feature development for large, complex, or ambiguous features in an existing project — includes idea refinement, market research, business evaluation, domain analysis, tech stack research, and full implementation
 - When To Use: User wants to implement a large, complex, or ambiguous feature that needs research, market analysis, business evaluation, domain modeling, or tech stack analysis before implementation. Big new module, major enhancement, cross-cutting capability, or feature where scope is unclear
 - When Not To Use: Small/well-defined features (use feature), new project from scratch (use greenfield-init), bug fixes, documentation, test-only tasks
-- Sequence: `idea -> web-research -> deep-research -> business-evaluation -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> why-review -> plan -> plan-review -> refine -> why-review -> review-artifact --type=pbi -> story -> why-review -> review-artifact --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> feature-spec -> spec-tests -> why-review -> review-artifact --type=spec-tests -> plan -> plan-review -> scaffold -> plan-validate -> why-review -> cook -> review-domain-entities -> integration-test -> integration-test-review -> integration-test-verify -> spec-tests [direction=sync] -> workflow-review-changes -> sre-review -> security-review -> changelog -> test -> docs-update -> workflow-end -> watzup`
+- Sequence: `idea -> web-research -> deep-research -> business-evaluation -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> why-review -> plan -> plan-review -> refine -> why-review -> review-artifact --type=pbi -> story -> why-review -> review-artifact --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> spec -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> plan -> plan-review -> scaffold -> plan-validate -> why-review -> cook -> review-domain-entities -> integration-test -> integration-test-review -> integration-test-verify -> spec [mode=sync] -> workflow-review-changes -> sre-review -> security-review -> changelog -> test -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -602,8 +611,8 @@ After workflow activation, auto-select the applicable steps and skip irrelevant 
 - [x] Domain Analysis & ERD (domain-analysis)
 - [x] Tech Stack Research (tech-stack-research)
 - [x] User Stories (story)
-- [x] Feature Spec Consolidation (feature-spec) — folds story/pbi-mockup into the tech-free 8-section Feature Spec; these are INPUTS, not re-authored
-- [x] Test Specifications (spec-tests)
+- [x] Feature Spec Consolidation (spec) — folds story/pbi-mockup into the tech-free 8-section Feature Spec; these are INPUTS, not re-authored
+- [x] Test Specifications (spec [mode=tests])
 - [x] Test Spec Review (review-artifact --type=spec-tests)
 - [x] Implementation Plan (plan)
 - [x] Plan Review (plan-review)
@@ -633,7 +642,7 @@ The second $plan (after review-artifact --type=spec-tests) incorporates the conc
 This ensures the implementation plan reflects all discovered requirements, test strategy, and story dependencies.
 
 TEST SPECIFICATIONS (after review-artifact --type=story, BEFORE second plan):
-After stories are reviewed, write TDD specs ($spec-tests) based on story acceptance criteria.
+After stories are reviewed, write TDD specs ($spec [mode=tests]) based on story acceptance criteria.
 Review specs ($review-artifact --type=spec-tests) for coverage and correctness.
 The second $plan then incorporates test strategy alongside implementation tasks.
 
@@ -645,10 +654,10 @@ If NO foundational abstractions found → PROCEED: create all base abstract clas
 All infrastructure behind interfaces with at least one concrete implementation (Dependency Inversion).
 For existing projects adding a new module, adapt scaffolding to extend existing base classes rather than creating duplicates.
 MANDATORY SPEC-DRIVEN BIG-FEATURE GATES:
-- Read docs/project-reference/spec-principles.md before $story and $spec-tests to lock intent and non-negotiable invariants.
-- $spec-tests + $review-artifact --type=spec-tests MUST map each invariant to Section 8 TC IDs.
+- Read docs/project-reference/spec-principles.md before $story and $spec [mode=tests] to lock intent and non-negotiable invariants.
+- $spec [mode=tests] + $review-artifact --type=spec-tests MUST map each invariant to Section 8 TC IDs.
 - STATE MACHINE DATA ASSERT (MOST IMPORTANT MANDATORY ASSERT): for lifecycle/state-machine flows, tests MUST assert persisted state transitions and invalid-transition rejection.
-- Before $workflow-end, enforce three-way sync: spec docs ↔ TDD docs ↔ test code via $spec-tests + $review-artifact --type=spec-tests + $integration-test + $integration-test-review + $integration-test-verify + $spec-tests [direction=sync] + $docs-update.
+- Before $workflow-end, enforce three-way sync: spec docs ↔ TDD docs ↔ test code via $spec [mode=tests] + $review-artifact --type=spec-tests + $integration-test + $integration-test-review + $integration-test-verify + $spec [mode=sync] + $docs-update.
 UNIVERSAL RULES:
 - Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
 - Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks.
@@ -658,7 +667,7 @@ UNIVERSAL RULES:
 - Description: Systematic debugging and fix workflow with end-to-start debugger trace before fix
 - When To Use: User reports a bug, error, crash, failure, regression, stale/incorrect final output, or something not working; wants to fix/debug/troubleshoot an issue with end-to-start trace
 - When Not To Use: New feature implementation, code improvement/refactoring, investigation-only (no fix), documentation updates
-- Sequence: `scout -> investigate -> debug-investigate -> feature-spec [mode=amend] -> plan -> plan-review -> plan-validate -> why-review -> spec-tests -> why-review -> review-artifact --type=spec-tests -> integration-test -> fix -> prove-fix -> integration-test -> integration-test-review -> integration-test-verify -> spec-tests [direction=sync] -> workflow-review-changes -> changelog -> test -> docs-update -> workflow-end -> watzup`
+- Sequence: `scout -> investigate -> debug-investigate -> spec [mode=amend] -> plan -> plan-review -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> integration-test -> fix -> prove-fix -> integration-test -> integration-test-review -> integration-test-verify -> spec [mode=sync] -> workflow-review-changes -> changelog -> test -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -678,10 +687,10 @@ PROJECT CONTEXT: Apply the shared SDD Artifact Contract from shared/sdd-artifact
 6b. SPEC-BUG GATE — Run BEFORE writing regression TCs:
    Ask: "Is this a Code Bug or a Spec Bug?"
    • CODE BUG (code doesn't match spec — most common): Spec correctly describes expected behavior. Code diverged. Proceed to step 7.
-   • SPEC BUG (spec documented wrong behavior; code implemented the spec faithfully): Do NOT write regression TCs yet. First run $feature-spec [update] to correct the affected Feature Spec sections (§1-7, plus §8 if a TC encoded the wrong behavior). Then return to step 7.
+   • SPEC BUG (spec documented wrong behavior; code implemented the spec faithfully): Do NOT write regression TCs yet. First run $spec [mode=update] to correct the affected Feature Spec sections (§1-7, plus §8 if a TC encoded the wrong behavior). Then return to step 7.
    • AMBIGUOUS: Ask user: "Did the spec ever correctly document this behavior?"
    SIGNAL: Spec MATCHES buggy code → Spec Bug. Spec says X but code does Y → Code Bug.
-7. Write test specs ($spec-tests REGRESSION mode): Create TC specs asserting the CORRECT (fixed) expected behavior — not the buggy behavior. These become the regression guard.
+7. Write test specs ($spec [mode=tests]): Create TC specs asserting the CORRECT (fixed) expected behavior — not the buggy behavior. These become the regression guard.
 8. Review test specs with $review-artifact --type=spec-tests
 9. WRITE INTEGRATION TEST — RED phase: Implement integration test(s) based on the bug reproduction spec. Run the test(s) — they MUST FAIL. A passing test means it does NOT actually catch the bug. Never proceed to fix until the test(s) fail.
 10. Fix the identified issue
@@ -696,10 +705,10 @@ PROJECT CONTEXT: Apply the shared SDD Artifact Contract from shared/sdd-artifact
 PERFORMANCE-SDD ROUTE: If this bug fix is performance-related (latency, throughput, memory, query speed, load behavior), run $performance-review and require SLA/benchmark evidence: target metric, baseline, measurement command, and acceptable regression budget. Do not use performance scope to bypass functional no-regression checks: run $test and relevant functional checks when behavior can change. Update the affected Feature Spec (docs/specs/{Bucket}/) for changed SLA, performance constraints, or behavior boundaries.
 MANDATORY INVARIANT-PRESERVING BUGFIX LOOP:
 - Do not encode buggy behavior into specs/tests. Confirm intended invariant from spec docs first.
-- $spec-tests REGRESSION mode MUST capture preserved invariants and newly-fixed invariants explicitly.
+- $spec [mode=tests] MUST capture preserved invariants and newly-fixed invariants explicitly.
 - STATE MACHINE DATA ASSERT (MOST IMPORTANT MANDATORY ASSERT): regression tests MUST assert entity state before/after transitions and invalid transition rejection.
 - RED/GREEN harness proof is mandatory: first $integration-test must fail on the bug, second $integration-test must pass after fix.
-- $workflow-end is BLOCKED until specs, TCs, and test code are synchronized via $spec-tests + $review-artifact --type=spec-tests + $integration-test + $integration-test-review + $integration-test-verify + $spec-tests [direction=sync] + $docs-update. Performance-related work may delegate measurement to $performance-review, but spec/test/docs sync remains required whenever behavior, public contract, SLA, performance constraints, or docs/spec boundaries change.
+- $workflow-end is BLOCKED until specs, TCs, and test code are synchronized via $spec [mode=tests] + $review-artifact --type=spec-tests + $integration-test + $integration-test-review + $integration-test-verify + $spec [mode=sync] + $docs-update. Performance-related work may delegate measurement to $performance-review, but spec/test/docs sync remains required whenever behavior, public contract, SLA, performance constraints, or docs/spec boundaries change.
 - Code-to-spec extraction is reference-only until accepted by the canonical spec owner.
 UNIVERSAL RULES:
 - Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
@@ -780,7 +789,7 @@ UNIVERSAL RULES:
 - Description: Full feature development workflow with search-first approach, planning, implementation, testing, and documentation
 - When To Use: User wants to implement a well-defined feature, add a component, build a capability, develop a module, implement/execute an existing plan, create a new API endpoint, or design an API contract, TDD/test-first development, spec-driven feature implementation with test specs written before code
 - When Not To Use: Bug fixes, documentation, test-only tasks, feature requests/ideas (no implementation), PBI/story creation, design specs, large/ambiguous features needing research (use big-feature)
-- Sequence: `scout -> investigate -> domain-analysis -> why-review -> feature-spec -> plan -> plan-review -> plan-validate -> why-review -> spec-tests -> why-review -> review-artifact --type=spec-tests -> plan -> plan-review -> cook -> review-domain-entities -> spec-tests -> why-review -> review-artifact --type=spec-tests -> spec-tests [direction=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> sre-review -> security-review -> changelog -> test -> docs-update -> workflow-end -> watzup`
+- Sequence: `scout -> investigate -> domain-analysis -> why-review -> spec -> plan -> plan-review -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> plan -> plan-review -> cook -> review-domain-entities -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> spec [mode=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> sre-review -> security-review -> changelog -> test -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -790,14 +799,14 @@ FEATURE IMPLEMENTATION PROTOCOL:
 1. Scout: Find similar features, patterns, and implementation examples using Grep/Glob
 2. Investigate: Study existing patterns - validate with 3+ codebase examples (NOT generic framework docs)
 2b. Domain Analysis — CONDITIONAL: if feature creates/modifies domain entities, run $domain-analysis after investigate to model bounded contexts and ERD before planning.
-3. Author Feature Spec: with $feature-spec BEFORE planning, capture intended behavior — §1-7 business rules, invariants, and acceptance criteria the plan and tests are built against. Validate investigation + spec rationale with $why-review.
+3. Author Feature Spec: with $spec BEFORE planning, capture intended behavior — §1-7 business rules, invariants, and acceptance criteria the plan and tests are built against. Validate investigation + spec rationale with $why-review.
 4. Plan: Design solution following discovered project patterns (architecture, state management, CSS — see docs/project-config.json → workflowPatterns). Include expected behavior, unchanged behavior, and docs/spec/test sync when behavior can change.
 5. Validate plan via $plan-review then $plan-validate before any code changes; confirm design rationale with $why-review.
-6. Write test specifications with $spec-tests CREATE mode (before implementation). Review with $review-artifact --type=spec-tests.
+6. Write test specifications with $spec [mode=tests] (before implementation). Review with $review-artifact --type=spec-tests.
 7. Update plan with test strategy via $plan (re-plan cycle). Review with $plan-review.
 8. Implement with $cook (backend + frontend) — guided by test specs
 8b. Domain Entity Review — CONDITIONAL: if domain entity files created/modified, run $review-domain-entities before updating test specs to catch DDD quality issues early.
-9. Update test specs to catch implementation gaps with $spec-tests UPDATE mode. Review with $review-artifact --type=spec-tests. Sync §8 TCs ↔ integration test code with $spec-tests [direction=sync].
+9. Update test specs to catch implementation gaps with $spec [mode=tests]. Review with $review-artifact --type=spec-tests. Sync §8 TCs ↔ integration test code with $spec [mode=sync].
 10. Generate/update integration tests with $integration-test — creates actual test files from TC specifications — then verify with $integration-test-review and $integration-test-verify.
 11. Review the full change set with $workflow-review-changes (simplification, code quality, UI, architecture, and patterns compliance).
 12. SRE review for production readiness with $sre-review; security review with $security-review.
@@ -815,11 +824,11 @@ GUARDRAIL: Provide file:line evidence of pattern search in plan. Follow project 
 PERFORMANCE-SDD ROUTE: If this feature is a performance enhancement (latency, throughput, memory, query speed, load behavior), run $performance-review and require SLA/benchmark evidence: target metric, baseline, measurement command, and acceptable regression budget. Do NOT skip $cook. If behavior can change, run $test and relevant functional no-regression checks. Update the affected Feature Spec (docs/specs/{Bucket}/) for changed SLA, performance constraints, or behavior boundaries.
 MANDATORY SPEC-DRIVEN + INVARIANT + TEST HARNESS LOOP:
 - Read docs/project-reference/spec-principles.md before $plan and lock feature intent + non-negotiable invariants.
-- $spec-tests MUST map every invariant to TC IDs in §8 Test Specifications.
+- $spec [mode=tests] MUST map every invariant to TC IDs in §8 Test Specifications.
 - STATE MACHINE DATA ASSERT (MOST IMPORTANT MANDATORY ASSERT): for lifecycle behavior, tests MUST assert persisted entity state transitions and invalid-transition rejection.
-- $workflow-end is BLOCKED until Feature Spec §1-7, §8 TCs, and test code are synchronized via $spec-tests + $review-artifact --type=spec-tests + $integration-test + $integration-test-review + $integration-test-verify + $spec-tests [direction=sync] + $docs-update. Performance-related work may delegate measurement to $performance-review, but spec/test/docs sync remains required whenever behavior, public contract, SLA, performance constraints, or docs/spec boundaries change.
-- POST-IMPLEMENTATION SPEC RE-VERIFY (MANDATORY): the $feature-spec authored BEFORE $plan captured intended behavior; after $cook the implemented behavior may have diverged. Before closure, re-verify Feature Spec §1-7 against what was actually built and adjudicate any divergence per SYNC:spec-drift-adjudication (shared/sdd-artifact-contract.md Drift Gates) — CODE-WRONG -> fix code; SPEC-STALE -> run $feature-spec [update] to record the new intended behavior. This is not optional cleanup: a feature that shipped behavior the spec does not describe leaves the spec stale.
-- If mismatch exists (spec vs code vs tests), run $feature-spec [update] + $spec-tests [update] before closure.
+- $workflow-end is BLOCKED until Feature Spec §1-7, §8 TCs, and test code are synchronized via $spec [mode=tests] + $review-artifact --type=spec-tests + $integration-test + $integration-test-review + $integration-test-verify + $spec [mode=sync] + $docs-update. Performance-related work may delegate measurement to $performance-review, but spec/test/docs sync remains required whenever behavior, public contract, SLA, performance constraints, or docs/spec boundaries change.
+- POST-IMPLEMENTATION SPEC RE-VERIFY (MANDATORY): the $spec authored BEFORE $plan captured intended behavior; after $cook the implemented behavior may have diverged. Before closure, re-verify Feature Spec §1-7 against what was actually built and adjudicate any divergence per SYNC:spec-drift-adjudication (shared/sdd-artifact-contract.md Drift Gates) — CODE-WRONG -> fix code; SPEC-STALE -> run $spec [mode=update] to record the new intended behavior. This is not optional cleanup: a feature that shipped behavior the spec does not describe leaves the spec stale.
+- If mismatch exists (spec vs code vs tests), run $spec [mode=update] + $spec [mode=tests] before closure.
 - Code-to-spec extraction is reference-only until accepted by the canonical spec owner.
 UNIVERSAL RULES:
 - Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
@@ -856,7 +865,7 @@ UNIVERSAL RULES:
 - Description: Complete feature from idea through implementation, testing, and documentation — PO→BA→Designer→Dev→QA
 - When To Use: Full end-to-end feature delivery requiring idea → PBI → stories → design → implementation → testing → documentation
 - When Not To Use: PBI-only work (use idea-to-pbi), implementation-only work (use feature or big-feature), research-heavy new product (use big-feature or greenfield-init), bug fixes (use bugfix)
-- Sequence: `idea -> refine -> why-review -> review-artifact --type=pbi -> domain-analysis -> why-review -> story -> why-review -> review-artifact --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> design-spec -> why-review -> interface-design -> frontend-design -> feature-spec -> plan -> plan-review -> plan-validate -> why-review -> cook -> review-domain-entities -> spec-tests -> why-review -> review-artifact --type=spec-tests -> integration-test -> integration-test-review -> integration-test-verify -> spec-tests [direction=sync] -> workflow-review-changes -> sre-review -> quality-gate -> docs-update -> workflow-end -> watzup`
+- Sequence: `idea -> refine -> why-review -> review-artifact --type=pbi -> domain-analysis -> why-review -> story -> why-review -> review-artifact --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> design-spec -> why-review -> interface-design -> frontend-design -> spec -> plan -> plan-review -> plan-validate -> why-review -> cook -> review-domain-entities -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> integration-test -> integration-test-review -> integration-test-verify -> spec [mode=sync] -> workflow-review-changes -> sre-review -> quality-gate -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -870,15 +879,15 @@ MANDATORY IMPORTANT MUST ATTENTION RULES:
 4. plan-validate confirms implementation plan with user before cook
 4b. domain-analysis (after review-artifact --type=pbi) — CONDITIONAL: skip if feature has no domain entity changes. Run to model bounded contexts, aggregates, ERD before story writing.
 4c. review-domain-entities (after cook) — CONDITIONAL: skip if no domain entity files in changeset. Reviews DDD quality of created/modified entities before integration tests.
-4d. feature-spec (after frontend-design, before plan) — CONSOLIDATION point: folds story/design-spec/pbi-mockup into the tech-free 8-section Feature Spec; these upstream artifacts are INPUTS, not re-authored. spec-tests then writes TCs into it.
+4d. spec (after frontend-design, before plan) — CONSOLIDATION point: folds story/design-spec/pbi-mockup into the tech-free 8-section Feature Spec; these upstream artifacts are INPUTS, not re-authored. spec [mode=tests] then writes TCs into it.
 5. workflow-review-changes is the consolidated review + fix loop. Use the canonical review-changes workflow sequence from .claude/workflows.json: review-changes -> why-review findings validation -> parallel review batch -> code-simplifier -> verification -> plan/plan-review/why-review/cook -> full restart -> docs.
 6. Save artifacts at every step to configured plan and product-artifact roots from docs/project-config.json or project reference docs.
 MANDATORY FULL-LIFECYCLE SYNC GATES:
-- Read docs/project-reference/spec-principles.md before planning and spec-tests updates to keep intent/invariants explicit across role handoffs.
+- Read docs/project-reference/spec-principles.md before planning and spec [mode=tests] updates to keep intent/invariants explicit across role handoffs.
 - Treat AI-extracted specs, PBIs, stories, and TCs as draft/reference until their owning review or acceptance gate approves them.
 - Keep three-way sync explicit throughout the lifecycle: spec docs ↔ Section 8 TCs ↔ test code.
 - STATE MACHINE DATA ASSERT (MOST IMPORTANT MANDATORY ASSERT): for lifecycle/state transitions, tests MUST assert persisted transitions and invalid-transition rejection.
-- Before $workflow-end, enforce sync chain: $spec-tests + $review-artifact --type=spec-tests + $integration-test + $integration-test-review + $integration-test-verify + $spec-tests [direction=sync] + $docs-update.
+- Before $workflow-end, enforce sync chain: $spec [mode=tests] + $review-artifact --type=spec-tests + $integration-test + $integration-test-review + $integration-test-verify + $spec [mode=sync] + $docs-update.
 - When shared skill/workflow guidance changed, confirm generated mirrors are current before closure.
 UNIVERSAL RULES:
 - Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
@@ -889,7 +898,7 @@ UNIVERSAL RULES:
 - Description: Full waterfall project inception from idea through implementation with integration testing
 - When To Use: User wants to start a new project from scratch, init a greenfield project, plan a new application, research and plan before coding, bootstrap a new codebase, build something new
 - When Not To Use: Existing codebase with code, bug fixes, feature implementation, refactoring existing code
-- Sequence: `idea -> web-research -> deep-research -> business-evaluation -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> why-review -> plan -> plan-review -> security-review -> performance-review -> plan-review -> refine -> why-review -> review-artifact --type=pbi -> story -> why-review -> review-artifact --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> plan-validate -> why-review -> spec-tests -> why-review -> review-artifact --type=spec-tests -> plan -> plan-review -> scaffold -> linter-setup -> harness-setup -> why-review -> cook -> review-domain-entities -> spec-tests -> why-review -> review-artifact --type=spec-tests -> plan -> plan-review -> integration-test -> integration-test-review -> integration-test-verify -> test -> workflow-review-changes -> sre-review -> security-review -> changelog -> test -> docs-update -> workflow-end -> watzup`
+- Sequence: `idea -> web-research -> deep-research -> business-evaluation -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> why-review -> plan -> plan-review -> security-review -> performance-review -> plan-review -> refine -> why-review -> review-artifact --type=pbi -> story -> why-review -> review-artifact --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> plan -> plan-review -> scaffold -> linter-setup -> harness-setup -> why-review -> cook -> review-domain-entities -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> plan -> plan-review -> integration-test -> integration-test-review -> integration-test-verify -> test -> workflow-review-changes -> sre-review -> security-review -> changelog -> test -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -918,7 +927,7 @@ After workflow activation, auto-select the applicable steps and skip irrelevant 
 - [x] Tech Stack Research (tech-stack-research) — NEW
 - [x] Implementation Plan (plan)
 - [x] Plan Validation (plan-validate)
-- [x] Test Strategy (spec-tests) — includes integration test strategy
+- [x] Test Strategy (spec [mode=tests]) — includes integration test strategy
 - [x] User Stories (story)
 - [x] Final Review (plan-review)
 
@@ -948,7 +957,7 @@ After scaffolding, the workflow continues with full implementation and integrati
 1. $why-review validates design rationale before coding
 2. $cook implements the feature (backend + frontend)
 3. $review-domain-entities reviews domain entity DDD quality — CONDITIONAL: skip if no domain entity files in changeset. Detects anemic model, missing invariants, VO misclassification before integration tests are written.
-4. $spec-tests writes test specifications (feature doc Section 8)
+4. $spec [mode=tests] writes test specifications (feature doc Section 8)
 5. $review-artifact --type=spec-tests validates spec coverage and correctness
 6. Third $plan + $plan-review cycle plans integration test architecture
 7. $integration-test generates integration tests from specs
@@ -966,7 +975,7 @@ UNIVERSAL RULES:
 - Description: PO/BA workflow: capture or review idea/artifact, refine to PBI, create user stories, generate TDD test specs, challenge review, DoR gate, mockup, prioritize
 - When To Use: PO or BA wants to take a raw idea — OR PO is handing off an existing artifact/ticket/brief to BA — through to a grooming-ready PBI with user stories, TDD test specifications, Dev BA PIC challenge review, DoR validation, wireframes, and backlog prioritization
 - When Not To Use: Already have a drafted PBI (use pbi-challenge standalone), implementing a feature (use feature or big-feature)
-- Sequence: `idea -> review-artifact -> refine -> why-review -> review-artifact --type=pbi -> story -> why-review -> review-artifact --type=story -> spec-tests -> why-review -> review-artifact --type=spec-tests -> pbi-challenge -> dor-gate -> pbi-mockup -> prioritize -> docs-update -> workflow-end -> watzup`
+- Sequence: `idea -> review-artifact -> refine -> why-review -> review-artifact --type=pbi -> story -> why-review -> review-artifact --type=story -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> pbi-challenge -> dor-gate -> pbi-mockup -> prioritize -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -976,8 +985,8 @@ Capture and refine a raw idea — or a handed-off artifact/ticket/brief — into
 MANDATORY IMPORTANT MUST ATTENTION RULES:
 1. Each step must invoke its skill invocation — never batch-complete or skip steps
 2. review-artifact is CONDITIONAL — skip if no existing artifact; proceed straight to refine
-3. why-review runs three times with purpose-specific labels: after refine, after story, and after spec-tests. The standalone gate after review-artifact --type=pbi is omitted because review-artifact --type=pbi (like every review skill) self-invokes $why-review --validate-findings internally as a Findings Validation Gate. Each gate validates WHY before the next artifact step proceeds. FAIL blocks the next artifact step; WARN requires user acknowledgment.
-4. spec-tests and review-artifact --type=spec-tests run after review-artifact --type=story so acceptance criteria and stories are mapped into testable TC specifications before challenge and DoR gates
+3. why-review runs three times with purpose-specific labels: after refine, after story, and after spec [mode=tests]. The standalone gate after review-artifact --type=pbi is omitted because review-artifact --type=pbi (like every review skill) self-invokes $why-review --validate-findings internally as a Findings Validation Gate. Each gate validates WHY before the next artifact step proceeds. FAIL blocks the next artifact step; WARN requires user acknowledgment.
+4. spec [mode=tests] and review-artifact --type=spec-tests run after review-artifact --type=story so acceptance criteria and stories are mapped into testable TC specifications before challenge and DoR gates
 5. pbi-challenge is run by a reviewer different from the drafter — confirm reviewer identity before that step
 6. dor-gate must pass (PASS or WARN) before pbi-mockup is finalized
 7. Save artifacts at every step to the workflow artifact paths used by the child skills. If artifact roots become configurable later, update the workflow and child skills in the same change.
@@ -995,8 +1004,8 @@ After workflow activation, present the full step list and let user deselect irre
 - [x] User stories (story)
 - [x] Story rationale review (why-review) — after story
 - [x] Story review (review-artifact --type=story)
-- [x] Test specifications (spec-tests)
-- [x] Test-spec rationale review (why-review) — after spec-tests
+- [x] Test specifications (spec [mode=tests])
+- [x] Test-spec rationale review (why-review) — after spec [mode=tests]
 - [x] Test specification review (review-artifact --type=spec-tests)
 - [x] Dev BA PIC challenge (pbi-challenge)
 - [x] Definition of Ready gate (dor-gate)
@@ -1005,7 +1014,7 @@ After workflow activation, present the full step list and let user deselect irre
 - [x] Documentation synchronization (docs-update) — near-final sync for specs, feature docs, and TDD/spec docs
 
 WHY-REVIEW GATES (repeated, purpose-specific):
-Run in sequence after refine, after story, and after spec-tests (the gate after review-artifact --type=pbi is omitted — review-artifact --type=pbi self-invokes $why-review --validate-findings internally as a Findings Validation Gate). Challenge the active artifact rationale before the next artifact step:
+Run in sequence after refine, after story, and after spec [mode=tests] (the gate after review-artifact --type=pbi is omitted — review-artifact --type=pbi self-invokes $why-review --validate-findings internally as a Findings Validation Gate). Challenge the active artifact rationale before the next artifact step:
 - Is this the right next artifact/solution to the stated problem? What was rejected and why?
 - Are the acceptance criteria, story, or TC constraints justified? What breaks if they change?
 - Pre-mortem: if this PBI ships and fails in 3 months, what breaks?
@@ -1016,7 +1025,7 @@ FAIL blocks the next artifact step — active artifact must be revised first.
 TDD-SPEC GATE (after review-artifact --type=story):
 Before pbi-challenge and DoR, map reviewed stories and acceptance criteria into TC specifications:
 - Each material acceptance criterion should map to at least one TC ID
-- Route planned TC IDs to Feature doc Section 8 through $spec-tests; $docs-update later verifies feature docs and §8 TC ↔ integration test code sync
+- Route planned TC IDs to Feature doc Section 8 through $spec [mode=tests]; $docs-update later verifies feature docs and §8 TC ↔ integration test code sync
 - Cover happy path, validation failure, authorization/permission, and important edge cases where applicable
 - Review specs with review-artifact --type=spec-tests before pbi-challenge so reviewers evaluate a testable PBI
 - AI-generated TC drafts are reference-only until review and DoR gates accept them.
@@ -1125,7 +1134,7 @@ UNIVERSAL RULES:
 - Description: Code improvement and restructuring workflow with search-first approach
 - When To Use: User wants to restructure, reorganize, clean up, or improve existing code without changing behavior; technical debt
 - When Not To Use: Bug fixes, new feature development
-- Sequence: `scout -> investigate -> plan -> plan-review -> plan-validate -> why-review -> code -> spec-tests -> why-review -> review-artifact --type=spec-tests -> spec-tests [direction=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> sre-review -> changelog -> test -> docs-update -> workflow-end -> watzup`
+- Sequence: `scout -> investigate -> plan -> plan-review -> plan-validate -> why-review -> code -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> spec [mode=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> sre-review -> changelog -> test -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -1139,7 +1148,7 @@ REFACTORING PROTOCOL:
 4. Validate plan  --  ensure no behavioral changes, only structural
 5. Validate design rationale with $why-review (features/refactors)
 6. Implement incrementally  --  small, verifiable steps
-7. Verify test specs still match after refactoring with $spec-tests update mode. Review with $review-artifact --type=spec-tests. Sync Feature Spec §8 ↔ test code with $spec-tests [direction=sync].
+7. Verify test specs still match after refactoring with $spec [mode=tests]. Review with $review-artifact --type=spec-tests. Sync Feature Spec §8 ↔ test code with $spec [mode=sync].
 8. Verify/update integration tests with $integration-test — ensures tests reflect refactored code paths.
 9. Simplify: Remove dead code, flatten nesting, extract duplicates
    CRITICAL: Before removing any code:
@@ -1162,7 +1171,7 @@ PERFORMANCE-SDD ROUTE: If this refactor is performance-driven (query optimizatio
 MANDATORY REFACTOR INVARIANT SAFETY GATES:
 - Preserve existing intent/invariants; refactor MUST NOT change observable behavior unless explicitly approved.
 - STATE MACHINE DATA ASSERT (MOST IMPORTANT MANDATORY ASSERT): for lifecycle/state-machine logic, tests MUST assert persisted transitions and invalid-transition rejection.
-- Before $workflow-end, maintain three-way sync: spec docs ↔ TDD docs ↔ test code via $spec-tests + $review-artifact --type=spec-tests + $spec-tests [direction=sync] + $integration-test + $integration-test-review + $integration-test-verify + $docs-update. Performance-driven refactors may delegate measurement to $performance-review, but observable behavior preservation and required spec/test/docs sync remain closure gates.
+- Before $workflow-end, maintain three-way sync: spec docs ↔ TDD docs ↔ test code via $spec [mode=tests] + $review-artifact --type=spec-tests + $spec [mode=sync] + $integration-test + $integration-test-review + $integration-test-verify + $docs-update. Performance-driven refactors may delegate measurement to $performance-review, but observable behavior preservation and required spec/test/docs sync remain closure gates.
 UNIVERSAL RULES:
 - Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
 - Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks.
@@ -1231,12 +1240,12 @@ PRE-COMMIT REVIEW (RECURSIVE):
 - TEST SPEC VERIFICATION: Cross-reference changes against TC-{FEATURE}-{NNN} test specifications. Flag untested code paths.
 - INTEGRATION TEST SYNC: Identify changed business logic files (handlers, services, controllers, commands, queries, resolvers — infer from project conventions). For each, verify a corresponding test file exists. If missing, surface to user via ask the user directly — mandatory, not advisory.
 - MULTILINGUAL UI SYNC CHECK: If UI-facing files changed and project localization is multilingual (`localization.enabled` + `supportedLocales.length > 1`), verify translation file updates. If missing, surface via ask the user directly — mandatory, not advisory.
-- DOC SYNC DEFERRAL: DO NOT update Feature Specs or test spec TCs during review steps. The dedicated docs-update step handles all of this: $feature-spec (§1-7 Feature Spec) + $spec-tests (§8 test spec update) + $spec-tests [direction=sync] (§8 TCs ↔ test code) + optional $spec-index [mode=index] (derived bucket INDEX/ERD refresh). TEST SPEC VERIFICATION above is READ-ONLY cross-reference only — flag gaps, do not write.
+- DOC SYNC DEFERRAL: DO NOT update Feature Specs or test spec TCs during review steps. The dedicated docs-update step handles all of this: $spec (§1-7 Feature Spec) + $spec [mode=tests] (§8 test spec update) + $spec [mode=sync] (§8 TCs ↔ test code) + optional $spec-index [mode=index] (derived bucket INDEX/ERD refresh). TEST SPEC VERIFICATION above is READ-ONLY cross-reference only — flag gaps, do not write.
 MANDATORY REVIEW-CHANGES GATES:
 - SPEC/TDD/TEST THREE-WAY SYNC is blocking: changed behavior must match specs + TCs + test code.
-- SPEC DRIFT ADJUDICATION (apply SYNC:spec-drift-adjudication): for every behavior-changing file, do NOT silently flag a one-directional 'stale doc'. Adjudicate per shared/sdd-artifact-contract.md Drift Gates whether the divergence is CODE-WRONG (change violates an intended spec rule/AC/invariant -> BLOCKING finding, fix code/test against intended behavior) or SPEC-STALE (intentional new behavior the spec no longer reflects -> run $feature-spec [update] FIRST, then $spec-tests [update] + [direction=sync]); AMBIGUOUS -> ask the user directly before editing either side. Never normalize drift just because code/tests are green. Unadjudicated behavior-vs-spec divergence is a blocking finding.
+- SPEC DRIFT ADJUDICATION (apply SYNC:spec-drift-adjudication): for every behavior-changing file, do NOT silently flag a one-directional 'stale doc'. Adjudicate per shared/sdd-artifact-contract.md Drift Gates whether the divergence is CODE-WRONG (change violates an intended spec rule/AC/invariant -> BLOCKING finding, fix code/test against intended behavior) or SPEC-STALE (intentional new behavior the spec no longer reflects -> run $spec [mode=update] FIRST, then $spec [mode=tests] + $spec [mode=sync]); AMBIGUOUS -> ask the user directly before editing either side. Never normalize drift just because code/tests are green. Unadjudicated behavior-vs-spec divergence is a blocking finding.
 - STATE MACHINE DATA ASSERT (MOST IMPORTANT MANDATORY ASSERT): for lifecycle/state-transition changes, verify persisted-state assertions and invalid-transition rejection tests.
-- Missing or stale docs/tests are blocking findings; route fixes through $spec-tests + $review-artifact --type=spec-tests + $integration-test + $integration-test-review + $integration-test-verify + $spec-tests [direction=sync] + $docs-update.
+- Missing or stale docs/tests are blocking findings; route fixes through $spec [mode=tests] + $review-artifact --type=spec-tests + $integration-test + $integration-test-review + $integration-test-verify + $spec [mode=sync] + $docs-update.
 UNIVERSAL RULES:
 - Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
 - Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks.
@@ -1245,17 +1254,17 @@ UNIVERSAL RULES:
 ### spec-driven-dev — Spec-Driven Development
 - Description: Unified spec-driven development — authors and maintains ONE canonical artifact per capability: the tech-free 8-section Feature Spec at docs/specs/{Bucket}/README.{Feature}.md (code is the technical source of truth; derived bucket INDEX/ERD are regenerable aids). Modes: init-full (zero → Feature Specs), update (incremental sync from code changes), audit (staleness check).
 - When To Use: Initial Feature Spec generation from zero docs, maintaining spec sync after code changes, quarterly spec health audits, before tech migrations, after major features land — authors + three-way-syncs the canonical Feature Spec. Use spec-index instead when only regenerating derived indexes/ERDs.
-- When Not To Use: Understanding one specific feature (use $investigate skill), authoring/updating a single Feature Spec (use feature-spec directly), regenerating only the derived bucket index/ERD (use spec-index directly)
-- Sequence: `scout -> plan -> plan-review -> plan-validate -> feature-spec -> spec-tests -> review-artifact --type=spec-tests -> review-artifact -> docs-update -> workflow-end -> watzup`
+- When Not To Use: Understanding one specific feature (use $investigate skill), authoring/updating a single Feature Spec (use spec directly), regenerating only the derived bucket index/ERD (use spec-index directly)
+- Sequence: `scout -> plan -> plan-review -> plan-validate -> spec -> spec [mode=tests] -> review-artifact --type=spec-tests -> review-artifact -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
 SPEC-DRIVEN-DEV PROTOCOL:
 Modes: init-full | update | audit.
 Step 0: auto-detect mode, map changed services → App Bucket, confirm capability name(s).
-Scale gate: 4+ capabilities = MUST spawn one feature-spec sub-agent per capability in ONE message.
+Scale gate: 4+ capabilities = MUST spawn one spec sub-agent per capability in ONE message.
 ONE canonical artifact: docs/specs/{Bucket}/README.{Feature}.md (tech-free 8-section Feature Spec; §5 holds the Mermaid ERD INLINE). No separate A-E engineering tree — code is the technical source of truth. Derived bucket INDEX.md/ERD are optional regenerable aids (spec-index mode=index).
-Update mode: git diff → impact map → feature-spec update (§1-7) → spec-tests update (§8) → review-artifact --type=spec-tests → spec-tests sync (§8 ↔ test code) → optional spec-index index refresh.
+Update mode: git diff → impact map → spec [mode=update] (§1-7) → spec [mode=tests] (§8) → review-artifact --type=spec-tests → spec [mode=sync] (§8 ↔ test code) → optional spec-index index refresh.
 New PBI/requirement update mode: run dor-gate when a new/changed PBI is being made implementation-ready; run pbi-mockup only for UI/user-journey changes.
 Audit mode: compare Feature Spec git-history timestamps vs source-code git log → staleness reports.
 See .claude/skills/workflow-spec-driven-dev/SKILL.md for full protocol.
@@ -1270,7 +1279,7 @@ UNIVERSAL RULES:
 ### spec-index — Spec Discovery
 - Description: Regenerate DERIVED navigation aids — a per-bucket feature INDEX, cross-capability ERD, or reimplementation guide — assembled FROM the canonical tech-free 8-section Feature Specs under docs/specs/. The Feature Specs stay the single source of truth; this never extracts a separate per-module A-E engineering tree (retired 2026-06-10).
 - When To Use: Regenerating a per-bucket feature INDEX.md after Feature Specs changed, assembling a cross-capability ERD from the §5 domain-model blocks, producing a reimplementation/build-order guide for a rebuild, or auditing which derived aids have gone stale against their source Feature Specs — derived INDEX/ERD regeneration ONLY (never authors canonical spec content). Authoring or syncing canonical spec content → use spec-driven-dev.
-- When Not To Use: Authoring or fixing the canonical business content of a capability (use feature-spec — Feature Specs are the source of truth, this only derives aids over them), syncing §8 test specs to test code (use spec-tests), reverse-engineering specs from a brand-new external codebase with no docs/specs/ tree yet (author Feature Specs via feature-spec first), refactoring or optimizing code (use refactor or $performance-review skill)
+- When Not To Use: Authoring or fixing the canonical business content of a capability (use spec — Feature Specs are the source of truth, this only derives aids over them), syncing §8 test specs to test code (use $spec [mode=sync]), reverse-engineering specs from a brand-new external codebase with no docs/specs/ tree yet (author Feature Specs via spec first), refactoring or optimizing code (use refactor or $performance-review skill)
 - Sequence: `scout -> spec-index -> review-changes -> review-artifact -> workflow-end -> watzup`
 
 Protocol:
@@ -1282,7 +1291,7 @@ Generates regenerable navigation aids — a per-bucket feature INDEX, a cross-ca
 
 MANDATORY IMPORTANT MUST ATTENTION RULES:
 1. SCOPE GATE FIRST: use ask the user directly to confirm Bucket(s) (one / several / all of docs/specs/), Mode (index | audit), and Artifacts (INDEX.md / cross-capability ERD / reimplementation guide). Default = index, INDEX.md only.
-2. If the target bucket has NO Feature Specs matching docs/specs/{Bucket}/README.*.md, STOP and route to $feature-spec — there is nothing to derive from. NEVER fabricate a spec to index.
+2. If the target bucket has NO Feature Specs matching docs/specs/{Bucket}/README.*.md, STOP and route to $spec — there is nothing to derive from. NEVER fabricate a spec to index.
 3. Output is DERIVED and regenerable — every generated file carries a '> DERIVED — regenerate via $spec-index; do NOT hand-edit' banner. It is NEVER a second source of truth.
 4. §1-7 of a Feature Spec are tech-free; the derived INDEX and ERD inherit that tech-free stance. The reimplementation guide is the SOLE derived artifact allowed to name a target rebuild stack (spec-principles.md §3 rebuild-guide exception).
 5. Every catalog row / ERD entity links back to its source Feature Spec; mark [UNVERIFIED] rather than guessing. Read docs/project-reference/spec-principles.md §3 (tech-agnostic + banned-token list) before writing any prose.
@@ -1294,7 +1303,7 @@ STEP 1 — READ SOURCE FEATURE SPECS:
   Glob docs/specs/{Bucket}/README.*.md → enumerate canonical specs. Per spec extract ONLY: capability name + file link · summary (first sentence of §1 Overview) · feature code + TC count + status mix (§8 Test Specifications) · entities + relationships (§5 Domain Model mermaid block, for ERD assembly). Do NOT re-derive business rules / API contracts / events into new files — they live in §1-7 and in code. You are indexing, not extracting. (Optional: parallel reader sub-agents, one per spec — an optimization, not a gate.)
 
 STEP 2 — ASSEMBLE DERIVED AIDS:
-  2a INDEX.md (default): regenerate docs/specs/{Bucket}/INDEX.md as a feature catalog (columns: Capability link | Summary | Feature Code | TCs | Status) with the DERIVED banner. feature-spec maintains the SAME file — keep the schema identical so the two never diverge.
+  2a INDEX.md (default): regenerate docs/specs/{Bucket}/INDEX.md as a feature catalog (columns: Capability link | Summary | Feature Code | TCs | Status) with the DERIVED banner. spec maintains the SAME file — keep the schema identical so the two never diverge.
   2b Cross-capability ERD (on request): merge every spec's §5 mermaid erDiagram into one; dedupe entities by name; keep cross-capability relationships; ERD stays tech-free (entity + relationship names only). Write docs/specs/{Bucket}/{Bucket}.erd.md with the DERIVED banner. Do NOT name it 01-domain-erd.md (retired).
   2c Reimplementation guide (explicit request only): build-order narrative (capability dependency order, integration touchpoints, suggested rebuild sequence). The ONLY derived artifact permitted to name a target stack. Write docs/specs/{Bucket}/{Bucket}.reimplementation-guide.md with the DERIVED banner. Do NOT name it 06-reimplementation-guide.md (retired).
 
@@ -1304,7 +1313,7 @@ HARD PROHIBITIONS: MUST NOT emit M## dirs, A-E files, 00-module-registry.md, 01-
 
 HANDOFF at workflow-end:
   Present: derived aids regenerated (which buckets, which artifacts), and any [UNVERIFIED] / stale entries.
-  Recommend: $feature-spec (author or fix a source Feature Spec), $spec-tests (sync §8 ↔ test code).
+  Recommend: $spec (author or fix a source Feature Spec), $spec [mode=sync] (§8 ↔ test code).
 UNIVERSAL RULES:
 - Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
 - Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks.
@@ -1314,19 +1323,19 @@ UNIVERSAL RULES:
 - Description: Update test specs and feature docs after code changes, bug fixes, or PR reviews
 - When To Use: After fixing a bug update test specs, after code changes update test specs, after PR review update test specs, sync test specs after changes, update test documentation after implementation
 - When Not To Use: New feature implementation (use feature), no code changes yet, idea refinement
-- Sequence: `workflow-review-changes -> spec-tests -> why-review -> review-artifact --type=spec-tests -> spec-tests [direction=sync] -> integration-test -> integration-test-review -> integration-test-verify -> test -> docs-update -> workflow-end`
+- Sequence: `workflow-review-changes -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> spec [mode=sync] -> integration-test -> integration-test-review -> integration-test-verify -> test -> docs-update -> workflow-end`
 
 Protocol:
 ```text
 TEST SPEC UPDATE WORKFLOW:
 Use after code changes, bug fixes, or PR reviews to keep test specs in sync.
 1. Review what changed (git diff or PR diff)
-2. Update test specs in the Feature Spec §8 (Test Specifications) using $spec-tests update mode — §8 is the canonical in-place home; there is no separate dashboard (retired 2026-06-10)
-3. Sync §8 ↔ integration test code via $spec-tests [direction=sync] (forward: §8 TCs → test code)
+2. Update test specs in the Feature Spec §8 (Test Specifications) using $spec [mode=tests] — §8 is the canonical in-place home; there is no separate dashboard (retired 2026-06-10)
+3. Sync §8 ↔ integration test code via $spec [mode=sync] (forward: §8 TCs → test code)
 4. Generate/update integration tests for changed TCs
 5. Run tests to verify
 
-Key: $spec-tests uses UPDATE mode — diffs existing TCs against current code, adds regression TCs for bugfixes.
+Key: $spec [mode=tests] diffs existing TCs against current code, adds regression TCs for bugfixes.
 MANDATORY TEST-SPEC UPDATE GATES:
 - Treat spec docs + Section 8 as intent/invariant source; do not encode buggy behavior as expected.
 - Three-way sync contract (§8 TCs ↔ test code, including the STATE MACHINE DATA ASSERT mandate for affected lifecycle transitions) is canonical in docs/project-reference/spec-system-reference.md → Three-Way Sync Triad — follow it exactly.
@@ -1351,7 +1360,7 @@ MANDATORY RULES:
 2. Run spec-index audit first if a Feature Spec may be stale vs code.
 3. Build a capability x feature/operation inventory before creating any PBI.
 4. Decompose large Feature Specs into independently deliverable vertical slices. Create explicit shared/foundation PBIs for cross-cutting prerequisites.
-5. For each PBI, include acceptance criteria, story points, dependencies, priority, domain impact, spec-tests needs, and DoR status. Carry §4 BR-/§3 US- logical IDs as the primary citation spine.
+5. For each PBI, include acceptance criteria, story points, dependencies, priority, domain impact, spec [mode=tests] needs, and DoR status. Carry §4 BR-/§3 US- logical IDs as the primary citation spine.
 6. Run domain-analysis when the spec implies new/changed entities, aggregates, invariants, state machines, or cross-service ownership.
 7. Run prioritize once at the end across all generated PBIs to produce a dependency-aware ranked backlog.
 8. Write artifacts immediately after each capability/feature is processed; never hold all PBIs in memory.
@@ -1434,8 +1443,8 @@ UNIVERSAL RULES:
 ### write-integration-test — Write Integration Tests
 - Description: Write or update integration tests for existing code — spec-first: investigate domain logic → write/update specs → generate test code → 7-gate review (incl. change coverage) → run and verify
 - When To Use: Write integration tests for a specific command/handler, add test coverage to an untested feature, update integration tests after code changes, integration test authoring from scratch for a feature area, cover uncommitted code changes with integration tests, generate integration tests from existing test specs or feature docs, review/audit existing integration tests for quality, flakiness, traceability, or failures
-- When Not To Use: No implementation yet (use feature or bugfix), spec-only with no code generation (use $spec-tests skill directly)
-- Sequence: `scout -> investigate -> spec-tests -> why-review -> review-artifact --type=spec-tests -> integration-test -> integration-test-review -> integration-test-verify -> spec-tests [direction=sync] -> docs-update -> workflow-end -> watzup`
+- When Not To Use: No implementation yet (use feature or bugfix), spec-only with no code generation (use $spec [mode=tests] directly)
+- Sequence: `scout -> investigate -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> integration-test -> integration-test-review -> integration-test-verify -> spec [mode=sync] -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -1444,7 +1453,7 @@ WRITE INTEGRATION TEST PROTOCOL:
 ⚠️ MANDATORY: Understand domain logic BEFORE writing assertions
 1. Scout: Find target command/handler files; locate existing integration tests in same service for pattern matching
 2. Investigate: Read the handler/entity/event source — understand WHAT fields change, WHAT entities are created/updated/deleted, WHAT event handlers fire. This is the prerequisite for correct assertions.
-3. TDD Spec: Write/update test specs in feature doc Section 8 (TC-{FEATURE}-{NNN} codes). Path: docs/specs/{Bucket}/README.{Feature}.md. CREATE mode for new tests, UPDATE mode for changed behavior.
+3. TDD Spec: Write/update test specs in feature doc Section 8 (TC-{FEATURE}-{NNN} codes). Path: docs/specs/{Bucket}/README.{Feature}.md. Authors new TCs and updates existing TCs for changed behavior.
 4. TDD Spec Review: Validate spec coverage — GIVEN/WHEN/THEN completeness, happy path + validation failure + auth paths, no duplicate TC codes
 5. Integration Test: Generate test files from TC specs. FROM-PROMPT for specific target, FROM-CHANGES for git diff.
    RULES (project-specific patterns from docs/project-config.json → framework.integrationTestDoc):
@@ -1461,9 +1470,9 @@ WRITE INTEGRATION TEST PROTOCOL:
 
 GUARDRAIL: Read handler source BEFORE writing any assertions. Use project async-wait helper for all DB assertions — no exceptions.
 MANDATORY WRITE-INTEGRATION-TEST GATES:
-- Read docs/project-reference/spec-principles.md before $spec-tests and keep invariant language explicit in TCs.
+- Read docs/project-reference/spec-principles.md before $spec [mode=tests] and keep invariant language explicit in TCs.
 - STATE MACHINE DATA ASSERT (MOST IMPORTANT MANDATORY ASSERT): for lifecycle/state-machine behavior, generated integration tests MUST assert persisted state transitions and invalid-transition rejection.
-- Maintain three-way sync before $workflow-end: spec docs ↔ TDD docs ↔ test code via $spec-tests + $review-artifact --type=spec-tests + $integration-test + $integration-test-review + $integration-test-verify + $spec-tests [direction=sync] + $docs-update.
+- Maintain three-way sync before $workflow-end: spec docs ↔ TDD docs ↔ test code via $spec [mode=tests] + $review-artifact --type=spec-tests + $integration-test + $integration-test-review + $integration-test-verify + $spec [mode=sync] + $docs-update.
 UNIVERSAL RULES:
 - Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
 - Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks.

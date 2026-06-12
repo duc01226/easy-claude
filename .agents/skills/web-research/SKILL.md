@@ -1,6 +1,6 @@
 ---
 name: web-research
-description: '[Research] Use when starting any research task.'
+description: '[Research] Use when starting a web research task — discover, gather, and triage candidate sources on a topic to feed deeper investigation.'
 ---
 
 > Codex compatibility note:

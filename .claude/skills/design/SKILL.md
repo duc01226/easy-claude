@@ -1,7 +1,7 @@
 ---
 name: design
 version: 1.0.0
-description: '[Design] Create or describe a UI design — quick (fast), immersive (good), or recreated/described from a screenshot or video. Dispatch via --mode={fast|good|describe|screenshot|video} (default fast). Folds the former /design-fast, /design-good, /design-describe, /design-screenshot, /design-video skills into --mode — those names no longer resolve as slash commands.'
+description: '[Design] Create or describe a UI design — quick (fast), immersive (good), or recreated/described from a screenshot or video. Dispatch via --mode={fast|good|describe|screenshot|video} (default fast).'
 disable-model-invocation: false
 ---
 
@@ -24,7 +24,7 @@ disable-model-invocation: false
 **Shared workflow (5-stage spine):**
 
 1. **Research** — Run `ui-ux-pro-max` searches for design intelligence (ALWAYS FIRST)
-2. **Ingest** — For visual modes (`describe`/`screenshot`/`video`), use `ai-multimodal` to analyze the screenshot/video in super-detail
+2. **Ingest** — For visual modes (`describe`/`screenshot`/`video`), use `visual analysis tooling` to analyze the screenshot/video in super-detail
 3. **Design** — Use `ui-ux-designer` subagent to create the design (or, for `describe`, an implementation plan)
 4. **Implement** — Build as code with `frontend-design` (skipped in `describe` mode)
 5. **Document** — Present to user for approval; update `./docs/design-guidelines.md` if needed
@@ -33,8 +33,8 @@ disable-model-invocation: false
 
 - Always activate `ui-ux-pro-max` FIRST for design intelligence
 - Default to pure HTML/CSS/JS if the user doesn't specify a framework
-- Use `ai-multimodal` for generating AND reviewing real visual assets
-- Use `media-processing` (RMBG) to remove backgrounds from generated assets when needed
+- Use `visual analysis tooling` for generating AND reviewing real visual assets
+- Use media processing tooling (RMBG) to remove backgrounds from generated assets when needed
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
@@ -91,7 +91,7 @@ Same spine as `fast`, raised to a higher quality bar (iterate on details):
 
 Treat `$ARGUMENTS` as the screenshot/video to describe.
 
-1. Use `ai-multimodal` to describe super-details of the screenshot/video so a developer can implement it easily.
+1. Use `visual analysis tooling` to describe super-details of the screenshot/video so a developer can implement it easily.
     - Be specific about design style, every element, elements' positions, every interaction, every animation, every transition, every color, every border, every icon, every font style/size/weight, every spacing/padding/margin, every size/shape/texture/material/light/shadow/reflection/refraction/blur/glow/image, background transparency, etc.
     - **IMPORTANT:** Predict the font name (Google Fonts) and font size — don't just use Inter or Poppins.
 2. Use `ui-ux-designer` subagent to create a design implementation **plan** following the progressive-disclosure structure so the result matches the screenshot/video:
@@ -104,7 +104,7 @@ Treat `$ARGUMENTS` as the screenshot/video to describe.
 
 Treat `$ARGUMENTS` as the screenshot to recreate exactly.
 
-1. Use `ai-multimodal` to describe super-details of the screenshot (design style, trends, fonts, colors, border, spacing, elements' positions, size, shape, texture, material, light, shadow, reflection, refraction, blur, glow, image, background transparency, transition, etc.).
+1. Use `visual analysis tooling` to describe super-details of the screenshot (design style, trends, fonts, colors, border, spacing, elements' positions, size, shape, texture, material, light, shadow, reflection, refraction, blur, glow, image, background transparency, transition, etc.).
     - **IMPORTANT:** Predict the font name (Google Fonts) and font size — don't just use Inter or Poppins.
 2. Use `ui-ux-designer` subagent to create a design plan following the progressive-disclosure structure (as in `describe`) so the final result matches the screenshot. Keep every research markdown report concise (≤150 lines).
 3. Implement the plan step by step.
@@ -119,7 +119,7 @@ Treat `$ARGUMENTS` as the screenshot to recreate exactly.
 
 Treat `$ARGUMENTS` as the video to recreate exactly. Same as `--mode=screenshot`, but ingest a VIDEO and capture BOTH static layout AND interaction/animation/transition patterns.
 
-1. Use `ai-multimodal` to describe super-details of the video: every element, every interaction, every animation, every transition, every color, every font, every border, every spacing, every size/shape/texture/material/light/shadow/reflection/refraction/blur/glow/image, background transparency, etc.
+1. Use `visual analysis tooling` to describe super-details of the video: every element, every interaction, every animation, every transition, every color, every font, every border, every spacing, every size/shape/texture/material/light/shadow/reflection/refraction/blur/glow/image, background transparency, etc.
     - **IMPORTANT:** Predict the font name (Google Fonts) and font size — don't just use Inter or Poppins.
 2. Use `ui-ux-designer` subagent to create a design plan following the progressive-disclosure structure so the final result matches the video. Keep every research markdown report concise (≤150 lines).
 3. Implement the plan step by step.
@@ -132,9 +132,9 @@ Treat `$ARGUMENTS` as the video to recreate exactly. Same as `--mode=screenshot`
 
 ## Notes (all modes)
 
-- Remember you have the capability to generate images, videos, edit images, etc. with `ai-multimodal` skills. Use them to create the design and real assets.
-- Always review, analyze, and double-check generated assets with `ai-multimodal` skills to verify quality.
-- Use `media-processing` skill (RMBG) to remove background from generated assets if needed (`good`/`screenshot`/`video`).
+- Remember you have the capability to generate images, videos, edit images, etc. with `visual analysis tooling` skills. Use them to create the design and real assets.
+- Always review, analyze, and double-check generated assets with `visual analysis tooling` skills to verify quality.
+- Use media processing tooling (RMBG) to remove background from generated assets if needed (`good`/`screenshot`/`video`).
 - Maintain and update `./docs/design-guidelines.md` docs if needed.
 
 ---

@@ -297,8 +297,8 @@ Merge section-by-section. Overwrite only with concrete scan findings. Large proj
 | ----------------------------------------------------------------------------- | --------------------------------- |
 | `project-structure-reference.md`                                              | `/scan --target=project-structure` (FIRST) |
 | `backend-patterns-reference.md`                                               | `/scan --target=backend-patterns`          |
-| `seed-test-data-reference.md`                                                 | `/scan-seed-test-data`            |
-| `design-system/` + `scss-styling-guide.md` + `frontend-patterns-reference.md` | `/scan-ui-system`                 |
+| `seed-test-data-reference.md`                                                 | `/scan --target=seed-test-data`   |
+| `design-system/` + `scss-styling-guide.md` + `frontend-patterns-reference.md` | `/scan --target=ui-system`        |
 | `integration-test-reference.md`                                               | `/scan --target=integration-tests`         |
 | `feature-spec-reference.md`                                                   | `/scan --target=feature-spec`              |
 | `code-review-rules.md`                                                        | `/scan --target=code-review-rules`         |

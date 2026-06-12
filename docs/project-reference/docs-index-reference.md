@@ -18,7 +18,7 @@ outside this count.
 | Project reference     | 16    | `docs/project-reference/`  |
 | ADRs                  | 2     | `docs/adr/`                |
 | Framework docs        | 28    | `.claude/docs/`            |
-| Config (non-markdown) | 1     | `docs/project-config.json` |
+| Config (non-markdown) | 2     | `docs/project-config.json`, `docs/copilot-registry.json` |
 
 ## Documentation Graph
 
@@ -32,6 +32,7 @@ easy-claude/
 │   │   ├── 0001-skill-lifecycle.md         # Skill lifecycle schema and GC policy
 │   │   └── 0002-canonical-count-metrics.md # Canonical inventory count metrics
 │   ├── project-config.json                 # Runtime config consumed by hooks
+│   ├── copilot-registry.json               # GitHub Copilot project-reference registry
 │   └── project-reference/                  # (16 files)
 │       ├── project-structure-reference.md   # Service architecture, directory tree, tech stack
 │       ├── backend-patterns-reference.md    # CQRS, repositories, entities, validation
@@ -146,6 +147,7 @@ CLAUDE.md
 | doc index, doc counts             | `docs/project-reference/docs-index-reference.md`        |
 | lessons learned, past sessions    | `docs/project-reference/lessons.md`                     |
 | project config, runtime config    | `docs/project-config.json`                              |
+| copilot registry, Copilot instructions | `docs/copilot-registry.json`                         |
 | hooks, hook catalog, events       | `.claude/docs/hooks/README.md`                          |
 | hook architecture, internals      | `.claude/docs/hooks/architecture.md`                    |
 | creating hooks, custom hooks      | `.claude/docs/hooks/extending-hooks.md`                 |

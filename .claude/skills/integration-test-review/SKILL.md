@@ -225,7 +225,7 @@ This gate makes the skill verify the REVIEW TARGET has coverage — not merely r
 - **COVERED** — integration test exercises the changed path with data-state assertions
 - **COVERED-UNIT** — unit test covers it, integration infeasible, justification recorded
 - **GAP (FAIL)** — no test would fail if the change broke. Severity: HIGH minimum; CRITICAL when the change touches authorization, money, or data integrity. Fix in Phase 5 by WRITING the missing test (integration-first) — reporting alone does not clear this gate
-- **SPEC-GAP (FAIL)** — behavior has no TC or a stale TC in spec docs. Fix via `/spec-tests` UPDATE (and `/feature-spec` when business rules changed)
+- **SPEC-GAP (FAIL)** — behavior has no TC or a stale TC in spec docs. Fix via `/spec [mode=tests]` UPDATE (and `/spec` when business rules changed)
 
 **FAIL:**
 
@@ -269,8 +269,8 @@ For each TC ID in code:
 
 For each behavior-changing production file in the review target (reverse direction — spec-driven development check):
 
-7. Verify a TC exists describing the changed behavior; if the TC still describes the OLD behavior, flag it as stale (route to `/spec-tests` UPDATE)
-8. New behavior with no TC anywhere → SPEC-GAP finding (Gate 7); recommend `/spec-tests` (and `/feature-spec` when business rules changed)
+7. Verify a TC exists describing the changed behavior; if the TC still describes the OLD behavior, flag it as stale (route to `/spec [mode=tests]` UPDATE)
+8. New behavior with no TC anywhere → SPEC-GAP finding (Gate 7); recommend `/spec [mode=tests]` (and `/spec` when business rules changed)
 
 **Phase 4 — Initial Report:** Write to `plans/reports/integration-test-review-{date}-{slug}.md`
 
@@ -278,7 +278,7 @@ For each behavior-changing production file in the review target (reverse directi
 
 1. Prioritize: CRITICAL → HIGH → MEDIUM
 2. Per fix: read handler source, understand domain logic, write/fix assertion
-3. **Gate 7 GAP fixes:** WRITE the missing test — integration test first (route through `/integration-test` patterns); unit test only with recorded justification. SPEC-GAP fixes: run `/spec-tests` UPDATE to add/correct the TC before or alongside writing the test
+3. **Gate 7 GAP fixes:** WRITE the missing test — integration test first (route through `/integration-test` patterns); unit test only with recorded justification. SPEC-GAP fixes: run `/spec [mode=tests]` UPDATE to add/correct the TC before or alongside writing the test
 4. NEVER weaken assertions to make tests pass — fix root cause (timing, data, setup) instead
 5. Re-read changed files to verify fix correctness
 6. Record each fix with `file:line` under `## Fixes Applied`
@@ -353,7 +353,7 @@ After sub-agents return:
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If NOT already in a workflow, MUST use `AskUserQuestion` to ask user:
 >
-> 1. **Activate `write-integration-test` workflow** (Recommended) — scout → investigate → spec-tests → review-artifact --type=spec-tests → integration-test → integration-test-review → integration-test-verify → spec-tests [direction=sync] → docs-update → workflow-end → watzup
+> 1. **Activate `write-integration-test` workflow** (Recommended) — scout → investigate → spec [mode=tests] → review-artifact --type=spec-tests → integration-test → integration-test-review → integration-test-verify → spec [mode=sync] → docs-update → workflow-end → watzup
 > 2. **Execute `/integration-test-review` directly** — run standalone
 
 ---
@@ -397,10 +397,10 @@ After sub-agents return:
 | -------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | `/integration-test`        | **Producer** — generates tests this skill reviews                      | Always preceded by /integration-test                                           |
 | `/integration-test-verify` | **Successor** — runs tests after review clears                         | Call after review passes all 7 gates                                           |
-| `/spec-tests`                | **TC source** — Gate 5 checks TCs exist in feature doc Section 8       | If Gate 5 fails (orphaned test) → run /spec-tests UPDATE                         |
+| `/spec [mode=tests]`                | **TC source** — Gate 5 checks TCs exist in feature doc Section 8       | If Gate 5 fails (orphaned test) → run /spec [mode=tests] UPDATE                         |
 | `/spec-index`              | **Spec authority** — Gate 6 compares test code vs spec bundle          | If Gate 6 finds conflict: spec is authority                                    |
-| `/feature-spec`            | **Business doc** — Gate 6 compares tests vs feature doc business rules | If Gate 6 finds conflict: check feature-spec vs spec-index alignment first |
-| `/docs-update`             | **Orchestrator** — includes spec-tests sync                              | Call when Gate 6 reveals doc staleness                                         |
+| `/spec`            | **Business doc** — Gate 6 compares tests vs feature doc business rules | If Gate 6 finds conflict: check spec vs spec-index alignment first |
+| `/docs-update`             | **Orchestrator** — includes spec [mode=sync]                              | Call when Gate 6 reveals doc staleness                                         |
 
 ## Standalone Chain
 
@@ -422,8 +422,8 @@ integration-test-review (you are here)
   │    │    → User waiver (verbatim, with reason) is the only alternative
   │    │
   │    └─ SPEC-GAP (changed behavior, no/stale TC in spec docs):
-  │         → /spec-tests UPDATE to add or correct the TC
-  │         → /feature-spec [update] when business rules changed
+  │         → /spec [mode=tests] UPDATE to add or correct the TC
+  │         → /spec [update] when business rules changed
   │         → Then link the new/updated TC to the covering test (Gate 5)
   │
   ├─ Gate 6 (Three-Way Sync) conflict resolution:
@@ -431,10 +431,10 @@ integration-test-review (you are here)
   │    ├─ Test code ≠ spec (feature doc says behavior A, test asserts behavior B):
   │    │    → Determine: spec authoritative or test authoritative?
   │    │    → If SPEC is correct: fix test → re-run /integration-test
-  │    │    → If TEST reflects correct new behavior (spec stale): /feature-spec [update] → /spec-tests [UPDATE] → update test
+  │    │    → If TEST reflects correct new behavior (spec stale): /spec [update] → /spec [mode=tests] [UPDATE] → update test
   │    │
   │    ├─ Test code ≠ implementation (test asserts X, code does Y):
-  │    │    → If CODE is correct: fix test → /spec-tests UPDATE (update TC to match code's correct behavior)
+  │    │    → If CODE is correct: fix test → /spec [mode=tests] UPDATE (update TC to match code's correct behavior)
   │    │    → If TEST is correct (code bug): do NOT update test → fix code → /prove-fix → re-run tests
   │    │
   │    └─ Derived index ≠ Feature Spec (the bucket INDEX.md / ERD disagrees with the canonical §1-8):
@@ -445,7 +445,7 @@ integration-test-review (you are here)
   ├─ [REQUIRED] → /integration-test-verify
   │     After all fixes, run actual tests to confirm all gates pass.
   │
-  ├─ [REQUIRED] → /spec-tests [direction=sync]
+  ├─ [REQUIRED] → /spec [mode=sync]
   │     If TCs were updated (Gate 5/6 fix), reconcile §8 TCs ↔ integration test code.
   │
   └─ [RECOMMENDED] → /docs-update

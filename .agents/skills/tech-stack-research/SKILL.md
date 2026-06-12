@@ -1,6 +1,6 @@
 ---
 name: tech-stack-research
-description: '[Architecture] Use when you need research, analyze, and compare tech stack options as a solution architect.'
+description: '[Architecture] Use when you need to research, analyze, and compare tech stack options as a solution architect.'
 ---
 
 > Codex compatibility note:

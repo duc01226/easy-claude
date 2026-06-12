@@ -312,7 +312,7 @@ If running within a workflow (big-feature, greenfield-init, etc.):
 6. Create user stories with GIVEN/WHEN/THEN (min 3 scenarios)
 7. Save to `team-artifacts/pbis/stories/`
 8. **Validate stories** (MANDATORY) - Interview user to confirm slicing, acceptance criteria, and effort
-9. Suggest next: `$spec-tests` or `$design-spec`
+9. Suggest next: `$spec [mode=tests]` or `$design-spec`
 
 ### Output
 
@@ -705,7 +705,7 @@ After creating user stories, validate with user.
 | **Role Skill** | `business-analyst`                          |
 | **Command**    | `$story`                                    |
 | **Input**      | `$refine` output (PBI)                      |
-| **Next Steps** | `$spec-tests`, `$design-spec`, `$prioritize` |
+| **Next Steps** | `$spec [mode=tests]`, `$design-spec`, `$prioritize` |
 
 ---
 
@@ -750,7 +750,7 @@ Example for a "Create Invoice" story:
 ## Next Steps
 
 **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use a direct user question to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
-- **"$spec-tests (Recommended)"** — Generate test specifications from stories
+- **"$spec [mode=tests] (Recommended)"** — Generate test specifications from stories
 - **"$pbi-mockup"** — Generate HTML mockup report from PBI and stories
 - **"$plan-validate"** — If stories need validation against plan
 - **"Skip, continue manually"** — user decides
@@ -808,7 +808,7 @@ Example for a "Create Invoice" story:
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 >
-> **Deep-dive:** see `$sequential-thinking` skill (`.claude/skills/sequential-thinking/SKILL.md`) for worked examples (api-design, debug, architecture), advanced techniques (spiral refinement, hypothesis testing, convergence), and meta-strategies (uncertainty handling, revision cascades).
+> **Deep-dive:** see `$sequential-thinking` skill (`.claude/skills/sequential-thinking/SKILL.md`) for worked examples (API design, debugging, architecture), advanced techniques (spiral refinement, hypothesis testing, convergence), and meta-strategies (uncertainty handling, revision cascades).
 
 <!-- /SYNC:sequential-thinking-protocol -->
 

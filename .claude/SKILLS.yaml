@@ -1,10 +1,10 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-06-12'
-  total_skills: 185
+  last_updated: '2026-06-13'
+  total_skills: 160
   total_by_status:
-    active: 185
+    active: 160
     deprecated: 0
     experimental: 0
 categories:
@@ -26,75 +26,7 @@ legend:
   status_experimental: Opt-in; may break without deprecation window
 skills:
   active:
-    ai-ml:
-    - name: ai-artist
-      path: ai-artist/SKILL.md
-      description: '[AI & Tools] Use when crafting prompts for LLMs (Claude, GPT,
-        Gemini), image generators (Midjourney, DALL-E, Stable Diffusion, Imagen, Flux),
-        or video generators (Veo, Runway).'
-      category: ai-ml
-      has_scripts: false
-      has_references: true
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-      last_reviewed: null
-    - name: ai-multimodal
-      path: ai-multimodal/SKILL.md
-      description: '[AI & Tools] Use when processing multimedia content with Gemini
-        vision, audio, video, document, image, or video-generation APIs.'
-      category: ai-ml
-      has_scripts: true
-      has_references: true
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-      last_reviewed: null
-    - name: dual-ai-workflow-review-changes
-      path: dual-ai-workflow-review-changes/SKILL.md
-      description: '[User-Invoked] Use ONLY when the user explicitly types /dual-ai-workflow-review-changes
-        — runs the review-changes workflow in two fresh parallel xhigh full-permission
-        sessions: /workflow-review-changes in Claude Code and $workflow-review-changes
-        in Codex. NEVER auto-activate.'
-      category: ai-ml
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-      last_reviewed: null
-    - name: sync-ai-dev-tools
-      path: sync-ai-dev-tools/SKILL.md
-      description: '[AI & Tools] USER-INVOKED. Use when you (the USER) need to reconcile
-        AI dev-tool SOURCE guidance (Claude↔Copilot skills/prompts/agents/instructions)
-        and/or regenerate BOTH generated mirror surfaces by delegating to the two
-        mirror skills (/sync-to-copilot FIRST then /sync-codex) with both divergence
-        oracles. Renamed from the former /ai-dev-tools-sync skill — that name no longer
-        resolves as a slash command.'
-      category: ai-ml
-      has_scripts: false
-      has_references: true
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-      last_reviewed: null
     frontend:
-    - name: api-design
-      path: api-design/SKILL.md
-      description: '[Architecture] Use when designing or modifying REST API endpoints,
-        controller structure, route patterns, request/response DTOs.'
-      category: frontend
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-      last_reviewed: null
     - name: architecture-design
       path: architecture-design/SKILL.md
       description: '[Architecture] Use when designing solution architecture across
@@ -124,9 +56,7 @@ skills:
       path: design/SKILL.md
       description: '[Design] Create or describe a UI design — quick (fast), immersive
         (good), or recreated/described from a screenshot or video. Dispatch via --mode={fast|good|describe|screenshot|video}
-        (default fast). Folds the former /design-fast, /design-good, /design-describe,
-        /design-screenshot, /design-video skills into --mode — those names no longer
-        resolve as slash commands.'
+        (default fast).'
       category: frontend
       has_scripts: false
       has_references: false
@@ -172,17 +102,6 @@ skills:
       deprecated_since: null
       removal_after: null
       last_reviewed: null
-    - name: fix-ui
-      path: fix-ui/SKILL.md
-      description: '[Implementation] Use when you need to analyze and fix UI issues.'
-      category: frontend
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-      last_reviewed: null
     - name: frontend-design
       path: frontend-design/SKILL.md
       description: '[Frontend] Use when you need to create distinctive, production-grade
@@ -201,7 +120,7 @@ skills:
         the code review knowledge graph. Flag: --scope={full|update|sync} (default
         auto-detect); --scope=full forces a full rebuild, --scope=update re-parses
         uncommitted working-tree changes, --scope=sync syncs committed git changes
-        then updates the working tree, folds former /graph-update + /graph-sync.'
+        then updates the working tree.'
       category: frontend
       has_scripts: false
       has_references: false
@@ -222,18 +141,6 @@ skills:
       deprecated_since: null
       removal_after: null
       last_reviewed: null
-    - name: mcp-builder
-      path: mcp-builder/SKILL.md
-      description: '[AI & Tools] Use when building MCP servers to integrate external
-        APIs or services, whether in Python (FastMCP) or Node/TypeScript (MCP SDK).'
-      category: frontend
-      has_scripts: true
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-      last_reviewed: null
     - name: review-ui
       path: review-ui/SKILL.md
       description: '[Code Quality] Use when reviewing UI/frontend changes for long-content
@@ -247,18 +154,6 @@ skills:
       deprecated_since: null
       removal_after: null
       last_reviewed: null
-    - name: scan-ui-system
-      path: scan-ui-system/SKILL.md
-      description: '[Documentation] Use when you need orchestrate all UI system scans
-        in parallel: design system + SCSS styling + frontend patterns.'
-      category: frontend
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-      last_reviewed: '2026-04-22'
     - name: strategy-builder
       path: strategy-builder/SKILL.md
       description: '[Content] Use when you need to build marketing strategy: positioning,
@@ -320,18 +215,6 @@ skills:
       removal_after: null
       last_reviewed: null
     other:
-    - name: arch-cross-service-integration
-      path: arch-cross-service-integration/SKILL.md
-      description: '[Architecture] Use when designing or implementing cross-service
-        communication, data synchronization, or service boundary patterns.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-      last_reviewed: null
     - name: ask
       path: ask/SKILL.md
       description: '[Utilities] Use when you need to answer technical and architectural
@@ -447,8 +330,7 @@ skills:
       description: '[Implementation] Use when you need to start coding & testing an
         existing plan. Flags: --approval=off (auto/trust mode, no approval gate),
         --tests=off (skip the test step), --parallel (parallel phase execution via
-        subagents). Folds the former /code-auto, /code-no-test, /code-parallel skills
-        into these flags — those names no longer resolve as slash commands.'
+        subagents).'
       category: other
       has_scripts: false
       has_references: false
@@ -459,8 +341,8 @@ skills:
       last_reviewed: null
     - name: code-simplifier
       path: code-simplifier/SKILL.md
-      description: '[Code Quality] Use when you need to simplify and refines code
-        for clarity, consistency, and maintainability while preserving all functionality.'
+      description: '[Code Quality] Use when you need to simplify and refine code for
+        clarity, consistency, and maintainability while preserving all functionality.'
       category: other
       has_scripts: false
       has_references: false
@@ -485,7 +367,7 @@ skills:
       path: commit/SKILL.md
       description: '[Git] Use when asked to "commit", "stage and commit", "save changes",
         or after completing implementation tasks. Flag: --push (a.k.a. "commit and
-        push") stages + commits + pushes to remote in one shot, folds former /git-cp.'
+        push") stages + commits + pushes to remote in one shot.'
       category: other
       has_scripts: false
       has_references: false
@@ -547,18 +429,6 @@ skills:
       description: '[Content] Use when you need to create high-converting copy for
         marketing materials, social media, landing pages, email campaigns, and product
         descriptions.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-      last_reviewed: null
-    - name: create-feature
-      path: create-feature/SKILL.md
-      description: '[Implementation] Use when you need to scaffold a new feature with
-        backend and frontend components.'
       category: other
       has_scripts: false
       has_references: false
@@ -665,7 +535,7 @@ skills:
       last_reviewed: null
     - name: dor-gate
       path: dor-gate/SKILL.md
-      description: '[Code Quality] Use when you need validate PBI against Definition
+      description: '[Code Quality] Use when you need to validate a PBI against Definition
         of Ready before grooming.'
       category: other
       has_scripts: false
@@ -678,9 +548,10 @@ skills:
     - name: dual-ai
       path: dual-ai/SKILL.md
       description: '[User-Invoked] Use ONLY when the user explicitly types /dual-ai
-        or a /dual-ai-* wrapper skill — fans out one prompt to two fresh parallel
-        AI sessions (Claude Code + Codex CLI), both pre-set to xhigh reasoning effort
-        and full-permission mode before the prompt executes. NEVER auto-activate.'
+        or /dual-ai <workflow-id> — fans out one prompt, or one workflow invocation
+        per tool, to two fresh parallel AI sessions (Claude Code + Codex CLI), both
+        pre-set to xhigh reasoning effort and full-permission mode before the prompt
+        executes. NEVER auto-activate.'
       category: other
       has_scripts: true
       has_references: false
@@ -693,18 +564,6 @@ skills:
       path: e2e-test/SKILL.md
       description: '[Testing] Use when generating, updating, or maintaining E2E tests
         from recordings, specs, or code changes.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-      last_reviewed: null
-    - name: easy-claude-help
-      path: easy-claude-help/SKILL.md
-      description: '[Utilities] Use when configuring or explaining the easy-claude
-        framework.'
       category: other
       has_scripts: false
       has_references: false
@@ -737,18 +596,6 @@ skills:
       deprecated_since: null
       removal_after: null
       last_reviewed: null
-    - name: feature
-      path: feature/SKILL.md
-      description: '[Implementation] Use when the user asks to implement a new feature,
-        enhancement, add functionality, build something new, or create new capabilities.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-      last_reviewed: null
     - name: feature-investigation
       path: feature-investigation/SKILL.md
       description: '[Investigation] Use when the user asks to investigate, explore,
@@ -761,70 +608,11 @@ skills:
       deprecated_since: null
       removal_after: null
       last_reviewed: null
-    - name: feature-spec
-      path: feature-spec/SKILL.md
-      description: '[Documentation] Use when you need to create or update business
-        feature documentation. Renamed from the former /feature-docs skill — that
-        name no longer resolves as a slash command.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-      last_reviewed: '2026-06-11'
     - name: fix
       path: fix/SKILL.md
       description: '[Implementation] Use when you need to analyze and fix issues [INTELLIGENT
         ROUTING]. Flag: --target={ci|issue|logs|test|types|ui} scopes the fix; --target=types
-        resolves TypeScript errors inline (folds former /fix-types).'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-      last_reviewed: null
-    - name: fix-ci
-      path: fix-ci/SKILL.md
-      description: '[Implementation] Use when you need to analyze CI/CD pipeline logs
-        and fix issues.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-      last_reviewed: null
-    - name: fix-issue
-      path: fix-issue/SKILL.md
-      description: '[Implementation] Use when you need to debug and fix GitHub issues
-        with systematic investigation.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-      last_reviewed: null
-    - name: fix-logs
-      path: fix-logs/SKILL.md
-      description: '[Implementation] Use when you need to analyze logs and fix issues.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-      last_reviewed: null
-    - name: fix-test
-      path: fix-test/SKILL.md
-      description: '[Implementation] Use when you need to run test suite and fix issues.'
+        resolves TypeScript errors inline.'
       category: other
       has_scripts: false
       has_references: false
@@ -898,7 +686,7 @@ skills:
       description: '[Code Intelligence] Use when you need to export the code review
         knowledge graph. Flag: --format={json|mermaid} (default json); --format=json
         dumps the full graph to a JSON file, --format=mermaid renders a single file
-        as a Mermaid flowchart diagram, folds former /graph-export-mermaid.'
+        as a Mermaid flowchart diagram.'
       category: other
       has_scripts: false
       has_references: false
@@ -1008,8 +796,8 @@ skills:
       last_reviewed: null
     - name: investigate
       path: investigate/SKILL.md
-      description: '[Fix & Debug] Use when you need investigate and explain how existing
-        features or logic work. Flag: --mode=explain produces a one-way developer-narrative
+      description: '[Fix & Debug] Use when you need to investigate and explain how
+        existing features or logic work. Flag: --mode=explain produces a one-way developer-narrative
         explanation (Purpose → How → Why → Impact) tuned by coding level; use /understand
         for the standalone prompt-driven explainer.'
       category: other
@@ -1022,7 +810,8 @@ skills:
       last_reviewed: null
     - name: journal
       path: journal/SKILL.md
-      description: '[Utilities] Use when you need to write some journal entries.'
+      description: '[Utilities] Use when recording an engineering journal entry —
+        capture decisions, blockers, lessons, or progress notes during work.'
       category: other
       has_scripts: false
       has_references: false
@@ -1045,7 +834,7 @@ skills:
       last_reviewed: null
     - name: knowledge-synthesis
       path: knowledge-synthesis/SKILL.md
-      description: '[Research] Use when you need synthesize research findings into
+      description: '[Research] Use when you need to synthesize research findings into
         structured report using template.'
       category: other
       has_scripts: false
@@ -1167,7 +956,7 @@ skills:
       last_reviewed: null
     - name: pbi-challenge
       path: pbi-challenge/SKILL.md
-      description: '[Code Quality] Use when you need aI-assisted Dev BA PIC review
+      description: '[Code Quality] Use when you need an AI-assisted Dev BA PIC review
         of PBI drafts.'
       category: other
       has_scripts: false
@@ -1205,8 +994,7 @@ skills:
       path: performance-review/SKILL.md
       description: '[Debugging] Use when analyzing or optimizing performance bottlenecks:
         database queries, N+1 fan-out, indexing, API latency, memory, concurrency,
-        frontend rendering, caching, and distributed paths. Renamed from the former
-        /performance skill — that name no longer resolves as a slash command.'
+        frontend rendering, caching, and distributed paths.'
       category: other
       has_scripts: false
       has_references: false
@@ -1295,8 +1083,7 @@ skills:
       description: '[Skill Management] Use when enhancing, compressing, or expanding
         prompts, docs, or skills with attention anchoring [INTELLIGENT ROUTING]. Flag:
         --op={compress|expand|enhance} (default enhance); --op=compress strips token
-        bloat, --op=expand reconstructs compressed text, folds former /prompt-compress
-        + /prompt-expand.'
+        bloat, --op=expand reconstructs compressed text.'
       category: other
       has_scripts: false
       has_references: false
@@ -1307,8 +1094,8 @@ skills:
       last_reviewed: null
     - name: prove-fix
       path: prove-fix/SKILL.md
-      description: '[Code Quality] Use when you need prove fix correctness with code
-        proof traces, confidence scoring, and stack-trace-style evidence chains.'
+      description: '[Code Quality] Use when you need to prove fix correctness with
+        code proof traces, confidence scoring, and stack-trace-style evidence chains.'
       category: other
       has_scripts: false
       has_references: false
@@ -1489,8 +1276,11 @@ skills:
       description: '[Documentation] Use when scanning the codebase to (re)generate
         ONE project-reference doc. Parameterized by `--target=<key>`: project-structure
         | backend-patterns | frontend-patterns | scss-styling | design-system | code-review-rules
-        | domain-entities | feature-spec | docs-index | e2e-tests | integration-tests.
-        Shared 4-phase scan engine; per-target detail lives in references/targets.md.'
+        | domain-entities | feature-spec | docs-index | e2e-tests | integration-tests
+        | seed-test-data | ui-system. Shared 4-phase scan engine; per-target detail
+        lives in references/targets.md. `ui-system` is an orchestrator meta-target
+        (`kind: orchestrator`) that runs the 3 UI child scans in parallel instead
+        of the 4-phase engine.'
       category: other
       has_scripts: false
       has_references: true
@@ -1515,19 +1305,6 @@ skills:
       path: scan-codebase-health/SKILL.md
       description: '[Documentation] Use when you need to detect codebase health issues:
         unused exports, doc count-drift, orphan files, stale config references.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-      last_reviewed: null
-    - name: scan-seed-test-data
-      path: scan-seed-test-data/SKILL.md
-      description: '[Documentation] Use when you need to scan seeder patterns and
-        populate/sync docs/project-reference/seed-test-data-reference markdown from
-        real code evidence.'
       category: other
       has_scripts: false
       has_references: false
@@ -1566,8 +1343,7 @@ skills:
         or audit on any scope — application code (OWASP Top 10 2025), secrets exposure,
         dependency/supply-chain malware, third-party repository vetting before install,
         infrastructure/config, CI/CD pipeline, AI-agent risks, and host/VPS compromise
-        detection. Consolidates the former /security and /arch-security-review skills
-        — those names no longer resolve as slash commands.'
+        detection.'
       category: other
       has_scripts: false
       has_references: false
@@ -1588,36 +1364,27 @@ skills:
       deprecated_since: null
       removal_after: null
       last_reviewed: null
-    - name: skill-fix-logs
-      path: skill-fix-logs/SKILL.md
-      description: '[Skill Management] Use when fixing a skill from captured logs.'
+    - name: spec
+      path: spec/SKILL.md
+      description: '[Documentation] Use to author, audit, amend, or test-spec a business
+        Feature Spec. The single spec skill — modes init|update|audit|amend create/maintain
+        the tech-free 8-section Feature Spec; tests generates Section 8 TC-{FEATURE}-{NNN}
+        test specifications; sync reconciles §8 TCs ↔ integration test code. Per-mode
+        procedure lives in references/{author,tests,sync}.md.'
       category: other
       has_scripts: false
-      has_references: false
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
-    - name: skill-optimize
-      path: skill-optimize/SKILL.md
-      description: '[Skill Management] Use when you need optimize an existing agent
-        skill for token efficiency, attention anchoring, and SYNC protocol compliance.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-      last_reviewed: null
+      last_reviewed: '2026-06-12'
     - name: spec-index
       path: spec-index/SKILL.md
       description: '[General] Use when you need to (re)generate a DERIVED navigation
         index, cross-capability ERD, or reimplementation guide assembled FROM the
         canonical Feature Specs under docs/specs/**. Never extracts a separate A-E
-        engineering tree. Repurposes the former /spec-discovery skill — that name
-        no longer resolves as a slash command.'
+        engineering tree.'
       category: other
       has_scripts: false
       has_references: false
@@ -1626,20 +1393,6 @@ skills:
       deprecated_since: null
       removal_after: null
       last_reviewed: '2026-06-10'
-    - name: spec-tests
-      path: spec-tests/SKILL.md
-      description: '[Testing] Use when you need to generate or update test specifications
-        in feature docs (Section 8) with unified TC-{FEATURE}-{NNN} format. Renamed
-        from the former /tdd-spec skill — that name no longer resolves as a slash
-        command.'
-      category: other
-      has_scripts: false
-      has_references: true
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-      last_reviewed: '2026-06-11'
     - name: sre-review
       path: sre-review/SKILL.md
       description: '[Code Quality] Use when reviewing service-layer and API changes
@@ -1667,9 +1420,7 @@ skills:
     - name: sync-codex
       path: sync-codex/SKILL.md
       description: '[Codex] Use when you need to run full Codex mirror sync (migrate
-        → hooks → context → verify) standalone, no npm/package JSON needed. Renamed
-        from the former /codex-sync skill — that name no longer resolves as a slash
-        command.'
+        → hooks → context → verify) standalone, no npm/package JSON needed.'
       category: other
       has_scripts: true
       has_references: false
@@ -1678,8 +1429,8 @@ skills:
       deprecated_since: null
       removal_after: null
       last_reviewed: null
-    - name: sync-protocols
-      path: sync-protocols/SKILL.md
+    - name: sync-skills-shared-protocols
+      path: sync-skills-shared-protocols/SKILL.md
       description: '[Skill Management] Use when shared protocol checklists change
         and need propagation across skills.'
       category: other
@@ -1693,8 +1444,8 @@ skills:
     - name: sync-to-copilot
       path: sync-to-copilot/SKILL.md
       description: '[AI & Tools] Use when you need to sync Claude Code knowledge to
-        GitHub Copilot instructions. Flag: --fast (script-only workflow-catalog sync,
-        no registry-curation pass).'
+        GitHub Copilot instructions. Auto-inits docs/copilot-registry.json when missing.
+        Flag: --fast (script-only workflow-catalog sync, no registry-curation pass).'
       category: other
       has_scripts: false
       has_references: false
@@ -1818,7 +1569,7 @@ skills:
       last_reviewed: null
     - name: workflow-end
       path: workflow-end/SKILL.md
-      description: '[Process] Use when you need end the active workflow and clear
+      description: '[Process] Use when you need to end the active workflow and clear
         state.'
       category: other
       has_scripts: false
@@ -2028,35 +1779,10 @@ skills:
       deprecated_since: null
       removal_after: null
       last_reviewed: null
-    multimedia:
-    - name: chrome-devtools
-      path: chrome-devtools/SKILL.md
-      description: '[AI & Tools] Use when you need browser automation, debugging,
-        and performance analysis using Puppeteer CLI scripts.'
-      category: multimedia
-      has_scripts: true
-      has_references: true
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-      last_reviewed: null
-    - name: media-processing
-      path: media-processing/SKILL.md
-      description: '[AI & Tools] Use when processing multimedia files with FFmpeg,
-        ImageMagick, or AI background removal tools.'
-      category: multimedia
-      has_scripts: true
-      has_references: true
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-      last_reviewed: null
     dev-tools:
     - name: claude-code
       path: claude-code/SKILL.md
-      description: '[Utilities] Use when you need claude Code CLI setup, configuration,
+      description: '[Utilities] Use when you need Claude Code CLI setup, configuration,
         troubleshooting, and feature guidance.'
       category: dev-tools
       has_scripts: false
@@ -2078,40 +1804,13 @@ skills:
       deprecated_since: null
       removal_after: null
       last_reviewed: null
-    - name: mcp-management
-      path: mcp-management/SKILL.md
-      description: '[AI & Tools] Use when discovering, filtering, executing, or integrating
-        MCP tools, prompts, and resources — or working with Model Context Protocol
-        (MCP) server tools (invoke mode).'
-      category: dev-tools
-      has_scripts: true
-      has_references: true
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-      last_reviewed: null
-    - name: repomix
-      path: repomix/SKILL.md
-      description: '[AI & Tools] Use when you need to package code repositories into
-        single AI-friendly files using Repomix with customizable patterns and multiple
-        output formats.'
-      category: dev-tools
-      has_scripts: true
-      has_references: true
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-      last_reviewed: null
     - name: skill-creator
       path: skill-creator/SKILL.md
       description: '[Skill Management] Use when creating a new Claude Code skill,
         adding reference files or scripts to an existing skill, scanning/fixing invalid
         skill headers, or optimizing/packaging skills. Triggers on: create skill,
         new skill, add skill reference, add skill script, fix skill, validate skill,
-        package skill. Renamed from the former /skill-create skill — that name no
-        longer resolves as a slash command.'
+        package skill.'
       category: dev-tools
       has_scripts: true
       has_references: true
@@ -2135,7 +1834,9 @@ skills:
       last_reviewed: null
     - name: debug-investigate
       path: debug-investigate/SKILL.md
-      description: '[Fix & Debug] Use when bugfix workflow reaches debug step.'
+      description: '[Fix & Debug] Use when investigating a bug''s root cause — reproduce
+        the symptom, trace it end-to-start through the code, form and test hypotheses,
+        and pinpoint the defect before any fix.'
       category: utilities
       has_scripts: false
       has_references: false
@@ -2172,7 +1873,7 @@ skills:
       description: '[Planning] Use when you need intelligent plan creation with prompt
         enhancement. Flag: --mode={ci|cro} (default none — standard planning); --mode=ci
         plans a fix from a GitHub Actions CI run/log, --mode=cro plans conversion-rate
-        optimization (25-item CRO framework), folds former /plan-ci + /plan-cro.'
+        optimization (25-item CRO framework).'
       category: utilities
       has_scripts: false
       has_references: true
@@ -2194,23 +1895,11 @@ skills:
       deprecated_since: null
       removal_after: null
       last_reviewed: null
-    - name: plan-archive
-      path: plan-archive/SKILL.md
-      description: '[Planning] Use when you need to write journal entries and archive
-        specific plans or all plans.'
-      category: utilities
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-      last_reviewed: null
     - name: plan-review
       path: plan-review/SKILL.md
-      description: '[Planning] Use when you need auto-review plan for validity, correctness,
-        and best practices — recursive: review, validate findings with why-review,
-        fix validated findings, full re-review until no findings.'
+      description: '[Planning] Use when you need to auto-review a plan for validity,
+        correctness, and best practices — recursive: review, validate findings with
+        why-review, fix validated findings, full re-review until no findings.'
       category: utilities
       has_scripts: false
       has_references: false
@@ -2221,22 +1910,10 @@ skills:
       last_reviewed: null
     - name: plan-validate
       path: plan-validate/SKILL.md
-      description: '[Planning] Use when you need validate plan with critical questions
-        interview.'
+      description: '[Planning] Use when you need to validate a plan with critical
+        questions interview.'
       category: utilities
       has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-      last_reviewed: null
-    - name: plans-kanban
-      path: plans-kanban/SKILL.md
-      description: '[Planning] Use when you need plans dashboard server with progress
-        tracking and timeline visualization.'
-      category: utilities
-      has_scripts: true
       has_references: false
       status: active
       deprecated_by: null
@@ -2282,7 +1959,7 @@ skills:
       last_reviewed: null
     - name: tech-stack-research
       path: tech-stack-research/SKILL.md
-      description: '[Architecture] Use when you need research, analyze, and compare
+      description: '[Architecture] Use when you need to research, analyze, and compare
         tech stack options as a solution architect.'
       category: utilities
       has_scripts: false
@@ -2294,7 +1971,8 @@ skills:
       last_reviewed: null
     - name: web-research
       path: web-research/SKILL.md
-      description: '[Research] Use when starting any research task.'
+      description: '[Research] Use when starting a web research task — discover, gather,
+        and triage candidate sources on a topic to feed deeper investigation.'
       category: utilities
       has_scripts: false
       has_references: false
@@ -2323,6 +2001,22 @@ skills:
         Pages), Docker, or GCP (Compute Engine, GKE, Cloud Run).'
       category: infrastructure
       has_scripts: true
+      has_references: true
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+      last_reviewed: null
+    ai-ml:
+    - name: sync-ai-dev-tools
+      path: sync-ai-dev-tools/SKILL.md
+      description: '[AI & Tools] USER-INVOKED. Use when you (the USER) need to reconcile
+        AI dev-tool SOURCE guidance (Claude↔Copilot skills/prompts/agents/instructions)
+        and/or regenerate BOTH generated mirror surfaces by delegating to the two
+        mirror skills (/sync-to-copilot FIRST then /sync-codex) with both divergence
+        oracles.'
+      category: ai-ml
+      has_scripts: false
       has_references: true
       status: active
       deprecated_by: null

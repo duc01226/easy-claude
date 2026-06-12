@@ -248,4 +248,4 @@ Node ID: Use URL format (e.g., 1-3), extraction converts to API format (1:3)
 ---
 
 _To create user stories, run: `/story {this-file}`_
-_To create test spec, run: `/spec-tests {this-file}`_
+_To create test spec, run: `/spec [mode=tests] {this-file}`_

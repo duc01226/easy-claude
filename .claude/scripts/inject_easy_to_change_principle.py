@@ -79,7 +79,6 @@ TARGETS: list[tuple[str, list[str]]] = [
     ("code-simplifier", [r"^## Simplification Mindset"]),
     ("refactoring", [r"^## Investigation Mindset \(NON-NEGOTIABLE\)"]),
     # --- Test authoring ---
-    ("spec-tests", [r"^## Estimation & Reference Summary"]),
     ("integration-test", [r"^## Project Pattern Discovery"]),
     ("integration-test-verify", [r"^## Step 1: Read Project Config"]),
     ("e2e-test", [r"^## Core Principles"]),

@@ -1,6 +1,6 @@
 # Skills Reference
 
-> 176 skills across 15+ domains + 5 shared reference/protocol files for context-aware AI assistance
+> 160 skills across 15+ domains + 5 shared reference/protocol files for context-aware AI assistance
 
 ## Overview
 
@@ -22,21 +22,21 @@ Skills Activated: fix, feature-investigation
 
 ## Skill Domains
 
-> Curated highlights — the full catalog has 176 skills; the tables below list selected skills per domain, not the complete set.
+> Curated highlights — the full catalog has 160 skills; the tables below list selected skills per domain, not the complete set.
 
 | Domain                                            | Skills | Description                                          |
 | ------------------------------------------------- | ------ | ---------------------------------------------------- |
-| [Development - Backend](#development---backend)   | 1      | API design patterns                                  |
+| [Development - Backend](#development---backend)   | 0      | Project-specific backend patterns                    |
 | [Development - Frontend](#development---frontend) | 3      | Components, forms, state, styling, design            |
-| [Architecture](#architecture)                     | 5      | Cross-service, performance, security                 |
+| [Architecture](#architecture)                     | 3      | Architecture, performance, security                  |
 | [Debugging/Testing](#debuggingtesting)            | 3      | Test generation, test specs                          |
-| [AI/ML Tools](#aiml-tools)                        | 4      | Prompts, multimodal, agents                          |
+| [AI/ML Tools](#aiml-tools)                        | 1      | Structured reasoning                                 |
 | [Documentation](#documentation)                   | 6      | Docs, feature docs, changelogs, release notes        |
 | [Git/Workflow](#gitworkflow)                      | 6      | Commits, branches, code review, scout, quality gates |
 | [Code Quality](#code-quality)                     | 10     | Graph-based code analysis, blast radius, sync        |
 | [Planning/Research](#planningresearch)            | 6      | Plans, research, implementation, investigation       |
-| [Infrastructure/DevOps](#infrastructuredevops)    | 5      | Cloudflare, Docker, MCP                              |
-| [Context/Memory](#contextmemory)                  | 6      | Optimization, persistence, learning                  |
+| [Infrastructure/DevOps](#infrastructuredevops)    | 1      | Cloudflare, Docker, GCP                              |
+| [Context/Memory](#contextmemory)                  | 4      | Optimization, persistence, learning                  |
 | [Team Collaboration](#team-collaboration)         | 13     | PO, BA, QA, QC, UX, PM roles, prioritization         |
 | [Web/Frameworks](#webframeworks)                  | 2      | Package updates, markdown                            |
 | [Document Processing](#document-processing)       | 4      | PDF, DOCX, Markdown conversions                      |
@@ -80,8 +80,8 @@ See `docs/project-reference/frontend-patterns-reference.md` for project-specific
 | Skill                         | Triggers                                                              | Description                                                                                                                             |
 | ----------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | `webapp-testing`              | E2E, Playwright, Cypress                                              | End-to-end testing                                                                                                                      |
-| `spec-tests`                  | test specification, QA spec, test strategy, TC-IDs, test cases        | Unified test case writer — generates TC-{FEATURE}-{NNN} specs from PBIs and feature docs                                                |
-| `spec-tests [direction=sync]` | sync test specs, update dashboard, reverse sync, sync to feature docs | Dashboard sync mode — syncs TCs from feature docs Section 8 to `docs/specs/` (sync mode retires when dashboards are removed in Phase 7) |
+| `spec [mode=tests]`           | test specification, QA spec, test strategy, TC-IDs, test cases        | Unified test case writer — generates TC-{FEATURE}-{NNN} specs from PBIs and feature docs                                                |
+| `spec [mode=sync]`            | sync test specs, update dashboard, reverse sync, sync to feature docs | Dashboard sync mode — syncs TCs from feature docs Section 8 to `docs/specs/` (sync mode retires when dashboards are removed in Phase 7) |
 | `integration-test-review`     | integration test review, assertion quality, test gate review, TC gate | Review integration tests against 5 quality gates (assertion value, data state, repeatability, domain logic, TC)                         |
 | `integration-test-verify`     | run integration tests, verify tests pass, test runner, dotnet test    | Run integration tests after writing/reviewing them — reads project-config.json for project-specific run guidance                        |
 
@@ -91,8 +91,6 @@ See `docs/project-reference/frontend-patterns-reference.md` for project-specific
 
 | Skill                 | Triggers                     | Description          |
 | --------------------- | ---------------------------- | -------------------- |
-| `ai-artist`           | prompts, Midjourney, DALL-E  | AI image generation  |
-| `ai-multimodal`       | Gemini, audio, video, images | Multimodal AI        |
 | `sequential-thinking` | complex problems, multi-step | Structured reasoning |
 
 ---
@@ -103,7 +101,7 @@ See `docs/project-reference/frontend-patterns-reference.md` for project-specific
 | --------------- | -------------------------------------------------------- | -------------------------------------------------------------------------- |
 | `documentation` | document, API docs, comments, README                     | General documentation                                                      |
 | `docs-seeker`   | find docs, library docs                                  | Documentation search                                                       |
-| `feature-spec`  | business docs, module docs, feature docs, feature readme | Business/feature documentation (single canonical feature spec per feature) |
+| `spec`          | business docs, module docs, feature docs, feature readme | Business/feature documentation (single canonical Feature Spec per feature) |
 | `changelog`     | changelog, version history, update changelog             | Changelog generation                                                       |
 | `release-notes` | release notes, git history                               | Release notes from git commits (tag-to-tag)                                |
 
@@ -151,13 +149,9 @@ See `docs/project-reference/frontend-patterns-reference.md` for project-specific
 
 ## Infrastructure/DevOps
 
-| Skill              | Triggers                        | Description         |
-| ------------------ | ------------------------------- | ------------------- |
-| `devops`           | Cloudflare, Docker, GCP, deploy | Cloud deployment    |
-| `chrome-devtools`  | Puppeteer, browser automation   | Browser automation  |
-| `mcp-builder`      | MCP server, tools               | MCP server creation |
-| `mcp-management`   | MCP tools, discover             | MCP tool management |
-| `media-processing` | FFmpeg, ImageMagick, video      | Media handling      |
+| Skill    | Triggers                        | Description      |
+| -------- | ------------------------------- | ---------------- |
+| `devops` | Cloudflare, Docker, GCP, deploy | Cloud deployment |
 
 ---
 
@@ -168,7 +162,6 @@ See `docs/project-reference/frontend-patterns-reference.md` for project-specific
 | `context-optimization` | context, tokens, compress                        | Token management             |
 | `memory-management`    | remember, save, persist                          | Pattern persistence          |
 | `code-simplifier`      | simplify, refine, clarity                        | Code cleanup                 |
-| `repomix`              | codebase export, context                         | Context export               |
 | `learn`                | remember this, always do, patterns, list learned | Pattern learning and viewing |
 
 ---
@@ -180,7 +173,7 @@ See `docs/project-reference/frontend-patterns-reference.md` for project-specific
 | `business-analyst` | requirements, user story, acceptance criteria, BDD                                               | Requirements analysis, story writing      |
 | `product-owner`    | backlog, prioritize, PBI, feature idea, stakeholder                                              | Backlog management, prioritization        |
 | `project-manager`  | timeline, dependencies, status, milestone, resource                                              | Project tracking, reporting               |
-| `spec-tests`       | test plan, test cases, coverage, automation                                                      | Test specification and case generation    |
+| `spec [mode=tests]` | test plan, test cases, coverage, automation                                                     | Test specification and case generation    |
 | `design-spec`      | UI specification, component spec, layout spec, wireframe, mockup, user flow, accessibility audit | Design specification documents, UX design |
 | `idea`             | capture idea, new idea, add to backlog                                                           | Idea capture and structuring              |
 | `refine`           | refine idea, convert to PBI, acceptance criteria                                                 | Idea-to-PBI transformation                |
@@ -223,7 +216,7 @@ All shared protocols are now **inlined** into consuming skills via `<!-- SYNC:ta
 
 **Why inline?** AI compliance drops ~40% when protocols are behind file-read indirection. Inline SYNC blocks are always present in the skill's context window.
 
-**To update a protocol:** Edit `sync-inline-versions.md` first, then `grep SYNC:protocol-name` and update all copies. Use `/sync-protocols` skill to automate.
+**To update a protocol:** Edit `sync-inline-versions.md` first, then `grep SYNC:protocol-name` and update all copies. Use `/sync-skills-shared-protocols` skill to automate.
 
 ---
 
@@ -281,17 +274,17 @@ Skills are often activated alongside commands:
 
 | Command         | Primary Skills Activated         |
 | --------------- | -------------------------------- |
-| `/cook`         | `feature`, `plan`, `spec-tests`  |
+| `/cook`         | `feature`, `plan`, `spec [mode=tests]` |
 | `/fix`          | `debug-investigate`              |
 | `/plan`         | `plan`, `plan-analysis`          |
 | `/review`       | `code-review`                    |
 | `/scout`        | `scout`, `feature-investigation` |
-| `/test`         | `spec-tests`, `webapp-testing`   |
+| `/test`         | `spec [mode=tests]`, `webapp-testing` |
 | `/idea`         | `idea`, `product-owner`          |
 | `/refine`       | `refine`, `business-analyst`     |
 | `/story`        | `story`, `business-analyst`      |
 | `/design-spec`  | `design-spec`                    |
-| `/spec-tests`   | `spec-tests`                     |
+| `/spec [mode=tests]` | `spec [mode=tests]`         |
 | `/quality-gate` | `quality-gate`                   |
 | `/dependency`   | `dependency`, `project-manager`  |
 | `/prioritize`   | `prioritize`, `product-owner`    |
@@ -318,4 +311,4 @@ Use `/skill-creator` to create a new skill:
 
 ---
 
-_Source: `.claude/skills/` | 176 skills across 15+ domains + 5 shared reference/protocol files_
+_Source: `.claude/skills/` | 160 skills across 15+ domains + 5 shared reference/protocol files_

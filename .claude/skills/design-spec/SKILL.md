@@ -29,7 +29,7 @@ description: '[Project Management] Use when you need to create UI/UX design spec
 
 - If Figma URL provided → auto-routes to `/figma-design` for context extraction
 - If wireframe image provided (hand-drawn/digital/tool-export) → handled internally via `--mode=wireframe` (see "Mode: wireframe" below)
-- If screenshot provided → uses `ai-multimodal` for design extraction
+- If screenshot provided → uses `visual analysis tooling` for design extraction
 - Reference existing design system tokens from `docs/project-reference/design-system/`
 - Component patterns: `docs/project-reference/frontend-patterns-reference.md` (read directly when relevant; do not rely on hook-injected conversation text)
 - Include accessibility requirements (keyboard nav, ARIA labels, contrast)
@@ -77,7 +77,7 @@ Read before executing:
     | Input Detected           | Detection                                      | Action                                                                   |
     | ------------------------ | ---------------------------------------------- | ------------------------------------------------------------------------ |
     | Figma URL                | `figma.com/design` or `figma.com/file` in text | Activate `/figma-design` to extract context, then continue               |
-    | Image/screenshot         | Image file attached to prompt                  | Use `ai-multimodal` to extract design guidelines, then continue          |
+    | Image/screenshot         | Image file attached to prompt                  | Use `visual analysis tooling` to extract design guidelines, then continue          |
     | Hand-drawn wireframe     | Image + "wireframe"/"sketch" keyword           | Run `--mode=wireframe` (internal — see "Mode: wireframe" section)         |
     | PBI/story text           | Acceptance criteria present                    | Extract UI requirements from text, continue                              |
     | Verbal/text requirements | No image, no URL, no PBI                       | Clarify with user, then continue                                         |
@@ -131,7 +131,7 @@ For ANY visual input: extract design context FIRST, then proceed to spec generat
 
 ### Wireframe Analysis
 
-Use `ai-multimodal` with these prompts:
+Use `visual analysis tooling` with these prompts:
 
 **Prompt 1: Layout Extraction** — "Analyze this wireframe image. Identify: (1) page layout regions (header, sidebar, main, footer), (2) all UI elements with approximate position and type (button, input, table, card, dropdown, modal, tabs), (3) content hierarchy (what is primary vs secondary), (4) interactive elements, (5) any text labels or annotations, (6) navigation patterns."
 
@@ -386,7 +386,7 @@ For an accessibility-audit deliverable, produce this checklist report and save i
 
 <!-- SYNC:ui-wireframe-protocol -->
 
-> **UI Wireframe Protocol** — Wireframe-to-implementation flow: (1) Process design input (Figma/screenshot/sketch via ai-multimodal). (2) Create ASCII wireframe with box-drawing chars. (3) Build component inventory with tier classification (Common/Domain-Shared/Page). (4) Document states (Default/Loading/Empty/Error). (5) Map to design tokens. (6) Define responsive breakpoints. Search existing component libraries before creating new. Progressive detail by skill level (idea=sketch, story=full tree+specs).
+> **UI Wireframe Protocol** — Wireframe-to-implementation flow: (1) Process design input (Figma/screenshot/sketch via visual analysis tooling). (2) Create ASCII wireframe with box-drawing chars. (3) Build component inventory with tier classification (Common/Domain-Shared/Page). (4) Document states (Default/Loading/Empty/Error). (5) Map to design tokens. (6) Define responsive breakpoints. Search existing component libraries before creating new. Progressive detail by skill level (idea=sketch, story=full tree+specs).
 
 <!-- /SYNC:ui-wireframe-protocol -->
 

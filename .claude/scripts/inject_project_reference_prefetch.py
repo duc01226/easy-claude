@@ -23,17 +23,14 @@ SKILLS_DIR = PROJECT_ROOT / ".claude" / "skills"
 
 SKILL_NAMES = [
     # Plan family
-    "plan", "plan-analysis", "plan-archive",
+    "plan", "plan-analysis",
     "plan-review", "plan-validate",
     # Cook family
     "cook",
     # Code family
     "code",
-    # Fix family
-    "fix", "fix-ci", "fix-issue", "fix-logs",
-    "fix-test", "fix-ui",
-    # Feature family
-    "feature",
+    # Fix family (ci/issue/logs/test/ui folded into /fix --target=*)
+    "fix",
     # Investigate / scout family
     "investigate", "debug-investigate", "feature-investigation",
     "scout", "scout-ext",
@@ -46,7 +43,10 @@ SKILL_NAMES = [
     "review-post-task", "sre-review",
     "why-review", "workflow-review-changes",
     # Workflow step skills
-    "spec-tests", "integration-test", "integration-test-verify",
+    # NOTE: `spec` (merged feature-spec router) is intentionally NOT a target —
+    # it reads docs/project-reference/spec-principles.md via an explicit
+    # [BLOCKING] gate; injecting the generic prefetch here would duplicate it.
+    "integration-test", "integration-test-verify",
     "docs-update", "watzup", "workflow-write-integration-test",
 ]
 

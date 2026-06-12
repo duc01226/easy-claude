@@ -13,14 +13,14 @@
 | -------------- | --------------------------------------------------------------------------------------------- | ----------------------------- | ---------------------------------------------------------------------------------- |
 | Hooks          | <!-- COUNT:hooks -->66<!-- /COUNT -->                                                         | `.claude/hooks/*.cjs`         | Top-level CommonJS Node.js hook scripts counted by ADR-0002                        |
 | Hook Libraries | <!-- COUNT:lib-modules -->31<!-- /COUNT -->                                                   | `.claude/hooks/lib/*.cjs`     | CommonJS utility modules                                                           |
-| Skills         | <!-- COUNT:skills -->185<!-- /COUNT -->                                                       | `.claude/skills/*/SKILL.md`   | Markdown + YAML frontmatter                                                        |
+| Skills         | <!-- COUNT:skills -->160<!-- /COUNT -->                                                       | `.claude/skills/*/SKILL.md`   | Markdown + YAML frontmatter                                                        |
 | Agents         | <!-- COUNT:agents -->29<!-- /COUNT -->                                                        | `.claude/agents/*.md`         | Markdown definitions                                                               |
 | Workflows      | <!-- COUNT:workflows -->21<!-- /COUNT -->                                                     | `.claude/workflows.json`      | JSON workflow definitions                                                          |
 | Output Styles  | 6                                                                                             | `.claude/output-styles/*.md`  | Coding level presets (ELI5→God)                                                    |
 | Scripts        | 28                                                                                            | `.claude/scripts/*`           | CJS + Python utilities (top-level; excludes code_graph package internals + tests/) |
 | Codex Scripts  | 10                                                                                            | `.claude/scripts/codex/*.mjs` | ESM sync, migration, notification, and verification tools                          |
 | Hook Tests     | 16 suites + 13 standalone                                                                     | `.claude/hooks/tests/`        | CJS/JS test files; 14 `test-*` files including primary runner                      |
-| Codex Mirrors  | <!-- COUNT:skills -->185<!-- /COUNT --> skills, <!-- COUNT:agents -->29<!-- /COUNT --> agents | `.agents/`, `.codex/`         | Generated Codex-compatible copy                                                    |
+| Codex Mirrors  | <!-- COUNT:skills -->160<!-- /COUNT --> skills, <!-- COUNT:agents -->29<!-- /COUNT --> agents | `.agents/`, `.codex/`         | Generated Codex-compatible copy                                                    |
 
 ## Project Directory Tree
 
@@ -28,7 +28,7 @@
 easy-claude/
 ├── .agents/                          # Codex skill mirror generated from .claude/skills
 │   ├── README.md
-│   └── skills/                       # 258 Codex-compatible skill manifests
+│   └── skills/                       # Codex-compatible skill manifests
 ├── .codex/                           # Codex compatibility artifacts
 │   ├── agents/                       # 28 generated TOML agent definitions
 │   ├── CODEX_CONTEXT.md              # Hookless context parity for Codex
@@ -58,7 +58,7 @@ easy-claude/
 │   │   ├── knowledge-worker/
 │   │   ├── planner/
 │   │   └── researcher/
-│   ├── agents/                       # 28 agent definitions
+│   ├── agents/                       # Agent definitions
 │   │   ├── architect.md
 │   │   ├── backend-developer.md
 │   │   ├── code-reviewer.md
@@ -202,7 +202,7 @@ easy-claude/
 │   │   ├── skills_data.yaml          # Skills catalog data
 │   │   ├── requirements.txt          # Python dependencies
 │   │   └── README.md
-│   ├── skills/                       # 258 skill definitions
+│   ├── skills/                       # Skill definitions
 │   │   ├── INSTALLATION.md           # Dependency installation guide
 │   │   ├── README.md                 # Skills overview
 │   │   ├── TESTING.md                # Testing guide
@@ -216,13 +216,10 @@ easy-claude/
 │   │   ├── fix/SKILL.md              # Bug fix skill
 │   │   ├── plan/SKILL.md             # Planning skill
 │   │   ├── code-review/SKILL.md      # Code review skill
-│   │   ├── chrome-devtools/          # Browser automation (with scripts/)
 │   │   ├── excalidraw-diagram/       # Diagramming skill
-│   │   ├── media-processing/         # FFmpeg/ImageMagick skills
-│   │   ├── mcp-builder/              # MCP server builder
 │   │   ├── workflow-*/               # Workflow trigger skills
 │   │   ├── scan-*/                   # Project scanning skills (11)
-│   │   └── ... (258 total direct SKILL.md files)
+│   │   └── ... (direct SKILL.md files)
 │   ├── tests/                        # Framework-level tests
 │   │   └── workflow-routing-test.cjs
 │   ├── tmp/                          # Temporary files (gitignored)
@@ -280,7 +277,7 @@ easy-claude/
 | ---- | -------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
 | HK   | Hooks          | `.claude/hooks/`               | <!-- COUNT:hooks -->66<!-- /COUNT --> top-level `.cjs` runtime enforcement & context injection hook files                   |
 | HL   | Hook Libraries | `.claude/hooks/lib/`           | <!-- COUNT:lib-modules -->31<!-- /COUNT --> shared utility modules for hooks                                                |
-| SK   | Skills         | `.claude/skills/`              | <!-- COUNT:skills -->185<!-- /COUNT --> task automation skill definitions                                                   |
+| SK   | Skills         | `.claude/skills/`              | <!-- COUNT:skills -->160<!-- /COUNT --> task automation skill definitions                                                   |
 | AG   | Agents         | `.claude/agents/`              | <!-- COUNT:agents -->29<!-- /COUNT --> specialized subagent role definitions                                                |
 | WF   | Workflows      | `.claude/workflows.json`       | <!-- COUNT:workflows -->21<!-- /COUNT --> end-to-end process orchestrations                                                 |
 | SC   | Scripts        | `.claude/scripts/`             | 28 top-level utility scripts (catalog gen, audit, worktree, statusline-tps); excludes code_graph package internals + tests/ |
@@ -368,14 +365,14 @@ easy-claude/
 
 ## Workflows (<!-- COUNT:workflows -->21<!-- /COUNT -->)
 
-| Category                       | Registered Workflows                                                                                                                                                                           |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Development**                | `batch-operation`, `big-feature`, `bugfix`, `deployment`, `feature`, `migration`, `package-upgrade`, `performance`, `refactor`                                                                 |
-| **Testing**                    | `e2e-from-changes`, `e2e-from-recording`, `e2e-update-ui`, `tdd-feature`, `test-spec-update`, `test-to-integration`, `test-verify`, `workflow-seed-test-data`, `write-integration-test`        |
-| **Discovery & Planning**       | `full-feature-lifecycle`, `greenfield-init`, `idea-to-pbi`, `investigation`, `pbi-to-tests`, `product-discovery`, `spec-to-pbi`                                                                |
-| **Documentation & Spec**       | `documentation`, `feature-docs`, `spec-discovery`, `spec-driven-dev`                                                                                                                           |
-| **Review, Security & Release** | `quality-audit`, `release-prep`, `review`, `review-changes`, `security-audit`, `verification`                                                                                                  |
-| **Design & Visualization**     | `design-workflow`, `visualize`                                                                                                                                                                 |
+| Category                       | Registered Workflows                                                                                                                                                                    |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Development**                | `batch-operation`, `big-feature`, `bugfix`, `deployment`, `feature`, `migration`, `package-upgrade`, `performance`, `refactor`                                                          |
+| **Testing**                    | `e2e-from-changes`, `e2e-from-recording`, `e2e-update-ui`, `tdd-feature`, `test-spec-update`, `test-to-integration`, `test-verify`, `workflow-seed-test-data`, `write-integration-test` |
+| **Discovery & Planning**       | `full-feature-lifecycle`, `greenfield-init`, `idea-to-pbi`, `investigation`, `pbi-to-tests`, `product-discovery`, `spec-to-pbi`                                                         |
+| **Documentation & Spec**       | `documentation`, `feature-docs`, `spec-discovery`, `spec-driven-dev`                                                                                                                    |
+| **Review, Security & Release** | `quality-audit`, `release-prep`, `review`, `review-changes`, `security-audit`, `verification`                                                                                           |
+| **Design & Visualization**     | `design-workflow`, `visualize`                                                                                                                                                          |
 
 > **Also available as workflow skills** (invokeable via `/workflow-<name>` but not registered in `workflows.json`):
 > `ba-dev-handoff`, `business-evaluation`, `course-building`, `design`, `design-dev-handoff`,
@@ -429,20 +426,22 @@ easy-claude/
 | `.claude/hooks/tests/test-all-hooks.cjs`     | Main test runner                                                   |
 | `CLAUDE.md`                                  | Project instructions for Claude                                    |
 
-## Scan Skills (11)
+## Scan Targets (13)
 
-Skills that populate `docs/project-reference/`:
+The single `/scan --target=<key>` skill populates `docs/project-reference/` (per-target detail in `.claude/skills/scan/references/targets.md`):
 
-| Skill                    | Generates                        |
-| ------------------------ | -------------------------------- |
-| `scan-project-structure` | `project-structure-reference.md` |
-| `scan-backend-patterns`  | `backend-patterns-reference.md`  |
-| `scan-frontend-patterns` | `frontend-patterns-reference.md` |
-| `scan-integration-tests` | `integration-test-reference.md`  |
-| `scan-code-review-rules` | `code-review-rules.md`           |
-| `scan-scss-styling`      | `scss-styling-guide.md`          |
-| `scan-design-system`     | `design-system/`                 |
-| `scan-domain-entities`   | `domain-entities-reference.md`   |
-| `scan-e2e-tests`         | `e2e-test-reference.md`          |
-| `scan-feature-docs`      | `feature-docs-reference.md`      |
-| `scan-ui-system`         | UI system context                |
+| `--target=<key>`             | Generates                                             |
+| ---------------------------- | ----------------------------------------------------- |
+| `project-structure`          | `project-structure-reference.md`                      |
+| `backend-patterns`           | `backend-patterns-reference.md`                       |
+| `frontend-patterns`          | `frontend-patterns-reference.md`                      |
+| `scss-styling`               | `scss-styling-guide.md`                               |
+| `design-system`              | `design-system/README.md`                             |
+| `code-review-rules`          | `code-review-rules.md`                                |
+| `domain-entities`            | `domain-entities-reference.md`                        |
+| `feature-spec`               | `feature-spec-reference.md`                           |
+| `docs-index`                 | `docs-index-reference.md`                             |
+| `e2e-tests`                  | `e2e-test-reference.md`                               |
+| `integration-tests`          | `integration-test-reference.md`                       |
+| `seed-test-data`             | `seed-test-data-reference.md`                         |
+| `ui-system` _(orchestrator)_ | runs design-system + scss-styling + frontend-patterns |

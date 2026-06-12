@@ -92,7 +92,7 @@ After confirming the workflow, present the full step list and let the user desel
 - [x] User stories (story)
 - [x] Story rationale review (why-review)
 - [x] Story review (review-artifact --type=story)
-- [x] Test specifications (spec-tests)
+- [x] Test specifications (spec [mode=tests])
 - [x] Test-spec rationale review (why-review)
 - [x] Test specification review (review-artifact --type=spec-tests)
 - [x] Dev BA PIC challenge (pbi-challenge)
@@ -116,8 +116,8 @@ Task tracking: "PBI review (review-artifact --type=pbi)"
 Task tracking: "User stories (story)"
 Task tracking: "Story rationale review (why-review after story)"
 Task tracking: "Story review"
-Task tracking: "Test specifications (spec-tests)"
-Task tracking: "Test-spec rationale review (why-review after spec-tests)"
+Task tracking: "Test specifications (spec [mode=tests])"
+Task tracking: "Test-spec rationale review (why-review after spec [mode=tests])"
 Task tracking: "Test specification review (review-artifact --type=spec-tests)"
 Task tracking: "Dev BA PIC challenge"
 Task tracking: "Definition of Ready gate"
@@ -162,7 +162,7 @@ AI-generated TC drafts are reference-only until `$review-artifact --type=spec-te
 **Output requirements:**
 
 - Map material acceptance criteria and user stories to TC IDs
-- Route planned TC IDs to Feature doc Section 8 through `$spec-tests`; `$docs-update` later verifies feature docs and §8 TC ↔ integration test code sync.
+- Route planned TC IDs to Feature doc Section 8 through `$spec [mode=tests]`; `$docs-update` later verifies feature docs and §8 TC ↔ integration test code sync.
 - Cover happy path, validation failure, authorization/permission, and important edge cases where applicable
 - Run `$review-artifact --type=spec-tests` before `$pbi-challenge`
 
@@ -221,16 +221,16 @@ Purpose:
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $idea -> $review-artifact -> $refine -> $why-review -> $review-artifact --type=pbi -> $story -> $why-review -> $review-artifact --type=story -> $spec-tests -> $why-review -> $review-artifact --type=spec-tests -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $prioritize -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $idea -> $review-artifact -> $refine -> $why-review -> $review-artifact --type=pbi -> $story -> $why-review -> $review-artifact --type=story -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $prioritize -> $docs-update -> $workflow-end -> $watzup
 
-**IMPORTANT MANDATORY Steps:** $idea -> $review-artifact -> $refine -> $why-review -> $review-artifact --type=pbi -> $story -> $why-review -> $review-artifact --type=story -> $spec-tests -> $why-review -> $review-artifact --type=spec-tests -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $prioritize -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $idea -> $review-artifact -> $refine -> $why-review -> $review-artifact --type=pbi -> $story -> $why-review -> $review-artifact --type=story -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $prioritize -> $docs-update -> $workflow-end -> $watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its skill invocation — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
 Activate the `idea-to-pbi` workflow. Run `$workflow-start idea-to-pbi` with the user's prompt as context.
 
 **Steps:**
-$idea → $review-artifact (conditional) → $refine → $why-review → $review-artifact --type=pbi → $story → $why-review → $review-artifact --type=story → $spec-tests → $why-review → $review-artifact --type=spec-tests → $pbi-challenge → $dor-gate → $pbi-mockup → $prioritize → $docs-update → $workflow-end → $watzup
+$idea → $review-artifact (conditional) → $refine → $why-review → $review-artifact --type=pbi → $story → $why-review → $review-artifact --type=story → $spec [mode=tests] → $why-review → $review-artifact --type=spec-tests → $pbi-challenge → $dor-gate → $pbi-mockup → $prioritize → $docs-update → $workflow-end → $watzup
 
 > **Conditional steps:**
 >
@@ -346,8 +346,8 @@ $idea → $review-artifact (conditional) → $refine → $why-review → $review
 ## Closing Reminders
 
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting — one task per step
-- **MANDATORY IMPORTANT MUST ATTENTION** run all three purpose-specific why-review gates: after refine, after story, and after spec-tests; FAIL blocks the next artifact step, WARN requires user acknowledgment
-- **MANDATORY IMPORTANT MUST ATTENTION** spec-tests and review-artifact --type=spec-tests run after review-artifact --type=story and before pbi-challenge
+- **MANDATORY IMPORTANT MUST ATTENTION** run all three purpose-specific why-review gates: after refine, after story, and after spec [mode=tests]; FAIL blocks the next artifact step, WARN requires user acknowledgment
+- **MANDATORY IMPORTANT MUST ATTENTION** spec [mode=tests] and review-artifact --type=spec-tests run after review-artifact --type=story and before pbi-challenge
 - **MANDATORY IMPORTANT MUST ATTENTION** pbi-challenge must be run by a reviewer different from the drafter
 - **MANDATORY IMPORTANT MUST ATTENTION** dor-gate must pass (PASS or WARN) before pbi-mockup is finalized
 - **MANDATORY IMPORTANT MUST ATTENTION** write each artifact immediately — never batch output across steps

@@ -312,7 +312,7 @@ const unitTests = [
             assertEqual(SCAN_SKILL_MAP['design-system/design-system-canonical.md'], 'scan --target=design-system', 'Canonical doc routes');
             assertEqual(SCAN_SKILL_MAP['design-system/design-tokens.scss'], 'scan --target=design-system', 'SCSS tokens route');
             assertEqual(SCAN_SKILL_MAP['design-system/design-tokens.css'], 'scan --target=design-system', 'CSS tokens route');
-            assertEqual(SCAN_SKILL_MAP['seed-test-data-reference.md'], 'scan-seed-test-data', 'Seed test data reference routes');
+            assertEqual(SCAN_SKILL_MAP['seed-test-data-reference.md'], 'scan --target=seed-test-data', 'Seed test data reference routes');
 
             delete require.cache[modulePath];
             delete require.cache[helpersPath];

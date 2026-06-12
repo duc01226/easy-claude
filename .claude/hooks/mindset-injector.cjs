@@ -12,7 +12,7 @@
  *
  * Triggers:
  *   - PreToolUse → Edit|Write|MultiEdit (before code modifications)
- *   - PreToolUse → Skill (before plan/cook/code/fix/feature skills)
+ *   - PreToolUse → Skill (before plan/cook/code/fix skills and feature workflows)
  *   - PreToolUse → Agent (before sub-agent spawn — full re-anchor in parent context)
  *   - PreToolUse → TaskCreate (on task creation — compact critical context, recency anchor)
  *   - PreToolUse → TaskUpdate with status=in_progress (on task start — recency anchor)
@@ -33,7 +33,6 @@ const MINDSET_SKILLS = new Set([
     'cook',
     'code',
     'fix',
-    'fix-issue',
     'feature',
     'refactoring',
     'refine',
@@ -44,7 +43,7 @@ const MINDSET_SKILLS = new Set([
     'review-post-task',
     'integration-test',
     'integration-test-review',
-    'spec-tests',
+    'spec',
     // Investigation skills — also get graph protocol reminder
     'scout',
     'investigate',
@@ -61,7 +60,6 @@ const GRAPH_REQUIRED_SKILLS = new Set([
     'feature-investigation',
     'debug',
     'fix',
-    'fix-issue',
     'prove-fix',
     'code-review',
     'review-changes',

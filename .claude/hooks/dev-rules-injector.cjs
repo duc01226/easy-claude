@@ -53,11 +53,7 @@ const REVIEW_SKILLS = new Set([
 const CODING_SKILLS = new Set([
     'cook',
     'code',
-    'fix',
-    'fix-issue',
-    'fix-ui',
-    'fix-logs',
-    'fix-ci'
+    'fix'
 ]);
 
 // ═══════════════════════════════════════════════════════════════════════════

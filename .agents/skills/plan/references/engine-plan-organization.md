@@ -447,7 +447,7 @@ All agents writing reports MUST ATTENTION:
 - Always plan and break work into many small todo tasks using task tracking
 - Always add a final review todo task to verify work quality and identify fixes/enhancements
 - **MANDATORY FINAL TASKS:** After creating all planning todo tasks, ALWAYS add these three final tasks:
-    1. **Task: "Write test specifications for each phase"** — Add `## Test Specifications` with TC-{FEATURE}-{NNN} IDs to every phase file. Use `$spec-tests` if feature docs exist. Use `Evidence: TBD` for TDD-first mode.
+    1. **Task: "Write test specifications for each phase"** — Add `## Test Specifications` with TC-{FEATURE}-{NNN} IDs to every phase file. Use `$spec [mode=tests]` if feature docs exist. Use `Evidence: TBD` for TDD-first mode.
     2. **Task: "Run $plan-validate"** — Trigger `$plan-validate` skill to interview the user with critical questions and validate plan assumptions
     3. **Task: "Run $plan-review"** — Trigger `$plan-review` skill to auto-review plan for validity, correctness, and best practices
 

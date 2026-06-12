@@ -699,7 +699,7 @@ Path branching: INIT → Phase 1 → Phase 2 (full scan) → Phase 3 (full write
 - **[BLOCKING] Phase 0 mode-detection** (INIT vs SYNC paths differ significantly).
 - **Tech-agnostic M1/M2 compliance scan** (Agent 1) → produces dedicated **M1/M2 Compliance Leaks** target section.
 - **Directory-trees ALLOWED here** — explicit per-target inversion of the shared no-trees rule (top 3 levels).
-- **Phase 4 verifies 3 specific template paths:** `docs/specs/{Bucket}/README.{FeatureName}.md` (feature doc template); `.claude/skills/feature-spec/SKILL.md` (feature doc generation skill); `.claude/skills/shared/tc-format.md` (canonical TC format).
+- **Phase 4 verifies 3 specific template paths:** `docs/specs/{Bucket}/README.{FeatureName}.md` (feature doc template); `.claude/skills/spec/SKILL.md` (feature doc generation skill); `.claude/skills/shared/tc-format.md` (canonical TC format).
 - Sub-agent count = 2 (structure agent + mapping agent).
 
 ### Anti-Rationalization rows
@@ -1010,3 +1010,148 @@ Standard `output-quality-principles` (no counts/trees/TOCs, 1 example per patter
 
 ### prompt-enhance
 `$prompt-enhance docs/project-reference/integration-test-reference.md`
+
+---
+
+## Target: seed-test-data
+
+This target scans seeder and dev-data patterns into the seed-test-data reference doc.
+
+- **doc:** `docs/project-reference/seed-test-data-reference.md`
+- **description:** `[Documentation] Use when scanning seeder patterns and populating/syncing docs/project-reference/seed-test-data-reference.md from real code evidence.`
+- **sub-agents:** 1 — the MAIN agent performs the evidence scan (Steps below); a Phase-3 fresh-eyes / zero-memory verifier sub-agent re-checks examples. NOT structured as parallel Agent 1/2/3.
+
+### Phase 0 detection — mode (init/sync)
+
+Read both, then classify mode:
+- `docs/project-reference/seed-test-data-reference.md`
+- `docs/project-config.json` (`Data Seeders` context group)
+
+| Mode | Condition | Behavior |
+| --- | --- | --- |
+| **Init** | placeholder / sparse content | fill all sections from scan results |
+| **Sync** | existing real content | update only stale/incorrect sections |
+
+### Think scopes (NO parallel Agent 1/2/3 — the MAIN agent scans)
+
+**Collect seeder evidence** — run evidence-first scans and adapt search terms to the configured stack:
+```bash
+# Seeder base class/interface + registration pattern (adapt terms from findings):
+rg -n "DataSeeder|SeedData|CanSeedTestingData|SeedingMinimumDummyItemsCount" src
+# DI-scoped execution pattern (scoped-async helpers / unit-of-work):
+rg -n "Scoped|CreateScope|ServiceScope|UnitOfWork|Uow" src
+# Seeder interface + DI registration (replace with actual names found above):
+rg -n "ApplicationDataSeeder|AddTransient.*DataSeeder" src
+# Cross-service wait / idempotency (count/condition-poll helpers):
+rg -n "WaitUntil|PollUntil|CountAsync|AwaitCondition" src
+# Concrete seeder examples (common seeder method-name patterns):
+rg -n "SeedInitialData|SeedDemoData|SeedTestData|SeedAdmin" src
+```
+Graph check (when `.code-graph/graph.db` exists): `python .claude/scripts/code_graph trace <seeder-file> --direction both --json`.
+
+**Minimum evidence to capture:** (1) seeder base class/interface; (2) environment gate method/key; (3) idempotency predicate + count loop pattern; (4) DI scope pattern (the project's scoped-execution / unit-of-work helper vs anti-patterns); (5) seeder registration pattern in DI; (6) cross-service wait pattern (if used).
+
+### Target Sections
+
+| Section | Content |
+| --- | --- |
+| **Seeder Base Class / Interface** | Base type new seeders extend; required members |
+| **Environment Gate** | Method/key that gates seeding to the right environment |
+| **Idempotency Pattern** | Predicate + count loop that makes re-runs safe |
+| **DI Scope Pattern** | Project's scoped-execution / unit-of-work helper (vs the anti-pattern) |
+| **Registration** | How seeders are registered in DI |
+| **Cross-Service Wait** | Count/condition-poll helper for eventual consistency (if used) |
+| **Anti-Patterns** | Verified-in-source seeding anti-patterns only |
+
+### Content Rules / exceptions
+Standard `output-quality-principles`. Surgical sync only — keep existing section structure, replace generic claims with real evidence, every rule/example needs `file:line` proof, include anti-pattern warnings ONLY when verified in source, prefer short snippets with source-path notes.
+
+### Special slivers
+- **DI-scope safety gate:** verify the project's scoped-async execution primitive (discover via codebase grep — do NOT assume) against real source usage before documenting it.
+- **One graph trace** when graph DB available (seeder entry file).
+- Report → `plans/reports/seed-test-data-scan-{YYMMDD}-{HHMM}-report.md` (mode, evidence summary `file:line`, sections updated, open gaps).
+
+### Anti-Rationalization rows
+
+| Evasion | Rebuttal |
+| --- | --- |
+| "Seeder pattern obvious, skip the grep evidence" | Every rule needs `file:line` proof — discover base class/DI scope from actual source, never assume |
+| "Document the anti-pattern I expect to find" | Include anti-pattern warnings ONLY when verified in source |
+| "Full rewrite is cleaner" | Sync mode is surgical — preserve structure, update stale sections only |
+| "Skip Round 2 even when Round 1 found issues" | Clean Round 1 ends the scan; when issues exist, fresh-eyes is mandatory after fixing |
+
+### prompt-enhance
+`$prompt-enhance docs/project-reference/seed-test-data-reference.md`
+
+---
+
+## Target: ui-system
+
+This is an **orchestrator meta-target**, not a single-doc scanner: it runs the 3 UI child scans and summarizes (it writes no doc of its own).
+
+- **kind:** orchestrator
+- **doc:** _(none of its own)_ — its children write `docs/project-reference/design-system/README.md`, `docs/project-reference/scss-styling-guide.md`, `docs/project-reference/frontend-patterns-reference.md`.
+- **description:** `[Documentation] Use to orchestrate all UI system scans in parallel: design system + SCSS styling + frontend patterns.`
+- **children:** `design-system`, `scss-styling`, `frontend-patterns` (each is a standard `--target=` scan that self-enhances its own doc).
+
+### Orchestration Procedure (replaces the shared 4-phase engine)
+
+**Phase 0 — Pre-Flight [BLOCKING]:**
+1. Detect frontend code presence:
+
+| Signal | Action |
+| --- | --- |
+| configured frontend manifests or frontend source dirs (e.g. `web/`, `frontend/`, `apps/`) | Proceed |
+| No frontend code detected | **STOP** — report "Backend-only project; `ui-system` skipped" |
+
+2. Assess each child doc freshness (read last-scanned date): `design-system/README.md`, `scss-styling-guide.md`, `frontend-patterns-reference.md` — stale if >30 days old OR placeholder.
+3. Decide which children to run:
+
+| Condition | Decision |
+| --- | --- |
+| All 3 fresh (≤30 days, real content) | Ask user: "All UI docs are recent. Force refresh?" |
+| 1–2 stale/missing | Run only the stale/missing scans |
+| All 3 stale/missing | Run all 3 in parallel |
+| User explicitly invoked `--target=ui-system` | Run all 3 regardless of freshness |
+
+4. Read `docs/project-config.json` `designSystem` section if present — pass config-driven paths to the design-system child.
+5. **Evidence gate:** confidence <60% on frontend code existence → ask user before proceeding.
+
+**Phase 1 — Plan:** task tracking one task per child scan to run + one verification task per child + one summary task. Do NOT launch without tasks created.
+
+**Phase 2 — Launch (parallel):** run the applicable children simultaneously, each FULLY self-contained (do NOT pass context between them):
+- `$scan --target=design-system` → `docs/project-reference/design-system/README.md` (pass detected `designSystem` config if available)
+- `$scan --target=scss-styling` → `docs/project-reference/scss-styling-guide.md`
+- `$scan --target=frontend-patterns` → `docs/project-reference/frontend-patterns-reference.md`
+
+**Phase 3 — Verify outputs (proceed only after ALL run children verified):** for each child doc — (1) file exists with content beyond placeholder headings (Glob + Read first 20 lines); (2) `<!-- Last scanned: -->` updated to today; (3) if placeholder-only/missing, flag FAILED and re-run that child once. If re-run still placeholder → escalate: "scan --target={child} produced no output. Please run it manually and check for errors."
+
+**Phase 4 — Summarize** (from verified doc content only — NEVER fabricate):
+```
+UI System Scan Complete ({date}):
+Design System    → design-system/README.md   Tokens:{…} Components:{…} Gaps:{…}
+SCSS Styling     → scss-styling-guide.md      Approach:{…} BEM:{…} Gaps:{…}
+Frontend Patterns→ frontend-patterns-reference.md  Framework:{…} State:{…} Gaps:{…}
+```
+
+### Content Rules / exceptions
+- Does NOT modify application code — only populates `docs/project-reference/`.
+- Summary fields come from verified child-doc content, never memory/estimate.
+
+### Special slivers
+- **Pre-flight is BLOCKING** — never launch scans on a backend-only project (wastes 3 child invocations).
+- **Explicit-invocation override:** `--target=ui-system` run by the user forces all 3 children regardless of freshness.
+- **Auto-trigger:** this meta-target replaces the 3 separate UI scan entries in any `project-config` scan table — one `--target=ui-system` covers design-system + scss-styling + frontend-patterns.
+
+### Anti-Rationalization rows
+
+| Evasion | Rebuttal |
+| --- | --- |
+| "Frontend code obvious, skip pre-flight" | Phase 0 is BLOCKING — backend-only project wastes 3 child invocations |
+| "All docs are probably still fresh" | Check last-scanned date via actual file read — never assume freshness |
+| "Children ran, so output must be there" | Verify each child doc content — placeholder ≠ populated |
+| "Summary from memory is fine" | Summary must come from verified child docs — never fabricate findings |
+| "Only re-run needed children" | Explicit `--target=ui-system` runs all 3 — override the freshness check |
+
+### prompt-enhance
+Each child self-enhances its own doc as its final step. After all children complete, **confirm** each child doc was prompt-enhanced; backfill any skipped via `$prompt-enhance <doc>`. Backfill list: `docs/project-reference/design-system/README.md` · `docs/project-reference/scss-styling-guide.md` · `docs/project-reference/frontend-patterns-reference.md`.

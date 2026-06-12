@@ -50,7 +50,7 @@ Use MCP Memory for **reusable knowledge**. Use File Checkpoints for **task-speci
 
 ### Checkpoint File Location
 
-Files saved to: `plans/reports/checkpoint-{timestamp}-{slug}.md`
+Files saved to: `plans/reports/checkpoint-{YYYYMMDD}-{HHMMSS}-{slug}.md`
 
 ### CHECKPOINT_CREATE Protocol
 
@@ -441,10 +441,12 @@ All long-running workflows should follow this pattern:
 
 | Type              | Format                                      | Example                                |
 | ----------------- | ------------------------------------------- | -------------------------------------- |
-| Manual checkpoint | `checkpoint-{YYMMDD}-{HHMM}-{slug}.md`      | `checkpoint-250106-1430-user-auth.md`  |
-| Auto checkpoint   | `memory-checkpoint-{timestamp}.md`          | `memory-checkpoint-20250106-143000.md` |
+| Manual checkpoint | `checkpoint-{YYYYMMDD}-{HHMMSS}-{slug}.md`  | `checkpoint-20250106-143000-user-auth.md` |
+| Auto checkpoint   | `checkpoint-{YYYYMMDD}-{HHMMSS}-{slug}.md`  | `checkpoint-20250106-143000-autosave.md`  |
 | Analysis notes    | `{type}-{date}-{slug}.md`                   | `analysis-250106-payment-flow.md`      |
 | Task notes        | `.ai/workspace/analysis/{slug}.analysis.md` | Used by feature                        |
+
+> **Legacy back-read:** checkpoints written before grammar unification — `memory-checkpoint-*.md`, or `checkpoint-{YYMMDD}-{HHMM}-{slug}.md` without seconds — are still discovered by `/recover` and the resume hooks (`session-resume.cjs`, `post-compact-recovery.cjs`). No on-disk checkpoint is orphaned by the rename.
 
 ### Related Commands & Skills
 

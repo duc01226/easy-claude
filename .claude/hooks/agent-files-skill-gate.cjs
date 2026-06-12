@@ -64,8 +64,7 @@ function isAllowedSkill(skill) {
     if (!norm) return true;
     if (ALLOWED_SKILLS.has(norm)) return true;
     // Base name before ':' and the scan family: the parameterized `scan` host
-    // (`scan`, `scan --target=<key>`) plus the `scan-*` orchestrators (scan-all,
-    // scan-ui-system, scan-codebase-health, scan-seed-test-data).
+    // (`scan`, `scan --target=<key>`) plus remaining scan-* orchestrators.
     if (ALLOWED_SKILLS.has(norm.split(':')[0])) return true;
     return /^scan/.test(norm);
 }

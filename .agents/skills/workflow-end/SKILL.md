@@ -1,6 +1,6 @@
 ---
 name: workflow-end
-description: '[Process] Use when you need end the active workflow and clear state.'
+description: '[Process] Use when you need to end the active workflow and clear state.'
 ---
 
 > Codex compatibility note:

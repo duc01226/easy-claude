@@ -1,6 +1,6 @@
 ---
 name: sync-codex
-description: '[Codex] Use when you need to run full Codex mirror sync (migrate → hooks → context → verify) standalone, no npm/package JSON needed. Renamed from the former /codex-sync skill — that name no longer resolves as a slash command.'
+description: '[Codex] Use when you need to run full Codex mirror sync (migrate → hooks → context → verify) standalone, no npm/package JSON needed.'
 disable-model-invocation: true
 ---
 

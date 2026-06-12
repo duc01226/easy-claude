@@ -54,7 +54,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 - Proceed only after explicit user approval of the documentation plan — never without it
 - Verify every documented feature against actual code (no assumptions)
-- For business feature docs, use `feature-spec` skill instead
+- For business feature docs, use `spec` skill instead
 - Include practical examples and copy-pasteable code snippets
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
@@ -63,7 +63,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Disambiguation
 
-- For **business feature docs** → use `feature-spec`
+- For **business feature docs** → use `spec`
 - This skill covers **code documentation** and **README files**
 
 # Documentation Enhancement
@@ -301,7 +301,7 @@ Every 10 operations:
 
 ## Related
 
-- `feature-spec`
+- `spec`
 - `changelog`
 - `release-notes`
 

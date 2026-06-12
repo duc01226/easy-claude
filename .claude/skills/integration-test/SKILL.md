@@ -51,7 +51,7 @@ context-budget: high
 
 > **CRITICAL: Async Polling for ALL Data Assertions.** ALWAYS wrap data state assertions in async polling/retry helper. DEFAULT for ALL data verification — not just async handlers. Data persistence may be delayed by event handlers, message bus consumers, background jobs, DB write latency. **Rule: If asserting data in DB → use async polling. No exceptions.**
 
-> **For test specifications and test case generation from PBIs, use `/spec-tests` skill instead.**
+> **For test specifications and test case generation from PBIs, use `/spec [mode=tests]` skill instead.**
 
 > **External Memory:** Complex/lengthy work → write findings to `plans/reports/` — prevents context loss.
 
@@ -110,7 +110,7 @@ Before implementation, search codebase for patterns:
 - **Authorization tests:** Multiple user contexts — authorized succeeds AND unauthorized rejected
 - Every test method MUST have `// TC-{FEATURE}-{NNN}: Description` comment + test-spec annotation — before method, outside body. **Many test methods MAY carry the same TC** (one business TC → many tests across components/services); the test-spec annotation is the join key, so cover a TC with as many technical tests as the implementation needs without inventing extra TCs.
 - No TC in feature docs → **auto-create** in Section 8 before generating test (auto-create a TC only for genuinely uncovered **business** behavior — never create a TC just to mirror a new test method when an existing TC already covers that behavior)
-- For comprehensive spec generation before coding → `/spec-tests` first
+- For comprehensive spec generation before coding → `/spec [mode=tests]` first
 
 ## Mandatory Task Ordering (MUST ATTENTION FOLLOW)
 
@@ -177,6 +177,8 @@ Args = "verify" (e.g., "/integration-test verify {Service}")
   → VERIFY-TRACEABILITY mode: check test code matches specs and feature docs
 ```
 
+> **Modes vs. sibling skills (name-collision note).** The `review` and `verify` **modes** above are lightweight branches *inside this skill* — quick, inline audits run during generation. They are NOT the same as the standalone skills `/integration-test-review` (deep test-quality review) and `/integration-test-verify` (full spec-traceability verification), which are separate, heavier workflow steps. When the refactor workflow sequences `/integration-test → /integration-test-review → /integration-test-verify`, those are the **standalone skills**, not these in-skill modes. Use a mode for a fast pass mid-generation; invoke the sibling skill for a thorough, standalone gate.
+
 ## Step 1: Find Targets
 
 ### From-Changes Mode (default)
@@ -226,7 +228,7 @@ Build mapping: test case description → TC code (e.g., "create valid order" →
 
 - No TC exists → **CREATE IT** in Section 8 before generating test. NOT optional.
 - TC outdated/incorrect → **UPDATE IT** first.
-- Section 8 missing → run `/spec-tests` first.
+- Section 8 missing → run `/spec [mode=tests]` first.
 
 ## Step 3: Generate Test File
 
@@ -306,13 +308,13 @@ find . -name "*IntegrationTestFixture.*" -type f
 
 → Detects changed command/query files, checks Section 8 for matching TCs, generates tests
 
-**Case: Generate tests after /spec-tests created new TCs**
+**Case: Generate tests after /spec [mode=tests] created new TCs**
 
 ```
-/spec-tests → /integration-test
+/spec [mode=tests] → /integration-test
 ```
 
-→ spec-tests writes TCs to Section 8, then integration-test generates tests from those TCs
+→ spec [mode=tests] writes TCs to Section 8, then integration-test generates tests from those TCs
 
 **Case: Review existing tests for quality**
 
@@ -618,7 +620,7 @@ MUST ATTENTION verify ALL of the following:
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** NOT in workflow? `AskUserQuestion` — do NOT decide complexity yourself. User decides:
 >
-> 1. **`write-integration-test` workflow** (Recommended) — scout → investigate → spec-tests → why-review → review-artifact --type=spec-tests → integration-test → integration-test-review → integration-test-verify → spec-tests [direction=sync] → docs-update → workflow-end → watzup
+> 1. **`write-integration-test` workflow** (Recommended) — scout → investigate → spec [mode=tests] → why-review → review-artifact --type=spec-tests → integration-test → integration-test-review → integration-test-verify → spec [mode=sync] → docs-update → workflow-end → watzup
 > 2. **`/integration-test` directly** — standalone
 
 ---
@@ -644,14 +646,14 @@ MUST ATTENTION verify ALL of the following:
 
 | Skill                        | Relationship                                                                         | When to Call                                                                                               |
 | ---------------------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| `/spec-tests`                  | **Producer** — TCs in feature doc Section 8 are the source for test generation       | Must run spec-tests before integration-test (CREATE or UPDATE mode). TCs must exist before generating tests. |
+| `/spec [mode=tests]`                  | **Producer** — TCs in feature doc Section 8 are the source for test generation       | Must run spec [mode=tests] before integration-test (CREATE or UPDATE mode). TCs must exist before generating tests. |
 | `/review-artifact --type=spec-tests`           | **Upstream reviewer** — validates TC quality before test generation                  | Run before integration-test to ensure TCs have real assertion value                                        |
-| `/spec-tests [direction=sync]` | **Sync** — reconciles §8 TCs ↔ integration test code after tests are linked          | Run after integration-test to update the §8 `IntegrationTest:` fields with the covering test links         |
-| `/feature-spec`              | **TC host** — Section 8 of feature doc is where TCs live                             | If feature doc is missing or Section 8 is empty → run /feature-spec first                                  |
+| `/spec [mode=sync]` | **Sync** — reconciles §8 TCs ↔ integration test code after tests are linked          | Run after integration-test to update the §8 `IntegrationTest:` fields with the covering test links         |
+| `/spec`              | **TC host** — Section 8 of feature doc is where TCs live                             | If feature doc is missing or Section 8 is empty → run /spec first                                  |
 | `/spec-index`                | **Derived index** — regenerable navigation catalog over the Feature Specs (never a source of truth) | After §8 changes, to refresh the bucket `INDEX.md` TC counts                          |
 | `/integration-test-review`   | **Reviewer** — 7-gate quality audit of generated tests + change coverage             | Always call after generating integration tests                                                             |
 | `/integration-test-verify`   | **Runner** — executes tests and reports pass/fail                                    | Always call after integration-test-review clears                                                           |
-| `/docs-update`               | **Orchestrator** — calls spec-tests sync (Phase 4) with test traceability              | Run for full doc sync after integration test files updated                                                 |
+| `/docs-update`               | **Orchestrator** — calls spec [mode=sync] (Phase 4) with test traceability              | Run for full doc sync after integration test files updated                                                 |
 
 ## Standalone Chain
 
@@ -662,7 +664,7 @@ integration-test (you are here)
   │
   ├─ PREREQUISITE: TCs must exist in feature doc Section 8
   │    [REQUIRED] Verify: docs/specs/{Bucket}/README.{Feature}.md Section 8 has TC-{FEATURE}-{NNN} entries
-  │    If empty → run /spec-tests [CREATE mode] first
+  │    If empty → run /spec [mode=tests] [CREATE mode] first
   │
   ├─ [REQUIRED] → /integration-test-review
   │     7-gate quality audit: assertion value, data state, repeatability, domain logic, traceability, three-way sync, change coverage.
@@ -672,7 +674,7 @@ integration-test (you are here)
   ├─ [REQUIRED] → /integration-test-verify
   │     Runs tests and reports pass/fail counts. Never mark complete without real runner output.
   │
-  ├─ [REQUIRED] → /spec-tests [direction=sync]
+  ├─ [REQUIRED] → /spec [mode=sync]
   │     Updates the §8 TCs' IntegrationTest: file::method traceability links.
   │
   ├─ [RECOMMENDED] → /docs-update
@@ -685,11 +687,11 @@ integration-test (you are here)
 
 | Mode | Pre-step | Post-step |
 |------|---------|-----------|
-| from-changes | verify TCs updated (run /spec-tests UPDATE first) | /integration-test-review → /verify → /sync |
+| from-changes | verify TCs updated (run /spec [mode=tests] UPDATE first) | /integration-test-review → /verify → /sync |
 | from-prompt | confirm TC exists for target feature | /integration-test-review → /verify → /sync |
-| review | N/A (read-only) | report findings → /spec-tests UPDATE if TCs need fixes |
+| review | N/A (read-only) | report findings → /spec [mode=tests] UPDATE if TCs need fixes |
 | diagnose | run /test to see failures first | fix identified issue → re-run /integration-test-verify |
-| verify-traceability | N/A (read-only) | if orphaned TCs: /spec-tests UPDATE → /integration-test [from-prompt] |
+| verify-traceability | N/A (read-only) | if orphaned TCs: /spec [mode=tests] UPDATE → /integration-test [from-prompt] |
 ```
 
 > **[IMPORTANT]** `TaskCreate` — break ALL work into small tasks BEFORE starting. NEVER skip task creation.

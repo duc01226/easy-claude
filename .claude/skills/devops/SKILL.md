@@ -325,7 +325,7 @@ CMD ["node", "dist/server.js"]
 
 ## Related
 
-- `databases`
+- `db-migrate`
 
 ---
 

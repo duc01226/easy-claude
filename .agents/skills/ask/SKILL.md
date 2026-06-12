@@ -73,16 +73,19 @@ Current development workflows, system constraints, scale requirements, and busin
 
 ```
 ./docs
-├── project-structure-reference.md
-├── backend-patterns-reference.md
-├── frontend-patterns-reference.md
-├── code-review-rules.md
-├── integration-test-reference.md
-├── e2e-test-reference.md
-├── scss-styling-guide.md
-├── feature-spec-reference.md
-├── design-system/
-└── specs/
+├── project-reference/                  # reference docs (patterns, specs system, conventions)
+│   ├── project-structure-reference.md
+│   ├── backend-patterns-reference.md
+│   ├── frontend-patterns-reference.md
+│   ├── code-review-rules.md
+│   ├── integration-test-reference.md
+│   ├── e2e-test-reference.md
+│   ├── scss-styling-guide.md
+│   └── feature-spec-reference.md
+├── adr/                                # architecture decision records
+├── specs/                              # feature specs + test cases
+├── release/
+└── templates/
 ```
 
 ## Your Role

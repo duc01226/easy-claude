@@ -68,7 +68,7 @@ It is also **harness- and project-agnostic**: the `.claude/` source compiles to 
 │  AI misses lifecycle   │  21 workflows       │  Full SDLC cover │
 │  AI skips research   │  big-feature wf      │  Step-select gate  │
 │  AI skips E2E tests    │  E2E skills/flows   │  Recording→test  │
-│  AI ignores doc format │  feature-spec-ctx   │  8-section inject  │
+│  AI ignores doc format │  spec-context       │  8-section inject  │
 │  AI reviews wrong surface│ Phase 0.7 detect  │  BE/FE/SCSS buckets│
 │  AI writes stale docs  │  DOC SYNC DEFERRAL  │  Review=read-only  │
 │  Docs phases skipped   │  docs-update BLOCK  │  8-task audit trail│
@@ -323,7 +323,7 @@ HOOK SYSTEM (66 top-level hook files)
 │   ├── role-context-injector.cjs ── Role-based guidance (PO/BA/QA/Dev)
 │   ├── figma-context-extractor ──── Figma design context
 │   ├── code-review-rules-injector ── Code review standards
-│   └── feature-spec-context.cjs ─── 8-section format + TC reminder for docs/specs/**
+│   └── spec-context.cjs ─────────── 8-section format + TC reminder for docs/specs/**
 │
 ├── MINDSET INJECTION (2 hooks)
 │   ├── mindset-injector.cjs ──────── Critical thinking + AI mistake prevention on Edit|Write|Skill|Agent|Task
@@ -447,7 +447,7 @@ FEATURE BLOCKS (Exit 1) — User can override
 DOC-SYNC GATE (WARN-only — exit 0, never blocks)
 └── doc-sync-gate: Behavioral code staged in an ENFORCED area (config-driven)
     without touching its Feature Spec — commit PROCEEDS with an advisory WARN
-    that routes the model to /feature-spec, /spec-tests, or /docs-update
+    that routes the model to /spec, /spec [mode=tests], or /docs-update
     (DOC_SYNC_OVERRIDE only suppresses the warn); per-edit spec-drift check
     on src/** also only WARNs (exit 0, never blocks iteration)
 
@@ -507,12 +507,12 @@ mindmap
       fix
       refactoring
     Testing & TDD
-      spec-tests
+      spec [mode=tests]
       integration-test
       integration-test-review
       integration-test-verify
       e2e-test
-      spec-tests [direction=sync]
+      spec [mode=sync]
       test
       webapp-testing
     Requirements & Ideas
@@ -525,13 +525,10 @@ mindmap
       design-spec
     Debug & Diagnosis
       debug-investigate
-      fix-issue
-      fix-ci
-      fix-test
-      fix-logs
+      fix
       performance-review
     Documentation
-      feature-spec
+      spec
       docs-update
       changelog
       release-notes
@@ -560,12 +557,11 @@ mindmap
       graph-connect-api
     AI & Tools
       sequential-thinking
-      ai-multimodal
+      visual analysis tooling
       custom-agent
-      mcp-management
+      MCP management guidance
       skill-creator
       dual-ai
-      dual-ai-workflow-review-changes
     Workflow Triggers (21)
       workflow-feature
       workflow-big-feature
@@ -726,7 +722,7 @@ Three new review skills create quality checkpoints between artifact-producing st
 | ----------------------------------- | --------------------- | ------------------------------------------------------- |
 | `review-artifact --type=pbi`        | `/refine` (PBI)       | INVEST criteria, acceptance criteria completeness, gaps |
 | `review-artifact --type=story`      | `/story` (stories)    | Vertical slicing quality, dependency tables, SPIDR      |
-| `review-artifact --type=spec-tests` | `/spec-tests` (specs) | TC coverage, traceability to ACs, boundary cases        |
+| `review-artifact --type=spec-tests` | `/spec [mode=tests]` (specs) | TC coverage, traceability to ACs, boundary cases        |
 
 **Added to workflows:** idea-to-pbi, full-feature-lifecycle, big-feature, greenfield-init
 
@@ -846,7 +842,7 @@ WORKFLOW CATALOG
 
 > Removed in the 2026-06 catalog prune (use the equivalent skill directly instead of a workflow):
 > tdd-feature → `feature` (spec-driven with tests by default) · test-to-integration / test-verify → `write-integration-test` ·
-> pbi-to-tests → `/spec-tests` · quality-audit → `review-changes` · security-audit → `/security-review` ·
+> pbi-to-tests → `/spec [mode=tests]` · quality-audit → `review-changes` · security-audit → `/security-review` ·
 > performance → `/performance-review` · investigation → `/investigate` · migration → `/db-migrate` ·
 > package-upgrade → `/package-upgrade` skill · release-prep → `/sre-review` + `/quality-gate` ·
 > batch-operation / verification / deployment → direct execution with `/plan` + `/review-changes`.
@@ -1049,7 +1045,7 @@ This section maps each framework mechanism to the **AI agent best practice** it 
 │  Subagent spawned     │ Project context + lessons      │ sub-init│
 │  Edit|Write Agent|Skill│ Critical thinking + AI guardrails│ mindset│
 │  Read|Grep|Glob|Bash  │ Lightweight critical-thinking  │ mindset-compact│
-│  Write docs/specs/**  │ 8-section format + TC rules   │ feature-spec-ctx│
+│  Write docs/specs/**  │ 8-section format + TC rules   │ spec-context│
 │                                                                   │
 │  DEDUP: Each injection checks for its marker in last 300 lines  │
 │  of transcript. Skips if already present. Re-injects after      │
@@ -1107,7 +1103,7 @@ graph TB
 │  AI evaluates: direct edit? single skill? feature workflow?      │
 │                    ↓                                              │
 │  Best match: feature workflow → activates immediately            │
-│  (steps: scout→investigate→spec-tests→plan→cook→test→docs)       │
+│  (steps: scout→investigate→spec [mode=tests]→plan→cook→test→docs)│
 │                                                                   │
 │  EXCEPTION: explicit invocation — when the user names a          │
 │  workflow or skill (workflow-start X, slash-skill), that exact   │
@@ -1319,12 +1315,12 @@ Four skills form a connected test specification pipeline:
 ```mermaid
 flowchart LR
     subgraph "Spec Generation"
-        TS["/spec-tests<br/>Unified TC Writer"]
+        TS["/spec [mode=tests]<br/>Unified TC Writer"]
     end
 
     subgraph "Persistence"
         FD["Feature Doc<br/>Section 8<br/>(Source of Truth)"]
-        TSD["/spec-tests [direction=sync]<br/>Dashboard Sync"]
+        TSD["/spec [mode=sync]<br/>Dashboard Sync"]
         DASH["docs/specs/<br/>(Cross-Module Dashboard)"]
     end
 
@@ -1345,11 +1341,11 @@ flowchart LR
     style CODE fill:#FF9800,color:white
 ```
 
-#### `/spec-tests` — The Core Skill (3 Modes)
+#### `/spec [mode=tests]` — The Core Skill (3 Modes)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  /spec-tests — UNIFIED TC WRITER                                  │
+│  /spec [mode=tests] — UNIFIED TC WRITER                           │
 │                                                                   │
 │  Mode 1: TDD-FIRST                                               │
 │  Input: PBI / user story (no code yet)                           │
@@ -1383,8 +1379,8 @@ Dedicated registered workflows and workflow trigger skills support test-driven d
 
 | Workflow                                           | Sequence                                                                                                    | Use Case                                                                                         |
 | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| **idea-to-pbi**                                    | `/idea` → `/refine` → `/story` → `/spec-tests` → `/dor-gate`                                                | Go from raw idea to grooming-ready PBI, stories, and reviewed test specifications                |
-| **feature**                                        | `/scout` → `/investigate` → `/feature-spec` → `/spec-tests` → `/plan` → `/cook` → `/integration-test` → ... | Spec-driven with tests by default: test specs written and reviewed FIRST, then implement         |
+| **idea-to-pbi**                                    | `/idea` → `/refine` → `/story` → `/spec [mode=tests]` → `/dor-gate`                                                | Go from raw idea to grooming-ready PBI, stories, and reviewed test specifications                |
+| **feature**                                        | `/scout` → `/investigate` → `/spec` → `/spec [mode=tests]` → `/plan` → `/cook` → `/integration-test` → ... | Spec-driven with tests by default: test specs written and reviewed FIRST, then implement         |
 | **e2e** (`--source=recording\|update-ui\|changes`) | `/scout` → `/e2e-test` → `/test` → `/docs-update` → `/workflow-end` → `/watzup`                             | Generate from a recording, update screenshot baselines, or sync E2E tests to spec/source changes |
 
 #### Interactive Idea & Requirement Capture
@@ -1403,7 +1399,7 @@ The `/idea` and `/refine` skills include interactive discovery to improve test-d
 /refine — Phase 5.5: Testability Assessment
 ├── Testing approach: TDD-first vs Implement-first vs Parallel
 ├── Test levels: Integration only, Integration + E2E, Unit + Integration + E2E
-└── AC-to-TC mapping table (seed for /spec-tests)
+└── AC-to-TC mapping table (seed for /spec [mode=tests])
 ```
 
 ### 8.10 Full Development Lifecycle Coverage
@@ -1435,7 +1431,7 @@ The framework supports AI-assisted development across **every phase** of the sof
 │                     │ /story, /prioritize    │ acceptance criteria│
 │                     │ /design-spec           │ with TC seeds      │
 │─────────────────────│────────────────────────│────────────────────│
-│  3. TEST SPECS      │ /spec-tests (unified)  │ TDD-first or      │
+│  3. TEST SPECS      │ /spec [mode=tests]     │ TDD-first or      │
 │                     │ idea-to-pbi workflow   │ implement-first    │
 │                     │                        │ test case gen      │
 │─────────────────────│────────────────────────│────────────────────│
@@ -1458,7 +1454,7 @@ The framework supports AI-assisted development across **every phase** of the sof
 │                     │ /prove-fix, /sre-review│ compliance, proofs │
 │─────────────────────│────────────────────────│────────────────────│
 │  8. DOCUMENTATION   │ /docs-update           │ Auto-detect stale  │
-│                     │ /feature-spec          │ docs, generate     │
+│                     │ /spec                  │ docs, generate     │
 │                     │ /changelog             │ changelogs, sync   │
 │─────────────────────│────────────────────────│────────────────────│
 │  9. SIGN-OFF        │ /quality-gate          │ Quality gates,     │
@@ -1501,8 +1497,8 @@ TEST SPECIFICATION ARCHITECTURE
   └─────────────────────────┘         └─────────────────────────┘
               └──────────── TRACEABILITY ───────────┘
 
-  Skills:    /spec-tests (write §8 TCs) → /integration-test (test code)
-             /spec-tests [direction=sync]  (forward-sync §8 ↔ test code)
+  Skills:    /spec [mode=tests] (write §8 TCs) → /integration-test (test code)
+             /spec [mode=sync]  (forward-sync §8 ↔ test code)
   Workflows: feature (spec-driven), spec-sync, write-integration-test
 ```
 
@@ -1514,17 +1510,17 @@ TEST SPECIFICATION ARCHITECTURE
 
 ```
 # Direct skill invocation
-/spec-tests generate test specs for Orders feature from existing code
+/spec [mode=tests] generate test specs for Orders feature from existing code
 
 # With specific command
-/spec-tests implement-first mode for CreateOrderCommand
+/spec [mode=tests] implement-first mode for CreateOrderCommand
 ```
 
-> No dedicated workflow — invoke `/spec-tests` directly (the former `pbi-to-tests` workflow was removed).
+> No dedicated workflow — invoke `/spec [mode=tests]` directly (the former `pbi-to-tests` workflow was removed).
 
 **What happens:**
 
-1. `/spec-tests` detects **implement-first mode** (code exists, no/incomplete TCs)
+1. `/spec [mode=tests]` detects **implement-first mode** (code exists, no/incomplete TCs)
 2. Greps for commands, queries, entities in target service
 3. Traces code paths: Controller → Command → Handler → Entity → Event Handler
 4. Generates TC outlines with `Evidence: [Source: namespace/service/id]` abstract anchors
@@ -1549,7 +1545,7 @@ TEST SPECIFICATION ARCHITECTURE
 
 ```
 # Direct skill invocation
-/spec-tests create test specs from PBI for order processing feature
+/spec [mode=tests] create test specs from PBI for order processing feature
 
 # Full spec-driven workflow (recommended — specs + tests before code by default)
 /workflow-start feature
@@ -1560,7 +1556,7 @@ TEST SPECIFICATION ARCHITECTURE
 
 **What happens:**
 
-1. `/spec-tests` detects **TDD-first mode** (PBI exists, no implementation yet)
+1. `/spec [mode=tests]` detects **TDD-first mode** (PBI exists, no implementation yet)
 2. Reads PBI from `team-artifacts/pbis/` or user-provided document
 3. Extracts acceptance criteria, identifies test categories (CRUD, validation, permissions, workflows, edge cases)
 4. Generates TC outlines with `Evidence: TBD (pre-implementation)`
@@ -1576,7 +1572,7 @@ TEST SPECIFICATION ARCHITECTURE
 
 > **Merged into `feature` (2026-06).** The former standalone `feature-with-integration-test` workflow was a ~85% subset of `feature`; it has been merged. The `feature` workflow now natively carries the spec-first integration-test path (`/integration-test → /integration-test-review → /integration-test-verify`) plus the entity-conditional `/domain-analysis` + `/review-domain-entities` steps. Use the `feature` workflow for this scenario.
 
-**Key points:** `feature` writes and reviews test specs before implementation (spec-driven with tests by default, covering the former `tdd-feature` use case), includes a dedicated re-planning step after specs to refine the implementation plan with test infrastructure needs, and a `/spec-tests [direction=sync]` step that keeps spec §8 TCs and integration-test code aligned.
+**Key points:** `feature` writes and reviews test specs before implementation (spec-driven with tests by default, covering the former `tdd-feature` use case), includes a dedicated re-planning step after specs to refine the implementation plan with test infrastructure needs, and a `/spec [mode=sync]` step that keeps spec §8 TCs and integration-test code aligned.
 
 ```bash
 /workflow-start feature
@@ -1584,11 +1580,11 @@ TEST SPECIFICATION ARCHITECTURE
 
 ```
 feature:
-  scout → investigate → domain-analysis → why-review → feature-spec →
+  scout → investigate → domain-analysis → why-review → spec →
   plan → plan-review → plan-validate → why-review →
-  spec-tests → why-review → review-artifact --type=spec-tests → plan → plan-review →
-  cook → review-domain-entities → spec-tests → why-review → review-artifact --type=spec-tests →
-  spec-tests [direction=sync] → integration-test → integration-test-review →
+  spec [mode=tests] → why-review → review-artifact --type=spec-tests → plan → plan-review →
+  cook → review-domain-entities → spec [mode=tests] → why-review → review-artifact --type=spec-tests →
+  spec [mode=sync] → integration-test → integration-test-review →
   integration-test-verify → workflow-review-changes → sre-review →
   security-review → changelog → test → docs-update → workflow-end → watzup
 ```
@@ -1605,16 +1601,16 @@ feature:
 
 ```
 # Forward sync: §8 TCs → flag uncovered tests (default, safe direction)
-/spec-tests [direction=sync] sync test specs for Orders module
+/spec [mode=sync] sync test specs for Orders module
 
 # Reverse sync: test code → §8 (emergency recovery only, needs confirmation)
-/spec-tests [direction=sync] reverse sync to feature docs for Orders
+/spec [mode=sync] reverse sync to feature docs for Orders
 
 # Full bidirectional reconciliation
-/spec-tests sync test specs for Orders feature
+/spec [mode=sync] sync test specs for Orders feature
 ```
 
-**What happens (bidirectional via /spec-tests sync mode):**
+**What happens (bidirectional via /spec [mode=sync]):**
 
 1. Reads feature doc Section 8 TCs (the canonical registry)
 2. Greps for TC annotations (e.g., test tags/traits) in the integration test code
@@ -1635,9 +1631,9 @@ feature:
 
 | User says                              | Direction                           | Skill                          |
 | -------------------------------------- | ----------------------------------- | ------------------------------ |
-| "sync test specs", "sync to tests"     | Forward (§8 → flag uncovered tests) | `/spec-tests [direction=sync]` |
-| "reverse sync", "back-fill from tests" | Reverse (test code → §8, emergency) | `/spec-tests [direction=sync]` |
-| "full sync", "bidirectional"           | Both directions                     | `/spec-tests` sync mode        |
+| "sync test specs", "sync to tests"     | Forward (§8 → flag uncovered tests) | `/spec [mode=sync]` |
+| "reverse sync", "back-fill from tests" | Reverse (test code → §8, emergency) | `/spec [mode=sync]` |
+| "full sync", "bidirectional"           | Both directions                     | `/spec [mode=sync]`        |
 
 ---
 
@@ -1649,13 +1645,13 @@ feature:
 
 ```
 # After a bug fix (detects git changes automatically)
-/spec-tests update test specs after bugfix
+/spec [mode=tests] update test specs after bugfix
 
 # After code changes
-/spec-tests update test specs based on current changes
+/spec [mode=tests] update test specs based on current changes
 
 # After a PR
-/spec-tests update test specs from PR #123
+/spec [mode=tests] update test specs from PR #123
 
 # Full workflow (recommended for significant changes)
 /workflow-start spec-sync
@@ -1663,7 +1659,7 @@ feature:
 
 **What happens:**
 
-1. `/spec-tests` detects **update mode** (existing TCs + code changes/bugfix/PR)
+1. `/spec [mode=tests]` detects **update mode** (existing TCs + code changes/bugfix/PR)
 2. Reads existing Section 8 TCs
 3. Runs `git diff` (or `git diff main...HEAD` for PRs) to find code changes
 4. Identifies: new commands/queries not covered, changed behaviors, removed features
@@ -1675,7 +1671,7 @@ feature:
 **spec-sync workflow sequence:**
 
 ```
-spec-sync: review-changes → spec-tests → spec-tests [direction=sync] →
+spec-sync: review-changes → spec [mode=tests] → spec [mode=sync] →
                   integration-test → test → workflow-end
 ```
 
@@ -1699,8 +1695,8 @@ spec-sync: review-changes → spec-tests → spec-tests [direction=sync] →
 # Full workflow
 /workflow-start write-integration-test
 
-# After /spec-tests created specs
-/spec-tests → /integration-test
+# After /spec [mode=tests] created specs
+/spec [mode=tests] → /integration-test
 ```
 
 **What happens:**
@@ -1718,13 +1714,13 @@ spec-sync: review-changes → spec-tests → spec-tests [direction=sync] →
 **write-integration-test workflow sequence** (absorbs the former `test-to-integration` use case):
 
 ```
-write-integration-test: scout → investigate → spec-tests → why-review →
+write-integration-test: scout → investigate → spec [mode=tests] → why-review →
                         review-artifact --type=spec-tests → integration-test →
                         integration-test-review → integration-test-verify →
-                        spec-tests [direction=sync] → docs-update → workflow-end → watzup
+                        spec [mode=sync] → docs-update → workflow-end → watzup
 ```
 
-**If TCs are missing:** `/integration-test` auto-creates TC entries in Section 8 before generating tests. For comprehensive spec creation first, use `/spec-tests` → `/integration-test`.
+**If TCs are missing:** `/integration-test` auto-creates TC entries in Section 8 before generating tests. For comprehensive spec creation first, use `/spec [mode=tests]` → `/integration-test`.
 
 ---
 
@@ -1853,22 +1849,22 @@ write-integration-test: scout → investigate → spec-tests → why-review →
 │                                                                 │
 │  CASE                    │ PRIMARY SKILL   │ WORKFLOW            │
 │─────────────────────────│────────────────│────────────────────│
-│  Code → test specs       │ /spec-tests     │ — (skill direct)   │
-│  PBI → test specs (TDD)  │ /spec-tests     │ feature            │
-│  Sync specs ↔ docs       │ /spec-tests or  │ —                  │
-│                          │ /spec-tests [direction=sync]│                    │
-│  Bug/PR → update specs   │ /spec-tests     │ spec-sync          │
+│  Code → test specs       │ /spec [mode=tests] │ — (skill direct)   │
+│  PBI → test specs (TDD)  │ /spec [mode=tests] │ feature            │
+│  Sync specs ↔ docs       │ /spec [mode=sync]  │ —                  │
+│                          │ (sync mode)        │                    │
+│  Bug/PR → update specs   │ /spec [mode=tests] │ spec-sync          │
 │  Specs → test code       │ /integration-   │ write-integration- │
 │                          │  test           │ test               │
-│  Full TDD cycle          │ /spec-tests then│ feature            │
+│  Full TDD cycle          │ /spec [mode=tests] then│ feature            │
 │                          │ /integration-   │ (spec-driven       │
 │                          │  test           │  by default)       │
 │  Feature + int. tests    │ /cook then      │ feature            │
-│                          │ /spec-tests then│                    │
+│                          │ /spec [mode=tests] then│                    │
 │                          │ /integration-   │                    │
 │                          │  test           │                    │
 │  Idea → specs            │ /idea → /refine │ idea-to-pbi        │
-│                          │ → /spec-tests   │                    │
+│                          │ → /spec [mode=tests]   │                    │
 │  Review test quality     │ /integration-   │ write-integration- │
 │                          │  test review    │ test               │
 │  Diagnose test failures  │ /integration-   │ write-integration- │
@@ -2211,7 +2207,7 @@ greenfield-init: FULL WATERFALL INCEPTION → IMPLEMENTATION → INTEGRATION TES
 │   ├── /story ─────────────── Break into prioritized stories with dependencies
 │   ├── /review-artifact --type=story ──────── Story quality gate
 │   ├── /plan-validate ─────── 3-8 questions: confirm all decisions with user
-│   └── /spec-tests ────────── Test strategy, spec generation
+│   └── /spec [mode=tests] ──── Test strategy, spec generation
 │
 ├── SECOND PLAN + SCAFFOLD (4 steps)
 │   ├── /review-artifact --type=spec-tests ──── Test spec quality gate
@@ -2224,7 +2220,7 @@ greenfield-init: FULL WATERFALL INCEPTION → IMPLEMENTATION → INTEGRATION TES
 │   └── /cook ─────────────── Implement feature (backend + frontend)
 │
 ├── INTEGRATION TESTING (6 steps)
-│   ├── /spec-tests ────────── Write test specs for implemented code
+│   ├── /spec [mode=tests] ──── Write test specs for implemented code
 │   ├── /review-artifact --type=spec-tests ──── Review spec coverage and correctness
 │   ├── /plan ──────────────── Plan integration test architecture (3rd round)
 │   ├── /plan-review ───────── Review integration test plan
@@ -3143,10 +3139,10 @@ NEVER skip, batch-complete, or mark done without invoking the sub-skill.
 # Task  Subject                                               Conditional?
   1     Phase 0 — Triage                                      No — always
   2     Phase 1 — Project docs update                         Yes — arch changes only
-  3     Phase 2 — /feature-spec invocation                    Yes — service files changed
+  3     Phase 2 — /spec invocation                            Yes — service files changed
   4     Phase 2.5 — /spec-index [mode=index]                  Yes — Feature Spec changed; bucket has derived index
-  5     Phase 3 — /spec-tests update                          Yes — behavior changed
-  6     Phase 4 — /spec-tests [direction=sync]                Yes — Phase 3 ran
+  5     Phase 3 — /spec [mode=tests] update                   Yes — behavior changed
+  6     Phase 4 — /spec [mode=sync]                           Yes — Phase 3 ran
   7     Phase 5 — Write summary report                        No — always
   8     Final review — verify all phases ran                  No — always
 ```
@@ -3154,7 +3150,7 @@ NEVER skip, batch-complete, or mark done without invoking the sub-skill.
 **Before:** The AI could "plan" docs-update in its head, run a few greps, write a note, and call it done with no audit trail.
 **After:** Every execution creates exactly 8 tasks. Skipped phases leave a `completed` task with an explicit reason — permanent audit record of why each phase was skipped.
 
-**Dedup module rule:** backend + frontend files for the same module = ONE `/feature-spec` invocation. Prevents duplicate section updates when a PR touches both `Employee.Application/*.cs` and `employee-list.component.ts`.
+**Dedup module rule:** backend + frontend files for the same module = ONE `/spec` invocation. Prevents duplicate section updates when a PR touches both `Employee.Application/*.cs` and `employee-list.component.ts`.
 
 ---
 
@@ -3187,7 +3183,7 @@ The canonical 8-section Feature Spec (`docs/specs/{Bucket}/README.{Feature}.md`)
 - Incorrect test assertions (only asserting 2 of 3 variants)
 - Documentation that contradicts the codebase
 
-Each Feature Spec carries `last_reviewed` frontmatter. Keeping it current lets `/feature-spec update` (canonical) and `/spec-index mode=index` (derived re-generation) treat the spec as a known-good baseline rather than re-deriving from scratch.
+Each Feature Spec carries `last_reviewed` frontmatter. Keeping it current lets `/spec [mode=update]` (canonical) and `/spec-index mode=index` (derived re-generation) treat the spec as a known-good baseline rather than re-deriving from scratch.
 
 #### Section 8 — Canonical Bidirectional Test Catalog
 
@@ -3497,7 +3493,7 @@ flowchart TB
 | **Task-gated edits**                           | edit-enforcement.cjs requires TaskCreate before edits               | Hooks     |
 | **Auto-formatting**                            | post-edit-prettier.cjs runs formatter after every edit              | Hooks     |
 | **Doc staleness detection**                    | /watzup skill cross-references changes vs. docs/                    | Skills    |
-| **Unified test specification**                 | /spec-tests writes TCs to feature doc Section 8                     | Skills    |
+| **Unified test specification**                 | /spec [mode=tests] writes TCs to feature doc Section 8              | Skills    |
 | **Spec-driven feature workflow**               | feature: specs + tests written and reviewed before implementation   | Workflows |
 | **Interactive requirement capture**            | /idea discovery interview + /refine testability check               | Skills    |
 | **Test-to-code traceability**                  | TC-{FEATURE}-{NNN} → test annotation linking to TC ID               | Skills    |
@@ -3734,7 +3730,7 @@ So the mirror is not a copy — it is a **transform** that converts hook-depende
 
 **`sync-codex`'s 9 stages** (1–4 mutate, 5–9 verify-only, any failure aborts): **migrate** (agents/skills/notifications) → **hooks** (`.codex/hooks.json`) → **context** (`CODEX_CONTEXT.md` + `AGENTS.md`) → **copilot** (`.github/copilot-instructions.md` + `.github/instructions/*` from `workflows.json`) → **tests** → **wf-cycle** → **sk-proto** → **residue** → **sdd**. The `copilot` stage is ordered _before_ `tests` on purpose: the `tests` stage's TC-WFPROTO-006 byte-matches the committed Copilot mirror against the generator's output, so the pipeline regenerates that mirror first — making `codex:sync` self-contained rather than dependent on a prior `/sync-to-copilot`. The sync is not "done" until all five verifiers pass (four run as dedicated stages — wf-cycle, sk-proto, residue, sdd; the `verify-sync-divergence` oracle runs via its unit test in the `tests` stage) — a stale or non-portable mirror **fails the pipeline** rather than shipping silently.
 
-Mirror parity also enables **multi-AI execution**, not just portability: the **`dual-ai`** skill fans a single prompt out to **two fresh parallel sessions** — Claude Code and Codex CLI — each launched at xhigh reasoning effort in full-permission mode, with an `--orchestrate` mode that supervises both runs and collects a result comparison. The **`dual-ai-workflow-review-changes`** wrapper applies this to reviews: Claude runs its native `/workflow-review-changes` while Codex runs the mirrored `$workflow-review-changes`, producing two independent reviews of the same working tree — possible only because the verified mirrors guarantee both tools execute the same workflow. Both skills are `disable-model-invocation: true` — strictly user-invoked, since they spawn external sessions that consume quota.
+Mirror parity also enables **multi-AI execution**, not just portability: the **`dual-ai`** skill fans a single prompt out to **two fresh parallel sessions** — Claude Code and Codex CLI — each launched at xhigh reasoning effort in full-permission mode, with an `--orchestrate` mode that supervises both runs and collects a result comparison. It also accepts a workflow id, so `dual-ai workflow-review-changes` gives Claude `/workflow-review-changes` and Codex `$workflow-review-changes`, producing two independent reviews of the same working tree — possible only because the verified mirrors guarantee both tools execute the same workflow. The skill is `disable-model-invocation: true` — strictly user-invoked, since it spawns external sessions that consume quota.
 
 ### 13.4 Mirror Parity Is Mechanically Verified
 
@@ -3758,7 +3754,7 @@ The framework's protocols (evidence-based reasoning, critical-thinking mindset, 
 
 1. Each shared protocol is authored **once** under a `## SYNC:{tag}` heading in `.claude/skills/shared/sync-inline-versions.md` (~55 tagged protocols).
 2. In every consuming skill the content is inlined **verbatim** between `<!-- SYNC:{tag} -->` … `<!-- /SYNC:{tag} -->` fences.
-3. The **`sync-protocols`** skill propagates a canonical edit: find every file carrying the tag, replace the text between its fences, verify fence balance. Bulk inserts across all ~286 skill/agent files go through `sync-hooks-to-skills.py`, never by hand.
+3. The **`sync-skills-shared-protocols`** skill propagates a canonical edit: find every file carrying the tag, replace the text between its fences, verify fence balance. Bulk inserts across all ~286 skill/agent files go through `sync-hooks-to-skills.py`, never by hand.
 4. The Codex context stage re-emits the same SYNC blocks into `CODEX_CONTEXT.md` / `AGENTS.md`.
 
 **Why inline instead of reference?** The explicit policy (`SYNC:shared-protocol-duplication-policy`): _"Inline protocol content … is INTENTIONAL duplication. Do NOT extract, deduplicate, or replace with file references. AI compliance drops significantly when protocols are behind file-read indirection."_ This is a deliberate trade — storage/duplication cost for adherence. An LLM follows a rule in front of it far more reliably than a rule it must choose to go read. The verifiers (13.4) make the duplication safe by failing the build the moment copies diverge.
@@ -3812,7 +3808,7 @@ This framework answers that question with **defense in depth**: multiple indepen
 | **Plan before implement**         | `edit-enforcement.cjs` requires `TaskCreate` before any file edit. Combined with workflow step tracking, this ensures AI doesn't skip from question to code without a plan.                                                                    |
 | **State survives amnesia**        | External state files (todo, workflow progress, swap) persist to disk. After context compaction, `post-compact-recovery.cjs` restores progress — the AI resumes where it left off.                                                              |
 | **Stateless-per-turn invariants** | Rules are re-injected at every `UserPromptSubmit` via `mindset-injector` and `prompt-context-assembler`. The framework never trusts the AI to remember rules from prior turns — they are re-stated as invariants at each interaction boundary. |
-| **Self-contained skill units**    | Skills inline shared protocols via `<!-- SYNC:tag -->` blocks rather than referencing external files. Each skill is a complete, deployable prompt unit. The `sync-protocols` skill keeps copies synchronized from a canonical source.          |
+| **Self-contained skill units**    | Skills inline shared protocols via `<!-- SYNC:tag -->` blocks rather than referencing external files. Each skill is a complete, deployable prompt unit. The `sync-skills-shared-protocols` skill keeps copies synchronized from a canonical source.          |
 | **Structural intelligence first** | The code graph (`code_graph.py`) is a HARD-GATE before any investigation concludes. Grep finds files; graph traces reveal callers, events, bus consumers, and API contracts — relationships that textual search cannot find.                   |
 
 ### What Makes This Framework Different
@@ -3862,7 +3858,7 @@ The framework succeeds because it aligns with how LLMs actually fail:
 | **Wrong-surface reviews**      | Reviewers check FE patterns on BE-only PRs                  | Phase 0.7 surface detection routes to correct sub-agent set         |
 | **Reviewer writes stale docs** | Review agents update docs with unverified content           | DOC SYNC DEFERRAL: review=read-only; writes deferred to step 15     |
 | **Silent doc phase skips**     | /docs-update phases run without audit trail                 | Mandatory 8-task table: every phase tracked, skips logged           |
-| **Stale Feature Spec**         | AI sessions read outdated enum/model specs                  | `/feature-spec update` + `docs-update` keep `last_reviewed` current |
+| **Stale Feature Spec**         | AI sessions read outdated enum/model specs                  | `/spec [mode=update]` + `docs-update` keep `last_reviewed` current |
 
 **The meta-principle:** Don't fight the LLM's nature — build infrastructure around it. Accept that it forgets, and build state persistence. Accept that it hallucinates, and build evidence gates. Accept that it drifts, and build convention injection. The framework doesn't make the AI smarter — it makes the AI's environment smarter.
 

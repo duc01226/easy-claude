@@ -251,7 +251,7 @@
       "hooks": [
         {
           "type": "command",
-          "command": "node ./.claude/hooks/feature-spec-context.cjs"
+          "command": "node ./.claude/hooks/spec-context.cjs"
         }
       ],
       "matcher": "Write|Edit|MultiEdit"

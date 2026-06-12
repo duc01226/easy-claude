@@ -236,7 +236,7 @@ For EACH acceptance criterion, generate corresponding test case outline:
 | AC-1 | TC: Create invoice with valid data → verify persisted      | P0       |
 | AC-2 | TC: Create invoice without title → verify validation error | P1       |
 
-Seed for `/spec-tests` if user chooses TDD-first. Document in PBI under `## Testability Assessment`.
+Seed for `/spec [mode=tests]` if user chooses TDD-first. Document in PBI under `## Testability Assessment`.
 
 ---
 
@@ -594,7 +594,7 @@ For domain PBIs: detect module from `docs/specs/` directory names, extract busin
 
 - **Role Skill:** `business-analyst` (detailed patterns)
 - **Input:** `/idea` output
-- **Next Step:** `/story`, `/spec-tests` (Recommended for TDD), `/design-spec`
+- **Next Step:** `/story`, `/spec [mode=tests]` (Recommended for TDD), `/design-spec`
 - **Prioritization:** `/prioritize`
 
 ---
@@ -607,7 +607,7 @@ For domain PBIs: detect module from `docs/specs/` directory names, extract busin
 - **"/domain-analysis"** — If PBI creates/modifies domain entities, model bounded contexts before writing stories
 - **"/story"** — Break PBI into implementable user stories
 - **"/pbi-mockup"** — Generate HTML mockup from PBI
-- **"/spec-tests"** — If using TDD approach
+- **"/spec [mode=tests]"** — If using TDD approach
 - **"Skip, continue manually"** — user decides
 
 ---
@@ -873,7 +873,7 @@ For domain PBIs: detect module from `docs/specs/` directory names, extract busin
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 >
-> **Deep-dive:** see `/sequential-thinking` skill (`.claude/skills/sequential-thinking/SKILL.md`) for worked examples (api-design, debug, architecture), advanced techniques (spiral refinement, hypothesis testing, convergence), and meta-strategies (uncertainty handling, revision cascades).
+> **Deep-dive:** see `/sequential-thinking` skill (`.claude/skills/sequential-thinking/SKILL.md`) for worked examples (API design, debugging, architecture), advanced techniques (spiral refinement, hypothesis testing, convergence), and meta-strategies (uncertainty handling, revision cascades).
 
 <!-- /SYNC:sequential-thinking-protocol -->
 
@@ -934,7 +934,7 @@ For domain PBIs: detect module from `docs/specs/` directory names, extract busin
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small tasks via `TaskCreate` BEFORE starting
 - **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — NEVER auto-decide
 - **MANDATORY IMPORTANT MUST ATTENTION** add final review task to verify work quality
-- **MANDATORY IMPORTANT MUST ATTENTION** add task: run `/why-review` — validate PBI design rationale before `/story` or `/spec-tests`
+- **MANDATORY IMPORTANT MUST ATTENTION** add task: run `/why-review` — validate PBI design rationale before `/story` or `/spec [mode=tests]`
 - **MANDATORY IMPORTANT MUST ATTENTION** add task: run `/pbi-challenge` — Dev BA PIC review before `/dor-gate` or `/story`
 
 **Anti-Rationalization:**

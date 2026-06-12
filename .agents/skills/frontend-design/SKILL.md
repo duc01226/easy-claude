@@ -55,7 +55,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Workflow:**
 
 1. **Detect Input Type** — Screenshot/image provided vs building from scratch
-2. **Extract Design Guidelines** — For screenshots: analyze colors, typography, spacing, layout via ai-multimodal
+2. **Extract Design Guidelines** — For screenshots: analyze colors, typography, spacing, layout via visual analysis tooling
 3. **Design Thinking** — Choose bold aesthetic direction (tone, differentiation, constraints)
 4. **Implement Code** — Production-grade, visually striking, cohesive code
 5. **Verify Quality** — Compare implementation to original design/vision
@@ -91,7 +91,7 @@ The user provides frontend requirements: a component, page, application, or inte
 **MANDATORY workflow for screenshot/image/design inputs**:
 
 1. **Extract Design Guidelines** using `./references/design-extraction-overview.md`:
-    - Analyze screenshot/image with ai-multimodal skill
+    - Analyze screenshot/image with visual analysis tooling
     - Extract: colors (hex codes), typography (fonts, sizes, weights), spacing scale, layout patterns, visual hierarchy
     - Document findings in project `docs/design-guidelines/extracted-design.md`
     - See `./references/extraction-prompts.md` for comprehensive analysis prompts
@@ -141,15 +141,15 @@ Focus on:
 - **Motion**: Use animations for effects and micro-interactions. Prioritize CSS-only solutions for HTML. Use Motion library for React when available (Use `anime.js` for animations: `./references/animejs.md`). Focus on high-impact moments: one well-orchestrated page load with staggered reveals (animation-delay) creates more delight than scattered micro-interactions. Use scroll-triggering and hover states that surprise.
 - **Spatial Composition**: Unexpected layouts. Asymmetry. Overlap. Diagonal flow. Grid-breaking elements. Generous negative space OR controlled density.
 - **Backgrounds & Visual Details**: Create atmosphere and depth rather than defaulting to solid colors. Add contextual effects and textures that match the overall aesthetic. Apply creative forms like gradient meshes, noise textures, geometric patterns, layered transparencies, dramatic shadows, decorative borders, custom cursors, and grain overlays.
-- **Visual Assets**: Use `ai-multimodal` skills to generate the assets and `media-processing` skill to remove the background of generated assets if needed
+- **Visual Assets**: Use `visual analysis tooling` skills to generate the assets and media processing tooling to remove the background of generated assets if needed
 
 ## Working with Visual Assets
 
-**Quick Start**: `./references/ai-multimodal-overview.md`
+**Quick Start**: `./references/visual-tooling-overview.md`
 
 ### Generating New Visual Assets
 
-When GENERATE new hero images, backgrounds, textures, or decorative elements that match the design aesthetic, use the `ai-multimodal` skill. This ensures generated assets align with the design thinking and aesthetics guidelines rather than producing generic imagery.
+When GENERATE new hero images, backgrounds, textures, or decorative elements that match the design aesthetic, use the `visual analysis tooling` skill. This ensures generated assets align with the design thinking and aesthetics guidelines rather than producing generic imagery.
 
 ### Analyzing Provided Screenshots/Images/Designs
 

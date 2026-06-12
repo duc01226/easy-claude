@@ -39,11 +39,11 @@ disable-model-invocation: true
 
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
 
-**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /debug-investigate -> /feature-spec [mode=amend] -> /plan -> /plan-review -> /plan-validate -> /why-review -> /spec-tests -> /why-review -> /review-artifact --type=spec-tests -> /integration-test -> /fix -> /prove-fix -> /integration-test -> /integration-test-review -> /integration-test-verify -> /spec-tests [direction=sync] -> /workflow-review-changes -> /changelog -> /test -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /debug-investigate -> /spec [mode=amend] -> /plan -> /plan-review -> /plan-validate -> /why-review -> /spec [mode=tests] -> /why-review -> /review-artifact --type=spec-tests -> /integration-test -> /fix -> /prove-fix -> /integration-test -> /integration-test-review -> /integration-test-verify -> /spec [mode=sync] -> /workflow-review-changes -> /changelog -> /test -> /docs-update -> /workflow-end -> /watzup
 
 ---
 
-**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /debug-investigate -> /feature-spec [mode=amend] -> /plan -> /plan-review -> /plan-validate -> /why-review -> /spec-tests -> /why-review -> /review-artifact --type=spec-tests -> /integration-test -> /fix -> /prove-fix -> /integration-test -> /integration-test-review -> /integration-test-verify -> /spec-tests [direction=sync] -> /workflow-review-changes -> /changelog -> /test -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /debug-investigate -> /spec [mode=amend] -> /plan -> /plan-review -> /plan-validate -> /why-review -> /spec [mode=tests] -> /why-review -> /review-artifact --type=spec-tests -> /integration-test -> /fix -> /prove-fix -> /integration-test -> /integration-test-review -> /integration-test-verify -> /spec [mode=sync] -> /workflow-review-changes -> /changelog -> /test -> /docs-update -> /workflow-end -> /watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
@@ -56,16 +56,16 @@ Activate the `bugfix` workflow. Run `/workflow-start bugfix` with the user's pro
 > **[BLOCKING] Code Bug vs Spec Bug Gate** (the bugfix-specialized instance of `SYNC:spec-drift-adjudication` / `shared/sdd-artifact-contract.md` → Drift Gates — same model, bugfix vocabulary): Before writing regression TCs, classify the issue:
 >
 > - **Code Bug** (= CODE-WRONG) — the canonical spec describes intended behavior, but code diverged. Write regression TCs for the intended behavior before fixing code.
-> - **Spec Bug** (= SPEC-STALE) — the spec documents wrong behavior and code faithfully implements it. Update canonical spec/docs first via `/feature-spec [mode=amend]`, then write TCs for the corrected behavior.
+> - **Spec Bug** (= SPEC-STALE) — the spec documents wrong behavior and code faithfully implements it. Update canonical spec/docs first via `/spec [mode=amend]`, then write TCs for the corrected behavior.
 > - **Ambiguous** — ask the user or product owner which behavior is intended before writing TCs.
 >
 > Include a behavior preservation note: `current behavior -> expected behavior -> unchanged behavior to preserve -> regression TC/test evidence`. Never normalize the divergence to whichever side currently passes — reconcile to canonical intent.
 
-> **[BLOCKING] End-to-start trace before fix plan:** Before `/plan`, `/spec-tests`, or `/fix`, the investigation must include observed final state, final reader/query/renderer/assertion, backward hops through storage/projection/writer/consumer/producer, all feeder paths, hypothesis matrix, owning fix layer, and forward convergence proof. Missing trace evidence blocks the fix path.
+> **[BLOCKING] End-to-start trace before fix plan:** Before `/plan`, `/spec [mode=tests]`, or `/fix`, the investigation must include observed final state, final reader/query/renderer/assertion, backward hops through storage/projection/writer/consumer/producer, all feeder paths, hypothesis matrix, owning fix layer, and forward convergence proof. Missing trace evidence blocks the fix path.
 
 > **Goal Contract propagation (workflow-owned):** At workflow start, resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from the bug report). Map root cause, regression-test evidence (RED fail + GREEN pass), and `/prove-fix` proof to the saved success criteria — each criterion gets `file:line`/command/report evidence in the Iteration Log. Pass the same goal file reference to every child step. Before `/workflow-end`, emit the final Goal Satisfaction matrix (PASS/FAIL/BLOCKED); workflow completion requires every required criterion PASS or BLOCKED with a user-facing escalation.
 
-**Steps:** /scout → /investigate → /debug-investigate → /feature-spec [mode=amend] → /plan → /plan-review → /plan-validate → /why-review → /spec-tests → /why-review → /review-artifact --type=spec-tests → /integration-test → /fix → /prove-fix → /integration-test → /integration-test-review → /integration-test-verify → /spec-tests [direction=sync] → /workflow-review-changes → /changelog → /test → /docs-update → /workflow-end → /watzup
+**Steps:** /scout → /investigate → /debug-investigate → /spec [mode=amend] → /plan → /plan-review → /plan-validate → /why-review → /spec [mode=tests] → /why-review → /review-artifact --type=spec-tests → /integration-test → /fix → /prove-fix → /integration-test → /integration-test-review → /integration-test-verify → /spec [mode=sync] → /workflow-review-changes → /changelog → /test → /docs-update → /workflow-end → /watzup
 
 > **[PERFORMANCE-SDD ROUTE]** If this bug fix is performance-related (latency, throughput, memory, query speed, load behavior), run `/performance-review` and require SLA/benchmark evidence: target metric, baseline, measurement command, and acceptable regression budget. Do not use performance scope to bypass functional no-regression checks: run `/test` and any relevant functional checks when behavior can change. Update docs/specs for changed SLA, performance constraints, or behavior boundaries.
 

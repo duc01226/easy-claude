@@ -1,6 +1,6 @@
 ---
 name: sync-ai-dev-tools
-description: '[AI & Tools] USER-INVOKED. Use when you (the USER) need to reconcile AI dev-tool SOURCE guidance (Claude↔Copilot skills/prompts/agents/instructions) and/or regenerate BOTH generated mirror surfaces by delegating to the two mirror skills (/sync-to-copilot FIRST then /sync-codex) with both divergence oracles. Renamed from the former /ai-dev-tools-sync skill — that name no longer resolves as a slash command.'
+description: '[AI & Tools] USER-INVOKED. Use when you (the USER) need to reconcile AI dev-tool SOURCE guidance (Claude↔Copilot skills/prompts/agents/instructions) and/or regenerate BOTH generated mirror surfaces by delegating to the two mirror skills (/sync-to-copilot FIRST then /sync-codex) with both divergence oracles.'
 disable-model-invocation: true
 ---
 

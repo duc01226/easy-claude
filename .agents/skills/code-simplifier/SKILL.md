@@ -1,6 +1,6 @@
 ---
 name: code-simplifier
-description: '[Code Quality] Use when you need to simplify and refines code for clarity, consistency, and maintainability while preserving all functionality.'
+description: '[Code Quality] Use when you need to simplify and refine code for clarity, consistency, and maintainability while preserving all functionality.'
 ---
 
 > Codex compatibility note:

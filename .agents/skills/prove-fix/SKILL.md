@@ -1,6 +1,6 @@
 ---
 name: prove-fix
-description: '[Code Quality] Use when you need prove fix correctness with code proof traces, confidence scoring, and stack-trace-style evidence chains.'
+description: '[Code Quality] Use when you need to prove fix correctness with code proof traces, confidence scoring, and stack-trace-style evidence chains.'
 ---
 
 > Codex compatibility note:

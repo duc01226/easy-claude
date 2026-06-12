@@ -108,10 +108,7 @@ const GOAL_CONTRACT_SKILL_IDS = [
   "cook", // reads the goal contract before implementation
   "code", // reads the goal during analysis/task extraction
   "feature", // maps success validation to saved criteria
-  "fix", // active-goal read before root-cause work
-  "fix-ui", // UI evidence mapped to saved criteria
-  "fix-test", // failing/passing test evidence mapped to criteria
-  "fix-issue", // ticket acceptance criteria mapped to saved goal
+  "fix", // active-goal read before root-cause work (ci/issue/logs/test/ui are --target branches)
   "prove-fix", // goal satisfaction update after fix verdict
 ];
 
@@ -322,8 +319,8 @@ function findFirstIndex(sequence, predicate) {
   return -1;
 }
 
-function isCanonicalFeatureSpecStep(step) {
-  return step === "feature-spec" || step.startsWith("feature-spec ");
+function isCanonicalSpecStep(step) {
+  return step === "spec" || step.startsWith("spec ");
 }
 
 export function checkWorkflowDebuggerTracePolicy(workflowId, workflow) {
@@ -360,14 +357,14 @@ function ensureWorkflowPolicy(workflowId, workflow, sequence, failures) {
   }
 
   if (TDD_WORKFLOW_IDS.has(workflowId)) {
-    if (!hasOrderedSubsequence(sequence, ["spec-tests", "review-artifact --type=spec-tests"])) {
+    if (!hasOrderedSubsequence(sequence, ["spec [mode=tests]", "review-artifact --type=spec-tests"])) {
       failures.push(
-        `Workflow policy violation (${workflowId}): missing ordered spec-tests -> review-artifact --type=spec-tests`
+        `Workflow policy violation (${workflowId}): missing ordered spec [mode=tests] -> review-artifact --type=spec-tests`
       );
     }
-    if (!sequence.includes("spec-tests [direction=sync]")) {
+    if (!sequence.includes("spec [mode=sync]")) {
       failures.push(
-        `Workflow policy violation (${workflowId}): missing spec-tests [direction=sync]`
+        `Workflow policy violation (${workflowId}): missing spec [mode=sync]`
       );
     }
   }
@@ -396,7 +393,7 @@ function ensureWorkflowPolicy(workflowId, workflow, sequence, failures) {
 function ensureSddWorkflowPolicy(workflowId, sequence, failures) {
   if (!CANONICAL_SPEC_BEFORE_IMPLEMENTATION_WORKFLOW_IDS.has(workflowId)) return;
 
-  const specIndex = findFirstIndex(sequence, isCanonicalFeatureSpecStep);
+  const specIndex = findFirstIndex(sequence, isCanonicalSpecStep);
   const implementationIndex = findFirstIndex(sequence, (step) => IMPLEMENTATION_STEPS.has(step));
 
   if (specIndex === -1) {
@@ -444,12 +441,12 @@ function ensureSddWorkflowPolicy(workflowId, sequence, failures) {
   if (
     !hasOrderedSubsequence(implementationTail, [
       implementationStep,
-      "spec-tests [direction=sync]",
+      "spec [mode=sync]",
       "docs-update",
     ])
   ) {
     failures.push(
-      `Workflow policy violation (${workflowId}): implementation must be followed by spec-tests [direction=sync] before docs-update`
+      `Workflow policy violation (${workflowId}): implementation must be followed by spec [mode=sync] before docs-update`
     );
   }
 }

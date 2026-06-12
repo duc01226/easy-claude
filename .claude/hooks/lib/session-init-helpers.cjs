@@ -147,7 +147,7 @@ function checkConfigStatus() {
 const SCAN_SKILL_MAP = {
     'project-structure-reference.md': 'scan --target=project-structure',
     'backend-patterns-reference.md': 'scan --target=backend-patterns',
-    'seed-test-data-reference.md': 'scan-seed-test-data',
+    'seed-test-data-reference.md': 'scan --target=seed-test-data',
     'frontend-patterns-reference.md': 'scan --target=frontend-patterns',
     'integration-test-reference.md': 'scan --target=integration-tests',
     'feature-spec-reference.md': 'scan --target=feature-spec',
@@ -160,7 +160,6 @@ const SCAN_SKILL_MAP = {
     'e2e-test-reference.md': 'scan --target=e2e-tests',
     'domain-entities-reference.md': 'scan --target=domain-entities',
     'docs-index-reference.md': 'scan --target=docs-index'
-    // seed-test-data-reference.md retains scan-seed-test-data (standalone skill, not folded)
     // lessons.md excluded — managed by /learn skill
 };
 

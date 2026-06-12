@@ -36,7 +36,7 @@ Common mappings when configured:
 ```
 docs/project-reference/project-structure-reference.md     -> /scan --target=project-structure
 docs/project-reference/backend-patterns-reference.md      -> /scan --target=backend-patterns
-docs/project-reference/seed-test-data-reference.md       -> /scan-seed-test-data
+docs/project-reference/seed-test-data-reference.md       -> /scan --target=seed-test-data
 docs/project-reference/frontend-patterns-reference.md     -> /scan --target=frontend-patterns
 docs/project-reference/integration-test-reference.md      -> /scan --target=integration-tests
 docs/project-reference/feature-spec-reference.md          -> /scan --target=feature-spec

@@ -66,7 +66,7 @@ A reusable task automation capability. Each skill is a directory with a `SKILL.m
 | Pattern         | Example                                    | Purpose                                         |
 | --------------- | ------------------------------------------ | ----------------------------------------------- |
 | Simple          | `debug/SKILL.md`                           | Single markdown entry point                     |
-| With scripts    | `ai-multimodal/scripts/`                   | Has helper scripts alongside SKILL.md           |
+| With scripts    | `docs-seeker/scripts/`                     | Has helper scripts alongside SKILL.md           |
 | Shared protocol | `shared/understand-code-first-protocol.md` | Reusable protocol referenced by multiple skills |
 
 ### Key Properties

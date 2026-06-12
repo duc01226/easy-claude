@@ -23,6 +23,20 @@
       "session"
     ]
   },
+  "skillConventions": {
+    "conventionFields": [
+      "version",
+      "activation",
+      "triggers",
+      "execution-mode",
+      "context-budget",
+      "last_reviewed",
+      "tags",
+      "category"
+    ],
+    "removableFields": [],
+    "fieldFixes": {}
+  },
   "modules": [
     {
       "name": "hooks",
@@ -42,14 +56,14 @@
       "name": "skills",
       "kind": "library",
       "pathRegex": "[\\\\/]\\.claude[\\\\/]skills[\\\\/]",
-      "description": "258 skill definitions for task automation (SKILL.md + scripts)",
+      "description": "Skill definitions for task automation (SKILL.md + scripts)",
       "tags": ["core", "markdown"]
     },
     {
       "name": "agents",
       "kind": "library",
       "pathRegex": "[\\\\/]\\.claude[\\\\/]agents[\\\\/]",
-      "description": "28 agent definitions for specialized subagent roles",
+      "description": "Agent definitions for specialized subagent roles",
       "tags": ["core", "markdown"]
     },
     {

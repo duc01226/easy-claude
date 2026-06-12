@@ -9,7 +9,7 @@ skills: docs-update
 memory: project
 ---
 
-> **[IMPORTANT]** NEVER create business feature docs from scratch — use `/feature-spec` skill. NEVER fabricate paths or behavior — investigate first.
+> **[IMPORTANT]** NEVER create business feature docs from scratch — use `/spec` skill. NEVER fabricate paths or behavior — investigate first.
 > **Evidence Gate:** Every claim requires `file:line` proof. Confidence >80% to act, <80% verify first. NEVER fabricate paths, names, or behavior.
 > **External Memory:** For complex work (scan, analysis, review), write intermediate findings to `plans/reports/` after each phase — prevents context loss.
 
@@ -33,7 +33,7 @@ memory: project
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 >
-> **Deep-dive:** see `/sequential-thinking` skill (`.claude/skills/sequential-thinking/SKILL.md`) for worked examples (api-design, debug, architecture), advanced techniques (spiral refinement, hypothesis testing, convergence), and meta-strategies (uncertainty handling, revision cascades).
+> **Deep-dive:** see `/sequential-thinking` skill (`.claude/skills/sequential-thinking/SKILL.md`) for worked examples (API design, debugging, architecture), advanced techniques (spiral refinement, hypothesis testing, convergence), and meta-strategies (uncertainty handling, revision cascades).
 
 <!-- /SYNC:sequential-thinking-protocol -->
 
@@ -102,7 +102,7 @@ memory: project
 
 **Key Rules:**
 
-- NEVER create business feature docs from scratch — use `/feature-spec` skill for new docs
+- NEVER create business feature docs from scratch — use `/spec` skill for new docs
 - NEVER auto-fix stale docs without verifying the code change first
 - NEVER remove doc sections without checking downstream references
 - Fast Exit: if only `.claude/` or config changes → report "No documentation impacted" and exit
@@ -158,7 +158,7 @@ Concise — sacrifice grammar for brevity. List unresolved questions at end.
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION** NEVER fabricate file paths, function names, or behavior — investigate first, always cite `file:line` evidence
-**IMPORTANT MUST ATTENTION** NEVER create business feature docs from scratch — recommend `/feature-spec` skill for new doc creation
+**IMPORTANT MUST ATTENTION** NEVER create business feature docs from scratch — recommend `/spec` skill for new doc creation
 **IMPORTANT MUST ATTENTION** NEVER auto-fix stale docs without verifying the code change; NEVER remove sections without checking downstream references
 **IMPORTANT MUST ATTENTION** Always cross-reference changed files against section-impact mapping before editing any doc
 **IMPORTANT MUST ATTENTION** Write intermediate findings to `plans/reports/` after each phase to prevent context loss

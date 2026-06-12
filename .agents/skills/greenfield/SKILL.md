@@ -59,7 +59,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 12. **Refine to PBI** (`$refine`) — Transform idea + reviewed plan into actionable PBI with acceptance criteria
 13. **User Stories** (`$story`) — Break PBI into implementable user stories
 14. **Plan Validation** (`$plan-validate`) — Interview user with critical questions to validate plan + stories
-15. **Test Strategy** (`$spec-tests`) — Test pyramid, frameworks, spec outline
+15. **Test Strategy** (`$spec [mode=tests]`) — Test pyramid, frameworks, spec outline
 16. **Workflow End** (`$workflow-end`) — Clean up, announce completion
 
 **Key Rules:**
@@ -92,7 +92,7 @@ This skill is the explicit entry point for the `greenfield-init` workflow.
 
 ## When NOT to Use
 
-- Existing codebase with code (use `$plan` or `$feature` instead)
+- Existing codebase with code (use `$plan` or `$workflow-start feature` instead)
 - Bug fixes, refactoring, or feature implementation
 - Quick prototyping (use `$cook` instead)
 

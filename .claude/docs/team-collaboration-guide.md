@@ -118,7 +118,7 @@ Hooks automatically inject relevant project knowledge (backend patterns, fronten
 1. **Generate test spec from PBI**
 
     ```
-    /spec-tests {pbi-or-feature-doc}
+    /spec [mode=tests] {pbi-or-feature-doc}
     ```
 
     Creates test specs with `TC-{FEATURE}-{NNN}` IDs in unified format
@@ -134,7 +134,7 @@ Hooks automatically inject relevant project knowledge (backend patterns, fronten
     /quality-gate pre-qa
     ```
 
-**Workflow trigger:** Say "test cases from PBI" → runs `/spec-tests` directly (the former pbi-to-tests workflow was merged into the `/spec-tests` skill); for full test authoring with generated test code, use the **write-integration-test** workflow
+**Workflow trigger:** Say "test cases from PBI" → runs `/spec [mode=tests]` directly (the former pbi-to-tests workflow was merged into the `spec` skill); for full test authoring with generated test code, use the **write-integration-test** workflow
 
 ---
 
@@ -216,7 +216,7 @@ Hooks automatically inject relevant project knowledge (backend patterns, fronten
 
 | Skill               | Purpose                                  | Example                     |
 | ------------------- | ---------------------------------------- | --------------------------- |
-| `/spec-tests`       | Generate test specs (TC-{FEATURE}-{NNN}) | `/spec-tests {feature-doc}` |
+| `/spec [mode=tests]` | Generate test specs (TC-{FEATURE}-{NNN}) | `/spec [mode=tests] {feature-doc}` |
 | `/integration-test` | Generate integration tests from specs    | `/integration-test`         |
 | `/e2e-test`         | Generate E2E tests                       | `/e2e-test`                 |
 | `/quality-gate`     | Run quality checklist                    | `/quality-gate pre-dev`     |
@@ -265,14 +265,14 @@ BA:             /refine ──→ [PBI with AC] ──→ /story ──→ [user
 
 ---
 
-### Workflow 2: PBI to Tests (`/spec-tests` + `/quality-gate`)
+### Workflow 2: PBI to Tests (`/spec [mode=tests]` + `/quality-gate`)
 
 **Trigger:** "test cases from PBI", "qa this"
 **Roles:** QA Engineer, QC Specialist
-**IMPORTANT MANDATORY Steps:** `/spec-tests` → `/quality-gate` (skill chain — for generated test code, use the **write-integration-test** workflow)
+**IMPORTANT MANDATORY Steps:** `/spec [mode=tests]` → `/quality-gate` (skill chain — for generated test code, use the **write-integration-test** workflow)
 
 ```
-QA:  [PBI] ──→ /spec-tests → [test spec with TC-{FEATURE}-{NNN}]
+QA:  [PBI] ──→ /spec [mode=tests] → [test spec with TC-{FEATURE}-{NNN}]
                                         │
 QC:                              /quality-gate ──→ [PASS/FAIL report]
 ```
@@ -314,7 +314,7 @@ Dev:                             /code-review ──→ Implementation
 
 **Trigger:** "test-first", "TDD", "spec-driven" (the former tdd-feature workflow was merged into `feature`)
 **Roles:** Developer, QA
-**IMPORTANT MANDATORY Steps (abridged):** `/scout` → `/investigate` → `/plan` → `/spec-tests` → `/cook` → `/integration-test` → `/test` → `/docs-update`
+**IMPORTANT MANDATORY Steps (abridged):** `/scout` → `/investigate` → `/plan` → `/spec [mode=tests]` → `/cook` → `/integration-test` → `/test` → `/docs-update`
 
 Test specs are written **before** implementation, then code is written to satisfy them.
 
@@ -414,7 +414,7 @@ Claude generates component spec with all states (default, hover, dragging, uploa
 **Alex (QA):**
 
 ```
-/spec-tests {pbi-file}
+/spec [mode=tests] {pbi-file}
 ```
 
 Test cases with unified IDs:
@@ -465,7 +465,7 @@ CAPTURE & REQUIREMENTS
   /prioritize [framework]    Order backlog (rice|moscow|value-effort)
 
 TESTING & QUALITY
-  /spec-tests {source}       Generate test specs (TC-{FEATURE}-{NNN})
+  /spec [mode=tests] {source}  Generate test specs (TC-{FEATURE}-{NNN})
   /integration-test          Generate integration tests
   /e2e-test                  Generate E2E tests
   /quality-gate {type}       Run quality checklist (pre-dev|pre-qa|pre-release)
@@ -490,7 +490,7 @@ PLANNING
 | ---- | ------------------------------------------- | ---------------------- |
 | PO   | `/idea`, `/prioritize`                      | idea-to-pbi            |
 | BA   | `/refine`, `/story`                         | idea-to-pbi            |
-| QA   | `/spec-tests`, `/integration-test`, `/test` | write-integration-test |
+| QA   | `/spec [mode=tests]`, `/integration-test`, `/test` | write-integration-test |
 | QC   | `/quality-gate`, `/review-artifact`         | —                      |
 | UX   | `/design-spec`, `/frontend-design`          | design-workflow        |
 | PM   | `/project-manager`, `/dependency`           | —                      |
@@ -500,9 +500,9 @@ PLANNING
 | Say This                       | Activates              | Sequence                               |
 | ------------------------------ | ---------------------- | -------------------------------------- |
 | "new idea" / "feature request" | idea-to-pbi            | /idea → /refine → /story → /prioritize |
-| "test this PBI" / "test cases" | `/spec-tests` (skill)  | /spec-tests → /quality-gate            |
+| "test this PBI" / "test cases" | `/spec [mode=tests]` (skill) | /spec [mode=tests] → /quality-gate     |
 | "design spec for"              | design-workflow        | /design-spec → /code-review            |
-| "TDD" / "test-first"           | feature                | /plan → /spec-tests → /cook → /test    |
+| "TDD" / "test-first"           | feature                | /plan → /spec [mode=tests] → /cook → /test |
 | "full lifecycle"               | full-feature-lifecycle | /idea → ... → /docs-update             |
 
 ### Common Patterns
@@ -510,7 +510,7 @@ PLANNING
 **Feature from scratch:**
 
 ```
-/idea → /refine → /story → /design-spec → /spec-tests → /plan → /cook → /test
+/idea → /refine → /story → /design-spec → /spec [mode=tests] → /plan → /cook → /test
 ```
 
 **Sprint prep:**

@@ -65,7 +65,7 @@ memory: project
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 >
-> **Deep-dive:** see `/sequential-thinking` skill (`.claude/skills/sequential-thinking/SKILL.md`) for worked examples (api-design, debug, architecture), advanced techniques (spiral refinement, hypothesis testing, convergence), and meta-strategies (uncertainty handling, revision cascades).
+> **Deep-dive:** see `/sequential-thinking` skill (`.claude/skills/sequential-thinking/SKILL.md`) for worked examples (API design, debugging, architecture), advanced techniques (spiral refinement, hypothesis testing, convergence), and meta-strategies (uncertainty handling, revision cascades).
 
 <!-- /SYNC:sequential-thinking-protocol -->
 
@@ -97,7 +97,7 @@ memory: project
 2. **Analyze requirements** — break into vertical slices, identify acceptance criteria, document business rules
 3. **Write stories** — "As a... I want... So that..." with INVEST criteria and 3+ scenarios each
    3b. **Collaborative Review** — If PBI was drafted by BA Drafters (UX BA + Designer BA), use `/pbi-challenge` for Dev BA PIC review. If drafted by Dev BA PIC, use `/review-artifact --type=pbi` for AI self-review.
-4. **Validate** — check completeness, hand off to `spec-tests` for test generation
+4. **Validate** — check completeness, hand off to `spec [mode=tests]` for test generation
 
 **Key Rules:**
 

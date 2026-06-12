@@ -1,7 +1,7 @@
 ---
 name: dor-gate
 version: 1.0.0
-description: '[Code Quality] Use when you need validate PBI against Definition of Ready before grooming.'
+description: '[Code Quality] Use when you need to validate a PBI against Definition of Ready before grooming.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->

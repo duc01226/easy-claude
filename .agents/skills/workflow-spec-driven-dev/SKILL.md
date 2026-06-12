@@ -55,15 +55,15 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Final Purpose:** Ensure the Feature Spec, implementation, tests, and project docs stay synchronized through a governed spec-driven workflow.
 
-> **[SINGLE HOME]** There is ONE canonical artifact — the tech-free 8-section Feature Spec authored by `feature-spec` at `docs/specs/{Bucket}/`. There is no parallel A-E "Engineering Spec" bundle and no separate Business Feature Docs tree; `spec-index` only regenerates a DERIVED index/ERD over the Feature Specs. Authority: [`docs/project-reference/spec-system-reference.md`](../../../docs/project-reference/spec-system-reference.md).
+> **[SINGLE HOME]** There is ONE canonical artifact — the tech-free 8-section Feature Spec authored by `spec` at `docs/specs/{Bucket}/`. There is no parallel A-E "Engineering Spec" bundle and no separate Business Feature Docs tree; `spec-index` only regenerates a DERIVED index/ERD over the Feature Specs. Authority: [`docs/project-reference/spec-system-reference.md`](../../../docs/project-reference/spec-system-reference.md).
 
 ### One Canonical Artifact + Derived Aids
 
 | Artifact                | Path                                                        | Canonical?                       | Maintained By                       |
 | ----------------------- | ----------------------------------------------------------- | -------------------------------- | ----------------------------------- |
-| **Feature Spec**        | `docs/specs/{Bucket}/README.{Feature}.md` | **Yes — single source of truth** | `feature-spec`                      |
-| Section 8 — Test Specs  | Same file, **Section 8**                                    | Yes — canonical TC registry      | `spec-tests`                          |
-| Bucket `INDEX.md`       | `docs/specs/{Bucket}/INDEX.md`                              | Derived — regenerable            | `feature-spec` / `spec-index`       |
+| **Feature Spec**        | `docs/specs/{Bucket}/README.{Feature}.md` | **Yes — single source of truth** | `spec`                      |
+| Section 8 — Test Specs  | Same file, **Section 8**                                    | Yes — canonical TC registry      | `spec [mode=tests]`                          |
+| Bucket `INDEX.md`       | `docs/specs/{Bucket}/INDEX.md`                              | Derived — regenerable            | `spec` / `spec-index`       |
 | System index / ERD      | (generated on demand)                                       | Derived — never canonical        | `spec-index` (repurposed)           |
 
 ### App Bucket Mapping
@@ -74,9 +74,9 @@ Resolve service→bucket assignments from the canonical table in [`docs/project-
 
 | Mode        | When to Use                                  | Step Sequence                                                                                                                                                                              |
 | ----------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `init-full` | Zero — no Feature Spec for target scope      | scout → **size-evaluation** → **plan** → **plan-review** → **plan-validate** → feature-spec(init) → **spec-tests(create)** → **review-artifact --type=spec-tests** → review-artifact → **docs-update(final sync)** → workflow-end → watzup |
-| `update`    | Code changed, new requirement, new PBI       | workflow-review-changes → feature-spec(update) → **spec-tests(update)** → **review-artifact --type=spec-tests** → spec-tests [direction=sync] → review-changes → **docs-update(final sync)** → workflow-end → watzup |
-| `audit`     | Quarterly health check, verify doc freshness | scout → feature-spec(audit) → review-artifact → **docs-update(final sync)** → workflow-end → watzup                                                                                        |
+| `init-full` | Zero — no Feature Spec for target scope      | scout → **size-evaluation** → **plan** → **plan-review** → **plan-validate** → spec [mode=init] → **spec [mode=tests]** → **review-artifact --type=spec-tests** → review-artifact → **docs-update(final sync)** → workflow-end → watzup |
+| `update`    | Code changed, new requirement, new PBI       | workflow-review-changes → spec [mode=update] → **spec [mode=tests]** → **review-artifact --type=spec-tests** → spec [mode=sync] → review-changes → **docs-update(final sync)** → workflow-end → watzup |
+| `audit`     | Quarterly health check, verify doc freshness | scout → spec [mode=audit] → review-artifact → **docs-update(final sync)** → workflow-end → watzup                                                                                        |
 
 **Key Rules:**
 
@@ -144,7 +144,7 @@ ESTIMATE:
   IF capability_count > 10:
     → SPLIT into groups: max 10 capabilities per run, run groups sequentially
   IF 4 ≤ capability_count ≤ 10:
-    → Sub-agents mandatory (one feature-spec sub-agent per capability)
+    → Sub-agents mandatory (one spec sub-agent per capability)
   IF capability_count ≤ 3:
     → Single-session authoring
 
@@ -174,7 +174,7 @@ $plan-validate
   → User confirms: bucket, capability list, scope, split strategy
   → Task tracking: "plan-validate — user confirms scope and split strategy"
 
-$feature-spec [mode=init]
+$spec [mode=init]
   → Author the canonical tech-free 8-section Feature Spec PER capability:
       §1 Overview · §2 Glossary · §3 User Stories & AC · §4 Business Rules ·
       §5 Domain Model (Mermaid ERD — MANDATORY, authored INSIDE this file) ·
@@ -184,7 +184,7 @@ $feature-spec [mode=init]
   → Sub-agents for 4+ capabilities (BLOCKING: ONE message spawn); each prompt includes capability name, output path, tech-agnostic contract, SYNC protocols
   → Caps: body §1-7 ≤1200 lines, whole file ≤1800 (hard) — split when body>1200 OR TCs>40
 
-$spec-tests [mode=create]
+$spec [mode=tests]
   → Populate Section 8 with TC-{FEATURE}-{NNN} entries (BDD, Business Intent, abstract Evidence, IntegrationTest field, Status)
 
 $review-artifact --type=spec-tests
@@ -229,14 +229,14 @@ Code changed (new feature, bug fix, refactor, new PBI). Sync the Feature Spec in
 
 ```
 $workflow-review-changes
-  → Full code review cycle + docs-update (Phase 2 feature-spec diff-scoped sync)
+  → Full code review cycle + docs-update (Phase 2 spec diff-scoped sync)
   → Produces: impact map (capabilities affected, Feature Spec sections to update)
 
-$feature-spec [mode=update]
+$spec [mode=update]
   → Update only the impacted sections of each affected Feature Spec (full 8-section pass with 3-pass verification when restructuring)
   → SKIP if docs-update Phase 2 completed with zero gaps — mark "Skipped: docs-update Phase 2 sufficient"
 
-$spec-tests [mode=update]
+$spec [mode=tests]
   → **EXPLICIT TC STEP — required when new functionality added**
   → SKIP if changes are purely cosmetic (CSS, comments, config) — mark "Skipped: no behavioral impact"
   → Mode detection: new commands/queries/endpoints → implement-first; PBI-driven → TDD-first; TC edits only → update
@@ -244,10 +244,10 @@ $spec-tests [mode=update]
 
 $review-artifact --type=spec-tests
   → Review updated/planned TCs for invariant coverage, GIVEN/WHEN/THEN completeness, stale TC handling, duplicate IDs
-  → SKIP if $spec-tests skipped — mark "Skipped: no TC changes"
+  → SKIP if $spec [mode=tests] skipped — mark "Skipped: no TC changes"
   → BLOCK sync if review finds missing invariants, ambiguous behavior, or TC/code/spec drift
 
-$spec-tests [direction=sync]
+$spec [mode=sync]
   → Refresh the derived bucket INDEX TC counts from Section 8 (Section 8 stays canonical — no separate dashboard)
   → SKIP if no TC changes in this cycle
 
@@ -305,7 +305,7 @@ Budget multiplier: If last audit was >90 days ago → ×1.5 (more drift expected
 $scout
   → Quick codebase scan: current state of entities, commands, controllers (lightweight, 30min max)
 
-$feature-spec [mode=audit]
+$spec [mode=audit]
   → Compare each Feature Spec's last_updated vs git log of the source it documents
   → Output: stale capabilities/sections table with recommended update scope
 
@@ -334,11 +334,11 @@ $watzup
 | Step                           | Skip When                                                                                                      |
 | ------------------------------ | -------------------------------------------------------------------------------------------------------------- |
 | §5 Mermaid ERD in init         | Never — the ERD is a mandatory section of the Feature Spec                                                     |
-| `$spec-tests(create)` in init    | User explicitly requests a behavior-doc-only pass (TCs deferred to a later cycle)                              |
+| `$spec [mode=tests]` in init    | User explicitly requests a behavior-doc-only pass (TCs deferred to a later cycle)                              |
 | `$dor-gate` in update          | Update source is code diff only, existing PBI is already DoR-ready, or no PBI readiness decision is being made |
 | `$pbi-mockup` in update        | Backend-only/non-UI requirement, code diff only, or existing mockup already covers the change                  |
-| `$review-artifact --type=spec-tests` in update   | `$spec-tests` skipped because there were no TC changes                                                           |
-| `$spec-tests [direction=sync]`   | No TC changes in this update cycle                                                                             |
+| `$review-artifact --type=spec-tests` in update   | `$spec [mode=tests]` skipped because there were no TC changes                                                           |
+| `$spec [mode=sync]`   | No TC changes in this update cycle                                                                             |
 | `$docs-update` near-final sync | Never skip entirely; sub-phases may be skipped only with explicit reason in the docs-update report             |
 | `$review-artifact` audit pass  | No stale specs found AND no UNVERIFIED items                                                                   |
 | `$spec-index` (derived)        | No derived index/ERD is maintained for this bucket, or it is already current                                  |
@@ -348,12 +348,12 @@ $watzup
 ## Sub-Agent Coordination Protocol (init-full, 4+ capabilities)
 
 1. `$scout` + `$plan` in main context → capability registry + per-capability task list
-2. Spawn `feature-spec` sub-agents (one per capability) in ONE message
+2. Spawn `spec` sub-agents (one per capability) in ONE message
 3. Wait for all sub-agents to complete
-4. Spawn `spec-tests` sub-agents (one per capability) in ONE message to populate Section 8
+4. Spawn `spec [mode=tests]` sub-agents (one per capability) in ONE message to populate Section 8
 5. Main context assembles + verifies in `$review-artifact`
 
-Each `feature-spec` sub-agent receives:
+Each `spec` sub-agent receives:
 
 - Capability name + bucket
 - Output path: `docs/specs/{Bucket}/README.{Feature}.md`
@@ -369,10 +369,10 @@ Each `feature-spec` sub-agent receives:
 ```
 docs-update (as workflow step):
   Phase 1: Project docs (inline — unchanged)
-  Phase 2: $feature-spec update mode (impacted sections of the Feature Spec)
-  Phase 3: $spec-tests (Section 8 TCs)
+  Phase 2: $spec update mode (impacted sections of the Feature Spec)
+  Phase 3: $spec [mode=tests] (Section 8 TCs)
   Phase 3.5: $review-artifact --type=spec-tests (required when Phase 3 changes TCs)
-  Phase 4: $spec-tests [direction=sync] (refresh derived INDEX TC counts)
+  Phase 4: $spec [mode=sync] (refresh derived INDEX TC counts)
   Phase 4.5: $spec-index (OPTIONAL — regenerate derived bucket INDEX / ERD if one is maintained)
 ```
 
@@ -397,8 +397,8 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 
 | Goal                                               | Use                                       |
 | -------------------------------------------------- | ----------------------------------------- |
-| Update one specific Feature Spec after small change | `$feature-spec` directly                  |
-| Add/sync Section 8 TCs                             | `$spec-tests` directly                      |
+| Update one specific Feature Spec after small change | `$spec` directly                  |
+| Add/sync Section 8 TCs                             | `$spec [mode=tests]` directly                      |
 | Regenerate a derived bucket index / ERD            | `$spec-index` directly                    |
 | Understand one specific feature                    | `$investigate`                            |
 | Write integration tests from existing Section 8    | `$integration-test`                       |
@@ -409,7 +409,7 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $scout -> $plan -> $plan-review -> $plan-validate -> $feature-spec -> $spec-tests -> $review-artifact --type=spec-tests -> $review-artifact -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $scout -> $plan -> $plan-review -> $plan-validate -> $spec -> $spec [mode=tests] -> $review-artifact --type=spec-tests -> $review-artifact -> $docs-update -> $workflow-end -> $watzup
 
 > **[BLOCKING]** Invoke skill invocation for EACH step — NEVER batch-complete, NEVER mark done without skill invocation.
 > **[BLOCKING]** Confirm mode via a direct user question BEFORE any action — NEVER skip Step 0.

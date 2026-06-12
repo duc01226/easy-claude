@@ -36,14 +36,14 @@
 **Test-driven fixes:**
 
 ```bash
-/fix-test user service tests failing
+/fix --target=test user service tests failing
 /test  # Run full test suite
 ```
 
 **CI/CD failures:**
 
 ```bash
-/fix-ci https://github.com/org/repo/actions/runs/12345
+/fix --target=ci https://github.com/org/repo/actions/runs/12345
 ```
 
 ## Code Review & Testing
@@ -55,7 +55,7 @@ claude "analyze the changes in PR #42"
 
 # Run tests
 /test
-/fix-test payment tests failing
+/fix --target=test payment tests failing
 ```
 
 ## Documentation Management

@@ -2,13 +2,13 @@
 title: 'Canonical TC Format'
 version: 1.2.0
 last_reviewed: 2026-06-12
-authority: spec-tests
-consumers: [feature-spec, spec-tests, spec-tests (sync mode), integration-test, integration-test-review, review-artifact]
+authority: spec [mode=tests]
+consumers: [spec, spec [mode=tests], spec [mode=sync], integration-test, integration-test-review, review-artifact]
 ---
 
 # Canonical TC Format
 
-> **Single source of truth** for TC entry format. Referenced by: `feature-spec`, `spec-tests`, `spec-tests (sync mode)`.
+> **Single source of truth** for TC entry format. Referenced by: `spec`, `spec [mode=tests]`, `spec [mode=sync]`.
 > To update TC format: edit THIS file only, then update all consumer skills to reflect the change.
 
 ## Quick Summary
@@ -109,7 +109,7 @@ And {additional verification}
 
 > **A Section 8 TC is a business / user-story acceptance scenario — not a unit of code.** It is written tech-agnostic
 > (M1/M2/M5) and is verified by **one OR MANY** test methods. This section is the canonical cardinality contract; all
-> consumer skills (`spec-tests`, `feature-spec`, `integration-test`, `integration-test-review`, `review-artifact`) defer to it.
+> consumer skills (`spec [mode=tests]`, `spec`, `integration-test`, `integration-test-review`, `review-artifact`) defer to it.
 
 **The rule (authoritative):**
 
@@ -157,7 +157,7 @@ Group TCs by category using decade blocks to prevent collisions:
 
 ## TC Category Sections
 
-Organize TCs into named category sections. Minimum 3 categories required (query-only features exempt — see spec-tests for exception rules):
+Organize TCs into named category sections. Minimum 3 categories required (query-only features exempt — see spec [mode=tests] for exception rules):
 
 ```markdown
 ### CRUD Tests

@@ -24,18 +24,18 @@ disable-model-invocation: true
 - MUST ATTENTION preserve `Business Intent / Invariant Guarded` when updating TCs; do not encode accidental implementation behavior.
 - NEVER skip mandatory workflow or skill gates.
 
-**IMPORTANT MANDATORY Steps:** /workflow-review-changes -> /spec-tests -> /why-review -> /review-artifact --type=spec-tests -> /spec-tests [direction=sync] -> /integration-test -> /integration-test-review -> /integration-test-verify -> /test -> /docs-update -> /workflow-end
+**IMPORTANT MANDATORY Steps:** /workflow-review-changes -> /spec [mode=tests] -> /why-review -> /review-artifact --type=spec-tests -> /spec [mode=sync] -> /integration-test -> /integration-test-review -> /integration-test-verify -> /test -> /docs-update -> /workflow-end
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 > **[BLOCKING]** Read `docs/project-reference/spec-principles.md` before updating test specs — Section 7 TC coverage mapping is the canonical baseline.
 
 Activate the `spec-sync` workflow. Run `/workflow-start spec-sync` with the user's prompt as context.
 
-**Steps:** /workflow-review-changes → /spec-tests → /why-review → /review-artifact --type=spec-tests → /spec-tests [direction=sync] → /integration-test → /integration-test-review → /integration-test-verify → /test → /docs-update → /workflow-end
+**Steps:** /workflow-review-changes → /spec [mode=tests] → /why-review → /review-artifact --type=spec-tests → /spec [mode=sync] → /integration-test → /integration-test-review → /integration-test-verify → /test → /docs-update → /workflow-end
 
 ---
 
-**IMPORTANT MANDATORY Steps:** /workflow-review-changes -> /spec-tests -> /why-review -> /review-artifact --type=spec-tests -> /spec-tests [direction=sync] -> /integration-test -> /integration-test-review -> /integration-test-verify -> /test -> /docs-update -> /workflow-end
+**IMPORTANT MANDATORY Steps:** /workflow-review-changes -> /spec [mode=tests] -> /why-review -> /review-artifact --type=spec-tests -> /spec [mode=sync] -> /integration-test -> /integration-test-review -> /integration-test-verify -> /test -> /docs-update -> /workflow-end
 
 <!-- SYNC:ai-mistake-prevention -->
 

@@ -4,7 +4,7 @@
 
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **65 top-level hook files**, **258 skills**, **37 workflows**, and **28 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`, with Copilot instruction generation available through sync skills and scripts.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **66 top-level hook files**, **160 skills**, **21 workflows**, and **29 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`, with Copilot instruction generation available through sync skills and scripts.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -103,7 +103,7 @@ Optional scans (run if applicable):
 
 ## What's Inside
 
-### Hooks (65 top-level files, 29 lib modules)
+### Hooks (66 top-level files, 31 lib modules)
 
 Runtime Node.js scripts that fire on Claude Code lifecycle events.
 
@@ -120,7 +120,7 @@ Runtime Node.js scripts that fire on Claude Code lifecycle events.
 
 **Hook part-file architecture:** Large hooks are split into chained part-files (`-p2`, `-p3`) for maintainability. The harness chains them at runtime. Affected: `prompt-context-assembler` (6 files), `workflow-router` (3 files).
 
-### Skills (258 definitions)
+### Skills (160 definitions)
 
 Markdown-based prompts with YAML frontmatter that guide AI behavior.
 
@@ -133,26 +133,26 @@ Markdown-based prompts with YAML frontmatter that guide AI behavior.
 | **Documentation**  | `/docs-update`, `/changelog`, `/feature-docs`                                                                  | Auto-generate and maintain docs                         |
 | **Research**       | `/web-research`, `/deep-research`, `/docs-seeker`                                                              | Web research, library docs fetching                     |
 | **Design**         | `/design-spec`, `/interface-design`, `/pbi-mockup`, `/excalidraw-diagram`                                      | UI/UX specs, wireframes, PBI visuals, diagrams          |
-| **DevOps**         | `/devops`, `/fix-ci`, `/sre-review`                                                                            | Infrastructure, CI/CD, reliability                      |
+| **DevOps**         | `/devops`, `/fix --target=ci`, `/sre-review`                                                                   | Infrastructure, CI/CD, reliability                      |
 | **Scanning**       | `/scan-project-structure`, `/scan-codebase-health`, `/scan-docs-index`                                         | Generate reference docs for hooks to auto-inject        |
 | **Documents**      | `/markdown-to-pdf`, `/markdown-to-docx`, `/pdf-to-markdown`                                                    | Document format conversion                              |
 
-### Workflows (37 definitions)
+### Workflows (21 definitions)
 
 End-to-end process orchestration with step enforcement.
 
-| Workflow                  | Focus                                                                    | Use When                                      |
-| ------------------------- | ------------------------------------------------------------------------ | --------------------------------------------- |
-| `feature`                 | Scout, investigate, plan, write specs, implement, review, test, docs     | Implementing a well-defined feature           |
-| `bugfix`                  | Trace root cause, write regression specs/tests, fix, prove, verify       | Fixing a bug without losing invariants        |
-| `big-feature`             | Idea, research, domain/tech analysis, stories, specs, implementation     | Large or ambiguous feature needing research   |
-| `greenfield-init`         | Product inception through scaffold, implementation, tests, docs          | New project from scratch                      |
-| `product-discovery`       | Brainstorm, research, PBIs, stories, DoR, mockups, ranked backlog        | Turning raw vision into implementation-ready work |
-| `spec-driven-dev`         | Engineering specs, feature docs, TDD specs, implementation sync          | Keeping specs, tests, code, and docs aligned  |
-| `write-integration-test`  | Domain investigation, test specs, integration test code, review, verify  | Adding or updating integration tests          |
-| `refactor`                | Search-first restructuring with plan, implementation, review, tests      | Code improvement without behavior drift       |
+| Workflow                 | Focus                                                                   | Use When                                          |
+| ------------------------ | ----------------------------------------------------------------------- | ------------------------------------------------- |
+| `feature`                | Scout, investigate, plan, write specs, implement, review, test, docs    | Implementing a well-defined feature               |
+| `bugfix`                 | Trace root cause, write regression specs/tests, fix, prove, verify      | Fixing a bug without losing invariants            |
+| `big-feature`            | Idea, research, domain/tech analysis, stories, specs, implementation    | Large or ambiguous feature needing research       |
+| `greenfield-init`        | Product inception through scaffold, implementation, tests, docs         | New project from scratch                          |
+| `product-discovery`      | Brainstorm, research, PBIs, stories, DoR, mockups, ranked backlog       | Turning raw vision into implementation-ready work |
+| `spec-driven-dev`        | Engineering specs, feature docs, TDD specs, implementation sync         | Keeping specs, tests, code, and docs aligned      |
+| `write-integration-test` | Domain investigation, test specs, integration test code, review, verify | Adding or updating integration tests              |
+| `refactor`               | Search-first restructuring with plan, implementation, review, tests     | Code improvement without behavior drift           |
 
-### Agents (28 specialists)
+### Agents (29 specialists)
 
 Subagent definitions for parallelized, specialized work.
 
@@ -175,13 +175,13 @@ easy-claude/
 ├── .agents/                  # Codex skill mirror generated from .claude/skills
 ├── .codex/                   # Codex agents, hooks, and context parity files
 ├── .claude/                  # <-- The framework template (copy this to your project)
-│   ├── agents/               # 28 specialized agent definitions
-│   ├── hooks/                # 65 top-level hook files + lib/ utilities
+│   ├── agents/               # 29 specialized agent definitions
+│   ├── hooks/                # 66 top-level hook files + lib/ utilities
 │   │   ├── lib/              # Shared hook libraries
 │   │   ├── notifications/    # Multi-channel notification system
 │   │   ├── scout-block/      # Broad search prevention
 │   │   └── tests/            # Hook test suites
-│   ├── skills/               # 258 skill definitions
+│   ├── skills/               # 166 skill definitions
 │   │   ├── <skill>/          # Each skill directory contains:
 │   │   │   ├── SKILL.md      # Entry point (prompt + frontmatter)
 │   │   │   ├── scripts/      # Optional automation scripts
@@ -213,7 +213,7 @@ The entire framework is **project-agnostic**. All project-specific knowledge liv
 ```
 ┌─────────────────────────────────────┐
 │     Generic Framework (reusable)    │
-│ 65 Hook Files + 258 Skills + 37 Flows │
+│ 66 Hook Files + 160 Skills + 21 Flows │
 └──────────────┬──────────────────────┘
                │
         ┌──────┴──────┐
@@ -232,17 +232,17 @@ The entire framework is **project-agnostic**. All project-specific knowledge liv
 
 Hooks fire on 9 Claude Code events:
 
-| Event              | When                      | Example Hook                                                    |
-| ------------------ | ------------------------- | --------------------------------------------------------------- |
-| `SessionStart`     | Claude Code starts        | `session-init.cjs` — load config, inject context                |
-| `SessionEnd`       | Claude Code exits         | `session-end.cjs` — persist final state                         |
-| `UserPromptSubmit` | Before each user message  | `prompt-context-assembler.cjs` — inject rules                   |
-| `PreToolUse`       | Before tool execution     | `privacy-block.cjs` — block secrets access                      |
-| `PostToolUse`      | After tool execution      | `tool-output-swap.cjs` — compress large outputs                 |
-| `PreCompact`       | Before context compaction | `write-compact-marker.cjs` — save state                         |
-| `SubagentStart`    | Subagent init             | `subagent-init-*.cjs` (8 hooks) — inject agent context (paged)  |
-| `Notification`     | Desktop notify event      | `notify-waiting.js` — send system notification                  |
-| `Stop`             | Response complete         | `notify-waiting.js` — desktop notification                      |
+| Event              | When                      | Example Hook                                                   |
+| ------------------ | ------------------------- | -------------------------------------------------------------- |
+| `SessionStart`     | Claude Code starts        | `session-init.cjs` — load config, inject context               |
+| `SessionEnd`       | Claude Code exits         | `session-end.cjs` — persist final state                        |
+| `UserPromptSubmit` | Before each user message  | `prompt-context-assembler.cjs` — inject rules                  |
+| `PreToolUse`       | Before tool execution     | `privacy-block.cjs` — block secrets access                     |
+| `PostToolUse`      | After tool execution      | `tool-output-swap.cjs` — compress large outputs                |
+| `PreCompact`       | Before context compaction | `write-compact-marker.cjs` — save state                        |
+| `SubagentStart`    | Subagent init             | `subagent-init-*.cjs` (8 hooks) — inject agent context (paged) |
+| `Notification`     | Desktop notify event      | `notify-waiting.js` — send system notification                 |
+| `Stop`             | Response complete         | `notify-waiting.js` — desktop notification                     |
 
 ### Workflow Detection
 
@@ -259,15 +259,15 @@ Always asks for confirmation before activating. Prefix with `quick:` to skip con
 
 Seven principles that make this framework work reliably across any project:
 
-| Principle                         | What it means                                                                                                                              |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Stateless-per-turn invariants** | Rules are re-injected at every prompt turn — never trust context retention over long sessions                                              |
+| Principle                         | What it means                                                                                                                                                 |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Stateless-per-turn invariants** | Rules are re-injected at every prompt turn — never trust context retention over long sessions                                                                 |
 | **Defense in depth**              | Quality gates exist across hooks (programmatic), skills (protocol), workflows (sequence), and agents (specialized review). Bypassing one is caught by another |
-| **Self-contained skill units**    | Each skill is a complete prompt unit via `SYNC` tags — protocols are inlined, not indirectly referenced. Skills work standalone            |
-| **Project-agnostic generality**   | One `project-config.json` drives all context injection. The same hooks, skills, and workflows adapt to any tech stack                      |
-| **Full lifecycle coverage**       | idea → research → TDD spec → plan → implement → review → test → E2E → docs. No stage left to chance                                        |
-| **Structural intelligence**       | The code graph makes the AI reason about systems as systems — implicit relationships (events, API contracts, bus messages) are first-class |
-| **Evidence-based AI**             | Every recommendation requires `file:line` citations. The confidence framework (>80% act, <60% don't) quantifies certainty                  |
+| **Self-contained skill units**    | Each skill is a complete prompt unit via `SYNC` tags — protocols are inlined, not indirectly referenced. Skills work standalone                               |
+| **Project-agnostic generality**   | One `project-config.json` drives all context injection. The same hooks, skills, and workflows adapt to any tech stack                                         |
+| **Full lifecycle coverage**       | idea → research → TDD spec → plan → implement → review → test → E2E → docs. No stage left to chance                                                           |
+| **Structural intelligence**       | The code graph makes the AI reason about systems as systems — implicit relationships (events, API contracts, bus messages) are first-class                    |
+| **Evidence-based AI**             | Every recommendation requires `file:line` citations. The confidence framework (>80% act, <60% don't) quantifies certainty                                     |
 
 ## What's Project-Agnostic vs Project-Specific
 
@@ -287,10 +287,7 @@ Most framework features work with Node.js and Python 3. Some skills require addi
 
 | Skill              | Dependency          | Install                           |
 | ------------------ | ------------------- | --------------------------------- |
-| `ai-multimodal`    | Python + Gemini API | `pip install google-genai`        |
-| `media-processing` | FFmpeg, ImageMagick | `brew install ffmpeg imagemagick` |
 | `devops`           | Docker, Wrangler    | `npm install -g wrangler`         |
-| `chrome-devtools`  | Puppeteer           | `npm install puppeteer`           |
 
 See [INSTALLATION.md](.claude/skills/INSTALLATION.md) for full dependency list.
 
@@ -321,15 +318,15 @@ npm run codex:verify:all
 
 ## Further Reading
 
-| Document                                                              | Description                             |
-| --------------------------------------------------------------------- | --------------------------------------- |
+| Document                                                              | Description                                 |
+| --------------------------------------------------------------------- | ------------------------------------------- |
 | [Architecture Guide](.claude/docs/claude-ai-agent-framework-guide.md) | Deep dive into architecture and portability |
-| [Quick Start](.claude/docs/quick-start.md)                            | 5-minute getting started guide          |
-| [Universal Setup Guide](.claude/docs/universal-setup-guide.md)        | Step-by-step adoption for any project   |
-| [Hook System](.claude/docs/hooks/README.md)                           | Hook architecture and extending         |
-| [Skills Guide](.claude/docs/skills/README.md)                         | Skill system overview                   |
-| [Configuration](.claude/docs/configuration/README.md)                 | Settings and customization              |
-| [Troubleshooting](.claude/docs/troubleshooting.md)                    | Common issues and fixes                 |
+| [Quick Start](.claude/docs/quick-start.md)                            | 5-minute getting started guide              |
+| [Universal Setup Guide](.claude/docs/universal-setup-guide.md)        | Step-by-step adoption for any project       |
+| [Hook System](.claude/docs/hooks/README.md)                           | Hook architecture and extending             |
+| [Skills Guide](.claude/docs/skills/README.md)                         | Skill system overview                       |
+| [Configuration](.claude/docs/configuration/README.md)                 | Settings and customization                  |
+| [Troubleshooting](.claude/docs/troubleshooting.md)                    | Common issues and fixes                     |
 
 ## License
 

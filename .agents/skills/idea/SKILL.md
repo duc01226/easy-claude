@@ -196,7 +196,7 @@ Document under `## Validation Summary`. Update artifact based on answers.
 a direct user question after capture:
 
 1. `$refine` — Refine into PBI (Recommended)
-2. `$spec-tests` — Jump straight to test spec
+2. `$spec [mode=tests]` — Jump straight to test spec
 3. `$plan` — Start implementation planning
 
 Output: "Idea captured! To refine into a PBI, run: `$refine {filename}`"
@@ -333,7 +333,7 @@ $idea "Add goal progress tracking notification"
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 >
-> **Deep-dive:** see `$sequential-thinking` skill (`.claude/skills/sequential-thinking/SKILL.md`) for worked examples (api-design, debug, architecture), advanced techniques (spiral refinement, hypothesis testing, convergence), and meta-strategies (uncertainty handling, revision cascades).
+> **Deep-dive:** see `$sequential-thinking` skill (`.claude/skills/sequential-thinking/SKILL.md`) for worked examples (API design, debugging, architecture), advanced techniques (spiral refinement, hypothesis testing, convergence), and meta-strategies (uncertainty handling, revision cascades).
 
 <!-- /SYNC:sequential-thinking-protocol -->
 

@@ -1,7 +1,7 @@
 ---
 name: tech-stack-research
 version: 1.0.0
-description: '[Architecture] Use when you need research, analyze, and compare tech stack options as a solution architect.'
+description: '[Architecture] Use when you need to research, analyze, and compare tech stack options as a solution architect.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->

@@ -1,6 +1,6 @@
 ---
 name: scan
-description: '[Documentation] Use when scanning the codebase to (re)generate ONE project-reference doc. Parameterized by `--target=<key>`: project-structure | backend-patterns | frontend-patterns | scss-styling | design-system | code-review-rules | domain-entities | feature-spec | docs-index | e2e-tests | integration-tests. Shared 4-phase scan engine; per-target detail lives in references/targets.md.'
+description: '[Documentation] Use when scanning the codebase to (re)generate ONE project-reference doc. Parameterized by `--target=<key>`: project-structure | backend-patterns | frontend-patterns | scss-styling | design-system | code-review-rules | domain-entities | feature-spec | docs-index | e2e-tests | integration-tests | seed-test-data | ui-system. Shared 4-phase scan engine; per-target detail lives in references/targets.md. `ui-system` is an orchestrator meta-target (`kind: orchestrator`) that runs the 3 UI child scans in parallel instead of the 4-phase engine.'
 ---
 
 > Codex compatibility note:
@@ -81,8 +81,9 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
    - **Special slivers** — target-unique BLOCKING gates, Authoring branches, sentinel removals, whitelist scopes
    - **Anti-Rationalization rows** — target-specific evasions to refuse
    - **prompt-enhance** — the final `$prompt-enhance <doc>` step
+4. **Orchestrator branch (BLOCKING check):** if the loaded entry is marked **`kind: orchestrator`** (e.g. `ui-system`), it does NOT run the 4-phase doc engine. SKIP Phases 0–4 below and instead follow the entry's **Orchestration Procedure** (pre-flight gate → launch the child `--target=` scans in parallel → verify each child doc has real content → summarize). Standard (single-doc scanner) targets ignore this step and continue with the shared engine below.
 
-> Everything below is the SHARED engine. Wherever it says "the target entry," read the loaded manifest entry — do not assume values from another target.
+> Everything below is the SHARED engine (standard single-doc scanner targets). Wherever it says "the target entry," read the loaded manifest entry — do not assume values from another target. **Orchestrator-kind targets do not use this engine** — they run their entry's Orchestration Procedure instead.
 
 ## Phase 0: Classify & Assess
 

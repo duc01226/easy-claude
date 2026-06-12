@@ -136,4 +136,4 @@ template_version: '1.0'
 
 ---
 
-_To generate detailed test cases, run: `/spec-tests {this-file}`_
+_To generate detailed test cases, run: `/spec [mode=tests] {this-file}`_

@@ -1,0 +1,231 @@
+{
+  "projectInstructions": {
+    "goldenRules": [
+      "Hooks use CommonJS (require/module.exports)",
+      "Hook files read stdin JSON and write to stdout/stderr",
+      "Shared utilities go in .claude/hooks/lib/",
+      "Test hooks via node .claude/hooks/tests/test-all-hooks.cjs",
+      "Each skill is a directory with SKILL.md as entry point",
+      "Skills may have scripts/, references/, and tests/ subdirectories",
+      "Follow naming conventions in .claude/docs/skill-naming-conventions.md",
+      "Agent definitions are markdown files in .claude/agents/",
+      "Follow patterns in .claude/docs/agents/agent-patterns.md"
+    ],
+    "decisionQuickRef": [
+      {
+        "task": "New API endpoint",
+        "pattern": "Controller + CQRS Command"
+      },
+      {
+        "task": "Business logic",
+        "pattern": "Command Handler or lowest responsible layer"
+      },
+      {
+        "task": "Hook change",
+        "pattern": "CommonJS hook + hook-runner conventions + hook tests"
+      },
+      {
+        "task": "Skill change",
+        "pattern": "Update source .claude/skills, regenerate mirrors, verify divergence"
+      },
+      {
+        "task": "Generated mirror change",
+        "pattern": "Edit canonical source, never hand-edit generated mirror files"
+      }
+    ],
+    "keyFileLocations": [
+      {
+        "path": ".claude/hooks/",
+        "description": "Runtime hooks for context injection, enforcement, and session management"
+      },
+      {
+        "path": ".claude/hooks/lib/",
+        "description": "Shared hook utilities consumed by hooks"
+      },
+      {
+        "path": ".claude/skills/",
+        "description": "Canonical skill definitions"
+      },
+      {
+        "path": ".agents/skills/",
+        "description": "Generated Codex skill mirror"
+      },
+      {
+        "path": ".claude/agents/",
+        "description": "Canonical Claude subagent definitions"
+      },
+      {
+        "path": ".codex/agents/",
+        "description": "Generated Codex agent mirror"
+      },
+      {
+        "path": ".claude/workflows.json",
+        "description": "Workflow catalog source of truth"
+      },
+      {
+        "path": ".github/instructions/",
+        "description": "Generated GitHub Copilot instruction files"
+      },
+      {
+        "path": "docs/project-reference/",
+        "description": "Project-specific reference docs"
+      },
+      {
+        "path": "plans/",
+        "description": "Plans, reports, and task artifacts"
+      }
+    ],
+    "devCommands": {
+      "tests": [
+        "node .claude/hooks/tests/test-all-hooks.cjs",
+        "node .claude/hooks/tests/run-all-tests.cjs",
+        "node --test .claude/scripts/codex/tests/*.test.mjs"
+      ],
+      "sync": [
+        "node .claude/scripts/sync-copilot-workflows.cjs",
+        "npm run codex:sync"
+      ],
+      "verify": [
+        "npm run copilot:verify:divergence",
+        "npm run codex:verify:sync-divergence",
+        "npm run codex:verify:sdd"
+      ]
+    }
+  },
+  "instructionFileConfig": {
+    "backend-csharp": {
+      "filename": "backend-csharp.instructions.md",
+      "applyTo": "**/*.cs"
+    },
+    "frontend": {
+      "filename": "frontend.instructions.md",
+      "applyTo": "**/*.ts,**/*.tsx,**/*.html"
+    },
+    "styling-scss": {
+      "filename": "styling-scss.instructions.md",
+      "applyTo": "**/*.scss,**/*.css"
+    },
+    "testing": {
+      "filename": "testing.instructions.md",
+      "applyTo": "**/*test*/**,**/*.test.*,**/*.spec.*"
+    },
+    "project-reference": {
+      "filename": "project-reference.instructions.md",
+      "applyTo": "**/*"
+    }
+  },
+  "registry": [
+    {
+      "file": "project-structure-reference.md",
+      "title": "Project Structure Reference",
+      "summary": "Project directory structure, module boundaries, inventory counts, framework entry points, and scan targets.",
+      "whenToRead": "changing framework layout, module ownership, inventory counts, generated mirrors, or onboarding docs",
+      "group": "project-reference"
+    },
+    {
+      "file": "backend-patterns-reference.md",
+      "title": "Backend Patterns Reference",
+      "summary": "Hook architecture, hook composition, shared hook libraries, state management, error handling, security, and hook testing patterns.",
+      "whenToRead": "changing hook code, hook libraries, hook state, hook error handling, security checks, or hook tests",
+      "group": "backend-csharp"
+    },
+    {
+      "file": "frontend-patterns-reference.md",
+      "title": "Frontend Patterns Reference",
+      "summary": "Frontend pattern status for this framework repository and guidance for target projects that define product UI conventions.",
+      "whenToRead": "working on frontend, component, store, or API-service conventions for a target project",
+      "group": "frontend"
+    },
+    {
+      "file": "integration-test-reference.md",
+      "title": "Integration Test Reference",
+      "summary": "Hook test architecture, suite organization, standalone test files, and local commands for running integration-style tests.",
+      "whenToRead": "adding, reviewing, or verifying hook integration tests, test suites, fixtures, or coverage gates",
+      "group": "testing"
+    },
+    {
+      "file": "feature-docs-reference.md",
+      "title": "Feature Docs Reference",
+      "summary": "Legacy feature documentation structure, category organization, and conventions for adding feature docs.",
+      "whenToRead": "checking feature documentation availability, legacy feature-doc routing, or feature doc organization",
+      "group": "project-reference"
+    },
+    {
+      "file": "feature-spec-reference.md",
+      "title": "Feature Documentation Reference",
+      "summary": "Feature Spec directory conventions, 8-section structure, test-case ID format, evidence rules, and spec-to-code registries.",
+      "whenToRead": "creating or updating Feature Specs, test cases, behavior docs, evidence mappings, or thin spec indexes",
+      "group": "project-reference"
+    },
+    {
+      "file": "spec-system-reference.md",
+      "title": "Spec System Reference",
+      "summary": "Local spec root, canonical artifact ownership, test-case registry, derived artifact rules, and companion docs.",
+      "whenToRead": "changing spec paths, canonical spec ownership, generated spec aids, ERDs, indexes, or spec routing",
+      "group": "project-reference"
+    },
+    {
+      "file": "spec-principles.md",
+      "title": "Project Spec Principles",
+      "summary": "Local spec authority, source routing, prose rules, evidence format, test mapping, generated artifact rules, and verification commands.",
+      "whenToRead": "writing spec prose, syncing specs with tests, reviewing SDD compliance, or refreshing generated prompt surfaces",
+      "group": "project-reference"
+    },
+    {
+      "file": "workflow-spec-test-code-cycle-reference.md",
+      "title": "Workflow Spec Test Code Cycle Reference",
+      "summary": "Local workflow sequence, artifact owners, and closure gates for keeping specs, tests, code, docs, and generated mirrors aligned.",
+      "whenToRead": "coordinating behavior changes across specs, tests, implementation, docs, and generated mirrors",
+      "group": "project-reference"
+    },
+    {
+      "file": "code-review-rules.md",
+      "title": "Code Review Rules",
+      "summary": "Review rules for hooks, skills, agents, tests, naming, evidence, anti-patterns, review checklists, and blocking red flags.",
+      "whenToRead": "reviewing code, hooks, skills, agents, documentation, tests, generated artifacts, or change quality",
+      "group": "project-reference"
+    },
+    {
+      "file": "scss-styling-guide.md",
+      "title": "SCSS Styling Guide",
+      "summary": "Styling status for this framework repository and guidance for target projects that define SCSS or theming conventions.",
+      "whenToRead": "working on CSS, SCSS, styling conventions, theming, or target-project design-system setup",
+      "group": "styling-scss"
+    },
+    {
+      "file": "domain-entities-reference.md",
+      "title": "Domain Entities Reference",
+      "summary": "Framework domain concepts and relationships for hooks, skills, agents, workflows, context groups, and modules.",
+      "whenToRead": "changing framework entity concepts, catalogs, routing rules, workflow relationships, or domain documentation",
+      "group": "project-reference"
+    },
+    {
+      "file": "e2e-test-reference.md",
+      "title": "E2E Test Reference",
+      "summary": "E2E test status for this framework repository plus target-project guidance for Playwright and page-object workflows.",
+      "whenToRead": "adding or reviewing E2E guidance, Playwright setup, page objects, or target-project browser tests",
+      "group": "testing"
+    },
+    {
+      "file": "docs-index-reference.md",
+      "title": "Documentation Index Reference",
+      "summary": "Documentation inventory, documentation graph, key doc relationships, and keyword-to-doc lookup routing.",
+      "whenToRead": "locating project documentation, updating doc inventories, routing to reference docs, or checking doc counts",
+      "group": "project-reference"
+    },
+    {
+      "file": "lessons.md",
+      "title": "Lessons",
+      "summary": "Project lessons learned and recurring failure-mode guardrails from prior framework maintenance work.",
+      "whenToRead": "starting non-trivial work, debugging recurring issues, reviewing generated mirrors, or extracting new lessons",
+      "group": "project-reference"
+    },
+    {
+      "file": "design-system/README.md",
+      "title": "Design System",
+      "summary": "Design-system status for this framework repository and guidance that target projects should define their own UI inventory.",
+      "whenToRead": "working on design-system guidance, target-project tokens, component inventory, or UI convention setup",
+      "group": "frontend"
+    }
+  ]
+}

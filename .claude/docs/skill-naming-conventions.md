@@ -77,7 +77,7 @@ Reference guide for naming Claude Code skills consistently in YourProject.
 
 1. Edit `.claude/skills/shared/sync-inline-versions.md` (canonical source)
 2. Run `grep SYNC:protocol-name` to find all consuming skills
-3. Update all copies (or use `/sync-protocols` skill to automate)
+3. Update all copies (or use `/sync-skills-shared-protocols` skill to automate)
 
 ### `references/` Subdirectory
 
@@ -99,11 +99,11 @@ Reference guide for naming Claude Code skills consistently in YourProject.
 **Example:**
 
 ```
-.claude/skills/databases/
-|-- SKILL.md              # Core patterns (~100 lines)
+.claude/skills/media processing tooling/
+|-- SKILL.md                 # Core patterns (~100 lines)
 +-- references/
-    |-- mongodb-guide.md   # MongoDB deep-dive
-    +-- sql-patterns.md    # SQL optimization guide
+    |-- ffmpeg-filters.md    # FFmpeg filter deep-dive
+    +-- imagemagick-batch.md # ImageMagick batch operations
 ```
 
 ## Anti-Patterns

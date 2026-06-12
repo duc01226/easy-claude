@@ -40,9 +40,9 @@ Create a CRO (Conversion Rate Optimization) plan for the given content or featur
 
 ## Multimodal intake
 
-- If the user provides screenshots or videos, use the `ai-multimodal` skill to describe the issue in as much detail as possible so the CRO analyst can fully understand it from the description.
+- If the user provides screenshots or videos, use the `visual analysis tooling` skill to describe the issue in as much detail as possible so the CRO analyst can fully understand it from the description.
 - If the user provides a URL, use the `web_fetch` tool to fetch the content and analyze current issues.
-- You can use screenshot-capture tools with the `ai-multimodal` skill to capture the exact parent container and analyze issues with the appropriate Gemini analysis skills (`ai-multimodal`, `gemini-video-understanding`, or `gemini-document-processing`).
+- You can use screenshot-capture tools with the `visual analysis tooling` skill to capture the exact parent container and analyze issues with the appropriate Gemini analysis skills (`visual analysis tooling`, `gemini-video-understanding`, or `gemini-document-processing`).
 
 ## Plan frontmatter overrides (vs the standard `plan` defaults)
 

@@ -67,7 +67,7 @@ Optional scans (run if applicable):
 /scan --target=domain-entities      # Domain entity catalog, relationships
 /scan --target=integration-tests    # Integration test patterns
 /scan --target=e2e-tests            # E2E test patterns, page objects
-/scan-seed-test-data                # Seeder/dev-data patterns, idempotency, DI scope
+/scan --target=seed-test-data       # Seeder/dev-data patterns, idempotency, DI scope
 /scan --target=scss-styling         # SCSS/CSS methodology
 /scan --target=feature-spec         # Business feature documentation index
 ```

@@ -46,7 +46,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Workflow:**
 
-1. **Find Checkpoint** — Locate latest `memory-checkpoint-*.md` in reports directory
+1. **Find Checkpoint** — Locate latest `checkpoint-*.md` in reports directory (legacy `memory-checkpoint-*.md` are also recognized)
 2. **Read Metadata** — Extract JSON block with session ID, active plan, current step, pending todos
 3. **Restore Todos** — Immediately call task tracking with pending items from checkpoint
 4. **Resume Workflow** — Continue from the interrupted step using restored context
@@ -79,13 +79,13 @@ Use this command when:
 Look for checkpoint files in the reports directory:
 
 ```bash
-ls -la plans/reports/memory-checkpoint-*.md | tail -5
+ls -la plans/reports/checkpoint-*.md | tail -5
 ```
 
 Or search for all recent checkpoints:
 
 ```bash
-find plans -name "memory-checkpoint-*.md" -mmin -60 | head -5
+find plans -name "checkpoint-*.md" -mmin -60 | head -5
 ```
 
 ### Step 2: Read Checkpoint File
@@ -93,7 +93,7 @@ find plans -name "memory-checkpoint-*.md" -mmin -60 | head -5
 Read the most recent checkpoint to understand the saved state:
 
 ```
-Read the checkpoint file at: plans/reports/memory-checkpoint-YYMMDD-HHMMSS.md
+Read the checkpoint file at: plans/reports/checkpoint-YYYYMMDD-HHMMSS-slug.md
 ```
 
 ### Step 3: Extract Recovery Metadata
@@ -158,8 +158,10 @@ Resume from the `currentStep` identified in the metadata. Execute the remaining 
 
 Checkpoints are saved to different locations based on context:
 
-1. **Active plan exists:** `{plan-path}/reports/memory-checkpoint-*.md`
-2. **No active plan:** `plans/reports/memory-checkpoint-*.md`
+1. **Active plan exists:** `{plan-path}/reports/checkpoint-*.md`
+2. **No active plan:** `plans/reports/checkpoint-*.md`
+
+> Legacy `memory-checkpoint-*.md` files (written before the grammar was unified) are still matched by the resume/recover globs — back-read is preserved, nothing on disk is orphaned.
 
 ## Tips
 
@@ -183,7 +185,7 @@ User: $recover
 Claude: Let me find and restore your workflow context.
 
 1. Finding latest checkpoint...
-   Found: plans/reports/memory-checkpoint-260110-143025.md
+   Found: plans/reports/checkpoint-20260110-143025-new-feature.md
 
 2. Reading checkpoint metadata...
    - Workflow: feature

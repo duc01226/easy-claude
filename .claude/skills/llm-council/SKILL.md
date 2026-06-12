@@ -21,7 +21,7 @@ description: '[Decision Support] Use when pressure-testing irreversible, high-st
 - MUST ATTENTION graph-trace code/architecture questions when `.code-graph/graph.db` exists.
 - NEVER let earlier advisor responses bleed into later advisors; parallel spawn required.
 - ALWAYS mark verdict degraded if fewer than 5 usable advisor responses return.
-- ALWAYS sync edits to `.agents/skills/llm-council/SKILL.md`.
+- ALWAYS regenerate mirrors with `/sync-codex` after editing this skill — NEVER hand-edit `.agents/` or `.codex/` (they are generated artifacts).
 
 ---
 
@@ -271,7 +271,7 @@ Host prompt copy MUST cite cheaper rungs: `/why-review`, `/plan-validate`, `/llm
 **IMPORTANT MUST ATTENTION** require evidence for code/architecture claims: `file:line`, graph trace, or explicit "insufficient evidence."
 **IMPORTANT MUST ATTENTION** mark verdict degraded if fewer than 5 usable advisor responses return.
 **IMPORTANT MUST ATTENTION** write paired HTML + Markdown artifacts under `plans/reports/` and open HTML.
-**IMPORTANT MUST ATTENTION** sync every canonical edit to `.agents/skills/llm-council/SKILL.md`.
+**IMPORTANT MUST ATTENTION** after editing this skill, run `/sync-codex` to regenerate mirrors — NEVER hand-edit `.agents/` or `.codex/` (generated).
 
 **Anti-Rationalization:**
 

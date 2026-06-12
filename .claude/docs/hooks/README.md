@@ -78,7 +78,7 @@ SessionStart hooks → UserPromptSubmit hooks → PreToolUse hooks → [Tool run
 | `dev-rules-injector.cjs`            | `Edit\|Write\|MultiEdit`, `Skill`                                                 | Inject development-rules.md before edits and review/coding skills                                                                                                                                                                         |
 | `knowledge-context.cjs`             | `Edit\|Write\|MultiEdit`                                                          | Inject knowledge work guidelines for docs/knowledge/ files                                                                                                                                                                                |
 | `ba-refinement-context.cjs`         | `Write\|Edit`                                                                     | Inject BA team refinement context when editing PBI artifacts                                                                                                                                                                              |
-| `feature-spec-context.cjs`          | `Write\|Edit\|MultiEdit`                                                          | Inject feature-spec reference context when editing docs/specs/ Feature Specs (8-section)                                                                                                                                                  |
+| `spec-context.cjs`                  | `Write\|Edit\|MultiEdit`                                                          | Inject Feature Spec reference context when editing docs/specs/ Feature Specs (8-section)                                                                                                                                                  |
 | `artifact-path-resolver.cjs`        | `Write`                                                                           | Resolve correct artifact output paths (plans/, reports/)                                                                                                                                                                                  |
 | `doc-sync-gate.cjs`                 | `Bash` + `Write\|Edit\|MultiEdit`                                                 | Doc⇄Code sync gate — WARN-only (every path exits 0, never blocks): warns when a `git commit` stages behavioral code in an enforced area without touching its Feature Spec, and per-edit when enforced-area code drifts past `last_synced` |
 | `agent-files-skill-gate.cjs`        | `Skill`                                                                           | Project-context router: if a non-meta skill runs while CLAUDE.md / AGENTS.md is missing, guide the model to the generator skill (`/claude-md-init`, `/sync-codex`)                                                                        |
@@ -332,11 +332,11 @@ Hooks are registered in `settings.json` under `hooks.{EventName}[].hooks[]`. Eac
 
 ## Testing
 
-Current primary hook test status: `test-all-hooks.cjs` passes with 372 tests, 0 failures (live run 2026-06-11). The suite runner also exposes 16 discoverable suites, including `count-drift`.
+Current primary hook test status: `test-all-hooks.cjs` passes with 385 tests, 0 failures (live run 2026-06-12). The suite runner also exposes 16 discoverable suites, including `count-drift`.
 
 | Test Surface          | Count | File/Location                            |
 | --------------------- | ----- | ---------------------------------------- |
-| Primary hook runner   | 372   | `tests/test-all-hooks.cjs`               |
+| Primary hook runner   | 385   | `tests/test-all-hooks.cjs`               |
 | Discoverable suites   | 16    | `tests/suites/*.test.cjs`                |
 | Standalone test files | 13    | `tests/test-*.cjs/.js` excluding runner  |
 | Scout-block tests     | 7     | `scout-block/tests/test-*.js`            |
@@ -350,6 +350,7 @@ Run a suite subset: `node .claude/hooks/tests/run-all-tests.cjs --filter=count-d
 
 ## Related Documentation
 
+- [architecture.md](./architecture.md) — Hook runtime contract and layer boundaries
 - [extending-hooks.md](./extending-hooks.md) — Creating custom hooks
 - [../configuration/README.md](../configuration/README.md) — Configuration hierarchy and hooks config
 - [../skills/README.md](../skills/README.md) — Skills catalog

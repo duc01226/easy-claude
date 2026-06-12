@@ -1,6 +1,6 @@
 ---
 name: claude-code
-description: '[Utilities] Use when you need claude Code CLI setup, configuration, troubleshooting, and feature guidance.'
+description: '[Utilities] Use when you need Claude Code CLI setup, configuration, troubleshooting, and feature guidance.'
 ---
 
 > Codex compatibility note:
@@ -51,7 +51,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Key Rules:**
 
-- Not for writing application code -- use feature/fix/refactor skills instead
+- Not for writing application code -- use the feature workflow, fix, or refactoring skills instead
 - Obtain explicit user approval before modifying settings; never change them unilaterally
 - For hooks: check event type, script executability, and JSON output format
 
@@ -74,10 +74,9 @@ Help users install, configure, troubleshoot, and extend Claude Code CLI -- Anthr
 
 ## When NOT to Use
 
-- Writing application code -- use `feature`, `fix`, or `refactoring` skills
-- Creating MCP servers from scratch -- use `mcp-builder` skill
-- Managing existing MCP server connections -- use `mcp-management` skill
-- AI prompt engineering -- use `ai-artist` skill
+- Writing application code -- use the `feature` workflow, `fix`, or `refactoring` skills
+- Creating or managing MCP servers -- use MCP documentation and project MCP config directly
+- AI prompt engineering -- use general prompt-engineering guidance directly
 
 ## Prerequisites
 
@@ -238,8 +237,6 @@ Load these for detailed guidance on specific topics:
 
 ## Related Skills
 
-- `mcp-builder` -- for creating new MCP servers from scratch
-- `mcp-management` -- for managing existing MCP server connections
 - `skill-creator` -- for creating new agent skills with best practices
 
 ---

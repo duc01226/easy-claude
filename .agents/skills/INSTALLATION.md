@@ -87,7 +87,7 @@ python3 -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 # Install all skill dependencies
-pip install -r .claude/skills/ai-multimodal/scripts/requirements.txt
+pip install -r .claude/skills/visual analysis tooling/scripts/requirements.txt
 
 # Install test dependencies for development
 pip install pytest pytest-cov pytest-mock
@@ -98,7 +98,7 @@ pip install pytest pytest-cov pytest-mock
 Navigate to specific skill and install:
 
 ```bash
-cd .claude/skills/ai-multimodal/scripts
+cd .claude/skills/visual analysis tooling/scripts
 pip install -r requirements.txt
 ```
 
@@ -106,9 +106,9 @@ pip install -r requirements.txt
 
 ### Python Package Dependencies
 
-Most skills use only Python standard library. Only **ai-multimodal** requires external packages:
+Most skills use only Python standard library. Only **visual analysis tooling** requires external packages:
 
-**ai-multimodal** (`.claude/skills/ai-multimodal/scripts/requirements.txt`):
+**visual analysis tooling** (`.claude/skills/visual analysis tooling/scripts/requirements.txt`):
 - `google-genai>=0.1.0` - Google Gemini API
 - `pypdf>=4.0.0` - PDF processing
 - `python-docx>=1.0.0` - DOCX conversion
@@ -121,7 +121,7 @@ Most skills use only Python standard library. Only **ai-multimodal** requires ex
 
 Several skills require external CLI tools:
 
-#### media-processing
+#### media processing tooling
 - **FFmpeg**: Video/audio processing
   - Ubuntu/Debian: `sudo apt-get install ffmpeg`
   - macOS: `brew install ffmpeg`
@@ -161,8 +161,8 @@ Several skills require external CLI tools:
 python3 -m venv .venv
 source .venv/bin/activate
 
-# Python packages (ai-multimodal only)
-cd .claude/skills/ai-multimodal/scripts
+# Python packages (visual analysis tooling only)
+cd .claude/skills/visual analysis tooling/scripts
 pip install -r requirements.txt
 
 # System tools
@@ -182,8 +182,8 @@ npm install -g pnpm wrangler repomix rmbg-cli @shopify/cli
 python3 -m venv .venv
 source .venv/bin/activate
 
-# Python packages (ai-multimodal only)
-cd .claude/skills/ai-multimodal/scripts
+# Python packages (visual analysis tooling only)
+cd .claude/skills/visual analysis tooling/scripts
 pip install -r requirements.txt
 
 # System tools via Homebrew
@@ -201,8 +201,8 @@ npm install -g pnpm wrangler repomix rmbg-cli @shopify/cli
 python -m venv .venv
 .venv\Scripts\activate
 
-# Python packages (ai-multimodal only)
-cd .claude\skills\ai-multimodal\scripts
+# Python packages (visual analysis tooling only)
+cd .claude\skills\visual analysis tooling\scripts
 pip install -r requirements.txt
 
 # System tools via Chocolatey
@@ -284,12 +284,12 @@ chmod +x .claude/skills/*/scripts/*.py
 
 If you only want to use specific skills:
 
-**For ai-multimodal only:**
+**For visual analysis tooling only:**
 ```bash
 pip install google-genai pypdf python-docx markdown Pillow python-dotenv
 ```
 
-**For media-processing only:**
+**For media processing tooling only:**
 ```bash
 # macOS
 brew install ffmpeg imagemagick
@@ -327,12 +327,12 @@ pytest .claude/skills/*/scripts/tests/ --cov=.claude/skills --cov-report=html
 
 ## Skill-Specific Notes
 
-### ai-multimodal
+### visual analysis tooling
 - Requires `GEMINI_API_KEY` in environment
 - Get API key: https://aistudio.google.com/app/apikey
 - Windows users: `docx2pdf` requires Microsoft Word installed
 
-### media-processing
+### media processing tooling
 - FFmpeg must be in PATH
 - ImageMagick must be in PATH
 - RMBG CLI must be installed globally

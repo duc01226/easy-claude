@@ -48,15 +48,15 @@ export const projectSymbolDenylist = [
     'ExecuteInjectScopedAsync',
     'ExecuteUowTask',
     // CQRS entity-event / bus-producer base classes — appear ONLY as review-architecture's marked
-    // examples today; denylisted as future-proofing so a NEW skill/hook can't introduce them as an
-    // unmarked assertion. review-architecture is allowlisted below for its documented examples.
+// examples today; denylisted as future-proofing so a NEW skill/hook can't introduce them as an
+// unmarked assertion. review-architecture is allowlisted below for its documented examples.
     'PlatformCqrsEntityEventApplicationHandler',
     'PlatformCqrsEventBusMessageProducer'
 ];
 
 // Per-file exemptions: skills that legitimately document THIS project's architecture as marked
 // examples (review-architecture frames these base classes as "e.g. this project" anchors;
-// scan-seed-test-data greps for them in .NET source). Keyed by repo-relative forward-slash path →
+// the seed-test-data scan target greps for them in .NET source). Keyed by repo-relative forward-slash path →
 // symbols allowed for that file only.
 export const projectSymbolAllowlist = {
     '.claude/skills/review-architecture/SKILL.md': [
@@ -70,7 +70,7 @@ export const projectSymbolAllowlist = {
         'PlatformCqrsEventBusMessageProducer'
     ],
     '.claude/skills/project-config/SKILL.md': ['IPlatformRootRepository'],
-    '.claude/skills/scan-seed-test-data/SKILL.md': ['ExecuteInjectScopedAsync', 'ExecuteUowTask'],
+    '.claude/skills/scan/references/targets.md': ['ExecuteInjectScopedAsync', 'ExecuteUowTask'],
     '.claude/skills/shared/affirmative-rewrite-rubric.md': ['PlatformVmStore']
 };
 

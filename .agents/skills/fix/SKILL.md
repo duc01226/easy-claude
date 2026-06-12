@@ -1,6 +1,6 @@
 ---
 name: fix
-description: '[Implementation] Use when you need to analyze and fix issues [INTELLIGENT ROUTING]. Flag: --target={ci|issue|logs|test|types|ui} scopes the fix; --target=types resolves TypeScript errors inline (folds former /fix-types).'
+description: '[Implementation] Use when you need to analyze and fix issues [INTELLIGENT ROUTING]. Flag: --target={ci|issue|logs|test|types|ui} scopes the fix; --target=types resolves TypeScript errors inline.'
 disable-model-invocation: false
 ---
 
@@ -65,7 +65,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - Debug Mindset: every claim needs `file:line` evidence
 - Use subagents for parallel investigation of multiple hypotheses
 - Always create a plan before implementing complex fixes
-- **Target flag** (see [Target Routing](#target-routing---target)): `--target=types` runs the inline TypeScript branch; `--target={ci|issue|logs|test|ui}` delegates to the matching `/fix-*` skill. No flag = full diagnose→fix spine below.
+- **Target flag** (see [Target Routing](#target-routing---target)): `--target={ci|issue|logs|test|types|ui}` selects a self-contained inline branch that scopes the fix to that domain. No flag = full diagnose→fix spine below.
 
 ## Default Mode Policy
 
@@ -104,18 +104,20 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Target Routing (`--target=`)
 
-`$fix` is an intelligent router. With no flag it runs the full diagnose→fix spine below. Pass `--target=` to scope the run:
+`$fix` is an intelligent router. With no flag it runs the full diagnose→fix spine below. Pass `--target=` to scope the run to a self-contained inline branch:
 
 | `--target` | Behavior                                                                  |
 | ---------- | ------------------------------------------------------------------------- |
 | `types`    | **Inline branch (below)** — TypeScript / type-error resolution.           |
-| `ci`       | Delegate to `$fix-ci` — CI / pipeline failure triage.                     |
-| `issue`    | Delegate to `$fix-issue` — tracked issue / ticket resolution.             |
-| `logs`     | Delegate to `$fix-logs` — log / stack-trace-driven debugging.             |
-| `test`     | Delegate to `$fix-test` — failing-test repair.                            |
-| `ui`       | Delegate to `$fix-ui` — UI / visual-defect fixes.                         |
+| `ci`       | **Inline branch (below)** — CI / pipeline failure triage.                 |
+| `issue`    | **Inline branch (below)** — tracked issue / ticket resolution.            |
+| `logs`     | **Inline branch (below)** — log / stack-trace-driven debugging.           |
+| `test`     | **Inline branch (below)** — failing-test repair.                          |
+| `ui`       | **Inline branch (below)** — UI / visual-defect fixes.                     |
 
 No `--target` (or an unrecognized value) → run the full Workflow spine below; infer the right specialization from `<issues>`.
+
+> **Formerly standalone skills.** `--target=ci|issue|logs|test|ui` were previously the separate skills `/fix-ci`, `/fix-issue`, `/fix-logs`, `/fix-test`, `/fix-ui`; they are now inline branches of `$fix` (folded — the standalone names no longer exist).
 
 ### `--target=types` — TypeScript / type-error branch
 
@@ -130,9 +132,141 @@ Run `tsc --noEmit` (or `nx build` / `bun run typecheck` / `npx tsc`) to gather a
 
 The Debug Mindset, Confidence & Evidence Gate, and all SYNC gates below apply to this branch unchanged.
 
+### `--target=ci` — CI / pipeline-failure branch
+
+**Goal:** Analyze CI/CD pipeline logs to identify and fix build/test failures in the configured CI provider/tooling.
+
+**Key Rules:**
+
+- **Infrastructure context:** read `docs/project-config.json` → `infrastructure.cicd.tool` to identify the CI provider/tooling (e.g. `azure-devops`, `github-actions`, `gitlab-ci`); target that provider's pipeline config files.
+- Focus on CI-specific issues (env vars, Docker, dependencies, build order).
+- Verify the fix does not break local development.
+
+**Workflow:**
+
+1. Use the `debugger` subagent to read the CI logs via the configured CI tool/API (from `docs/project-config.json`), analyze the final failing log/error **backward** to the root cause, and report back. Write findings to `.ai/workspace/analysis/{ci-issue}.analysis.md`; re-read before implementing.
+2. **🛑 Present root cause + proposed fix → a direct user question → wait for approval.**
+3. Implement the fix from the report.
+4. Use the `tester` subagent to verify; report back.
+5. If tests fail, repeat from step 2.
+6. Report a summary of changes; suggest next steps. Then run `$prove-fix`.
+
+**Notes:** Use the CLI/API for the configured CI provider. If it is GitHub Actions and `gh` is unavailable, instruct the user to install and authorize GitHub CLI first.
+
+The Debug Mindset, Confidence & Evidence Gate, and all SYNC gates below apply to this branch unchanged.
+
+### `--target=issue` — tracked-issue / ticket branch
+
+**Goal:** Investigate and fix bugs reported as tracked issues (e.g. GitHub issues) with full traceability.
+
+**Active-goal read (BEFORE root-cause work):** resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from the issue). Map the ticket's acceptance criteria to the saved success criteria; after the fix, append proof evidence and remaining gaps to the Iteration Log. Closure is blocked while any required criterion remains FAIL.
+
+**Key Rules:**
+
+- Link the fix back to the issue for traceability.
+- Verify the fix addresses the specific reproduction steps from the issue.
+
+**Workflow:**
+
+1. Activate the `debug-investigate` skill and follow its workflow. See `.claude/docs/AI-DEBUGGING-PROTOCOL.md` for comprehensive guidelines.
+2. Use external memory at `.ai/workspace/analysis/issue-[number].analysis.md` for structured analysis. **Re-read the ENTIRE analysis file before proposing any fix.**
+3. **🛑 Present root cause + proposed fix → a direct user question → wait for approval before implementing.**
+4. Implement, then run `$prove-fix`.
+
+> **Standalone Review Gate (non-workflow only):** if `$fix --target=issue` runs **outside a workflow**, add a `$review-changes` task tracking todo as the **last** task. Inside a workflow, skip — the sequence handles `$review-changes`.
+
+The Debug Mindset, Confidence & Evidence Gate, and all SYNC gates below apply to this branch unchanged.
+
+### `--target=logs` — log / stack-trace branch
+
+**Goal:** Analyze application logs to diagnose and fix runtime errors or unexpected behavior.
+
+**Key Rules:**
+
+- Focus on log patterns: stack traces, error codes, timing anomalies.
+- Cross-reference logs with source code to find the actual root cause.
+
+**Workflow:**
+
+1. Check whether `./logs.txt` exists. If missing, set up permanent log piping in the project's script config (`package.json`, `Makefile`, `pyproject.toml`, …): **Bash/Unix** append `2>&1 | tee logs.txt`; **PowerShell** append `*>&1 | Tee-Object logs.txt`. Run the command to generate logs.
+2. Use the `debugger` subagent to analyze `./logs.txt`: read with `Grep` `head_limit: 30` (last 30 lines; increase if needed — avoid loading the whole file). Write analysis to `.ai/workspace/analysis/{issue-name}.analysis.md`; re-read before fixing.
+3. Use the `scout` subagent to locate the exact source of the issue; report back.
+4. Use the `planner` subagent to create an implementation plan; report back.
+5. **🛑 Present root cause + fix plan → a direct user question → wait for approval.**
+6. Implement the fix.
+7. Use the `tester` subagent to verify; report back.
+8. Use the `code-reviewer` subagent to review the changes; report back.
+9. If tests fail, repeat from step 3.
+10. Report a summary; suggest next steps. Then run `$prove-fix`.
+
+The Debug Mindset, Confidence & Evidence Gate, and all SYNC gates below apply to this branch unchanged.
+
+### `--target=test` — failing-test branch
+
+**Goal:** Run test suites, analyze failures, and fix the underlying code or test issues.
+
+**Active-goal read (BEFORE fixing):** resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from the reported test failure). Map failing-test evidence (before) and passing-test evidence (after) to the saved success criteria in the Iteration Log — a passing suite that misses a saved required criterion does NOT close the loop.
+
+**Key Rules:**
+
+- Distinguish between code bugs and flawed test expectations.
+- Re-run tests after the fix to confirm all pass.
+- Read `docs/project-reference/integration-test-reference.md` before reviewing/writing integration tests; consult `docs/specs/` for expected-behavior context when diagnosing failures.
+
+**Workflow:**
+
+1. Use the `tester` subagent to compile the code and fix any syntax errors.
+2. Use the `tester` subagent to run the tests; report back. Write failure analysis to `.ai/workspace/analysis/{test-issue}.analysis.md`; re-read before fixing.
+3. If tests fail, use the `debugger` subagent to find the root cause; report back.
+4. Use the `planner` subagent to create an implementation plan; report back.
+5. **🛑 Present root cause + fix plan → a direct user question → wait for approval.**
+6. Implement the plan step by step.
+7. Use the `tester` subagent to verify; report back.
+8. Use the `code-reviewer` subagent to review the changes; report back.
+9. If tests fail, repeat from step 2.
+10. Report a summary; suggest next steps. Then run `$prove-fix`.
+
+The Debug Mindset, Confidence & Evidence Gate, and all SYNC gates below apply to this branch unchanged.
+
+### `--target=ui` — UI / visual-defect branch
+
+**Goal:** Diagnose and fix UI/UX issues — layout, styling, responsiveness, and visual bugs.
+
+**Key Rules:**
+
+- Always use BEM classes on template elements.
+- Check responsive breakpoints when fixing layout issues.
+- **Pre-read (design system):** load `designSystem.canonicalDoc` + `tokenFiles` from `docs/project-config.json` so fixes use real token names (`--brand-*`, `$brand-*`) and canonical component classes — not invented values.
+
+**Required skills (priority order):** `ui-ux-pro-max` (design-intelligence DB) → `web-design-guidelines` (principles) → `frontend-design` (implementation patterns).
+
+**Workflow:**
+
+**FIRST** — run `ui-ux-pro-max` searches to understand context and common issues:
+
+```bash
+python3 $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "<product-type>" --domain product
+python3 $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "<style-keywords>" --domain style
+python3 $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "accessibility" --domain ux
+python3 $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "z-index animation" --domain ux
+```
+
+If the user provides screenshots/videos, use the `visual analysis tooling` skill to describe the issue in detail so developers can predict the root causes.
+
+> **🛑 After identifying the UI root cause, present findings + proposed fix → a direct user question → wait for approval before any code change.**
+
+1. Use the `ui-ux-designer` subagent to implement the fix step by step (against the design guideline — `designSystem.canonicalDoc`).
+2. Capture screenshots (at the exact parent container, not the whole page) and analyze with the appropriate Gemini skill (`visual analysis tooling`, `video-analysis`, or `document-extraction`) so the result matches the design guideline and addresses all issues. Repeat until addressed.
+3. Use the browser automation tooling to verify the fix matches the design guideline.
+4. Use the `tester` subagent to compile and test; report back. Repeat until all tests pass.
+5. **If the user approves:** run the `project-manager` and `docs-manager` subagents in parallel to update plan progress and `./docs`; have `project-manager` also create/update a project roadmap at `./docs/project-roadmap.md`.
+6. Report a summary; suggest next steps. Then run `$prove-fix`.
+
+The Debug Mindset, Confidence & Evidence Gate, and all SYNC gates below apply to this branch unchanged.
+
 ## Workflow:
 
-If user provides screenshots or videos, use `ai-multimodal` skill to describe issue in detail; ensure developers can predict root causes from description.
+If user provides screenshots or videos, use `visual analysis tooling` skill to describe issue in detail; ensure developers can predict root causes from description.
 
 ### Fulfill the request
 
@@ -170,9 +304,9 @@ Analyze skills catalog and activate other needed skills during the process.
 
 **REMEMBER:**
 
-- Generate images with `ai-multimodal` skills on the fly for visual assets.
-- Read and analyze generated assets with `ai-multimodal` skills to verify they meet requirements.
-- For image editing (removing background, adjusting, cropping), use `media-processing` skill as needed.
+- Generate images with `visual analysis tooling` skills on the fly for visual assets.
+- Read and analyze generated assets with `visual analysis tooling` skills to verify they meet requirements.
+- For image editing (removing background, adjusting, cropping), use media processing tooling as needed.
 
 - **After fixing, MUST ATTENTION run `$prove-fix`** — build code proof traces per change with confidence scores. Never skip.
 

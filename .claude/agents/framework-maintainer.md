@@ -15,7 +15,7 @@ memory: project
 > **[IMPORTANT — TOP 3, READ FIRST]**
 >
 > 1. **EDIT SOURCE, NEVER MIRRORS.** `.claude/**` + root `CLAUDE.md` are the ONLY hand-editable surfaces. `.agents/`, `.codex/`, `AGENTS.md`, `.github/copilot-*` are GENERATED — the next sync overwrites any direct edit. If asked to change a mirror, change its source and re-sync.
-> 2. **SYNC PROTOCOLS ARE INLINE-NOT-REFERENCE.** Shared protocols live verbatim between paired `SYNC:{tag}` HTML-comment fences, authored once in `.claude/skills/shared/sync-inline-versions.md`. To change one: edit the canonical, then propagate to ALL copies (`grep SYNC:{tag}` / `sync-protocols` skill / `sync-hooks-to-skills.py`). NEVER extract inline content back to a file reference — AI compliance drops ~40% behind file-read indirection.
+> 2. **SYNC PROTOCOLS ARE INLINE-NOT-REFERENCE.** Shared protocols live verbatim between paired `SYNC:{tag}` HTML-comment fences, authored once in `.claude/skills/shared/sync-inline-versions.md`. To change one: edit the canonical, then propagate to ALL copies (`grep SYNC:{tag}` / `sync-skills-shared-protocols` skill / `sync-hooks-to-skills.py`). NEVER extract inline content back to a file reference — AI compliance drops ~40% behind file-read indirection.
 > 3. **NEVER AUTO-RUN `/sync-codex`.** It is `disable-model-invocation: true` (user-invoked only). After source edits that affect mirrors, STOP and tell the user to run `/sync-codex`. Keep generic surfaces project-neutral — `verify-no-project-residue` fails the build on any hardcoded project name/symbol.
 >
 > **Evidence Gate:** Every claim, change, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% verify first). NEVER fabricate hook names, skill names, SYNC tags, npm scripts, or verifier behavior — grep to confirm first.
@@ -149,7 +149,7 @@ memory: project
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 >
-> **Deep-dive:** see `/sequential-thinking` skill (`.claude/skills/sequential-thinking/SKILL.md`) for worked examples (api-design, debug, architecture), advanced techniques (spiral refinement, hypothesis testing, convergence), and meta-strategies (uncertainty handling, revision cascades).
+> **Deep-dive:** see `/sequential-thinking` skill (`.claude/skills/sequential-thinking/SKILL.md`) for worked examples (API design, debugging, architecture), advanced techniques (spiral refinement, hypothesis testing, convergence), and meta-strategies (uncertainty handling, revision cascades).
 
 <!-- /SYNC:sequential-thinking-protocol -->
 
@@ -207,7 +207,7 @@ Authoring split: anything that MUST be guaranteed → hook. Anything needing jud
 
 - ~55 shared protocols authored ONCE under `## SYNC:{tag}` headings in `.claude/skills/shared/sync-inline-versions.md`.
 - Inlined verbatim between paired `SYNC:{tag}` open/close HTML-comment fences in every consumer; condensed `SYNC:{tag}:reminder` variants near the bottom (primacy-recency).
-- Propagation: edit canonical → `grep SYNC:{tag}` to find every copy → replace text between fences → verify fence balance. Bulk inserts across ~286 skill/agent files go through `.claude/scripts/sync-hooks-to-skills.py`, never by hand. The `sync-protocols` skill drives this.
+- Propagation: edit canonical → `grep SYNC:{tag}` to find every copy → replace text between fences → verify fence balance. Bulk inserts across ~286 skill/agent files go through `.claude/scripts/sync-hooks-to-skills.py`, never by hand. The `sync-skills-shared-protocols` skill drives this.
 - Policy `SYNC:shared-protocol-duplication-policy`: the duplication is INTENTIONAL. Do NOT deduplicate, extract, or replace with file references.
 
 ### project-config portability boundary
@@ -241,7 +241,7 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
     - **Workflow** — edit `workflows.json`; every step name MUST be an existing skill in BOTH `.claude/skills` and (after sync) `.agents/skills`; keep ordered gates intact (e.g. integration→review→verify; docs-update→workflow-end).
     - **Hook** — edit `.cjs`; register in `settings.json`; unique dedup marker+window; read project specifics from `project-config.json`; add/extend a test under `.claude/hooks/tests/`.
     - **Config/portability** — keep generic surfaces project-neutral; project specifics go to `project-config.json` / `project-reference/**`.
-    - **SYNC protocol** — edit canonical `sync-inline-versions.md` FIRST, then propagate to every copy (grep + `sync-hooks-to-skills.py` / `sync-protocols`); verify fence balance.
+    - **SYNC protocol** — edit canonical `sync-inline-versions.md` FIRST, then propagate to every copy (grep + `sync-hooks-to-skills.py` / `sync-skills-shared-protocols`); verify fence balance.
 6. **Validate** — run available tests (`node .claude/hooks/tests/test-all-hooks.cjs`, `node --test .claude/scripts/codex/tests/*.test.mjs`), `python .claude/scripts/generate_catalogs.py --skills` if catalogs changed, and read-only codex verifiers (`--only=...`). Report pass/fail with output.
 7. **Flag stale mirrors** — if any source under the sync source-set changed, STOP and instruct the user to run `/sync-codex` (never auto-run). Name which mirrors are now stale.
 8. **Final review task** — verify consistency, no project residue, all SYNC copies identical, catalogs regenerated, docs not stale.

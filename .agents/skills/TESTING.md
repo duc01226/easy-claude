@@ -66,12 +66,12 @@ Expected behavior:
 
 ---
 
-### feature
+### workflow-feature
 
 Direct invocation:
 
 ```
-$feature
+$workflow-start feature
 ```
 
 Inference test prompts:

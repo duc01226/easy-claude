@@ -3,7 +3,7 @@ import { C, ProgressBar, ChapterBadge, CodeBlock, ScriptBar } from '../component
 import { easeOut, staggeredEaseOut } from '../utils/animations';
 
 const SCRIPT_LINES = [
-    'Workflows are JSON-defined step sequences. The bugfix workflow sequences (abridged): scout → investigate → debug-investigate → plan → plan-validate → spec-tests → fix → prove-fix → integration-test → test → docs-update. Every step is mandatory — the AI cannot skip investigation to jump straight to code.',
+    'Workflows are JSON-defined step sequences. The bugfix workflow sequences (abridged): scout → investigate → debug-investigate → plan → plan-validate → spec [mode=tests] → integration-test (RED) → fix → prove-fix → integration-test (GREEN) → test → docs-update. Every step is mandatory — the AI cannot skip investigation to jump straight to code.',
     'The detection flow is the secret ingredient: every user prompt passes through workflow-router.cjs, which injects the catalog; the model auto-selects the best-matching workflow and activates it via /workflow-start, then creates TaskCreate items for every step — making the entire process auditable and resumable after any context compaction.'
 ];
 
@@ -47,7 +47,8 @@ export const Scene07Workflows: React.FC = () => {
                                 { text: '      "scout", "investigate",', color: C.blue },
                                 { text: '      "debug-investigate",', color: C.blue },
                                 { text: '      "plan", "plan-validate",', color: C.blue },
-                                { text: '      "spec-tests", "fix",', color: C.green },
+                                { text: '      "spec [mode=tests]",', color: C.green },
+                                { text: '      "integration-test", "fix",', color: C.green },
                                 { text: '      "prove-fix", "integration-test",', color: C.green },
                                 { text: '      "test", "docs-update"', color: C.amber },
                                 { text: '    ]', color: C.dim },

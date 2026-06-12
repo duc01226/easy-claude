@@ -1,13 +1,13 @@
 ---
 name: dual-ai
-version: 1.2.2
-description: '[User-Invoked] Use ONLY when the user explicitly types /dual-ai or a /dual-ai-* wrapper skill — fans out one prompt to two fresh parallel AI sessions (Claude Code + Codex CLI), both pre-set to xhigh reasoning effort and full-permission mode before the prompt executes. NEVER auto-activate.'
+version: 1.3.0
+description: '[User-Invoked] Use ONLY when the user explicitly types /dual-ai or /dual-ai <workflow-id> — fans out one prompt, or one workflow invocation per tool, to two fresh parallel AI sessions (Claude Code + Codex CLI), both pre-set to xhigh reasoning effort and full-permission mode before the prompt executes. NEVER auto-activate.'
 disable-model-invocation: true
 ---
 
 ## Quick Summary
 
-**Goal:** Take a user prompt and spawn TWO brand-new AI sessions in parallel — one Claude Code, one Codex — each launched with xhigh effort and full-permission mode already applied, then auto-submit the prompt in both.
+**Goal:** Take a user prompt, or a workflow id, and spawn TWO brand-new AI sessions in parallel — one Claude Code, one Codex — each launched with xhigh effort and full-permission mode already applied, then auto-submit the prompt in both.
 
 **Workflow:**
 
@@ -18,7 +18,7 @@ disable-model-invocation: true
 
 **Key Rules:**
 
-- **MANUAL-ONLY:** This skill spawns external AI sessions that consume quota. Run it ONLY on explicit user invocation (`/dual-ai ...` or a user-invoked `/dual-ai-*` wrapper). NEVER auto-activate it because a task "could benefit" from parallel AI
+- **MANUAL-ONLY:** This skill spawns external AI sessions that consume quota. Run it ONLY on explicit user invocation (`/dual-ai ...`). NEVER auto-activate it because a task "could benefit" from parallel AI
 - Effort and full-permission mode MUST be set via launch flags (`claude --dangerously-skip-permissions --effort xhigh`, `codex --dangerously-bypass-approvals-and-sandbox -c model_reasoning_effort="xhigh"`) — flags apply BEFORE the prompt is processed; NEVER attempt to type `/model`, `/effort`, permission, approval, or sandbox commands into a running TUI
 - The prompt is read from the per-tool prompt file (`prompt-claude.txt` / `prompt-codex.txt`) INSIDE the launcher script (`Get-Content -Raw` / `cat`) — NEVER inline-escape multi-line prompts through shell argument chains
 - Detect the OS first (`uname -s`) and use the matching launcher + spawn branch; never assume Windows
@@ -35,7 +35,9 @@ Run the same task through two independent frontier agents at maximum reasoning e
 ## Variables
 
 - `USER_PROMPT`: $ARGUMENTS (required — if empty, ask the user for the prompt before doing anything)
-- `CLAUDE_PROMPT` / `CODEX_PROMPT`: per-tool prompt overrides. Default: both = USER_PROMPT. Wrapper skills (e.g. `dual-ai-workflow-review-changes`) supply distinct values when each tool needs its own invocation syntax. Treat them as opaque literals — do not expand, rewrite, or "fix" `$`/`/` prefixes
+- `WORKFLOW_ID`: optional first non-mode token. If it exactly matches a key in `.claude/workflows.json` `commandMapping`, treat it as a workflow invocation instead of free-text prompt. This preserves plain `/dual-ai` behavior: non-matching text remains the original fan-out prompt.
+- `WORKFLOW_ARGS`: any remaining non-mode text after WORKFLOW_ID. Append it verbatim to BOTH per-tool workflow prompts as extra instructions.
+- `CLAUDE_PROMPT` / `CODEX_PROMPT`: per-tool prompt values. Default: both = USER_PROMPT. Workflow-id mode sets `CLAUDE_PROMPT` to the `commandMapping[WORKFLOW_ID].claude` value and `CODEX_PROMPT` to `$WORKFLOW_ID`, then appends WORKFLOW_ARGS to both when present. Treat both prompt values as opaque literals — do not expand, rewrite, or "fix" `$`/`/` prefixes.
 - `MODE`: `--orchestrate` (alias `--headless`) flag anywhere in $ARGUMENTS → non-interactive orchestrated run: both sessions supervised by the bundled runner, statuses watched, outputs collected and compared (strip the flag from USER_PROMPT)
 - `RUN_DIR`: `.ai/workspace/dual-ai/{YYMMDD-HHmm}/` (absolute path when generating launchers)
 
@@ -43,7 +45,15 @@ Run the same task through two independent frontier agents at maximum reasoning e
 
 ### 1. Validate + detect OS
 
-- If USER_PROMPT is empty AND no per-tool overrides (CLAUDE_PROMPT/CODEX_PROMPT) were supplied (e.g. by a wrapper skill) → ask the user, stop.
+- Strip MODE flags from USER_PROMPT first.
+- Resolve workflow-id mode before validation:
+  - Read `.claude/workflows.json` and parse `commandMapping`.
+  - If the first non-mode token exactly matches a `commandMapping` key, set WORKFLOW_ID to that token and remove it from USER_PROMPT.
+  - Set `CLAUDE_PROMPT = commandMapping[WORKFLOW_ID].claude`.
+  - Set `CODEX_PROMPT = "$" + WORKFLOW_ID`.
+  - If remaining text exists, append one space plus that remaining text verbatim to both prompts.
+  - Example: `/dual-ai workflow-review-changes --orchestrate` writes `/workflow-review-changes` for Claude and `$workflow-review-changes` for Codex, preserving the former review wrapper behavior.
+- If USER_PROMPT is empty AND no per-tool prompts were derived from WORKFLOW_ID → ask the user, stop.
 - Check tool availability: `claude --version` and `codex --version`. If either is missing, report it and offer to run the available one only.
 - Detect OS in the same Bash call: `uname -s` → `MINGW*`/`MSYS*`/`CYGWIN*` = Windows, `Darwin` = macOS, `Linux` = Linux. Pick the matching launcher + spawn branch below.
 

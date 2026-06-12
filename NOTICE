@@ -21,7 +21,7 @@ Third-Party Skills (Apache 2.0)
 
 The following skills are included under the Apache License, Version 2.0:
 
-- mcp-builder (MCP server builder)
+- MCP server builder components
 - skill-creator (Skill creation tool)
 - webapp-testing (Web application testing with Playwright)
 

@@ -584,17 +584,6 @@ function Install-NodeDeps {
     # Install local npm packages for skills
     Write-Info "Installing local npm packages for skills..."
 
-    # chrome-devtools
-    $chromeDevToolsPath = Join-Path $ScriptDir "chrome-devtools\scripts"
-    $chromePackageJson = Join-Path $chromeDevToolsPath "package.json"
-    if ((Test-Path $chromeDevToolsPath) -and (Test-Path $chromePackageJson)) {
-        Write-Info "Installing chrome-devtools dependencies..."
-        Push-Location $chromeDevToolsPath
-        npm install --quiet
-        Pop-Location
-        Write-Success "chrome-devtools dependencies installed"
-    }
-
     # sequential-thinking
     $seqThinkingPath = Join-Path $ScriptDir "sequential-thinking"
     $seqPackageJson = Join-Path $seqThinkingPath "package.json"
@@ -604,17 +593,6 @@ function Install-NodeDeps {
         npm install --quiet
         Pop-Location
         Write-Success "sequential-thinking dependencies installed"
-    }
-
-    # mcp-management
-    $mcpManagementPath = Join-Path $ScriptDir "mcp-management\scripts"
-    $mcpPackageJson = Join-Path $mcpManagementPath "package.json"
-    if ((Test-Path $mcpManagementPath) -and (Test-Path $mcpPackageJson)) {
-        Write-Info "Installing mcp-management dependencies..."
-        Push-Location $mcpManagementPath
-        npm install --quiet
-        Pop-Location
-        Write-Success "mcp-management dependencies installed"
     }
 
     # markdown-to-pdf (md-to-pdf, gray-matter)

@@ -2,7 +2,7 @@
 name: spec-index
 version: 4.0.0
 last_reviewed: 2026-06-10
-description: '[General] Use when you need to (re)generate a DERIVED navigation index, cross-capability ERD, or reimplementation guide assembled FROM the canonical Feature Specs under docs/specs/**. Never extracts a separate A-E engineering tree. Repurposes the former /spec-discovery skill — that name no longer resolves as a slash command.'
+description: '[General] Use when you need to (re)generate a DERIVED navigation index, cross-capability ERD, or reimplementation guide assembled FROM the canonical Feature Specs under docs/specs/**. Never extracts a separate A-E engineering tree.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -62,7 +62,7 @@ Before reading anything, use `AskUserQuestion`. Confirm:
 | **Artifacts**  | Which derived aids: bucket `INDEX.md` / cross-capability ERD / reimplementation guide?                    | `INDEX.md` only               |
 | **Stack note** | (reimplementation guide only) Name a target rebuild stack, or keep stack-neutral build order?            | Stack-neutral                 |
 
-> **[BLOCKING]** If the target bucket has **no** Feature Specs matching `docs/specs/{Bucket}/README.*.md`, STOP and route the user to `/feature-spec` — there is nothing to derive from. NEVER fabricate a spec to index.
+> **[BLOCKING]** If the target bucket has **no** Feature Specs matching `docs/specs/{Bucket}/README.*.md`, STOP and route the user to `/spec` — there is nothing to derive from. NEVER fabricate a spec to index.
 
 ---
 
@@ -96,7 +96,7 @@ Regenerate `docs/specs/{Bucket}/INDEX.md` as a feature catalog:
 | [{Name}](README.{Name}.md) | {one-line overview} | {FC} | {n} | {Active/Draft} |
 ```
 
-> `feature-spec` also maintains `INDEX.md`; `spec-index` regenerates the SAME file deterministically from the specs. Keep the schema identical so the two never diverge.
+> `/spec` owns the canonical Feature Specs only. `/spec-index` owns this derived `INDEX.md` and regenerates it deterministically from the specs, so there is one writer for the derived navigation file.
 
 ### 2b. Cross-Capability ERD (on request)
 
@@ -175,8 +175,8 @@ If a user explicitly asks for an A-E bundle, explain it is retired and offer the
 
 | Skill               | Relationship                                                                                          | When to Call                                              |
 | ------------------- | ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| `/feature-spec`     | **Source owner** — authors the canonical 8-section Feature Spec + maintains `INDEX.md`                | Before spec-index — the specs must exist to index         |
-| `/spec-tests`         | **Source owner** — owns Section 8 TCs that this skill counts in the catalog                           | When TCs change and the index TC counts must refresh      |
+| `/spec`     | **Source owner** — authors the canonical 8-section Feature Spec and flags when derived refresh may be required                | Before spec-index — the specs must exist to index         |
+| `/spec [mode=tests]`         | **Source owner** — owns Section 8 TCs that this skill counts in the catalog                           | When TCs change and the index TC counts must refresh      |
 | `/docs-update`      | **Orchestrator** — may call spec-index to refresh derived aids after a doc sync                       | After code/spec changes need a full doc sync              |
 | `/review-changes`   | **Trigger** — detects spec changes and surfaces stale derived aids                                    | After spec changes; it will suggest regenerating the index |
 
@@ -270,7 +270,7 @@ A **derived-index generator** over the single-home spec tree. The canonical know
 | "User wants full detail — regenerate the A-E bundle"     | A-E is not part of the spec model. Offer the derived index/ERD; the detail already lives in the Feature Spec + code.  |
 | "I'll write the ERD as `01-domain-erd.md`"               | Wrong filename. Use `{Bucket}.erd.md` with the DERIVED banner.                                     |
 | "The index can be the source of truth, it's complete"    | NEVER — it is derived/regenerable. §1-7 + §8 of the Feature Spec are canonical.                    |
-| "No specs in this bucket, I'll extract from code"        | STOP. Route to `/feature-spec`. This skill indexes existing specs; it does not author new ones.    |
+| "No specs in this bucket, I'll extract from code"        | STOP. Route to `/spec`. This skill indexes existing specs; it does not author new ones.    |
 | "Scope is obvious, skip Step 0 AskUserQuestion"          | BLOCKING — NEVER auto-start. Bucket, mode, and artifact set MUST be confirmed first.               |
 
 **[TASK-PLANNING]** MUST ATTENTION analyze task scope and break into small todo tasks/sub-tasks via TaskCreate before acting.

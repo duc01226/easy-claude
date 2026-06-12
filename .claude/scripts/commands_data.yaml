@@ -325,21 +325,23 @@
   category: skill
 - name: /ck:skill:fix-logs
   path: skill/fix-logs.md
-  description: Fix the agent skill based on `logs.txt` file.
+  description: Fix a skill from its captured `logs.txt` — skill-creator Mode 6.
   argument_hint:
   - prompt-or-path-to-skill
   power_level: 0
   category: skill
 - name: /ck:skill:optimize:auto
   path: skill/optimize/auto.md
-  description: ''
-  argument_hint: ''
+  description: Optimize a skill (auto — skip plan approval) — skill-creator Mode 5.
+  argument_hint:
+  - skill-name-or-glob
   power_level: 0
   category: skill
 - name: /ck:skill:optimize
   path: skill/optimize.md
-  description: ''
-  argument_hint: ''
+  description: Optimize an existing skill for tokens/attention/SYNC — skill-creator Mode 5.
+  argument_hint:
+  - skill-name-or-glob
   power_level: 0
   category: skill
 - name: /ck:test

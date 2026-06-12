@@ -45,7 +45,7 @@ Launch all 12 scan skills in parallel:
 | --- | ---------------------------------- | -------------------------------- |
 | 1   | `/scan --target=project-structure` | `project-structure-reference.md` |
 | 2   | `/scan --target=backend-patterns`  | `backend-patterns-reference.md`  |
-| 3   | `/scan-seed-test-data`             | `seed-test-data-reference.md`    |
+| 3   | `/scan --target=seed-test-data`    | `seed-test-data-reference.md`    |
 | 4   | `/scan --target=frontend-patterns` | `frontend-patterns-reference.md` |
 | 5   | `/scan --target=integration-tests` | `integration-test-reference.md`  |
 | 6   | `/scan --target=feature-spec`      | `feature-spec-reference.md`      |

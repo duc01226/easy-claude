@@ -699,7 +699,7 @@ Create markdown summary report:
 - `docs-manager` agent — understand existing feature constraints and domain context
 - `WebSearch` — market/competitor context for new product scenarios
 - `docs-seeker` skill — latest documentation for external plugins/APIs
-- `ai-multimodal` skill — analyze visual mockups, screenshots, competitor UIs
+- `visual analysis tooling` skill — analyze visual mockups, screenshots, competitor UIs
 - `sequential-thinking` skill — complex problem decomposition requiring structured causal chains
 - `web-research` skill — deep market research for greenfield or competitive analysis
 
@@ -826,7 +826,7 @@ After brainstorm session concludes, use a direct user question to present next s
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 >
-> **Deep-dive:** see `$sequential-thinking` skill (`.claude/skills/sequential-thinking/SKILL.md`) for worked examples (api-design, debug, architecture), advanced techniques (spiral refinement, hypothesis testing, convergence), and meta-strategies (uncertainty handling, revision cascades).
+> **Deep-dive:** see `$sequential-thinking` skill (`.claude/skills/sequential-thinking/SKILL.md`) for worked examples (API design, debugging, architecture), advanced techniques (spiral refinement, hypothesis testing, convergence), and meta-strategies (uncertainty handling, revision cascades).
 
 <!-- /SYNC:sequential-thinking-protocol -->
 

@@ -75,11 +75,11 @@ Use this command when:
 
 ## Checkpoint File Location
 
-Files are saved to: `plans/reports/checkpoint-{timestamp}-{slug}.md`
+Files are saved to: `plans/reports/checkpoint-{YYYYMMDD}-{HHMMSS}-{slug}.md` (unified checkpoint grammar — the resume/recover readers glob `checkpoint-*` and parse this timestamp).
 
 ## Instructions
 
-1. **Determine location** — stamp the filename via `date +%y%m%d-%H%M`; path `plans/reports/checkpoint-{timestamp}-{slug}.md`.
+1. **Determine location** — stamp the filename via `date +%Y%m%d-%H%M%S`; path `plans/reports/checkpoint-{YYYYMMDD}-{HHMMSS}-{slug}.md`.
 2. **Gather + write** — follow the **CHECKPOINT_CREATE Protocol** template in `.claude/skills/memory-management/SKILL.md` (Part 1 — the single canonical owner of the checkpoint structure). Required sections: Task Context, Key Findings (with `file:line`), Files Analyzed, Progress, Important Context, Next Steps, Recovery Instructions.
 3. **Update todo list** — add `- [x] Create memory checkpoint at {timestamp}`.
 

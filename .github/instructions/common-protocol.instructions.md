@@ -79,12 +79,12 @@ Workflow progression is **model-driven** — your responsibility, not a tool/hoo
 **big-feature** — Big Feature (Research + Implement)
   Use: User wants to implement a large, complex, or ambiguous feature that needs research, market analysis, business evaluation, domain modeling, or tech stack analysis before implementation. Big new module, major enhancement, cross-cutting capability, or feature where scope is unclear
   Not for: Small/well-defined features (use feature), new project from scratch (use greenfield-init), bug fixes, documentation, test-only tasks
-  Steps: idea → web-research → deep-research → business-evaluation → domain-analysis → why-review → tech-stack-research → architecture-design → why-review → plan → plan-review → refine → why-review → review-artifact --type=pbi → story → why-review → review-artifact --type=story → pbi-challenge → dor-gate → pbi-mockup → feature-spec → spec-tests → why-review → review-artifact --type=spec-tests → plan → plan-review → scaffold → plan-validate → why-review → cook → review-domain-entities → integration-test → integration-test-review → integration-test-verify → spec-tests [direction=sync] → workflow-review-changes → sre-review → security-review → changelog → test → docs-update → workflow-end → watzup
+  Steps: idea → web-research → deep-research → business-evaluation → domain-analysis → why-review → tech-stack-research → architecture-design → why-review → plan → plan-review → refine → why-review → review-artifact --type=pbi → story → why-review → review-artifact --type=story → pbi-challenge → dor-gate → pbi-mockup → spec → spec [mode=tests] → why-review → review-artifact --type=spec-tests → plan → plan-review → scaffold → plan-validate → why-review → cook → review-domain-entities → integration-test → integration-test-review → integration-test-verify → spec [mode=sync] → workflow-review-changes → sre-review → security-review → changelog → test → docs-update → workflow-end → watzup
 
 **bugfix** — Bug Fix
   Use: User reports a bug, error, crash, failure, regression, stale/incorrect final output, or something not working; wants to fix/debug/troubleshoot an issue with end-to-start trace
   Not for: New feature implementation, code improvement/refactoring, investigation-only (no fix), documentation updates
-  Steps: scout → investigate → debug-investigate → feature-spec [mode=amend] → plan → plan-review → plan-validate → why-review → spec-tests → why-review → review-artifact --type=spec-tests → integration-test → fix → prove-fix → integration-test → integration-test-review → integration-test-verify → spec-tests [direction=sync] → workflow-review-changes → changelog → test → docs-update → workflow-end → watzup
+  Steps: scout → investigate → debug-investigate → spec [mode=amend] → plan → plan-review → plan-validate → why-review → spec [mode=tests] → why-review → review-artifact --type=spec-tests → integration-test → fix → prove-fix → integration-test → integration-test-review → integration-test-verify → spec [mode=sync] → workflow-review-changes → changelog → test → docs-update → workflow-end → watzup
 
 **design-workflow** — Design Workflow
   Use: User wants to create a UI/UX design spec, mockup, wireframe, or component specification, design a product interface (dashboard, admin panel, SaaS app), build a landing page, create a marketing page, replicate a screenshot/design, or build a creative/distinctive frontend interface
@@ -104,7 +104,7 @@ Workflow progression is **model-driven** — your responsibility, not a tool/hoo
 **feature** — Feature Implementation
   Use: User wants to implement a well-defined feature, add a component, build a capability, develop a module, implement/execute an existing plan, create a new API endpoint, or design an API contract, TDD/test-first development, spec-driven feature implementation with test specs written before code
   Not for: Bug fixes, documentation, test-only tasks, feature requests/ideas (no implementation), PBI/story creation, design specs, large/ambiguous features needing research (use big-feature)
-  Steps: scout → investigate → domain-analysis → why-review → feature-spec → plan → plan-review → plan-validate → why-review → spec-tests → why-review → review-artifact --type=spec-tests → plan → plan-review → cook → review-domain-entities → spec-tests → why-review → review-artifact --type=spec-tests → spec-tests [direction=sync] → integration-test → integration-test-review → integration-test-verify → workflow-review-changes → sre-review → security-review → changelog → test → docs-update → workflow-end → watzup
+  Steps: scout → investigate → domain-analysis → why-review → spec → plan → plan-review → plan-validate → why-review → spec [mode=tests] → why-review → review-artifact --type=spec-tests → plan → plan-review → cook → review-domain-entities → spec [mode=tests] → why-review → review-artifact --type=spec-tests → spec [mode=sync] → integration-test → integration-test-review → integration-test-verify → workflow-review-changes → sre-review → security-review → changelog → test → docs-update → workflow-end → watzup
 
 **feature-spec** — Business Feature Documentation
   Use: User wants to create or update business feature documentation under the fixed docs/specs Feature Spec root
@@ -114,17 +114,17 @@ Workflow progression is **model-driven** — your responsibility, not a tool/hoo
 **full-feature-lifecycle** — Full Feature Lifecycle
   Use: Full end-to-end feature delivery requiring idea → PBI → stories → design → implementation → testing → documentation
   Not for: PBI-only work (use idea-to-pbi), implementation-only work (use feature or big-feature), research-heavy new product (use big-feature or greenfield-init), bug fixes (use bugfix)
-  Steps: idea → refine → why-review → review-artifact --type=pbi → domain-analysis → why-review → story → why-review → review-artifact --type=story → pbi-challenge → dor-gate → pbi-mockup → design-spec → why-review → interface-design → frontend-design → feature-spec → plan → plan-review → plan-validate → why-review → cook → review-domain-entities → spec-tests → why-review → review-artifact --type=spec-tests → integration-test → integration-test-review → integration-test-verify → spec-tests [direction=sync] → workflow-review-changes → sre-review → quality-gate → docs-update → workflow-end → watzup
+  Steps: idea → refine → why-review → review-artifact --type=pbi → domain-analysis → why-review → story → why-review → review-artifact --type=story → pbi-challenge → dor-gate → pbi-mockup → design-spec → why-review → interface-design → frontend-design → spec → plan → plan-review → plan-validate → why-review → cook → review-domain-entities → spec [mode=tests] → why-review → review-artifact --type=spec-tests → integration-test → integration-test-review → integration-test-verify → spec [mode=sync] → workflow-review-changes → sre-review → quality-gate → docs-update → workflow-end → watzup
 
 **greenfield-init** — Greenfield Project Init
   Use: User wants to start a new project from scratch, init a greenfield project, plan a new application, research and plan before coding, bootstrap a new codebase, build something new
   Not for: Existing codebase with code, bug fixes, feature implementation, refactoring existing code
-  Steps: idea → web-research → deep-research → business-evaluation → domain-analysis → why-review → tech-stack-research → architecture-design → why-review → plan → plan-review → security-review → performance-review → plan-review → refine → why-review → review-artifact --type=pbi → story → why-review → review-artifact --type=story → pbi-challenge → dor-gate → pbi-mockup → plan-validate → why-review → spec-tests → why-review → review-artifact --type=spec-tests → plan → plan-review → scaffold → linter-setup → harness-setup → why-review → cook → review-domain-entities → spec-tests → why-review → review-artifact --type=spec-tests → plan → plan-review → integration-test → integration-test-review → integration-test-verify → test → workflow-review-changes → sre-review → security-review → changelog → test → docs-update → workflow-end → watzup
+  Steps: idea → web-research → deep-research → business-evaluation → domain-analysis → why-review → tech-stack-research → architecture-design → why-review → plan → plan-review → security-review → performance-review → plan-review → refine → why-review → review-artifact --type=pbi → story → why-review → review-artifact --type=story → pbi-challenge → dor-gate → pbi-mockup → plan-validate → why-review → spec [mode=tests] → why-review → review-artifact --type=spec-tests → plan → plan-review → scaffold → linter-setup → harness-setup → why-review → cook → review-domain-entities → spec [mode=tests] → why-review → review-artifact --type=spec-tests → plan → plan-review → integration-test → integration-test-review → integration-test-verify → test → workflow-review-changes → sre-review → security-review → changelog → test → docs-update → workflow-end → watzup
 
 **idea-to-pbi** — Idea to PBI
   Use: PO or BA wants to take a raw idea — OR PO is handing off an existing artifact/ticket/brief to BA — through to a grooming-ready PBI with user stories, TDD test specifications, Dev BA PIC challenge review, DoR validation, wireframes, and backlog prioritization
   Not for: Already have a drafted PBI (use pbi-challenge standalone), implementing a feature (use feature or big-feature)
-  Steps: idea → review-artifact → refine → why-review → review-artifact --type=pbi → story → why-review → review-artifact --type=story → spec-tests → why-review → review-artifact --type=spec-tests → pbi-challenge → dor-gate → pbi-mockup → prioritize → docs-update → workflow-end → watzup
+  Steps: idea → review-artifact → refine → why-review → review-artifact --type=pbi → story → why-review → review-artifact --type=story → spec [mode=tests] → why-review → review-artifact --type=spec-tests → pbi-challenge → dor-gate → pbi-mockup → prioritize → docs-update → workflow-end → watzup
 
 **product-discovery** — Product Discovery
   Use: PO/BA wants to go from a raw product idea, vision, or problem statement through structured brainstorming into a prioritized backlog of multiple PBIs with stories, challenge review, DoR validation, wireframes, and cross-PBI ranking — full product discovery sprint output without implementation
@@ -134,7 +134,7 @@ Workflow progression is **model-driven** — your responsibility, not a tool/hoo
 **refactor** — Code Refactoring
   Use: User wants to restructure, reorganize, clean up, or improve existing code without changing behavior; technical debt
   Not for: Bug fixes, new feature development
-  Steps: scout → investigate → plan → plan-review → plan-validate → why-review → code → spec-tests → why-review → review-artifact --type=spec-tests → spec-tests [direction=sync] → integration-test → integration-test-review → integration-test-verify → workflow-review-changes → sre-review → changelog → test → docs-update → workflow-end → watzup
+  Steps: scout → investigate → plan → plan-review → plan-validate → why-review → code → spec [mode=tests] → why-review → review-artifact --type=spec-tests → spec [mode=sync] → integration-test → integration-test-review → integration-test-verify → workflow-review-changes → sre-review → changelog → test → docs-update → workflow-end → watzup
 
 **research** — Research & Synthesis
   Use: User wants to research a topic from web sources and synthesize the findings into a deliverable — a cited knowledge report, a business/market viability evaluation, a marketing strategy, or structured course material
@@ -149,18 +149,18 @@ Workflow progression is **model-driven** — your responsibility, not a tool/hoo
 
 **spec-driven-dev** — Spec-Driven Development
   Use: Initial Feature Spec generation from zero docs, maintaining spec sync after code changes, quarterly spec health audits, before tech migrations, after major features land — authors + three-way-syncs the canonical Feature Spec. Use spec-index instead when only regenerating derived indexes/ERDs.
-  Not for: Understanding one specific feature (use /investigate skill), authoring/updating a single Feature Spec (use feature-spec directly), regenerating only the derived bucket index/ERD (use spec-index directly)
-  Steps: scout → plan → plan-review → plan-validate → feature-spec → spec-tests → review-artifact --type=spec-tests → review-artifact → docs-update → workflow-end → watzup
+  Not for: Understanding one specific feature (use /investigate skill), authoring/updating a single Feature Spec (use spec directly), regenerating only the derived bucket index/ERD (use spec-index directly)
+  Steps: scout → plan → plan-review → plan-validate → spec → spec [mode=tests] → review-artifact --type=spec-tests → review-artifact → docs-update → workflow-end → watzup
 
 **spec-index** — Spec Discovery
   Use: Regenerating a per-bucket feature INDEX.md after Feature Specs changed, assembling a cross-capability ERD from the §5 domain-model blocks, producing a reimplementation/build-order guide for a rebuild, or auditing which derived aids have gone stale against their source Feature Specs — derived INDEX/ERD regeneration ONLY (never authors canonical spec content). Authoring or syncing canonical spec content → use spec-driven-dev.
-  Not for: Authoring or fixing the canonical business content of a capability (use feature-spec — Feature Specs are the source of truth, this only derives aids over them), syncing §8 test specs to test code (use spec-tests), reverse-engineering specs from a brand-new external codebase with no docs/specs/ tree yet (author Feature Specs via feature-spec first), refactoring or optimizing code (use refactor or /performance-review skill)
+  Not for: Authoring or fixing the canonical business content of a capability (use spec — Feature Specs are the source of truth, this only derives aids over them), syncing §8 test specs to test code (use /spec [mode=sync]), reverse-engineering specs from a brand-new external codebase with no docs/specs/ tree yet (author Feature Specs via spec first), refactoring or optimizing code (use refactor or /performance-review skill)
   Steps: scout → spec-index → review-changes → review-artifact → workflow-end → watzup
 
 **spec-sync** — Spec Sync (Post-Change)
   Use: After fixing a bug update test specs, after code changes update test specs, after PR review update test specs, sync test specs after changes, update test documentation after implementation
   Not for: New feature implementation (use feature), no code changes yet, idea refinement
-  Steps: workflow-review-changes → spec-tests → why-review → review-artifact --type=spec-tests → spec-tests [direction=sync] → integration-test → integration-test-review → integration-test-verify → test → docs-update → workflow-end
+  Steps: workflow-review-changes → spec [mode=tests] → why-review → review-artifact --type=spec-tests → spec [mode=sync] → integration-test → integration-test-review → integration-test-verify → test → docs-update → workflow-end
 
 **spec-to-pbi** — Spec to PBI Backlog
   Use: User wants to create all PBIs from an existing Feature Spec, convert a large Feature Spec into a complete prioritized backlog, generate dependent PBIs from docs/specs, split a very big Feature Spec into sprint-ready PBIs, or produce a ranked implementation order from a bucket of Feature Specs.
@@ -179,8 +179,8 @@ Workflow progression is **model-driven** — your responsibility, not a tool/hoo
 
 **write-integration-test** — Write Integration Tests
   Use: Write integration tests for a specific command/handler, add test coverage to an untested feature, update integration tests after code changes, integration test authoring from scratch for a feature area, cover uncommitted code changes with integration tests, generate integration tests from existing test specs or feature docs, review/audit existing integration tests for quality, flakiness, traceability, or failures
-  Not for: No implementation yet (use feature or bugfix), spec-only with no code generation (use /spec-tests skill directly)
-  Steps: scout → investigate → spec-tests → why-review → review-artifact --type=spec-tests → integration-test → integration-test-review → integration-test-verify → spec-tests [direction=sync] → docs-update → workflow-end → watzup
+  Not for: No implementation yet (use feature or bugfix), spec-only with no code generation (use /spec [mode=tests] directly)
+  Steps: scout → investigate → spec [mode=tests] → why-review → review-artifact --type=spec-tests → integration-test → integration-test-review → integration-test-verify → spec [mode=sync] → docs-update → workflow-end → watzup
 
 ### Workflow Execution Protocol
 
@@ -231,7 +231,7 @@ Workflow progression is **model-driven** — your responsibility, not a tool/hoo
 
 - **File Naming**: kebab-case with meaningful names — LLMs must understand purpose from filename alone without reading content
 - **File Size**: Keep code files under 200 lines — split into focused components, extract utilities, use composition over inheritance
-- Skills: `docs-seeker` (docs via Context7), `ai-multimodal` (images/video), `sequential-thinking`/`debug-investigate` (analysis), `gh` (GitHub)
+- Skills/tools: `docs-seeker` (docs via Context7), available image/video analysis tools, `sequential-thinking`/`debug-investigate` (analysis), `gh` (GitHub)
 - **[IMPORTANT]** Follow codebase structure and code standards in `./docs` during implementation
 - **[IMPORTANT]** Always implement real code — never simulate or mock implementations
 - **[CRITICAL] Class Responsibility Rule:**

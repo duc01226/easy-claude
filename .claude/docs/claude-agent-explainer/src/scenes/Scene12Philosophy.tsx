@@ -4,7 +4,7 @@ import { easeOut, staggeredEaseOut } from '../utils/animations';
 
 const SCRIPT_LINES = [
     "These 6 principles are the design philosophy behind every architectural decision. 'Understanding > Output' means analyze the WHY before writing the WHAT. 'Programmatic guardrails beat prompt engineering' means hooks are always more reliable than a long system prompt — because hooks run unconditionally.",
-    "The closing principle is the most important: build systems, not prompts. A clever prompt solves one problem once. A system solves all similar problems forever. The 66 top-level hook files, 176 skills, 21 workflows, and 28 agents you've seen here are a system — battle-tested across 12+ microservices and fully project-agnostic."
+    "The closing principle is the most important: build systems, not prompts. A clever prompt solves one problem once. A system solves all similar problems forever. The 66 top-level hook files, 173 skills, 21 workflows, and 29 agents you've seen here are a system — battle-tested across 12+ microservices and fully project-agnostic."
 ];
 
 const PRINCIPLES = [
@@ -18,9 +18,9 @@ const PRINCIPLES = [
 
 const TAGS = [
     { label: '66 Hook Files', color: C.blue },
-    { label: '176 Skills', color: C.purple },
+    { label: '173 Skills', color: C.purple },
     { label: '21 Workflows', color: C.green },
-    { label: '28 Agents', color: C.amber }
+    { label: '29 Agents', color: C.amber }
 ];
 
 export const Scene12Philosophy: React.FC = () => {

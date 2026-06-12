@@ -26,7 +26,7 @@ SKILLS_DIR = PROJECT_ROOT / ".claude" / "skills"
 SKILL_NAMES = [
     # ---- Child skills (multi-phase work that nests under workflow steps) ----
     # Plan family
-    "plan", "plan-analysis", "plan-archive",
+    "plan", "plan-analysis",
     "plan-review", "plan-validate",
     # Review family
     "security-review", "code-review", "integration-test-review",
@@ -38,18 +38,18 @@ SKILL_NAMES = [
     "cook",
     # Code family
     "code",
-    # Feature family
-    "feature",
-    # Fix family
-    "fix", "fix-ci", "fix-issue", "fix-logs",
-    "fix-test", "fix-ui",
+    # Fix family (ci/issue/logs/test/ui folded into /fix --target=*)
+    "fix",
     # Investigate / scout family
     "investigate", "debug-investigate", "feature-investigation",
     "scout", "scout-ext",
     # Refactor / migration / scaffold
     "refactoring", "db-migrate", "scaffold",
     # Workflow step skills (inner phases)
-    "spec-tests", "integration-test", "integration-test-verify",
+    # NOTE: `spec` (merged feature-spec router) is intentionally NOT a target —
+    # it carries task-tracking via STEP-TASK-ANCHOR and inherits feature-spec's
+    # lean SYNC set; injecting here would duplicate existing coverage.
+    "integration-test", "integration-test-verify",
     "docs-update", "watzup",
     # ---- Orchestrator skills (workflow-*) ----
     "workflow-big-feature",

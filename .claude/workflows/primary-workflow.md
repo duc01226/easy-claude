@@ -8,9 +8,9 @@
 
 1. **Discover** — Scout files, investigate patterns, run graph traces
 2. **Plan** — `/plan` + `/plan-review` + `/plan-validate`, save in `./plans/`
-3. **Design Review** — `/why-review` (rationale), `/spec-tests` + `/review-artifact --type=spec-tests` (test specs)
+3. **Design Review** — `/why-review` (rationale), `/spec [mode=tests]` + `/review-artifact --type=spec-tests` (test specs)
 4. **Implement** — `/cook` or `/code`, compile-check after every file change
-5. **Verify** — `/prove-fix`, `/test`, `/integration-test`, `/spec-tests [direction=sync]`
+5. **Verify** — `/prove-fix`, `/test`, `/integration-test`, `/spec [mode=sync]`
 6. **Quality** — `/workflow-review-changes` (canonical review-changes workflow: review-changes → why-review → parallel reviewers → code-simplifier → verification → plan/cook/restart)
 7. **Ship** — `/sre-review`, `/security-review`, `/changelog`, `/docs-update`, `/watzup`, `/workflow-end`
 
@@ -44,7 +44,7 @@
 ## Phase 2: Design Review
 
 - Use `/why-review` to validate design rationale before implementation
-- Use `/spec-tests` to write test specifications (feature doc Section 8) — CREATE mode before implementation, UPDATE mode after
+- Use `/spec [mode=tests]` to write test specifications (feature doc Section 8) — CREATE mode before implementation, UPDATE mode after
 - Use `/review-artifact --type=spec-tests` to review test specs for coverage and correctness
 - For features: two planning rounds — PLAN1 (architecture) then PLAN2 (incorporating test strategy)
 
@@ -61,7 +61,7 @@
 - Use `/prove-fix` to build code proof traces (confidence scores, stack-trace-style evidence) — MANDATORY for bugfixes
 - Use `/test` skill to run tests and analyze results
 - Use `/integration-test` to generate integration tests from specs
-- Use `/spec-tests [direction=sync]` to sync test spec dashboard
+- Use `/spec [mode=sync]` to sync test spec dashboard
 - **IMPORTANT:** Never use fake data, mocks, cheats, or tricks just to pass the build
 - **IMPORTANT:** Fix failing tests and re-run until all pass
 

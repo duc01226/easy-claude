@@ -56,10 +56,10 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ```
 git diff → Triage → Phase 1: Project Docs (inline)
-                  → Phase 2: $feature-spec (business feature docs)
+                  → Phase 2: $spec (business feature docs)
                   → Phase 2.5: $spec-index (derived index/ERD refresh) [optional]
-                  → Phase 3: $spec-tests (§8 test specifications)
-                  → Phase 4: $spec-tests [direction=sync] (§8 ↔ test code sync)
+                  → Phase 3: $spec [mode=tests] (§8 test specifications)
+                  → Phase 4: $spec [mode=sync] (§8 ↔ test code sync)
                   → Phase 5: Summary Report
 ```
 
@@ -73,7 +73,7 @@ git diff → Triage → Phase 1: Project Docs (inline)
 - MUST ATTENTION dedup module list — backend + frontend changes for same module = ONE entry
 - MUST ATTENTION track step state live: `in_progress` -> execute -> `completed` (or `completed` with skip reason)
 - For `.claude` skills/hooks/workflows/sync tooling changes, flag generated mirror sync status (`npm run codex:sync` completed or explicit N/A). `docs-update` routes and reports this check; it does not edit generated mirrors directly.
-- **[BLOCKING] Tech-agnostic output:** when updating feature-spec/specs/README/INDEX, do NOT introduce framework/product/language/design-pattern names into prose or headings — preserve the evidence-field exception (`**Evidence**`, `IntegrationTest`, `[Source:]`, frontmatter, Mermaid). Authority: `docs/project-reference/spec-principles.md` §3.
+- **[BLOCKING] Tech-agnostic output:** when updating spec/specs/README/INDEX, do NOT introduce framework/product/language/design-pattern names into prose or headings — preserve the evidence-field exception (`**Evidence**`, `IntegrationTest`, `[Source:]`, frontmatter, Mermaid). Authority: `docs/project-reference/spec-principles.md` §3.
 - **[BLOCKING] M3 Traceability Update:** See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6)" for BLOCKING criteria. When syncing docs after code changes, update the logical-ID mappings (`FR-`/`BR-`/`OP-`/`TC-`) FIRST, then the prose. The `[Source: namespace/service/id]` abstract-anchor evidence is re-resolved ONLY if the logical artifact was renamed/split — a file move or stack change does NOT change the anchor (physical coords live only in the provenance sidecar) — and the logical-ID spine stays stable across the change — never drop or renumber a logical ID just because the code moved. Keep all synced prose M1/M2-clean.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80%.**
@@ -88,10 +88,10 @@ git diff → Triage → Phase 1: Project Docs (inline)
 | --- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | 1   | `[docs-update] Phase 0 — Triage: collect git diff, categorize files, detect modules, check existing docs` | No — always first                                                                        |
 | 2   | `[docs-update] Phase 1 — Update project docs (project-structure-reference.md, README.md)`                 | Yes — only if configured framework/shared source paths or architectural changes are in diff |
-| 3   | `[docs-update] Phase 2 — Invoke $feature-spec: update business feature docs`                              | Yes — service/frontend files changed AND module has existing feature docs                |
+| 3   | `[docs-update] Phase 2 — Invoke $spec: update business feature docs`                              | Yes — service/frontend files changed AND module has existing feature docs                |
 | 4   | `[docs-update] Phase 2.5 — Invoke $spec-index [mode=index]: refresh derived bucket INDEX/ERD`              | Yes — a Feature Spec changed AND the bucket maintains a derived index/ERD                 |
-| 5   | `[docs-update] Phase 3 — Invoke $spec-tests: update/add §8 test specifications`                             | Yes — new functionality added OR existing behavior changed                               |
-| 6   | `[docs-update] Phase 4 — Invoke $spec-tests [direction=sync]: sync §8 ↔ test code`                          | Yes — Phase 3 changed §8 TCs                                                              |
+| 5   | `[docs-update] Phase 3 — Invoke $spec [mode=tests]: update/add §8 test specifications`                             | Yes — new functionality added OR existing behavior changed                               |
+| 6   | `[docs-update] Phase 4 — Invoke $spec [mode=sync]: sync §8 ↔ test code`                          | Yes — Phase 3 changed §8 TCs                                                              |
 | 7   | `[docs-update] Phase 5 — Write summary report to plans/reports/docs-update-{YYMMDD}-{HHMM}.md`            | No — always                                                                              |
 | 8   | `[docs-update] Final review — verify all impacted docs updated, no phases skipped without justification, AND run the Step 2.4 code↔spec sync-verify (AC/BR/TC drift) for every touched module` | No — always                                                                              |
 
@@ -113,10 +113,10 @@ git diff → Triage → Phase 1: Project Docs (inline)
 | ----- | ------- | ------------------------------ | -------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | 1     | 1       | Phase 0: Triage                | Inline triage logic in this skill      | Set Task 1 `in_progress` before diff scan; set `completed` after module + impact map recorded   |
 | 2     | 2       | Phase 1: Project Docs          | `docs-manager` sub-agent (if impacted) | Set Task 2 `in_progress` before spawn/update; `completed` with updated docs or skip reason      |
-| 3     | 3       | Phase 2: Business Feature Docs | `$feature-spec`                        | Set Task 3 `in_progress` before invocation; `completed` after output review                     |
+| 3     | 3       | Phase 2: Business Feature Docs | `$spec`                        | Set Task 3 `in_progress` before invocation; `completed` after output review                     |
 | 4     | 4       | Phase 2.5: Derived Index Refresh | `$spec-index [mode=index]`           | Set Task 4 `in_progress` before invocation; `completed` after INDEX rows match Feature Specs    |
-| 5     | 5       | Phase 3: §8 Test Specs         | `$spec-tests`                            | Set Task 5 `in_progress` before invocation; `completed` after TC review                         |
-| 6     | 6       | Phase 4: §8 ↔ Test Code Sync   | `$spec-tests [direction=sync]`           | Set Task 6 `in_progress` before invocation; `completed` after sync validation                   |
+| 5     | 5       | Phase 3: §8 Test Specs         | `$spec [mode=tests]`                            | Set Task 5 `in_progress` before invocation; `completed` after TC review                         |
+| 6     | 6       | Phase 4: §8 ↔ Test Code Sync   | `$spec [mode=sync]`           | Set Task 6 `in_progress` before invocation; `completed` after sync validation                   |
 | 7     | 7       | Phase 5: Summary Report        | Inline report write                    | Set Task 7 `in_progress` before report write; `completed` after file path confirmed             |
 | 8     | 8       | Final Review                   | Inline verification gate               | Set Task 8 `in_progress` before final audit; `completed` after all phases justified             |
 
@@ -136,9 +136,9 @@ git diff → Triage → Phase 1: Project Docs (inline)
 
 | Changed File Pattern                                                                | Impact Category                                | Phases to Run |
 | ----------------------------------------------------------------------------------- | ---------------------------------------------- | ------------- |
-| `{backend-source-paths}/**` from `docs/project-config.json`                         | **feature-spec** + **spec-tests** + project-docs | 1 + 2 + 3 + 4 |
-| `{frontend-apps-dir}/**`, `{frontend-libs-dir}/{domain-lib}/**`                     | **feature-spec** + **spec-tests** + project-docs | 1 + 2 + 3 + 4 |
-| `{legacy-frontend-dir}/**Client/**`                                                 | **feature-spec** + **spec-tests** + project-docs | 1 + 2 + 3 + 4 |
+| `{backend-source-paths}/**` from `docs/project-config.json`                         | **spec** + **spec [mode=tests]** + project-docs | 1 + 2 + 3 + 4 |
+| `{frontend-apps-dir}/**`, `{frontend-libs-dir}/{domain-lib}/**`                     | **spec** + **spec [mode=tests]** + project-docs | 1 + 2 + 3 + 4 |
+| `{legacy-frontend-dir}/**Client/**`                                                 | **spec** + **spec [mode=tests]** + project-docs | 1 + 2 + 3 + 4 |
 | `{configured-framework-source-paths}/**`                                            | project-docs only                              | 1 only        |
 | `docs/**`                                                                           | project-docs only                              | 1 only        |
 | `.claude/**`, config files only                                                     | **none**                                       | Fast exit     |
@@ -154,7 +154,7 @@ ALL changed files in **none** category (only `.claude/`, `.github/`, root config
 
 ### Step 0.4: Auto-Detect Affected Modules
 
-Extract unique module names from changed paths. **MUST ATTENTION dedup:** `unique()` before passing to any sub-skill — backend + frontend same module = ONE entry. Prevents duplicate `$feature-spec` invocations.
+Extract unique module names from changed paths. **MUST ATTENTION dedup:** `unique()` before passing to any sub-skill — backend + frontend same module = ONE entry. Prevents duplicate `$spec` invocations.
 
 | Changed File Path Pattern                           | Detected Module                  |
 | --------------------------------------------------- | -------------------------------- |
@@ -204,7 +204,7 @@ NEVER regenerate all docs — only update docs **directly impacted** by changes.
 
 ---
 
-## Phase 2: Business Feature Documentation — Invoke `$feature-spec`
+## Phase 2: Business Feature Documentation — Invoke `$spec`
 
 **When to run:** Triage detected modules with `hasFeatureDocs = true` AND service/frontend files changed.
 
@@ -214,21 +214,21 @@ NEVER regenerate all docs — only update docs **directly impacted** by changes.
 
 | Scenario                                                              | Action                                                                                                                                                                              |
 | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Module has existing feature docs                                      | Invoke `$feature-spec` — auto-detect triggers update flow                                                                                                                         |
-| Module has NO feature docs **AND change adds/changes a feature** (new endpoint, command/query, entity, business rule, user-facing behavior) | **BLOCK** — Report: `"Module {Module} has NO Feature Spec but this change introduces feature behavior. Create the tech-free 8-section Feature Spec FIRST via $feature-spec, then re-run docs-update."` Do NOT skip. This is the doc-first gate. |
+| Module has existing feature docs                                      | Invoke `$spec` — auto-detect triggers update flow                                                                                                                         |
+| Module has NO feature docs **AND change adds/changes a feature** (new endpoint, command/query, entity, business rule, user-facing behavior) | **BLOCK** — Report: `"Module {Module} has NO Feature Spec but this change introduces feature behavior. Create the tech-free 8-section Feature Spec FIRST via $spec, then re-run docs-update."` Do NOT skip. This is the doc-first gate. |
 | Module has NO feature docs **AND change is tooling/style/config-only** (no behavioral impact) | Skip with reason `"No feature behavior changed — no Feature Spec required."` (matches Phase 0 fast-exit at `:113-120`).                                                            |
-| User explicitly asked for full doc creation                          | Invoke `$feature-spec` with explicit module name                                                                                                                                  |
+| User explicitly asked for full doc creation                          | Invoke `$spec` with explicit module name                                                                                                                                  |
 
-### Step 2.2: Invoke `$feature-spec`
+### Step 2.2: Invoke `$spec`
 
 ```
-$feature-spec Update feature docs for modules: {detected modules}.
+$spec Update feature docs for modules: {detected modules}.
 Changed files: {list from triage}.
 Impacted sections based on change types: {section impact from triage}.
 Mode: update (existing docs only, do not create from scratch).
 ```
 
-**What `$feature-spec` handles (DO NOT duplicate here):**
+**What `$spec` handles (DO NOT duplicate here):**
 
 - 8-section tech-free structure enforcement
 - Diff analysis → section impact mapping
@@ -238,11 +238,11 @@ Mode: update (existing docs only, do not create from scratch).
 - 3-pass verification (evidence audit, domain model, cross-reference)
 - Tech-free principles (no implementation details in §1–§7; evidence carriers in §8 + `[Source:]` only)
 
-### Step 2.3: Review `$feature-spec` Output
+### Step 2.3: Review `$spec` Output
 
 1. Updated sections align with triage's section impact mapping
 2. No sections missed that triage flagged as impacted
-3. Gaps found → re-invoke `$feature-spec` for missed sections
+3. Gaps found → re-invoke `$spec` for missed sections
 
 ### Step 2.4: Code↔Spec Sync-Verify (final pass — runs because docs-update is last in every sequence)
 
@@ -252,9 +252,9 @@ For each module touched in this run, diff the changed code against its Feature S
 
 | Spec set (Feature Spec section) | Sync check against changed code                                                                                           | On drift |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | -------- |
-| **§3 Acceptance Criteria** (AC-{FC}-NN) | Every changed user-facing behavior maps to an AC; new behavior with no AC = missing AC.                            | Report drift; re-invoke `$feature-spec` to add the AC. |
+| **§3 Acceptance Criteria** (AC-{FC}-NN) | Every changed user-facing behavior maps to an AC; new behavior with no AC = missing AC.                            | Report drift; re-invoke `$spec` to add the AC. |
 | **§4 Business Rules** (BR-{FC}-NNN, [HARD]/[SOFT]) | Each changed validation/invariant matches a BR; a [HARD] rule whose code path was removed/weakened = regression. | **BLOCK** — surface as a code-vs-spec contradiction for the author to resolve. |
-| **§8 Test Specifications** (TC-{FC}-NNN + `IntegrationTest:`) | Each new/changed behavior has a TC; each `Tested` TC's `IntegrationTest: {File}::{Method}` still resolves.    | Report; route to `$spec-tests [direction=sync]`. |
+| **§8 Test Specifications** (TC-{FC}-NNN + `IntegrationTest:`) | Each new/changed behavior has a TC; each `Tested` TC's `IntegrationTest: {File}::{Method}` still resolves.    | Report; route to `$spec [mode=sync]`. |
 
 **Output:** a short sync-verify table (module · AC drift · BR drift/contradiction · TC drift) appended to the docs-update report. Clean = no drift across all three. A [HARD]-BR contradiction blocks workflow completion until resolved or explicitly accepted by the owner.
 
@@ -274,7 +274,7 @@ For each module touched in this run, diff the changed code against its Feature S
 - No Feature Spec under `docs/specs/{Bucket}/` was touched
 - Phase 2 was skipped (no feature impact)
 - The bucket maintains no derived index/ERD, OR `project-config.json` contains `"spec_discovery_update": false`
-- `feature-spec` already refreshed `INDEX.md` in Phase 2 (no separate refresh needed)
+- `spec` already refreshed `INDEX.md` in Phase 2 (no separate refresh needed)
 
 ### Step 2.5.1: Resolve the Bucket
 
@@ -299,7 +299,7 @@ Output: regenerated DERIVED docs/specs/{Bucket}/INDEX.md (+ {Bucket}.erd.md if m
 
 ---
 
-## Phase 3: Test Specifications — Invoke `$spec-tests`
+## Phase 3: Test Specifications — Invoke `$spec [mode=tests]`
 
 **When to run:** New functionality added (commands, queries, endpoints, components) OR existing behavior changed.
 
@@ -315,18 +315,18 @@ Output: regenerated DERIVED docs/specs/{Bucket}/INDEX.md (+ {Bucket}.erd.md if m
 | User says "sync test specs"            | `sync`                   |
 | Tests exist with annotations, no docs  | `from-integration-tests` |
 
-**PBI/idea artifact route:** when changed artifacts match configured PBI/idea artifact roots from `docs/project-config.json` or project reference docs, `docs-update` performs detection/delegation only. It may identify affected module, feature doc, and TC scope, then route to `$feature-spec`, `$spec-tests`, or `$spec-tests [direction=sync]`. It must not generate TC content directly from PBI/idea artifacts or edit Section 8 itself. If artifact roots are not configured, ask the user to initialize project config/reference docs before assuming a path.
+**PBI/idea artifact route:** when changed artifacts match configured PBI/idea artifact roots from `docs/project-config.json` or project reference docs, `docs-update` performs detection/delegation only. It may identify affected module, feature doc, and TC scope, then route to `$spec`, `$spec [mode=tests]`, or `$spec [mode=sync]`. It must not generate TC content directly from PBI/idea artifacts or edit Section 8 itself. If artifact roots are not configured, ask the user to initialize project config/reference docs before assuming a path.
 
-### Step 3.2: Invoke `$spec-tests`
+### Step 3.2: Invoke `$spec [mode=tests]`
 
 ```
-$spec-tests Mode: {detected mode}.
+$spec [mode=tests] Mode: {detected mode}.
 Modules: {detected modules}.
 Changed files: {list from triage}.
 New functionality detected: {new commands/queries/endpoints from diff analysis}.
 ```
 
-**What `$spec-tests` handles (DO NOT duplicate here):**
+**What `$spec [mode=tests]` handles (DO NOT duplicate here):**
 
 - 5 modes: TDD-first, implement-first, update, sync, from-integration-tests
 - TC-{FEATURE}-{NNN} format with decade-based numbering
@@ -337,7 +337,7 @@ New functionality detected: {new commands/queries/endpoints from diff analysis}.
 - Evidence verification per TC
 - Write to feature doc Section 8 (canonical TC registry)
 
-### Step 3.3: Review `$spec-tests` Output
+### Step 3.3: Review `$spec [mode=tests]` Output
 
 1. New TCs cover all new functionality from triage
 2. TC IDs don't collide with existing ones
@@ -345,21 +345,21 @@ New functionality detected: {new commands/queries/endpoints from diff analysis}.
 
 ---
 
-## Phase 4: Test Spec ↔ Test Code Sync — Invoke `$spec-tests [direction=sync]`
+## Phase 4: Test Spec ↔ Test Code Sync — Invoke `$spec [mode=sync]`
 
 **When to run:** Phase 3 produced new/updated TCs in §8 of a Feature Spec.
 
 **When to skip:** No §8 test-spec changes.
 
-### Step 4.1: Invoke `$spec-tests [direction=sync]`
+### Step 4.1: Invoke `$spec [mode=sync]`
 
 ```
-$spec-tests [direction=sync] Sync test specs for capabilities: {detected features}.
+$spec [mode=sync] Sync test specs for capabilities: {detected features}.
 Direction: forward (Feature Spec §8 Test Specifications → integration test code).
 Updated TCs from Phase 3: {list of new/changed TC IDs}.
 ```
 
-**What `$spec-tests [direction=sync]` handles (DO NOT duplicate here):**
+**What `$spec [mode=sync]` handles (DO NOT duplicate here):**
 
 - Forward/reverse sync: §8 Test Specifications ↔ integration test code
 - 2-way comparison: Feature Spec §8 vs test code (code is the technical source of truth)
@@ -380,9 +380,9 @@ Updated TCs from Phase 3: {list of new/changed TC IDs}.
 
 | Section                          | Owner Skill                  | docs-update Role                                       |
 | -------------------------------- | ---------------------------- | ----------------------------------------------------- |
-| §1–§7 (Feature Spec, tech-free)  | `$feature-spec`              | Pass triage context; review output                    |
-| §8 (Test Specifications)         | `$spec-tests`                  | Pass TC mode + changed files; NEVER write TCs here    |
-| §8 ↔ test code sync              | `$spec-tests [direction=sync]` | Pass capability list + direction; NEVER edit directly |
+| §1–§7 (Feature Spec, tech-free)  | `$spec`              | Pass triage context; review output                    |
+| §8 (Test Specifications)         | `$spec [mode=tests]`                  | Pass TC mode + changed files; NEVER write TCs here    |
+| §8 ↔ test code sync              | `$spec [mode=sync]` | Pass capability list + direction; NEVER edit directly |
 | Derived bucket `INDEX.md` / ERD  | `$spec-index` (optional)     | Pass bucket scope; NEVER hand-edit the derived index  |
 
 ---
@@ -402,7 +402,7 @@ ALWAYS write full report to `plans/reports/docs-update-{YYMMDD}-{HHMM}.md`:
 
 - {Updated/Skipped}: {reason}
 
-**Phase 2 — Feature Specs ($feature-spec):**
+**Phase 2 — Feature Specs ($spec):**
 
 - {Capability X}: {Updated §1–§7 / No existing Feature Spec / Not impacted}
 - {Capability Y}: {Updated §4 Business Rules, §5 Domain Model / Skipped: no Feature Spec}
@@ -411,14 +411,14 @@ ALWAYS write full report to `plans/reports/docs-update-{YYMMDD}-{HHMM}.md`:
 
 - {Refreshed {Bucket} INDEX.md ({N} capabilities) / Skipped: no derived index maintained / Skipped: spec_discovery_update=false}
 
-**Phase 3 — Test Specifications §8 ($spec-tests):**
+**Phase 3 — Test Specifications §8 ($spec [mode=tests]):**
 
 - Mode: {mode used}
 - New TCs: {list of TC IDs added}
 - Updated TCs: {list of TC IDs modified}
 - Skipped: {reason if skipped}
 
-**Phase 4 — Test Spec ↔ Test Code Sync ($spec-tests [direction=sync]):**
+**Phase 4 — Test Spec ↔ Test Code Sync ($spec [mode=sync]):**
 
 - {Synced N TCs to test code / Skipped: no §8 changes}
 - Discrepancies: {§8-vs-test-code comparison issues}
@@ -437,10 +437,10 @@ ALWAYS write full report to `plans/reports/docs-update-{YYMMDD}-{HHMM}.md`:
 | Scenario                                       | Use docs-update?             | Use skill directly?                        |
 | ---------------------------------------------- | ---------------------------- | ------------------------------------------ |
 | Post-implementation doc sync (any code change) | **Yes** — full orchestration | —                                          |
-| Create new feature docs from scratch           | No                           | `$feature-spec`                            |
-| Generate TCs for specific PBI (TDD-first)      | No                           | `$spec-tests`                                |
-| Route PBI/idea artifact changes                | Yes — detection/delegation   | `$feature-spec` + `$spec-tests` owner skills |
-| Sync dashboard only (no code changes)          | No                           | `$spec-tests [direction=sync]`               |
+| Create new feature docs from scratch           | No                           | `$spec`                            |
+| Generate TCs for specific PBI (TDD-first)      | No                           | `$spec [mode=tests]`                                |
+| Route PBI/idea artifact changes                | Yes — detection/delegation   | `$spec` + `$spec [mode=tests]` owner skills |
+| Sync dashboard only (no code changes)          | No                           | `$spec [mode=sync]`               |
 | Workflow step after `$code` or `$fix`          | **Yes** — full orchestration | —                                          |
 | User asks "update docs after my changes"       | **Yes** — full orchestration | —                                          |
 
@@ -455,8 +455,8 @@ Pass caller context via `$ARGUMENTS` to skip redundant triage or narrow scope:
 | `modules`       | `modules=ModuleA,ModuleB`                            | Skip auto-detect; use provided list   |
 | `changed_files` | `changed_files=<configured-source-path>/ModuleA/...` | Skip git diff; use provided file list |
 | `phases`        | `phases=2,3`                                         | Run only specified phases             |
-| `mode`          | `mode=update`                                        | Override feature-spec mode detection  |
-| `tc_mode`       | `tc_mode=implement-first`                            | Override spec-tests mode detection      |
+| `mode`          | `mode=update`                                        | Override spec mode detection  |
+| `tc_mode`       | `tc_mode=implement-first`                            | Override spec [mode=tests] mode detection      |
 | `skip_phases`   | `skip_phases=1,2.5`                                  | Skip specific phases                  |
 
 <additional_requests>
@@ -469,10 +469,10 @@ $ARGUMENTS
 
 | Situation                                            | What to do instead                                                          |
 | ---------------------------------------------------- | --------------------------------------------------------------------------- |
-| Feature Spec missing but capability exists           | Run `$feature-spec init` to author the 8-section Feature Spec, then `docs-update` |
+| Feature Spec missing but capability exists           | Run `$spec [mode=init]` to author the 8-section Feature Spec, then `docs-update` |
 | Derived bucket `INDEX.md`/ERD missing                | Run `$spec-index mode=index bucket={Bucket}` to (re)generate it              |
 | Integration tests don't match TCs                    | Run `$integration-test-review` to diagnose, then `$integration-test` to fix |
-| Bug caused by wrong spec                             | Run `$feature-spec update` (fix the canonical spec) BEFORE `docs-update`; optionally `$spec-index mode=index` to re-derive the bucket index |
+| Bug caused by wrong spec                             | Run `$spec [mode=update]` (fix the canonical spec) BEFORE `docs-update`; optionally `$spec-index mode=index` to re-derive the bucket index |
 
 ---
 
@@ -658,8 +658,8 @@ $ARGUMENTS
 **MUST ATTENTION** dedup module list before passing to sub-skills — same module backend + frontend = ONE entry
 **MUST ATTENTION** skip phases with no impact but ALWAYS mark task `completed` with reason — NEVER silently omit
 **MUST ATTENTION** Phase 2.5 runs `$spec-index [mode=index]` — OPTIONAL refresh of the derived bucket INDEX/ERD from Feature Specs (never re-extracts an A-E tree)
-**MUST ATTENTION** Phase 3 runs `$spec-tests` — syncs test case specs in Feature Spec §8 Test Specifications
-**MUST ATTENTION** Phase 4 runs `$spec-tests [direction=sync]` — syncs §8 TCs ↔ integration test code (no QA dashboard exists)
+**MUST ATTENTION** Phase 3 runs `$spec [mode=tests]` — syncs test case specs in Feature Spec §8 Test Specifications
+**MUST ATTENTION** Phase 4 runs `$spec [mode=sync]` — syncs §8 TCs ↔ integration test code (no QA dashboard exists)
 **MUST ATTENTION** final review task (#8) verifies all impacted docs updated, no phases skipped without justification
 
 **Anti-Rationalization:**

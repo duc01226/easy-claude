@@ -479,7 +479,7 @@ For each changed file, identify related documentation:
 - Flag missing docs for new features or components that should be documented
 - **Flag in the report** with the specific stale section and what changed. Do not fix yet; Phase 6 must validate the finding before Phase 7 invokes `/docs-update` or applies doc edits.
 
-**Spec Drift Adjudication (REQUIRED when behavior changed):** Apply `SYNC:spec-drift-adjudication`. For every behavior-bearing change, compare it against the canonical Feature Spec under `docs/specs/` and classify any divergence as **CODE-WRONG** (change violates an intended spec rule/AC/invariant → BLOCKING finding, fix code/test), **SPEC-STALE** (intentional behavior change the spec no longer reflects → route to `/feature-spec [update]` + `/spec-tests [update]`), or **AMBIGUOUS** (`AskUserQuestion` before editing either side). Record the verdict per changed behavior (`Spec in sync` when no divergence). Do not normalize drift just because code/tests pass. This is the bidirectional generalization of the post-bugfix "Was spec wrong?" check — it runs for ALL behavior-changing reviews, not only post-bugfix. Flag findings here; Phase 6 validates and Phase 7 fixes (CODE-WRONG fixes route through the fix loop; SPEC-STALE fixes route to the canonical spec updater before `/docs-update`).
+**Spec Drift Adjudication (REQUIRED when behavior changed):** Apply `SYNC:spec-drift-adjudication`. For every behavior-bearing change, compare it against the canonical Feature Spec under `docs/specs/` and classify any divergence as **CODE-WRONG** (change violates an intended spec rule/AC/invariant → BLOCKING finding, fix code/test), **SPEC-STALE** (intentional behavior change the spec no longer reflects → route to `/spec [update]` + `/spec [mode=tests] [update]`), or **AMBIGUOUS** (`AskUserQuestion` before editing either side). Record the verdict per changed behavior (`Spec in sync` when no divergence). Do not normalize drift just because code/tests pass. This is the bidirectional generalization of the post-bugfix "Was spec wrong?" check — it runs for ALL behavior-changing reviews, not only post-bugfix. Flag findings here; Phase 6 validates and Phase 7 fixes (CODE-WRONG fixes route through the fix loop; SPEC-STALE fixes route to the canonical spec updater before `/docs-update`).
 
 **Correctness & Bug Detection:** Apply `SYNC:bug-detection` — null safety, boundaries, error handling, resource cleanup, concurrency.
 
@@ -525,7 +525,7 @@ For each changed file, identify related documentation:
 3. **Capture, do NOT auto-fix.** Integrate its output into the main report under `## Integration-Test-Review Findings`: per-gate verdicts, the Coverage Mapping Table, and every GAP / SPEC-GAP / unjustified COVERED-UNIT as a finding (GAP = HIGH severity minimum; CRITICAL for auth/money/data-integrity paths).
 4. Set the `[Review Phase 3.7]` task to `completed`.
 
-**Pipeline integration:** Phase 3.7 findings are ordinary findings — consolidated in Phase 4, validated in Phase 6, fixed in Phase 7. GAP fixes WRITE the missing test via `/integration-test`; SPEC-GAP fixes run `/spec-tests [update]`. The Phase 7 restart then re-audits coverage over the full updated diff, including the new tests.
+**Pipeline integration:** Phase 3.7 findings are ordinary findings — consolidated in Phase 4, validated in Phase 6, fixed in Phase 7. GAP fixes WRITE the missing test via `/integration-test`; SPEC-GAP fixes run `/spec [mode=tests] [update]`. The Phase 7 restart then re-audits coverage over the full updated diff, including the new tests.
 
 **Parent workflow boundary:** When this skill is invoked as step 1 inside `$workflow-review-changes`, do NOT run Phase 3.7 locally — the parent workflow's dedicated `/integration-test-review` step owns the 7-gate audit and coverage mapping. Record `Phase 3.7 deferred to parent workflow /integration-test-review step.` (`SYNC:integration-test-sync-check` still applies locally as the lightweight pairing check.)
 
@@ -640,7 +640,7 @@ For bugfix, failed-verification, stale/incorrect final output, regression, or be
 - MUST ATTENTION New feature/component added → flag if corresponding doc missing
 - MUST ATTENTION Test specs reflect current behavior after changes
 - MUST ATTENTION API changes reflected in relevant API docs or specs
-- MUST ATTENTION **Spec-drift adjudication** (`SYNC:spec-drift-adjudication`): for every behavior-changing file, decide whether a divergence from the canonical Feature Spec is CODE-WRONG (change is the defect — BLOCKING, fix code/test), SPEC-STALE (change is intended — update spec via `/feature-spec [update]` first), or AMBIGUOUS (intended behavior unclear — `AskUserQuestion` before editing either side). Do not flag a divergence as a one-directional "stale doc" without naming which side is canonical. Unadjudicated behavior-vs-spec divergence is a FAIL.
+- MUST ATTENTION **Spec-drift adjudication** (`SYNC:spec-drift-adjudication`): for every behavior-changing file, decide whether a divergence from the canonical Feature Spec is CODE-WRONG (change is the defect — BLOCKING, fix code/test), SPEC-STALE (change is intended — update spec via `/spec [update]` first), or AMBIGUOUS (intended behavior unclear — `AskUserQuestion` before editing either side). Do not flag a divergence as a one-directional "stale doc" without naming which side is canonical. Unadjudicated behavior-vs-spec divergence is a FAIL.
 
 ### 8. M1-M6 Compliance Gate — Code-to-Spec Drift (BLOCKING)
 
@@ -681,7 +681,7 @@ Provide feedback in this format:
 
 **Spec Drift Adjudication:** (Behavior-changing changes only — per `SYNC:spec-drift-adjudication`)
 
-- `<behavior/file>` → CODE-WRONG | SPEC-STALE | AMBIGUOUS — verdict + routed fix (`/feature-spec [update]`, regression TC, or `AskUserQuestion`)
+- `<behavior/file>` → CODE-WRONG | SPEC-STALE | AMBIGUOUS — verdict + routed fix (`/spec [update]`, regression TC, or `AskUserQuestion`)
 - `Spec in sync` — if changed behavior matches the canonical Feature Spec
 - `No behavior change — N/A` — if the diff is docs/tooling/style only
 
@@ -892,7 +892,7 @@ If `architectureRules` not present in project-config.json, skip silently.
 
 1. Set the `[Review Phase 8]` task to `in_progress`.
 2. **Invoke `/docs-update`** over the FULL changeset (the Phase 1 diff source plus any Phase 7 fixes). Let it detect impacted docs from the changes — feature docs, architecture references, READMEs, API docs, test specs, setup/getting-started guides.
-3. If the Phase 4 Spec Drift Adjudication (`SYNC:spec-drift-adjudication`) returned any **SPEC-STALE** verdict — the canonical Feature Spec no longer reflects the intended behavior (includes the post-bugfix case where the spec documents the bug as correct behavior) — run `/feature-spec [update]` BEFORE `/docs-update` so the spec is corrected to intended behavior first. Never let `/docs-update` codify broken or superseded behavior. CODE-WRONG verdicts are NOT a spec edit — they were already fixed in the Phase 7 code-fix loop.
+3. If the Phase 4 Spec Drift Adjudication (`SYNC:spec-drift-adjudication`) returned any **SPEC-STALE** verdict — the canonical Feature Spec no longer reflects the intended behavior (includes the post-bugfix case where the spec documents the bug as correct behavior) — run `/spec [update]` BEFORE `/docs-update` so the spec is corrected to intended behavior first. Never let `/docs-update` codify broken or superseded behavior. CODE-WRONG verdicts are NOT a spec edit — they were already fixed in the Phase 7 code-fix loop.
 4. Record applied doc updates (or `No impacted docs — verified N changed files against related docs`) under `## Phase 8 Docs-Update` in the review report.
 5. Set the `[Review Phase 8]` task to `completed`.
 
@@ -926,8 +926,8 @@ If `architectureRules` not present in project-config.json, skip silently.
 | -------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | `/docs-update`             | **Mandatory terminal gate (Phase 8)** — final docs sync after the review/fix loop converges; also the primary fix path for flagged staleness | ALWAYS at Phase 8 once review is clean (standalone) — unconditional; AND during Phase 7 for validated staleness findings. Deferred to parent in `$workflow-review-changes`. |
 | `/spec-index`              | **Derived index** — regenerates the bucket `INDEX.md`/ERD FROM the Feature Specs (never a source of truth) | After specs change, to refresh navigation aids — NOT for correcting specs |
-| `/feature-spec [update]`   | **Canonical spec updater** — corrects feature doc §1-8 (the single source of truth) | Called internally by docs-update; call directly for targeted update — and BEFORE docs-update if a spec-was-wrong scenario is detected |
-| `/spec-tests [update]`       | **Test spec updater** — called when test cases may be stale                 | Called internally by docs-update; call directly for targeted test case update                               |
+| `/spec [update]`   | **Canonical spec updater** — corrects feature doc §1-8 (the single source of truth) | Called internally by docs-update; call directly for targeted update — and BEFORE docs-update if a spec-was-wrong scenario is detected |
+| `/spec [mode=tests] [update]`       | **Test spec updater** — called when test cases may be stale                 | Called internally by docs-update; call directly for targeted test case update                               |
 | `/integration-test-review` | **Mandatory coverage gate (Phase 3.7)** — 7-gate test-quality audit + Gate 7 change-coverage mapping (every behavior change → covering test + spec TC) | ALWAYS at Phase 3.7 when behavior-bearing code changed (standalone); deferred to the parent's dedicated step in `$workflow-review-changes`. Skip only docs-only diffs |
 | `/review-ui`               | **UI/frontend quality gate** — overflow, responsive flex, z-index, SCSS/BEM | Owned by this skill — invoked internally as the UI dimension (ui-ux-designer sub-agent) when the diff has frontend/UI files; NOT a separate workflow step |
 | `/code-simplifier`         | **Quality-optimization dimension** — clarity/consistency/maintainability simplifications | Owned by this skill — invoked internally in Phase 3.5 (report mode) when the diff has code files; its findings flow through Phase 6 validation → Phase 7 fix |
@@ -946,7 +946,7 @@ review-changes (you are here)
   ├─ Phase 3.7: Integration-test-review coverage gate (INTERNAL — /integration-test-review over the FULL diff, 7 gates)
   │    → Gate 7 maps every behavior-changing production file to a covering test (integration-first) + spec TC
   │    → GAP/SPEC-GAP verdicts feed Phase 6 validation → Phase 7 fix
-  │    → GAP fix = WRITE the missing test via /integration-test; SPEC-GAP fix = /spec-tests [update] (skip docs-only diffs)
+  │    → GAP fix = WRITE the missing test via /integration-test; SPEC-GAP fix = /spec [mode=tests] [update] (skip docs-only diffs)
   │
   ├─ Follow-on quality checks (review-architecture → code-review → performance)
   │
@@ -965,7 +965,7 @@ review-changes (you are here)
   ├─ Spec drift adjudication (SYNC:spec-drift-adjudication) — ALL behavior-changing reviews:
   │    For every behavior-bearing change diverging from the canonical Feature Spec, classify:
   │    → CODE-WRONG (change violates an intended spec rule/AC/invariant) → [REQUIRED] BLOCKING finding; fix code/test (regression TC first)
-  │    → SPEC-STALE (intentional new behavior the spec no longer reflects) → [REQUIRED] /feature-spec [update] BEFORE /docs-update, then /spec-tests [update]
+  │    → SPEC-STALE (intentional new behavior the spec no longer reflects) → [REQUIRED] /spec [update] BEFORE /docs-update, then /spec [mode=tests] [update]
   │    → AMBIGUOUS → [REQUIRED] AskUserQuestion (or canonical spec owner) before editing either side
   │    Bugfix sub-case: if post-bugfix AND spec documents the bug as expected behavior → SPEC-STALE; never let /docs-update codify broken behavior.
   │    Never normalize drift just because code/tests are green.
@@ -1036,7 +1036,7 @@ review-changes (you are here)
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 >
-> **Deep-dive:** see `/sequential-thinking` skill (`.claude/skills/sequential-thinking/SKILL.md`) for worked examples (api-design, debug, architecture), advanced techniques (spiral refinement, hypothesis testing, convergence), and meta-strategies (uncertainty handling, revision cascades).
+> **Deep-dive:** see `/sequential-thinking` skill (`.claude/skills/sequential-thinking/SKILL.md`) for worked examples (API design, debugging, architecture), advanced techniques (spiral refinement, hypothesis testing, convergence), and meta-strategies (uncertainty handling, revision cascades).
 
 <!-- /SYNC:sequential-thinking-protocol -->
 
@@ -1564,7 +1564,7 @@ For each identified concern: create a `TaskCreate` sub-task, work through it wit
 > 1. **Detect** — compare the change against the spec's documented intent. No divergence → record `Spec in sync` and move on.
 > 2. **Classify** the divergence:
 >    - **CODE-WRONG** — the spec correctly states intended behavior and the change violates it → BLOCKING finding; fix the code/test against intended behavior (write/adjust a regression TC first).
->    - **SPEC-STALE** — the change is the new intended behavior and the spec now documents the old/wrong behavior → update the spec FIRST via `/feature-spec [update]`, then sync `/spec-tests [update]` + `[direction=sync]`.
+>    - **SPEC-STALE** — the change is the new intended behavior and the spec now documents the old/wrong behavior → update the spec FIRST via `/spec [update]`, then sync `/spec [mode=tests] [update]` + `[mode=sync]`.
 >    - **AMBIGUOUS** — intended behavior is unclear → `AskUserQuestion` (or the canonical spec owner) before editing either side.
 > 3. **Never normalize drift just because code/tests are green** — green can encode the drift itself. Reconcile to canonical intent, never to whichever side currently passes.
 >

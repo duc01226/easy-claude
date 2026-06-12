@@ -1,7 +1,7 @@
 ---
 name: code
 version: 1.0.0
-description: '[Implementation] Use when you need to start coding & testing an existing plan. Flags: --approval=off (auto/trust mode, no approval gate), --tests=off (skip the test step), --parallel (parallel phase execution via subagents). Folds the former /code-auto, /code-no-test, /code-parallel skills into these flags — those names no longer resolve as slash commands.'
+description: '[Implementation] Use when you need to start coding & testing an existing plan. Flags: --approval=off (auto/trust mode, no approval gate), --tests=off (skip the test step), --parallel (parallel phase execution via subagents).'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -61,7 +61,7 @@ description: '[Implementation] Use when you need to start coding & testing an ex
 
 - **`--parallel` → Step 2 (Implementation):** First read the plan for a Dependency graph / Execution strategy / Parallelization info / File-ownership matrix. **If** the plan declares parallel-executable phases → launch multiple `fullstack-developer` subagents simultaneously, passing each its phase-file path, environment info, and exact file-ownership boundaries (no cross-boundary edits); wait for the parallel group, verify no file conflicts, then run any dependent sequential phases one agent at a time. **Else** → fall back to normal sequential main-agent implementation. All later steps (Testing, Review, Approval, Finalize) run unchanged on the merged result.
 - **`--tests=off` → Step 3 (Testing):** Skip entirely. Proceed Implementation → Code Review. The Source/test drift check still applies to any tests that already exist. Keep existing tests real and genuinely passing — NEVER comment out tests, weaken assertions, or use fake data to make them pass — why: faked green hides the regression the test exists to catch.
-- **`--approval=off` → Step 5 (User Approval):** Skip the blocking gate. Finalize (status, docs, auto-commit) runs once Steps 1-4 pass. When `$ALL_PHASES=Yes`, loop back to Step 0 for the next incomplete phase; on the last phase, generate the summary report and ask about `/preview` and `/plan-archive`.
+- **`--approval=off` → Step 5 (User Approval):** Skip the blocking gate. Finalize (status, docs, auto-commit) runs once Steps 1-4 pass. When `$ALL_PHASES=Yes`, loop back to Step 0 for the next incomplete phase; on the last phase, generate the summary report and ask about `/preview`.
 
 > **Behavior preserved:** the debugger-trace gate, granularity gate, testing/review quality bars, and all SYNC blocks apply in EVERY mode. Flags change *which gates run*, never *how rigorously a running gate is enforced*.
 
