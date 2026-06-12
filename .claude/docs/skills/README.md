@@ -1,6 +1,6 @@
 # Skills Reference
 
-> 184 skills across 15+ domains + 5 shared reference/protocol files for context-aware AI assistance
+> 176 skills across 15+ domains + 5 shared reference/protocol files for context-aware AI assistance
 
 ## Overview
 
@@ -22,7 +22,7 @@ Skills Activated: fix, feature-investigation
 
 ## Skill Domains
 
-> Curated highlights — the full catalog has 184 skills; the tables below list selected skills per domain, not the complete set.
+> Curated highlights — the full catalog has 176 skills; the tables below list selected skills per domain, not the complete set.
 
 | Domain                                            | Skills | Description                                          |
 | ------------------------------------------------- | ------ | ---------------------------------------------------- |
@@ -48,10 +48,6 @@ Skills Activated: fix, feature-investigation
 
 ## Development - Backend
 
-| Skill        | Triggers                                | Description                  |
-| ------------ | --------------------------------------- | ---------------------------- |
-| `api-design` | REST, controller, route, HTTP, endpoint | API endpoint design patterns |
-
 See `docs/project-reference/backend-patterns-reference.md` for project-specific backend patterns.
 
 ---
@@ -70,13 +66,12 @@ See `docs/project-reference/frontend-patterns-reference.md` for project-specific
 
 ## Architecture
 
-| Skill                            | Triggers                                | Description                                       |
-| -------------------------------- | --------------------------------------- | ------------------------------------------------- |
-| `arch-cross-service-integration` | cross-service, data sync                | Service communication                             |
-| `performance-review`             | performance, optimization, bottleneck   | Performance tuning + architecture-altitude review |
-| `security-review`                | security, vulnerabilities               | Security analysis                                 |
-| `refactoring`                    | refactor, restructure, clean            | Code restructuring                                |
-| `dependency`                     | dependency map, blockers, critical path | Feature dependency mapping                        |
+| Skill                | Triggers                                | Description                                       |
+| -------------------- | --------------------------------------- | ------------------------------------------------- |
+| `performance-review` | performance, optimization, bottleneck   | Performance tuning + architecture-altitude review |
+| `security-review`    | security, vulnerabilities               | Security analysis                                 |
+| `refactoring`        | refactor, restructure, clean            | Code restructuring                                |
+| `dependency`         | dependency map, blockers, critical path | Feature dependency mapping                        |
 
 ---
 
@@ -104,14 +99,13 @@ See `docs/project-reference/frontend-patterns-reference.md` for project-specific
 
 ## Documentation
 
-| Skill           | Triggers                                                           | Description                                                                      |
-| --------------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| `documentation` | document, API docs, comments, README                               | General documentation                                                            |
-| `docs-seeker`   | find docs, library docs                                            | Documentation search                                                             |
-| `feature-spec`  | business docs, module docs, feature docs, feature readme           | Business/feature documentation (single canonical feature spec per feature)       |
-| `changelog`     | changelog, version history, update changelog                       | Changelog generation                                                             |
-| `release-notes` | release notes, git history                                         | Release notes from git commits (tag-to-tag)                                      |
-| `release-doc`   | release doc, what changed in the last N days, changes last 30 days | AI-analyzed release doc from time range or custom prompt — dumps artifacts first |
+| Skill           | Triggers                                                 | Description                                                                |
+| --------------- | -------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `documentation` | document, API docs, comments, README                     | General documentation                                                      |
+| `docs-seeker`   | find docs, library docs                                  | Documentation search                                                       |
+| `feature-spec`  | business docs, module docs, feature docs, feature readme | Business/feature documentation (single canonical feature spec per feature) |
+| `changelog`     | changelog, version history, update changelog             | Changelog generation                                                       |
+| `release-notes` | release notes, git history                               | Release notes from git commits (tag-to-tag)                                |
 
 ---
 
@@ -175,7 +169,6 @@ See `docs/project-reference/frontend-patterns-reference.md` for project-specific
 | `memory-management`    | remember, save, persist                          | Pattern persistence          |
 | `code-simplifier`      | simplify, refine, clarity                        | Code cleanup                 |
 | `repomix`              | codebase export, context                         | Context export               |
-| `plans-kanban`         | kanban, task tracking                            | Task management              |
 | `learn`                | remember this, always do, patterns, list learned | Pattern learning and viewing |
 
 ---
@@ -188,7 +181,6 @@ See `docs/project-reference/frontend-patterns-reference.md` for project-specific
 | `product-owner`    | backlog, prioritize, PBI, feature idea, stakeholder                                              | Backlog management, prioritization        |
 | `project-manager`  | timeline, dependencies, status, milestone, resource                                              | Project tracking, reporting               |
 | `spec-tests`       | test plan, test cases, coverage, automation                                                      | Test specification and case generation    |
-| `qc-specialist`    | quality gate, audit, compliance, standards                                                       | Quality checkpoints, audits               |
 | `design-spec`      | UI specification, component spec, layout spec, wireframe, mockup, user flow, accessibility audit | Design specification documents, UX design |
 | `idea`             | capture idea, new idea, add to backlog                                                           | Idea capture and structuring              |
 | `refine`           | refine idea, convert to PBI, acceptance criteria                                                 | Idea-to-PBI transformation                |
@@ -199,10 +191,9 @@ See `docs/project-reference/frontend-patterns-reference.md` for project-specific
 
 ## Web/Frameworks
 
-| Skill                   | Triggers              | Description      |
-| ----------------------- | --------------------- | ---------------- |
-| `package-upgrade`       | upgrade, dependencies | Package updates  |
-| `markdown-novel-viewer` | markdown, novel       | Markdown viewing |
+| Skill             | Triggers              | Description     |
+| ----------------- | --------------------- | --------------- |
+| `package-upgrade` | upgrade, dependencies | Package updates |
 
 ---
 
@@ -301,7 +292,7 @@ Skills are often activated alongside commands:
 | `/story`        | `story`, `business-analyst`      |
 | `/design-spec`  | `design-spec`                    |
 | `/spec-tests`   | `spec-tests`                     |
-| `/quality-gate` | `qc-specialist`                  |
+| `/quality-gate` | `quality-gate`                   |
 | `/dependency`   | `dependency`, `project-manager`  |
 | `/prioritize`   | `prioritize`, `product-owner`    |
 
@@ -327,4 +318,4 @@ Use `/skill-creator` to create a new skill:
 
 ---
 
-_Source: `.claude/skills/` | 184 skills across 15+ domains + 5 shared reference/protocol files_
+_Source: `.claude/skills/` | 176 skills across 15+ domains + 5 shared reference/protocol files_

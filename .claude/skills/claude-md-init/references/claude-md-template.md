@@ -34,7 +34,7 @@
 
 1. **Understanding > Output** — Never ship code you can't explain. AI generates candidates; humans validate intent.
 2. **Design Before Mechanics** — Document WHY before WHAT. A 3-sentence rationale prevents 3-day debugging sessions.
-3. **Own Your Abstractions** — Every dependency, framework, and platform decision is YOUR responsibility.
+3. **Own Your Abstractions** — Every dependency, framework, and runtime/provider decision is YOUR responsibility.
 4. **Operational Awareness** — Code that works but can't be debugged, monitored, or rolled back is technical debt in disguise.
 5. **Depth Over Breadth** — One well-understood solution beats ten AI-generated variants.
 
@@ -122,7 +122,7 @@ Entity/Model (Lowest)  >  Service  >  Component/Handler (Highest)
 | ----------- | ---------------- | -------------------------------------- |
 | Constants   | UPPER_SNAKE_CASE | `MAX_RETRY_COUNT`                      |
 | Booleans    | Prefix with verb | `isActive`, `hasPermission`, `canEdit` |
-| Collections | Plural           | `users`, `items`, `employees`          |
+| Collections | Plural           | `users`, `items`, `orders`             |
 
 ---
 

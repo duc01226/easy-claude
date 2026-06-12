@@ -238,7 +238,7 @@ Use Claude Code from IDE terminal:
 
 ```bash
 # In VS Code terminal
-claude "explain this project structure"
+claude "explain this repository structure"
 
 # In JetBrains terminal
 claude "add error handling to current file"

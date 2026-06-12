@@ -78,7 +78,7 @@ below — if a downstream rule would raise change cost, this principle wins.
 
 ## Greenfield Mode
 
-> **Auto-detected:** If no existing codebase found (no code directories like `src/`, `app/`, `lib/`, `server/`, `packages/`, etc., no manifest files like `package.json`/`*.sln`/`go.mod`, no populated `project-config.json`), skill auto-switches to greenfield mode. Planning artifacts (docs/, plans/, .claude/) don't count — project must have actual code directories with content.
+> **Auto-detected:** If no existing codebase found (no discovered source directories, no manifest files, no populated `project-config.json`), skill auto-switches to greenfield mode. Planning artifacts (docs/, plans/, .claude/) don't count — repository must have actual code directories with content.
 
 **When greenfield detected:**
 

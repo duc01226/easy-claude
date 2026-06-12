@@ -40,12 +40,14 @@ triggers: 'tdd spec, tdd test, test driven, write test specs, create test cases,
 
 > **Evidence Gate:** [BLOCKING] — every claim/finding/recommendation requires `file:line` proof + confidence % (>80% act, <80% verify first).
 
-> **[BLOCKING] Tech-agnostic output:** generated TC prose follows `docs/project-reference/spec-principles.md` §3 — no framework/product/language/design-pattern names in the behavioral description; source paths, class names, and test identifiers (e.g. `{File}.cs::Method`) are correct ONLY in evidence fields (`**Evidence**`, `IntegrationTest`, `[Source:]`), frontmatter, and Mermaid.
+> **[BLOCKING] Tech-agnostic output:** generated TC prose follows `docs/project-reference/spec-principles.md` §3 — no framework/product/language/design-pattern names in the behavioral description; source paths, class names, and test identifiers (e.g. `{File}::{Method}`) are correct ONLY in evidence fields (`**Evidence**`, `IntegrationTest`, `[Source:]`), frontmatter, and Mermaid.
+
+> **[BLOCKING] One TC → many tests (business-oriented TCs):** Each §8 TC is a **business / user-story acceptance scenario**, not a code unit. It is covered by **one OR MANY** annotation-tagged tests (integration + unit, across components/services), joined by the test-spec annotation (key `TestSpec`, value `TC-...`) in the configured test framework's syntax. Write TCs at the business-behavior grain — NEVER split, narrow, or technicalize a TC so it maps 1:1 to a single test method or production class (that breaks the business/user-story orientation, M1/M5). Coverage = ≥1 annotation-tagged test. Many tests sharing one TC is correct, never a duplicate. Canonical contract: `.claude/skills/shared/tc-format.md` → TC ↔ Test Code Cardinality.
 
 > **Graph Context (MANDATORY when graph.db exists):** Before generating test specs for cross-service features, run:
 >
 > ```bash
-> python .claude/scripts/code_graph trace {ServiceDir}/{FeatureFile}.cs --direction both --json
+> python .claude/scripts/code_graph trace {configured-source-path}/{feature-entry-file} --direction both --json
 > ```
 >
 > Use output to identify: event consumers, message bus subscribers, background jobs triggered by this feature. These are cross-service TC candidates (category 041–049).
@@ -123,7 +125,7 @@ below — if a downstream rule would raise change cost, this principle wins.
 
 - **Unified format:** `TC-{FEATURE}-{NNN}` — feature codes in `docs/project-reference/feature-spec-reference.md`
 - **Source of truth:** Feature docs Section 8 — canonical TC registry. NEVER write TCs to `docs/specs/` as primary destination.
-- **Evidence required:** Every TC MUST have `Evidence: [Source: {namespace}/{service}/{id}]` (stack-portable abstract anchor — never `file:line`/`src/` paths) or `TBD (pre-implementation)` for TDD-first. Canonical format + anchor taxonomy: `shared/tc-format.md`
+- **Evidence required:** Every TC MUST have `Evidence: [Source: {namespace}/{service}/{id}]` (stack-portable abstract anchor — never physical code coordinates or repository-root paths) or `TBD (pre-implementation)` for TDD-first. Canonical format + anchor taxonomy: `shared/tc-format.md`
 - **Minimum 4 categories:** Positive (happy path) · Negative (error handling) · **Authorization** (role-based access — MANDATORY) · Edge cases
     - **Bugfix specs:** MANDATORY Preservation Tests — see `references/spec-tests-template.md#preservation-tests-mandatory-for-bugfix-specs`
     - **Query-Only exception:** Read-only, no auth boundaries, no events → validation + authorization + edge cases minimum
@@ -318,11 +320,11 @@ rg "{project read-endpoint patterns}" {target-source-path} -g "{source-file-glob
 ```bash
 # 1. Find API endpoint references in other feature docs
 grep -rl "{endpoint}" docs/specs/ | grep -v "{current-module}"
-# Replace {endpoint} with the main API path changed (e.g., /api/employees, /api/invitations)
+# Replace {endpoint} with the main API path changed (e.g., /api/orders, /api/customers)
 
 # 2. Find entity references in other feature docs
 grep -rl "{entity-name}" docs/specs/ | grep -v "{current-module}"
-# Replace {entity-name} with key domain entities changed (e.g., Employee, Invitation)
+# Replace {entity-name} with key domain entities changed (e.g., Order, Customer)
 
 # 3. Find event references in other feature docs
 grep -rl "{event-name}" docs/specs/ | grep -v "{current-module}"
@@ -354,7 +356,7 @@ TC Blast Radius Analysis:
 **Sync mode (§8 TCs ↔ integration test code):**
 
 1. Read feature docs Section 8 TCs for target module (canonical source)
-2. Read test files: grep for test spec annotations (`[Trait("TestSpec", "TC-...")]`) in the integration-test paths configured by `docs/project-config.json` or the project integration-test reference doc.
+2. Read test files: grep for the test-spec annotation (key `TestSpec`) in the integration-test paths configured by `docs/project-config.json` or the project integration-test reference doc.
 3. Build 2-way comparison table:
 
 ```
@@ -370,7 +372,7 @@ TC Blast Radius Analysis:
 
 **From-integration-tests mode (reverse-engineer specs from existing tests):**
 
-1. Grep `[Trait("TestSpec", "TC-...")]` in target test project
+1. Grep for the test-spec annotation (key `TestSpec`) in the target test project
 2. Per test method: extract TC ID, method name, test description from comments
 3. Read test method body → generate GWT steps and evidence
 4. Write extracted TCs to feature doc Section 8 (if not already there)
@@ -492,11 +494,11 @@ And {additional verification}
 
 Forward-sync the canonical §8 TCs against the integration test suite (§8 is canonical; test code implements it):
 
-1. Map each §8 TC to its covering test method via the `[Trait("TestSpec", "TC-...")]` annotation
+1. Map each §8 TC to its covering test method(s) via the test-spec annotation (key `TestSpec`, value `TC-…`) — **one TC may be covered by many tests** (integration + unit, across components/services); the annotation is the join key, and finding ≥1 covering test means the TC is covered (see `tc-format.md` → TC ↔ Test Code Cardinality)
 2. TDD-first: map to expected test method names (to be created by `/integration-test`)
-3. Flag §8 TCs with no covering test as coverage gaps for `/integration-test`
+3. Flag §8 TCs with **zero** covering tests as coverage gaps for `/integration-test` (NEVER flag many-tests-per-TC as a problem — that is the expected one-to-many shape; NEVER split a business TC to achieve a 1:1 map to test methods)
 
-> **[M2/M3 — keep §8 stack-portable]** Each TC's `Evidence` **abstract anchor** (`[Source: {namespace}/{service}/{id}]`) stays verbatim — NEVER expand it to a `file:line`/`src/` path. The only physical reference a TC may carry is the operational `IntegrationTest` `{TestFile}::{MethodName}` link.
+> **[M2/M3 — keep §8 stack-portable]** Each TC's `Evidence` **abstract anchor** (`[Source: {namespace}/{service}/{id}]`) stays verbatim — NEVER expand it to physical code coordinates or repository-root paths. The only physical reference a TC may carry is the operational `IntegrationTest` field — one or more `{TestFile}::{MethodName}` link(s) (or a test-filter expression), since a business TC maps to many tests.
 
 **Skip** if user says "skip sync" or no integration test project exists for the module.
 
@@ -645,32 +647,33 @@ Produce quality report alongside sync output. **Do NOT block sync** — surface 
 ### Forward Sync Algorithm (§8 TCs → Test Code)
 
 1. Read all `TC-{FEATURE}-{NNN}` entries from feature doc Section 8 (canonical source)
-2. Grep the configured integration-test paths for `[Trait("TestSpec", "TC-...")]` annotations — extract the set of TC IDs already covered by tests
+2. Grep the configured integration-test paths for the test-spec annotation (key `TestSpec`) — extract the set of TC IDs already covered by tests
 3. Run quality gate — flag issues, log report
-4. **Coverage diff:** `uncovered = §8_ids − tested_ids`
-    - For each uncovered TC, record the gap and the suggested generator command:
+4. **Coverage diff:** `uncovered = §8_ids − tested_ids` (where `tested_ids` are the TCs whose test-spec annotation appears in the configured **integration-test** paths)
+    - A TC whose test-spec annotation also appears in a **unit-test** project is already **covered** per the one-to-many contract (coverage = ≥1 annotation-tagged test, integration OR unit — see `tc-format.md` → TC ↔ Test Code Cardinality). Do NOT downgrade it to `Status: Untested`; only its `IntegrationTest:` field stays empty/marker because no *integration* test exists yet. A gap here means "no integration test," NOT "no test."
+    - For each TC with no integration test, record the gap and the suggested generator command:
       `→ run /integration-test [from-prompt] TC-{FEATURE}-{NNN}`
     - NEVER write TCs into a separate file — §8 is the single source of truth; tests are generated FROM it by `/integration-test`.
-5. Update each §8 TC's `IntegrationTest:` field with the covering test link, or the not-yet-implemented marker:
+5. Update each §8 TC's `IntegrationTest:` field with **all** covering test links (one TC → many tests), or the not-yet-implemented marker. List every annotation-tagged covering test (comma-separated on one line), or use a test-filter expression when the set is large:
 
     ```
-    IntegrationTest: {TestProject}::{TestClass}::{TestMethodName}
+    IntegrationTest: {TestProject}::{TestClass}::{TestMethodName}, {TestProject}::{OtherClass}::{OtherMethod}
     ```
 
-    If no integration test exists yet for this TC:
+    The field is representative; the authoritative complete set is whatever carries the TC's `TestSpec` annotation in code. If no integration test exists yet for this TC:
 
     ```
     IntegrationTest: (not yet implemented — run /integration-test [from-prompt] TC-{FEATURE}-{NNN})
     ```
 
     The "not yet implemented" text is detectable by tools scanning for coverage gaps.
-6. Emit a coverage summary: `{tested}/{total} §8 TCs have covering tests; {uncovered} gaps flagged for /integration-test`.
+6. Emit a coverage summary: `{tested}/{total} §8 TCs have covering integration tests; {uncovered} gaps flagged for /integration-test` (a TC covered only by unit tests is still covered per the contract — it is not counted as Untested, only as lacking an integration test).
 
 ### Reverse Sync Algorithm (Test Code → §8)
 
 Reverse sync is **emergency recovery only** — back-fill §8 for tests that exist without a canonical TC (e.g. tests written before the spec system, or imported from another project), with explicit user confirmation and a recovery report. This is the `from-integration-tests` path; use it to recover canonical coverage, never as a normal update path — forward authoring from §8 remains the default.
 
-1. Grep the integration-test paths for `[Trait("TestSpec", "TC-...")]` — extract all TC IDs referenced by test code
+1. Grep the integration-test paths for the test-spec annotation (key `TestSpec`) — extract all TC IDs referenced by test code
 2. Read feature doc Section 8 — extract existing TC IDs
 3. **ID-keyed merge:** TC referenced by a test but NOT in §8 → reverse-engineer a TC (objective + GWT + evidence anchor from the test body) and insert into Section 8
     - NEVER overwrite existing §8 TCs (canonical)
@@ -682,7 +685,7 @@ Reverse sync is **emergency recovery only** — back-fill §8 for tests that exi
 
 Two orphan classes after sync:
 
-- **Untested TC** — a §8 TC with no `[Trait("TestSpec", "TC-...")]` reference in test code → flag for `/integration-test` (NEVER delete the TC).
+- **Untested TC** — a §8 TC with no test-spec annotation (key `TestSpec`) reference in test code → flag for `/integration-test` (NEVER delete the TC).
 - **Untracked test** — a test referencing a TC ID absent from §8 → either back-fill via reverse sync, or (if the test's `TestSpec` is stale/`[DEPRECATED]`) flag the test for cleanup by its owner.
 
 NEVER silently delete a §8 TC or a test during sync — surface both orphan classes in the summary and leave the destructive action to the owner.
@@ -721,7 +724,7 @@ Feature-spec newer than the covering test files → warn: `⚠ Section 8 changed
 | `/spec-index`                | **Derived index** — regenerable navigation catalog/ERD assembled FROM the Feature Specs (never a source of truth) | After §8 changes, to refresh the bucket `INDEX.md` TC counts via /spec-index |
 | `/feature-spec`              | **TC host** — Section 8 is where TCs live; feature-spec creates/updates the doc structure | Before calling spec-tests, feature doc must exist; run /feature-spec if missing                       |
 | `/review-artifact --type=spec-tests`           | **Reviewer** — audits TC coverage, GIVEN/WHEN/THEN quality, no duplicates                  | Always call after spec-tests (CREATE or UPDATE) — never ship TCs without review                       |
-| `/integration-test`          | **Consumer** — generates test code from TCs                                                | After spec-tests + review, integration-test converts TCs to `.cs` test files                          |
+| `/integration-test`          | **Consumer** — generates test code from TCs                                                | After spec-tests + review, integration-test converts TCs into configured test files                    |
 | `/spec-tests [direction=sync]` | **Self (sync mode)** — forward-syncs Section 8 TCs ↔ integration test code                | Always call after spec-tests UPDATE; reconciles §8 TCs with the integration test suite                |
 | `/docs-update`               | **Orchestrator** — calls spec-tests as Phase 3 of doc sync chain                             | Run /docs-update for full automated sync (calls spec-tests UPDATE + sync internally)                  |
 

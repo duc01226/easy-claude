@@ -185,14 +185,14 @@ Scenario: {Descriptive title}
 
 1. Reference existing test case patterns from feature docs
 2. Use TC-{FEATURE}-{NNN} format (e.g., TC-GM-001)
-3. Include Evidence field: `[Source: namespace/service/id]` abstract-anchor format — never `file:line` or `src/` paths (stack-portable; see `shared/tc-format.md`)
-4. Example from GoalManagement feature:
+3. Include Evidence field: `[Source: namespace/service/id]` abstract-anchor format — never physical code coordinates or repository-root paths (stack-portable; see `shared/tc-format.md`)
+4. Example from InvoiceManagement feature:
     ```
-    TC-GRO-GOAL-001: Create goal with valid data
-    GIVEN employee has permission to create goals
-    WHEN employee submits goal form with all required fields
-    THEN goal is created and appears in goal list
-    Evidence: [Source: operation/growth/CreateGoal], [Source: component/growth/Goal]
+    TC-INV-001: Create invoice with valid data
+    GIVEN user has permission to create invoices
+    WHEN user submits invoice form with all required fields
+    THEN invoice is created and appears in invoice list
+    Evidence: [Source: operation/sales/CreateInvoice], [Source: component/sales/Invoice]
     ```
 
 ### 4. Business Rules Documentation
@@ -224,7 +224,7 @@ Before finalizing user story:
 - [ ] Business rules don't conflict with existing BR-{MOD}-XXX rules
 - [ ] Test case format matches existing TC-{FEATURE}-{NNN} patterns
 - [ ] Entity names match those in feature docs
-- [ ] Evidence format follows the abstract-anchor convention (`[Source: namespace/service/id]`) — no `file:line` or `src/` paths
+- [ ] Evidence format follows the abstract-anchor convention (`[Source: namespace/service/id]`) — no physical code coordinates or repository-root paths
 
 ### Documentation Links
 

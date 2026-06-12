@@ -238,8 +238,8 @@ If an architecture report exists (from `/architecture-design`), read the "Scaffo
 
 The checklists above are **templates**. Before scaffolding:
 
-1. **Read the plan** — What tech stack was chosen? (e.g., .NET vs Node.js, Angular vs React)
-2. **Adapt naming** — Match target framework conventions (e.g., C# PascalCase, TypeScript camelCase)
+1. **Read the plan** — What tech stack was chosen?
+2. **Adapt naming** — Match target framework and language conventions
 3. **Skip irrelevant items** — Not every project needs every item (e.g., skip IFileStorageService if no file uploads)
 4. **Add project-specific items** — The plan may require additional base classes not in the template
 5. **Use `AskUserQuestion`** — Confirm final checklist with user before generating code

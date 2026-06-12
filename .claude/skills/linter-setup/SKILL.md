@@ -39,7 +39,7 @@ Read from (in priority order):
 2. Architecture-design report — look for tech stack comparison table
 3. Tech-stack-comparison report — look for chosen stack
 
-Extract: primary language(s), framework(s), CI platform, test framework, package manager.
+Extract: primary language(s), framework(s), CI provider/tooling, test framework, package manager.
 
 Write detected profile to `.ai/workspace/linter-setup/stack-profile.md`:
 
@@ -49,7 +49,7 @@ Write detected profile to `.ai/workspace/linter-setup/stack-profile.md`:
 Language: {language}
 Framework: {framework}
 Package Manager: {npm/pip/dotnet/go/cargo/etc}
-CI Platform: {github-actions/gitlab-ci/azure-pipelines/etc}
+CI Provider/Tooling: {github-actions/gitlab-ci/azure-pipelines/etc}
 Test Framework: {framework}
 ```
 
@@ -120,7 +120,7 @@ Detect pre-commit framework for the stack:
 
 - Node.js / JavaScript / TypeScript → Husky + lint-staged OR lefthook (research current community preference)
 - Python → pre-commit framework (`pre-commit` package)
-- .NET / C# → dotnet tool restore + custom `.git/hooks/pre-commit` shell script
+- Configured backend/runtime stack → restore/install analyzer tools + custom `.git/hooks/pre-commit` shell script
 - Go → pre-commit framework or custom Makefile target
 - Rust → cargo-husky OR pre-commit framework
 - Java / Kotlin → pre-commit framework or Maven/Gradle Git hooks plugin
@@ -146,7 +146,7 @@ Generate:
 
 ## CI Quality Gate Configuration
 
-Detect CI platform from project files:
+Detect CI provider/tooling from repository files:
 
 - `.github/workflows/` → GitHub Actions
 - `.gitlab-ci.yml` → GitLab CI
@@ -154,7 +154,7 @@ Detect CI platform from project files:
 - `Jenkinsfile` → Jenkins
 - `bitbucket-pipelines.yml` → Bitbucket Pipelines
 
-If not detected → `AskUserQuestion`: "Which CI platform does this project use?"
+If not detected → `AskUserQuestion`: "Which CI provider/tooling does this repository use?"
 
 Generate CI job/step that:
 

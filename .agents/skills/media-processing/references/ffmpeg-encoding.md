@@ -294,9 +294,9 @@ ffmpeg -i input.mp4 -c:v libx264 -tune stillimage -crf 22 output.mp4
 | Fast encoding | H.264 NVENC | preset fast |
 | Maximum compatibility | H.264 | profile main, level 4.0 |
 
-### Platform Compatibility
+### Runtime Compatibility
 
-| Platform | Recommended | Supported |
+| Runtime | Recommended | Supported |
 |----------|------------|-----------|
 | Web browsers | H.264 | H.264, VP9, AV1 |
 | Mobile devices | H.264 | H.264, H.265 |

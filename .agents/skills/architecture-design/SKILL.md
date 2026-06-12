@@ -176,9 +176,9 @@ WebSearch top 3 frontend architecture styles. Candidates:
 | --------------------------- | ------------------------------------------- | ----------------------------------------- |
 | **MVVM**                    | Data-binding heavy, forms-over-data apps    | ViewModel responsibility, two-way binding |
 | **MVC**                     | Server-rendered, traditional web apps       | Controller routing, view separation       |
-| **Component Architecture**  | Modern SPA (React, Angular, Vue)            | Component isolation, props/events, reuse  |
+| **Component Architecture**  | Configured SPA/component framework          | Component isolation, props/events, reuse  |
 | **Reactive Store (Redux)**  | Complex state, multi-component sync         | Single source of truth, immutable state   |
-| **Signal-based Reactivity** | Fine-grained reactivity (Angular 19, Solid) | Granular updates, no zone.js overhead     |
+| **Signal-based Reactivity** | Fine-grained reactivity in frameworks that support signals | Granular updates without broad change detection |
 | **Micro Frontends**         | Multiple teams, independent deployment      | Module federation, routing, shared state  |
 | **Feature-based Modules**   | Large monolith SPA, lazy loading            | Feature boundaries, route-level splitting |
 | **Server Components (RSC)** | SEO, initial load performance               | Server/client boundary, streaming         |
@@ -294,7 +294,7 @@ Research best testing tools and strategy for the confirmed tech stack:
 
 | Testing Layer           | What to Research                                  | Top Candidates to Compare                    |
 | ----------------------- | ------------------------------------------------- | -------------------------------------------- |
-| **Unit Testing**        | Test runner, assertion library, mocking framework | Jest/Vitest/xUnit/NUnit, mocking             |
+| **Unit Testing**        | Test runner, assertion library, mocking framework | Repository's configured unit-test stack       |
 | **Integration Testing** | API testing, DB testing, service testing          | Supertest, TestContainers, WebAppFactory     |
 | **E2E Testing**         | Browser automation, BDD, visual regression        | Playwright/Cypress/Selenium, SpecFlow        |
 | **Performance Testing** | Load testing, stress testing, benchmarking        | k6/Artillery/JMeter/NBomber, BenchmarkDotNet |
@@ -326,7 +326,7 @@ Research deployment architecture and CI/CD tooling:
 
 | Concern                 | What to Research                                     | Top Candidates to Compare                     |
 | ----------------------- | ---------------------------------------------------- | --------------------------------------------- |
-| **CI/CD Platform**      | Pipeline orchestration, parallelism, caching         | GitHub Actions/Azure DevOps/GitLab CI/Jenkins |
+| **CI/CD Provider**      | Pipeline orchestration, parallelism, caching         | Repository's configured CI/CD tooling          |
 | **Containerization**    | Container runtime, image building, registry          | Docker/Podman, BuildKit, ACR/ECR/GHCR         |
 | **Orchestration**       | Container orchestration, service mesh, scaling       | Kubernetes/Docker Compose/ECS/Nomad           |
 | **IaC (Infra as Code)** | Infrastructure provisioning, drift detection         | Terraform/Pulumi/Bicep/CDK                    |
@@ -554,7 +554,7 @@ graph TB
 - "Should we use event sourcing or traditional state-based persistence?"
 - "Monolith-first or start with service boundaries?"
 - "Micro frontends or monolith SPA?"
-- "How important is framework independence for this project?"
+- "How important is framework independence for this repository or system?"
 - "Self-hosted observability or managed SaaS?"
 - "Strict lint rules from day 1 or gradual adoption?"
 

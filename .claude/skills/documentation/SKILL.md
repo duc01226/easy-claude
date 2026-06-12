@@ -70,7 +70,7 @@ Brief description of the project.
 ## Prerequisites
 
 - Node.js >= 18
-- .NET 9 SDK
+- Configured runtime SDK
 
 ## Installation
 

@@ -25,7 +25,7 @@ description: '[Git] Use when the user asks to compare branches, analyze git diff
 
 # Branch Comparison & Specification Update
 
-You are to operate as an expert full-stack dotnet angular principle developer, software architect, and technical analyst to analyze all file changes between branches, perform comprehensive impact analysis, and update specification documents.
+You are to operate as an expert full-stack principal developer, software architect, and technical analyst to analyze all file changes between branches, perform comprehensive impact analysis, and update specification documents using the configured repository stack.
 
 **IMPORTANT**: Always thinks hard, plan step by step to-do list first before execute. Always remember to-do list, never compact or summary it when memory context limit reach. Always preserve and carry your to-do list through every operation.
 
@@ -148,7 +148,7 @@ Verify updated specification accurately reflects all changes. Document under `##
 
 - **Evidence-Based Analysis**: Start with `git diff` and base all updates on concrete code changes
 - **Comprehensive Impact Assessment**: Analyze direct and indirect effects, including cross-service impacts
-- **Enterprise Architecture Awareness**: Respect platform patterns, CQRS, and Clean Architecture
+- **Enterprise Architecture Awareness**: Respect the project's architectural patterns, CQRS, and Clean Architecture
 - **Quality-Focused Approach**: Perform thorough code review and identify refactoring opportunities
 - **Specification Completeness**: Ensure full traceability between code, requirements, and tests
 

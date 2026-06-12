@@ -141,8 +141,8 @@ Before implementation, search codebase for patterns:
 - **CRITICAL MUST ATTENTION:** Verification requires 3 consecutive successful runs of the relevant integration suite/project without resetting data. One green run proves only the current run, not repeatability.
 - Minimum 3 test methods: happy path, validation failure, DB state check
 - **Authorization tests:** Multiple user contexts — authorized succeeds AND unauthorized rejected
-- Every test method MUST have `// TC-{FEATURE}-{NNN}: Description` comment + test-spec annotation — before method, outside body
-- No TC in feature docs → **auto-create** in Section 8 before generating test
+- Every test method MUST have `// TC-{FEATURE}-{NNN}: Description` comment + test-spec annotation — before method, outside body. **Many test methods MAY carry the same TC** (one business TC → many tests across components/services); the test-spec annotation is the join key, so cover a TC with as many technical tests as the implementation needs without inventing extra TCs.
+- No TC in feature docs → **auto-create** in Section 8 before generating test (auto-create a TC only for genuinely uncovered **business** behavior — never create a TC just to mirror a new test method when an existing TC already covers that behavior)
 - For comprehensive spec generation before coding → `$spec-tests` first
 
 ## Mandatory Task Ordering (MUST ATTENTION FOLLOW)
@@ -154,25 +154,19 @@ ALWAYS create and execute tasks in this exact order:
     - For each test case: verify matching `TC-{FEATURE}-{NNN}` exists
     - TC MISSING → create entry in Section 8 with Priority, Status, GIVEN/WHEN/THEN, Evidence
     - TC INCORRECT → update to reflect current behavior
-    - Output: TC mapping list (TC code → test method name)
+    - Output: TC mapping list (TC code → test method name(s)) — **one TC may map to many test methods** (across components/services); the mapping is 1 TC : N tests, joined by the `TestSpec` annotation
 
 2. **MIDDLE: Implement integration tests**
     - Generate test files using TC mapping from task 1
-    - Each test method gets TC annotation before it (outside method body):
-        ```csharp
-        // TC-OM-001: Create valid order — happy path
-        [Trait("TestSpec", "TC-OM-001")]
-        [Fact]
-        public async Task CreateOrder_WhenValidData_ShouldCreateSuccessfully()
-        ```
+    - Each test method gets the TC annotation before it (outside the method body) using the configured test framework's attribute/decorator/tag/marker syntax.
     - Follow existing patterns from project's test base classes
 
-3. **FINAL: Verify bidirectional traceability**
-    - Grep test-spec annotations in test project
+3. **FINAL: Verify traceability (cardinality: 1 TC : N tests)**
+    - Grep test-spec annotations across **all** test projects/suites for the stack — integration **and** unit (a TC may be covered by tests in either — grep only the integration project and unit-only-covered TCs falsely look uncovered)
     - Grep all `TC-{FEATURE}-{NNN}` in feature doc Section 8 / specs doc
-    - Verify: every test method → doc TC, every doc TC → test method
-    - Flag orphans: tests without doc TCs, doc TCs without matching tests
-    - Update `IntegrationTest` field in feature doc TCs with `{File}::{MethodName}`
+    - Verify: every test method → **exactly one** doc TC (its `TestSpec` annotation); every doc TC → **≥1** covering test method. **One TC may be covered by many test methods** (integration + unit, across components/services) — that is the expected one-to-many shape. NEVER require one test per TC, and NEVER split/technicalize a business TC to make tests map 1:1 (breaks the spec's business/user-story orientation, M1/M5 — see `tc-format.md` → TC ↔ Test Code Cardinality).
+    - Flag orphans: tests whose `TestSpec` TC is absent from §8; doc TCs with **zero** covering tests. (Many tests sharing one TC is NOT an orphan and NOT a duplicate.)
+    - Update the `IntegrationTest` field in feature doc TCs with the covering tests — `{File}::{MethodName}` comma-separated **on one line**, or a test-filter expression when the set is large (the field is representative; the annotation in code is authoritative). The covering set MAY include unit tests, not only integration tests.
 
 ## Module Abbreviation Registry
 
@@ -243,7 +237,7 @@ If test file already exists: ask user overwrite or skip.
 User specifies command/query name. Use Grep tool (NOT bash grep):
 
 ```
-Grep pattern="class {CommandName}" path="." glob="*.cs"
+Grep pattern="{CommandName}" path="{configured-source-root}" glob="{configured-source-glob}"
 ```
 
 ## Step 2: Gather Context
@@ -251,7 +245,7 @@ Grep pattern="class {CommandName}" path="." glob="*.cs"
 For each target, read in parallel:
 
 1. **Command/query file** — extract: class name, result type, DTO properties, entity type
-2. **Existing test files in same service** — Glob `{Service}.IntegrationTests/**/*IntegrationTests.*`, read ≥1 for conventions (collection name, trait, namespace, usings, base class)
+2. **Existing test files in same service** — Glob `{Service}.IntegrationTests/**/*IntegrationTests.*`, read ≥1 for conventions (collection/suite name, test annotations, namespace/imports, base class)
 3. **Service integration test base class** — grep: `class.*ServiceIntegrationTestBase`
 4. **`references/integration-test-patterns.md`** — canonical templates (adapt {Service} placeholders)
 
@@ -273,13 +267,7 @@ Build mapping: test case description → TC code (e.g., "create valid order" →
 
 > **Folder = domain feature.** `{Domain}` = business domain (Orders, Inventory, Notifications, UserProfiles), NOT CQRS type. Command and query tests for same domain live in same folder.
 
-**Structure (C#/xUnit — adapt to your framework):**
-
-```csharp
-#region
-using FluentAssertions;
-// ... service-specific usings (copy from existing tests)
-#endregion
+**Structure:** adapt file layout, imports, fixture setup, assertion style, and test markers from existing tests in the configured test project.
 
 namespace {Service}.IntegrationTests.{Domain};
 
@@ -399,7 +387,7 @@ Mode = REVIEW: audit existing integration tests for quality, flaky patterns, bes
 ## Sub-Agent Type Override
 
 > **MANDATORY:** Integration test REVIEW mode spawns `integration-tester` sub-agent (`agent_type: "integration-tester"`), NOT `code-reviewer`.
-> **Rationale:** `integration-tester` specializes in test spec generation, TC traceability, CQRS test patterns, `WaitUntilAsync` correctness, and microservices integration context — areas `code-reviewer` does not cover at depth.
+> **Rationale:** `integration-tester` specializes in test spec generation, TC traceability, CQRS test patterns, async-polling / eventual-consistency assertion correctness, and cross-service integration context — areas `code-reviewer` does not cover at depth.
 
 **Fresh Eyes Protocol:** Run Round 1 inline. If findings are LOW confidence or contradictory → spawn fresh `integration-tester` sub-agent (zero memory of Round 1) for Round 2. Main agent reads report, NEVER filters findings. Max 2 rounds, then escalate.
 
@@ -414,7 +402,7 @@ Mode = REVIEW: audit existing integration tests for quality, flaky patterns, bes
 
 **Dimension 1: Reliability** — Think: What causes intermittent failures?
 
-- MUST ATTENTION flag **missing async polling** — DB assertions after async handlers without `WaitUntilAsync()` or equiv → WILL flake
+- MUST ATTENTION flag **missing async polling** — DB assertions after async handlers without an await-until-condition poll (the project's async-assertion helper) → WILL flake
 - MUST ATTENTION flag **missing retry for eventual consistency** — message bus / event handler / background job state without polling wrapper
 - MUST ATTENTION flag **hardcoded delays** — `Thread.Sleep()`, `Task.Delay()` instead of condition-based polling
 - MUST ATTENTION flag **race conditions** — tests modifying shared state without isolation (same entity ID, same user context)
@@ -431,8 +419,8 @@ Mode = REVIEW: audit existing integration tests for quality, flaky patterns, bes
 **Dimension 3: Conventions** — Think: Does test follow project patterns?
 
 - MUST ATTENTION verify collection/group attribute — correct collection name for shared fixture
-- MUST ATTENTION verify category trait — `[Trait("Category", "Command")]` or equiv
-- MUST ATTENTION verify TC annotation — every test method has TC code comment + test spec trait
+- MUST ATTENTION verify category annotation or equivalent test-category marker when the project uses one
+- MUST ATTENTION verify TC annotation — every test method has a TC code comment + the test-spec annotation
 - MUST ATTENTION verify no mocks — real DI only
 - MUST ATTENTION verify unique test data — all string data uses unique generators
 - MUST ATTENTION verify user context — via factory, not hardcoded
@@ -563,7 +551,7 @@ Mode = VERIFY: bidirectional traceability check between test code, test specs, f
 
 ## Verify Workflow
 
-1. **Collect test methods** — Grep for test spec annotations in test project
+1. **Collect test methods** — Grep for test-spec annotations across all test projects/suites (integration **and** unit)
 2. **Collect doc TCs** — Read feature doc Section 8 for all TC entries
 3. **Build 3-way matrix** — Test code ↔ specs/ ↔ feature doc Section 8
 4. **Identify mismatches** — Orphans, stale references, behavior drift

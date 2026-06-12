@@ -36,11 +36,11 @@ description: '[Project Management] Use when capturing new ideas, feature request
 - Auto-detect module silently; prompt only when ambiguous
 - MUST ATTENTION include `t_shirt_size` (XS/S/M/L/XL) in artifact for early sizing
 - **[BLOCKING] Tech-agnostic output (M1):** the problem statement stays tech-agnostic per `docs/project-reference/spec-principles.md` §3 (all modes, not only greenfield) — name no framework/product/language/design-pattern; defer any stack preference to the later tech-research phase.
-- **M3 Logical-ID Assignment (forward to PBI):** See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6)" for BLOCKING criteria. An idea is a tech-agnostic business-intent definition only — do NOT assign logical IDs yet. When the idea advances to a PBI (via `/refine`), the PBI assigns logical IDs (`FR-`/`BR-`) as the PRIMARY citation spine and tracks `[Source: namespace/service/id]` abstract-anchor evidence (never a physical `file:line`/`src/` path) in a SEPARATE carrier from the business-intent prose. Keep the idea's problem/value narrative free of source identifiers so the PBI can inherit it cleanly.
+- **M3 Logical-ID Assignment (forward to PBI):** See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6)" for BLOCKING criteria. An idea is a tech-agnostic business-intent definition only — do NOT assign logical IDs yet. When the idea advances to a PBI (via `/refine`), the PBI assigns logical IDs (`FR-`/`BR-`) as the PRIMARY citation spine and tracks `[Source: namespace/service/id]` abstract-anchor evidence (never physical code coordinates or repository-root paths) in a SEPARATE carrier from the business-intent prose. Keep the idea's problem/value narrative free of source identifiers so the PBI can inherit it cleanly.
 
 ## Greenfield Mode
 
-> **Auto-detected:** No codebase found (no `src/`, `app/`, `lib/`, `server/`, `packages/` dirs; no `package.json`/`*.sln`/`go.mod`; no `project-config.json`) → greenfield mode. Planning artifacts (`docs/`, `plans/`, `.claude/`) don't count — project must have actual code dirs with content.
+> **Auto-detected:** No codebase found (no discovered source directories, no manifest files, no populated `project-config.json`) → greenfield mode. Planning artifacts (`docs/`, `plans/`, `.claude/`) don't count — repository must have actual code directories with content.
 
 **When greenfield detected:**
 

@@ -18,9 +18,9 @@ description: '[Architecture] Use when designing or implementing cross-service co
 **Key Rules:**
 
 - Read another service's data via the message bus or its API; never access its database directly — why: direct DB access couples services and breaks data ownership
-- Use `LastMessageSyncDate` for conflict resolution (only update if newer)
-- Consumers must wait for dependencies with `TryWaitUntilAsync`
-- Messages defined in shared project (search for: shared message definitions, bus message classes)
+- Use a last-synced-timestamp field for conflict resolution — only update if the incoming message is newer (concrete field name: see the project's backend / message-bus reference)
+- Consumers MUST wait for dependencies via the framework's retry-until-available primitive (concrete primitive: see the project's backend / message-bus reference)
+- Messages defined in a shared contract project consumed by both producer and consumer (search for: shared message definitions, bus message classes)
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
@@ -48,9 +48,11 @@ description: '[Architecture] Use when designing or implementing cross-service co
 
 ## Service Boundaries
 
-> **Note:** Search for `project-structure-reference.md` or the project's service directories to discover the platform's service map, data ownership matrix, and shared infrastructure components.
+> **Note:** Search for `project-structure-reference.md` or the project's service directories to discover the system's service map, data ownership matrix, and shared infrastructure components.
 
 ## Communication Patterns
+
+> **Code examples in this skill are illustrative — adapt the syntax to your framework.** The patterns (entity-event bus, sync strategies, conflict resolution, dependency waiting, ownership) are stack-agnostic and apply to any microservices stack / message bus.
 
 ### Pattern 1: Entity Event Bus (Recommended)
 
@@ -59,7 +61,7 @@ description: '[Architecture] Use when designing or implementing cross-service co
 ```
 Source Service                    Target Service
 ┌────────────┐                   ┌────────────┐
-│  Employee  │──── Create ────▶ │ Repository │
+│  Customer  │──── Create ────▶ │ Repository │
 │ Repository │                   └────────────┘
 └────────────┘                          │
       │                                 │
@@ -70,7 +72,7 @@ Source Service                    Target Service
 └────────────┘                   └────────────┘
 ```
 
-**⚠️ MUST ATTENTION READ:** CLAUDE.md for Entity Event Bus Producer and Message Bus Consumer implementation patterns.
+**⚠️ MUST ATTENTION READ:** the project's reference docs for the concrete Entity Event Bus Producer and Message Bus Consumer implementation patterns.
 
 ### Pattern 2: Direct API Call
 
@@ -103,7 +105,7 @@ public class ServiceBApiClient
 
 ```csharp
 // WRONG - Direct cross-service database access
-var accountsData = await accountsDbContext.Users.ToListAsync();
+var otherServiceData = await otherServiceDbContext.Customers.ToListAsync();
 ```
 
 ## Data Ownership Matrix
@@ -121,10 +123,10 @@ public class FullSyncJob : BackgroundJobExecutor // project background job base 
     public override async Task ProcessAsync(object? param)
     {
         // Fetch all from source
-        var allEmployees = await sourceApi.GetAllAsync();
+        var allCustomers = await sourceApi.GetAllAsync();
 
         // Upsert to local
-        foreach (var batch in allEmployees.Batch(100))
+        foreach (var batch in allCustomers.Batch(100))
         {
             await localRepo.CreateOrUpdateManyAsync(
                 batch.Select(MapToLocal),
@@ -138,9 +140,9 @@ public class FullSyncJob : BackgroundJobExecutor // project background job base 
 
 ```csharp
 // Normal operation via message bus
-internal sealed class EmployeeSyncConsumer : MessageBusConsumer<EmployeeEventBusMessage> // project message bus base (see docs/project-reference/backend-patterns-reference.md)
+internal sealed class CustomerSyncConsumer : MessageBusConsumer<CustomerChangedMessage> // project message bus base (see docs/project-reference/backend-patterns-reference.md)
 {
-    public override async Task HandleLogicAsync(EmployeeEventBusMessage message, string routingKey)
+    public override async Task HandleLogicAsync(CustomerChangedMessage message, string routingKey)
     {
         // Check if newer than current (race condition prevention)
         if (existing?.LastMessageSyncDate > message.CreatedUtcDate)
@@ -154,7 +156,7 @@ internal sealed class EmployeeSyncConsumer : MessageBusConsumer<EmployeeEventBus
 
 ### Conflict Resolution
 
-Use `LastMessageSyncDate` for ordering - only update if message is newer. See CLAUDE.md Message Bus Consumer pattern for full implementation.
+Carry a monotonic last-synced-timestamp on synced entities and order by it — only apply a change if the incoming message is newer than what is stored. See the project's Message Bus Consumer reference for the concrete field name and full implementation.
 
 ## Integration Checklist
 
@@ -201,17 +203,17 @@ grep -r "AddConsumer" --include="*.cs"
 ```bash
 # Compare source and target counts
 # In source service DB
-SELECT COUNT(*) FROM Employees WHERE IsActive = 1;
+SELECT COUNT(*) FROM Customers WHERE IsActive = 1;
 
 # In target service DB
-SELECT COUNT(*) FROM SyncedEmployees;
+SELECT COUNT(*) FROM SyncedCustomers;
 ```
 
 ### Stuck Messages
 
 ```csharp
 // Check for waiting dependencies
-Logger.LogWarning("Waiting for Company {CompanyId}", companyId);
+Logger.LogWarning("Waiting for Tenant {TenantId}", tenantId);
 
 // Force reprocess
 await messageBus.PublishAsync(message.With(m => m.IsForceSync = true));
@@ -238,11 +240,11 @@ await transaction.CommitAsync();
 :x: **No dependency waiting**
 
 ```csharp
-// WRONG - FK violation if company not synced
-await repo.CreateAsync(employee);  // Employee.CompanyId references Company
+// WRONG - FK violation if tenant not synced
+await repo.CreateAsync(customer);  // Customer.TenantId references Tenant
 
-// CORRECT
-await Util.TaskRunner.TryWaitUntilAsync(() => companyRepo.AnyAsync(...));
+// CORRECT — poll until the dependency exists before proceeding
+await WaitUntil(() => companyRepo.AnyAsync(...));  // use your framework's await-until-condition primitive
 ```
 
 :x: **Ignoring message order**

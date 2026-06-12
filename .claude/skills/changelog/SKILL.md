@@ -126,7 +126,7 @@ For each changed file:
 | Technical (Avoid)               | Business-Focused (Use)                       |
 | ------------------------------- | -------------------------------------------- |
 | Added `StageCategory` enum      | Added stage categories for pipeline tracking |
-| Created `PipelineController.cs` | Added API endpoints for pipeline management  |
+| Created `PipelineController` class | Added API endpoints for pipeline management  |
 | Fixed null reference in GetById | Fixed pipeline loading error                 |
 | Added migration file            | Database schema updated for new features     |
 
@@ -185,9 +185,9 @@ Delete temp notes file: `.ai/workspace/changelog-notes-*.md`
 Group related changes by module/feature:
 
 ```markdown
-### Your Service: Hiring Process Management
+### Your Service: Order Pipeline Management
 
-**Feature**: Customizable hiring process/pipeline management.
+**Feature**: Customizable order pipeline/stage management.
 
 #### Added
 
@@ -199,7 +199,7 @@ Group related changes by module/feature:
 
 **Frontend**:
 
-- Pages: hiring-process-page
+- Pages: order-pipeline-page
 - Components: pipeline-filter, pipeline-stage-display
 ```
 
@@ -217,21 +217,21 @@ Group related changes by module/feature:
 ### Good Entry
 
 ```markdown
-### Your Service: Hiring Process Management
+### Your Service: Order Pipeline Management
 
-**Feature**: Customizable hiring process/pipeline management for recruitment workflows.
+**Feature**: Customizable order pipeline/stage management for fulfillment workflows.
 
 #### Added
 
 - Drag-and-drop pipeline stage builder with default templates
-- Stage categories (Sourced, Applied, Interviewing, Offered, Hired, Rejected)
+- Stage categories (Created, Confirmed, Packed, Shipped, Delivered, Cancelled)
 - Pipeline duplication for quick setup
 - Multi-language stage names (EN/VI)
 
 #### Changed
 
-- Candidate cards now show current pipeline stage
-- Job creation wizard includes pipeline selection
+- Order cards now show current pipeline stage
+- Order creation wizard includes pipeline selection
 ```
 
 ### Bad Entry (Too Technical)

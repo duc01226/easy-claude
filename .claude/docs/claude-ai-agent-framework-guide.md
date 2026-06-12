@@ -5,7 +5,7 @@
 **Audience:** AI engineers, tech leads, and teams wanting to build reliable AI-assisted development systems.
 **Scope:** What each layer does, why it exists, how the pieces compose, the design principles behind every decision, and which AI agent best practices each addresses.
 
-> **Document Sync Status** — Current local verification (2026-06-11): **66 hook files · 184 skills · 21 workflows · 29 agents** using the ADR-0002 filesystem metrics. Codex mirrors are committed under `.agents/`, `.codex/`, and `AGENTS.md`; Copilot instructions are generated on demand by the Copilot sync skills/scripts. Notable mechanisms documented here include multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential-thinking.
+> **Document Sync Status** — Current local verification (2026-06-11): **66 hook files · 176 skills · 21 workflows · 28 agents** using the ADR-0002 filesystem metrics. Codex mirrors are committed under `.agents/`, `.codex/`, and `AGENTS.md`; Copilot instructions are generated on demand by the Copilot sync skills/scripts. Notable mechanisms documented here include multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential-thinking.
 
 ---
 
@@ -45,7 +45,7 @@
 
 ## 1. Executive Summary
 
-This framework wraps Claude Code in a three-pillar execution framework — **66 top-level hook files**, **184 skills**, **21 registered workflows**, and **29 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
+This framework wraps Claude Code in a three-pillar execution framework — **66 top-level hook files**, **176 skills**, **21 registered workflows**, and **28 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
 
 It is also **harness- and project-agnostic**: the `.claude/` source compiles to verified OpenAI Codex mirrors (`AGENTS.md`, `.agents/`, `.codex/`) and can generate GitHub Copilot instruction files on demand, while all project-specific knowledge is factored into `project-config.json` + reference docs — so the same behavior runs on any supported AI tool and ports to any codebase (Section 13).
 
@@ -117,7 +117,7 @@ graph TB
         end
     end
 
-    subgraph "Intelligence Layer — 184 Skills"
+    subgraph "Intelligence Layer — 176 Skills"
         SP[Shared Protocols<br/>5 files]
         IS[Implementation Skills<br/>cook, fix, refactor]
         QS[Quality Skills<br/>code-review, prove-fix]
@@ -479,11 +479,11 @@ allowed-tools: Read, Grep, Glob, Bash, Write, TaskCreate
 2. Declare confidence level...
 ```
 
-### 5.2 Skill Categories (184 skills)
+### 5.2 Skill Categories (176 skills)
 
 ```mermaid
 mindmap
-  root((184 Skills))
+  root((176 Skills))
     Quality & Verification
       code-review
       prove-fix
@@ -506,7 +506,6 @@ mindmap
       cook
       fix
       refactoring
-      api-design
     Testing & TDD
       spec-tests
       integration-test
@@ -538,7 +537,6 @@ mindmap
       release-notes
       docs-seeker
     Architecture
-      arch-cross-service-integration
       security-review
       architecture-design
       domain-analysis
@@ -910,7 +908,7 @@ The hook and skill system is **project-agnostic**. All project-specific knowledg
 graph LR
     subgraph "Generic Framework (reusable)"
         H[66 Hook Files]
-        S[184 Skills]
+        S[176 Skills]
         W[21 Workflows]
     end
 
@@ -1464,8 +1462,7 @@ The framework supports AI-assisted development across **every phase** of the sof
 │                     │ /changelog             │ changelogs, sync   │
 │─────────────────────│────────────────────────│────────────────────│
 │  9. SIGN-OFF        │ /quality-gate          │ Quality gates,     │
-│                     │ /qc-specialist         │ artifact review,   │
-│                     │ /review-artifact       │ project tracking   │
+│                     │ /review-artifact       │ artifact review    │
 │─────────────────────│────────────────────────│────────────────────│
 │  10. OPERATIONS     │ /devops                │ Infrastructure     │
 │                     │ /sre-review            │ automation and     │
@@ -2894,7 +2891,7 @@ Context engineering is the discipline of **managing what information reaches the
 │  │ patterns             │           │ No: impl state      │        │
 │  └────────────────────┘           └────────────────────┘        │
 │                                                                   │
-│  29 agents × isolated contexts = no cross-contamination          │
+│  28 agents × isolated contexts = no cross-contamination          │
 │  Each agent inherits: CLAUDE.md + lessons (via subagent-init-*) │
 │  Each agent ignores: unrelated session state                     │
 │                                                                   │
@@ -2914,7 +2911,7 @@ Context engineering is the discipline of **managing what information reaches the
 | **External memory**            | Swap engine, todo state, workflow state, plan files on disk                   |
 | **Context budget management**  | JIT loading + swap + dedup = 50+ tool call sessions vs 15 without             |
 | **Recovery after amnesia**     | Pre-compact save → post-compact restore → auto re-injection pipeline          |
-| **Context isolation**          | 29 specialized agents with independent context windows                        |
+| **Context isolation**          | 28 specialized agents with independent context windows                        |
 | **Path-based routing**         | project-config.json pathRegexes drive which docs load for which files         |
 | **Tiered injection frequency** | Lessons (every prompt) vs patterns (every edit) vs design tokens (UI only)    |
 | **Output compression**         | Swap engine replaces 500-line outputs with 10-line summaries + disk pointers  |
@@ -3488,7 +3485,7 @@ flowchart TB
 | **Context injection at decision points**       | 10 context injector hooks, auto-triggered by file path              | Hooks     |
 | **Reminder rules prevent forgetting**          | 3 UserPromptSubmit hooks re-inject on every prompt                  | Hooks     |
 | **Generic & configurable via config**          | project-config.json drives all context injection                    | Config    |
-| **Prompt engineering quality**                 | 184 skills with YAML frontmatter + behavior protocols               | Skills    |
+| **Prompt engineering quality**                 | 176 skills with YAML frontmatter + behavior protocols               | Skills    |
 | **Auto-select workflow path before acting**    | workflow-router.cjs → direct/skill/workflow/custom path             | Workflows |
 | **Confirm plan with questions**                | /plan-validate asks 3-8 questions before implementation             | Skills    |
 | **Sequential thinking for complex problems**   | /sequential-thinking skill + /debug-investigate skill               | Skills    |
@@ -3549,7 +3546,7 @@ flowchart TB
 │   ├── {skill-name}/SKILL.md
 │   ├── shared/ ───────── 5 shared reference/protocol files
 │   └── _templates/ ───── Skill scaffolding
-├── agents/ ────────────── 29 agent definitions
+├── agents/ ────────────── 28 agent definitions
 ├── docs/ ─────────────── Framework documentation (co-located)
 └── patterns/ ──────────── Anti-hallucination patterns
 
@@ -3576,7 +3573,7 @@ docs/
 Agents are **Markdown files** (`.claude/agents/*.md`) that define specialized AI subprocesses. Each agent receives a focused system prompt, restricted tool set, and domain-specific instructions. They run as child processes of the main Claude Code session.
 
 ```
-AGENT SYSTEM (29 agents)
+AGENT SYSTEM (28 agents)
 │
 ├── IMPLEMENTATION AGENTS
 │   ├── backend-developer ──── .NET CQRS patterns, entities, events
@@ -3603,8 +3600,7 @@ AGENT SYSTEM (29 agents)
 ├── PROJECT MANAGEMENT AGENTS
 │   ├── project-manager ─────── Status tracking & reporting
 │   ├── product-owner ───────── PBI management & prioritization
-│   ├── business-analyst ────── Requirements & user stories
-│   └── qc-specialist ──────── Quality gates & compliance
+│   └── business-analyst ────── Requirements & user stories
 │
 ├── CONTENT & DOCS AGENTS
 │   ├── docs-manager ────────── Documentation synchronization
@@ -3632,7 +3628,7 @@ Agents solve two critical problems:
 
 ### 12.3 Agent Behavioral Rules (NEW)
 
-All 29 agents include two layers of behavioral enforcement:
+All 28 agents include two layers of behavioral enforcement:
 
 **Layer 1 — Domain-specific NEVER/ALWAYS rules** appended to their system prompts:
 
@@ -3872,7 +3868,7 @@ The framework succeeds because it aligns with how LLMs actually fail:
 
 ### The Result
 
-**66 top-level hook files**, **184 skills**, **21 registered workflows**, and **29 specialized agents** working in concert to deliver:
+**66 top-level hook files**, **176 skills**, **21 registered workflows**, and **28 specialized agents** working in concert to deliver:
 
 - **Fewer hallucinations** — Evidence gates and proof traces catch AI fabrications before they reach files
 - **Better code quality** — Pattern injection ensures AI follows project conventions, not generic training data
@@ -3880,7 +3876,7 @@ The framework succeeds because it aligns with how LLMs actually fail:
 - **Consistent adherence** — Programmatic enforcement means quality doesn't degrade in long sessions or complex tasks
 - **Recovery from amnesia** — External state persistence means context compaction doesn't lose progress
 - **Persistent learning** — Mistakes captured once prevent recurrence across all future sessions
-- **Prompt engineering depth** — Role prompting, chain-of-thought, few-shot, negative prompting, and iterative refinement applied systematically across 184 skills (Section 8.15)
+- **Prompt engineering depth** — Role prompting, chain-of-thought, few-shot, negative prompting, and iterative refinement applied systematically across 176 skills (Section 8.15)
 - **Context engineering precision** — JIT injection, dedup, external memory, budget management, and recovery keep the AI informed without overwhelming its context window (Section 8.16)
 
 The framework is **generic and reusable**. Replace `project-config.json` with your project's specifics, and the entire system adapts — different tech stack, different patterns, different conventions, same quality enforcement.

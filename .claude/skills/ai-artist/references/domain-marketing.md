@@ -39,7 +39,7 @@ Under 50 chars. Test 2-3 with emojis.
 
 ## Ad Copy
 ```
-Platform: [Google/Meta/LinkedIn]
+Channel: [Google/Meta/LinkedIn]
 Objective: [awareness/conversion]
 Character limit: [limit]
 
@@ -47,7 +47,7 @@ Create [N] variations with:
 - Hook (first 5 words critical)
 - Value proposition
 - Social proof element
-- CTA matching platform norms
+- CTA matching channel norms
 ```
 
 ## Landing Pages

@@ -74,7 +74,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Key Rules:**
 
 - Preserve all existing functionality — no behavior changes
-- Follow platform patterns (entity expressions, fluent helpers, store base, BEM)
+- Follow the project's documented patterns (entity expressions, fluent helpers, store base, BEM)
 - Easy to Change is the primary simplification goal for source files; DRY, SOLID, abstraction, and patterns are valid only when they lower future edit sites or cognitive load
 - Tests pass after every change
 - Apply simplification only when certain it preserves behavior — NEVER apply when unsure
@@ -83,12 +83,12 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **MUST ATTENTION** classify before simplifying — detection drives focus and optional escalation only:
 
-| Artifact Type      | Detection                   | Key Focus                                             |
-| ------------------ | --------------------------- | ----------------------------------------------------- |
-| Backend (C#/.NET)  | `.cs` files                 | Entity expressions, fluent API, DRY via OOP, SOLID    |
-| Frontend (TS/HTML) | `.ts`, `.html`, `.scss`     | BEM, store base, subscription cleanup, component base |
-| Tests              | `*Test.cs`, `*.spec.ts`     | Assertions, `WaitUntilAsync`, data isolation          |
-| Config/Generated   | Migrations, `*.generated.*` | **SKIP** — NEVER simplify generated/migration code    |
+| Artifact Type    | Detection                                          | Key Focus                                                                                       |
+| ---------------- | -------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Backend          | Backend source files for the current stack (e.g. `.cs`) | Domain-model expressions, fluent API, DRY via OOP, SOLID                                        |
+| Frontend         | Frontend source files for the current stack (e.g. `.ts`, `.html`, `.scss`) | BEM, store base, subscription cleanup, component base                                           |
+| Tests            | Test source files for the current stack (e.g. `*Test.cs`, `*.spec.ts`) | Assertions, async-assertion helpers (e.g. an await-until-condition poll helper), data isolation  |
+| Config/Generated | Migrations, generated/vendor files (e.g. `*.generated.*`) | **SKIP** — NEVER simplify generated/migration code                                              |
 
 Optional escalation by artifact:
 
@@ -195,7 +195,7 @@ Dimension-based reasoning replaces fixed checklists. Each dimension has a `Think
 - Use project store base (search: store base class) for state management
 - Apply subscription cleanup (search: subscription cleanup pattern) to all subscriptions
 - BEM class naming on ALL template elements
-- Use platform base classes (search: base component class, store component base class)
+- Use the project's base classes (search: base component class, store component base class)
 
 ## Graph Intelligence (MANDATORY if graph.db exists)
 
@@ -242,7 +242,7 @@ function getData() {
 
 - **Preserve functionality** — no behavior changes
 - **Tests passing** — verify after every change
-- **Follow patterns** — use platform conventions, never invent
+- **Follow patterns** — use the project's conventions, never invent
 - **Doc staleness** — cross-ref changed files against feature docs, test specs, READMEs; flag updates needed
 
 ---

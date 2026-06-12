@@ -42,12 +42,12 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Scaffold a new full-stack feature with backend (entities, CQRS, controllers) and frontend (Angular components, services).
+**Goal:** Scaffold a new full-stack feature with backend and frontend artifacts following the configured repository patterns.
 
 **Workflow:**
 
 1. **Analyze** — Break down requirements, identify scope (backend/frontend/full-stack)
-2. **Identify** — Determine target microservice and Angular app/module
+2. **Identify** — Determine target service/module and frontend app/module from project config and reference docs
 3. **Plan** — Map out entities, commands/queries, endpoints, components, DTOs
 4. **Approve** — Present plan, wait for explicit user approval before creating files
 5. **Create** — Scaffold files in order: entities → application → DTOs → controllers → frontend
@@ -55,9 +55,9 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Key Rules:**
 
 - Wait for explicit user approval before proceeding
-- Follow platform patterns from CLAUDE.md and `.github/prompts/` templates
+- Follow the project's documented patterns from CLAUDE.md and `.github/prompts/` templates
 - Build order: Domain → Application → API → Frontend
-- Verify with `dotnet build` and `nx build` after creation
+- Verify with the project's configured build/compile commands after creation (resolve from `docs/project-config.json` / project-reference docs)
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
@@ -66,7 +66,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6)" for BLOCKING criteria. Any requirements/spec text this skill emits MUST pass the gate before scaffolding:
 
 - **M1/M2:** Requirement and design prose describes business behavior only — no framework/product/language names and no class/method/file references in narrative; source identifiers stay in evidence carriers (`[Source:]`, `**Evidence**`).
-- **M3:** Each functional rule carries a logical ID (FR-/BR-/OP-) plus a SEPARATE `[Source: namespace/service/id]` abstract-anchor evidence carrier (never a physical `file:line`/`src/` path) — retain both.
+- **M3:** Each functional rule carries a logical ID (FR-/BR-/OP-) plus a SEPARATE `[Source: namespace/service/id]` abstract-anchor evidence carrier (never physical code coordinates or repository-root paths) — retain both.
 - **M4/M5:** One interpretation per requirement, named success/failure outcomes, and behavior re-implementable on any stack from the spec text alone.
 - When referencing implementation patterns in prose, name the **abstract pattern** (a pattern ID or business term such as "operation handler", "persistence layer", "event bus") — NOT a framework/product name. Concrete pattern/library names belong only in the scaffolding steps and evidence fields, never in the spec narrative.
 
@@ -82,13 +82,13 @@ Create a new feature: $ARGUMENTS
 
 2. **Identify Service Location**
     - Determine the appropriate microservice for backend
-    - Identify the Angular app/module for frontend
+    - Identify the configured frontend app/module
 
 3. **Plan Implementation**
     - Domain entities needed
     - CQRS Commands/Queries
     - API endpoints (controllers)
-    - Angular components and services
+    - Frontend components and services using the configured framework
     - DTOs and validation
 
 4. **Use Project Patterns**
@@ -97,7 +97,7 @@ Create a new feature: $ARGUMENTS
         - `create-cqrs-command.prompt.md`
         - `create-cqrs-query.prompt.md`
         - `create-entity-event.prompt.md`
-        - `create-angular-component.prompt.md`
+        - `{configured-frontend-component-template}`
         - `create-api-service.prompt.md`
 
 5. **Wait for Approval**
@@ -105,16 +105,15 @@ Create a new feature: $ARGUMENTS
     - **DO NOT proceed without explicit approval**
 
 6. **Create Files (After Approval)**
-   Execute in this order:
-    1. Domain entities (`.Domain/Entities/`)
-    2. Application layer (`.Application/UseCaseCommands/`, `.Application/UseCaseQueries/`)
-    3. Entity DTOs (`.Application/EntityDtos/`)
-    4. API controllers (`.Api/Controllers/`)
+   Execute in this order (resolve the concrete folders from the project's structure reference / `docs/project-config.json`):
+    1. Domain entities (the entity/model folder, e.g. `{domain-entities-folder}/`)
+    2. Application layer — the command folder and query folder (e.g. `{command-folder}/`, `{query-folder}/`)
+    3. Entity DTOs (the DTO folder, e.g. `{entity-dtos-folder}/`)
+    4. API controllers (the controller folder, e.g. `{controllers-folder}/`)
     5. Frontend components and services
 
 7. **Verify**
-    - Build backend: `dotnet build`
-    - Build frontend: `nx build <app-name>`
+    - Build/verify each changed layer with the project's configured build commands (resolve backend + frontend build commands from `docs/project-config.json` / project-reference docs)
 
 ---
 

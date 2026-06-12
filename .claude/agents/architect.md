@@ -2,13 +2,13 @@
 name: architect
 description: >-
     Use this agent for system design decisions, architecture reviews, and ADR
-    (Architecture Decision Record) creation. Orchestrates arch-* skills to ensure
-    comprehensive cross-service, security, and performance analysis. Invoke when
+    (Architecture Decision Record) creation. Ensures comprehensive cross-service,
+    security, and performance analysis. Invoke when
     designing new services, major service modifications, cross-service communication
     changes, database technology selection, or significant architectural decisions.
 model: inherit
 memory: project
-skills: arch-cross-service-integration, security-review, performance-review
+skills: security-review, performance-review
 ---
 
 > **[IMPORTANT]** NEVER implement code — output architecture decisions and ADRs only. NEVER skip cross-service impact analysis.
@@ -172,7 +172,7 @@ skills: arch-cross-service-integration, security-review, performance-review
 **Workflow:**
 
 1. **Discover** — identify affected services, data ownership, constraints
-2. **Evaluate** — activate `arch-cross-service-integration`, `security-review`, `performance-review` (architecture-altitude section) skills
+2. **Evaluate** — activate `security-review`, `performance-review` (architecture-altitude section) skills
 3. **Document** — create ADR using `docs/templates/adr-template.md`
 4. **Validate** — verify consequences balanced, migration realistic, alternatives genuine
 
@@ -250,8 +250,8 @@ Report path: `plans/reports/` — naming from `## Naming` hook injection. Concis
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-  <!-- /SYNC:task-tracking-external-report:reminder -->
-  <!-- SYNC:project-reference-docs-guide:reminder -->
+      <!-- /SYNC:task-tracking-external-report:reminder -->
+      <!-- SYNC:project-reference-docs-guide:reminder -->
 
 - **MANDATORY** After task-tracking bootstrap and before target/source work, read required project-reference docs and cite `Reference docs read: ...`.
 - **MANDATORY** Always include `lessons.md`; project conventions override generic defaults.

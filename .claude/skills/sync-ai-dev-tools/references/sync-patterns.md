@@ -63,7 +63,7 @@ Claude has workflow orchestration. Copilot uses chat modes.
 | Skills       | `.github/skills/`    | Maximum compatibility     |
 | Prompts      | `.github/prompts/`   | Both platforms read       |
 | Agents       | `.github/agents/`    | Shared location           |
-| Instructions | Both files           | Platform-specific nuances |
+| Instructions | Both files           | Tool-specific nuances |
 | Workflows    | `.claude/workflows/` | Claude-specific           |
 | Chat Modes   | `.github/chatmodes/` | Copilot-specific          |
 

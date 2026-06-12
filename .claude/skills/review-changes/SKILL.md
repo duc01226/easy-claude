@@ -281,7 +281,7 @@ For each changed file, infer its category by examining:
 - **Directory semantics:** What layer, module, or concern does this path represent in the project?
 - **Change nature:** Is this logic, data schema, configuration, documentation, infrastructure, styling, testing, or tooling?
 
-**Do NOT map to fixed buckets.** Derive categories that fit THIS project's actual structure and vocabulary.
+**Do NOT map to fixed buckets.** Derive categories that fit the current repository's actual structure and vocabulary.
 
 Common category types to consider as starting points (not exhaustive — derive what fits):
 
@@ -479,6 +479,8 @@ For each changed file, identify related documentation:
 - Flag missing docs for new features or components that should be documented
 - **Flag in the report** with the specific stale section and what changed. Do not fix yet; Phase 6 must validate the finding before Phase 7 invokes `/docs-update` or applies doc edits.
 
+**Spec Drift Adjudication (REQUIRED when behavior changed):** Apply `SYNC:spec-drift-adjudication`. For every behavior-bearing change, compare it against the canonical Feature Spec under `docs/specs/` and classify any divergence as **CODE-WRONG** (change violates an intended spec rule/AC/invariant → BLOCKING finding, fix code/test), **SPEC-STALE** (intentional behavior change the spec no longer reflects → route to `/feature-spec [update]` + `/spec-tests [update]`), or **AMBIGUOUS** (`AskUserQuestion` before editing either side). Record the verdict per changed behavior (`Spec in sync` when no divergence). Do not normalize drift just because code/tests pass. This is the bidirectional generalization of the post-bugfix "Was spec wrong?" check — it runs for ALL behavior-changing reviews, not only post-bugfix. Flag findings here; Phase 6 validates and Phase 7 fixes (CODE-WRONG fixes route through the fix loop; SPEC-STALE fixes route to the canonical spec updater before `/docs-update`).
+
 **Correctness & Bug Detection:** Apply `SYNC:bug-detection` — null safety, boundaries, error handling, resource cleanup, concurrency.
 
 **Test Spec Verification:** Apply `SYNC:test-spec-verification` — locate specs, verify coverage, flag gaps.
@@ -536,6 +538,7 @@ Update report with final sections:
 - MUST ATTENTION High Priority (should fix)
 - MUST ATTENTION Architecture Recommendations
 - MUST ATTENTION Documentation Staleness (list stale docs with what changed, or "No doc updates needed")
+- MUST ATTENTION Spec Drift Adjudication (per behavior-changing file: CODE-WRONG / SPEC-STALE / AMBIGUOUS / `Spec in sync`, with the routed fix; or "No behavior change — N/A")
 - MUST ATTENTION Positive Observations
 - MUST ATTENTION Suggested commit message (based on changes)
 
@@ -583,7 +586,7 @@ Before approving, verify artifacts are **easy to read, maintain, understand**:
 ### 2.5. Naming Conventions
 
 - MUST ATTENTION Names reveal intent (WHAT not HOW)
-- MUST ATTENTION Specific names, not generic (`employeeRecords` not `data`)
+- MUST ATTENTION Specific names, not generic (`orderRecords` not `data`)
 - MUST ATTENTION Booleans: prefix with state-indicating verb (`isActive`, `hasPermission`, `canEdit`)
 - MUST ATTENTION No cryptic abbreviations
 
@@ -637,6 +640,7 @@ For bugfix, failed-verification, stale/incorrect final output, regression, or be
 - MUST ATTENTION New feature/component added → flag if corresponding doc missing
 - MUST ATTENTION Test specs reflect current behavior after changes
 - MUST ATTENTION API changes reflected in relevant API docs or specs
+- MUST ATTENTION **Spec-drift adjudication** (`SYNC:spec-drift-adjudication`): for every behavior-changing file, decide whether a divergence from the canonical Feature Spec is CODE-WRONG (change is the defect — BLOCKING, fix code/test), SPEC-STALE (change is intended — update spec via `/feature-spec [update]` first), or AMBIGUOUS (intended behavior unclear — `AskUserQuestion` before editing either side). Do not flag a divergence as a one-directional "stale doc" without naming which side is canonical. Unadjudicated behavior-vs-spec divergence is a FAIL.
 
 ### 8. M1-M6 Compliance Gate — Code-to-Spec Drift (BLOCKING)
 
@@ -646,7 +650,7 @@ For bugfix, failed-verification, stale/incorrect final output, regression, or be
 
 - MUST ATTENTION **M1 — No introduced tech leakage in prose.** FAIL if the diff adds a framework/product, language-native type, or product/design-pattern class name to spec/doc narrative prose, headings, or AC text (banned list in `spec-principles.md` §3.2). Cite the changed file + line + token.
 - MUST ATTENTION **M2 — No introduced source code in prose.** FAIL if the diff expresses a requirement as a class/method/file-path/namespace used as a noun instead of a business operation. Source identifiers belong only in evidence carriers. Cite the changed line.
-- MUST ATTENTION **M3 — Logical-ID mapping preserved.** FAIL if the change adds a requirement/rule/TC without a logical ID (`FR-/BR-/OP-/TC-`), strips a logical ID, demotes it below the `[Source:]` evidence, writes a physical `file:line`/`src/` path instead of a stack-portable abstract anchor (`[Source: namespace/service/id]`), OR drops the `[Source:]` abstract-anchor evidence (evidence is REQUIRED and KEPT — SECONDARY to the logical ID; a code move alone does NOT change the anchor — physical coords live only in the provenance sidecar).
+- MUST ATTENTION **M3 — Logical-ID mapping preserved.** FAIL if the change adds a requirement/rule/TC without a logical ID (`FR-/BR-/OP-/TC-`), strips a logical ID, demotes it below the `[Source:]` evidence, writes physical code coordinates or repository-root paths instead of a stack-portable abstract anchor (`[Source: namespace/service/id]`), OR drops the `[Source:]` abstract-anchor evidence (evidence is REQUIRED and KEPT — SECONDARY to the logical ID; a code move alone does NOT change the anchor — physical coords live only in the provenance sidecar).
 - MUST ATTENTION **M4 — No introduced AC ambiguity.** FAIL if the change leaves an AC/expected-result vague ("handle appropriately", "process normally", "as needed"), implementable two different ways while both claim conformance, or with no observable completion state / named error condition.
 - MUST ATTENTION **M5 — Spec stays rebuildable.** FAIL if the change makes the spec/doc depend on reading the new code to be understood (a zero-codebase-knowledge team could no longer re-implement on a different stack from the artifact alone). Cite the file + missing detail.
 
@@ -674,6 +678,12 @@ Provide feedback in this format:
 
 - Doc 1: What is stale and why
 - `No doc updates needed` — if no changed file maps to a doc
+
+**Spec Drift Adjudication:** (Behavior-changing changes only — per `SYNC:spec-drift-adjudication`)
+
+- `<behavior/file>` → CODE-WRONG | SPEC-STALE | AMBIGUOUS — verdict + routed fix (`/feature-spec [update]`, regression TC, or `AskUserQuestion`)
+- `Spec in sync` — if changed behavior matches the canonical Feature Spec
+- `No behavior change — N/A` — if the diff is docs/tooling/style only
 
 **Debugger Trace Gaps:** (Bugfix/behavior-changing changes only)
 
@@ -736,7 +746,7 @@ Group all changed files into logical categories derived from the project's actua
 | **Tests**               | Unit, integration, E2E test files                                     |
 | **Infrastructure**      | Docker, k8s, CI/CD, cloud manifests                                   |
 
-Derive the actual groupings from what THIS project contains — do not force files into categories that don't fit.
+Derive the actual groupings from what the current repository contains — do not force files into categories that don't fit.
 
 ### Step 2: Fire Parallel Specialized Sub-Agents
 
@@ -882,7 +892,7 @@ If `architectureRules` not present in project-config.json, skip silently.
 
 1. Set the `[Review Phase 8]` task to `in_progress`.
 2. **Invoke `/docs-update`** over the FULL changeset (the Phase 1 diff source plus any Phase 7 fixes). Let it detect impacted docs from the changes — feature docs, architecture references, READMEs, API docs, test specs, setup/getting-started guides.
-3. If a spec-was-wrong scenario was detected during review (post-bugfix where the spec documents the bug as correct behavior), run `/feature-spec [update]` BEFORE `/docs-update` so the canonical Feature Spec is corrected first — never let docs-update codify broken behavior.
+3. If the Phase 4 Spec Drift Adjudication (`SYNC:spec-drift-adjudication`) returned any **SPEC-STALE** verdict — the canonical Feature Spec no longer reflects the intended behavior (includes the post-bugfix case where the spec documents the bug as correct behavior) — run `/feature-spec [update]` BEFORE `/docs-update` so the spec is corrected to intended behavior first. Never let `/docs-update` codify broken or superseded behavior. CODE-WRONG verdicts are NOT a spec edit — they were already fixed in the Phase 7 code-fix loop.
 4. Record applied doc updates (or `No impacted docs — verified N changed files against related docs`) under `## Phase 8 Docs-Update` in the review report.
 5. Set the `[Review Phase 8]` task to `completed`.
 
@@ -952,11 +962,13 @@ review-changes (you are here)
   ├─ Translation sync check (SYNC:translation-sync-check):
   │    → If multilingual UI text changes lack locale updates: [REQUIRED] AskUserQuestion + explicit decision
   │
-  ├─ Bugfix-specific: "Was spec wrong?" check:
-  │    If this review is post-bugfix AND spec describes the bug as expected behavior:
-  │    → [REQUIRED] Flag to user: "The spec may document the bug as correct behavior."
-  │    → If spec bug confirmed → [REQUIRED]: /feature-spec [update relevant sections]
-  │    → Do NOT let /docs-update update test cases to document broken behavior.
+  ├─ Spec drift adjudication (SYNC:spec-drift-adjudication) — ALL behavior-changing reviews:
+  │    For every behavior-bearing change diverging from the canonical Feature Spec, classify:
+  │    → CODE-WRONG (change violates an intended spec rule/AC/invariant) → [REQUIRED] BLOCKING finding; fix code/test (regression TC first)
+  │    → SPEC-STALE (intentional new behavior the spec no longer reflects) → [REQUIRED] /feature-spec [update] BEFORE /docs-update, then /spec-tests [update]
+  │    → AMBIGUOUS → [REQUIRED] AskUserQuestion (or canonical spec owner) before editing either side
+  │    Bugfix sub-case: if post-bugfix AND spec documents the bug as expected behavior → SPEC-STALE; never let /docs-update codify broken behavior.
+  │    Never normalize drift just because code/tests are green.
   │
   ├─ Phase 6 + Phase 7 recursive loop
   │    → If ANY findings exist: /why-review --validate-findings
@@ -1231,7 +1243,7 @@ MUST check categories 1-4 for EVERY review. Never skip.
 3. Error Handling: Try-catch scope correct? Silent swallowed exceptions? Error types specific? Cleanup in finally?
 4. Resource Management: Connections/streams closed? Subscriptions unsubscribed on destroy? Timers cleared? Memory bounded?
 5. Concurrency (if async): Missing await? Race conditions on shared state? Stale closures? Retry storms?
-6. Stack-Specific: JS: === vs ==, typeof null. C#: async void, missing using, LINQ deferred execution.
+6. Stack-Specific: Check the configured language/runtime pitfalls and framework-specific failure modes discovered from local code.
 Classify: CRITICAL (crash/corrupt) → FAIL | HIGH (incorrect behavior) → FAIL | MEDIUM (edge case) → WARN | LOW (defensive) → INFO.
 
 ### Design Patterns Quality
@@ -1376,7 +1388,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > 3. **Error Handling:** Try-catch scope correct? Silent swallowed exceptions? Error types specific? Cleanup in finally/defer?
 > 4. **Resource Management:** Connections/streams closed? Long-lived resources released? Memory bounded?
 > 5. **Concurrency (if async):** Missing await/promise handling? Race conditions on shared state? Retry storms?
-> 6. **Language/Stack-Specific:** Apply known failure modes for the language/runtime in this project — use your domain knowledge of the stack.
+> 6. **Language/Runtime-Specific:** Apply known failure modes for the configured language/runtime and discovered codebase conventions.
 >
 > **Classify:** CRITICAL (crash/corrupt) → FAIL | HIGH (incorrect behavior) → FAIL | MEDIUM (edge case) → WARN | LOW (defensive) → INFO
 
@@ -1544,6 +1556,21 @@ For each identified concern: create a `TaskCreate` sub-task, work through it wit
 > **Source/test drift check.** For coding, fix, debug, investigation, test, or review work: when source behavior changes, inspect affected unit/integration/E2E tests and decide from evidence whether tests should change to match intended behavior or the source change is an unintended bug to fix. Do not write tests for migration code; schema/data migrations are one-time execution paths, not core application logic.
 
 <!-- /SYNC:source-test-drift-check -->
+
+<!-- SYNC:spec-drift-adjudication -->
+
+> **Spec drift adjudication (code-wrong vs spec-stale).** Whenever changed behavior diverges from a canonical Feature Spec (business rule, acceptance criterion, flow, state transition, or §8 TC under `docs/specs/`), you MUST NOT silently pick a side. Adjudicate per `shared/sdd-artifact-contract.md` → **Drift Gates**:
+>
+> 1. **Detect** — compare the change against the spec's documented intent. No divergence → record `Spec in sync` and move on.
+> 2. **Classify** the divergence:
+>    - **CODE-WRONG** — the spec correctly states intended behavior and the change violates it → BLOCKING finding; fix the code/test against intended behavior (write/adjust a regression TC first).
+>    - **SPEC-STALE** — the change is the new intended behavior and the spec now documents the old/wrong behavior → update the spec FIRST via `/feature-spec [update]`, then sync `/spec-tests [update]` + `[direction=sync]`.
+>    - **AMBIGUOUS** — intended behavior is unclear → `AskUserQuestion` (or the canonical spec owner) before editing either side.
+> 3. **Never normalize drift just because code/tests are green** — green can encode the drift itself. Reconcile to canonical intent, never to whichever side currently passes.
+>
+> A behavior-changing review/implementation that leaves a spec divergence unadjudicated is INCOMPLETE.
+
+<!-- /SYNC:spec-drift-adjudication -->
 
 <!-- SYNC:ai-mistake-prevention -->
 

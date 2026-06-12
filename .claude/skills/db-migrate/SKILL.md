@@ -16,20 +16,20 @@ disable-model-invocation: false
 
 ## Quick Summary
 
-**Goal:** Create or run database migrations (EF Core migrations, MongoDB data migrations) following platform patterns.
+**Goal:** Create or run database migrations following the repository's documented patterns.
 
 **Workflow:**
 
-1. **Identify** — Determine migration type (EF schema vs data migration)
-2. **Create** — Generate migration using `dotnet ef` or project data migration executor (see docs/project-reference/backend-patterns-reference.md)
+1. **Identify** — Determine migration type (schema migration vs data/document migration)
+2. **Create** — Generate migration using the configured migration tool or data migration executor (see docs/project-reference/backend-patterns-reference.md)
 3. **Verify** — Run migration and confirm schema/data changes
 
 **Key Rules:**
 
-- Follow platform migration patterns from CLAUDE.md
+- Follow the repository's migration patterns (see CLAUDE.md / project-reference docs)
 - For CREATE: present the migration design and wait for explicit user approval before creating migration files
 - Always backup data before destructive migrations
-- Use project data migration executor for MongoDB data migrations (see docs/project-reference/backend-patterns-reference.md)
+- Use the configured data migration executor for data/document migrations (see docs/project-reference/backend-patterns-reference.md)
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
@@ -38,41 +38,39 @@ Database migration: $ARGUMENTS
 ## Instructions
 
 1. **Parse arguments**:
-    - `add <name>` → Create new EF Core migration
+    - `add <name>` → Create new schema/data migration with the configured tool
     - `update` → Apply pending migrations
     - `list` → List all migrations and status
     - `rollback` → Revert last migration
     - No argument → Show migration status
 
-2. **Identify database provider** from project:
-    - SQL Server: Search for `*.Persistence` projects
-    - PostgreSQL: Search for `*.Persistence.PostgreSql` projects
-    - MongoDB: Uses project Mongo migration executor (code-based, see docs/project-reference/backend-patterns-reference.md)
+2. **Identify database provider + migration tooling** from project config and project-reference docs:
+    - Relational stores: managed by the configured schema-migration tool.
+    - Document/key-value/event stores: may use code-based migrations or startup executors defined by the repository.
 
-3. **For EF Core (SQL Server/PostgreSQL)**:
+3. **For schema migrations**:
 
 Add migration:
 
     ```bash
-    cd src/{ExampleApp}/{ExampleApp}.TextSnippet.Persistence
-    dotnet ef migrations add <MigrationName> --startup-project ../{ExampleApp}.TextSnippet.Api
+    {configured-migration-add-command} <MigrationName>
     ```
 
 Update database:
 
     ```bash
-    dotnet ef database update --startup-project ../{ExampleApp}.TextSnippet.Api
+    {configured-migration-update-command}
     ```
 
 List migrations:
 
     ```bash
-    dotnet ef migrations list --startup-project ../{ExampleApp}.TextSnippet.Api
+    {configured-migration-list-command}
     ```
 
-4. **For MongoDB migrations**:
-    - MongoDB uses code-based migrations via project Mongo migration executor (see docs/project-reference/backend-patterns-reference.md)
-    - Location: `*.Persistence.Mongo/Migrations/`
+4. **For data/document migrations**:
+    - Often code-based migrations run by the configured migration executor (see docs/project-reference/backend-patterns-reference.md)
+    - Location: the repository's configured migration folder — discover from `docs/project-reference/backend-patterns-reference.md`
     - Migrations run automatically on application startup
     - To create: Generate new migration class following existing patterns
 
@@ -84,7 +82,7 @@ List migrations:
 6. **Migration Safety Review (MANDATORY for non-local environments)**:
     - Before applying to staging/production, spawn `database-admin` sub-agent (`subagent_type: "database-admin"`) for safety review
     - Review criteria: locking behavior on large tables, index creation impact under concurrent writes, rollback strategy, zero-downtime feasibility
-    - Present findings and get explicit user approval before running `dotnet ef database update` or applying MongoDB migrations on non-local environments
+    - Present findings and get explicit user approval before running the configured migration apply command on non-local environments
 
 ## Sub-Agent Type Override
 

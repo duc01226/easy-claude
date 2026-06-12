@@ -50,7 +50,7 @@ const CODE_AGENTS = new Set([
 ]);
 const CORE_ONLY_AGENTS = new Set([
     'business-analyst', 'docs-manager', 'git-manager', 'journal-writer',
-    'knowledge-worker', 'product-owner', 'project-manager', 'qc-specialist',
+    'knowledge-worker', 'product-owner', 'project-manager',
 ]);
 
 const diskAgents = fs

@@ -49,7 +49,7 @@ Analyze and visualize dependencies between features, services, modules, or work 
 
 - Read the feature/PBI/plan files to understand scope
 - Access to `docs/project-reference/project-structure-reference.md` for service boundary reference
-- Understand the project's microservice boundaries (search `src/Services/` for service list)
+- Understand the project's microservice boundaries (read the project's structure reference / `docs/project-config.json` for the service-root location, then list the services under it)
 
 ## Workflow
 
@@ -67,7 +67,7 @@ For each dependency found, classify by type:
 
 | Type               | Direction                      | Description                                 | Example                                           |
 | ------------------ | ------------------------------ | ------------------------------------------- | ------------------------------------------------- |
-| **Data**           | Entity A requires Entity B     | Foreign key, navigation property, shared ID | Employee requires Company                         |
+| **Data**           | Entity A requires Entity B     | Foreign key, navigation property, shared ID | Order requires Customer                           |
 | **Service**        | Service A calls Service B      | Message bus, API call, event consumer       | Service A consumes entity events from Service B   |
 | **UI**             | Component A embeds Component B | Shared component, library dependency        | Feature form uses shared component library select |
 | **Infrastructure** | Feature needs infra change     | Database migration, config, new queue       | New feature needs Redis cache key                 |
@@ -132,22 +132,22 @@ Output structured dependency report (see Output Format).
 
 ### Example 1: Backend Cross-Service Feature
 
-**Input**: "Map dependencies for adding a new Coaching feature in {ServiceA}"
+**Input**: "Map dependencies for adding a new Shipment feature in {ServiceA}"
 
 **Analysis**:
 
 ```mermaid
 graph TD
-    E[Employee Entity - ServiceA] -->|data| C[Coaching Entity]
+    E[Order Entity - ServiceA] -->|data| C[Shipment Entity]
     U[User Entity - AuthService] -->|service| C
     C -->|service| N[Notification - ServiceB]
-    C -->|UI| CF[Coaching Form Component]
+    C -->|UI| CF[Shipment Form Component]
     CF -->|UI| BC[shared-components select]
 ```
 
-**Critical path**: Employee Entity -> Coaching Entity -> Coaching API -> Coaching Form
-**Ready to start**: Employee Entity already exists, shared component select exists
-**Blocked**: Coaching Entity creation, then API, then UI
+**Critical path**: Order Entity -> Shipment Entity -> Shipment API -> Shipment Form
+**Ready to start**: Order Entity already exists, shared component select exists
+**Blocked**: Shipment Entity creation, then API, then UI
 
 ### Example 2: Frontend Module Dependency
 
@@ -174,7 +174,6 @@ graph TD
 
 - `project-manager` -- for sprint planning and status tracking
 - `feature` -- for implementing features after dependency analysis
-- `arch-cross-service-integration` -- for designing cross-service communication
 - `package-upgrade` -- for npm/NuGet package dependency upgrades
 
 ---

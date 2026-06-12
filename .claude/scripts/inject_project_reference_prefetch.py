@@ -33,7 +33,7 @@ SKILL_NAMES = [
     "fix", "fix-ci", "fix-issue", "fix-logs",
     "fix-test", "fix-ui",
     # Feature family
-    "feature", "create-feature",
+    "feature",
     # Investigate / scout family
     "investigate", "debug-investigate", "feature-investigation",
     "scout", "scout-ext",

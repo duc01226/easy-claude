@@ -92,7 +92,7 @@ Before committing to the per-PBI loop, validate the opportunity map rationale wi
 - Are the top-ranked opportunities truly the right problems to solve? What was deprioritized and why?
 - Are RICE scores well-founded or speculative? Challenge Reach and Impact estimates independently.
 - Pre-mortem: if these opportunities are built and miss in 6 months, what was the root cause?
-- Are there systemic alternatives (platform change, process change) that make these opportunities unnecessary?
+- Are there systemic alternatives (infrastructure change, process change) that make these opportunities unnecessary?
 
 | Result                          | Action                                              |
 | ------------------------------- | --------------------------------------------------- |

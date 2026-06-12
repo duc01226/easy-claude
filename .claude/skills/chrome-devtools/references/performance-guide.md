@@ -717,7 +717,7 @@ console.log('Fonts:', fonts);
 
 **Measure Third-Party Impact:**
 ```javascript
-const thirdPartyDomains = ['googletagmanager.com', 'facebook.net', 'doubleclick.net'];
+const thirdPartyDomains = ['tag-manager.example', 'social-pixel.example', 'ad-network.example'];
 
 page.on('response', async (response) => {
   const url = response.url();

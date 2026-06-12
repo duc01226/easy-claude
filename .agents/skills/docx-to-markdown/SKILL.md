@@ -107,7 +107,7 @@ node .claude/skills/docx-to-markdown/scripts/convert.cjs -i ./doc.docx --images 
 - **Code Blocks:** Monospace text converted to code blocks
 - **Links:** Hyperlinks preserved
 - **Headings:** Heading levels maintained
-- **Cross-Platform:** Works on Windows, macOS, Linux
+- **Cross-OS:** Works on Windows, macOS, Linux
 
 ## Conversion Pipeline
 

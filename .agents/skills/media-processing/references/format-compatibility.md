@@ -113,7 +113,7 @@ Complete guide to media format support, codec recommendations, and conversion be
 | Live stream | - | FLV | H.264 | AAC |
 | Editing | - | MOV/MXF | ProRes/DNxHD | PCM |
 
-### Platform Compatibility
+### Runtime Compatibility
 
 **Web Browsers (2025):**
 - Images: JPEG, PNG, WebP, GIF, SVG
@@ -292,7 +292,7 @@ ffmpeg -i input.wav -c:a libopus -b:a 128k output.opus
 - Future-proofing content
 - Maximum compression needed
 - Encoding time not critical
-- Modern platform targets
+- Modern runtime targets
 
 ## Format Migration Strategies
 

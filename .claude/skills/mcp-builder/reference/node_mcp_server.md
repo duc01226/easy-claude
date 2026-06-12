@@ -70,7 +70,7 @@ Create the following structure for Node/TypeScript MCP servers:
 ├── package.json
 ├── tsconfig.json
 ├── README.md
-├── src/
+├── {source-root}/
 │   ├── index.ts          # Main entry point with McpServer initialization
 │   ├── types.ts          # TypeScript type definitions and interfaces
 │   ├── tools/            # Tool implementations (one file per domain)
@@ -137,7 +137,7 @@ server.registerTool(
         title: 'Search Example Users',
         description: `Search for users in the Example system by name, email, or team.
 
-This tool searches across all user profiles in the Example platform, supporting partial matches and various search filters. It does NOT create or modify users, only searches existing ones.
+This tool searches across all user profiles in the Example service, supporting partial matches and various search filters. It does NOT create or modify users, only searches existing ones.
 
 Args:
   - query (string): Search string to match against names/emails
@@ -511,7 +511,7 @@ async function getUser(id: string): Promise<any> {
     "main": "dist/index.js",
     "scripts": {
         "start": "node dist/index.js",
-        "dev": "tsx watch src/index.ts",
+        "dev": "tsx watch {source-root}/index.ts",
         "build": "tsc",
         "clean": "rm -rf dist"
     },
@@ -551,7 +551,7 @@ async function getUser(id: string): Promise<any> {
         "sourceMap": true,
         "allowSyntheticDefaultImports": true
     },
-    "include": ["src/**/*"],
+    "include": ["{source-root}/**/*"],
     "exclude": ["node_modules", "dist"]
 }
 ```

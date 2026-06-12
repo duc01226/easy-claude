@@ -617,28 +617,6 @@ function Install-NodeDeps {
         Write-Success "mcp-management dependencies installed"
     }
 
-    # markdown-novel-viewer (marked, highlight.js, gray-matter)
-    $novelViewerPath = Join-Path $ScriptDir "markdown-novel-viewer"
-    $novelViewerPackageJson = Join-Path $novelViewerPath "package.json"
-    if ((Test-Path $novelViewerPath) -and (Test-Path $novelViewerPackageJson)) {
-        Write-Info "Installing markdown-novel-viewer dependencies..."
-        Push-Location $novelViewerPath
-        npm install --quiet
-        Pop-Location
-        Write-Success "markdown-novel-viewer dependencies installed"
-    }
-
-    # plans-kanban (gray-matter)
-    $plansKanbanPath = Join-Path $ScriptDir "plans-kanban"
-    $plansKanbanPackageJson = Join-Path $plansKanbanPath "package.json"
-    if ((Test-Path $plansKanbanPath) -and (Test-Path $plansKanbanPackageJson)) {
-        Write-Info "Installing plans-kanban dependencies..."
-        Push-Location $plansKanbanPath
-        npm install --quiet
-        Pop-Location
-        Write-Success "plans-kanban dependencies installed"
-    }
-
     # markdown-to-pdf (md-to-pdf, gray-matter)
     $mdToPdfPath = Join-Path $ScriptDir "markdown-to-pdf"
     $mdToPdfPackageJson = Join-Path $mdToPdfPath "package.json"

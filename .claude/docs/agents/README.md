@@ -1,6 +1,6 @@
 # Agents Reference
 
-> 29 specialized subagents for autonomous task execution
+> 28 specialized subagents for autonomous task execution
 
 ## Overview
 
@@ -74,7 +74,6 @@ Main Claude Session
 | ------------------ | --------------------------------------------------------------------- | --------- |
 | `business-analyst` | Requirements refinement, user story creation, BDD acceptance criteria | All tools |
 | `product-owner`    | Backlog management, feature prioritization, stakeholder communication | All tools |
-| `qc-specialist`    | Quality checkpoints, compliance audits, standards enforcement         | All tools |
 | `ui-ux-designer`   | Design specifications, wireframes, user flow documentation            | All tools |
 
 ### Specialized
@@ -172,7 +171,6 @@ Task({
 | Prioritize backlog            | `product-owner`        | MoSCoW, effort/value matrix                               |
 | Create test plan              | `tester`               | Test coverage, case generation                            |
 | Synthesize knowledge          | `knowledge-worker`     | Web research, structured reports, course material         |
-| Quality checkpoint            | `qc-specialist`        | Audit trails, compliance checks                           |
 | Design specification          | `ui-ux-designer`       | Figma integration, design tokens                          |
 | Edit the .claude framework    | `framework-maintainer` | Skills, agents, hooks, SYNC blocks, Codex/Copilot mirrors |
 
@@ -363,4 +361,4 @@ Task({
 
 ---
 
-_Source: Task tool system prompt | 29 specialized agent types_
+_Source: Task tool system prompt | 28 specialized agent types_

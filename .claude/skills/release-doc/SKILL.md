@@ -303,8 +303,8 @@ For projects with custom directory structures, override the category map via `pr
 {
     "releaseDoc": {
         "categoryMap": {
-            "src/api/**": "API Layer",
-            "src/ui/**": "Frontend",
+            "{api-source-root}/**": "API Layer",
+            "{ui-source-root}/**": "Frontend",
             "migrations/**": "Database Schema"
         },
         "outputDir": "docs/release",
@@ -338,7 +338,7 @@ git log --format="%ad" --date=short | head -5
 
 ### Non-easy-claude project structure
 
-The skill auto-derives categories from file paths. For projects without `.claude/`, group by `src/`, `tests/`, `docs/`, `scripts/`, `config/` instead.
+The skill auto-derives categories from file paths. For repositories without `.claude/`, group by discovered source roots, tests, docs, scripts, and config paths instead.
 
 ---
 

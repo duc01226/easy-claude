@@ -150,7 +150,7 @@ Check that:
 | `.github/copilot-instructions.md`                        | Project-specific                        | TL;DR + project-reference index + READ prompts |
 | `.github/instructions/common-protocol.instructions.md`   | Generic (applyTo: `**/*`)               | Prompt protocol + workflow catalog + dev rules |
 | `.github/instructions/backend-csharp.instructions.md`    | Backend (applyTo: `**/*.cs`)            | Backend doc summaries + READ prompts           |
-| `.github/instructions/frontend-angular.instructions.md`  | Frontend (applyTo: `**/*.ts,**/*.html`) | Frontend doc summaries + READ prompts          |
+| `.github/instructions/frontend.instructions.md`          | Frontend (applyTo: configured frontend globs) | Frontend doc summaries + READ prompts          |
 | `.github/instructions/styling-scss.instructions.md`      | Styling (applyTo: `**/*.scss,**/*.css`) | Styling doc summaries + READ prompts           |
 | `.github/instructions/testing.instructions.md`           | Testing (applyTo: `**/*Test*/**,...`)   | Testing doc summaries + READ prompts           |
 | `.github/instructions/project-reference.instructions.md` | Cross-cutting (applyTo: `**/*`)         | General project doc summaries + READ prompts   |

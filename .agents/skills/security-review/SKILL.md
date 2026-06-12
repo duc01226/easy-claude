@@ -118,26 +118,28 @@ Evaluate every category against the in-scope code. Categories updated to the OWA
 **A01 Broken Access Control (now includes SSRF)** — #1 risk.
 
 - [ ] Every endpoint has an authorization attribute — no anonymous-by-omission
-- [ ] Resource-level check: entity ownership / tenant (`CompanyId`) verified, not just role (IDOR)
+- [ ] Resource-level check: entity ownership / tenant (`TenantId`) verified, not just role (IDOR)
 - [ ] No client-supplied authority (`request.IsAdmin`, role IDs from body)
 - [ ] Privilege escalation paths traced (can a user reach admin handlers via bus events, background jobs, or internal endpoints?)
 - [ ] SSRF: user-controlled URLs (webhooks, fetch-by-url, file imports) validated against an allowlist of hosts + `https` scheme; no access to internal services/metadata endpoints
+
+**Example (the IDOR pattern applies to any stack — adapt syntax):**
 
 ```csharp
 // ❌ VULNERABLE - role checked, resource ownership not
 [HttpGet("{id}")]
 [Authorize(Roles.Manager)]
-public async Task<Employee> Get(string id) => await repo.GetByIdAsync(id);
+public async Task<Order> Get(string id) => await repo.GetByIdAsync(id);
 
 // ✅ SECURE - role + tenant/resource scope enforced
 [HttpGet("{id}")]
 [Authorize(Roles.Manager, Roles.Admin)]
-public async Task<Employee> Get(string id)
+public async Task<Order> Get(string id)
 {
-    var employee = await repo.GetByIdAsync(id);
-    if (employee.CompanyId != RequestContext.CurrentCompanyId())
+    var order = await repo.GetByIdAsync(id);
+    if (order.CustomerId != RequestContext.CurrentTenantId())
         throw new UnauthorizedAccessException();
-    return employee;
+    return order;
 }
 ```
 
@@ -203,8 +205,8 @@ public async Task<Employee> Get(string id)
 - [ ] Grep scope for hardcoded secrets:
 
 ```bash
-grep -rn -E "(password|passwd|secret|apikey|api_key|token|connectionstring)\s*[:=]" --include="*.cs" --include="*.json" --include="*.ts" --include="*.yml" --include="*.yaml" --include="*.env*" -i | grep -vE "(example|sample|placeholder|YOUR_|xxx|<.*>)"
-grep -rn -E "(sk_live_|ghp_|github_pat_|AKIA[0-9A-Z]{16}|xox[baprs]-|-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY)" .
+rg -n -i "(password|passwd|secret|apikey|api_key|token|connectionstring)\s*[:=]" {configured-source-and-config-roots} | rg -v "(example|sample|placeholder|YOUR_|xxx|<.*>)"
+rg -n "(sk_live_|ghp_|github_pat_|AKIA[0-9A-Z]{16}|xox[baprs]-|-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY)" {configured-source-and-config-roots}
 ```
 
 - [ ] `.env`, `appsettings.*.json` with real credentials, `*.pfx/*.pem` keys: in `.gitignore` AND not already in git history (`git log --diff-filter=A -- .env "*.pem"`); leaked-in-history = rotate, not just delete
@@ -340,7 +342,7 @@ docker ps -a; docker images                     # unknown containers/images, pri
 
 ### D6 — Frontend / Client Security
 
-- [ ] XSS: every `innerHTML`/`outerHTML`/`insertAdjacentHTML`, Angular `bypassSecurityTrust*`, `[innerHTML]` binding traced to sanitized source
+- [ ] XSS: every raw HTML insertion, framework trust-bypass API, or HTML binding traced to sanitized source
 - [ ] `postMessage` handlers validate `event.origin`; no `*` targetOrigin with sensitive data
 - [ ] Open redirects: user-controlled `returnUrl`/`redirect` params validated against allowlist
 - [ ] Token storage: prefer httpOnly cookies; if localStorage is used, flag XSS-to-token-theft chain explicitly
@@ -352,7 +354,7 @@ docker ps -a; docker images                     # unknown containers/images, pri
 
 - [ ] Every controller endpoint: authn + authz attribute + tenant scoping (entity-level access expressions — see docs/project-reference/backend-patterns-reference.md)
 - [ ] IDOR sweep: any `GetById`-style handler without ownership check
-- [ ] Mass assignment: DTOs don't bind privileged fields (`Role`, `CompanyId`, `IsApproved`) from client input
+- [ ] Mass assignment: DTOs don't bind privileged fields (`Role`, `TenantId`, `IsApproved`) from client input
 - [ ] Message-bus consumers validate producer payloads — a compromised service must not get free writes into yours
 - [ ] No direct cross-service DB access (architecture rule doubles as a security boundary)
 - [ ] Internal-only endpoints (health, admin, migration triggers) not reachable from public ingress
@@ -361,7 +363,7 @@ docker ps -a; docker images                     # unknown containers/images, pri
 
 ### D8 — Infrastructure & Configuration
 
-- [ ] Services bind `127.0.0.1` unless intentionally public (MongoDB 27017, Elasticsearch 9200, RabbitMQ 15672, Redis 6379 exposed to internet = Critical)
+- [ ] Local-only infrastructure endpoints bind to loopback unless intentionally public; configured data stores, brokers, caches, search services, and admin UIs exposed to the internet are Critical
 - [ ] Default/dev credentials (`guest/guest`, `postgres/postgres`, `sa/...`) NEVER in staging/prod; flag any non-dev config carrying them
 - [ ] TLS everywhere external; HSTS; no mixed content
 - [ ] CORS: explicit origins, no wildcard+credentials

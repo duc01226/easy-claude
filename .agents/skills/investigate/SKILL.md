@@ -122,13 +122,13 @@ Explain scope: same READ-ONLY evidence gate; deliverable is an in-chat developer
 
 Grep `{FeatureName}` combined with: `EventHandler`, `BackgroundJob`, `Consumer`, `Service`, `Component`.
 
-**Priority order:** (1) Entities → (2) Commands/Queries (`UseCaseCommands/`) → (3) Event Handlers (`UseCaseEvents/`) → (4) Controllers → (5) Consumers (`*BusMessage.cs`) → (6) Background Jobs → (7) Components/Stores → (8) Services/Helpers
+**Priority order (stack-neutral strategy):** (1) Domain model (entities/aggregates) → (2) Use-cases (commands/queries) → (3) Event handlers (side-effect logic) → (4) Entry points (controllers/API/route handlers) → (5) Cross-service consumers (message/event subscribers) → (6) Background jobs/schedulers → (7) UI components/stores → (8) Services/helpers. _Concrete locators (folder names, file globs, framework markers) vary by stack — discover them from the project's structure reference + project config._
 
 ### Dependency Tracing
 
-**Backend:** method callers (grep `*.cs`), service injectors (grep interface in constructors), entity events (`EntityEvent<Name>`), cross-service (`*BusMessage` across services), repository usage (`IRepository<Name>`).
+**Backend (trace these relationships — locator syntax per stack):** method/function callers (grep backend source files), dependency injectors (grep the interface/type in constructors or DI wiring), domain-event subscribers (the framework's domain-event handler type), cross-service message handlers (the cross-service message/event contract across services), repository/data-access usage (the repository/data-access interface).
 
-**Frontend:** component users (grep selector in `*.html`), service importers (grep class in `*.ts`), store chains (`effectSimple` → API → `tapResponse` → state), routes (grep component in `*routing*.ts`).
+**Frontend:** component users (grep the component selector in templates), service importers (grep the class in source files), store/state chains (state-effect → API call → response handler → state), routes (grep the component in routing files). _Concrete file globs and framework primitives: see the project's frontend reference + config._
 
 ### Data Flow Mapping
 
@@ -149,7 +149,7 @@ Document as: `[Entry] → [Validation] → [Processing] → [Persistence] → [S
 
 **Backend** (search for `backend-patterns-reference` in docs/): CQRS commands/queries, entity event handlers, message bus consumers, repository extensions, validation fluent API, authorization attributes.
 
-**Frontend** (search for `frontend-patterns-reference` in docs/): store component base, store base, `effectSimple`/`tapResponse`, `observerLoadingErrorState`, API service base class.
+**Frontend** (search for `frontend-patterns-reference` in docs/): component base classes, view-model/state store base, reactive data-fetch effects with loading/error state handling, API service base class.
 
 ### Graph Intelligence (MANDATORY when graph.db exists)
 
@@ -313,7 +313,7 @@ Applies when recommending code changes (removal, refactoring, replacement). MUST
 
 ### Removal Checklist (ALL MUST ATTENTION pass)
 
-- [ ] No static references (`grep -r "ClassName" --include="*.cs"` = 0)
+- [ ] No static references (`rg "ClassName" {configured-source-roots}` returns no live references)
 - [ ] No string literals / dynamic invocations (reflection, factory, message bus)
 - [ ] No DI registrations (`services.Add*<ClassName>`)
 - [ ] No config references (appsettings, env vars)
@@ -361,7 +361,7 @@ Find working reference → compare implementations → identify differences → 
 
 <!-- SYNC:knowledge-graph-template -->
 
-    > **Knowledge Graph Template** — For each analyzed file, document: filePath, type (Entity/Command/Query/EventHandler/Controller/Consumer/Component/Store/Service), architecturalPattern, content summary, symbols, dependencies, businessContext, referenceFiles, relevanceScore (1-10), evidenceLevel (verified/inferred), frameworkAbstractions, serviceContext. Investigation fields: entryPoints, outputPoints, dataTransformations, errorScenarios. Consumer/bus fields: messageBusMessage, messageBusProducers, crossServiceIntegration. Frontend fields: componentHierarchy, stateManagementStores, dataBindingPatterns, validationStrategies.
+    > **Knowledge Graph Template** — For each analyzed file, document: filePath, type (entity, command, query, event handler, controller, consumer, component, store, service, or repository-specific equivalent), architecturalPattern, content summary, symbols, dependencies, businessContext, referenceFiles, relevanceScore (1-10), evidenceLevel (verified/inferred), abstractions, and moduleContext. Investigation fields: entryPoints, outputPoints, dataTransformations, errorScenarios. Messaging fields: messageName, messageProducers, crossBoundaryIntegration. UI fields: componentHierarchy, stateManagementStores, dataBindingPatterns, validationStrategies.
 
 <!-- /SYNC:knowledge-graph-template -->
 

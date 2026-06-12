@@ -104,10 +104,10 @@ Read `docs/project-config.json` and extract the `integrationTestVerify` section.
 Expected config shape:
 {
   "integrationTestVerify": {
-    "guidance":             string   — instructions for this project's test run approach
+    "guidance":             string   — instructions for the project's test run approach
     "referenceDocs":        string[] — project docs that explain integration-test setup/run prerequisites
     "quickRunCommand":      string   — test runner command (e.g., "dotnet test --no-build", "npm test", "pytest")
-    "testProjectPattern":   string   — glob pattern to discover test projects (e.g., "src/Services/**/*.IntegrationTests.csproj")
+    "testProjectPattern":   string   — glob pattern to discover test projects (e.g., "**/*.IntegrationTests.csproj", "**/*.integration.spec.ts")
     "testProjects":         string[] — explicit list of test project paths (fallback if no pattern)
     "systemCheckCommand":   string   — shell command to check system readiness
     "runScript":            string   — path to CI-style full run script (reference only)
@@ -163,7 +163,7 @@ Evaluate output:
 Discover test projects by running a glob search for the pattern:
 
 ```bash
-# Example for .NET projects (pattern: "src/Services/**/*.IntegrationTests.csproj")
+# Example (testProjectPattern from project config, e.g. "**/*.IntegrationTests.csproj")
 find . -path "{testProjectPattern}" -type f
 # or use language-appropriate glob tool
 ```
@@ -195,7 +195,7 @@ Execute using `quickRunCommand` from config. Run each relevant suite/project 3 c
 
 **Three-run idempotency gate:** If any run fails, verification fails. Fix the root cause, then restart the 3-run sequence from run 1.
 
-Example for a.NET project:
+Example for a configured integration-test suite:
 
 ```bash
 # Run each test project individually for clear per-project results
@@ -210,7 +210,7 @@ Or run all at once using the solution filter if supported:
 {quickRunCommand} --filter "Category=integration"
 ```
 
-**Capture output for every run**: count Passed, Failed, Skipped. Note: skipped tests (tests marked with a framework-specific skip annotation, e.g., `[Fact(Skip=...)]` in xUnit, `@Disabled` in JUnit) are expected and not a failure.
+**Capture output for every run**: count Passed, Failed, Skipped. Note: skipped tests marked with the configured framework's skip annotation are expected and not a failure.
 
 ---
 
@@ -285,7 +285,7 @@ This script typically: creates networks → removes stale containers → builds 
 **NEVER** do these to make failures go away:
 
 - ❌ Remove or weaken assertions
-- ❌ Add skip annotations (e.g., `[Fact(Skip=...)]` in xUnit, `@Disabled` in JUnit) to hide failures
+- ❌ Add skip annotations to hide failures
 - ❌ Create or mutate domain data through repositories to bypass real use-case paths
 - ❌ Mark passing by ignoring error output
 - ❌ Report "all passed" without showing actual runner output

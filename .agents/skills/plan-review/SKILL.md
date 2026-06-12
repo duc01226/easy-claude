@@ -324,7 +324,7 @@ Phase too big? (>5 files OR >3h effort OR single step is a mini-project)
 
 | #   | Criterion                 | PASS example                    | FAIL example                       |
 | --- | ------------------------- | ------------------------------- | ---------------------------------- |
-| 1   | Steps name specific files | "Modify `src/auth/login.ts`"    | "Implement authentication"         |
+| 1   | Steps name specific files | "Modify `{source-root}/auth/login`" | "Implement authentication"         |
 | 2   | No planning verbs         | "Add `validateToken()` method"  | "Determine the best auth approach" |
 | 3   | Each step ≤30 min effort  | "Add error handler to endpoint" | "Build the entire auth module"     |
 | 4   | Phase ≤5 files AND ≤3h    | 3 files, 2h                     | 12 files, 8h                       |
@@ -342,7 +342,7 @@ Do not apply these refinements until `$why-review --validate-findings` returns C
 
 **Worked example:**
 FAILS: `"Phase 2: Data Layer — Set up database models, Create repositories, Implement data access patterns. Effort: 4h, Files: ~8"`
-PASSES after split: `"Phase 2A: Database Schema (1h, 3 files) — Create src/models/user.entity.ts, Create src/models/session.entity.ts, Create migrations/001-create-users-sessions.ts"` + `"Phase 2B: Repository Layer (1.5h, 3 files) — Create src/repos/user.repository.ts, Create src/repos/session.repository.ts, Register in src/app.module.ts"`
+PASSES after split: `"Phase 2A: Data Schema (1h, 3 files) — Create {source-root}/models/user-entity, Create {source-root}/models/session-entity, Create {migration-root}/create-users-sessions"` + `"Phase 2B: Repository Layer (1.5h, 3 files) — Create {source-root}/repositories/user-repository, Create {source-root}/repositories/session-repository, Register in {composition-root}"`
 
 - [ ] File paths follow project patterns
 - [ ] No conflicting or duplicate steps
@@ -816,7 +816,7 @@ MUST check categories 1-4 for EVERY review. Never skip.
 3. Error Handling: Try-catch scope correct? Silent swallowed exceptions? Error types specific? Cleanup in finally?
 4. Resource Management: Connections/streams closed? Subscriptions unsubscribed on destroy? Timers cleared? Memory bounded?
 5. Concurrency (if async): Missing await? Race conditions on shared state? Stale closures? Retry storms?
-6. Stack-Specific: JS: === vs ==, typeof null. C#: async void, missing using, LINQ deferred execution.
+6. Stack-Specific: Check the configured language/runtime pitfalls and framework-specific failure modes discovered from local code.
 Classify: CRITICAL (crash/corrupt) → FAIL | HIGH (incorrect behavior) → FAIL | MEDIUM (edge case) → WARN | LOW (defensive) → INFO.
 
 ### Design Patterns Quality

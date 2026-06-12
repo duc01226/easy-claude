@@ -23,7 +23,7 @@ description: '[Git] Use when generating developer KPI, performance, contribution
 - Discount generated files, migration designers, docs/spec output, i18n sorting, lockfiles, and repeated follow-up churn.
 - For velocity mismatch or recheck requests, synthesize each contributor's direct authored work as one "giant commit" first, then split into atomic 1/2/3/5/8/13 SP clusters.
 - Persist large rechecks to a report file outside `.claude` before finalizing, so context loss cannot erase evidence.
-- Separate product/domain delivery, platform/tooling work, docs/generated churn, and merge/admin integration; do not mix them silently into one velocity number.
+- Separate product/domain delivery, infrastructure/tooling work, docs/generated churn, and merge/admin integration; do not mix them silently into one velocity number.
 - Run a velocity sanity check: both man-day ranges must be plausible for active days and the selected period.
 - Keep output outside `.claude`; default root is `reports/developer-performance/`.
 # Git Developer Performance

@@ -69,8 +69,8 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - **[BLOCKING]** Read `docs/project-reference/spec-principles.md` — spec quality standards, AI-implementability criteria, tech-agnostic rules (§3 surface scope + §3.2 banned prose-token list) (read Section 4 completeness checklists before Phase 3.5 verification)
 - **[BLOCKING]** EVERY test case MUST carry verifiable code evidence as a `[Source: namespace/service/id]` abstract anchor in its Section 8 hidden carrier — no exceptions (physical `file:line` → provenance sidecar only)
 - Output MUST match the master template's **8 tech-free sections** (Overview, Glossary, User Stories & Acceptance Criteria, Business Rules, Domain Model, Process Flows, Permissions & Roles, Test Specifications) + YAML frontmatter — NOT the legacy rigid 17-section order. Validate the 8-section shape, zero technical terms in prose, and the size caps
-- Section 8 (Test Specifications) TCs: the `IntegrationTest` field is an **evidence carrier** (implementation identifiers belong here, like `**Evidence**`) → `IntegrationTest: Orders/OrderCommandIntegrationTests.cs::{MethodName}`. Keep the TC's behavioral prose tech-agnostic (`spec-principles.md §3`); the test path lives ONLY in this evidence field. No test yet → `Status: Untested`
-- Verify every TC-{FEATURE}-{NNN} has `[Trait("TestSpec", "TC-{FEATURE}-{NNN}")]` in integration tests. Missing → `Status: Untested`
+- Section 8 (Test Specifications) TCs: the `IntegrationTest` field is an **evidence carrier** (implementation identifiers belong here, like `**Evidence**`) → `IntegrationTest: {configured-test-path}/{TestFile}::{MethodName}` for the configured test layout. One TC may list **several** covering tests (one TC → many tests; comma-separated **on one line**, or a test-filter expression — see `tc-format.md` → TC ↔ Test Code Cardinality). Keep the TC's behavioral prose tech-agnostic and business/user-story oriented (`spec-principles.md §3`, §5); the test path(s) live ONLY in this evidence field. No test yet → `Status: Untested`
+- Verify every TC-{FEATURE}-{NNN} is carried by **≥1** test bearing the matching **test-spec annotation** (key `TestSpec`, value `TC-{FEATURE}-{NNN}`, expressed in the configured test framework's syntax) (many tests may share one TC — that is the expected one-to-many shape, never a duplicate). Zero covering tests → `Status: Untested`
 - Third verification pass finds >5 issues → HALT, re-run verification
 
 > `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read directly when relevant; do not rely on hook-injected conversation text)
@@ -81,7 +81,7 @@ See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6
 
 - **M1 — Tech-agnostic prose:** §1-8 narrative, headings, tables, and glossary describe business capability only. No framework/product/language/persistence/messaging/auth names and no project-internal framework type names in prose (banned-token list: `spec-principles.md` §3.2). Such terms are allowed ONLY inside evidence carriers (`**Evidence**`, `IntegrationTest`, `[Source:]`), YAML frontmatter, and ` ```mermaid ``` ` blocks.
 - **M2 — No source code in prose:** No class/method names, file paths, or namespaces in prose. Use business operation names; source identifiers live only in evidence carriers.
-- **M3 — Logical-IDs-first traceability:** Every FR / BR / operation carries a logical ID (FR-/BR-/OP-/TC-) as the primary spine AND a SEPARATE `[Source: namespace/service/id]` stack-portable abstract-anchor evidence carrier (never a physical `file:line`/`src/` path — those live only in the provenance sidecar; taxonomy: `shared/tc-format.md`). Keep the logical ID in the rule statement; keep the source link out of the narrative — do NOT remove `[Source:]`.
+- **M3 — Logical-IDs-first traceability:** Every FR / BR / operation carries a logical ID (FR-/BR-/OP-/TC-) as the primary spine AND a SEPARATE `[Source: namespace/service/id]` stack-portable abstract-anchor evidence carrier (never physical code coordinates or repository-root paths — those live only in the provenance sidecar; taxonomy: `shared/tc-format.md`). Keep the logical ID in the rule statement; keep the source link out of the narrative — do NOT remove `[Source:]`.
 - **M4 — AI-implementability:** Each requirement has one valid interpretation, observable success/failure outcomes, and named failure modes — no vague "handle appropriately".
 - **M5 — Rebuild-from-scratch:** A team with zero codebase knowledge could re-implement identical business behavior on ANY stack from the doc alone.
 
@@ -110,7 +110,7 @@ Generate feature docs following project conventions.
 
 ### Evidence Format
 
-Evidence is a **stack-portable abstract anchor** — never a donor `file:line`, `.cs`, or `src/` path:
+Evidence is a **stack-portable abstract anchor** — never a donor physical code coordinate or repository-root path:
 
 ```markdown
 **Evidence**: `[Source: {namespace}/{service}/{id}]`
@@ -122,11 +122,11 @@ Namespace ∈ `operation | event | component | schema | requirement | rule | con
 
 | Valid                                       | Invalid                                       |
 | ------------------------------------------- | --------------------------------------------- |
-| `[Source: operation/orders/CreateOrder]`    | `ErrorMessage.cs:83` (physical `file:line`)   |
+| `[Source: operation/orders/CreateOrder]`    | physical code coordinates                     |
 | `[Source: component/orders/Order]`          | `{namespace}/{service}/{id}` (template)       |
 | `[Source: event/accounts/AccountUserSaved]` | "Based on CQRS pattern" (vague)               |
 
-> **Carrier-field only:** the abstract anchor (and the `IntegrationTest` test link) appear ONLY inside the `**Evidence**` / `IntegrationTest` fields — never in a test case's behavioral description, which stays tech-agnostic (`spec-principles.md §3`). `IntegrationTest` is the lone exception that keeps a physical `{TestFile}::{MethodName}` link (operational QA glue; see `tc-format.md`).
+> **Carrier-field only:** the abstract anchor (and the `IntegrationTest` test link) appear ONLY inside the `**Evidence**` / `IntegrationTest` fields — never in a test case's behavioral description, which stays tech-agnostic (`spec-principles.md §3`). `IntegrationTest` is the lone exception that keeps physical `{TestFile}::{MethodName}` link(s) — it may list **several** covering tests, since one business TC maps to many tests (operational QA glue; see `tc-format.md` → TC ↔ Test Code Cardinality).
 
 ---
 
@@ -150,8 +150,8 @@ docs/
 Search your codebase to discover the module-to-folder mapping:
 
 ```bash
-# Find all service directories
-ls -d src/Services/*/
+# Find all service / module source directories (resolve {services-root} from the project structure reference / docs/project-config.json)
+ls -d {services-root}/*/
 
 # Find all existing feature doc modules
 ls -d docs/specs/*/
@@ -161,8 +161,8 @@ Map each module code to its folder name and service path. Example pattern:
 
 | Module Code | Folder Name | Service Path              |
 | ----------- | ----------- | ------------------------- |
-| {Module1}   | `{Module1}` | `src/Services/{Module1}/` |
-| {Module2}   | `{Module2}` | `src/Services/{Module2}/` |
+| {Module1}   | `{Module1}` | `{services-root}/{Module1}/` |
+| {Module2}   | `{Module2}` | `{services-root}/{Module2}/` |
 
 ---
 
@@ -228,11 +228,17 @@ Plus YAML frontmatter (header/metadata). Domain events appear in Section 5 / Sec
 
 When no docs exist, run spec-index-style extraction before folding into the 8-section tech-free Feature Spec.
 
+> **Resolve the project's layout before extracting.** Read the project's structure reference and project config to discover
+> the module source root, layer/folder conventions, file globs, and framework markers (endpoint attributes, handler types,
+> event/consumer types). The **extraction strategy is stack-agnostic** — inventory files → enumerate use-cases/operations →
+> trace cross-service flow → fold into the 8 tech-free sections. The `{...}` placeholders and concrete commands shown below
+> are illustrative; substitute the values discovered for the current stack. The emitted Feature Spec stays tech-free regardless (M1).
+
 #### Step 1-INIT.1: Holistic Scout
 
 Map module's codebase before reading any file in detail:
 
-1. Run `git ls-files src/Services/{Module}/` (or relevant path) — full file inventory
+1. Run `git ls-files {module-source-root}/` (resolve `{module-source-root}` from the project structure reference / `docs/project-config.json`) — full file inventory
 2. Identify: entity files, command files, query files, controller files, event handler files, frontend components
 3. Build **Module Extraction Map**:
     - Entity layer: list all entity/aggregate files
@@ -249,32 +255,34 @@ Map module's codebase before reading any file in detail:
 **Write-side entry points:**
 
 ```bash
-# CQRS command handlers
-grep -r "ICommandHandler\|CommandHandler\b" src/Services/{Module}/ --include="*.cs" -l
-# REST/MVC mutating endpoints
-grep -r "\[HttpPost\]\|\[HttpPut\]\|\[HttpPatch\]\|\[HttpDelete\]" src/Services/{Module}/ --include="*.cs" -l
-# Event consumers / background jobs
-grep -r "IConsumer\|EventHandler\|IMessageConsumer\|BackgroundJob\|IHostedService" src/Services/{Module}/ --include="*.cs" -l
+# Command handlers (CQRS write side) — grep your stack's command-handler marker
+#   (e.g. a CommandHandler/ICommandHandler type, a MediatR request handler, or a use-case class)
+grep -r "{command-handler-marker}" {module-source-root}/ --include="{backend-source-glob}" -l
+# Mutating HTTP endpoints — grep your web framework's create/update/delete route markers
+#   (e.g. POST/PUT/PATCH/DELETE attributes or route decorators)
+grep -r "{mutating-endpoint-markers}" {module-source-root}/ --include="{backend-source-glob}" -l
+# Event consumers / background jobs — grep your stack's consumer + scheduled-job markers
+grep -r "{event-consumer-and-job-markers}" {module-source-root}/ --include="{backend-source-glob}" -l
 ```
 
 **Read-side entry points:**
 
 ```bash
-# CQRS query handlers
-grep -r "IQueryHandler\|QueryHandler\b" src/Services/{Module}/ --include="*.cs" -l
-# REST/MVC GET endpoints
-grep -r "\[HttpGet\]" src/Services/{Module}/ --include="*.cs" -l
+# Query handlers (CQRS read side) — grep your stack's query-handler marker
+grep -r "{query-handler-marker}" {module-source-root}/ --include="{backend-source-glob}" -l
+# Read HTTP endpoints — grep your web framework's GET route markers
+grep -r "{read-endpoint-markers}" {module-source-root}/ --include="{backend-source-glob}" -l
 ```
 
 **Actor/Role Discovery (feeds Phase E + Section 7 Permissions & Roles):**
 
 ```bash
-# Permission attributes and role guards
-grep -r "\[Authorize\]\|RequirePermission\|IsInRole\|HasPermission" src/Services/{Module}/ --include="*.cs" -l
-# Role/permission enums
-grep -r "enum.*Role\|enum.*Permission" src/Services/{Module}/ --include="*.cs" -n | head -20
-# Frontend route guards (if applicable)
-grep -r "canActivate\|AuthGuard\|RoleGuard\|PermissionGuard" src/{frontend-root}/ --include="*.ts" -l 2>/dev/null | grep -i {module} | head -5
+# Authorization markers (permission checks + role guards) — substitute your stack's auth markers
+grep -r "{authorization-markers}" {module-source-root}/ --include="{backend-source-glob}" -l
+# Role / permission enumerations
+grep -r "{role-and-permission-enum-markers}" {module-source-root}/ --include="{backend-source-glob}" -n | head -20
+# Frontend route guards (if applicable) — substitute your UI framework's route-guard markers
+grep -r "{route-guard-markers}" {frontend-root}/ --include="{frontend-source-glob}" -l 2>/dev/null | grep -i {module} | head -5
 ```
 
 **Use Case Inventory Output:**
@@ -320,13 +328,13 @@ For each validator/command handler in Validation layer:
 
 For each application-layer entry point — read in this priority order:
 
-1. **CQRS command handlers** (`UseCaseCommands/`) — one entry per handler class. Extract: handler name → business operation name (tech-agnostic), command fields, validation rules referenced, output type.
-2. **CQRS query handlers** (`UseCaseQueries/`) — one entry per handler class. Extract: operation name, filter parameters, return shape, pagination.
-3. **Event consumers** (`UseCaseEvents/`) — one entry per consumer. Extract: event consumed, side effects produced, output state changes.
+1. **CQRS command handlers** (the command-handler folder) — one entry per handler class. Extract: handler name → business operation name (tech-agnostic), command fields, validation rules referenced, output type.
+2. **CQRS query handlers** (the query-handler folder) — one entry per handler class. Extract: operation name, filter parameters, return shape, pagination.
+3. **Event consumers** (the event-handler folder) — one entry per consumer. Extract: event consumed, side effects produced, output state changes.
 4. **Background jobs** — one entry per job. Extract: schedule/trigger, operation performed, side effects.
 5. **REST controllers** — supplementary only (HTTP adapter layer). Extract: HTTP method + path + auth required + DTO shape for operations NOT already covered by handlers above.
 
-Write operation description in business language only — no C# type names or class names. Write with `[Source: operation/{service}/{Operation}]` abstract anchor per entry.
+Write operation description in business language only — no language/framework type names or class names. Write with `[Source: operation/{service}/{Operation}]` abstract anchor per entry.
 
 **MUST: Every operation in Use Case Inventory (Step 1-INIT.1.5) → exactly one Phase C entry.** After Phase C: count entries. If count < Grand Total from inventory → create fill tasks before Phase D.
 
@@ -335,20 +343,20 @@ Write operation description in business language only — no C# type names or cl
 Before capturing domain events as occurrences, run graph analysis to discover ALL consumers and producers:
 
 ```bash
-# Trace cross-service flow from the primary entity file
-python .claude/scripts/code_graph trace src/Services/{Module}/{Module}.Domain/Entities/{PrimaryEntity}.cs --direction both --json
+# Trace cross-service flow from the primary entity/model file
+python .claude/scripts/code_graph trace {path-to-primary-entity-file} --direction both --json
 
-# Find all files connected to the primary service entry point
-python .claude/scripts/code_graph connections src/Services/{Module}/{Module}.Service/Controllers/{PrimaryController}.cs --json
+# Find all files connected to the primary service entry point (e.g. the primary controller/endpoint file)
+python .claude/scripts/code_graph connections {path-to-primary-controller-file} --json
 ```
 
-**If `.code-graph/graph.db` is unavailable:** Fall back to grepping for `IBusMessage`, `IConsumer`, `[IntegrationEvent]` patterns:
+**If `.code-graph/graph.db` is unavailable:** Fall back to grepping for the project's message/event markers (bus-message, consumer, integration-event types — see the project's message-bus reference):
 
 ```bash
-grep -rn "IBusMessage\|IConsumer\|IntegrationEvent" src/Services/{Module}/ --include="*.cs"
+grep -rn "{message-bus-and-event-markers}" {module-source-root}/ --include="{backend-source-glob}"
 ```
 
-Use graph output to enumerate: outbound events (produces), inbound events (consumes), cross-service reactions. Feed all findings into **Section 5 (Domain Model)** as business-meaningful occurrences (e.g. "Goal Approved" → owner notified, goal becomes active) and into **Section 8 (Test Specifications)** as integration test cases — NEVER as bus/message/payload schemas (those live in code).
+Use graph output to enumerate: outbound events (produces), inbound events (consumes), cross-service reactions. Feed all findings into **Section 5 (Domain Model)** as business-meaningful occurrences (e.g. "Order Placed" → owner notified, order becomes active) and into **Section 8 (Test Specifications)** as integration test cases — NEVER as bus/message/payload schemas (those live in code).
 
 #### Step 1-INIT.5: Events & Jobs Extraction (Phase D)
 
@@ -460,7 +468,7 @@ Note the highest existing ID before assigning new ones. See `.claude/skills/shar
 > | Type              | Path                                                         | Description                                              |
 > | ----------------- | ------------------------------------------------------------ | -------------------------------------------------------- |
 > | Spec Index (derived) | `docs/specs/{Bucket}/INDEX.md`                           | DERIVED navigation catalog over the Feature Specs (regenerate via $spec-index) — §8 in this doc is the canonical TC registry |
-> | Integration Tests | `src/Services/{ServiceName}/{ServiceName}.IntegrationTests/` | Test code; linked by [Trait("TestSpec", "TC-...")]       |
+> | Integration Tests | `{configured-test-path}/` | Test code; linked to TCs by the configured test-spec annotation (key `TestSpec`) |
 > | Parent Feature    | _(if sub-feature)_                                           |                                                          |
 > | Child Features    | _(if this doc is a parent)_                                  |                                                          |
 > ```
@@ -478,7 +486,7 @@ Note the highest existing ID before assigning new ones. See `.claude/skills/shar
 When audit mode is triggered:
 
 1. Read `docs/specs/{Bucket}/README.{Feature}.md` frontmatter → `last_updated`
-2. Run `git log --since="{last_updated}" --name-only -- src/Services/{Module}/`
+2. Run `git log --since="{last_updated}" --name-only -- {module-source-root}/`
 3. If changed files found → flag sections using Phase 1.5 impact mapping table
 4. Output `docs/specs/{Bucket}/AUDIT-{date}.md`:
 
@@ -489,7 +497,7 @@ When audit mode is triggered:
 
     | Section                    | Status     | Changed Source Files            | Action              |
     | -------------------------- | ---------- | ------------------------------- | ------------------- |
-    | Section 5 (Domain Model)   | ⚠️ STALE   | EntityX.cs (changed 2026-04-18) | Re-extract entities |
+    | Section 5 (Domain Model)   | ⚠️ STALE   | EntityX (changed 2026-04-18)    | Re-extract entities |
     | Section 4 (Business Rules) | ✅ Current | —                               | —                   |
     ```
 
@@ -513,14 +521,14 @@ Search your codebase to build the path-to-module mapping. Common patterns:
 
 | Changed File Path Pattern                           | Detected Module                   |
 | --------------------------------------------------- | --------------------------------- |
-| `src/Services/{Module}/**`                          | {Module}                          |
+| `{services-root}/{Module}/**`                       | {Module}                          |
 | `{frontend-apps-dir}/{app-name}/**`                 | {Module} (map app name to module) |
-| `{frontend-libs-dir}/{domain-lib}/src/{feature}/**` | {Module} (map feature to module)  |
+| `{configured-ui-source-root}/{domain-lib}/{feature}/**` | {Module} (map feature to module)  |
 
 Build a project-specific mapping by examining:
 
 ```bash
-ls -d src/Services/*/
+ls -d {services-root}/*/
 ls -d {frontend-apps-dir}/*/
 ```
 
@@ -538,10 +546,10 @@ Module source priority: (1) user-specified → (2) domain-implied (grep to verif
 
 Grep evidence from source:
 
-- **Entities**: `{Module}.Domain/Entities/`
-- **Commands**: `{Module}.Application/UseCaseCommands/`
-- **Queries**: `{Module}.Application/UseCaseQueries/`
-- **Controllers**: `{Module}.Service/Controllers/`
+- **Entities**: the module's entity/model folder
+- **Commands**: the module's command-handler folder
+- **Queries**: the module's query-handler folder
+- **Controllers**: the module's controller / endpoint folder
 - **Frontend**: `{frontend-apps-dir}/{app}/` or `{frontend-libs-dir}/{lib}/`
 
 ### Step 1.4: Feature Analysis
@@ -671,7 +679,7 @@ Generate at `docs/specs/{Bucket}/README.{FeatureName}.md`.
 - {Invalid scenario} → {Expected error/behavior}
 
 **Evidence:** `[Source: {namespace}/{service}/{id}]`
-**IntegrationTest:** `{TestFile}::{MethodName}` (or `Untested`)
+**IntegrationTest:** one or more covering tests for the configured test environment — `{TestFile}::{MethodName}` (comma-separated **on one line** when several cover this TC), a test-filter expression (e.g. `TestSpec=TC-{FEATURE}-{NNN}`), or `Untested`
 **Status:** Tested | Untested | Planned
 ```
 
@@ -704,7 +712,7 @@ erDiagram
 **ERD rules (same as spec-index standard):**
 
 - Tech-agnostic types only: `string`, `number`, `boolean`, `date`, `list`, `map`
-- No C# class names or ORM types
+- No implementation class names or ORM types
 - Mark aggregate roots: `%% [AGGREGATE: EntityName]`
 - Cross-module stubs: `%% [CROSS-REF: module-name]`
 
@@ -732,7 +740,7 @@ No `.ai.md` companion files. Single `README.{Feature}.md` only output. Template:
 
 ### Key Principles (v4.0)
 
-- **No code details** in sections 1-7 — no file paths, no C# types, no API/command/handler/message names
+- **No code details** in sections 1-7 — no file paths, no source-code types, no API/command/handler/message names
 - **Evidence only in Section 8** — `[Source: namespace/service/id]` abstract-anchor references in the per-TC hidden carrier
 - **Acceptance criteria MUST cross-reference BR-{FC}-NN** — each AC names the business rules it enforces
 - **Size caps** — body (sections 1-7) ≤1200 lines, whole file ≤1800 (hard). **Split** the capability when body>1200 OR TCs>40 (or when two distinct module-level capabilities emerge):
@@ -774,7 +782,7 @@ Before writing documentation, verify:
 
 1. Read Evidence file at claimed line number
 2. Verify: code at line supports test assertion
-3. Check Edge Cases: find error constants in `ErrorMessage.cs`
+3. Check Edge Cases: find error constants in the configured error-constants location, if the project defines one
 4. Fix immediately if line numbers wrong
 
 ---
@@ -787,7 +795,7 @@ Before writing documentation, verify:
 
 1. Read Evidence file at claimed line number
 2. Verify: code at line supports test assertion?
-3. Check Edge Cases: find error constants in `ErrorMessage.cs`
+3. Check Edge Cases: find error constants in the configured error-constants location, if the project defines one
 4. Fix immediately if line numbers wrong
 
 ### Second Pass — Domain Model Verification
@@ -839,7 +847,7 @@ If the answer is NO because the prose depends on framework/product/language word
 See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6)" for BLOCKING criteria.
 
 - [ ] **Mandate Quality Check:** §1-8 prose contains ZERO banned tech terms (`spec-principles.md` §3.2) and NO code identifiers (class/method names, file paths, namespaces) outside evidence carriers (M1/M2)
-- [ ] Every FR / BR / operation carries a logical ID (FR-/BR-/OP-/TC-) AND a separate `[Source: namespace/service/id]` abstract-anchor evidence carrier (never physical `file:line`/`src/`) — `[Source:]` retained, not folded into prose (M3)
+- [ ] Every FR / BR / operation carries a logical ID (FR-/BR-/OP-/TC-) AND a separate `[Source: namespace/service/id]` abstract-anchor evidence carrier (never physical code coordinates or repository-root paths) — `[Source:]` retained, not folded into prose (M3)
 - [ ] Every requirement is testable with one interpretation and named success/failure outcomes (M4)
 - [ ] Rebuild-From-Scratch Test answered YES — doc is re-implementable on any stack from §1-8 prose alone (M5)
 
@@ -851,7 +859,7 @@ See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6
 - [ ] `INDEX.md` created or updated with navigation links
 - [ ] Stakeholder navigation table present
 - [ ] **Size caps** — body (sections 1-7) ≤1200 lines, whole file ≤1800 (hard); split when body>1200 OR TCs>40 (follow split procedure in Key Principles)
-- [ ] **No code details** in sections 1-7 (no file paths, no C# types, no command/handler/API/message names)
+- [ ] **No code details** in sections 1-7 (no file paths, no source-code types, no command/handler/API/message names)
 - [ ] **Acceptance criteria reference BR-{FC}-NN** IDs they enforce
 
 ### Test Case Evidence (MANDATORY)
@@ -859,7 +867,7 @@ See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6
 - [ ] **EVERY test case has Evidence field** with `[Source: namespace/service/id]` abstract-anchor format (never `file:line`)
 - [ ] **No template placeholders** remain (`{namespace}`, `{service}`, `{id}`)
 - [ ] **Line numbers verified** by reading actual source files
-- [ ] **Edge case errors match** constants from `ErrorMessage.cs`
+- [ ] **Edge case errors match** constants from the configured error-constants location, if one exists
 - [ ] **Test Summary counts match** actual number of test cases in Section 8
 
 ### Anti-Hallucination
@@ -879,7 +887,7 @@ See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6
 ### Section 4 (Business Rules)
 
 - [ ] `[Source: rule/{service}/{RuleName}]` abstract anchor present after each rule group table
-- [ ] Error messages verified against `ErrorMessage.cs` or equivalent constants file
+- [ ] Error messages verified against the configured error-constants location or equivalent constants file
 
 ### Init Mode Checklist
 
@@ -981,7 +989,7 @@ Template to insert or verify in `docs/specs/{Bucket}/README.{FeatureName}.md`:
 | Type              | Link                                                                                                          | Description                                                    |
 | ----------------- | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
 | Spec Index (derived) | [docs/specs/{Bucket}/INDEX.md](../../specs/{Bucket}/INDEX.md)                                              | DERIVED navigation catalog over the Feature Specs (regenerate via $spec-index) — §8 here is the canonical TC registry |
-| Integration Tests | `src/Services/{ServiceName}/{ServiceName}.IntegrationTests/`                                                  | Test code linked to TCs via [Trait("TestSpec", "TC-...")]      |
+| Integration Tests | `{configured-test-path}/`                                                  | Test code linked to TCs via the configured test-spec annotation (key `TestSpec`) |
 | Related Modules   | _(list any cross-module dependencies here)_                                                                   |                                                                |
 ```
 

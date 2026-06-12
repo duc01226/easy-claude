@@ -71,7 +71,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 ```json
 {
     "codebaseHealth": {
-        "sourcePaths": ["src/"],
+        "sourcePaths": ["{discovered-source-root}/"],
         "docPaths": ["docs/"],
         "configPatterns": ["**/appsettings*.json", "**/environment*.ts"],
         "excludePaths": ["node_modules", "dist", "bin", "obj"]
@@ -79,7 +79,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 }
 ```
 
-If `codebaseHealth` section missing, use defaults: `sourcePaths: ["src/"]`, `docPaths: ["docs/"]`.
+If `codebaseHealth` section is missing, discover source roots from project config, manifests, and populated code directories; use `docPaths: ["docs/"]` when docs exist.
 
 2. Detect available tooling to determine which phases to run:
 

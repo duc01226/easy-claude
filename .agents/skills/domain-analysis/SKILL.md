@@ -89,7 +89,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Ubiquitous Language Rules:**
 
-- Every noun in codebase matches domain expert vocabulary exactly (not "User" when domain says "Employee")
+- Every noun in codebase matches domain expert vocabulary exactly (not "User" when the domain says "Customer")
 - Class/method/variable names reflect ubiquitous language — zero translation layers inside bounded context
 - Developers say "we call it X but domain means Y" → model is wrong, fix it
 
@@ -147,7 +147,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 | Primitive Usage                          | Replace With                          |
 | ---------------------------------------- | ------------------------------------- |
-| `string employeeId`                      | `EmployeeId` typed wrapper            |
+| `string orderId`                         | `OrderId` typed wrapper               |
 | `decimal amount, string currency`        | `Money { amount, currency }`          |
 | `string street, string city, string zip` | `Address { ... }`                     |
 | `DateTime start, DateTime end`           | `DateRange { start, end }`            |
@@ -159,9 +159,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ### Value Object Construction Pattern
 
+A VO is self-validating: invariants enforced at construction via a factory (no public constructor that can produce an invalid instance), immutable, and equality-by-value. The base class and factory names below are one illustrative instantiation — translate to your language's equivalents.
+
+**Example (illustrative — adapt to your language):**
+
 ```csharp
 // Self-validating VO — never an invalid instance in memory
-public sealed class Email : PlatformValueObject<Email>
+public sealed class Email : ValueObject<Email>
 {
     private Email(string value) { Value = value; }
     public string Value { get; }
@@ -187,7 +191,7 @@ public sealed class Email : PlatformValueObject<Email>
 | Strategy                    | When to Use                                  | Trade-offs                               |
 | --------------------------- | -------------------------------------------- | ---------------------------------------- |
 | Owned types (EF Core)       | VO maps to same table as owning entity       | Simple, no FK, nullable columns possible |
-| Embedded document (MongoDB) | VO stored as subdocument                     | Natural fit, no joins                    |
+| Embedded document store | VO stored as subdocument                     | Natural fit, no joins                    |
 | JSON column                 | Complex VO, low query frequency on VO fields | Flexible, not queryable by parts         |
 | Serialized string           | Simple VOs (Email, PostalCode)               | Compact, unqueryable by parts            |
 
@@ -220,47 +224,51 @@ public sealed class Email : PlatformValueObject<Email>
 | ---------------------------------------- | ------------------------------------------- |
 | Entity is data bag, logic in services    | Entity contains behavior + invariants       |
 | `public set` on all properties           | Private setters, mutation via named methods |
-| `EmployeeService.Activate(employee)`     | `employee.Activate()`                       |
+| `OrderService.Confirm(order)`            | `order.Confirm()`                           |
 | Service checks rules then mutates entity | Entity refuses invalid state transitions    |
 | Logic duplicated across services         | Single authoritative location in entity     |
 
 **Tell Don't Ask Principle:**
 
-- BAD: `if (employee.Status == Active) { employee.Status = Suspended; }` (external ask + mutate)
-- GOOD: `employee.Suspend(reason)` (entity enforces its own invariants)
+- BAD: `if (order.Status == Confirmed) { order.Status = OnHold; }` (external ask + mutate)
+- GOOD: `order.Hold(reason)` (entity enforces its own invariants)
 
 ### Entity Invariant Enforcement
 
-```csharp
-public class Employee : RootAuditedEntity<Employee, string, string>
-{
-    private Employee() { }  // ORM hydration only
+A rich entity guards its own state: a private constructor reserved for ORM/persistence hydration, named factory methods for valid creation, and intent-named mutation methods that reject invalid transitions and emit domain events. The base class, guard helper, and ID generator below are one illustrative instantiation — substitute your language's equivalents.
 
-    public static Employee Create(string name, Email email, DepartmentId departmentId)
+**Example (illustrative — adapt to your language):**
+
+```csharp
+public class Order : AuditedAggregateRoot<Order, string>
+{
+    private Order() { }  // ORM hydration only
+
+    public static Order Create(string name, Email email, WarehouseId warehouseId)
     {
         Guard.NotNullOrWhitespace(name, nameof(name));
         Guard.NotNull(email, nameof(email));
-        return new Employee
+        return new Order
         {
             Id = Ulid.NewUlid().ToString(),
             Name = name,
             Email = email,
-            DepartmentId = departmentId,
-            Status = EmployeeStatus.Active
+            WarehouseId = warehouseId,
+            Status = OrderStatus.Confirmed
         };
     }
 
-    public void Terminate(string reason, DateOnly terminationDate)
+    public void Cancel(string reason, DateOnly cancellationDate)
     {
-        if (Status == EmployeeStatus.Terminated)
-            throw new DomainException("Employee already terminated");
-        if (terminationDate < DateOnly.FromDateTime(DateTime.UtcNow))
-            throw new DomainException("Termination date cannot be in the past");
+        if (Status == OrderStatus.Cancelled)
+            throw new DomainException("Order already cancelled");
+        if (cancellationDate < DateOnly.FromDateTime(DateTime.UtcNow))
+            throw new DomainException("Cancellation date cannot be in the past");
 
-        Status = EmployeeStatus.Terminated;
-        TerminationReason = reason;
-        TerminationDate = terminationDate;
-        AddDomainEvent(new EmployeeTerminatedDomainEvent(Id, terminationDate));
+        Status = OrderStatus.Cancelled;
+        CancellationReason = reason;
+        CancellationDate = cancellationDate;
+        AddDomainEvent(new OrderCancelledDomainEvent(Id, cancellationDate));
     }
 }
 ```
@@ -287,12 +295,12 @@ Active → Archived (Archive())
 
 ### Domain Validation Layers
 
-| Layer                   | What It Validates                               | Returns                             |
-| ----------------------- | ----------------------------------------------- | ----------------------------------- |
-| **Value Object**        | Single-value format/range invariants            | Exception or Result at construction |
-| **Entity method**       | Aggregate consistency rules, state transitions  | DomainException                     |
-| **Application service** | Cross-aggregate rules, authorization, existence | ValidationResult / ProblemDetails   |
-| **Infrastructure**      | DB constraints (last resort, NEVER first line)  | Database exception                  |
+| Layer                   | What It Validates                               | Failure Signal (per stack)                                |
+| ----------------------- | ----------------------------------------------- | --------------------------------------------------------- |
+| **Value Object**        | Single-value format/range invariants            | Construction failure (raised error or result type)        |
+| **Entity method**       | Aggregate consistency rules, state transitions  | Domain rule violation (e.g. `DomainException`)            |
+| **Application service** | Cross-aggregate rules, authorization, existence | Structured validation result (e.g. `ValidationResult` / problem-details payload) |
+| **Infrastructure**      | DB constraints (last resort, NEVER first line)  | Persistence-layer error (last-resort constraint)          |
 
 **Decision rule:**
 
@@ -306,8 +314,8 @@ Use when: construction requires domain logic, multiple paths, raises domain even
 
 **Naming:**
 
-- `Employee.Create(...)` — primary creation
-- `Employee.Hire(...)` — semantically loaded creation (domain language)
+- `Order.Create(...)` — primary creation
+- `Order.Place(...)` — semantically loaded creation (domain language)
 - Private constructor — ORM hydration only, NEVER called directly
 
 ### Temporal (Bi-Temporal) Entities
@@ -315,9 +323,9 @@ Use when: construction requires domain logic, multiple paths, raises domain even
 Two time axes: **valid time** (fact true in real world) + **transaction time** (recorded in system).
 
 ```
-EmployeeSalary {
-    validFrom: DateOnly     // valid time: salary effective from
-    validTo: DateOnly       // valid time: salary effective until
+ProductPrice {
+    validFrom: DateOnly     // valid time: price effective from
+    validTo: DateOnly       // valid time: price effective until
     recordedAt: DateTime    // transaction time: when entered into system
 }
 ```
@@ -364,6 +372,10 @@ Use when: regulatory compliance, retroactive corrections, "as-of" queries.
 | Deletion cascade                          | Domain event → handler → compensating action in other aggregate   |
 
 ### Aggregate Invariant Enforcement
+
+All mutation flows through the aggregate root, which checks every invariant before applying a change and recomputes derived state so no member can be left inconsistent. The throw-on-violation idiom below is one illustrative instantiation — your language may surface invariant breaches differently (exceptions, result types).
+
+**Example (illustrative — adapt to your language):**
 
 ```csharp
 public void AddLineItem(ProductId productId, int quantity, Money unitPrice)
@@ -430,7 +442,7 @@ public void AddLineItem(ProductId productId, int quantity, Money unitPrice)
 | Type            | FK in Child PK?            | Child Existence                                             |
 | --------------- | -------------------------- | ----------------------------------------------------------- |
 | Identifying     | YES (FK is part of PK)     | Child cannot exist without parent (line item without order) |
-| Non-identifying | NO (FK is separate column) | Child can exist independently (employee without department) |
+| Non-identifying | NO (FK is separate column) | Child can exist independently (order without warehouse)     |
 
 **Mapping to DDD:** Identifying relationship → child entity inside parent aggregate. Non-identifying FK → likely separate aggregates.
 
@@ -472,7 +484,7 @@ public void AddLineItem(ProductId productId, int quantity, Money unitPrice)
 
 | Good                 | Bad                                  |
 | -------------------- | ------------------------------------ |
-| `EmployeeTerminated` | `TerminateEmployee` (command naming) |
+| `OrderCancelled`     | `CancelOrder` (command naming)       |
 | `OrderConfirmed`     | `OrderStatusChanged` (too generic)   |
 | `PaymentProcessed`   | `PaymentComplete` (not past tense)   |
 | `SalaryBandUpdated`  | `SalaryChanged` (vague)              |
@@ -483,7 +495,7 @@ public void AddLineItem(ProductId productId, int quantity, Money unitPrice)
 | ---------------------- | -------------------------------------------------------------------------------------- |
 | Minimal vs fat         | **Minimal (default):** AggregateId + what changed. Consumer queries for rest if needed |
 | Fat event              | Accept when: round-trip cost high AND consumers known AND staleness acceptable         |
-| Required fields always | `AggregateId`, `OccurredOn: DateTime (UTC)`, `Version`, `CorrelationId`                |
+| Required fields always | `AggregateId`, `OccurredOn` (UTC timestamp), `Version`, `CorrelationId`                |
 | No mutable references  | Payload contains value copies, not object references                                   |
 
 ### Domain Events vs Integration Events
@@ -491,7 +503,7 @@ public void AddLineItem(ProductId productId, int quantity, Money unitPrice)
 | Dimension        | Domain Event               | Integration Event                           |
 | ---------------- | -------------------------- | ------------------------------------------- |
 | Scope            | Within one bounded context | Across bounded contexts                     |
-| Delivery         | In-process, post-commit    | Via message bus (RabbitMQ, Kafka)           |
+| Delivery         | In-process, post-commit    | Via configured message bus or event stream  |
 | Schema ownership | Domain owns, internal      | Published Language contract                 |
 | Versioning       | Internal refactor freely   | Versioned, backward-compatible              |
 | Failure handling | Transaction rollback       | At-least-once delivery, idempotent consumer |
@@ -519,10 +531,10 @@ public void AddLineItem(ProductId productId, int quantity, Money unitPrice)
 ### Interface Design Principles
 
 1. One repository per aggregate root — NEVER one for child entities
-2. Domain language in methods — `GetActiveEmployeesInDepartment()` not `FindAll(e => e.Status == Active)`
+2. Domain language in methods — `GetConfirmedOrdersInWarehouse()` not `FindAll(e => e.Status == Active)`
 3. Return domain objects — repositories return entities, not DTOs
-4. No infrastructure concerns — no `IQueryable`, no `DbSet`, no connection strings in interface
-5. Async-first — all methods return `Task<T>` or `IAsyncEnumerable<T>`
+4. No infrastructure concerns — no leaked query/ORM types or connection strings in the interface.
+5. Async-first — methods return the configured runtime's async primitive.
 
 ### Repository vs DAO
 
@@ -537,10 +549,14 @@ public void AddLineItem(ProductId productId, int quantity, Money unitPrice)
 
 Use when: rule used in multiple places, warrants naming + testing, needs composition.
 
+A specification names a query predicate as a reusable, composable, testable unit owned by the domain. The expression-tree form below is one illustrative instantiation — your language may model it as a predicate function, query builder, or specification object.
+
+**Example (illustrative — adapt to your language):**
+
 ```csharp
 // Static expression on entity — composable, testable
-public static Expression<Func<Employee, bool>> ByDepartmentExpression(string deptId)
-    => e => e.DepartmentId == deptId && e.Status == EmployeeStatus.Active;
+public static Expression<Func<Order, bool>> ByWarehouseExpression(string warehouseId)
+    => o => o.WarehouseId == warehouseId && o.Status == OrderStatus.Confirmed;
 ```
 
 **When NOT to use Specification:** Simple single-use predicate → inline lambda. Rule only used once → repository method directly.
@@ -557,7 +573,7 @@ public static Expression<Func<Employee, bool>> ByDepartmentExpression(string dep
 | **Primitive obsession**     | 3+ primitives always travel together as group                      | Introduce Value Object                        |
 | **Implicit concept**        | Domain expert names it, code doesn't model it                      | Explicit class                                |
 | **Feature envy**            | Method uses more of B's data than A's                              | Move method to B                              |
-| **Getter/setter entity**    | All mutation via property assignment, no intent-named methods      | Replace with `Terminate()`, `Approve()`, etc. |
+| **Getter/setter entity**    | All mutation via property assignment, no intent-named methods      | Replace with `Cancel()`, `Approve()`, etc.    |
 | **Cross-aggregate loading** | Full aggregate loaded just to read one field                       | Pass scalar; resolve in app service           |
 | **Side effects in handler** | Command handler calls multiple services after save                 | Domain event + separate handlers              |
 | **Cross-service FK**        | Database FK across microservice schemas                            | ID reference + event-driven sync              |
@@ -635,7 +651,7 @@ Per bounded context: classify each concept using Entity vs VO matrix above, then
 - **Child Entities:** {list — share aggregate boundary, identifying FK}
 - **Value Objects:** {list — immutable, no identity, embedded}
 - **Invariants:** {business rules this aggregate enforces atomically}
-- **Factory method:** {Employee.Create(...) / Employee.Hire(...)}
+- **Factory method:** {Order.Create(...) / Order.Place(...)}
 
 **Other Aggregates in this Context:**
 
@@ -669,7 +685,7 @@ Per bounded context: classify each concept using Entity vs VO matrix above, then
 ```markdown
 | From | To        | Type | Cardinality     | Relationship Kind       | Description              |
 | ---- | --------- | ---- | --------------- | ----------------------- | ------------------------ |
-| Job  | Candidate | M:N  | via Application | Non-identifying (assoc) | Candidates apply to jobs |
+| Order | Product  | M:N  | via OrderLine   | Non-identifying (assoc) | Orders contain products  |
 ```
 
 Apply identifying vs non-identifying rule:
@@ -682,7 +698,7 @@ Apply identifying vs non-identifying rule:
 ```markdown
 | Upstream Context | Downstream Context | Pattern | Integration Point          | Sync Mechanism |
 | ---------------- | ------------------ | ------- | -------------------------- | -------------- |
-| Recruitment      | Employee           | ACL     | Candidate becomes Employee | Domain event   |
+| Sales            | Order              | ACL     | Cart becomes Order         | Domain event   |
 ```
 
 Integration patterns to apply (see context map reference table above):
@@ -698,7 +714,7 @@ Identify events crossing bounded context boundaries. Apply naming: `{AggregateNo
 
 | Event            | Source Context | Target Context(s)    | Payload (minimal)            | Trigger        |
 | ---------------- | -------------- | -------------------- | ---------------------------- | -------------- |
-| `CandidateHired` | Recruitment    | Employee, Onboarding | candidateId, jobId, hireDate | Offer accepted |
+| `OrderPlaced`    | Sales          | Order, Fulfillment   | cartId, productId, placedDate | Checkout completed |
 
 **Event design — MUST ATTENTION verify:**
 

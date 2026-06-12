@@ -206,7 +206,7 @@ claude checkpoint restore checkpoint-123
 claude checkpoint restore --time "2025-11-06T10:00:00Z"
 
 # Restore specific files
-claude checkpoint restore checkpoint-123 --files src/main.js
+claude checkpoint restore checkpoint-123 --files {source-root}/main
 ```
 
 ### Create Manual Checkpoint
@@ -339,7 +339,7 @@ claude memory clear --project
 
 ```bash
 # Remember project architecture
-claude "Remember: This project uses Clean Architecture with:
+claude "Remember: This repository uses Clean Architecture with:
 - Domain layer (core business logic)
 - Application layer (use cases)
 - Infrastructure layer (external dependencies)

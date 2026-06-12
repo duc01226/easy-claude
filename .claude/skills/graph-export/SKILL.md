@@ -51,7 +51,7 @@ version: 1.0.0
 2. **Export specific files only** (optional):
 
     ```bash
-    python .claude/scripts/code_graph export --files src/auth.py src/api.py --json
+    python .claude/scripts/code_graph export --files {source-root}/auth {source-root}/api --json
     ```
 
     This exports only nodes and edges belonging to the specified files.

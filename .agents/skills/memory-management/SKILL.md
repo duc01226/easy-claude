@@ -160,9 +160,9 @@ The system automatically creates checkpoints before context compaction. These au
 | `Pattern`         | Recurring code patterns                | CQRS, Validation, Repository   |
 | `Decision`        | Architectural/design decisions         | Why we chose X over Y          |
 | `BugFix`          | Bug solutions for future reference     | Race condition fixes           |
-| `ServiceBoundary` | Service ownership and responsibilities | Growth owns Employees          |
+| `ServiceBoundary` | Service ownership and responsibilities | Sales owns Orders              |
 | `SessionSummary`  | End-of-session progress snapshots      | Task progress, next steps      |
-| `Dependency`      | Cross-service dependencies             | Growth depends on Accounts     |
+| `Dependency`      | Cross-service dependencies             | Sales depends on Identity      |
 | `AntiPattern`     | Patterns to avoid                      | Don't call side effects in cmd |
 
 ---
@@ -174,13 +174,13 @@ The system automatically creates checkpoints before context compaction. These au
 ```javascript
 mcp__memory__create_entities([
     {
-        name: 'EmployeeValidationPattern',
+        name: 'OrderValidationPattern',
         entityType: 'Pattern',
         observations: [
             'Use project validation fluent API (see docs/project-reference/backend-patterns-reference.md)',
             'Chain with .And() and .AndAsync()',
             "Return validation result, don't throw",
-            'Location: {Service}.Application/UseCaseCommands/'
+            'Location: the application-layer command folder (per project structure reference)'
         ]
     }
 ]);
@@ -196,7 +196,7 @@ mcp__memory__create_relations([
         relationType: 'depends_on'
     },
     {
-        from: 'EmployeeEntity',
+        from: 'OrderEntity',
         to: 'UserEntity',
         relationType: 'syncs_from'
     }
@@ -208,7 +208,7 @@ mcp__memory__create_relations([
 ```javascript
 mcp__memory__add_observations([
     {
-        entityName: 'EmployeeValidationPattern',
+        entityName: 'OrderValidationPattern',
         contents: [
             'Also supports .AndNot() for negative validation',
             'Use .Of<ICqrsRequest>() for type conversion (see docs/project-reference/backend-patterns-reference.md)'
@@ -225,7 +225,7 @@ mcp__memory__search_nodes({ query: 'validation pattern' });
 
 // Open specific entities
 mcp__memory__open_nodes({
-    names: ['EmployeeValidationPattern', 'ServiceAModule']
+    names: ['OrderValidationPattern', 'ServiceAModule']
 });
 
 // Read entire graph
@@ -241,7 +241,7 @@ mcp__memory__delete_entities({ entityNames: ['OutdatedPattern'] });
 // Delete specific observations
 mcp__memory__delete_observations([
     {
-        entityName: 'EmployeeValidationPattern',
+        entityName: 'OrderValidationPattern',
         observations: ['Outdated observation text']
     }
 ]);
@@ -361,13 +361,13 @@ mcp__memory__create_entities([
 │  └── ValidationPattern                                      │
 │                                                             │
 │  Entities                                                   │
-│  ├── Employee ──syncs_from──> User                          │
-│  ├── Company ──syncs_from──> Organization                   │
-│  └── LeaveRequest ──owned_by──> ServiceA                     │
+│  ├── Order ──syncs_from──> User                             │
+│  ├── Customer ──syncs_from──> Account                       │
+│  └── Return ──owned_by──> ServiceA                          │
 │                                                             │
 │  Sessions                                                   │
-│  ├── Session_LeaveRequest_2025-01-15                        │
-│  └── Session_EmployeeImport_2025-01-14                      │
+│  ├── Session_Return_2025-01-15                              │
+│  └── Session_OrderImport_2025-01-14                         │
 └─────────────────────────────────────────────────────────────┘
 ```
 

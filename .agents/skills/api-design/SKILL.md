@@ -41,7 +41,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Design or modify REST API endpoints following the project platform patterns and REST best practices.
+**Goal:** Design or modify REST API endpoints following the project's documented patterns and REST best practices.
 
 > **MANDATORY IMPORTANT MUST ATTENTION** Plan ToDo Task to READ the following project-specific reference docs:
 >
@@ -68,7 +68,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 # REST API Design
 
-Expert API design agent for the project following platform patterns and REST best practices.
+Expert API design agent following the project's documented patterns and REST best practices.
 
 **Patterns:** Follow CLAUDE.md backend patterns for controller, CQRS command/query, validation, and authorization.
 
@@ -80,17 +80,21 @@ Expert API design agent for the project following platform patterns and REST bes
 
 | Action          | HTTP Method | Route Pattern                   | Example                            |
 | --------------- | ----------- | ------------------------------- | ---------------------------------- |
-| List            | GET         | `/api/{resource}`               | `GET /api/employees`               |
-| Get by ID       | GET         | `/api/{resource}/{id}`          | `GET /api/employees/123`           |
-| Create/Update   | POST        | `/api/{resource}`               | `POST /api/employees`              |
-| Delete          | DELETE      | `/api/{resource}/{id}`          | `DELETE /api/employees/123`        |
-| Complex Search  | POST        | `/api/{resource}/search`        | `POST /api/employees/search`       |
-| Custom Action   | POST        | `/api/{resource}/{id}/{action}` | `POST /api/employees/123/activate` |
-| Nested Resource | GET         | `/api/{parent}/{id}/{child}`    | `GET /api/departments/1/employees` |
+| List            | GET         | `/api/{resource}`               | `GET /api/orders`                  |
+| Get by ID       | GET         | `/api/{resource}/{id}`          | `GET /api/orders/123`              |
+| Create/Update   | POST        | `/api/{resource}`               | `POST /api/orders`                 |
+| Delete          | DELETE      | `/api/{resource}/{id}`          | `DELETE /api/orders/123`           |
+| Complex Search  | POST        | `/api/{resource}/search`        | `POST /api/orders/search`          |
+| Custom Action   | POST        | `/api/{resource}/{id}/{action}` | `POST /api/orders/123/confirm`     |
+| Nested Resource | GET         | `/api/{parent}/{id}/{child}`    | `GET /api/warehouses/1/orders`     |
 
 **⚠️ MUST ATTENTION READ:** CLAUDE.md for CQRS command/query DTOs, validation patterns, and authorization patterns.
 
 ## File Upload Endpoints
+
+Expose a multipart/form-data endpoint with an enforced max request size; bind the file and metadata into a request DTO that flows through the same command/query pipeline as other endpoints.
+
+**Example (illustrative — adapt to your stack and web framework):**
 
 ```csharp
 [HttpPost("upload")]
@@ -110,8 +114,12 @@ public sealed class UploadCommand : CqrsCommand<UploadCommandResult> // project 
 
 ## Error Response Format
 
+Emit a single, consistent error envelope across all endpoints. Let your framework's error-handling middleware (exception filter, error interceptor, or equivalent) translate exceptions into this standard JSON shape — do not hand-build error responses per endpoint. Distinguish validation errors (field-level, typically `400`) from business-rule violations (typically `422`).
+
+**Example (the JSON shape is stack-neutral; adapt the middleware to your framework):**
+
 ```csharp
-// Framework handles errors automatically with standard format
+// Framework error-handling middleware emits this standard format automatically
 {
     "type": "validation",
     "title": "Validation Error",
@@ -127,7 +135,7 @@ public sealed class UploadCommand : CqrsCommand<UploadCommandResult> // project 
     "type": "business",
     "title": "Business Rule Violation",
     "status": 422,
-    "detail": "Employee is already assigned to this department"
+    "detail": "Order is already assigned to this warehouse"
 }
 ```
 
@@ -143,7 +151,7 @@ public sealed class UploadCommand : CqrsCommand<UploadCommandResult> // project 
 
 ## Anti-Patterns
 
-- **Verbs in URLs**: Use `/employees/123/activate` not `/activateEmployee`
+- **Verbs in URLs**: Use `/orders/123/confirm` not `/confirmOrder`
 - **Missing Authorization**: Always add authorization attributes (see docs/project-reference/backend-patterns-reference.md)
 - **Validation in Controller**: Move to Command/Query `Validate()`
 - **Business Logic in Controller**: Keep controllers thin, logic in handlers

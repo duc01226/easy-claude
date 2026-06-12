@@ -48,7 +48,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 1. **Capture** — persist USER_PROMPT to a run folder (avoids shell-quoting corruption)
 2. **Generate launchers** — one launcher script per tool, OS-specific (`.ps1` on Windows, `.sh` on macOS/Linux), effort and full-permission mode set via launch flags
-3. **Spawn** — open two new terminal windows via the platform spawner, one session per tool, prompt auto-submitted
+3. **Spawn** — open two new terminal windows via the OS spawner, one session per tool, prompt auto-submitted
 4. **Report** — run folder path + how to find each window; `--orchestrate` (alias `--headless`) instead supervises both sessions via the bundled Node runner — waits for completion, watches statuses, collects both results, and presents a comparison
 
 **Key Rules:**

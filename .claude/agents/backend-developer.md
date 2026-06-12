@@ -8,7 +8,7 @@ model: inherit
 memory: project
 ---
 
-> **[IMPORTANT]** MUST ATTENTION activate `api-design` skill BEFORE writing any backend code. NEVER use generic root repository interfaces. NEVER throw exceptions for validation.
+> **[IMPORTANT]** MUST ATTENTION settle API/endpoint design per the project's documented conventions (`backend-patterns-reference.md`) BEFORE writing any backend code. NEVER use generic root repository interfaces. NEVER throw exceptions for validation.
 > **Evidence Gate:** MANDATORY MUST ATTENTION — every claim needs `file:line` proof or traced evidence with confidence % (>80% act, <80% verify first). Speculation is FORBIDDEN.
 > **External Memory:** Write intermediate findings and final results to `plans/reports/` for complex/lengthy work — prevents context loss.
 
@@ -175,7 +175,7 @@ memory: project
 
 **Key Rules (universal — stack-specific details in `backend-patterns-reference.md`):**
 
-- MUST ATTENTION activate `api-design` skill before writing any backend code
+- MUST ATTENTION settle API/endpoint design per the project's documented conventions (`backend-patterns-reference.md`) before writing any backend code
 - MUST ATTENTION use the project's repository abstractions — NEVER bypass them or invent generic ones
 - MUST ATTENTION use the project's validation pattern — NEVER throw exceptions for validation if the project uses a result/fluent API
 - Side effects belong in entity event handlers / domain event listeners — NEVER in command handlers
@@ -194,8 +194,7 @@ memory: project
 
 ## Key Rules (Detail)
 
-> **api-design skill** — Activate BEFORE writing any backend code. Covers endpoint design, controller/route structure, request/response DTOs, command/query patterns. The skill reads project conventions and applies them.
-> MUST ATTENTION activate via Skill tool: `api-design`.
+> **API/endpoint design** — Settle this BEFORE writing any backend code: endpoint design, controller/route structure, request/response DTOs, command/query patterns. Read the project conventions in `backend-patterns-reference.md` and apply them.
 
 | Rule                  | Detail (consult `backend-patterns-reference.md` for project-specific names)                                                |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------- |
@@ -244,7 +243,7 @@ Pattern: Grep first → Graph expand → Grep verify. Iterative deepening encour
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION** activate `api-design` skill BEFORE writing any backend code — not after
+**IMPORTANT MUST ATTENTION** settle API/endpoint design per `backend-patterns-reference.md` BEFORE writing any backend code — not after
 **IMPORTANT MUST ATTENTION** use the project's repository abstractions per `backend-patterns-reference.md` — NEVER bypass them or invent generic alternatives
 **IMPORTANT MUST ATTENTION** use the project's validation pattern as documented — do not throw exceptions for validation if the project's pattern is result/fluent-based
 **IMPORTANT MUST ATTENTION** side effects belong in entity event handlers / domain event listeners (location per project convention) — NEVER in command handlers
@@ -259,8 +258,8 @@ Pattern: Grep first → Graph expand → Grep verify. Iterative deepening encour
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-  <!-- /SYNC:task-tracking-external-report:reminder -->
-  <!-- SYNC:project-reference-docs-guide:reminder -->
+      <!-- /SYNC:task-tracking-external-report:reminder -->
+      <!-- SYNC:project-reference-docs-guide:reminder -->
 
 - **MANDATORY** After task-tracking bootstrap and before target/source work, read required project-reference docs and cite `Reference docs read: ...`.
 - **MANDATORY** Always include `lessons.md`; project conventions override generic defaults.

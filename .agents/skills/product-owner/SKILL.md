@@ -62,7 +62,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - Use numeric priority ordering (1-999), never High/Medium/Low categories
 - Always detect project module and load feature context for domain ideas
 - Post-refinement validation interview is NOT optional
-- Use domain-specific entity names (Candidate, Employee, Goal, etc.)
+- Use the project's domain-specific entity names (resolve them from the project's domain/feature docs)
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
@@ -104,10 +104,10 @@ Once module detected:
 
 Use exact entity names from docs:
 
-- ServiceA: Candidate (not "Applicant"), Job, JobApplication, Interview, CV
-- ServiceB: Order, Feedback, Review, CheckIn, Report
-- Use "Employee" not "User" for staff members
-- Use "Candidate" not "Applicant" for recruitment
+- ServiceA: Order (not "Purchase"), Product, OrderLine, Shipment, Invoice
+- ServiceB: Customer, Feedback, Review, CheckIn, Report
+- Use the project's domain vocabulary for actors (resolve from project-reference) rather than a generic "User"
+- Use the exact term the domain docs use (e.g. "Order" not "Purchase") — never a synonym
 
 ### Token Budget
 
@@ -186,8 +186,8 @@ Include in frontmatter (if project domain):
 ```yaml
 module: ServiceB # Detected module
 related_features: [OrderManagement, Feedback] # From README feature list
-feature_doc_path: docs/specs/ServiceB/README.GoalManagementFeature.md
-entities: [Goal, Employee, OrganizationalUnit] # From feature doc
+feature_doc_path: docs/specs/ServiceB/README.OrderManagementFeature.md
+entities: [Order, Customer, Region] # From feature doc
 ```
 
 Use domain vocabulary in idea description based on loaded context.

@@ -107,19 +107,19 @@ Review UI code for compliance with WCAG 2.2, Core Web Vitals, and modern web des
 Group by file. Use `file:line` format. Terse findings. No preamble.
 
 ```text
-## src/components/Button.tsx
+## {ui-source-root}/components/Button
 
-src/components/Button.tsx:42 - icon button missing aria-label
-src/components/Button.tsx:55 - animation missing prefers-reduced-motion check
-src/components/Button.tsx:67 - transition: all -> list specific properties
-src/components/Button.tsx:89 - div with onClick -> use <button>
+{ui-source-root}/components/Button:42 - icon button missing aria-label
+{ui-source-root}/components/Button:55 - animation missing prefers-reduced-motion check
+{ui-source-root}/components/Button:67 - transition: all -> list specific properties
+{ui-source-root}/components/Button:89 - div with onClick -> use <button>
 
-## src/components/Modal.tsx
+## {ui-source-root}/components/Modal
 
-src/components/Modal.tsx:12 - missing overscroll-behavior: contain
-src/components/Modal.tsx:78 - no focus trap for modal dialog
+{ui-source-root}/components/Modal:12 - missing overscroll-behavior: contain
+{ui-source-root}/components/Modal:78 - no focus trap for modal dialog
 
-## src/components/Card.tsx
+## {ui-source-root}/components/Card
 
 [check] No issues found
 

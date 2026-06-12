@@ -136,9 +136,9 @@ but [current barrier/friction/failure].
 **Example:**
 
 ```
-HR Managers need to quickly identify top performers for promotion
-because quarterly reviews create promotion backlogs,
-but the current system shows raw scores with no ranking or comparison.
+Operators need to quickly identify high-priority orders for action
+because peak-season backlogs delay fulfillment,
+but the current system shows raw order data with no ranking or comparison.
 ```
 
 Use a direct user question to validate:
@@ -172,9 +172,9 @@ Spine = problem statement. Bones = 6 cause categories:
 
 Replace user stories with job stories to expose real motivation:
 
-**User Story (what):** As a manager, I want to see employee scores, so that I can make decisions.
+**User Story (what):** As an operator, I want to see order totals, so that I can make decisions.
 
-**Job Story (why + context):** When I'm preparing for quarterly reviews with limited time, I want to instantly see who deserves promotion without reading every profile, so I can make fair, defensible decisions before the deadline.
+**Job Story (why + context):** When I'm clearing a peak-season backlog with limited time, I want to instantly see which orders need action without opening every record, so I can make fast, defensible decisions before the cutoff.
 
 **Job Story Formula:**
 
@@ -305,15 +305,15 @@ Connects customer profile to product value:
 
 Apply each lens to the problem/existing product to generate solution directions:
 
-| Letter               | Prompt                     | Example for HR review feature                             |
+| Letter               | Prompt                     | Example for order-prioritization feature                  |
 | -------------------- | -------------------------- | --------------------------------------------------------- |
-| **S**ubstitute       | What can be replaced?      | Replace manual scoring with AI-assisted ranking           |
-| **C**ombine          | What can be merged?        | Combine performance + feedback + OKR in one view          |
-| **A**dapt            | What can be borrowed?      | Adapt Netflix recommendation to suggest top performers    |
-| **M**odify           | What can be scaled/shrunk? | Minimize review to a weekly pulse check                   |
-| **P**ut to other use | Different context?         | Use review data for learning path recommendations         |
-| **E**liminate        | What can be removed?       | Eliminate annual review — replace with continuous signals |
-| **R**everse          | Flip the process?          | Let employees score managers instead                      |
+| **S**ubstitute       | What can be replaced?      | Replace manual sorting with AI-assisted ranking           |
+| **C**ombine          | What can be merged?        | Combine status + history + SLA risk in one view           |
+| **A**dapt            | What can be borrowed?      | Adapt Netflix recommendation to surface priority orders   |
+| **M**odify           | What can be scaled/shrunk? | Shrink the review queue to a daily priority check         |
+| **P**ut to other use | Different context?         | Use order history for restocking recommendations          |
+| **E**liminate        | What can be removed?       | Eliminate the nightly batch — replace with continuous signals |
+| **R**everse          | Flip the process?          | Let downstream stages pull orders instead of pushing      |
 
 Generate at least 2 ideas per SCAMPER letter = minimum 14 ideas.
 
@@ -481,10 +481,10 @@ For each idea in the shortlist, assign release priority:
 **Example:**
 
 ```
-We believe HR Managers
-Experience frustration identifying top performers during review cycles
-Because scoring data is fragmented across 3 systems with no unified ranking
-We'll know this is true when 3+ managers confirm they spend >2hrs per cycle on manual data aggregation
+We believe Operators
+Experience frustration identifying high-priority orders during peak backlogs
+Because order data is fragmented across 3 systems with no unified ranking
+We'll know this is true when 3+ operators confirm they spend >2hrs per shift on manual data aggregation
 ```
 
 ### 5.2 — Value Hypothesis

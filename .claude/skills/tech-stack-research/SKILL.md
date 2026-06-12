@@ -82,10 +82,10 @@ For EACH layer, research top 3 options using WebSearch (minimum 5 queries total)
 
 | Layer                  | Example Options                 | Research Focus                        |
 | ---------------------- | ------------------------------- | ------------------------------------- |
-| **Backend Framework**  | .NET, Node.js, Python, Go, Java | Performance, type safety, ecosystem   |
-| **Frontend Framework** | Angular, React, Vue, Svelte     | DX, ecosystem, hiring, enterprise fit |
-| **Database**           | PostgreSQL, MongoDB, SQL Server | Scale, query complexity, cost         |
-| **Messaging/Events**   | RabbitMQ, Kafka, Redis Streams  | Throughput, reliability, complexity   |
+| **Backend Framework**  | Candidate backend runtimes/frameworks | Performance, type safety, ecosystem   |
+| **Frontend Framework** | Candidate frontend frameworks         | DX, ecosystem, hiring, enterprise fit |
+| **Database**           | Candidate database engines/stores      | Scale, query complexity, cost         |
+| **Messaging/Events**   | Candidate messaging/event systems      | Throughput, reliability, complexity   |
 | **Infrastructure**     | Docker+K8s, Serverless, PaaS    | Cost, ops overhead, scaling           |
 | **Auth**               | Keycloak, Auth0, custom         | Cost, compliance, flexibility         |
 

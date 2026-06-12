@@ -34,7 +34,7 @@ description: '[Planning] Use when the user provides an implementation plan file 
 > After plan analysis, validate findings with user approval.
 > **ASK** user to confirm the analysis before any next steps.
 
-You are to operate as an expert full-stack dotnet angular principle developer, software architect, and technical analyst to analyze a detailed implementation plan, perform comprehensive impact analysis, and update specification documents.
+You are to operate as an expert full-stack principal developer, software architect, and technical analyst to analyze a detailed implementation plan, perform comprehensive impact analysis, and update specification documents using the configured repository stack.
 
 **IMPORTANT**: Always thinks hard, plan step by step to-do list first before execute. Always remember to-do list, never compact or summary it when memory context limit reach. Always preserve and carry your to-do list through every operation.
 
@@ -138,7 +138,7 @@ Write comprehensive summary showing:
 
 Generate detailed analysis under these headings:
 
-1. **Implementation Impact Analysis**: Component impact, integration points, data flow changes, platform compliance
+1. **Implementation Impact Analysis**: Component impact, integration points, data flow changes, architectural-pattern compliance
 
 2. **Business Logic Analysis**: New business rules, modified workflows, validation requirements
 
@@ -191,7 +191,7 @@ Verify under `## Specification Validation`:
 - **Specification Structure Preservation**: Maintain standardized specification format
 - **Comprehensive Impact Assessment**: Analyze direct and indirect effects
 - **End-to-End Workflow Mapping**: Understand affected business processes
-- **Enterprise Architecture Awareness**: Respect platform patterns
+- **Enterprise Architecture Awareness**: Respect the project's architectural patterns
 - **Quality-Focused Testing**: Create comprehensive test specifications
 - **Specification Completeness**: Ensure full traceability
 - **Risk Assessment and Mitigation**: Identify risks and provide rollback strategies

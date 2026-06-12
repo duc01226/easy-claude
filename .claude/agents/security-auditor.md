@@ -714,11 +714,11 @@ Write to `plans/reports/security-audit-{date}.md`:
   **IMPORTANT MUST ATTENTION** Rule out false positives — trace full data flow to sink, verify no upstream neutralization
   **IMPORTANT MUST ATTENTION** For JWT: verify ALL five flags (`Issuer`, `Audience`, `Lifetime`, `SigningKey`, `Algorithm`) — missing any one is Critical
   **IMPORTANT MUST ATTENTION** TenantId/CompanyId MUST come from JWT claims, NEVER from request body
-  <!-- SYNC:task-tracking-external-report:reminder -->
+    <!-- SYNC:task-tracking-external-report:reminder -->
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-  <!-- /SYNC:task-tracking-external-report:reminder -->
-  <!-- SYNC:project-reference-docs-guide:reminder -->
+    <!-- /SYNC:task-tracking-external-report:reminder -->
+    <!-- SYNC:project-reference-docs-guide:reminder -->
 
 - **MANDATORY** After task-tracking bootstrap and before target/source work, read required project-reference docs and cite `Reference docs read: ...`.
 - **MANDATORY** Always include `lessons.md`; project conventions override generic defaults.

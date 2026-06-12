@@ -77,12 +77,12 @@ git add <file-path>
 Before committing, check if staged files impact documentation:
 
 1. Run `git diff --name-only --cached` to list staged files
-2. Check if any staged file matches doc-impact patterns:
-    - `src/Services/**` → may impact `docs/specs/`
+2. Check if any staged file matches doc-impact patterns (resolve the concrete backend/frontend source paths from the project's structure reference / `docs/project-config.json`):
+    - changes under the backend service source paths (per project config) → may impact `docs/specs/`
     - `.claude/skills/**` → may impact `.claude/docs/skills/`
     - `.claude/hooks/**` → may impact `.claude/docs/hooks/`
     - `.claude/workflows.json` → may impact `CLAUDE.md` workflow table
-    - `src/WebV2/**` → may impact frontend pattern docs
+    - changes under the frontend app source paths (per project config) → may impact frontend pattern docs
 3. If matches found: invoke `/docs-update` skill, then re-stage any doc changes with `git add`
 4. If no matches: skip (log "No doc-impacting files staged")
 
@@ -113,7 +113,7 @@ Analyze staged changes and generate message following **Conventional Commits**:
 
 Extract from file paths:
 
-- `src/auth/` → `auth`
+- `{configured-source-root}/auth/` → `auth`
 - `.claude/skills/` → `claude-skills`
 - `libs/{shared-lib}/` → `{shared-lib}`
 - Multiple unrelated areas → omit scope
@@ -171,9 +171,9 @@ git log -1
 ## Examples
 
 ```
-feat(employee): add department filter to list
+feat(order): add warehouse filter to list
 
-- add department query parameter in employee list endpoint
+- add warehouse query parameter in order list endpoint
 - wire frontend filter control to request payload
 - update tests for filtered and unfiltered list behavior
 

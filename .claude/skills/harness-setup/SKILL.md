@@ -58,7 +58,7 @@ Extract:
 
 - Primary language(s) and framework(s)
 - Test framework and test runner
-- CI platform (GitHub Actions, GitLab CI, Azure Pipelines, etc.)
+- CI provider/tooling
 - Package manager and monorepo structure (if any)
 - Module system and build tooling
 
@@ -76,7 +76,7 @@ For each guide type, check if it exists; if not, create or enhance:
 
 - Add section: "Architecture Patterns" — document the patterns chosen in `/architecture-design` (e.g., Clean Architecture, CQRS, Repository)
 - Add section: "Anti-Patterns" — explicit list of patterns to avoid for this stack
-- Add section: "Naming Conventions" — language-idiomatic conventions for this project
+- Add section: "Naming Conventions" — language-idiomatic conventions for this repository
 - Add section: "Module Boundaries" — which layers may import which; dependency direction rules
 
 **2. Skill activation rules**
@@ -119,7 +119,7 @@ Output: confirmation that computational sensors are in place, with file paths li
 ## Phase D — Inferential Feedback Sensors
 
 Configure which AI review skills fire at each lifecycle stage. Present to user via `AskUserQuestion`:
-"Which inferential sensors should be mandatory vs optional for this project?"
+"Which inferential sensors should be mandatory vs optional for this repository?"
 
 **Pre-implementation (planning gate):**
 

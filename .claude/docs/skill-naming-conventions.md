@@ -24,7 +24,8 @@ Reference guide for naming Claude Code skills consistently in YourProject.
 **Project Examples:**
 | Skill | Purpose |
 | -------------------------------- | ------------------------------- |
-| `arch-cross-service-integration` | Service boundary design |
+| `security-review` | Security & threat analysis |
+| `performance-review` | Performance & scalability |
 
 > Note: `arch-security-review` was consolidated into the single `security-review` skill, and `arch-performance-optimization` into the single `performance-review` skill (no `arch-` prefix — each covers all scopes; `performance-review` additionally carries an architecture-altitude section for design reviews, not only architecture).
 

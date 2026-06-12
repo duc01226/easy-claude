@@ -281,7 +281,7 @@ Apply fixes per the resolved project styling rules doc.
 - Components MUST extend the project-documented base component/form/store component classes (BLOCKED)
 - State MUST use the project-documented store/effect pattern — NEVER ad hoc local state when the project provides a canonical store pattern (BLOCKED)
 - API services MUST extend the project-documented API service base — NEVER raw HTTP clients when the project provides a service abstraction (BLOCKED)
-- All subscriptions MUST use `.pipe(this.untilDestroyed())` — NEVER manual unsubscribe (BLOCKED)
+- All subscriptions MUST use the project's auto-teardown operator — NEVER manual unsubscribe (BLOCKED)
 - All template elements MUST have BEM classes (WARN)
 - Logic in lowest layer: Model > Service > Component (WARN)
 
@@ -516,7 +516,7 @@ MUST check categories 1-4 for EVERY review. Never skip.
 3. Error Handling: Try-catch scope correct? Silent swallowed exceptions? Error types specific? Cleanup in finally?
 4. Resource Management: Connections/streams closed? Subscriptions unsubscribed on destroy? Timers cleared? Memory bounded?
 5. Concurrency (if async): Missing await? Race conditions on shared state? Stale closures? Retry storms?
-6. Stack-Specific: JS: === vs ==, typeof null. C#: async void, missing using, LINQ deferred execution.
+6. Stack-Specific: Check the configured language/runtime pitfalls and framework-specific failure modes discovered from local code.
 Classify: CRITICAL (crash/corrupt) → FAIL | HIGH (incorrect behavior) → FAIL | MEDIUM (edge case) → WARN | LOW (defensive) → INFO.
 
 ### Design Patterns Quality

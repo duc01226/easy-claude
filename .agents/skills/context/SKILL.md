@@ -85,10 +85,10 @@ Read `docs/project-config.json` for project-specific module paths. Check `module
 
 ```bash
 # Find backend service directories
-find src/ -name "*.csproj" -maxdepth 4 | head -20
+find . -path "*/node_modules" -prune -o -name "*.csproj" -maxdepth 5 -print | head -20
 
 # Find frontend app directories
-find src/ -name "package.json" -maxdepth 3 | head -10
+find . -path "*/node_modules" -prune -o -name "package.json" -maxdepth 5 -print | head -10
 
 # Find shared libraries
 find . -path "*/libs/*" -name "package.json" -maxdepth 4 | head -10

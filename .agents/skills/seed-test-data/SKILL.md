@@ -85,7 +85,7 @@ Before any other step, classify request:
 | Unknown          | Request ambiguous                              | Ask user — NEVER assume                        |
 
 ```bash
-grep -r "{Feature}Seeder\|{Feature}SeedData\|{Feature}TestData" src/ -l
+rg "{Feature}Seeder|{Feature}SeedData|{Feature}TestData" {configured-source-roots} -l
 ```
 
 ## Universal Seed Data Rules
@@ -104,11 +104,8 @@ grep -r "{Feature}Seeder\|{Feature}SeedData\|{Feature}TestData" src/ -l
 Search for project seeder conventions:
 
 ```bash
-# .NET
-grep -r "IDataSeeder\|ISeedDataHandler\|ApplicationDataSeeder\|CanSeedTestingData\|SeedingMinimumDummyItemsCount" src/ --include="*.cs" -l
-
-# TypeScript
-grep -r "seeder\|SeedData\|DataSeed" src/ --include="*.ts" -l
+# Search configured source roots using the repository's discovered seed-data naming conventions
+rg "{configured-seeder-interface-or-base-patterns}|seeder|SeedData|DataSeed" {configured-source-roots} -l
 ```
 
 Record with `file:line` evidence:
@@ -127,7 +124,7 @@ Confirm dev config has both env gate key and count key. If absent, add following
 Identify before writing any code:
 
 1. **Feature area** — domain entity/aggregate being seeded
-2. **Application commands** — `grep -r "{Feature}*Command" src/ --include="*.cs" -l`
+2. **Application commands** — `rg "{Feature}.*Command|{configured-command-handler-patterns}" {configured-source-roots} -l`
 3. **Dependencies** — data must exist (users, orgs, prerequisite records)
 4. **Scenarios** — 3–5 realistic variations (standard, boundary, multi-actor)
 5. **Target count** — clarify: 1 scenario or N repetitions per scenario
@@ -135,7 +132,7 @@ Identify before writing any code:
 ### Step 3: Find or Create Seeder
 
 ```bash
-grep -r "{Feature}TestSeeder\|{Feature}SeedingHelper\|{Feature}TestDataSeeder" src/ -l
+rg "{Feature}TestSeeder|{Feature}SeedingHelper|{Feature}TestDataSeeder" {configured-source-roots} -l
 ```
 
 - **Exists** → enhance with new scenarios, do NOT break existing ones

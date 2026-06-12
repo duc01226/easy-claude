@@ -160,7 +160,7 @@ Use real domain entities and relationships for realistic mockup data:
     - Entity relationships → navigation links, dropdowns, nested displays
     - Entity statuses/enums → status badges, filter options
     - Date fields → realistic date values
-    - String fields → domain-appropriate sample text (employee names, goal titles, etc.)
+    - String fields → domain-appropriate sample text (customer names, invoice titles, etc.)
 
 > **Key principle:** Sample data should use actual entity field names and realistic domain values — not "Lorem ipsum" or "Item 1, Item 2".
 

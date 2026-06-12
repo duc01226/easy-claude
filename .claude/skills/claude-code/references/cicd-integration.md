@@ -177,7 +177,7 @@ lint:
     - claude '/fix:types'
   artifacts:
     paths:
-      - src/
+      - {source-root}/
     expire_in: 1 hour
 
 test:

@@ -19,7 +19,7 @@
 
 - MUST ATTENTION each TC names `Business Intent / Invariant Guarded`.
 - MUST ATTENTION preservation tests assert old healthy behavior before and after bugfixes.
-- MUST ATTENTION evidence changes from `TBD` to `[Source: namespace/service/id]` (stack-portable abstract anchor — never physical `file:line`/`src/`) after implementation.
+- MUST ATTENTION evidence changes from `TBD` to `[Source: namespace/service/id]` (stack-portable abstract anchor — never physical code coordinates or repository-root paths) after implementation.
 - NEVER let generated tests mirror implementation mechanics without guarding behavior.
 
 ---
@@ -86,6 +86,8 @@ And {additional verification}
 - {Cross-service: message bus timing}
 
 **Evidence:** `[Source: namespace/service/id]` or `TBD (pre-implementation)`
+
+**IntegrationTest:** `{configured-test-path}/{TestFile}::{MethodName}` (comma-separated on one line when several tests cover this TC), OR `TestSpec=TC-{FEATURE}-{NNN}`, OR `Untested`
 
 **Related Files:**
 | Layer | Type | File |

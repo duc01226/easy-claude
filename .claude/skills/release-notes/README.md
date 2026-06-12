@@ -28,7 +28,7 @@ Generate or update release notes for project features.
 
 ```bash
 /release-notes feature-name --source=docs/specs/{Bucket}/README.{Feature}.md
-/release-notes employee-export --compare=develop:main
+/release-notes order-export --compare=develop:main
 /release-notes authentication --investigate
 ```
 
@@ -51,7 +51,7 @@ Generate or update release notes for project features.
 | `refactor`      | improvements |
 | `perf`          | improvements |
 | `feature`       | features     |
-| `platform`      | features     |
+| `infrastructure` | features     |
 | `candidate_app` | fixes        |
 | `growth`        | features     |
 | `talents`       | features     |

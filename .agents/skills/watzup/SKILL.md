@@ -87,8 +87,8 @@ After the change summary, run `git diff --name-only` (against base branch or rec
 | `.claude/hooks/**`      | `.claude/docs/hooks/README.md`, hook count tables in `.claude/docs/hooks/*.md`                |
 | `.claude/skills/**`     | `.claude/docs/skills/README.md`, skill count/catalog tables                                   |
 | `.claude/workflows/**`  | `CLAUDE.md` workflow catalog table, `.claude/docs/` workflow references                       |
-| `src/{services-dir}/**` | `docs/specs/` doc for the affected service (path from `docs/project-config.json`) |
-| `src/{frontend-dir}/**` | `docs/project-reference/frontend-patterns-reference.md`, relevant business-feature docs       |
+| `{configured-service-source-root}/**` | `docs/specs/` doc for the affected service (path from `docs/project-config.json`) |
+| `{configured-frontend-source-root}/**` | `docs/project-reference/frontend-patterns-reference.md`, relevant business-feature docs       |
 | `CLAUDE.md`             | `.claude/docs/README.md` (navigation hub must stay in sync)                                   |
 
 **Output one of:**
@@ -102,7 +102,7 @@ After the change summary, run `git diff --name-only` (against base branch or rec
 
 ## Spec-Driven Development Health Check (REQUIRED when business code changed)
 
-Run this check when `git diff --name-only` includes ANY `src/Services/**` or frontend app/domain files.
+Run this check when `git diff --name-only` includes ANY changes under the backend service source paths or frontend app/domain source paths (resolve the concrete paths from the project's structure reference / `docs/project-config.json`).
 
 ### Step 1 — Feature Spec Root Check
 

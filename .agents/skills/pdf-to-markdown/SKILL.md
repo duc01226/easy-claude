@@ -106,7 +106,7 @@ node .claude/skills/pdf-to-markdown/scripts/convert.cjs -i ./doc.pdf --mode nati
 - **Auto-Detection:** Automatically determines if PDF has native text or requires OCR
 - **Native PDFs:** Fast extraction using @opendocsg/pdf2md
 - **Tables:** Basic table structure preservation
-- **Cross-Platform:** Works on Windows, macOS, Linux
+- **Cross-OS:** Works on Windows, macOS, Linux
 - **No System Dependencies:** Pure JavaScript implementation
 
 ## Conversion Modes

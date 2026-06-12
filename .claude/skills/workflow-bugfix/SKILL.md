@@ -53,13 +53,13 @@ Activate the `bugfix` workflow. Run `/workflow-start bugfix` with the user's pro
 
 > **Spec check (before investigation):** If `docs/specs/` has a spec for the affected service/module, read the relevant ERD + business-rules + API-contracts files FIRST. Engineering specs provide domain context that reduces investigation time significantly. Command: `ls docs/specs/` to discover available app buckets or flat system folders; then probe `ls docs/specs/{app-bucket}/` or `ls docs/specs/{system-name}/` to find the specific service spec.
 
-> **[BLOCKING] Code Bug vs Spec Bug Gate:** Before writing regression TCs, classify the issue:
+> **[BLOCKING] Code Bug vs Spec Bug Gate** (the bugfix-specialized instance of `SYNC:spec-drift-adjudication` / `shared/sdd-artifact-contract.md` → Drift Gates — same model, bugfix vocabulary): Before writing regression TCs, classify the issue:
 >
-> - **Code Bug** — the canonical spec describes intended behavior, but code diverged. Write regression TCs for the intended behavior before fixing code.
-> - **Spec Bug** — the spec documents wrong behavior and code faithfully implements it. Update canonical spec/docs first, then write TCs for the corrected behavior.
+> - **Code Bug** (= CODE-WRONG) — the canonical spec describes intended behavior, but code diverged. Write regression TCs for the intended behavior before fixing code.
+> - **Spec Bug** (= SPEC-STALE) — the spec documents wrong behavior and code faithfully implements it. Update canonical spec/docs first via `/feature-spec [mode=amend]`, then write TCs for the corrected behavior.
 > - **Ambiguous** — ask the user or product owner which behavior is intended before writing TCs.
 >
-> Include a behavior preservation note: `current behavior -> expected behavior -> unchanged behavior to preserve -> regression TC/test evidence`.
+> Include a behavior preservation note: `current behavior -> expected behavior -> unchanged behavior to preserve -> regression TC/test evidence`. Never normalize the divergence to whichever side currently passes — reconcile to canonical intent.
 
 > **[BLOCKING] End-to-start trace before fix plan:** Before `/plan`, `/spec-tests`, or `/fix`, the investigation must include observed final state, final reader/query/renderer/assertion, backward hops through storage/projection/writer/consumer/producer, all feeder paths, hypothesis matrix, owning fix layer, and forward convergence proof. Missing trace evidence blocks the fix path.
 

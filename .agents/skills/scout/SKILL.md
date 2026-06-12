@@ -77,8 +77,8 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 | Scope         | Detection                                     | Agent Strategy           |
 | ------------- | --------------------------------------------- | ------------------------ |
-| Backend-only  | C# class names, domain entities, API handlers | Agents 1+2, skip Agent 3 |
-| Frontend-only | Component names, TypeScript, Angular features | Agent 3 only             |
+| Backend-only  | server-side class names, domain entities, API handlers | Agents 1+2, skip Agent 3 |
+| Frontend-only | component names, client-side source, UI features | Agent 3 only             |
 | Full-stack    | Feature name spanning both layers             | All 3 agents             |
 | Unknown       | Ambiguous prompt                              | Default to all 3 agents  |
 
@@ -115,8 +115,8 @@ Spawn SCALE number of `scout` subagents in parallel via `spawn_agent` tool (`age
 
 #### Agent Distribution
 
-- **Agent 1 - Backend Core**: `src/Services/*/Domain/`, `src/Services/*/UseCaseCommands/`, `src/Services/*/UseCaseQueries/`
-- **Agent 2 - Backend Infra**: `src/Services/*/UseCaseEvents/`, `src/Services/*/Controllers/`, `src/Services/*/BackgroundJobs/`
+- **Agent 1 - Backend Core**: `{module-source-root}/` domain folder + command folder + query folder (per the project's structure reference)
+- **Agent 2 - Backend Infra**: `{module-source-root}/` event-handler folder + controllers + background-jobs folder (per the project's structure reference)
 - **Agent 3 - Frontend**: `{frontend-apps-dir}/`, `{frontend-libs-dir}/{domain-lib}/`, `{frontend-libs-dir}/{common-lib}/`
 
 Per agent: 3-minute timeout. Return file paths only — no content analysis. Use Glob (patterns), Grep (content), Bash (graph CLI).
@@ -179,25 +179,27 @@ Combine grep + graph into numbered, prioritized file list (see Results Format).
 
 ## Search Patterns by Priority
 
+> Substitute folder names + file globs from the project's structure reference / `docs/project-config.json`. `{backend-source-glob}` / `{frontend-source-glob}` are the per-stack source extensions.
+
 ```
 # HIGH PRIORITY - Core Logic
-**/Domain/Entities/**/*{keyword}*.cs
-**/UseCaseCommands/**/*{keyword}*.cs
-**/UseCaseQueries/**/*{keyword}*.cs
-**/UseCaseEvents/**/*{keyword}*.cs
-**/*{keyword}*.component.ts
-**/*{keyword}*.store.ts
+**/{entity-folder}/**/*{keyword}*.{backend-source-glob}
+**/{command-folder}/**/*{keyword}*.{backend-source-glob}
+**/{query-folder}/**/*{keyword}*.{backend-source-glob}
+**/{event-handler-folder}/**/*{keyword}*.{backend-source-glob}
+**/*{keyword}*{component-suffix}.{frontend-source-glob}
+**/*{keyword}*{store-suffix}.{frontend-source-glob}
 
 # MEDIUM PRIORITY - Infrastructure
-**/Controllers/**/*{keyword}*.cs
-**/BackgroundJobs/**/*{keyword}*.cs
-**/*Consumer*{keyword}*.cs
-**/*{keyword}*-api.service.ts
+**/{controllers-folder}/**/*{keyword}*.{backend-source-glob}
+**/{background-jobs-folder}/**/*{keyword}*.{backend-source-glob}
+**/*Consumer*{keyword}*.{backend-source-glob}
+**/*{keyword}*{api-service-suffix}.{frontend-source-glob}
 
 # LOW PRIORITY - Supporting
-**/*{keyword}*Helper*.cs
-**/*{keyword}*Service*.cs
-**/*{keyword}*.html
+**/*{keyword}*Helper*.{backend-source-glob}
+**/*{keyword}*Service*.{backend-source-glob}
+**/*{keyword}*{markup-glob}
 ```
 
 ---
@@ -213,24 +215,24 @@ Combine grep + graph into numbered, prioritized file list (see Results Format).
 
 ### High Priority - Core Logic
 
-1. `src/Services/{Service}/Domain/Entities/{Entity}.cs`
-2. `src/Services/{Service}/UseCaseCommands/{Feature}/Save{Entity}Command.cs`
+1. `{module-source-root}/{entity-folder}/{Entity}` — domain entity
+2. `{module-source-root}/{command-folder}/{Feature}/Save{Entity}Command` — mutating command
    ...
 
 ### Medium Priority - Infrastructure
 
-10. `src/Services/{Service}/Controllers/{Entity}Controller.cs`
-11. `src/Services/{Service}/UseCaseEvents/{Feature}/SendNotificationOn{Entity}CreatedEventHandler.cs`
+10. `{module-source-root}/{controllers-folder}/{Entity}Controller` — endpoint
+11. `{module-source-root}/{event-handler-folder}/{Feature}/SendNotificationOn{Entity}CreatedEventHandler` — event handler
     ...
 
 ### Low Priority - Supporting
 
-20. `src/Services/{Service}/Helpers/{Entity}Helper.cs`
+20. `{module-source-root}/{helpers-folder}/{Entity}Helper` — supporting helper
     ...
 
 ### Frontend Files
 
-30. `{frontend-libs-dir}/{domain-lib}/src/lib/{feature}/{feature}-list.component.ts`
+30. `{frontend-libs-dir}/{domain-lib}/{configured-feature-path}/{feature}-list.component`
     ...
 
 **Total Files Found:** {count}

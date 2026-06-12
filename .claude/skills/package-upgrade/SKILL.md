@@ -51,9 +51,9 @@ Initialize analysis file with:
 **Find all package.json files**:
 
 ```
-src/{ExampleAppWeb}/package.json
-src/{ExampleAppWeb}/apps/*/package.json
-src/{ExampleAppWeb}/libs/*/package.json
+<frontend-workspace>/package.json
+<frontend-workspace>/apps/*/package.json
+<frontend-workspace>/libs/*/package.json
 ```
 
 For each package.json, document:
@@ -98,7 +98,7 @@ For EACH package in Master Package List:
 
 ### Ecosystem Compatibility
 
-- Angular version compatibility
+- Frontend framework version compatibility
 - Check peerDependencies
 - Cross-package dependencies
 
@@ -124,7 +124,7 @@ Document:
 ### Dependency Graph (Upgrade Order)
 
 1. Foundation packages (Node.js, TypeScript)
-2. Framework packages (Angular Core, CLI)
+2. Framework packages (core packages, CLI/build tooling)
 3. Framework extensions (Material, RxJS)
 4. Third-party libraries
 5. Dev tools last

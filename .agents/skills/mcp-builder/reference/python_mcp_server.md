@@ -317,7 +317,7 @@ async def search_users(params: UserSearchInput) -> str:
     '''
     Search for users in the Example system by name, email, or team.
 
-    This tool searches across all user profiles in the Example platform,
+    This tool searches across all user profiles in the Example service,
     supporting partial matches and various search filters. It does NOT
     create or modify users, only searches existing ones.
 

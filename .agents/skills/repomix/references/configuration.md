@@ -58,7 +58,7 @@ Create `repomix.config.json` in project root:
 
 **Examples:**
 - `**/*.ts` - All TypeScript
-- `src/**` - Specific dir
+- `{source-root}/**` - Specific dir
 - `**/*.{js,jsx,ts,tsx}` - Multiple extensions
 - `!**/*.test.ts` - Exclude tests
 
@@ -66,7 +66,7 @@ Create `repomix.config.json` in project root:
 
 ```bash
 # Include patterns
-repomix --include "src/**/*.ts,*.md"
+repomix --include "{source-root}/**/*.ts,*.md"
 
 # Ignore patterns
 repomix -i "tests/**,*.test.js"
@@ -140,12 +140,12 @@ Order (highest to lowest priority):
 
 **React:**
 ```json
-{"include": ["src/**/*.{js,jsx,ts,tsx}", "*.md"], "ignore": {"customPatterns": ["build/"]}}
+{"include": ["{source-root}/**/*.{js,jsx,ts,tsx}", "*.md"], "ignore": {"customPatterns": ["build/"]}}
 ```
 
 **Monorepo:**
 ```json
-{"include": ["packages/*/src/**"], "ignore": {"customPatterns": ["packages/*/dist/"]}}
+{"include": ["packages/*/{source-root}/**"], "ignore": {"customPatterns": ["packages/*/dist/"]}}
 ```
 
 ## Output Formats
@@ -204,7 +204,7 @@ repomix --no-line-numbers
 repomix -i "node_modules/**,dist/**,*.min.js"
 
 # Specific directories only
-repomix --include "src/**/*.ts"
+repomix --include "{source-root}/**/*.ts"
 
 # Remove comments, disable line numbers
 repomix --remove-comments --no-line-numbers

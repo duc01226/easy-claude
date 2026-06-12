@@ -247,7 +247,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Greenfield Mode
 
-> **Auto-detected:** If no existing codebase is found (no code directories like `src/`, `app/`, `lib/`, `server/`, `packages/`, etc., no manifest files like `package.json`/`*.sln`/`go.mod`, no populated `project-config.json`), this skill switches to greenfield mode automatically. Planning artifacts (docs/, plans/, .claude/) don't count — the project must have actual code directories with content.
+> **Auto-detected:** If no existing codebase is found (no discovered source directories, no manifest files, no populated `project-config.json`), this skill switches to greenfield mode automatically. Planning artifacts (docs/, plans/, .claude/) don't count — the repository must have actual code directories with content.
 
 **When greenfield is detected:**
 
@@ -641,7 +641,7 @@ When the PBI includes a "Production Readiness Concerns" table with "Required" it
 | Solution-speak     | "Use Redis cache" constrains team                 | Outcome: "Results return within 200ms"        |
 | Effort >8          | Won't fit sprint, hard to estimate                | Apply SPIDR, split until ≤8                   |
 | No error scenario  | Missing negative test coverage                    | Always include invalid input handling         |
-| Generic persona    | "As a user" too vague                             | Specific: "As a hiring manager"               |
+| Generic persona    | "As a user" too vague                             | Specific: "As a warehouse operator"           |
 
 ---
 
@@ -728,17 +728,17 @@ After creating user stories, validate with user.
 
 ```
 
-Example for a "Create Goal" story:
+Example for a "Create Invoice" story:
 ```
 
-[Story US-001] Entity: Create Goal entity with validation rules
-[Story US-001] Command: CreateGoalCommand + Handler
-[Story US-001] DTO: GoalDto with mapping
-[Story US-001] API: POST /api/goals endpoint
-[Story US-001] Component: GoalCreateFormComponent
-[Story US-001] Store: GoalVmStore with create action
-[Story US-001] Test: Integration test for CreateGoalCommand
-[Story US-001] Test: E2E test for goal creation flow
+[Story US-001] Entity: Create Invoice entity with validation rules
+[Story US-001] Command: CreateInvoiceCommand + Handler
+[Story US-001] DTO: InvoiceDto with mapping
+[Story US-001] API: POST /api/invoices endpoint
+[Story US-001] Component: InvoiceCreateFormComponent
+[Story US-001] Store: InvoiceVmStore with create action
+[Story US-001] Test: Integration test for CreateInvoiceCommand
+[Story US-001] Test: E2E test for invoice creation flow
 [Story US-001] Review: Verify against AC scenarios
 
 ```

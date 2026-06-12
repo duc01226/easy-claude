@@ -302,7 +302,7 @@ This release includes 3 new features, 2 improvements, 5 bug fixes.
 
 ## What's New
 
-- **Add employee export endpoint** (API)
+- **Add order export endpoint** (API)
 - **Implement dark mode toggle** (UI)
 
 ## Improvements
@@ -338,7 +338,7 @@ Migration guide: docs/migrations/oauth-2.1.md
 
 | Hash    | Type | Description                    |
 | ------- | ---- | ------------------------------ |
-| abc1234 | feat | Add employee export endpoint   |
+| abc1234 | feat | Add order export endpoint      |
 | def5678 | fix  | Fix date picker timezone issue |
 
 ...

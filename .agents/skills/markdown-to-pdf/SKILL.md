@@ -106,7 +106,7 @@ node .claude/skills/markdown-to-pdf/scripts/convert.cjs --input ./doc.md --css .
 
 - **Syntax Highlighting:** Code blocks rendered with highlight.js
 - **Custom CSS:** Override default styles with your own CSS
-- **Cross-Platform:** Works on Windows, macOS, Linux
+- **Cross-OS:** Works on Windows, macOS, Linux
 - **System Chrome:** Uses installed Chrome/Chromium when available
 - **Frontmatter Support:** YAML frontmatter extracted for title/metadata
 

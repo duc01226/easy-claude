@@ -38,7 +38,7 @@ See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6
 
 1. Tech prose — narrative names a framework/product/language/persistence/messaging/auth term or project-internal framework type (M1).
 2. Code refs in prose — class/method names, file paths, or namespaces appear outside evidence carriers (M2).
-3. Missing logical ID or evidence — a rule/operation lacks a logical ID (FR-/BR-/OP-) OR lacks its SEPARATE `[Source: namespace/service/id]` abstract-anchor evidence carrier (never physical `file:line`/`src/`); both are required (M3).
+3. Missing logical ID or evidence — a rule/operation lacks a logical ID (FR-/BR-/OP-) OR lacks its SEPARATE `[Source: namespace/service/id]` abstract-anchor evidence carrier (never physical code coordinates or repository-root paths); both are required (M3).
 4. Vague acceptance criteria — more than one valid interpretation, or no named success/failure outcome (M4).
 5. Not rebuildable — behavior cannot be re-implemented on any stack from the spec text alone (M5).
 
@@ -48,7 +48,7 @@ See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6
 
 # Implementing a New Feature or Enhancement
 
-You are to operate as an expert full-stack dotnet angular principal developer, software architecture to implement the new requirements in `[task-description-or-task-info-file-path]`.
+You are to operate as an expert full-stack principal developer and software architect to implement the new requirements in `[task-description-or-task-info-file-path]` using the configured repository stack.
 
 **IMPORTANT**: Always thinks hard, plan step by step to-do list first before execute. Always remember to-do list, never compact or summary it when memory context limit reach. Always preserve and carry your to-do list through every operation. Todo list must cover all phases, from start to end, include child tasks in each phases too, everything is flatted out into a long detailed todo list.
 
@@ -81,7 +81,7 @@ Populate the `## Progress` section with:
 - **Current Operation**: "initialization"
 - **Current Focus**: "[original task summary]"
 
-Next, do semantic search and grep search all keywords of the task to find all related files, prioritizing the discovery of core logic files like **Domain Entities, Commands, Queries, Event Handlers, Controllers, Background Jobs, Consumers and front-end Components.ts**.
+Next, do semantic search and grep search all keywords of the task to find all related files, prioritizing the discovery of core logic files such as domain models, commands, queries, event handlers, controllers, background jobs, consumers, and UI components using the repository's configured terminology.
 
 **CRITICAL:** Save ALL file paths immediately as a numbered list under a `## File List` heading.
 
@@ -92,9 +92,9 @@ After semantic search, perform additional targeted searches to ensure no critica
 - `grep search` with patterns: `.*Consumer.*{EntityName}|{EntityName}.*Consumer`
 - `grep search` with patterns: `.*Service.*{EntityName}|{EntityName}.*Service`
 - `grep search` with patterns: `.*Helper.*{EntityName}|{EntityName}.*Helper`
-- All files (include pattern: `**/*.{cs,ts,html}`)
+- All files matching the configured source globs for the current repository
 
-High Priority files MUST ATTENTION be analyzed: **Domain Entities, Commands, Queries, Event Handlers, Controllers, Background Jobs, Consumers and front-end Components.ts**.
+High Priority files MUST ATTENTION be analyzed: domain models, commands, queries, event handlers, controllers, background jobs, consumers, and UI components discovered from the current repository's conventions.
 
 Update the `Total Items` count in the `## Progress` section.
 
@@ -128,14 +128,14 @@ For each file in the `## File List` (following the prioritized order if applicab
 
 **For Consumer Files (CRITICAL):**
 
-- **`messageBusAnalysis`**: When analyzing any Consumer file (files ending with `Consumer.cs` that extend the project message bus consumer base class), identify the `*BusMessage` type used. Then perform a grep search across ALL services to find files that **send/publish** this message type. List all producer files and their service locations in the `messageBusProducers` field. This analysis is crucial for understanding cross-service integration.
+- **`messagingAnalysis`**: When analyzing any asynchronous message/event consumer file (discover consumer naming and base-class conventions from project-reference docs), identify the cross-boundary contract type it handles. Then search all configured service/module roots to find files that **send/publish** this contract. List all producer files and their module locations in the `messageProducers` field. This analysis is crucial for understanding cross-boundary integration.
 
 **Targeted Aspect Analysis:**
 Populate `specificAspects:` key with deeper analysis:
 
 - **For Front-End items:** `componentHierarchy`, `routeConfig`, `routeGuards`, `stateManagementStores`, `dataBindingPatterns`, `validationStrategies`
 - **For Back-End items:** `authorizationPolicies`, `commands`, `queries`, `domainEntities`, `repositoryPatterns`, `businessRuleImplementations`
-- **For Consumer items:** `messageBusMessage`, `messageBusProducers`, `crossServiceIntegration`, `handleLogicWorkflow`
+- **For Consumer items:** `messageName`, `messageProducers`, `crossBoundaryIntegration`, `handleLogicWorkflow`
 
 **MANDATORY PROGRESS TRACKING**: After processing every 10 files, you **MANDATORY IMPORTANT MUST ATTENTION** update `Items Processed` in `## Progress`, run a `CONTEXT_ANCHOR_CHECK`, and explicitly state your progress. After each file, add its path to the `## Processed Files` list.
 
@@ -181,13 +181,13 @@ You must present the plan for my explicit approval. **DO NOT** proceed without i
 
 ### Files to Create
 
-1. `path/to/file.cs` - [purpose]
-2. `path/to/file.ts` - [purpose]
+1. `{configured-source-root}/path/to/source-file` - [purpose]
+2. `path/to/another-source-file` - [purpose]
 
 ### Files to Modify
 
-1. `path/to/existing.cs:line` - [change description]
-2. `path/to/existing.ts:line` - [change description]
+1. `path/to/existing-source-file:line` - [change description]
+2. `path/to/another-existing-file:line` - [change description]
 
 ### Implementation Order
 
@@ -290,7 +290,7 @@ project form component base (search for: form component base class)        // Fo
 
 // Store pattern
 project store base (search for: store base class)<TState>
-effectSimple(() => api.call().pipe(tapResponse(...)))
+// reactive effect that maps an API call to state, tapping success/error (search for: the project's effect + response-tap helpers)
 ```
 
 ---

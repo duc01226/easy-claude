@@ -22,8 +22,8 @@ Step 2 — Detect **architecture type**:
 
 | Signal | Architecture | Sub-Agent Focus |
 | --- | --- | --- |
-| Multiple `src/Services/` directories, each with own `Dockerfile` | Microservices | Enumerate ALL services; map each to port + Dockerfile |
-| Single `src/` with one `Program.cs` / `Startup.cs` | Monolith | Single service deep-scan; module/feature breakdown |
+| Multiple service directories (one folder per service), each with own deploy/`Dockerfile` unit | Microservices | Enumerate ALL services; map each to port + deploy unit |
+| Single source root with one application entry point | Monolith | Single service deep-scan; module/feature breakdown |
 | Single git repo, multiple deployable apps | Monorepo (non-microservices) | App boundaries; shared library mapping |
 | Nx workspace / multiple `project.json` | Nx monorepo | Library graph; app/lib/buildable distinction |
 | Multiple repos detected (git submodules) | Polyrepo | Per-repo breakdown; cross-repo contracts |
@@ -32,7 +32,7 @@ Step 3 — Detect **orchestration approach**:
 
 | Signal | Orchestration | What to Document |
 | --- | --- | --- |
-| `src/Aspire/` directory | .NET Aspire | Aspire project name, dashboard URL, resource names |
+| configured orchestrator directory | configured local orchestration tool | project name, dashboard URL, resource names |
 | `docker-compose*.yml` | Docker Compose | Service definitions, port mappings, volume mounts |
 | `k8s/` or `charts/` | Kubernetes / Helm | Deployment targets, ingress config |
 | No orchestration files | Direct run | Launch commands per service |
@@ -51,9 +51,9 @@ Step 4 — Load module list from `docs/project-config.json` `modules[]` if avail
 
 **Agent 2: Frontend Apps**
 - **Think (App inventory dimension):** How many frontend apps exist? Which are active (have dev-start commands) vs legacy vs deprecated?
-- **Think (Port/config dimension):** Where is the dev server port defined — `angular.json` serve config, `vite.config.ts`, `next.config.js`, proxy config? Read the actual config — do not infer.
+- **Think (Port/config dimension):** Where is the dev server port defined — framework serve config, dev-server config, or proxy config? Read the actual config — do not infer.
 - **Think (Dependency dimension):** Which apps consume which shared libraries? Is there a design system library? A domain library? What's the dependency graph direction?
-- Scan targets: glob `**/angular.json`, `**/nx.json`, `**/vite.config.*`, `**/next.config.*` (exclude node_modules); read `serve` configs for dev ports; find entry points (`main.ts`, `index.tsx`, `App.vue`); framework versions from `package.json` (exact, not ranges); map app→library deps from Nx graph or imports.
+- Scan targets: glob configured frontend build and dev-server config files (exclude dependency folders); read serve/dev configs for ports; find entry points from the configured framework; framework versions from package metadata (exact, not ranges); map app-to-library deps from workspace graph or imports.
 
 **Agent 3: Infrastructure & Tech Stack**
 - **Think (Infrastructure dimension):** What external services must be running for the app to function? Which are optional? What are the default credentials (from docker-compose or defaults)?
@@ -71,7 +71,7 @@ Step 4 — Load module list from `docs/project-config.json` `modules[]` if avail
 | **Frontend Apps** | Table: App name, Framework, Dev port, Build command |
 | **Tech Stack** | Table: Category (Backend/Frontend/Infra), Technology, Version |
 | **Module Codes** | Table: Module code abbreviation, Full name, Service path |
-| **Key Directories** | Top 2-3 levels of `src/` with one-line purpose per top-level dir |
+| **Key Directories** | Top 2-3 levels of configured source roots with one-line purpose per top-level dir |
 
 ### Content Rules / exceptions
 Standard — follows shared `output-quality-principles` (no full trees/counts/TOCs). "Key Directories" limited to top 2-3 levels with one-line purpose (consistent with no-full-trees rule).
@@ -114,7 +114,7 @@ Step 2 — Detect backend framework:
 
 | Signal | Framework | Next Step |
 | --- | --- | --- |
-| `.csproj` + `MediatR`/`PlatformCqrs` | .NET / Easy.Platform | Scan for CQRS, PlatformValidationResult, entity events |
+| configured backend manifest + CQRS dispatcher marker | configured backend CQRS | Scan for command/query handlers, validation-result wrappers, entity events |
 | `package.json` + express/fastify/nestjs | Node.js | Scan for DI decorators, class-validator, TypeORM |
 | `pom.xml` / `build.gradle` | Java/Kotlin | Scan for Spring annotations, JPA patterns |
 | `requirements.txt` / `pyproject.toml` | Python | Scan for Pydantic, SQLAlchemy, FastAPI patterns |
@@ -129,12 +129,12 @@ Phase 1 — from detected framework derive: repository interface naming, handler
 ### Sub-agent Think scopes
 
 **Agent 1: Repository & Entity Patterns**
-- **Think:** What is the complete chain from domain entity → persistence → retrieval? Where does business logic live — in the entity, the service, or the handler? What makes a "repository" in this project (naming, base class, interface)?
+- **Think:** What is the complete chain from domain entity → persistence → retrieval? Where does business logic live — in the entity, the service, or the handler? What makes a "repository" in this repository (naming, base class, interface)?
 - Scan targets: repository interfaces (naming, base classes, service-specific vs generic); entity/model base classes (inheritance, property conventions, factory methods); domain-logic placement (entity vs service vs handler); DTO classes (mapping ownership: DTO-owned vs handler-mapped vs AutoMapper); repository extension methods (static query expressions, reusable filters). For each: record `file:line`, 5-15 line snippet, note GOOD vs BAD if anti-pattern present.
 
 **Agent 2: CQRS & Validation Patterns**
 - **Think:** How does a request travel from controller to handler? What validates it? What wraps the result? Where does authorization live?
-- Scan targets: command handlers (file structure, naming, base class, result types); query handlers (pagination, projection, caching); validation (mechanism, location handler-vs-pipeline-vs-entity, error format); result wrappers (`Result<T>`/`ApiResponse`/`PlatformValidationResult`); controller/endpoint patterns (routes, auth attributes, binding); authorization (attribute/decorator placement, policy vs role, permission-check location).
+- Scan targets: command handlers (file structure, naming, base class, result types); query handlers (pagination, projection, caching); validation (mechanism, location handler-vs-pipeline-vs-entity, error format); result wrappers (`Result<T>`/`ApiResponse`/validation-result types); controller/endpoint patterns (routes, auth attributes, binding); authorization (attribute/decorator placement, policy vs role, permission-check location).
 
 **Agent 3: Events, Messaging & Infrastructure**
 - **Think:** How do side effects happen — synchronous or async? How do services communicate? What triggers background work?
@@ -199,8 +199,8 @@ Detect frontend framework:
 
 | Signal | Framework | Key Patterns to Search |
 | --- | --- | --- |
-| `angular.json` + `nx.json` | Angular (Nx) | base component class, view-model store, `untilDestroyed`, BEM classes |
-| `angular.json` (no Nx) | Angular | `@Component`, `OnDestroy`, reactive forms, `HttpClient` |
+| configured frontend workspace manifests | configured frontend workspace | base component class, state store, teardown, styling conventions |
+| configured frontend framework manifest | configured frontend framework | component markers, lifecycle hooks, forms, API client usage |
 | `package.json` with `react`/`next` | React | hooks, context, `useState`, `useEffect`, `fetch` wrappers |
 | `package.json` with `vue`/`nuxt` | Vue | Composition API, `ref`, `reactive`, Pinia stores |
 | `package.json` with `svelte`/`sveltekit` | Svelte | `$:` reactivity, stores, `onMount`/`onDestroy` |
@@ -304,7 +304,7 @@ Detect BEM usage:
 
 Also: reads doc to detect Init/Sync; in Sync mode extract section list → skip well-documented sections. Load styling config from `docs/project-config.json` `designSystem.tokenFiles` if available.
 
-**Source-scope whitelist for token discovery:** `src/**/styles/**/*.{scss,css}` (global), `src/**/themes/**/*.{scss,css}` (themes), `src/**/tokens/**/*.{scss,css}` (tokens); EXCLUDE `node_modules`, `dist`, `.nx`, `coverage`, component-local styles.
+**Source-scope whitelist for token discovery:** configured style, theme, and token source roots; EXCLUDE generated output, dependency folders, coverage, and component-local styles unless configured.
 
 **Evidence gate:** Confidence <60% on **primary approach** → report uncertainty, **proceed with Agent 1 (structure) only**.
 
@@ -401,12 +401,12 @@ Step 4 — check for app-specific design docs in the same directory.
 
 **Agent 2: Component Inventory**
 - **Think (VERBATIM):** "What dimensions define a complete component inventory? Consider: Discoverability (can I find it?), Categorization (what type?), Variant coverage (size/color/state?), Accessibility (ARIA/keyboard?), Documentation completeness (JSDoc/README/Storybook?), Icon/asset library coverage."
-- Note: derive grep/glob patterns from what the project actually uses — do NOT hardcode Angular/React/Vue-specific patterns unless confirmed.
+- Note: derive grep/glob patterns from what the repository actually uses — do NOT hardcode framework-specific patterns unless confirmed.
 - Scan targets: reusable UI components (shared dirs, exported components); component categories (layout, forms, feedback, navigation, data display); variants (size, color, state); icon sets / asset libraries; accessibility patterns (ARIA roles, keyboard support); per-component documentation.
 
 **Agent 3: Token & Component Source Discovery**
 - **Think (VERBATIM):** "What design tokens actually exist in source code (not just what's documented)? Which are declarations (authoritative) vs usages (derived)?"
-- **Source scope (whitelist, not full repo):** `src/**/styles/**/*.{scss,css}`, `src/**/themes/**/*.{scss,css}`, `src/**/tokens/**/*.{scss,css}`; `src/**/*.scss` ONLY when path contains `theme`, `token`, `palette`, `design`, `style-guide`, or `variables`; exclude `node_modules`, `dist`, `.nx`, `coverage`, component-local styles.
+- **Source scope (whitelist, not full repo):** configured style, theme, token, palette, design, style-guide, and variable source roots; exclude generated output, dependency folders, coverage, and component-local styles unless configured.
 - **Discovery rules (declarations only, NOT usages):** CSS custom properties `--[a-zA-Z][a-zA-Z0-9_-]*\s*:` (LHS only, dedupe); SCSS variable declarations `^\s*\$[a-zA-Z][a-zA-Z0-9_-]*\s*:` (anchor start-of-line); color values used ≥3× across whitelist (hex/rgb/hsl); spacing scale `(padding|margin|gap)\s*:\s*[\d.]+(px|rem|em)` (extract values, dedupe); typography `(font-family|font-size|font-weight)\s*:` (extract RHS, dedupe); breakpoints `@media[^{]*\((min|max)-width:\s*[\d.]+(px|em|rem)\)` (extract widths, dedupe).
 - **Categorise:** Colors / Typography / Spacing / Breakpoints / Z-Index / Elevation / Component-prefixes / Other. Persist incrementally — append to report after each category.
 - **Quality gate:** if a category has <3 unique entries OR >200, log "scope too narrow/broad — manual refinement required."
@@ -471,7 +471,7 @@ Project-scope detection table:
 | Signal | Scope | Agent Routing |
 | --- | --- | --- |
 | `.csproj` files present | Full-stack or Backend-only | Run Agent 1 (Backend) |
-| `angular.json` / `nx.json` / `package.json` with framework | Frontend present | Run Agent 2 (Frontend) |
+| configured frontend manifests | Frontend present | Run Agent 2 (Frontend) |
 | Both above | Full-stack | Run Agents 1+2+3 |
 | `docker-compose.yml` / K8s manifests | Infrastructure present | Run Agent 3 (Architecture) |
 | Linter configs (`.eslintrc`, `stylecop.json`) | Code quality infra found | Prioritize Agent 1/2 |
@@ -483,11 +483,11 @@ Step 3 — discover code-quality infrastructure: linter configs (`.eslintrc`, `.
 ### Sub-agent Think scopes
 
 **Agent 1: Backend Rules**
-- **Think (VERBATIM):** "What does a GOOD backend file look like in this project? What naming, error handling, and DI choices separate "good code" from "code that got merged but shouldn't have"? Where are the active anti-patterns?"
+- **Think (VERBATIM):** "What does a GOOD backend file look like in this repository? What naming, error handling, and DI choices separate good code from code that got merged but should not have? Where are the active anti-patterns?"
 - Scan targets: naming conventions (class suffixes, method prefixes, interface naming + examples); base classes (when used vs not — detect violations); error handling (try-catch, Result types, error middleware); dependency injection (registration conventions, lifetime choices); anti-patterns (direct DB access from controllers, business logic in wrong layer); logging (structured logging, log levels, correlation IDs).
 
 **Agent 2: Frontend Rules**
-- **Think (VERBATIM):** "What makes Angular/React/Vue code reviewable vs unmaintainable here? Where is state management discipline enforced? What cleanup patterns are used?"
+- **Think (VERBATIM):** "What makes frontend code reviewable vs unmaintainable here? Where is state management discipline enforced? What cleanup patterns are used?"
 - Scan targets: component conventions (naming, file organization, template patterns + examples); state management (store vs component vs service, with rule evidence); styling (BEM, CSS modules, utility classes — derive from detected approach); subscription/memory management (cleanup, unsubscribe, dispose); accessibility (ARIA, semantic HTML, keyboard nav — if found); performance (lazy loading, change detection, memoization).
 
 **Agent 3: Architecture Rules**
@@ -517,7 +517,7 @@ Step 3 — discover code-quality infrastructure: linter configs (`.eslintrc`, `.
 - 3 sub-agents (no Agent 4 / cross-service sync agent — unlike domain-entities).
 - Conditional agent routing: agents launched per detected scope (Backend-only / Frontend present / Full-stack / Infrastructure present), not all-always.
 - **Phase 3 confidence-classification (target-unique vocab):** HIGH (3+ examples, consistent) → rule with DO/DON'T pair; MEDIUM (1-2) → "observed pattern (verify)"; LOW (<1) → omit.
-- Round 2 fresh-eyes: every decision-tree node has real code examples; anti-patterns documented with real `file:line` violations (not hypothetical); every rule specific to this project (not generic).
+- Round 2 fresh-eyes: every decision-tree node has real code examples; anti-patterns documented with real `file:line` violations (not hypothetical); every rule specific to this repository (not generic).
 - No whitelist scope; no authoring branch beyond conditional agent routing.
 
 ### Anti-Rationalization rows
@@ -525,7 +525,7 @@ Step 3 — discover code-quality infrastructure: linter configs (`.eslintrc`, `.
 | Evasion | Rebuttal |
 | --- | --- |
 | "Scope obvious, skip Phase 0 detection" | Phase 0 is BLOCKING — agent routing depends on detected scope |
-| "Rules are standard, don't need examples" | Every rule MUST have `file:line` evidence from this project |
+| "Rules are standard, don't need examples" | Every rule MUST have `file:line` evidence from this repository |
 | "Anti-patterns are hypothetical" | Anti-Patterns section requires REAL `file:line` violations only |
 | "Round 2 review not needed" | Main agent rationalizes own decisions. Fresh sub-agent is non-negotiable. |
 | "Doc has content, skip re-read" | Show section list extracted from doc as proof of re-read |
@@ -549,7 +549,7 @@ Framework detection table:
 
 | Indicator | Framework | Entity Patterns to Search |
 | --- | --- | --- |
-| `.csproj` | .NET | `Entity`, `AggregateRoot`, `ValueObject`, `IEntity`, `BaseEntity` |
+| configured backend manifest | configured backend runtime | entity, aggregate-root, value-object, identity/base markers |
 | `package.json` + ORM | Node.js | Mongoose `Schema`, TypeORM `@Entity`, Prisma `model`, Sequelize `define` |
 | `pom.xml` / `build.gradle` | Java/Kotlin | JPA `@Entity`, Spring Data, Hibernate, `@Table` |
 | `requirements.txt` / `pyproject.toml` | Python | Django `models.Model`, SQLAlchemy, Pydantic `BaseModel` |
@@ -570,7 +570,7 @@ Step 4 — Load service paths from `docs/project-config.json` `modules[]` if ava
 ### Sub-agent Think scopes
 
 **Agent 1: Domain Entities & Aggregates**
-- **Think (VERBATIM):** "What is the entity hierarchy in this project? Which classes are aggregate roots vs leaf entities vs value objects? What are the key business properties (IDs, status, foreign keys)? Where is domain logic placed?"
+- **Think (VERBATIM):** "What is the entity hierarchy in this repository? Which classes are aggregate roots vs leaf entities vs value objects? What are the key business properties (IDs, status, foreign keys)? Where is domain logic placed?"
 - Scan targets: grep entity base-class inheritance (framework-specific from Phase 0); aggregate root classes; value objects; enum types used as entity properties; per entity note key properties (ID, FKs, status/state, timestamps); record `file:line`.
 
 **Agent 2: DTOs, ViewModels & Application Layer Models**
@@ -579,7 +579,7 @@ Step 4 — Load service paths from `docs/project-config.json` `modules[]` if ava
 
 **Agent 3: Database Schemas & Persistence**
 - **Think (VERBATIM):** "How are entities persisted? What indexes exist? What databases are used per service? Where is schema evolution handled?"
-- Scan targets: collection/table definitions; migration files creating/altering entity tables; index definitions; database technology per service (MongoDB, SQL Server, PostgreSQL); seed data files.
+- Scan targets: collection/table definitions; migration files creating/altering entity storage; index definitions; configured database technology per service; seed data files.
 
 **Agent 4: Cross-Service Entity Sync** (microservices only — skip otherwise)
 - **Think (VERBATIM):** "Which entities cross service boundaries? Who owns them? How are they synced — via events, via direct API calls, or via shared database (the last being an anti-pattern)?"
@@ -598,7 +598,7 @@ Step 4 — Load service paths from `docs/project-config.json` `modules[]` if ava
 | **Coverage Report** | Services scanned / entities found / services with NO entities (gaps) |
 
 ### Content Rules / exceptions
-- **Entity Catalog Format** — fixed markdown table per service: `### {ServiceName} Entities` with columns `Entity | Key Properties | Base Class | Relationships | File`; example row `Employee | Id, CompanyId, UserId, Status | EntityBase | 1:N Goals | path/Employee.cs:L15`.
+- **Entity Catalog Format** — fixed markdown table per service: `### {ServiceName} Entities` with columns `Entity | Key Properties | Base Class | Relationships | File`; example row `Order | Id, CustomerId, UserId, Status | EntityBase | 1:N OrderLines | path/Order.cs:L15`.
 - **Detail-level cap (deviation):** Summary + key properties only — IDs, FKs, status/state, important business fields. Do NOT list every property.
 - **Mermaid ER Diagram Guidelines:** one diagram per service/bounded context (keep readable); one cross-service diagram showing entity sync flows; show only key relationships, not every FK.
 
@@ -654,7 +654,7 @@ Detect documentation **structure** type:
 | `docs/specs/{App}/` directories | App-bucketed feature docs | Scan per-app, map to services |
 | `docs/features/{Feature}.md` flat structure | Feature-per-file | Scan each file, derive categories |
 | `wiki/` or external doc system links | Wiki-based | Scan wiki references, note external |
-| README.md embedded in service dirs | Source-embedded | Scan `src/**/*.md` files |
+| README.md embedded in service dirs | Source-embedded | Scan configured source-root markdown files |
 
 Path branching: INIT → Phase 1 → Phase 2 (full scan) → Phase 3 (full write) → Phase 4 (verify). SYNC → Phase 0 read existing → Phase 1 → Phase 2 (diff scan, new/changed only) → Phase 3 (targeted update) → Phase 4 (verify).
 
@@ -742,7 +742,7 @@ Path branching: INIT → Phase 1 → Phase 2 (full scan) → Phase 3 (full write
 **Phase 2: Scan Documentation Tree** — write findings incrementally after each category, NEVER batch.
 - **Think (Coverage dimension):** Which directories exist under `docs/`? Which have content vs are empty/stub?
 - **Think (Accuracy dimension):** For each count in the existing doc, does the actual glob match? What's the delta?
-- **Think (Completeness dimension):** Are there markdown files outside documented directories (`src/`, `.claude/`, project root)? Are those included in any category?
+- **Think (Completeness dimension):** Are there markdown files outside documented directories (configured source roots, `.claude/`, project root)? Are those included in any category?
 - **Think (Discovery dimension):** Which files don't fit any existing category? Where do they go?
 - Scan targets: **Root-Level Docs** — glob `*.md` in project root (README.md, CLAUDE.md, CHANGELOG.md, etc.), each with one-line purpose; file count verified via glob — NEVER estimate. **docs/ Directory** — scan each subdirectory with verified glob counts via this table:
 
@@ -825,7 +825,7 @@ Framework + artifact-type routing table:
 
 | Signal | Framework | Artifact Type | Agent Routing |
 | --- | --- | --- | --- |
-| `*.feature` files + `[Binding]`/`[Given]` in C# | SpecFlow (BDD) | BDD + Page Objects | Run Agent 1+2+3 (BDD) |
+| configured BDD feature files + step binding markers | configured BDD framework | BDD + Page Objects | Run Agent 1+2+3 (BDD) |
 | `playwright.config.*` | Playwright | Non-BDD | Run Agent 1+2 (skip Agent 3) |
 | `cypress.config.*` | Cypress | Non-BDD | Run Agent 1+2 (skip Agent 3) |
 | `*.feature` files + Python | Behave (BDD) | BDD | Run Agent 1+2+3 (BDD) |
@@ -917,8 +917,8 @@ Step 2 — Detect test framework:
 
 | Signal | Framework | Key Patterns to Search |
 | --- | --- | --- |
-| `*.csproj` with xUnit | .NET xUnit | `[Fact]`, `[Theory]`, `IAsyncLifetime`, `IClassFixture` |
-| `*.csproj` with NUnit | .NET NUnit | `[Test]`, `[SetUp]`, `[TearDown]`, `[OneTimeSetUp]` |
+| configured test project marker | configured test framework | configured test attributes, fixtures, or lifecycle hooks |
+| configured test project marker | configured test framework | configured test, setup, teardown, and suite lifecycle markers |
 | `package.json` with jest | Jest | `describe`, `it`, `beforeAll`, `afterAll`, `jest.mock` |
 | `package.json` with vitest | Vitest | `describe`, `test`, `vi.mock`, `beforeEach` |
 | `package.json` with playwright | Playwright | `test.describe`, `page`, `expect`, `fixtures` |
@@ -933,7 +933,7 @@ Step 3 — Detect infrastructure approach:
 | `WebApplicationFactory` | In-process server | DI override patterns, test server setup |
 | `appsettings.test.json` | Config-based test infra | Connection string overrides, env vars |
 | In-memory DB patterns | Fake infra | DB reset strategies, seeding |
-| `WaitUntilAsync`, polling | Eventual consistency | Async assertion patterns |
+| await-until-condition / polling helpers | Eventual consistency | Async assertion patterns |
 
 Step 4 — Detect scan mode:
 
@@ -960,13 +960,13 @@ Step 5 — **config-driven prerequisites load (TARGET-SPECIFIC):** load test pro
 - **Think (Isolation dimension):** "How is test isolation achieved — unique IDs per run, database reset, transaction rollback, separate tenant? Can tests run in parallel? What breaks parallelism?"
 - **Think (Infrastructure dimension):** "What must be running for tests to pass? How is the infrastructure provisioned — Docker, in-memory, seeded fixtures? What's the startup cost?"
 - **Security flag:** if test credentials are found hardcoded in source files (not env vars or secret stores), flag as CRITICAL security issue in report.
-- Scan targets: test base classes (`extends.*Test`, `TestBase`, `IntegrationTest`, `IClassFixture`, `PlatformServiceIntegrationTestWithAssertions`); fixtures + factories (`WebApplicationFactory`, `TestFixture`, `conftest`, module bootstrappers); test config (`appsettings.test.json`, `.env.test`, test container setup, port bindings); DI/service registration overrides (mock registrations, test doubles); test data builders, seed data patterns, unique name generators.
+- Scan targets: test base classes (`extends.*Test`, `TestBase`, `IntegrationTest`, `IClassFixture`, and the project's own integration-test base class — discover via grep); fixtures + factories (`WebApplicationFactory`, `TestFixture`, `conftest`, module bootstrappers); test config (`appsettings.test.json`, `.env.test`, test container setup, port bindings); DI/service registration overrides (mock registrations, test doubles); test data builders, seed data patterns, unique name generators.
 
 **Agent 2: Test Patterns & Conventions**
 - **Think (Assertion dimension):** "What assertion patterns are used? Is there a waiting/polling mechanism for async operations? Are assertions on specific field values or just \"does not throw\"?"
 - **Think (Data dimension):** "How is test data created — builders, factories, seed methods? How is uniqueness ensured across runs? Is there a cleanup strategy?" — Flag direct repository create/update setup as a risk unless it is a valid, idempotent fixture seeder for service-owned reference data. Flag verification guidance as incomplete if it does not require 3 consecutive successful runs without DB reset.
 - **Think (Coverage dimension):** "Which services have tests? Which are missing? What's the test-to-feature ratio?"
-- Scan targets: assertion helpers (`WaitUntilAsync`, custom assertion extensions, `Should*` methods); common test patterns (Arrange-Act-Assert, Given-When-Then, test data flow); test categorization (traits, categories, tags); data uniqueness patterns (`Ulid.NewUlid()`, `Guid.NewGuid()`, timestamp suffixes); infrastructure interaction (database state verification, queue drain, cache clear); map which services have test projects (coverage distribution) — use grep expressions, not counts.
+- Scan targets: assertion helpers (await-until-condition / polling helpers, custom assertion extensions, fluent `Should*`-style matchers); common test patterns (Arrange-Act-Assert, Given-When-Then, test data flow); test categorization (traits, categories, tags); data uniqueness patterns (`Ulid.NewUlid()`, `Guid.NewGuid()`, timestamp suffixes); infrastructure interaction (database state verification, queue drain, cache clear); map which services have test projects (coverage distribution) — use grep expressions, not counts.
 
 ### Target Sections
 

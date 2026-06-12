@@ -192,12 +192,12 @@ python .claude/scripts/sync-hooks-to-skills.py --verbose
 ```bash
 # Confirm target files now contain the new block. Expected count is TIER-AWARE:
 #   - block in SKILL_BLOCK_ORDER  → all skills + all agents
-#   - block in CORE_BLOCK_ORDER   → all 29 agents (skills excluded)
+#   - block in CORE_BLOCK_ORDER   → all 28 agents (skills excluded)
 #   - block in CODE_BLOCK_ORDER   → 21 code agents only
 grep -rl "SYNC:new-block-name" .claude/skills/*/SKILL.md .claude/agents/*.md | wc -l
 
 # Then run the agent-coverage regression suite — it asserts tier membership,
-# disjointness, and SYNC tag balance across all 29 agents.
+# disjointness, and SYNC tag balance across all 28 agents.
 node .claude/hooks/tests/run-all-tests.cjs --filter=agent-universal
 ```
 

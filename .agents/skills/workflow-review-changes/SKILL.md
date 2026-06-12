@@ -124,6 +124,8 @@ NEVER consolidate, rename, or omit steps. If reviews PASS, mark conditional task
 
 > **Docs Update:** `$docs-update` MUST run after EVERY review — it performs Phase 0 triage and fast-exits automatically when only non-business-code files changed (`.claude/**`, config). When business code is in the changeset, it WILL invoke: Phase 2 `$feature-spec` (business feature doc update), Phase 2.5 `$spec-index [mode=index]` (derived bucket INDEX/ERD refresh — if `docs/specs/` bucket maintains a derived index; note: dirs may be app buckets or flat system folders — probe `ls docs/specs/{name}/` to find a specific service), Phase 3 `$spec-tests` (test spec sync), Phase 4 `$spec-tests [direction=sync]` (§8 TCs ↔ integration test code). Never skip based on review PASS status alone.
 
+> **Spec Drift Adjudication:** The `$review-changes` skill (task #1) runs a **mandatory** spec-drift adjudication (`SYNC:spec-drift-adjudication`, per `shared/sdd-artifact-contract.md` → Drift Gates) for every behavior-changing file: it classifies each divergence between changed behavior and the canonical Feature Spec as **CODE-WRONG** (BLOCKING — fix the code/test against intended behavior), **SPEC-STALE** (the change is the new intent — the spec documents the old behavior), or **AMBIGUOUS** (escalate). The reviewer never silently picks a side. A **SPEC-STALE** verdict flows downstream: `$docs-update` (step 13) updates the Feature Spec FIRST via `$feature-spec [update]`, then re-syncs `$spec-tests`. The workflow is NOT clean while any behavior-vs-spec divergence remains unadjudicated — green tests do not normalize drift (green can encode the drift itself).
+
 ---
 
 ## Parallel Review Phase (Steps 3–7) — EXECUTION PROTOCOL

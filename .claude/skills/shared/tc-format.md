@@ -1,9 +1,9 @@
 ---
 title: 'Canonical TC Format'
-version: 1.1.0
-last_reviewed: 2026-06-01
+version: 1.2.0
+last_reviewed: 2026-06-12
 authority: spec-tests
-consumers: [feature-spec, spec-tests, spec-tests (sync mode)]
+consumers: [feature-spec, spec-tests, spec-tests (sync mode), integration-test, integration-test-review, review-artifact]
 ---
 
 # Canonical TC Format
@@ -27,6 +27,7 @@ consumers: [feature-spec, spec-tests, spec-tests (sync mode)]
 - MUST ATTENTION preserve `TC-{FEATURE}-{NNN}` identity and evidence fields.
 - MUST ATTENTION state business intent/invariant so generated tests fail when protected behavior breaks.
 - MUST ATTENTION use preservation TCs for every healthy input that must remain unchanged after a bugfix.
+- MUST ATTENTION keep cardinality **one TC → many tests**: a single business TC may be covered by many integration/unit tests across components and services (join key = the shared **test-spec annotation** carrying the TC ID, expressed in the configured test framework's syntax). NEVER split or technicalize a TC to force a 1:1 map to one test method (see [TC ↔ Test Code Cardinality](#tc--test-code-cardinality-one-to-many)).
 - NEVER delete deprecated TCs; keep audit trail and version history.
 
 ## TC Entry Format
@@ -83,23 +84,46 @@ And {additional verification}
 | Domain model | `component/{service}/{Feature}` |
 | Test | `test/{service}/{Feature}` |
 
-**IntegrationTest:** `{configured-test-path}/{TestFile}::{MethodName}` (or `Untested`)
+**IntegrationTest:** one or more covering tests for the configured test environment — `{configured-test-path}/{TestFile}::{MethodName}` (comma-separated **on one line** when several tests cover this TC), OR a test-filter expression that selects every test annotated with this TC (e.g. `TestSpec=TC-{FEATURE}-{NNN}`), OR `Untested`
 **Status:** Tested | Untested | Planned
 ````
 
 > **Stack-portable evidence (M2/M3/M5).** `Evidence` and `Related Behaviors` carriers use **abstract anchors**
-> `[Source: namespace/service/id]` — never donor `file:line`, `.cs`, or `src/` paths. Namespace ∈
+> `[Source: namespace/service/id]` — never donor physical code coordinates or repository-root paths. Namespace ∈
 > `operation | event | component | schema | requirement | rule | constraint | test`; service = the owning
 > module/service (lowercased); id = the artifact concept with code suffixes stripped. Physical coordinates
 > are recoverable only through the provenance sidecar. This section is the canonical anchor-taxonomy contract.
 >
 > **`IntegrationTest` is the one exception** — it is operational QA glue (a traceability link to the actual
-> executable test, consumed by the `integration-test` skill and surfaced in the §8 TC's `IntegrationTest` field). It stays a physical
-> `{TestFile}::{MethodName}` link, is exempt from the prose gate, and is regenerated per-stack on rebuild.
+> executable test(s), consumed by the `integration-test` skill and surfaced in the §8 TC's `IntegrationTest` field). It stays a physical
+> test-file + test-method link (`{TestFile}::{MethodName}`, in the configured test layout), is exempt from the prose gate, and is
+> regenerated per-stack on rebuild. The field is
+> **representative, not exhaustive** — it may list several covering tests, but the authoritative complete set is whatever
+> carries the TC's test-spec annotation in code (see [TC ↔ Test Code Cardinality](#tc--test-code-cardinality-one-to-many)).
 >
 > **Configurable roots (never donor paths).** When physical coordinates are emitted on rebuild, root them at the
 > project-configured roots — `{configured-source-path}` for source/evidence and `{configured-test-path}` for
 > executable tests — resolved from `docs/project-config.json`. Never hardcode a donor repository's service-layout paths.
+
+## TC ↔ Test Code Cardinality (One-to-Many)
+
+> **A Section 8 TC is a business / user-story acceptance scenario — not a unit of code.** It is written tech-agnostic
+> (M1/M2/M5) and is verified by **one OR MANY** test methods. This section is the canonical cardinality contract; all
+> consumer skills (`spec-tests`, `feature-spec`, `integration-test`, `integration-test-review`, `review-artifact`) defer to it.
+
+**The rule (authoritative):**
+
+- **One TC → many tests.** A single `TC-{FEATURE}-{NNN}` MAY be covered by many test methods — integration tests, unit tests, across multiple components / services / layers. Every covering test carries the **same test-spec annotation** — key `TestSpec`, value `TC-{FEATURE}-{NNN}` — expressed in the configured test framework's syntax. That annotation is the **join key**; the cardinality of the join is **1 TC : N tests**.
+- **Coverage = ≥1.** A TC is `Tested` when **at least one** test carrying its annotation exists and passes. A TC does NOT need a dedicated, name-matching, or single-purpose test method.
+- **`IntegrationTest` field is representative.** It lists one or more covering tests (or a test-filter expression). Never assume it enumerates every covering test — the complete set is whatever carries the test-spec annotation in code.
+- **Direction of mapping.** Each test method maps to **one primary** business TC it verifies. Each TC maps to **one or more** test methods. So: test -> primary TC is N:1; TC -> test is 1:N. A test MAY carry additional `TestSpec` annotations only for documented alias/deprecation bridges, where an old TC ID and canonical TC ID intentionally point to the same executable behavior; document the alias in specs and remove the extra tag when the bridge retires.
+
+**FORBIDDEN (these break M1/M5 — the spec stops being business-readable):**
+
+- ❌ Splitting, narrowing, or technicalizing a business TC so it maps 1:1 to a single test method or production class. A TC describes a user-observable promise, not a code unit.
+- ❌ Requiring (or auto-generating) a test method whose name equals the TC ID, or enforcing "one test per TC".
+- ❌ Flagging "multiple tests reference the same TC" as a duplicate, redundancy, or defect — that is the expected one-to-many shape.
+- ❌ Creating a new TC solely to mirror a newly added test method when an existing business TC already covers that behavior — extend coverage under the existing TC instead (add another test carrying the same annotation).
 
 ## TC Priority Classification
 
@@ -223,6 +247,7 @@ When a behavior is removed:
 
 - MUST ATTENTION keep this file canonical; update consumer skills only after this format changes.
 - MUST ATTENTION every TC protects a named behavior, invariant, or regression path.
+- MUST ATTENTION enforce one-to-many TC ↔ test cardinality: a business TC is covered by ≥1 test (often many, across components); the shared test-spec annotation (key `TestSpec`) is the join key. NEVER split/technicalize a TC for a 1:1 test map; NEVER flag many-tests-per-TC as a duplicate.
 - MUST ATTENTION preserve evidence links and deprecated TC history for traceability.
-- MUST ATTENTION emit evidence as stack-portable abstract anchors `[Source: namespace/service/id]` — never `file:line`, `.cs`, or `src/` paths (taxonomy: Stack-portable evidence section above).
+- MUST ATTENTION emit evidence as stack-portable abstract anchors `[Source: namespace/service/id]` — never physical code coordinates or repository-root paths (taxonomy: Stack-portable evidence section above).
 - NEVER replace specific assertions with smoke checks or existence-only checks.

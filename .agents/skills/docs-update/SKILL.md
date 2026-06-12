@@ -87,7 +87,7 @@ git diff → Triage → Phase 1: Project Docs (inline)
 | #   | Task Subject                                                                                              | Conditional?                                                                             |
 | --- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | 1   | `[docs-update] Phase 0 — Triage: collect git diff, categorize files, detect modules, check existing docs` | No — always first                                                                        |
-| 2   | `[docs-update] Phase 1 — Update project docs (project-structure-reference.md, README.md)`                 | Yes — only if `src/{Framework}/**` or architectural changes in diff                      |
+| 2   | `[docs-update] Phase 1 — Update project docs (project-structure-reference.md, README.md)`                 | Yes — only if configured framework/shared source paths or architectural changes are in diff |
 | 3   | `[docs-update] Phase 2 — Invoke $feature-spec: update business feature docs`                              | Yes — service/frontend files changed AND module has existing feature docs                |
 | 4   | `[docs-update] Phase 2.5 — Invoke $spec-index [mode=index]: refresh derived bucket INDEX/ERD`              | Yes — a Feature Spec changed AND the bucket maintains a derived index/ERD                 |
 | 5   | `[docs-update] Phase 3 — Invoke $spec-tests: update/add §8 test specifications`                             | Yes — new functionality added OR existing behavior changed                               |
@@ -139,10 +139,10 @@ git diff → Triage → Phase 1: Project Docs (inline)
 | `{backend-source-paths}/**` from `docs/project-config.json`                         | **feature-spec** + **spec-tests** + project-docs | 1 + 2 + 3 + 4 |
 | `{frontend-apps-dir}/**`, `{frontend-libs-dir}/{domain-lib}/**`                     | **feature-spec** + **spec-tests** + project-docs | 1 + 2 + 3 + 4 |
 | `{legacy-frontend-dir}/**Client/**`                                                 | **feature-spec** + **spec-tests** + project-docs | 1 + 2 + 3 + 4 |
-| `src/{Framework}/**`                                                                | project-docs only                              | 1 only        |
+| `{configured-framework-source-paths}/**`                                            | project-docs only                              | 1 only        |
 | `docs/**`                                                                           | project-docs only                              | 1 only        |
 | `.claude/**`, config files only                                                     | **none**                                       | Fast exit     |
-| `{frontend-libs-dir}/{platform-core-lib}/**`, `{frontend-libs-dir}/{common-lib}/**` | project-docs only                              | 1 only        |
+| `{frontend-libs-dir}/{framework-core-lib}/**`, `{frontend-libs-dir}/{common-lib}/**` | project-docs only                              | 1 only        |
 
 ### Step 0.3: Fast Exit Check
 
@@ -160,7 +160,7 @@ Extract unique module names from changed paths. **MUST ATTENTION dedup:** `uniqu
 | --------------------------------------------------- | -------------------------------- |
 | `{backend-module-path}/{Module}/**`                 | {Module}                         |
 | `{frontend-apps-dir}/{app-name}/**`                 | {Module} (map app to module)     |
-| `{frontend-libs-dir}/{domain-lib}/src/{feature}/**` | {Module} (map feature to module) |
+| `{frontend-libs-dir}/{domain-lib}/{configured-feature-path}/**` | {Module} (map feature to module) |
 | `{legacy-frontend-dir}/{Module}Client/**`           | {Module}                         |
 
 Build project-specific mapping from `docs/project-config.json` and project reference docs, not from hard-coded skill paths:
@@ -183,7 +183,7 @@ For each detected module:
 
 ## Phase 1: Project Documentation Update (Inline)
 
-**When to run:** Diff includes `src/{Framework}/**`, `docs/**`, or architectural changes.
+**When to run:** Diff includes configured framework/shared source paths, `docs/**`, or architectural changes.
 
 **When to skip:** Only service-layer or frontend feature files changed. Skip → proceed to Phase 2.
 
@@ -363,14 +363,14 @@ Updated TCs from Phase 3: {list of new/changed TC IDs}.
 
 - Forward/reverse sync: §8 Test Specifications ↔ integration test code
 - 2-way comparison: Feature Spec §8 vs test code (code is the technical source of truth)
-- Integration test cross-reference (`[Trait("TestSpec", ...)]` / per-TC `IntegrationTest:` field)
+- Integration test cross-reference (configured test-spec annotation key `TestSpec` and the per-TC `IntegrationTest:` field)
 
 > The retired QA dashboards (`docs/specs/README.md`, `docs/specs/PRIORITY-INDEX.md`) and the `A-E`/`M##` engineering tree no longer exist — §8 is the canonical TC registry. The only derived TC roll-up is the bucket `INDEX.md` count, refreshed in Phase 2.5.
 
 ### Step 4.2: Review Sync Results
 
 1. All new TCs from Phase 3 are reflected in test code (or flagged Untested with rationale).
-2. No orphaned TCs (in test code's `TestSpec` trait but absent from §8).
+2. No orphaned TCs (referenced by test code's `TestSpec` annotation but absent from §8).
 
 ---
 

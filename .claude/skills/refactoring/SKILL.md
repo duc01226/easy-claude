@@ -127,6 +127,10 @@ Document refactoring plan:
 
 ### Phase 3: Execute
 
+The principle below is stack-neutral: **push logic down to the lowest layer that owns the data** (here, an entity-owned predicate replaces an inline condition in the handler/use-case). The code is one stack's instantiation — translate the shape to your language.
+
+**Example (illustrative — adapt to your language):**
+
 ```csharp
 // BEFORE: Logic in handler
 protected override async Task<Result> HandleAsync(Command req, CancellationToken ct)
@@ -156,44 +160,48 @@ var entity = await repository.FirstOrDefaultAsync(Entity.IsActiveExpr(), ct)
 3. Check code compiles
 4. Review for consistency
 
-## Project-Specific Refactorings
+## Layer-Down Refactorings (worked examples)
 
-### Handler to Helper
+These three refactorings share one principle: **move logic out of the orchestration layer (handler/use-case) into the layer that owns the concern** — reused logic into a shared helper, query logic into a data-access extension, mapping into the DTO. The shapes translate to any stack (a "helper" is any cohesive collaborator; an "extension" is any way your language attaches reusable query methods; "DTO owns mapping" is the rule that the data-transfer type, not the orchestrator, defines its own conversion). See the project's backend-patterns reference for the concrete primitives on your stack.
+
+**Example (illustrative — adapt to your language):**
+
+### Handler to Helper — reused logic moves to a shared collaborator
 
 ```csharp
 // BEFORE: Reused logic in multiple handlers
-var employee = await repo.FirstOrDefaultAsync(Employee.UniqueExpr(userId, companyId), ct)
-    ?? await CreateEmployeeAsync(userId, companyId, ct);
+var order = await repo.FirstOrDefaultAsync(Order.UniqueExpr(userId, customerId), ct)
+    ?? await CreateOrderAsync(userId, customerId, ct);
 
 // AFTER: Extracted to Helper
-// In EmployeeHelper.cs
-public async Task<Employee> GetOrCreateEmployeeAsync(string userId, string companyId, CancellationToken ct)
+// In OrderHelper.cs
+public async Task<Order> GetOrCreateOrderAsync(string userId, string customerId, CancellationToken ct)
 {
-    return await repo.FirstOrDefaultAsync(Employee.UniqueExpr(userId, companyId), ct)
-        ?? await CreateEmployeeAsync(userId, companyId, ct);
+    return await repo.FirstOrDefaultAsync(Order.UniqueExpr(userId, customerId), ct)
+        ?? await CreateOrderAsync(userId, customerId, ct);
 }
 ```
 
-### Handler to Repository Extension
+### Handler to Repository Extension — query logic moves to the data-access layer
 
 ```csharp
 // BEFORE: Query logic in handler
-var employees = await repo.GetAllAsync(
-    e => e.CompanyId == companyId && e.Status == Status.Active && e.DepartmentIds.Contains(deptId), ct);
+var orders = await repo.GetAllAsync(
+    e => e.CustomerId == customerId && e.Status == Status.Active && e.WarehouseIds.Contains(warehouseId), ct);
 
 // AFTER: Extracted to extension
-// In EmployeeRepositoryExtensions.cs
-public static async Task<List<Employee>> GetActiveByDepartmentAsync(
-    this I{Service}RootRepository<Employee> repo, string companyId, string deptId, CancellationToken ct)
+// In OrderRepositoryExtensions.cs
+public static async Task<List<Order>> GetActiveByWarehouseAsync(
+    this I{Service}RootRepository<Order> repo, string customerId, string warehouseId, CancellationToken ct)
 {
     return await repo.GetAllAsync(
-        Employee.OfCompanyExpr(companyId)
-            .AndAlso(Employee.IsActiveExpr())
-            .AndAlso(e => e.DepartmentIds.Contains(deptId)), ct);
+        Order.OfCustomerExpr(customerId)
+            .AndAlso(Order.IsActiveExpr())
+            .AndAlso(e => e.WarehouseIds.Contains(warehouseId)), ct);
 }
 ```
 
-### Mapping to DTO
+### Mapping to DTO — the data-transfer type owns its own conversion
 
 ```csharp
 // BEFORE: Mapping in handler

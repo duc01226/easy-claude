@@ -55,7 +55,7 @@ python repomix_batch.py /repo1 /repo2 \
   --style markdown \
   --output-dir output \
   --remove-comments \
-  --include "src/**/*.ts" \
+  --include "{source-root}/**/*.ts" \
   --ignore "tests/**" \
   --verbose
 ```

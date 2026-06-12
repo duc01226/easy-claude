@@ -87,7 +87,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Greenfield Mode
 
-> **Auto-detected:** No code directories (`src/`, `app/`, `lib/`, `server/`, `packages/`, etc.) and no manifest files (`package.json`/`*.sln`/`go.mod`) found. Planning artifacts (docs/, plans/, .claude/) don't count.
+> **Auto-detected:** No discovered source directories and no manifest files found. Planning artifacts (docs/, plans/, .claude/) don't count.
 
 **When greenfield detected:**
 
@@ -211,24 +211,24 @@ Scenario: {Descriptive title}
 ### Example Scenarios
 
 ```gherkin
-Scenario: Employee creates goal with valid data
-  Given employee has permission to create goals
-    And employee is on the goal creation page
-  When employee submits goal form with all required fields
-  Then goal is created with status "Draft"
-    And goal appears in employee's goal list
+Scenario: User creates invoice with valid data
+  Given user has permission to create invoices
+    And user is on the invoice creation page
+  When user submits invoice form with all required fields
+  Then invoice is created with status "Draft"
+    And invoice appears in user's invoice list
 
-Scenario: Goal creation fails with missing required field
-  Given employee is on the goal creation page
-  When employee submits form without title
+Scenario: Invoice creation fails with missing required field
+  Given user is on the invoice creation page
+  When user submits form without title
   Then validation error "Title is required" is displayed
-    And goal is not created
+    And invoice is not created
 
-Scenario: Manager reviews subordinate goal
-  Given manager has direct reports
-    And subordinate has submitted goal for review
-  When manager opens goal review page
-  Then subordinate's goal is visible with "Pending Review" status
+Scenario: Approver reviews a submitted invoice
+  Given approver has invoices awaiting approval
+    And an invoice has been submitted for approval
+  When approver opens the invoice review page
+  Then the invoice is visible with "Pending Review" status
 ```
 
 ### Project Test Case Format
@@ -244,7 +244,7 @@ Scenario: Manager reviews subordinate goal
 See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6)" for BLOCKING criteria. The generated PBI MUST satisfy M1-M5 or be reworked before Phase 8 writes it:
 
 - **Separate intent from implementation (M1/M2):** Keep a tech-agnostic **Business Intent** narrative (Description, Business Value, Acceptance Criteria) free of framework/product/language/design-pattern names and source identifiers. Put any optional implementation hints in a clearly separated **Implementation Notes** block, and put source references only in evidence carriers (`[Source: namespace/service/id]`, `**Evidence**`). Prose stays tech-agnostic per `docs/project-reference/spec-principles.md` §3.
-- **Logical Requirement ID first (M3):** Assign each requirement a logical ID (`FR-`/`BR-`) as the PRIMARY citation spine; keep `[Source: namespace/service/id]` abstract-anchor evidence (never physical `file:line`/`src/` — those live only in the provenance sidecar) as a SECONDARY carrier in a separate evidence column/section — KEEP it, never remove it.
+- **Logical Requirement ID first (M3):** Assign each requirement a logical ID (`FR-`/`BR-`) as the PRIMARY citation spine; keep `[Source: namespace/service/id]` abstract-anchor evidence (never physical code coordinates or repository-root paths — those live only in the provenance sidecar) as a SECONDARY carrier in a separate evidence column/section — KEEP it, never remove it.
 - **Testable, observable acceptance criteria (M4):** Every acceptance criterion has ONE valid interpretation, observable completion states, named failure modes, and NO implementation details. Reject vague phrasing ("handle appropriately", "fast", "user-friendly").
 - **Rebuild-from-scratch validation (M5):** Before emitting, confirm a competent team with zero codebase knowledge could re-implement identical business behavior on ANY stack from the PBI alone. If a reader would have to guess a rule, limit, role, or failure mode, add it as a clarification — never guess.
 
@@ -268,8 +268,8 @@ For EACH acceptance criterion, generate corresponding test case outline:
 
 | AC   | Test Outline                                            | Priority |
 | ---- | ------------------------------------------------------- | -------- |
-| AC-1 | TC: Create goal with valid data → verify persisted      | P0       |
-| AC-2 | TC: Create goal without title → verify validation error | P1       |
+| AC-1 | TC: Create invoice with valid data → verify persisted      | P0       |
+| AC-2 | TC: Create invoice without title → verify validation error | P1       |
 
 Seed for `$spec-tests` if user chooses TDD-first. Document in PBI under `## Testability Assessment`.
 

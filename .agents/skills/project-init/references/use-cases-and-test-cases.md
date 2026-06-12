@@ -38,7 +38,7 @@ Use this matrix when planning, implementing, or reviewing portable project initi
 | ID | Covers | Setup | Assertion |
 | --- | --- | --- | --- |
 | TC-PI-001 | Empty folder guard | Temp dir with only `.claude`/hidden dirs | `project-init` does not deep-scan nonexistent source and only creates stubs for explicit initialization. |
-| TC-PI-002 | Content detection | Temp dir with `src/` | Session init and `project-init` classify as content-bearing. |
+| TC-PI-002 | Content detection | Temp dir with a source root | Session init and `project-init` classify as content-bearing. |
 | TC-PI-003 | Config skeleton creation | Content-bearing temp dir without config | Session init creates configured project-config path. |
 | TC-PI-004 | Custom config path | `.claude/.ck.json` sets `portability.projectConfigPath` | Config is created/read at configured path only. |
 | TC-PI-005 | Config populated check | Config has `project.name` plus substantive section | `isConfigPopulated()` returns true. |

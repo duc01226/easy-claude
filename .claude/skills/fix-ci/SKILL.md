@@ -7,17 +7,17 @@ disable-model-invocation: false
 
 ## Quick Summary
 
-**Goal:** Analyze CI/CD pipeline logs to identify and fix build/test failures in the configured pipeline platform.
+**Goal:** Analyze CI/CD pipeline logs to identify and fix build/test failures in the configured CI provider/tooling.
 
 **Workflow:**
 
-1. **Fetch** — Download CI logs from the configured pipeline platform
+1. **Fetch** — Download CI logs from the configured CI provider/tooling
 2. **Analyze** — Identify root cause from log output (build errors, test failures, env issues)
 3. **Fix** — Apply targeted fix based on traced root cause
 
 **Key Rules:**
 
-- **Infrastructure Context:** Read `docs/project-config.json` → `infrastructure.cicd.tool` to identify CI platform (e.g., "azure-devops", "github-actions", "gitlab-ci"). Target the correct pipeline config files for that platform.
+- **Infrastructure Context:** Read `docs/project-config.json` → `infrastructure.cicd.tool` to identify CI provider/tooling (e.g., "azure-devops", "github-actions", "gitlab-ci"). Target the correct pipeline config files for that provider/tooling.
 - Debug Mindset: every claim needs `file:line` evidence
 - Focus on CI-specific issues (env vars, Docker, dependencies, build order)
 - Verify fix doesn't break local development
@@ -46,7 +46,7 @@ disable-model-invocation: false
 
 ## Workflow
 
-1. Use `debugger` subagent to read the CI logs using the configured platform tool/API from `docs/project-config.json`, analyze the final failing log/error backward to the root cause, and report back to main agent.
+1. Use `debugger` subagent to read the CI logs using the configured CI tool/API from `docs/project-config.json`, analyze the final failing log/error backward to the root cause, and report back to main agent.
    1.5. Write analysis findings to `.ai/workspace/analysis/{ci-issue}.analysis.md`. Re-read before implementing fix.
 2. **🛑 Present root cause + proposed fix → `AskUserQuestion` → wait for user approval.**
 3. Start implementing the fix based the reports and solutions.
@@ -56,7 +56,7 @@ disable-model-invocation: false
 
 ## Notes
 
-- Use the CLI/API for the configured CI platform. If the configured platform is GitHub Actions and `gh` is not available, instruct the user to install and authorize GitHub CLI first.
+- Use the CLI/API for the configured CI provider/tooling. If the configured provider is GitHub Actions and `gh` is not available, instruct the user to install and authorize GitHub CLI first.
 
 - **After fixing, MUST ATTENTION run `/prove-fix`** — build code proof traces per change with confidence scores. Never skip.
 

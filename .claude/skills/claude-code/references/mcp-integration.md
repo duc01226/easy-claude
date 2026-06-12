@@ -49,7 +49,7 @@ MCP servers are configured in `.claude/mcp.json`:
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-postgres"],
       "env": {
-        "DATABASE_URL": "postgresql://user:pass@localhost:5432/db"
+        "DATABASE_URL": "{database-url}"
       }
     }
   }
@@ -97,7 +97,7 @@ MCP servers are configured in `.claude/mcp.json`:
 - Code search
 - Workflow management
 
-### PostgreSQL Database
+### Configured Database
 ```json
 {
   "postgres": {
@@ -201,7 +201,7 @@ Use environment variables for sensitive data:
 ```bash
 # .claude/.env
 GITHUB_TOKEN=ghp_xxxxx
-DATABASE_URL=postgresql://user:pass@localhost/db
+DATABASE_URL={database-url}
 BRAVE_API_KEY=BSAxxxxx
 API_TOKEN=token_xxxxx
 ```

@@ -8,7 +8,7 @@
 [Quality Modifiers] [Aspect Ratio]
 ```
 
-## Platform Reference
+## Channel Reference
 
 ### Midjourney v6.1
 ```

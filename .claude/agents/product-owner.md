@@ -178,11 +178,11 @@ Report path: `plans/reports/` with naming from `## Naming` hook injection. Conci
 - **MANDATORY IMPORTANT MUST ATTENTION** acceptance criteria MUST use GIVEN/WHEN/THEN — no vague language
 - **MANDATORY IMPORTANT MUST ATTENTION** always include testability criteria and dependencies explicitly in every PBI
 - **MANDATORY IMPORTANT MUST ATTENTION** every claim needs `file:line` proof — NEVER fabricate paths or behavior
-  <!-- SYNC:task-tracking-external-report:reminder -->
+    <!-- SYNC:task-tracking-external-report:reminder -->
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-  <!-- /SYNC:task-tracking-external-report:reminder -->
-  <!-- SYNC:project-reference-docs-guide:reminder -->
+    <!-- /SYNC:task-tracking-external-report:reminder -->
+    <!-- SYNC:project-reference-docs-guide:reminder -->
 
 - **MANDATORY** After task-tracking bootstrap and before target/source work, read required project-reference docs and cite `Reference docs read: ...`.
 - **MANDATORY** Always include `lessons.md`; project conventions override generic defaults.

@@ -7,7 +7,7 @@
 | Goal                         | Document                                                                                        |
 | ---------------------------- | ----------------------------------------------------------------------------------------------- |
 | **New to Claude Code?**      | [quick-start.md](./quick-start.md) - 5-minute onboarding                                        |
-| **Need a skill?**            | [skills/README.md](./skills/README.md) - 185 skills catalog                                     |
+| **Need a skill?**            | [skills/README.md](./skills/README.md) - 176 skills catalog                                     |
 | **Building a feature?**      | [skills/README.md](./skills/README.md) + `docs/project-reference/` patterns                     |
 | **Understanding hooks?**     | [hooks/README.md](./hooks/README.md) - 66 top-level hook files deep-dive                        |
 | **Understanding workflows?** | `CLAUDE.md` workflow catalog (project root) - 21 workflows                                      |
@@ -23,7 +23,7 @@
 |-- README.md                 <- You are here (Navigation hub)
 |-- quick-start.md            5-minute onboarding guide
 |
-|-- skills/                   185 skills across 15+ domains
+|-- skills/                   176 skills across 15+ domains
 |   |-- README.md             Skills overview + full catalog
 |   +-- (patterns)           → docs/project-reference/
 |
@@ -65,7 +65,7 @@
 | Create user story        | `/story`                   | `business-analyst`        |
 | Prioritize backlog       | `/prioritize`              | `product-owner`           |
 | Create test cases        | `/spec-tests`              | `spec-tests`              |
-| Quality checkpoint       | `/quality-gate`            | `qc-specialist`           |
+| Quality checkpoint       | `/quality-gate`            | `quality-gate`            |
 | Create design spec       | `/design-spec`             | `design-spec`             |
 | Analyze blast radius     | `/graph-blast-radius`      | `graph-blast-radius`      |
 | Build code graph         | `/graph-build`             | `graph-build`             |
@@ -143,11 +143,11 @@
 
 | Category               | Count |
 | ---------------------- | ----- |
-| Skills                 | 185   |
+| Skills                 | 176   |
 | Hook files (top-level) | 66    |
 | Lib Modules            | 31    |
 | Hook Events            | 9     |
-| Agents                 | 29    |
+| Agents                 | 28    |
 | Workflows              | 21    |
 | Hook Tests             | 372   |
 | Documentation Files    | 28    |

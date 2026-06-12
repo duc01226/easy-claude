@@ -96,9 +96,9 @@ Save critical findings to persistent memory:
 // After discovering important patterns or decisions
 mcp__memory__create_entities([
     {
-        name: 'EmployeeValidation',
+        name: 'OrderValidation',
         entityType: 'Pattern',
-        observations: ['Uses validation framework fluent API', 'Async validation via ValidateRequestAsync', 'Found in Application/UseCaseCommands/']
+        observations: ['Uses validation framework fluent API', 'Async validation via ValidateRequestAsync', 'Found in the application-layer command folder (per project structure reference)']
     }
 ]);
 ```
@@ -116,10 +116,10 @@ Load relevant memories at session start:
 
 ```javascript
 // Search for relevant patterns
-mcp__memory__search_nodes({ query: 'Employee validation pattern' });
+mcp__memory__search_nodes({ query: 'Order validation pattern' });
 
 // Open specific entities
-mcp__memory__open_nodes({ names: ['EmployeeValidation', 'ServiceAModule'] });
+mcp__memory__open_nodes({ names: ['OrderValidation', 'ServiceAModule'] });
 ```
 
 **When to Select:**
@@ -134,22 +134,22 @@ Create context anchors every 10 operations:
 
 ```markdown
 === CONTEXT ANCHOR ===
-Current Task: Implement employee leave request feature
+Current Task: Implement order return request feature
 Completed:
 
-- Created LeaveRequest entity with validation
-- Added SaveLeaveRequestCommand with handler
+- Created Return entity with validation
+- Added SaveReturnCommand with handler
 - Implemented entity event handler for notifications
 
 Remaining:
 
-- Create GetLeaveRequestListQuery
+- Create GetReturnListQuery
 - Add controller endpoint
 - Write unit tests
 
 Key Findings:
 
-- Leave requests use service-specific repository
+- Returns use service-specific repository
 - Notifications via entity event handlers, not direct calls
 - Validation uses validation framework fluent .AndAsync()
 
@@ -177,7 +177,7 @@ Delegate specialized tasks to sub-agents:
 Task({ agent_type: 'Explore', prompt: 'Find all entity event handlers in the target service' });
 
 // Plan implementation (focused context)
-Task({ agent_type: 'Plan', prompt: 'Plan leave request approval workflow' });
+Task({ agent_type: 'Plan', prompt: 'Plan return approval workflow' });
 ```
 
 **When to Isolate:**
@@ -222,7 +222,7 @@ Read({ file_path: 'large-file.cs' });
 Read({ file_path: 'large-file.cs', offset: 100, limit: 50 });
 
 // ✅ Use grep to find specific content first
-Grep({ pattern: 'class SaveEmployeeCommand', path: 'src/' });
+Grep({ pattern: 'class SaveOrderCommand', path: '<source-root>/' });
 ```
 
 ### Search Optimization
@@ -253,11 +253,11 @@ Grep({ pattern: 'CreateAsync|UpdateAsync|DeleteAsync', output_mode: 'files_with_
 ```javascript
 // Before ending session or hitting limits
 const summary = {
-    task: 'Implementing employee leave request feature',
+    task: 'Implementing order return request feature',
     completed: ['Entity', 'Command', 'Handler'],
     remaining: ['Query', 'Controller', 'Tests'],
     discoveries: ['Use entity events for notifications'],
-    files: ['LeaveRequest.cs', 'SaveLeaveRequestCommand.cs']
+    files: ['Return.cs', 'SaveReturnCommand.cs']
 };
 
 // Save to memory
@@ -274,7 +274,7 @@ mcp__memory__create_entities([
 
 ```javascript
 // At session start
-mcp__memory__search_nodes({ query: 'Session leave request' });
+mcp__memory__search_nodes({ query: 'Session return request' });
 ```
 
 ---

@@ -46,12 +46,6 @@ const ROLE_PATH_MAPPINGS = {
         skill: 'design-spec',
         template: '.claude/docs/team-artifacts/templates/design-spec-template.md',
         context: 'DESIGN SPEC: Include component states, design tokens, accessibility requirements.'
-    },
-    'team-artifacts/qc-reports/': {
-        role: 'qc-specialist',
-        skill: 'qc-specialist',
-        template: '.claude/docs/team-artifacts/templates/qc-report-template.md',
-        context: 'QC REPORT: Gate pass/fail status, checklist completion, sign-off tracking.'
     }
 };
 
@@ -61,8 +55,7 @@ const NAMING_CONVENTIONS = {
     'business-analyst': '{YYMMDD}-ba-{type}-{slug}.md',
     'qa-engineer': '{YYMMDD}-qa-{type}-{slug}.md',
     'ui-ux-designer': '{YYMMDD}-ux-{type}-{slug}.md',
-    'project-manager': '{YYMMDD}-pm-{type}-{slug}.md',
-    'qc-specialist': '{YYMMDD}-qc-{type}-{slug}.md'
+    'project-manager': '{YYMMDD}-pm-{type}-{slug}.md'
 };
 
 // Quality checklists by role
@@ -86,8 +79,7 @@ const QUALITY_CHECKLISTS = {
         '- [ ] Accessibility notes included',
         '- [ ] Responsive breakpoints defined'
     ],
-    'project-manager': ['- [ ] Metrics calculated', '- [ ] Blockers identified', '- [ ] Action items assigned', '- [ ] Risks documented'],
-    'qc-specialist': ['- [ ] All checklist items verified', '- [ ] Gate status stated', '- [ ] Sign-offs captured', '- [ ] Audit trail updated']
+    'project-manager': ['- [ ] Metrics calculated', '- [ ] Blockers identified', '- [ ] Action items assigned', '- [ ] Risks documented']
 };
 
 // ═══════════════════════════════════════════════════════════════════════════

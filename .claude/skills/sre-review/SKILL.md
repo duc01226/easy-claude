@@ -49,7 +49,7 @@ $ARGUMENTS
 
 1. Arguments specify files/directories → review those
 2. Else → review uncommitted changes (`git diff --name-only`)
-3. Focus: `*.cs` in `src/Services/`, API controllers, service classes
+3. Focus: backend source files under the service root (per the project's structure reference / `docs/project-config.json`), API controllers, service classes
 4. Skip: frontend files, test files, documentation, config-only changes
 
 ## Production Readiness Scoring
@@ -451,7 +451,7 @@ MUST check categories 1-4 for EVERY review. Never skip.
 3. Error Handling: Try-catch scope correct? Silent swallowed exceptions? Error types specific? Cleanup in finally?
 4. Resource Management: Connections/streams closed? Subscriptions unsubscribed on destroy? Timers cleared? Memory bounded?
 5. Concurrency (if async): Missing await? Race conditions on shared state? Stale closures? Retry storms?
-6. Stack-Specific: JS: === vs ==, typeof null. C#: async void, missing using, LINQ deferred execution.
+6. Stack-Specific: Check the configured language/runtime pitfalls and framework-specific failure modes discovered from local code.
 Classify: CRITICAL (crash/corrupt) → FAIL | HIGH (incorrect behavior) → FAIL | MEDIUM (edge case) → WARN | LOW (defensive) → INFO.
 
 ### Design Patterns Quality

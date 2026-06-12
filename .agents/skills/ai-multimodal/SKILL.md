@@ -77,7 +77,7 @@ Process audio, images, videos, and documents or generate images/videos using Goo
 
 - Simple text-only LLM calls -- use Claude directly
 - Reading a file Claude can already read (code, markdown, JSON) -- use `Read` tool
-- Building AI-powered application features -- use `api-design` or `frontend-design`
+- Building AI-powered application features -- use `frontend-design`
 - Music composition workflows -- load `references/music-generation.md` only when specifically requested
 - General prompt engineering -- use `ai-artist` skill
 

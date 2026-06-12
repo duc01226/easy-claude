@@ -20,7 +20,7 @@ disable-model-invocation: false
 - MUST ATTENTION validate schema after each merge — `validateConfig(config)` returns PASSED or errors
 - MUST ATTENTION review-and-fix after each phase — read back, spot-check paths, self-review
 - MUST ATTENTION do not ask the user to choose scan granularity, combination, section ordering, or optional confirmation; auto-select the evidence-backed route and continue
-- Path regexes MUST ATTENTION use `[\\/]` for cross-platform separator matching
+- Path regexes MUST ATTENTION use `[\\/]` for cross-OS separator matching
 - Schema enforced by `.claude/hooks/lib/project-config-schema.cjs`
 
 ---
@@ -32,10 +32,10 @@ disable-model-invocation: false
 **MUST ATTENTION classify scale FIRST** — drives task granularity for all subsequent phases.
 
 ```bash
-find src/ -name "*.csproj" 2>/dev/null | wc -l
-find src/ -name "package.json" -not -path "*/node_modules/*" 2>/dev/null | wc -l
-find src/ -name "*.cs" 2>/dev/null | wc -l
-ls -d src/*/ 2>/dev/null
+find . -path "*/node_modules" -prune -o -name "*.csproj" -print 2>/dev/null | wc -l
+find . -path "*/node_modules" -prune -o -name "package.json" -print 2>/dev/null | wc -l
+find . -path "*/node_modules" -prune -o -type f -name "{configured-source-file-glob}" -print 2>/dev/null | wc -l
+find . -maxdepth 3 -type d -name "{candidate-source-dir-name}" 2>/dev/null
 ```
 
 | Scale         | Signal              | Task Approach |
@@ -166,10 +166,10 @@ Read `docs/project-config.json`. Note populated vs skeleton sections.
 ### 2a. Modules — Backend
 
 ```bash
-find src/ -name "*.csproj" -maxdepth 5 | head -50          # .NET
-find . -name "pom.xml" -o -name "build.gradle" | head -50  # Java
-find src/ -name "package.json" -not -path "*/node_modules/*" -maxdepth 4 | head -50  # Node
-find . -name "go.mod" | head -50                            # Go
+find . -path "*/node_modules" -prune -o -name "*.csproj" -print | head -50
+find . -name "pom.xml" -o -name "build.gradle" | head -50
+find . -path "*/node_modules" -prune -o -name "package.json" -print | head -50
+find . -name "go.mod" | head -50
 ```
 
 Build `modules[]` entries: `{ name, kind, pathRegex, description, tags[], meta{} }`
@@ -179,9 +179,8 @@ Build `modules[]` entries: `{ name, kind, pathRegex, description, tags[], meta{}
 ### 2b. Modules — Frontend
 
 ```bash
-find . -name "nx.json" -o -name "angular.json" -o -name "lerna.json" -o -name "turbo.json" 2>/dev/null | head -5
-ls -d src/*/apps/*/ */apps/*/ apps/*/ 2>/dev/null | head -20
-ls -d src/*/libs/*/ */libs/*/ libs/*/ packages/*/ 2>/dev/null | head -30
+find . -name "nx.json" -o -name "{frontend-framework-config}" -o -name "lerna.json" -o -name "turbo.json" 2>/dev/null | head -5
+find . -maxdepth 5 -type d \( -name apps -o -name libs -o -name packages \) 2>/dev/null | head -30
 ```
 
 Build entries: `kind: "frontend-app"` or `kind: "library"`.
@@ -199,7 +198,7 @@ Build `framework { name, searchPatternKeywords[] }` from commonly used base clas
 ### 2e. Context Groups
 
 Build `contextGroups[]` with `pathRegexes[]`, `fileExtensions[]`, `patternsDoc`, `rules[]`.
-Rules MUST ATTENTION be specific: "Use IPlatformRootRepository<TEntity>" not "follow best practices".
+Rules MUST ATTENTION be specific: "Use the service-specific repository (e.g. `OrderRepository`), not the generic repository base" not "follow best practices".
 
 ### 2f–2h. Design System, Styling, Component System
 
@@ -227,12 +226,12 @@ Only if project has BOTH frontend AND backend.
 
 | Frontend  | Signal          | Backend   | Signal                             |
 | --------- | --------------- | --------- | ---------------------------------- |
-| `angular` | `@angular/core` | `dotnet`  | `.csproj` + `Microsoft.AspNetCore` |
+| `{configured-frontend-framework}` | configured package marker | `{configured-backend-framework}` | configured backend manifest marker |
 | `react`   | `react`         | `spring`  | `spring-boot-starter-web`          |
 | `vue`     | `vue`           | `express` | `express` in package.json          |
 | `generic` | None            | `fastapi` | `fastapi` in requirements.txt      |
 
-Route prefix: `"api"` for.NET/Spring, `""` for Express/FastAPI.
+Route prefix: derive from configured backend framework and existing route declarations.
 
 ### 2p. Graph Connectors — Implicit Connections
 
@@ -256,7 +255,7 @@ Algorithm: scan source files → extract keys via `contentPattern` regex capture
 
 #### Detection Heuristics
 
-- **.NET:** `EntityEventApplicationHandler<` → entity-to-handler; `EntityEventBusMessageProducer<` → producer; `PlatformApplicationMessageBusConsumer<` → consumer
+- **Configured runtime:** discover event, handler, publisher, and consumer base types from codebase grep and project-reference docs.
 - **TypeScript:** Redux dispatch→reducer, NgRx createAction→ofType, EventEmitter emit→on
 - **Python:** Celery task.delay→@app.task, Django signal.send→@receiver
 - **Java:** publishEvent→@EventListener, KafkaTemplate→@KafkaListener
@@ -267,9 +266,9 @@ Algorithm: scan source files → extract keys via `contentPattern` regex capture
 {
     "name": "entity-to-event-handlers",
     "edgeKind": "MESSAGE_BUS",
-    "paths": ["src/Backend/MyApp.Domain/", "src/Backend/MyApp.Application/UseCaseEvents/"],
-    "source": { "filePattern": "*.cs", "contentPattern": "class\\s+(\\w+)\\s*:.*PlatformEntity<", "keyGroup": 1 },
-    "target": { "filePattern": "*.cs", "contentPattern": "EntityEventApplicationHandler<(\\w+)", "keyGroup": 1 },
+    "paths": ["{configured-domain-source-root}/", "{configured-application-source-root}/{event-handler-folder}/"],
+    "source": { "filePattern": "{configured-source-file-glob}", "contentPattern": "{configured-entity-pattern}", "keyGroup": 1 },
+    "target": { "filePattern": "{configured-source-file-glob}", "contentPattern": "{configured-event-handler-pattern}", "keyGroup": 1 },
     "matchBy": "key-contains"
 }
 ```

@@ -39,7 +39,7 @@ SKILL_NAMES = [
     # Code family
     "code",
     # Feature family
-    "feature", "create-feature",
+    "feature",
     # Fix family
     "fix", "fix-ci", "fix-issue", "fix-logs",
     "fix-test", "fix-ui",

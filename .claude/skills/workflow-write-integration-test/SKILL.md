@@ -44,12 +44,12 @@ Activate the `write-integration-test` workflow. Run `/workflow-start write-integ
 >
 > **`/scout`** — Find target command/handler files; locate existing integration tests in the same service for pattern matching. Output: list of target files + existing test examples.
 > **`/investigate`** — Read handler/entity/event source. Map: fields written, entities created/updated/deleted, event handlers fired, validation rules. Output: domain logic summary to use as assertion blueprint.
-> **`/spec-tests`** — Write/update `TC-{FEATURE}-{NNN}` specs in feature doc Section 8. CREATE mode for new tests, UPDATE mode for changed behavior. Output: TC mapping list (TC code → test method name).
+> **`/spec-tests`** — Write/update `TC-{FEATURE}-{NNN}` specs in feature doc Section 8. CREATE mode for new tests, UPDATE mode for changed behavior. Output: TC mapping list (TC code -> covering test method name(s) or annotation filter).
 > **`/review-artifact --type=spec-tests`** — Validate spec quality: GIVEN/WHEN/THEN completeness, happy path + validation failure + auth paths covered, no collisions with existing TC codes.
 > **`/integration-test`** — Generate test files from TC specs using FROM-PROMPT or FROM-CHANGES mode. Non-negotiable: real use-case/valid-seeder data setup, async polling/retry for all DB assertions, unique data generators for all test data, test-spec annotation on every test method (adapt annotation syntax to your framework).
 > **`/integration-test-review`** — 7-gate quality check (assertion value, data state, repeatability, domain logic, traceability, three-way sync, change coverage). Gate 7: every behavior-changing production file in the change set maps to a covering test (integration-first; unit fallback needs justification) AND a spec TC. Validate findings, fix only validated issues, then restart the full integration-test review after fixes. NEVER proceed with CRITICAL/HIGH issues outstanding.
 > **`/integration-test-verify`** — Run tests via `quickRunCommand` from `docs/project-config.json` for 3 consecutive runs without DB reset. Report exact pass/fail counts with test runner output. NEVER mark complete without real output.
-> **`/spec-tests [direction=sync]`** — Sync the cross-module spec dashboard (`docs/specs/`). Update `IntegrationTest` fields with `{File}::{MethodName}` traceability links.
+> **`/spec-tests [direction=sync]`** — Sync §8 TCs ↔ integration test code (`docs/specs/`). Update each TC's `IntegrationTest` field with **all** covering `{File}::{MethodName}` links (one TC → many tests, 1:N; a test-filter expression when the set is large). Coverage = ≥1 annotation-tagged test; never force one test per TC.
 > **`/docs-update`** — Update feature doc evidence fields, version history, and changelog if test coverage changed materially.
 > **`/workflow-end`** + **`/watzup`** — Close workflow state, then summarize and run the final `/understand` handoff.
 

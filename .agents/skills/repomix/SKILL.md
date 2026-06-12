@@ -108,7 +108,7 @@ repomix --style json
 npx repomix --remote owner/repo
 
 # Custom output with filters
-repomix --include "src/**/*.ts" --remove-comments -o output.md
+repomix --include "{source-root}/**/*.ts" --remove-comments -o output.md
 ```
 
 ## Core Capabilities
@@ -150,7 +150,7 @@ repomix --remove-comments
 
 ```bash
 # Package feature branch for AI review
-repomix --include "src/**/*.ts" --remove-comments -o review.md --style markdown
+repomix --include "{source-root}/**/*.ts" --remove-comments -o review.md --style markdown
 ```
 
 ### Security Audit
@@ -164,14 +164,14 @@ npx repomix --remote vendor/library --style xml -o audit.xml
 
 ```bash
 # Package with docs and code
-repomix --include "src/**,docs/**,*.md" --style markdown -o context.md
+repomix --include "{source-root}/**,docs/**,*.md" --style markdown -o context.md
 ```
 
 ### Bug Investigation
 
 ```bash
 # Package specific modules
-repomix --include "src/auth/**,src/api/**" -o debug-context.xml
+repomix --include "{source-root}/auth/**,{source-root}/api/**" -o debug-context.xml
 ```
 
 ### Implementation Planning
@@ -187,7 +187,7 @@ repomix --remove-comments --copy
 
 ```bash
 # Include specific patterns
-repomix --include "src/**/*.ts,*.md"
+repomix --include "{source-root}/**/*.ts,*.md"
 
 # Ignore additional patterns
 repomix -i "tests/**,*.test.js"
@@ -245,7 +245,7 @@ This displays a hierarchical view of your codebase with token counts:
 ```
 🔢 Token Count Tree:
 ────────────────────
-└── src/ (70,925 tokens)
+└── {source-root}/ (70,925 tokens)
     ├── cli/ (12,714 tokens)
     │   ├── actions/ (7,546 tokens)
     │   └── reporters/ (990 tokens)

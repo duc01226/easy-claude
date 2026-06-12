@@ -11,7 +11,7 @@ description: '[Content] Use when you need to create high-converting copy for mar
 **Workflow:**
 
 1. **Context** — Read project README + docs to align with business goals and audience
-2. **Research** — Check competitor copy, trending formats, platform best practices
+2. **Research** — Check competitor copy, trending formats, and channel best practices
 3. **Write** — Lead with hook, use pattern interrupts, end with clear CTA
 4. **Deliver** — Primary version + 2-3 alternatives + rationale + A/B test suggestions
 
@@ -40,9 +40,9 @@ description: '[Content] Use when you need to create high-converting copy for mar
 - **BAB**: Before → After → Bridge
 - **4 Ps**: Promise, Picture, Proof, Push
 
-## Platform Guidelines
+## Channel Guidelines
 
-| Platform      | Key Rule                                                             |
+| Channel       | Key Rule                                                             |
 | ------------- | -------------------------------------------------------------------- |
 | Twitter/X     | First 140 chars critical. Avoid hashtags. Thread for stories.        |
 | LinkedIn      | Professional but not boring. Story-driven. First 2 lines hook.       |

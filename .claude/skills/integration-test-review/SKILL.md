@@ -147,9 +147,9 @@ Classify BEFORE any gate review. Route wrong → waste all effort.
 
 > **Think:** Can I trace TC-XXX-NNN from test annotation → spec docs → feature docs in one unbroken chain?
 
-**PASS:** Test has spec annotation linking to TC ID. TC ID exists in spec docs. Method name matches TC.
+**PASS:** Test has a `TestSpec` annotation linking to a TC ID that exists in spec docs. The test method name need **NOT** match the TC, and **many test methods may legitimately carry the same TC** (one business TC → many tests across components/services — the join key is the test-spec annotation, not the method name; see `tc-format.md` → TC ↔ Test Code Cardinality).
 
-**FAIL (WARN, not BLOCK):** Missing annotation, orphaned TC ID, or spec says "Planned" but test exists.
+**FAIL (WARN, not BLOCK):** Missing annotation, orphaned TC ID (annotation points to a TC absent from spec docs), or spec says "Planned" but test exists. **NOT a finding:** several tests sharing one TC, or a method name that differs from the TC — those are the expected one-to-many shape.
 
 ### Gate 6: Three-Way Sync — "Do test, code, and docs agree?"
 
@@ -214,9 +214,11 @@ This gate makes the skill verify the REVIEW TARGET has coverage — not merely r
 
 **Coverage Mapping Table (MANDATORY output):**
 
-| Changed File / Behavior | Spec TC | Covering Test | Test Type | Verdict |
+> Rows are keyed by **changed production behavior**, not by TC. A behavior is COVERED when **≥1** covering test exercises it — list ALL covering tests in the column when several apply. One `Spec TC` may legitimately appear across multiple rows and be covered by many tests (one TC → many tests, 1:N). Do NOT expect or require one test per TC, and do NOT flag a TC reused across rows as a duplicate (see `tc-format.md` → TC ↔ Test Code Cardinality).
+
+| Changed File / Behavior | Spec TC | Covering Test(s) | Test Type | Verdict |
 | ----------------------- | ------- | ------------- | --------- | ------- |
-| {file:line — behavior}  | TC-X-NNN / MISSING | {test file:method} / NONE | integration / unit (justified) / — | COVERED / COVERED-UNIT / GAP / SPEC-GAP |
+| {file:line — behavior}  | TC-X-NNN / MISSING | {test file:method}[, …one or more] / NONE | integration / unit (justified) / — | COVERED / COVERED-UNIT / GAP / SPEC-GAP |
 
 **Verdicts:**
 
@@ -343,6 +345,7 @@ After sub-agents return:
 | **Name-match counted as coverage** (test never reads changed path)   | Stale coverage — test passes while change is broken  |
 | **Unjustified unit-test substitution**                               | Skips DI/data-state verification integration gives   |
 | **Spec-less change** (no TC for new/changed behavior)                | Breaks spec-driven development — specs drift silently |
+| **1:1 TC↔test demanded** (one test per TC, method-name=TC, or many-tests-per-TC flagged as duplicate) | Forces splitting/technicalizing business TCs — breaks §8's business/user-story orientation (M1/M5). One TC → many tests is correct |
 
 ---
 
@@ -583,7 +586,7 @@ MUST check categories 1-4 for EVERY review. Never skip.
 3. Error Handling: Try-catch scope correct? Silent swallowed exceptions? Error types specific? Cleanup in finally?
 4. Resource Management: Connections/streams closed? Subscriptions unsubscribed on destroy? Timers cleared? Memory bounded?
 5. Concurrency (if async): Missing await? Race conditions on shared state? Stale closures? Retry storms?
-6. Stack-Specific: JS: === vs ==, typeof null. C#: async void, missing using, LINQ deferred execution.
+6. Stack-Specific: Check the configured language/runtime pitfalls and framework-specific failure modes discovered from local code.
 Classify: CRITICAL (crash/corrupt) → FAIL | HIGH (incorrect behavior) → FAIL | MEDIUM (edge case) → WARN | LOW (defensive) → INFO.
 
 ### Design Patterns Quality

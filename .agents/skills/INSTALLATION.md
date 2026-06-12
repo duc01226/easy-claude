@@ -145,16 +145,14 @@ Several skills require external CLI tools:
 - **Shopify CLI**: `npm install -g @shopify/cli @shopify/theme`
 
 #### databases
-- **PostgreSQL client**: `sudo apt-get install postgresql-client` (Linux)
-- **MongoDB Shell**: https://www.mongodb.com/try/download/shell
-- **MongoDB Tools**: https://www.mongodb.com/try/download/database-tools
+- **Database client(s)**: install the clients required by the configured repository databases
 
 #### web-frameworks, shadcn-tailwind
 - **Node.js 18+**: https://nodejs.org/
 - **pnpm**: `npm install -g pnpm`
 - **yarn**: `npm install -g yarn`
 
-## Installation by Platform
+## Installation by OS
 
 ### Linux (Ubuntu/Debian)
 
@@ -169,7 +167,7 @@ pip install -r requirements.txt
 
 # System tools
 sudo apt-get update
-sudo apt-get install -y ffmpeg imagemagick postgresql-client
+sudo apt-get install -y ffmpeg imagemagick {configured-database-client}
 
 # Node.js and tools
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
@@ -189,7 +187,7 @@ cd .claude/skills/ai-multimodal/scripts
 pip install -r requirements.txt
 
 # System tools via Homebrew
-brew install ffmpeg imagemagick postgresql
+brew install ffmpeg imagemagick {configured-database-client}
 
 # Node.js and tools
 brew install node

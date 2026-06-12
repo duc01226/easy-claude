@@ -155,14 +155,14 @@ Report path: `plans/reports/` with naming from `## Naming` hook injection. Conci
 - **MANDATORY IMPORTANT MUST ATTENTION** always include concrete next steps with dependencies in every status update
 - **MANDATORY IMPORTANT MUST ATTENTION** always delegate doc updates to `docs-manager` when features complete or APIs change
 - **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim — never guess or fabricate paths
-    <!-- SYNC:sequential-thinking-protocol:reminder -->
+      <!-- SYNC:sequential-thinking-protocol:reminder -->
     **MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer; see `/sequential-thinking` skill.
-    <!-- /SYNC:sequential-thinking-protocol:reminder -->
-    <!-- SYNC:task-tracking-external-report:reminder -->
+      <!-- /SYNC:sequential-thinking-protocol:reminder -->
+      <!-- SYNC:task-tracking-external-report:reminder -->
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-  <!-- /SYNC:task-tracking-external-report:reminder -->
-  <!-- SYNC:project-reference-docs-guide:reminder -->
+    <!-- /SYNC:task-tracking-external-report:reminder -->
+    <!-- SYNC:project-reference-docs-guide:reminder -->
 
 - **MANDATORY** After task-tracking bootstrap and before target/source work, read required project-reference docs and cite `Reference docs read: ...`.
 - **MANDATORY** Always include `lessons.md`; project conventions override generic defaults.

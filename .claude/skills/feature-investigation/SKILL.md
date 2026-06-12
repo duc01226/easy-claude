@@ -42,7 +42,7 @@ description: '[Investigation] Use when the user asks to investigate, explore, un
 
 See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6)" for BLOCKING criteria. When extracting operations, business rules, or events into findings:
 
-- Assign each extracted operation/rule/event a logical ID (FR-/BR- for operations and rules) as the PRIMARY identifier. Keep the `[Source: namespace/service/id]` abstract-anchor evidence (never physical `file:line`/`src/` — those live only in the provenance sidecar) as a SEPARATE carrier — never fold the source link into the rule statement itself (M3).
+- Assign each extracted operation/rule/event a logical ID (FR-/BR- for operations and rules) as the PRIMARY identifier. Keep the `[Source: namespace/service/id]` abstract-anchor evidence (never physical code coordinates or repository-root paths — those live only in the provenance sidecar) as a SEPARATE carrier — never fold the source link into the rule statement itself (M3).
 - For every rule, explain **WHY** it exists (the business intent / invariant it protects), not only **WHAT** the code does. State the rule in tech-agnostic business terms so the finding is reusable by a rebuild team on any stack (M5).
 
 > **Skill Variant:** READ-ONLY exploration - no code changes. For implementing features, use `feature`. For debugging, use `debug-investigate`.
@@ -207,7 +207,7 @@ Create at `.ai/workspace/analysis/[feature-name]-investigation.analysis.md`:
 
 ## Framework Pattern Usage
 
-[Documentation of platform patterns used]
+[Documentation of the project's framework patterns used]
 ```
 
 ---
@@ -216,7 +216,8 @@ Create at `.ai/workspace/analysis/[feature-name]-investigation.analysis.md`:
 
 ```bash
 # Domain Entities (HIGH PRIORITY)
-grep: "class.*{EntityName}.*:.*RootEntity|RootAuditedEntity"
+# Resolve {EntityBaseClass} from the project's backend reference doc (docs/project-reference/)
+grep: "class.*{EntityName}.*:.*{EntityBaseClass}"
 
 # Commands & Queries (HIGH PRIORITY)
 grep: ".*Command.*{EntityName}|{EntityName}.*Command"
@@ -302,11 +303,11 @@ For each file, document:
 - **dependencyInjection**: DI registrations
 - **genericTypeParameters**: Generic type relationships
 
-**Message Bus Analysis (FOR CONSUMERS ONLY):**
+**Messaging Analysis (FOR CONSUMERS ONLY):**
 
-- **messageBusMessage**: Message type consumed
-- **messageBusProducers**: Files that publish this message (MUST ATTENTION grep across ALL services)
-- **crossServiceIntegration**: Cross-service data flow description
+- **messageName**: Message/event contract consumed
+- **messageProducers**: Files that publish this message/event contract (MUST ATTENTION grep across all configured service/module roots)
+- **crossBoundaryIntegration**: Cross-boundary data flow description
 
 **Targeted Aspect Analysis:**
 
@@ -322,10 +323,12 @@ For each file, document:
 
 **For Consumer Components:**
 
-- `messageBusMessage`, `messageBusProducers`, `crossServiceIntegration`
+- `messageName`, `messageProducers`, `crossBoundaryIntegration`
 - `handleLogicWorkflow`, `dependencyWaiting`
 
 **Code Examples:**
+
+Include relevant code snippets that demonstrate key logic, in the language of the file under analysis. **Example (illustrative — use the file's own language):**
 
 ```csharp
 // Include relevant code snippets that demonstrate key logic
@@ -361,12 +364,12 @@ For each file, document:
 
 **Detailed Flow:**
 
-1. **Frontend Entry Point**: `Component.ts:line` - User interaction, validation, API call
-2. **API Layer**: `Controller.cs:line` - Endpoint, authorization, command dispatch
-3. **Application Layer**: `CommandHandler.cs:line` - Validation, business logic, repository ops
-4. **Domain Layer**: `Entity.cs:line` - Business rules, state changes, domain events
-5. **Event Handling**: `EventHandler.cs:line` - Events handled, side effects, integrations
-6. **Cross-Service**: `Consumer.cs:line` - Message consumed, producer service, sync logic
+1. **Frontend Entry Point**: `<entry-component-file>:line` - User interaction, validation, API call
+2. **API Layer**: `<api-endpoint-file>:line` - Endpoint, authorization, command dispatch
+3. **Application Layer**: `<command-handler-file>:line` - Validation, business logic, repository ops
+4. **Domain Layer**: `<domain-entity-file>:line` - Business rules, state changes, domain events
+5. **Event Handling**: `<event-handler-file>:line` - Events handled, side effects, integrations
+6. **Cross-Service**: `<message-consumer-file>:line` - Message consumed, producer service, sync logic
 
 ### 2. Key Architectural Patterns and Relationships
 
@@ -420,7 +423,7 @@ Critical findings, recommendations, uncertainties requiring clarification.
 
 | File                  | Purpose   |
 | --------------------- | --------- |
-| `path/to/file.cs:123` | [Purpose] |
+| `{configured-source-root}/path/to/file:line` | [Purpose] |
 
 ## Data Flow
 ```
@@ -487,8 +490,8 @@ I can explain further:
 
 - Project store component base (search for: store component base class) - State management components
 - Project store base (search for: store base class) - Store implementations
-- `effectSimple` / `tapResponse` - Effect handling
-- `observerLoadingErrorState` - Loading/error states
+- Reactive-effect + response-tap operators (search: the project's state library effect/tap helpers, e.g. an effect that maps an API call to state) - Effect handling
+- Loading/error state observer helper (search: the project's loading/error state primitive) - Loading/error states
 - API services extending project API service base class
 
 ---
@@ -517,7 +520,7 @@ I can explain further:
 After ALL files analyzed, write comprehensive analysis:
 
 - End-to-end workflows, architectural patterns, business logic
-- Integration points, business rules, platform patterns, key insights
+- Integration points, business rules, architectural patterns, key insights
 - **Use the Overall Analysis Template** above
 
 ### Phase 2: Presentation

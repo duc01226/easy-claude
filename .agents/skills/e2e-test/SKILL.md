@@ -95,20 +95,14 @@ grep -r "TC-.*-E2E-" docs/specs/ docs/specs/
 Detect the project's E2E stack before generating tests:
 
 ```bash
-# TypeScript/JavaScript
-grep -l "playwright\|cypress\|selenium\|webdriver" package.json 2>/dev/null
-ls playwright.config.* cypress.config.* wdio.conf.* 2>/dev/null
-
-# C# .NET
-grep -r "Selenium.WebDriver\|Microsoft.Playwright" **/*.csproj 2>/dev/null
+# Use project config, project-reference docs, and existing test config files as the source of truth
+rg "playwright|cypress|selenium|webdriver|e2e" docs/project-config.json docs/project-reference/ . 2>/dev/null
+rg --files | rg "(playwright|cypress|webdriver|selenium|e2e|test).*config|manifest|project"
 ```
 
-| Framework    | Config File          | Test Extension | Run Command           |
-| ------------ | -------------------- | -------------- | --------------------- |
-| Playwright   | playwright.config.ts | \*.spec.ts     | `npx playwright test` |
-| Cypress      | cypress.config.ts    | \*.cy.ts       | `npx cypress run`     |
-| WebdriverIO  | wdio.conf.js         | \*.e2e.ts      | `npx wdio run`        |
-| Selenium.NET | \*.csproj            | \*Tests.cs     | `dotnet test`         |
+| Framework                 | Config Source               | Test Naming             | Run Command                    |
+| ------------------------- | --------------------------- | ----------------------- | ------------------------------ |
+| Configured E2E framework  | project config/reference docs | existing local examples | configured test command        |
 
 ---
 
@@ -151,20 +145,15 @@ below — if a downstream rule would raise change cost, this principle wins.
 **Every E2E test MUST ATTENTION have:**
 
 - TC code in test name: `TC-{MODULE}-E2E-{NNN}`
-- Tag/trait linking to spec
+- Tag/annotation linking to spec
 - Comment linking to feature doc
 
 ```typescript
 // TypeScript
-test('TC-LR-E2E-001: Submit leave request', async () => { ... });
+test('TC-RT-E2E-001: Submit return request', async () => { ... });
 ```
 
-```csharp
-// C# .NET
-[Fact]
-[Trait("TC", "TC-LR-E2E-001")]
-public async Task SubmitLeaveRequest() { ... }
-```
+Use the repository's configured test-case annotation mechanism when non-TypeScript E2E tests are used; do not invent a framework-specific marker.
 
 ### 2. Page Object Model
 

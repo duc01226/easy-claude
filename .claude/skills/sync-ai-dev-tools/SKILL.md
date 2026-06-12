@@ -97,7 +97,7 @@ See [references/copilot-features.md](references/copilot-features.md) for feature
 
 Compare capabilities and identify gaps:
 
-- Skills missing in one platform
+- Skills missing in one tool host
 - Inconsistent prompt/instruction behavior
 - Agent definitions that differ
 

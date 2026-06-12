@@ -134,7 +134,7 @@ For EACH file in scope, evaluate against ALL applicable categories. Skip categor
 
 MUST ATTENTION review serially. For each applicable category: read docs/source evidence → derive risk with `Think:` → grep 3+ examples/counterexamples → record PASS/WARN/BLOCKED. NEVER scan categories simultaneously.
 
-> **Portability note (MUST ATTENTION):** The concrete framework symbols, base-class names, and directory conventions in Categories 2–8 below are **this project's examples**, sourced from the Phase 0 reference docs (`backend-patterns-reference.md`, `frontend-patterns-reference.md`, `project-structure-reference.md`) — they are authoritative **for this repository**, so verify code against them here. On a different stack, map each to that project's equivalent as named in its own reference docs, and flag deviations from the project's **actual** convention — never from these literal names. Same discipline as Category 5: read project docs at review time; never treat a hardcoded name as universal.
+> **Portability note (MUST ATTENTION):** The concrete framework symbols, base-class names, and directory conventions in Categories 2–8 below are **illustrative examples** — the authoritative form for the repository under review is sourced from the Phase 0 reference docs (`backend-patterns-reference.md`, `frontend-patterns-reference.md`, `project-structure-reference.md`), so verify code against those docs. On any stack, map each example to the project's equivalent as named in its own reference docs, and flag deviations from the project's **actual** convention — never from these literal names. Same discipline as Category 5: read project docs at review time; never treat a hardcoded name as universal.
 
 ---
 
@@ -163,7 +163,7 @@ BLOCKED: {stack} has no enforced lint/static-analysis/type-check quality gate ({
 
 - Read `docs/project-config.json` → `architectureRules.layerBoundaries` for project-specific rules
 - Determine layer from file path: Domain/, Application/, Persistence/, Service/
-- Scan `using` (C#) or `import` (TS) — flag imports from forbidden layers
+- Scan the configured language's import/include statements — flag imports from forbidden layers
 - MUST ATTENTION verify business logic in correct layer: Entity/Domain > Service/Application > Controller/Component
 - NEVER allow direct infrastructure access from Domain (repo interfaces in Domain, implementations in Persistence)
 - NEVER allow business logic in API/Controller layer
@@ -182,33 +182,32 @@ BLOCKED: {layer} layer file {filePath}:{line} imports from {forbiddenLayer} laye
 
 **Naming (BLOCKED):**
 
-- Event messages: `{ServiceName}{Feature}{Action}EventBusMessage`
-- Request messages: `{ConsumerServiceName}{Feature}RequestBusMessage`
-- Grep existing examples before flagging: `grep -r "EventBusMessage" --include="*.cs"`
+- Event messages and request messages MUST follow the project's bus-message naming convention — encode owning service + feature + action, with a distinct suffix distinguishing event-kind from request-kind messages. Resolve the exact convention and suffixes from `backend-patterns-reference.md`.
+- Grep existing examples in the source for the current stack's message-naming pattern before flagging — codebase convention wins.
 
-**Base classes (BLOCKED):** Verify against the bus base types named in `backend-patterns-reference.md` (Phase 0); concrete names are this project's examples.
+**Base classes (BLOCKED):** Verify against the bus base types named in `backend-patterns-reference.md` (Phase 0); concrete names are illustrative examples.
 
-- Bus messages MUST extend the project's trackable/payload bus-message base _(e.g. this project: `PlatformTrackableBusMessage` / `PlatformBusMessage<TPayload>`)_
-- Consumers MUST extend the project's message-bus consumer base _(e.g. `PlatformApplicationMessageBusConsumer<TMessage>`)_
-- Producers MUST extend the project's event-bus-message producer base _(e.g. `PlatformCqrsEventBusMessageProducer<TEvent, TMessage>`)_
+- Bus messages MUST extend the project's trackable/payload bus-message base — see `backend-patterns-reference.md`
+- Consumers MUST extend the project's message-bus consumer base — see `backend-patterns-reference.md`
+- Producers MUST extend the project's event-bus-message producer base — see `backend-patterns-reference.md`
 
 **Upstream/Downstream (BLOCKED):**
 
-- Leader service owns entity data → defines EventBusMessage
+- Leader service owns entity data → defines the event message for it
 - Follower services consume events — NEVER produce events about data they don't own
 - NO circular listening: A→B + B→A for same data = boundary violation
-- Consumers MUST implement dependency waiting with `TryWaitUntilAsync` for cross-message data dependencies
+- Consumers MUST implement the project's cross-message dependency-wait primitive for cross-message data dependencies — see `backend-patterns-reference.md`
 
-**SubQueuePrefix (WARN):**
+**Ordered delivery (WARN):**
 
-- Ordered messages MUST override `SubQueuePrefix()` with meaningful key
-- Unordered messages return `null`
+- Messages requiring ordered processing MUST set the project's ordered-delivery / sub-queue partition key to a meaningful value (resolve the concrete API from `backend-patterns-reference.md`)
+- Unordered messages leave it unset / null
 
 **Also verify:**
 
 - NEVER direct cross-service DB access — MUST use message bus
-- `LastMessageSyncDate` used for conflict resolution in consumers
-- Inbox/Outbox pattern for reliable delivery (check `EnableInboxEventBusMessage`)
+- A last-sync-timestamp field on the message is used for conflict resolution in consumers (resolve the concrete field from `backend-patterns-reference.md`)
+- Inbox/Outbox pattern for reliable delivery (verify the project's inbox/outbox enablement config — see `backend-patterns-reference.md`)
 
 ---
 
@@ -218,22 +217,22 @@ BLOCKED: {layer} layer file {filePath}:{line} imports from {forbiddenLayer} laye
 
 **File organization (BLOCKED):**
 
-- Command + Result + Handler MUST be in ONE file under `UseCaseCommands/{Feature}/`
-- Query + Result + Handler MUST be in ONE file under `UseCaseQueries/{Feature}/`
+- Command + Result + Handler MUST be in ONE file under the command folder for the feature _(resolve the concrete folder from the project's structure reference / `docs/project-config.json`; e.g. `{command-folder}/{Feature}/`)_
+- Query + Result + Handler MUST be in ONE file under the query folder for the feature _(resolve the concrete folder from the project's structure reference / `docs/project-config.json`; e.g. `{query-folder}/{Feature}/`)_
 
 **Validation (BLOCKED):**
 
-- MUST use the project's validation-result fluent API — NEVER thrown exceptions for validation; return a validation result _(e.g. this project: `PlatformValidationResult` with `.And()`/`.AndAsync()`; verify the exact type in `backend-patterns-reference.md`)_
-- Sync validation in the command's validate hook, async in the request-validation hook _(e.g. `command.Validate()` / `ValidateRequestAsync()`)_
+- MUST use the project's validation-result fluent API — NEVER thrown exceptions for validation; return a validation result — verify the exact type and method names in `backend-patterns-reference.md`
+- Sync validation in the command's validate hook, async in the request-validation hook — see `backend-patterns-reference.md` for hook names
 
 **DTO mapping (BLOCKED):**
 
-- DTOs MUST own entity mapping via the project's DTO base mapping methods — NEVER map in command handlers _(e.g. this project: `MapToEntity()` / `MapToObject()`)_
+- DTOs MUST own entity mapping via the project's DTO base mapping methods — NEVER map in command handlers; see `backend-patterns-reference.md` for the method names
 
 **Side effects (BLOCKED):**
 
 - NEVER put side effects (notifications, sync, cascade updates) in command handlers
-- Side effects go in Entity Event Handlers under the project's event-handler directory _(e.g. this project: `UseCaseEvents/`)_
+- Side effects go in Entity Event Handlers under the project's event-handler folder _(resolve from the project's structure reference / `docs/project-config.json`; e.g. `{event-handler-folder}/`)_
 - Each handler = one independent concern (failures don't cascade)
 
 ---
@@ -242,14 +241,14 @@ BLOCKED: {layer} layer file {filePath}:{line} imports from {forbiddenLayer} laye
 
 **Think:** Is this using a service-specific repo interface, not the generic one? Are complex queries extracted to RepositoryExtensions?
 
-- MUST use the project's service-specific repository abstraction — NEVER the generic root-repository base directly; the per-service naming scheme is defined in `backend-patterns-reference.md` _(e.g. this project: `I{ServiceName}PlatformRootRepository<TEntity>` such as `IGrowthRootRepository<T>`; the forbidden generic is `IPlatformRootRepository<T>`)_
+- MUST use the project's service-specific repository abstraction — NEVER the generic root-repository base directly; the per-service naming scheme is defined in `backend-patterns-reference.md`
 - Complex queries MUST use the project's repository-extension pattern with static expressions _(e.g. `RepositoryExtensions`)_
 - All query filter/FK/sort columns MUST have database indexes
 
 **Violation format:**
 
 ```
-BLOCKED: {filePath}:{line} uses generic IPlatformRootRepository instead of service-specific I{Service}RootRepository
+BLOCKED: {filePath}:{line} uses the generic root-repository base instead of the service-specific repository — see backend-patterns-reference.md for the required naming
 ```
 
 ---
@@ -268,17 +267,17 @@ BLOCKED: {filePath}:{line} uses generic IPlatformRootRepository instead of servi
 
 ### Category 6: Entity Event Handlers — Severity: BLOCKED/WARN
 
-**Think:** Are side effects defined inline in command handlers (wrong) or in UseCaseEvents/ (correct)? Does each handler have a single concern?
+**Think:** Are side effects defined inline in command handlers (wrong) or in the project's event-handler folder (correct)? Does each handler have a single concern?
 
 **Location (BLOCKED):**
 
-- Entity event handlers MUST be in the project's event-handler directory _(e.g. this project: `UseCaseEvents/`)_
+- Entity event handlers MUST be in the project's event-handler folder _(resolve from the project's structure reference / `docs/project-config.json`; e.g. `{event-handler-folder}/`)_
 - NEVER inline side effects in command handlers
 
 **Implementation (BLOCKED):**
 
-- MUST extend the project's entity-event application-handler base _(e.g. this project: `PlatformCqrsEntityEventApplicationHandler<TEntity>`; see `backend-patterns-reference.md`)_
-- MUST implement the CRUD-action filter hook _(e.g. `HandleWhen()`)_
+- MUST extend the project's entity-event application-handler base — see `backend-patterns-reference.md`
+- MUST implement the CRUD-action filter hook — see `backend-patterns-reference.md` for the hook name
 - One handler = one independent concern
 
 **Naming (WARN):**
@@ -288,8 +287,8 @@ BLOCKED: {filePath}:{line} uses generic IPlatformRootRepository instead of servi
 
 **Producer patterns (BLOCKED):**
 
-- Bus message producers MUST extend the project's event-bus-message producer base _(e.g. this project: `PlatformCqrsEventBusMessageProducer<TEvent, TMessage>`)_
-- MUST implement the message-build and action-filter hooks _(e.g. `BuildMessage()` / `HandleWhen()`)_
+- Bus message producers MUST extend the project's event-bus-message producer base — see `backend-patterns-reference.md`
+- MUST implement the message-build and action-filter hooks — see `backend-patterns-reference.md` for hook names
 
 ---
 
@@ -315,13 +314,13 @@ BLOCKED: {filePath}:{line} references {otherService} domain/persistence directly
 
 **Think:** Are components extending the right base class? Is state going through the store? Are subscriptions properly cleaned up?
 
-Verify against `frontend-patterns-reference.md` (Phase 0, frontend files); concrete names are this project's examples.
+Verify against `frontend-patterns-reference.md` (Phase 0, frontend files); concrete names are illustrative examples.
 
-- Components MUST extend the project's component base classes (BLOCKED) _(e.g. this project: `AppBaseComponent` / `AppBaseVmStoreComponent` / `AppBaseFormComponent`)_
-- State MUST use the project's view-model store + reactive-effect pattern — NEVER manual signals or a direct HTTP client (BLOCKED) _(e.g. `PlatformVmStore` + `effectSimple()`)_
-- API services MUST extend the project's API-service base (BLOCKED) _(e.g. `PlatformApiService`)_
-- All subscriptions MUST use the project's auto-teardown operator — NEVER manual unsubscribe (BLOCKED) _(e.g. `.pipe(this.untilDestroyed())`)_
-- All template elements MUST carry the project's CSS-naming-convention classes (WARN) _(e.g. BEM `block__element --modifier`)_
+- Components MUST extend the project's component base classes (BLOCKED) — see `frontend-patterns-reference.md`
+- State MUST use the project's view-model store + reactive-effect pattern — NEVER manual signals or a direct HTTP client (BLOCKED) — see `frontend-patterns-reference.md`
+- API services MUST extend the project's API-service base (BLOCKED) — see `frontend-patterns-reference.md`
+- All subscriptions MUST use the project's auto-teardown operator — NEVER manual unsubscribe (BLOCKED) — see `frontend-patterns-reference.md`
+- All template elements MUST carry the project's CSS-naming-convention classes (WARN) — see `frontend-patterns-reference.md`
 - Logic in lowest layer: Model > Service > Component (WARN)
 
 > **Boundary with `/review-ui`:** This category owns frontend ARCHITECTURE — base classes, the view-model store / reactive-effect pattern, the API-service base, subscription teardown, layer placement, CSS-naming-class presence. VISUAL/styling quality — long-content overflow, responsive multi-screen flex, flex-vs-fixed sizing, z-index discipline, and SCSS/CSS detail — is owned by `/review-ui`, which `/review-changes` invokes as its UI dimension when frontend changes are present. Flag missing base classes / store / teardown here; defer SCSS-quality depth and visual-layout findings to review-ui to avoid double-reporting.
@@ -396,7 +395,7 @@ For each changed file:
 
 1. Read `docs/project-config.json` → `architectureRules.layerBoundaries`
 2. Determine layer — match file path against each rule's `paths` glob patterns
-3. Scan imports — grep for `using` (C#) or `import` (TS) statements
+3. Scan imports — grep for the configured language's import/include statements
 4. Check violations — import path contains layer name in `cannotImportFrom` = violation
 5. Exclude framework — skip files matching `architectureRules.excludePatterns`
 6. BLOCK on violation: `"BLOCKED: {layer} layer file {filePath} imports from {forbiddenLayer} layer ({importStatement})"`
@@ -532,7 +531,7 @@ MUST check categories 1-4 for EVERY review. Never skip.
 3. Error Handling: Try-catch scope correct? Silent swallowed exceptions? Error types specific? Cleanup in finally?
 4. Resource Management: Connections/streams closed? Subscriptions unsubscribed on destroy? Timers cleared? Memory bounded?
 5. Concurrency (if async): Missing await? Race conditions on shared state? Stale closures? Retry storms?
-6. Stack-Specific: JS: === vs ==, typeof null. C#: async void, missing using, LINQ deferred execution.
+6. Stack-Specific: Check the configured language/runtime pitfalls and framework-specific failure modes discovered from local code.
 Classify: CRITICAL (crash/corrupt) → FAIL | HIGH (incorrect behavior) → FAIL | MEDIUM (edge case) → WARN | LOW (defensive) → INFO.
 
 ### Design Patterns Quality

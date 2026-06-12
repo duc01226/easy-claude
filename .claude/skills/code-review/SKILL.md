@@ -266,9 +266,9 @@ After sub-agent returns:
 | --- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | **No Magic Values**       | All literals → named constants                                                                                                          |
 | 2   | **Type Annotations**      | Explicit parameter and return types on all functions                                                                                    |
-| 3   | **Single Responsibility** | One concern per method/class. Event handlers/consumers: one handler = one concern. NEVER bundle — platform swallows exceptions silently |
+| 3   | **Single Responsibility** | One concern per method/class. Event handlers/consumers: one handler = one concern. NEVER bundle — a framework event dispatcher can swallow handler exceptions silently |
 | 4   | **DRY**                   | No duplication; extract shared logic                                                                                                    |
-| 5   | **Naming**                | Specific (`employeeRecords` not `data`), Verb+Noun methods, is/has/can/should booleans, no abbreviations                                |
+| 5   | **Naming**                | Specific (`orderRecords` not `data`), Verb+Noun methods, is/has/can/should booleans, no abbreviations                                |
 | 6   | **Performance**           | No O(n²) (use dictionary). Project in query (not load-all). ALWAYS paginate. Batch-by-IDs (not N+1)                                     |
 | 7   | **Entity Indexes**        | Collections: index management methods. EF Core: composite indexes. Expression fields match index order. Text search → text indexes      |
 
@@ -389,7 +389,7 @@ For each changed file, verify no forbidden layer imports:
 
 1. **Read rules** from `docs/project-config.json` → `architectureRules.layerBoundaries`
 2. **Determine layer** — match file path against each rule's `paths` glob patterns
-3. **Scan imports** — grep for `using` (C#) or `import` (TS) statements
+3. **Scan imports** — grep for the configured language's import/include statements
 4. **Check violations** — import path contains forbidden layer name → violation
 5. **Exclude framework** — skip files matching `architectureRules.excludePatterns`
 6. **BLOCK on violation** — `"BLOCKED: {layer} layer file {filePath} imports from {forbiddenLayer} ({importStatement})"`
@@ -835,7 +835,7 @@ MUST check categories 1-4 for EVERY review. Never skip.
 3. Error Handling: Try-catch scope correct? Silent swallowed exceptions? Error types specific? Cleanup in finally?
 4. Resource Management: Connections/streams closed? Subscriptions unsubscribed on destroy? Timers cleared? Memory bounded?
 5. Concurrency (if async): Missing await? Race conditions on shared state? Stale closures? Retry storms?
-6. Stack-Specific: JS: === vs ==, typeof null. C#: async void, missing using, LINQ deferred execution.
+6. Stack-Specific: Check the configured language/runtime pitfalls and framework-specific failure modes discovered from local code.
 Classify: CRITICAL (crash/corrupt) → FAIL | HIGH (incorrect behavior) → FAIL | MEDIUM (edge case) → WARN | LOW (defensive) → INFO.
 
 ### Design Patterns Quality

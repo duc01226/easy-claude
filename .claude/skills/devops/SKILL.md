@@ -8,14 +8,14 @@ disable-model-invocation: true
 
 ## Quick Summary
 
-**Goal:** Deploy and manage cloud infrastructure across Cloudflare (Workers, R2, D1), Docker containers, and Google Cloud Platform.
+**Goal:** Deploy and manage cloud infrastructure across Cloudflare (Workers, R2, D1), Docker containers, and Google Cloud.
 
 **Workflow:**
 
-1. **Platform Selection** — Choose Cloudflare (edge/low-latency), Docker (containers/microservices), or GCP (enterprise/K8s)
+1. **Provider Selection** — Choose Cloudflare (edge/low-latency), Docker (containers/microservices), or GCP (enterprise/K8s)
 2. **Project Setup** — Initialize with Wrangler CLI, Dockerfile, or gcloud CLI
 3. **Local Development** — Test locally before deploying
-4. **Deploy & Verify** — Deploy to target platform with health checks
+4. **Deploy & Verify** — Deploy to the target provider/runtime with health checks
 
 **Key Rules:**
 
@@ -28,7 +28,7 @@ disable-model-invocation: true
 
 # DevOps Skill
 
-Comprehensive guide for deploying and managing cloud infrastructure across Cloudflare edge platform, Docker containerization, and Google Cloud Platform.
+Comprehensive guide for deploying and managing cloud infrastructure across Cloudflare edge services, Docker containerization, and Google Cloud.
 
 ## When to Use This Skill
 
@@ -45,7 +45,7 @@ Use this skill when:
 - Configuring cloud storage solutions (R2, Cloud Storage)
 - Automating infrastructure with scripts and IaC
 
-## Platform Selection Guide
+## Provider Selection Guide
 
 ### When to Use Cloudflare
 
@@ -89,7 +89,7 @@ Use this skill when:
 - Docker Compose for multi-container apps
 - Volume management for data persistence
 - Network configuration and service discovery
-- Cross-platform compatibility (amd64, arm64)
+- Cross-architecture compatibility (amd64, arm64)
 
 **Cost Profile:** Infrastructure cost only (compute + storage)
 
@@ -166,13 +166,13 @@ gcloud run deploy my-service \
   --region us-central1
 ```
 
-See: `references/gcloud-platform.md`
+See the Google Cloud reference in `references/`
 
 ## Reference Navigation
 
-### Cloudflare Platform
+### Cloudflare Developer Stack
 
-- `cloudflare-platform.md` - Edge computing overview, key components
+- Cloudflare reference - Edge computing overview, key components
 - `cloudflare-workers-basics.md` - Getting started, handler types, basic patterns
 - `cloudflare-workers-advanced.md` - Advanced patterns, performance, optimization
 - `cloudflare-workers-apis.md` - Runtime APIs, bindings, integrations
@@ -185,9 +185,9 @@ See: `references/gcloud-platform.md`
 - `docker-basics.md` - Core concepts, Dockerfile, images, containers
 - `docker-compose.md` - Multi-container apps, networking, volumes
 
-### Google Cloud Platform
+### Google Cloud
 
-- `gcloud-platform.md` - GCP overview, gcloud CLI, authentication
+- Google Cloud reference - GCP overview, gcloud CLI, authentication
 - `gcloud-services.md` - Compute Engine, GKE, Cloud Run, App Engine
 
 ### Python Utilities
@@ -313,7 +313,7 @@ CMD ["node", "dist/server.js"]
 - [ ] Create .dockerignore file
 - [ ] Test build locally
 - [ ] Push to registry
-- [ ] Deploy to target platform
+- [ ] Deploy to target provider/runtime
 
 ### Google Cloud
 
@@ -326,7 +326,6 @@ CMD ["node", "dist/server.js"]
 ## Related
 
 - `databases`
-- `api-design`
 
 ---
 

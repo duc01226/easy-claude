@@ -66,12 +66,19 @@ Mode rules:
 
 ## Step 2: Collect Seeder Evidence
 
-Run evidence-first scans (adapt to stack, examples below for.NET projects):
+Run evidence-first scans and adapt examples to the configured stack:
 
 ```bash
-rg -n "DataSeeder|SeedData|CanSeedTestingData|SeedingMinimumDummyItemsCount|ExecuteInjectScopedAsync|ExecuteUowTask" src
-rg -n "IPlatformApplicationDataSeeder|AddTransient<IPlatformApplicationDataSeeder" src
-rg -n "WaitUntilAsync|SeedAdminUserData|CountAsync\\(" src
+# Discover the project's seeder base class/interface and registration pattern — adapt search terms from findings:
+rg -n "DataSeeder|SeedData|CanSeedTestingData|SeedingMinimumDummyItemsCount" src
+# Discover the project's DI-scoped execution pattern for seeders (e.g. scoped-async helpers):
+rg -n "Scoped|CreateScope|ServiceScope|UnitOfWork|Uow" src
+# Discover the project's seeder interface and DI registration — replace with actual names found above:
+rg -n "ApplicationDataSeeder|AddTransient.*DataSeeder" src
+# Discover cross-service wait / idempotency patterns — search for count/condition-poll helpers:
+rg -n "WaitUntil\|PollUntil\|CountAsync\b\|AwaitCondition" src
+# Discover concrete seeder examples — search for common seeder method name patterns:
+rg -n "SeedInitialData\|SeedDemoData\|SeedTestData\|SeedAdmin" src
 ```
 
 Graph check (when `.code-graph/graph.db` exists):
@@ -85,7 +92,7 @@ Minimum evidence to capture:
 1. Seeder base class/interface
 2. Environment gate method/key
 3. Idempotency predicate + count loop pattern
-4. DI scope pattern (`ExecuteInjectScopedAsync` vs anti-patterns)
+4. DI scope pattern (the project's scoped-execution / unit-of-work helper vs anti-patterns)
 5. Seeder registration pattern in DI
 6. Cross-service wait pattern (if used)
 
@@ -163,7 +170,7 @@ Report sections:
 **IMPORTANT MUST ATTENTION Final Step:** run `$prompt-enhance docs/project-reference/seed-test-data-reference.md` as the REQUIRED last todo task — never end the scan without enhancing the doc it just wrote.
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim
 **IMPORTANT MUST ATTENTION** use surgical updates in sync mode (do not rewrite entire doc)
-**IMPORTANT MUST ATTENTION** verify DI-scope safety guidance (`ExecuteInjectScopedAsync`) against real source usage
+**IMPORTANT MUST ATTENTION** verify DI-scope safety guidance (the project's scoped-async execution primitive — discover from codebase grep) against real source usage
 **IMPORTANT MUST ATTENTION** run one graph trace when graph DB is available
 <!-- SYNC:critical-thinking-mindset:reminder -->
 **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.

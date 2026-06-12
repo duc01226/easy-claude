@@ -92,8 +92,8 @@ If MISSING: stop and tell user to run `$graph-build`.
 
 Extract the target from user's question (file path, function name, or class name).
 
-- For files: use relative path (e.g., `src/utils.ts`)
-- For functions/classes: use the name (e.g., `validateInput`) or qualified name (e.g., `src/utils.ts::validateInput`)
+- For files: use relative path (e.g., `{source-root}/utils`)
+- For functions/classes: use the name (e.g., `validateInput`) or qualified name (e.g., `{source-root}/utils::validateInput`)
 
 ### Step 3: Run query
 
@@ -137,7 +137,7 @@ Found {N} result(s).
 
 | Name | Kind | File | Lines |
 |------|------|------|-------|
-| ... | function | src/file.ts | 10-25 |
+| ... | function | {source-root}/file | 10-25 |
 ```
 
 **Composite query output format:**

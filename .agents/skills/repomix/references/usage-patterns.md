@@ -13,15 +13,15 @@ repomix --remove-comments --style markdown -o full-repo.md
 
 ### Focused Module
 ```bash
-repomix --include "src/auth/**,src/api/**" -o modules.xml
+repomix --include "{source-root}/auth/**,{source-root}/api/**" -o modules.xml
 ```
 **Use:** Feature analysis, debugging specific areas, targeted refactoring
 **Tips:** Include related files only, stay within token limits, use XML for AI
 
 ### Incremental Analysis
 ```bash
-git checkout feature-branch && repomix --include "src/**" -o feature.xml
-git checkout main && repomix --include "src/**" -o main.xml
+git checkout feature-branch && repomix --include "{source-root}/**" -o feature.xml
+git checkout main && repomix --include "{source-root}/**" -o main.xml
 ```
 **Use:** Feature branch review, change impact, before/after comparison, migration planning
 
@@ -43,7 +43,7 @@ npx repomix --remote vendor/library --style xml -o audit.xml
 
 ### Pre-Deployment
 ```bash
-repomix --include "src/**,config/**" --style xml -o pre-deploy-audit.xml
+repomix --include "{source-root}/**,config/**" --style xml -o pre-deploy-audit.xml
 ```
 **Checklist:** No sensitive data, no test credentials, env vars correct, security practices, no debug code
 
@@ -56,7 +56,7 @@ repomix --include "node_modules/suspicious-package/**" -o dep-audit.xml
 
 ### Compliance
 ```bash
-repomix --include "src/**,LICENSE,README.md,docs/**" --style markdown -o compliance.md
+repomix --include "{source-root}/**,LICENSE,README.md,docs/**" --style markdown -o compliance.md
 ```
 **Include:** Source, licenses, docs, configs. **Exclude:** Test data, dependencies
 
@@ -64,21 +64,21 @@ repomix --include "src/**,LICENSE,README.md,docs/**" --style markdown -o complia
 
 ### Doc Context
 ```bash
-repomix --include "src/**,docs/**,*.md" --style markdown -o doc-context.md
+repomix --include "{source-root}/**,docs/**,*.md" --style markdown -o doc-context.md
 ```
 **Use:** API docs, architecture docs, user guides, onboarding
 **Tips:** Include existing docs, include source, use markdown
 
 ### API Documentation
 ```bash
-repomix --include "src/api/**,src/routes/**,src/controllers/**" --remove-comments -o api-context.xml
+repomix --include "{source-root}/api/**,{source-root}/routes/**,{source-root}/controllers/**" --remove-comments -o api-context.xml
 ```
 **Include:** Routes, controllers, schemas, middleware
 **Workflow:** Package → AI → OpenAPI/Swagger → endpoint docs → examples
 
 ### Architecture
 ```bash
-repomix --include "src/**/*.ts,*.md" -i "**/*.test.ts" --style markdown -o architecture.md
+repomix --include "{source-root}/**/*.ts,*.md" -i "**/*.test.ts" --style markdown -o architecture.md
 ```
 **Focus:** Module structure, dependencies, design patterns, data flow
 
@@ -104,8 +104,8 @@ npx repomix --remote owner/lib-b --style xml -o lib-b.xml
 
 ### Integration Feasibility
 ```bash
-npx repomix --remote vendor/library --include "src/**,*.md" -o library.xml
-repomix --include "src/integrations/**" -o our-integrations.xml
+npx repomix --remote vendor/library --include "{source-root}/**,*.md" -o library.xml
+repomix --include "{source-root}/integrations/**" -o our-integrations.xml
 ```
 Analyze compatibility between target library and your integration points
 
@@ -141,7 +141,7 @@ repomix --include "$(cat staged-files.txt | tr '\n' ',')" -o .context/latest.xml
 
 ### IDE (VS Code)
 ```json
-{"version": "2.0.0", "tasks": [{"label": "Package for AI", "type": "shell", "command": "repomix --include 'src/**' --remove-comments --copy"}]}
+{"version": "2.0.0", "tasks": [{"label": "Package for AI", "type": "shell", "command": "repomix --include '{source-root}/**' --remove-comments --copy"}]}
 ```
 
 ### Claude Code
@@ -159,13 +159,13 @@ repomix --include "**/*.ts,**/*.tsx" --remove-comments --no-line-numbers
 
 ### React
 ```bash
-repomix --include "src/**/*.{js,jsx,ts,tsx},public/**" -i "build/,*.test.*"
+repomix --include "{source-root}/**/*.{js,jsx,ts,tsx},public/**" -i "build/,*.test.*"
 ```
 **Include:** Components, hooks, utils, public assets
 
 ### Node.js Backend
 ```bash
-repomix --include "src/**/*.js,config/**" -i "node_modules/,logs/,tmp/"
+repomix --include "{source-root}/**/*.js,config/**" -i "node_modules/,logs/,tmp/"
 ```
 **Focus:** Routes, controllers, models, middleware, configs
 
@@ -177,7 +177,7 @@ repomix --include "**/*.py,requirements.txt,*.md" -i "**/__pycache__/,venv/"
 
 ### Monorepo
 ```bash
-repomix --include "packages/*/src/**" -i "packages/*/node_modules/,packages/*/dist/"
+repomix --include "packages/*/{source-root}/**" -i "packages/*/node_modules/,packages/*/dist/"
 ```
 **Consider:** Package-specific patterns, shared deps, cross-package refs, workspace structure
 
@@ -187,7 +187,7 @@ repomix --include "packages/*/src/**" -i "packages/*/node_modules/,packages/*/di
 **Problem:** Exceeds LLM token limits
 **Fix:**
 ```bash
-repomix -i "node_modules/**,dist/**,coverage/**" --include "src/core/**" --remove-comments --no-line-numbers
+repomix -i "node_modules/**,dist/**,coverage/**" --include "{source-root}/core/**" --remove-comments --no-line-numbers
 ```
 
 ### Missing Files
@@ -209,7 +209,7 @@ repomix --no-security-check  # Use carefully for false positives
 **Problem:** Slow on large repo
 **Optimize:**
 ```bash
-repomix --include "src/**/*.ts" -i "node_modules/**,dist/**,vendor/**"
+repomix --include "{source-root}/**/*.ts" -i "node_modules/**,dist/**,vendor/**"
 ```
 
 ### Remote Access

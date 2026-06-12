@@ -42,12 +42,12 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Run linters (.NET analyzers and/or ESLint/Prettier) and report or auto-fix code quality issues.
+**Goal:** Run the project's configured linters/analyzers (resolve the commands from `docs/project-config.json` / project-reference docs) and report or auto-fix code quality issues. Commands shown below are illustrative examples — substitute your stack's tooling.
 
 **Workflow:**
 
 1. **Parse** — Determine scope from arguments: backend, frontend, or both; fix mode or report-only
-2. **Execute** — Run `dotnet build` for .NET analyzers or `nx lint` / `prettier` for Angular
+2. **Execute** — Run the repository's configured lint/analyzer commands from project config and package/build manifests
 3. **Report** — Group issues by severity (error/warning/info) with file paths and line numbers
 
 **Key Rules:**
@@ -63,12 +63,12 @@ Run linting: $ARGUMENTS
 ## Instructions
 
 1. **Parse arguments**:
-    - `backend` or `be` → Run .NET analyzers
-    - `frontend` or `fe` → Run ESLint/Prettier
+    - `backend` or `be` → Run the backend analyzers/linters
+    - `frontend` or `fe` → Run the frontend linters/formatters
     - `fix` → Auto-fix issues where possible
     - No argument → Run both, report only
 
-2. **For Backend (.NET)**:
+2. **For Backend** — run the configured backend analyzer/build command:
 
     ```bash
     dotnet build {SolutionName}.sln /p:TreatWarningsAsErrors=false
@@ -77,18 +77,18 @@ Run linting: $ARGUMENTS
     - Check for analyzer warnings (CA*, IDE*, etc.)
     - Report code style violations
 
-3. **For Frontend (Angular/Nx)**:
+3. **For Frontend** — run the configured frontend lint/format command:
 
     ```bash
-    cd src/{ExampleAppWeb}
-    nx lint playground-text-snippet
+    cd {frontend-workspace-path}
+    nx lint <app-name>
     nx lint {lib-name}
     ```
 
 With auto-fix:
 
     ```bash
-    nx lint playground-text-snippet --fix
+    nx lint <app-name> --fix
     npx prettier --write "apps/**/*.{ts,html,scss}" "libs/**/*.{ts,html,scss}"
     ```
 

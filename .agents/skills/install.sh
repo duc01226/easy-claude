@@ -441,20 +441,6 @@ install_node_deps() {
         print_success "mcp-management dependencies installed"
     fi
 
-    # markdown-novel-viewer (marked, highlight.js, gray-matter)
-    if [ -d "$SCRIPT_DIR/markdown-novel-viewer" ] && [ -f "$SCRIPT_DIR/markdown-novel-viewer/package.json" ]; then
-        print_info "Installing markdown-novel-viewer dependencies..."
-        (cd "$SCRIPT_DIR/markdown-novel-viewer" && npm install --quiet)
-        print_success "markdown-novel-viewer dependencies installed"
-    fi
-
-    # plans-kanban (gray-matter)
-    if [ -d "$SCRIPT_DIR/plans-kanban" ] && [ -f "$SCRIPT_DIR/plans-kanban/package.json" ]; then
-        print_info "Installing plans-kanban dependencies..."
-        (cd "$SCRIPT_DIR/plans-kanban" && npm install --quiet)
-        print_success "plans-kanban dependencies installed"
-    fi
-
     # markdown-to-pdf (md-to-pdf, gray-matter)
     if [ -d "$SCRIPT_DIR/markdown-to-pdf" ] && [ -f "$SCRIPT_DIR/markdown-to-pdf/package.json" ]; then
         print_info "Installing markdown-to-pdf dependencies..."

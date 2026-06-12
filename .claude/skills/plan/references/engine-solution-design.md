@@ -72,7 +72,7 @@ When designing frontend solutions with Figma context:
     - Note any custom values needing tokens
 
 2. **Component Structure**
-    - Match Figma hierarchy to Angular component tree
+    - Match Figma hierarchy to the configured frontend component tree
     - Identify reusable components
     - Map to existing shared library components
 

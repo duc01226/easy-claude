@@ -201,6 +201,8 @@ Minimum trace fields:
 - `Docs`
 - `Status`
 
+**TC ↔ Test cardinality is one-to-many.** A `TC` is a business / user-story acceptance scenario written tech-agnostic; it is verified by **one or more** `Test` methods (integration and/or unit, across many components and services), all joined to the TC by the test-spec annotation. The `Test` trace field therefore holds a SET, and a TC is covered when ≥1 annotation-tagged test passes. NEVER split, narrow, or technicalize a business TC to force a 1:1 map to a single test method or production class — that breaks M1 (tech-agnostic) and M5 (rebuild-from-business-intent) and turns the spec into a code mirror instead of a business contract. Conversely, each test maps to exactly one primary TC. (Canonical cardinality contract: `shared/tc-format.md` → TC ↔ Test Code Cardinality.)
+
 Use `N/A` only with evidence:
 
 `N/A - <reason>; Evidence: <command output or [Source: namespace/service/id]>`

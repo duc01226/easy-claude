@@ -162,7 +162,7 @@ Help users install, configure, troubleshoot, and extend Claude Code CLI -- Anthr
 3. Run script directly: `node .claude/hooks/block-large-reads.cjs` -- works
 4. **Found**: Hook command uses `%CLAUDE_PROJECT_DIR%` but runs from wrong CWD
 
-**Fix**: Update hook command to use absolute path or verify `%CLAUDE_PROJECT_DIR%` resolves correctly. Check that the hook entry in settings uses the correct variable syntax for the platform (Windows vs Unix).
+**Fix**: Update hook command to use absolute path or verify `%CLAUDE_PROJECT_DIR%` resolves correctly. Check that the hook entry in settings uses the correct variable syntax for the OS/shell (Windows vs Unix).
 
 ### Example 2: Setting Up a New Slash Command
 

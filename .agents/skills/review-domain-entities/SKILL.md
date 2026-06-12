@@ -120,13 +120,13 @@ below — if a downstream rule would raise change cost, this principle wins.
 ls docs/project-reference/ 2>/dev/null
 ls docs/ 2>/dev/null | grep -i "entity\|domain\|backend\|pattern"
 
-# Detect tech stack
-find . -name "*.csproj" -o -name "pom.xml" -o -name "build.gradle" -o -name "package.json" | head -5
+# Detect configured build/runtime markers from project config and project-reference docs
+rg --files | rg "(project|package|build|config|settings|manifest)" | head -20
 
 # Find entity/VO base classes actually used
-grep -rn "class.*Entity\|class.*RootEntity\|class.*BaseEntity\|class.*AbstractEntity" src/ | head -10
-grep -rn ": PlatformValueObject\|: ValueObject\|@ValueObject\|extends AbstractValueObject" src/ | head -5
-grep -rn "@Entity\|@Document\|@Table\|@Aggregate" src/ | head -10
+rg "class.*Entity|class.*RootEntity|class.*BaseEntity|class.*AbstractEntity" {configured-source-roots} | head -10
+rg "ValueObject|Aggregate|Entity" {configured-source-roots} | head -20
+rg "{configured-entity-markers}" {configured-source-roots} | head -10
 ```
 
 **Record in report (required before Phase 2):**
@@ -163,66 +163,24 @@ Record: entity file count, downstream consumers, risk level. Use to prioritize r
 
 Initialize with: Mode, Tech Stack, Discovered Conventions, Blast Radius Summary.
 
-### Mandatory Grep Patterns
+### Mandatory Search Intent
 
-MUST ATTENTION run these BEFORE reading individual files — highest-signal violations detected in seconds.
+MUST ATTENTION run high-signal searches BEFORE reading individual files. Derive the actual roots, file globs, framework markers, and naming conventions from `docs/project-config.json` plus the repository's project-reference docs. Do not copy a source-root, extension, framework type, or folder name from this skill as if it were canonical.
 
-```bash
-# ─── .NET / C# ───────────────────────────────────────────────────────────
-# CRITICAL: public new Validate() — hides base virtual, framework validation NEVER runs
-grep -rn "public new.*Validate()" src/ --include="*.cs"
+Search for these intent categories with the configured source roots and discovered stack syntax:
 
-# CRITICAL: navigation properties missing serialization-ignore annotation
-grep -rn "public.*Entity\|public.*List<[A-Z]\|public.*ICollection<[A-Z]" src/ \
-    --include="*.cs" | grep -v "\[JsonIgnore\]\|//\|private\|static\|protected"
+- Validation methods that hide or bypass the base/domain validation path.
+- Relationship/navigation fields that can serialize recursively or expose internal graph structure.
+- Value objects with mutable public state or missing structural equality.
+- Domain methods throwing low-context generic errors instead of configured domain/validation errors.
+- Business conditionals and entity mutation leaking into a higher layer when the entity/value object owns the invariant.
+- Query/filter expressions placed in handlers/services when the entity, repository extension, specification, or equivalent local pattern owns them.
+- Entity classes missing identity markers required by the configured persistence framework.
+- Domain models performing direct persistence, network, or infrastructure work.
+rg "{configured-persistence-or-query-markers}" {configured-domain-source-roots} | head -20
 
-# HIGH: VO files with mutable public setters
-find src -path "*/ValueObjects/*.cs" | xargs grep -n "{ get; set; }" 2>/dev/null
-
-# HIGH: domain methods throwing wrong exception type
-grep -rn "throw new ArgumentException\|throw new InvalidOperationException" \
-    src/**/Domain/ --include="*.cs" | grep -v "//\|test\|Test"
-
-# HIGH: business conditionals leaked into application layer
-grep -rn "\.Status ==" src/**/Application/UseCaseCommands/ --include="*.cs" 2>/dev/null | head -20
-grep -rn "if.*entity\.\|entity\.\w* = " src/**/Application/UseCaseCommands/ \
-    --include="*.cs" | grep -v "CreatedBy\|Id =" | head -20
-
-# HIGH: static query expressions in handlers (should be on entity)
-grep -rn "Expression<Func<" src/**/Application/ --include="*.cs" \
-    | grep -v "Extensions\|Helper\|Repository" | head -20
-
-# ─── Java / Spring ───────────────────────────────────────────────────────
-# CRITICAL: entity equals() by reference (default Object)
-grep -rn "@Entity" src/ --include="*.java" | xargs grep -L "equals\|@EqualsAndHashCode"
-
-# HIGH: @Entity without @Id field
-grep -rn "class.*@Entity\|@Entity" src/ --include="*.java" | xargs grep -L "@Id"
-
-# HIGH: business logic in service layer
-grep -rn "entity\.set\|entity\.status\b" src/**/service/ --include="*.java" | head -20
-
-# HIGH: VO with mutable setters
-find src -path "*/valueobject*/*.java" -o -path "*/vo*/*.java" \
-    | xargs grep -n "public.*set[A-Z]" 2>/dev/null
-
-# ─── TypeScript / NestJS ─────────────────────────────────────────────────
-# CRITICAL: entity equality by reference
-grep -rn "class.*Entity" src/ --include="*.entity.ts" | xargs grep -L "equals\|id ==="
-
-# HIGH: VO missing readonly properties
-find src -name "*.vo.ts" -o -name "*.value-object.ts" \
-    | xargs grep -n "^\s*public " | grep -v readonly | head -20
-
-# HIGH: business logic in services
-grep -rn "entity\.\w* =" src/**/services/ --include="*.ts" | grep -v "// \|id\b" | head -20
-
-# ─── Python (Django / SQLAlchemy) ────────────────────────────────────────
-# HIGH: Model methods doing direct DB access
-grep -rn "\.objects\.\|\.query\." src/**/domain/ --include="*.py" | head -20
-
-# HIGH: business conditions in views/commands
-grep -rn "if.*\.status ==" src/**/application/ --include="*.py" | head -20
+# HIGH: business conditions leaked above the owning domain layer
+rg "{configured-business-condition-patterns}" {configured-application-source-roots} | head -20
 ```
 
 Write ALL grep results to report IMMEDIATELY.
@@ -268,16 +226,9 @@ For EACH entity/VO file: read file → append findings to report IMMEDIATELY. NE
 
 > Mutable VOs are a design contradiction — they imply identity through mutation, which entities have, not VOs.
 
-- NEVER allow mutable properties on VO:
-    - C#: MUST use `{ get; init; }` or `{ get; }` — NEVER `{ get; set; }`
-    - Java: fields MUST be `final` — NEVER bare fields with setters
-    - TypeScript: MUST be `readonly` — NEVER bare mutable fields
-    - Python: MUST use `@dataclass(frozen=True)` or `__slots__` + no setters
+- NEVER allow mutable public state on value objects. Use the immutability mechanism idiomatic to the configured language/runtime.
 - Parameterless/default constructor allowed when required for framework deserialization.
-- MUST ATTENTION verify equality based on structural value — NEVER reference equality:
-    - C#: `Equals()` + `GetHashCode()` + operators OR extends platform VO base
-    - Java: `equals()` + `hashCode()` on fields — NEVER default `Object` methods
-    - TypeScript: custom `equals()` method
+- MUST ATTENTION verify equality based on structural value — NEVER reference equality. Use the equality mechanism idiomatic to the configured language/runtime or the repository's documented value-object base pattern.
 - MUST ATTENTION verify `validate()` overridden when VO has constraints (format, range, required).
 - MUST ATTENTION verify factory method exists for non-trivial construction: `Create()`, `New()`, `Of()`, `From*()`.
 - NEVER put async operations, repository calls, or infrastructure dependencies inside VO.
@@ -323,10 +274,7 @@ For EACH entity/VO file: read file → append findings to report IMMEDIATELY. NE
 
 > Navigation properties serializing into each other = circular reference crash or infinite memory allocation.
 
-- CRITICAL: ALL navigation properties MUST carry serialization-ignore annotation:
-    - C#: `[JsonIgnore]`
-    - Java: `@JsonIgnore` or `@JsonBackReference`
-    - TypeScript: `@Exclude()` or manual DTO projection
+- CRITICAL: ALL navigation/relationship properties that can serialize recursively MUST use the configured serialization-ignore mechanism or an explicit DTO/projection boundary.
 - Navigation properties MUST be nullable/optional — not always loaded.
 - FK ID MUST be stored as primitive alongside navigation — NEVER navigation-only reference.
 - NEVER use navigation properties in domain logic without null guard.
@@ -420,8 +368,8 @@ NEVER write: "obviously", "I think", "should be", "probably".
 
 ### Project-Specific Discovery (MANDATORY before any finding)
 1. Check docs/project-reference/ for entity reference docs, backend patterns, code review rules
-2. grep -rn "class.*Entity\|class.*BaseEntity\|class.*RootEntity" src/ | head -10
-3. grep -rn "ValueObject\|@ValueObject\|AbstractValueObject" src/ | head -10
+2. grep -rn "class.*Entity\|class.*BaseEntity\|class.*RootEntity" <source-root>/ | head -10
+3. grep -rn "ValueObject\|@ValueObject\|AbstractValueObject" <source-root>/ | head -10
 4. Read discovered project reference docs — extract project-specific rules
 5. NEVER flag violations contradicting discovered project conventions — verify against docs first
 
@@ -503,9 +451,15 @@ Graph risk: {HIGH | MEDIUM | LOW | N/A} | Downstream consumers: {N}
 
 ## High Priority Issues (must fix)
 
+{severity} | {description} | {file:line} | {fix}
+
 ## Medium Issues (should fix)
 
+{severity} | {description} | {file:line} | {fix}
+
 ## Low / Informational
+
+{severity} | {description} | {file:line} | {fix}
 
 ## Re-Review Findings (if a fresh full re-review ran)
 
@@ -513,11 +467,19 @@ Graph risk: {HIGH | MEDIUM | LOW | N/A} | Downstream consumers: {N}
 
 ## Positive Observations
 
+{observation} | {evidence}
+
 ## Refactoring Priority (highest-impact first)
 
-## Project-Specific Rules Applied
+{priority} | {target} | {reason}
+
+## Repository-Specific Rules Applied
+
+{rule} | {evidence}
 
 ## Unresolved Questions
+
+{question} | {owner/next step}
 ```
 
 ---
@@ -670,22 +632,11 @@ MUST ATTENTION use a direct user question after completing to present:
 **Entity file detection — adapt to discovered stack:**
 
 ```bash
-# .NET / C#
-git diff --name-only HEAD | grep -E "(Domain|Entities|ValueObjects|AggregatesModel).*\.cs$"
-find src -path "*/Domain/*.cs" -o -path "*/Entities/*.cs" -o -path "*/ValueObjects/*.cs" | grep -v "obj\|bin\|Tests"
-
-# Java / Spring
-git diff --name-only HEAD | grep -E "domain/.*\.java$|entity/.*\.java$"
-find src -path "*/domain/*.java" -o -path "*/entity/*.java" | grep -v "test\|Test"
-
-# TypeScript / Node
-git diff --name-only HEAD | grep -E "\.(entity|vo|value-object|aggregate)\.ts$"
-find src -name "*.entity.ts" -o -name "*.vo.ts" -o -name "*.aggregate.ts" | grep -v "spec\|test"
-
-# Python (Django / SQLAlchemy)
-git diff --name-only HEAD | grep -E "(models|domain)/.*\.py$"
-find src -path "*/domain/*.py" -o -path "*/models/*.py" | grep -v "test\|migration"
+git diff --name-only HEAD
+rg --files {configured-source-roots}
 ```
+
+Filter those results using the entity/value-object/aggregate naming conventions discovered from project config and project-reference docs. Never hardcode source roots, extensions, or framework folder names from this skill.
 
 If no domain entity files match in changes mode → announce "No domain entity changes detected" and report clean.
 

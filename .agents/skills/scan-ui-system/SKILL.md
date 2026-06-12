@@ -69,7 +69,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 | Signal                                                                         | Action                                                           |
 | ------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
-| `angular.json`, `package.json` with frontend framework, `src/Web*` directories | Proceed with all 3 scans                                         |
+| configured frontend manifests or frontend source directories (e.g. `web/`, `frontend/`, `apps/`) | Proceed with all 3 scans                                         |
 | No frontend code detected                                                      | **STOP** — report "Backend-only project; scan-ui-system skipped" |
 
 2. Assess each reference doc freshness:
@@ -145,7 +145,7 @@ SCSS Styling     → docs/project-reference/scss-styling-guide.md
   Gaps:          {list or "none identified"}
 
 Frontend Patterns → docs/project-reference/frontend-patterns-reference.md
-  Framework:     {Angular | React | Vue | Svelte | multi-framework}
+  Framework:     {configured frontend framework or multi-framework}
   State:         {store type detected}
   Gaps:          {list or "none identified"}
 ```

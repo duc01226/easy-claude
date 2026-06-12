@@ -81,7 +81,7 @@ If the user specifies a file path, use it directly. If the query is semantic:
 
 | Direction              | When to Use                         | Example                                   |
 | ---------------------- | ----------------------------------- | ----------------------------------------- |
-| `downstream` (default) | What does this code trigger?        | "What happens after employee is created?" |
+| `downstream` (default) | What does this code trigger?        | "What happens after an order is created?" |
 | `upstream`             | What calls this code?               | "What triggers this event handler?"       |
 | `both`                 | Full picture through a middle point | "Show full flow through this controller"  |
 
@@ -166,17 +166,17 @@ trace <target> [--direction downstream|upstream|both] [--depth N] [--edge-kinds 
 ## Examples
 
 ```bash
-# What happens when a user is created? (trace from command handler downstream)
-python .claude/scripts/code_graph trace src/Services/Accounts/Commands/CreateUser/CreateUserCommandHandler.cs --json
+# What happens when a user is created? (trace from command handler downstream — substitute paths from project config)
+python .claude/scripts/code_graph trace {path/to/command-handler-file} --json
 
 # What calls this API controller? (trace upstream to find frontend callers)
-python .claude/scripts/code_graph trace src/Services/Growth/Controllers/GoalController.cs --direction upstream --json
+python .claude/scripts/code_graph trace {path/to/controller-file} --direction upstream --json
 
 # Full flow through an entity event handler (upstream triggers + downstream consumers)
-python .claude/scripts/code_graph trace src/Services/Employee/UseCaseEvents/EmployeeCreatedEventHandler.cs --direction both --json
+python .claude/scripts/code_graph trace {path/to/event-handler-file} --direction both --json
 
 # File-level overview (10-30x less noise — great first pass before drilling into functions)
-python .claude/scripts/code_graph trace src/Services/Growth/Controllers/GoalController.cs --direction both --node-mode file --json
+python .claude/scripts/code_graph trace {path/to/controller-file} --direction both --node-mode file --json
 ```
 
 ## Anti-Patterns
