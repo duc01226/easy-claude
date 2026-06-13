@@ -56,40 +56,66 @@ Three core execution layers solve different failure modes. Specialized agents pl
 
 ### Installation (5 minutes)
 
-**1. Copy the `.claude` directory into your project:**
+**1. Copy the framework folders into your project root.**
+
+The framework ships three sibling folders — one per AI tool. Copy whichever you use; copy all three to get Claude Code, Codex, and the Codex skill mirror in one shot:
 
 ```bash
-cp -r .claude/ /path/to/your-project/.claude/
+cp -r .claude  /path/to/your-project/.claude    # Claude Code — the source of truth (required)
+cp -r .codex   /path/to/your-project/.codex     # Codex agents, hooks, context parity (optional)
+cp -r .agents  /path/to/your-project/.agents    # Codex skill mirror generated from .claude/skills (optional)
 ```
 
-**2. Initialize project context (one command):**
+`.claude/` is the canonical source. `.codex/` and `.agents/` (plus the root `AGENTS.md` and `.github/copilot-instructions.md`) are **generated mirrors** — never edit them by hand; they are re-synced from `.claude/` by the AI-sync skills below.
+
+> No Codex/Copilot? Copy only `.claude/`. The mirrors are regenerated on demand by `/sync-codex` and `/sync-to-copilot`.
+
+**2. Run `/project-init` first — always the first command in a new project.**
 
 ```
 /project-init
 ```
 
-`/project-init` is the canonical setup coordinator. It is idempotent and orchestrates the whole bootstrap so you don't have to run the lower-level skills by hand:
+`/project-init` is the canonical, idempotent setup coordinator. Run it before any project-specific work. It orchestrates the whole bootstrap so you never call the lower-level skills by hand:
 
-- `/project-config` — scans your project and populates `docs/project-config.json` (tech stack, modules, directory structure, build commands)
-- `/scan-all` — generates the `docs/project-reference/` docs that hooks auto-inject
-- `/workflow-spec-driven-dev` — seeds/audits the canonical Feature Specs under `docs/specs/`
-- `/claude-md-init` — generates or smart-merges `CLAUDE.md` (preserving your project-specific content)
-- `/review-changes` → `/why-review` — reviews the generated setup
-- a background `/graph-build` — builds the structural code graph
+| Step it runs                      | What it produces                                                                      |
+| --------------------------------- | ------------------------------------------------------------------------------------- |
+| `/project-config`                 | `docs/project-config.json` — tech stack, modules, directory structure, build commands |
+| `/scan-all`                       | `docs/project-reference/` docs that hooks auto-inject                                 |
+| `/workflow-spec-driven-dev`       | canonical Feature Specs under `docs/specs/` (seed or audit)                           |
+| `/claude-md-init`                 | `CLAUDE.md` (generated, or smart-merged to preserve your content)                     |
+| `/review-changes` → `/why-review` | review gates over the generated setup                                                 |
+| background `/graph-build`         | the structural code graph (`.code-graph/graph.db`)                                    |
 
-Codex/Copilot mirrors (`AGENTS.md`, `.agents/`, `.codex/`) are surfaced as a follow-up — run `/sync-codex` when prompted.
+`/project-init` surfaces the Codex/Copilot mirror sync as a follow-up — run the AI-sync skills (step 3) when prompted.
 
-**3. Refresh reference docs later (as the codebase evolves):**
+**3. Sync the AI dev-tool mirrors (only if you copied `.codex` / use Copilot).**
+
+The mirrors are derived from `.claude/`. After `/project-init` (or any time `.claude/` changes), regenerate them:
 
 ```
-/scan-all                          # refresh every reference doc
+/sync-codex          # regenerate AGENTS.md, .agents/, .codex/ from .claude/ (migrate → hooks → context → verify)
+/sync-to-copilot     # regenerate .github/copilot-instructions.md from .claude/ knowledge
+```
+
+Equivalent CLI (no slash command needed):
+
+```bash
+node .claude/skills/sync-codex/scripts/run-codex-sync.mjs   # standalone Codex sync, no npm required
+npm run codex:sync                                          # same via package.json scripts
+```
+
+**4. Refresh reference docs later (as the codebase evolves):**
+
+```
+/scan-all                          # refresh every reference doc (the docs hooks auto-inject)
 /scan --target=backend-patterns    # refresh one (targets: project-structure | backend-patterns |
                                    #   frontend-patterns | scss-styling | design-system | code-review-rules |
                                    #   domain-entities | feature-spec | docs-index | e2e-tests | integration-tests)
 /scan-codebase-health              # detect unused exports, doc count-drift, orphan files
 ```
 
-**4. Start working:**
+**5. Start working:**
 
 ```
 /cook    # Implement features step-by-step
@@ -97,6 +123,17 @@ Codex/Copilot mirrors (`AGENTS.md`, `.agents/`, `.codex/`) are surfaced as a fol
 /plan    # Create implementation plans
 /test    # Run tests
 ```
+
+### Essential Skills Cheat Sheet
+
+| Skill                   | When to run                                                                                                                               |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `/project-init`         | **First command in any new project** — bootstraps config, reference docs, specs, `CLAUDE.md`, and code graph (idempotent; safe to re-run) |
+| `/scan-all`             | Regenerate **all** `docs/project-reference/` docs after large code changes                                                                |
+| `/scan --target=<key>`  | Regenerate **one** reference doc when scope is narrow                                                                                     |
+| `/sync-codex`           | Re-sync the Codex mirror (`AGENTS.md`, `.agents/`, `.codex/`) from `.claude/`                                                             |
+| `/sync-to-copilot`      | Re-sync the GitHub Copilot instructions from `.claude/`                                                                                   |
+| `/scan-codebase-health` | Audit for unused exports, doc drift, and orphan files                                                                                     |
 
 ## What's Inside
 
