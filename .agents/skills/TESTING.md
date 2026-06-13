@@ -71,7 +71,7 @@ Expected behavior:
 Direct invocation:
 
 ```
-$workflow-start feature
+$start-workflow workflow-feature
 ```
 
 Inference test prompts:

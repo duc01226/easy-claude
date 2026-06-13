@@ -42,9 +42,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** [Workflow] Trigger Product Discovery workflow — raw vision or problem → structured brainstorm → prioritized opportunity map → N PBIs with stories, challenge review, DoR gate, and HTML mock-ups → cross-PBI ranked backlog ready for sprint planning.
-
-**Final Purpose:** Ensure product discovery converts raw opportunities into reviewed, prioritized PBIs ready for sprint planning.
+**Goal:** [Workflow] Trigger the Product Discovery workflow to convert raw opportunities — a raw vision or problem → structured brainstorm → prioritized opportunity map → N PBIs with stories, challenge review, DoR gate, and HTML mock-ups → cross-PBI ranked backlog — into reviewed, prioritized PBIs ready for sprint planning.
 
 **Workflow:**
 
@@ -69,9 +67,9 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## When NOT to Use
 
-- Single well-defined feature → use `feature` or `idea-to-pbi`
-- Implementation work (code writing) → use `feature` or `big-feature`
-- Bug fixes → use `bugfix`
+- Single well-defined feature → use `workflow-feature` or `workflow-idea-to-pbi`
+- Implementation work (code writing) → use `workflow-feature` or `workflow-big-feature`
+- Bug fixes → use `workflow-bugfix`
 - Research only, no PBI output needed → use `investigation` or `deep-research`
 
 ## Key Mechanics
@@ -167,7 +165,7 @@ At `$workflow-end`, AI presents:
 
 - Session summary: N PBIs created, X passed DoR, Y need rework
 - Ranked backlog with RICE scores
-- Recommended next step: `/full-feature-lifecycle` (backlog ready for delivery) or `/big-feature` (single large PBI needs deep research + implementation)
+- Recommended next step: `$workflow-feature` (implement a delivery-ready PBI) or `/big-feature` (single large PBI needs deep research + implementation)
 - Blocked PBIs: list DoR failures with specific blocking items
 
 ## Conditional Skip Rules
@@ -187,7 +185,7 @@ At `$workflow-end`, AI presents:
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its skill invocation — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
-Activate the `product-discovery` workflow. Run `$workflow-start product-discovery` with the user's prompt as context.
+Activate the `workflow-product-discovery` workflow. Run `$start-workflow workflow-product-discovery` with the user's prompt as context.
 
 **Steps:**
 $brainstorm → $web-research → $domain-analysis → $why-review
@@ -303,7 +301,7 @@ $brainstorm → $web-research → $domain-analysis → $why-review
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Final Purpose:** Ensure product discovery converts raw opportunities into reviewed, prioritized PBIs ready for sprint planning.
+**IMPORTANT MUST ATTENTION Goal:** Ensure product discovery converts raw opportunities into reviewed, prioritized PBIs ready for sprint planning.
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting — one task per opportunity × step
 - **MANDATORY IMPORTANT MUST ATTENTION** brainstorm output MUST produce a scored opportunity map before any $idea step
 - **MANDATORY IMPORTANT MUST ATTENTION** why-review runs after domain-analysis — FAIL removes opportunity from selection, WARN requires user acknowledgment
@@ -320,7 +318,7 @@ $brainstorm → $web-research → $domain-analysis → $why-review
 | Evasion | Rebuttal |
 | ------- | -------- |
 | "Purpose obvious" | Anchor it anyway — primacy/recency keeps outcome active through long prompts. |
-| "Existing reminders enough" | Echo Final Purpose in Closing Reminders — bottom anchor prevents drift. |
+| "Existing reminders enough" | Echo Goal in Closing Reminders — bottom anchor prevents drift. |
 | "Skip evidence for prompt edits" | Cite changed file evidence and verify no stale protocol text remains. |
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
@@ -335,7 +333,7 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
-4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
 6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.

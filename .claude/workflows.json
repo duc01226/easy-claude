@@ -249,7 +249,7 @@
   },
   "version": "2.0.0",
   "workflows": {
-    "big-feature": {
+    "workflow-big-feature": {
       "description": "Research-driven feature development for large, complex, or ambiguous features in an existing project — includes idea refinement, market research, business evaluation, domain analysis, tech stack research, and full implementation",
       "name": "Big Feature (Research + Implement)",
       "preActions": {
@@ -300,10 +300,10 @@
         "workflow-end",
         "watzup"
       ],
-      "whenNotToUse": "Small/well-defined features (use feature), new project from scratch (use greenfield-init), bug fixes, documentation, test-only tasks",
+      "whenNotToUse": "Small/well-defined features (use workflow-feature), new project from scratch (use workflow-greenfield-init), bug fixes, test-only tasks",
       "whenToUse": "User wants to implement a large, complex, or ambiguous feature that needs research, market analysis, business evaluation, domain modeling, or tech stack analysis before implementation. Big new module, major enhancement, cross-cutting capability, or feature where scope is unclear"
     },
-    "bugfix": {
+    "workflow-bugfix": {
       "description": "Systematic debugging and fix workflow with end-to-start debugger trace before fix",
       "name": "Bug Fix",
       "preActions": {
@@ -338,39 +338,7 @@
       "whenNotToUse": "New feature implementation, code improvement/refactoring, investigation-only (no fix), documentation updates",
       "whenToUse": "User reports a bug, error, crash, failure, regression, stale/incorrect final output, or something not working; wants to fix/debug/troubleshoot an issue with end-to-start trace"
     },
-    "design-workflow": {
-      "description": "Designer workflow: create design specification and implement UI (product, marketing, creative) from requirements or screenshots",
-      "name": "Design Workflow",
-      "preActions": {
-        "injectContext": "Role: UX Designer\nDESIGN WORKFLOW:\n⚠️ PROJECT CONTEXT: Read docs/project-config.json → designSystem.docsPath to find design system documentation. Read docs/project-config.json → workflowPatterns.cssMethodology for project CSS conventions.\n1. Read requirements/PBI\n2. Create design spec with component inventory, states, tokens, accessibility\n3. DESIGN IMPLEMENTATION GATE (pick ONE, skip the other):\n   - Product UIs (dashboards, admin panels, SaaS apps, data interfaces) → /interface-design (skip frontend-design)\n   - Marketing pages, landing pages, creative UIs, screenshot replication → /frontend-design (skip interface-design)\n   Mark the skipped step as completed immediately.\n4. Review with code-review agent\nUNIVERSAL RULES:\n- Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.\n- Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks."
-      },
-      "sequence": ["design-spec", "why-review", "interface-design", "frontend-design", "workflow-review-changes", "docs-update", "workflow-end"],
-      "whenNotToUse": "Implementing an existing design in code",
-      "whenToUse": "User wants to create a UI/UX design spec, mockup, wireframe, or component specification, design a product interface (dashboard, admin panel, SaaS app), build a landing page, create a marketing page, replicate a screenshot/design, or build a creative/distinctive frontend interface"
-    },
-    "documentation": {
-      "description": "Documentation creation and update workflow with plan validation",
-      "name": "Documentation Update",
-      "preActions": {
-        "injectContext": "IMPORTANT: For project feature docs under docs/specs/, use feature-spec workflow instead.\n\nDOCUMENTATION UPDATE PROTOCOL:\n1. Scout: Identify all documentation files affected by recent changes\n2. Investigate: Read existing docs, understand current structure and content\n3. Plan: List all files and sections to update with specific changes\n4. Validate plan via /plan-review before making any edits\n5. Execute updates following existing doc conventions and templates\n6. Review changes before finalizing\n7. Summary report of all documentation changes\n\nRULES:\n- For business feature docs (tech-free 8-section format), use feature-spec workflow instead\n- Match existing style and formatting of target documents\n- Update table of contents and cross-references if structure changes\n- Never create new doc files when existing ones should be updated\nUNIVERSAL RULES:\n- Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.\n- Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks."
-      },
-      "sequence": [
-        "scout",
-        "investigate",
-        "plan",
-        "plan-review",
-        "plan-validate",
-        "why-review",
-        "docs-update",
-        "workflow-review-changes",
-        "review-post-task",
-        "workflow-end",
-        "watzup"
-      ],
-      "whenNotToUse": "Feature implementation, bug fixes, test writing",
-      "whenToUse": "User wants to create, update, or improve documentation, READMEs, or code comments"
-    },
-    "e2e": {
+    "workflow-e2e": {
       "description": "Generate, update, or maintain E2E/Playwright tests — source-parameterized (changes | recording | update-ui)",
       "name": "E2E Testing",
       "preActions": {
@@ -381,7 +349,7 @@
       "whenNotToUse": "Non-E2E test work (unit/integration tests → use the test/integration-test workflows)",
       "whenToUse": "User wants to generate, update, or maintain E2E/Playwright tests from code/spec changes (--source=changes), a Chrome DevTools recording (--source=recording), or for UI screenshot baselines (--source=update-ui)"
     },
-    "feature": {
+    "workflow-feature": {
       "description": "Full feature development workflow with search-first approach, planning, implementation, testing, and documentation",
       "name": "Feature Implementation",
       "preActions": {
@@ -420,10 +388,10 @@
         "workflow-end",
         "watzup"
       ],
-      "whenNotToUse": "Bug fixes, documentation, test-only tasks, feature requests/ideas (no implementation), PBI/story creation, design specs, large/ambiguous features needing research (use big-feature)",
+      "whenNotToUse": "Bug fixes, test-only tasks, workflow-feature requests/ideas (no implementation), PBI/story creation, design specs, large/ambiguous features needing workflow-research (use workflow-big-feature)",
       "whenToUse": "User wants to implement a well-defined feature, add a component, build a capability, develop a module, implement/execute an existing plan, create a new API endpoint, or design an API contract, TDD/test-first development, spec-driven feature implementation with test specs written before code"
     },
-    "feature-spec": {
+    "workflow-feature-spec": {
       "description": "Business feature documentation with tech-free 8-section Feature Spec template enforcement, plan validation, and mandatory test coverage (TCs in Section 8)",
       "name": "Business Feature Documentation",
       "preActions": {
@@ -445,54 +413,7 @@
       "whenNotToUse": "Bug fixes, feature implementation, test writing, debugging, refactoring",
       "whenToUse": "User wants to create or update business feature documentation under the fixed docs/specs Feature Spec root"
     },
-    "full-feature-lifecycle": {
-      "description": "Complete feature from idea through implementation, testing, and documentation — PO→BA→Designer→Dev→QA",
-      "name": "Full Feature Lifecycle",
-      "preActions": {
-        "injectContext": "FULL FEATURE LIFECYCLE PROTOCOL:\nEnd-to-end feature delivery with formal role handoffs: idea capture → PBI refinement → story creation → Dev BA PIC challenge → DoR gate → design → implementation → testing → documentation. Apply shared/sdd-artifact-contract.md and allow any supported AI tool to implement or review when context is synced.\n\nMANDATORY IMPORTANT MUST ATTENTION RULES:\n1. Each step must invoke its Skill tool — never batch-complete or skip steps\n2. pbi-challenge requires Dev BA PIC (different person from drafter)\n3. dor-gate must pass (PASS or WARN) before design steps\n4. plan-validate confirms implementation plan with user before cook\n4b. domain-analysis (after review-artifact --type=pbi) — CONDITIONAL: skip if feature has no domain entity changes. Run to model bounded contexts, aggregates, ERD before story writing.\n4c. review-domain-entities (after cook) — CONDITIONAL: skip if no domain entity files in changeset. Reviews DDD quality of created/modified entities before integration tests.\n4d. spec (after frontend-design, before plan) — CONSOLIDATION point: folds story/design-spec/pbi-mockup into the tech-free 8-section Feature Spec; these upstream artifacts are INPUTS, not re-authored. spec [mode=tests] then writes TCs into it.\n5. workflow-review-changes is the consolidated review + fix loop. Use the canonical review-changes workflow sequence from .claude/workflows.json: review-changes -> why-review findings validation -> parallel review batch -> code-simplifier -> verification -> plan/plan-review/why-review/cook -> full restart -> docs.\n6. Save artifacts at every step to configured plan and product-artifact roots from docs/project-config.json or project reference docs.\nMANDATORY FULL-LIFECYCLE SYNC GATES:\n- Read docs/project-reference/spec-principles.md before planning and spec [mode=tests] updates to keep intent/invariants explicit across role handoffs.\n- Treat AI-extracted specs, PBIs, stories, and TCs as draft/reference until their owning review or acceptance gate approves them.\n- Keep three-way sync explicit throughout the lifecycle: spec docs ↔ Section 8 TCs ↔ test code.\n- STATE MACHINE DATA ASSERT (MOST IMPORTANT MANDATORY ASSERT): for lifecycle/state transitions, tests MUST assert persisted transitions and invalid-transition rejection.\n- Before /workflow-end, enforce sync chain: /spec [mode=tests] + /review-artifact --type=spec-tests + /integration-test + /integration-test-review + /integration-test-verify + /spec [mode=sync] + /docs-update.\n- When shared skill/workflow guidance changed, confirm generated mirrors are current before closure.\nUNIVERSAL RULES:\n- Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.\n- Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks."
-      },
-      "sequence": [
-        "idea",
-        "refine",
-        "why-review",
-        "review-artifact --type=pbi",
-        "domain-analysis",
-        "why-review",
-        "story",
-        "why-review",
-        "review-artifact --type=story",
-        "pbi-challenge",
-        "dor-gate",
-        "pbi-mockup",
-        "design-spec",
-        "why-review",
-        "interface-design",
-        "frontend-design",
-        "spec",
-        "plan",
-        "plan-review",
-        "plan-validate",
-        "why-review",
-        "cook",
-        "review-domain-entities",
-        "spec [mode=tests]",
-        "why-review",
-        "review-artifact --type=spec-tests",
-        "integration-test",
-        "integration-test-review",
-        "integration-test-verify",
-        "spec [mode=sync]",
-        "workflow-review-changes",
-        "sre-review",
-        "quality-gate",
-        "docs-update",
-        "workflow-end",
-        "watzup"
-      ],
-      "whenNotToUse": "PBI-only work (use idea-to-pbi), implementation-only work (use feature or big-feature), research-heavy new product (use big-feature or greenfield-init), bug fixes (use bugfix)",
-      "whenToUse": "Full end-to-end feature delivery requiring idea → PBI → stories → design → implementation → testing → documentation"
-    },
-    "greenfield-init": {
+    "workflow-greenfield-init": {
       "description": "Full waterfall project inception from idea through implementation with integration testing",
       "name": "Greenfield Project Init",
       "preActions": {
@@ -556,24 +477,30 @@
       "whenNotToUse": "Existing codebase with code, bug fixes, feature implementation, refactoring existing code",
       "whenToUse": "User wants to start a new project from scratch, init a greenfield project, plan a new application, research and plan before coding, bootstrap a new codebase, build something new"
     },
-    "idea-to-pbi": {
-      "description": "PO/BA workflow: capture or review idea/artifact, refine to PBI, create user stories, generate TDD test specs, challenge review, DoR gate, mockup, prioritize",
+    "workflow-idea-to-pbi": {
+      "description": "PO/BA workflow (idea → specs → from specs to PBI): capture or review idea/artifact, refine, generate TDD test specs from the idea, model the domain, plan, derive the PBI and user stories, challenge review, DoR gate, mockup, prioritize",
       "name": "Idea to PBI",
       "preActions": {
-        "injectContext": "IDEA TO PBI PROTOCOL:\nCapture and refine a raw idea — or a handed-off artifact/ticket/brief — into a grooming-ready PBI with stories, TDD test specifications, challenge review, DoR validation, and wireframe. Apply the shared SDD Artifact Contract from shared/sdd-artifact-contract.md in the active skills root and read docs/project-config.json plus docs/project-reference/docs-index-reference.md for project-specific conventions. Any supported AI tool may produce or review artifacts when this context is synced.\n\nMANDATORY IMPORTANT MUST ATTENTION RULES:\n1. Each step must invoke its Skill tool — never batch-complete or skip steps\n2. review-artifact is CONDITIONAL — skip if no existing artifact; proceed straight to refine\n3. why-review runs three times with purpose-specific labels: after refine, after story, and after spec [mode=tests]. The standalone gate after review-artifact --type=pbi is omitted because review-artifact --type=pbi (like every review skill) self-invokes /why-review --validate-findings internally as a Findings Validation Gate. Each gate validates WHY before the next artifact step proceeds. FAIL blocks the next artifact step; WARN requires user acknowledgment.\n4. spec [mode=tests] and review-artifact --type=spec-tests run after review-artifact --type=story so acceptance criteria and stories are mapped into testable TC specifications before challenge and DoR gates\n5. pbi-challenge is run by a reviewer different from the drafter — confirm reviewer identity before that step\n6. dor-gate must pass (PASS or WARN) before pbi-mockup is finalized\n7. Save artifacts at every step to the workflow artifact paths used by the child skills. If artifact roots become configurable later, update the workflow and child skills in the same change.\n8. Write output IMMEDIATELY after each step — never batch\n9. Run docs-update after prioritize and before workflow-end so specs, feature docs, and TDD/spec docs stay synchronized\n10. Treat AI-generated ideas, PBIs, stories, mockups, and TCs as draft/reference until the owning review or acceptance gate approves them.\n\nSTEP SELECTION GATE:\nAfter workflow activation, present the full step list and let user deselect irrelevant ones:\n- [x] Idea capture (idea)\n- [ ] Review existing artifact (review-artifact) — CONDITIONAL: only if PO artifact/ticket exists\n- [x] Refine to PBI (refine) — hypothesis, AC, RICE, GIVEN/WHEN/THEN\n- [x] Refinement rationale review (why-review) — after refine\n- [x] PBI review (review-artifact --type=pbi)\n- [x] User stories (story)\n- [x] Story rationale review (why-review) — after story\n- [x] Story review (review-artifact --type=story)\n- [x] Test specifications (spec [mode=tests])\n- [x] Test-spec rationale review (why-review) — after spec [mode=tests]\n- [x] Test specification review (review-artifact --type=spec-tests)\n- [x] Dev BA PIC challenge (pbi-challenge)\n- [x] Definition of Ready gate (dor-gate)\n- [x] PBI mockup/wireframe (pbi-mockup) — CONDITIONAL: skip for backend-only PBIs\n- [x] Backlog prioritization (prioritize)\n- [x] Documentation synchronization (docs-update) — near-final sync for specs, feature docs, and TDD/spec docs\n\nWHY-REVIEW GATES (repeated, purpose-specific):\nRun in sequence after refine, after story, and after spec [mode=tests] (the gate after review-artifact --type=pbi is omitted — review-artifact --type=pbi self-invokes /why-review --validate-findings internally as a Findings Validation Gate). Challenge the active artifact rationale before the next artifact step:\n- Is this the right next artifact/solution to the stated problem? What was rejected and why?\n- Are the acceptance criteria, story, or TC constraints justified? What breaks if they change?\n- Pre-mortem: if this PBI ships and fails in 3 months, what breaks?\n- Are there simpler alternatives the team has not considered?\nOutput: Why-Review checklist with PASS/WARN/FAIL + adversarial analysis section.\nFAIL blocks the next artifact step — active artifact must be revised first.\n\nTDD-SPEC GATE (after review-artifact --type=story):\nBefore pbi-challenge and DoR, map reviewed stories and acceptance criteria into TC specifications:\n- Each material acceptance criterion should map to at least one TC ID\n- Route planned TC IDs to Feature doc Section 8 through /spec [mode=tests]; /docs-update later verifies feature docs and §8 TC ↔ integration test code sync\n- Cover happy path, validation failure, authorization/permission, and important edge cases where applicable\n- Review specs with review-artifact --type=spec-tests before pbi-challenge so reviewers evaluate a testable PBI\n- AI-generated TC drafts are reference-only until review and DoR gates accept them.\n\nHANDOFF:\nAt workflow-end, AI MUST ATTENTION present:\n- Summary: PBI created, test specs created/reviewed, docs sync completed, DoR result (PASS/WARN/FAIL), any blocking items\n- Recommended next workflow: /workflow-start feature or /workflow-start big-feature (if PBI is ready to implement)\n- Any DoR failures: list specific blocking criteria that must be resolved\nUNIVERSAL RULES:\n- Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.\n- Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks."
+        "injectContext": "IDEA TO PBI PROTOCOL:\nCapture and refine a raw idea — or a handed-off artifact/ticket/brief — into a grooming-ready PBI via an idea → test specs → (from those specs) PBI/stories/plan flow, with domain analysis, challenge review, DoR validation, and wireframe. Apply the shared SDD Artifact Contract from shared/sdd-artifact-contract.md in the active skills root and read docs/project-config.json plus docs/project-reference/docs-index-reference.md for project-specific conventions. Any supported AI tool may produce or review artifacts when this context is synced.\n\nMANDATORY IMPORTANT MUST ATTENTION RULES:\n1. Each step must invoke its Skill tool — never batch-complete or skip steps\n2. review-artifact is CONDITIONAL — skip if no existing artifact; proceed straight to refine\n3. why-review runs after refine, after spec [mode=tests], after domain-analysis, after plan-validate, and after story. The standalone gate after review-artifact --type=pbi is omitted because review-artifact --type=pbi (like every review skill) self-invokes /why-review --validate-findings internally as a Findings Validation Gate. Each gate validates WHY before the next artifact step proceeds. FAIL blocks the next artifact step; WARN requires user acknowledgment.\n4. spec [mode=tests] and review-artifact --type=spec-tests run right after refine (BEFORE the PBI is drafted) so the idea is captured as testable TC specifications first; domain-analysis and plan/plan-review/plan-validate (grafted from the spec-to-pbi analytical half), then the PBI and stories, are derived FROM those specs (idea → specs → from specs to PBI)\n5. pbi-challenge is run by a reviewer different from the drafter — confirm reviewer identity before that step\n6. dor-gate must pass (PASS or WARN) before pbi-mockup is finalized\n7. Save artifacts at every step to the workflow artifact paths used by the child skills. If artifact roots become configurable later, update the workflow and child skills in the same change.\n8. Write output IMMEDIATELY after each step — never batch\n9. Run docs-update after prioritize and before workflow-end so specs, workflow-feature docs, and TDD/spec docs stay synchronized\n10. Treat AI-generated ideas, PBIs, stories, mockups, and TCs as draft/reference until the owning review or acceptance gate approves them.\n\nSTEP SELECTION GATE:\nAfter workflow activation, present the full step list and let user deselect irrelevant ones:\n- [x] Idea capture (idea)\n- [ ] Review existing artifact (review-artifact) — CONDITIONAL: only if PO artifact/ticket exists\n- [x] Refine to PBI (refine) — hypothesis, AC, RICE, GIVEN/WHEN/THEN\n- [x] Refinement rationale review (why-review) — after refine\n- [x] Test specifications (spec [mode=tests]) — generate TCs FROM the refined idea (idea → specs)\n- [x] Test-spec rationale review (why-review) — after spec [mode=tests]\n- [x] Test specification review (review-artifact --type=spec-tests)\n- [x] Domain analysis (domain-analysis) — CONDITIONAL: skip if no new/changed entities; model aggregates/ERD\n- [x] Domain rationale review (why-review) — after domain-analysis\n- [x] Implementation plan (plan)\n- [x] Plan review (plan-review)\n- [x] Plan validation (plan-validate)\n- [x] Plan rationale review (why-review) — after plan-validate\n- [x] PBI review (review-artifact --type=pbi)\n- [x] User stories (story)\n- [x] Story rationale review (why-review) — after story\n- [x] Story review (review-artifact --type=story)\n- [x] Dev BA PIC challenge (pbi-challenge)\n- [x] Definition of Ready gate (dor-gate)\n- [x] PBI mockup/wireframe (pbi-mockup) — CONDITIONAL: skip for backend-only PBIs\n- [x] Backlog prioritization (prioritize)\n- [x] Documentation synchronization (docs-update) — near-final sync for specs, workflow-feature docs, and TDD/spec docs\n\nWHY-REVIEW GATES (repeated, purpose-specific):\nRun in sequence after refine, after spec [mode=tests], after domain-analysis, after plan-validate, and after story (the after-plan-validate gate covers the rationale before review-artifact --type=pbi; review-artifact --type=pbi also self-invokes /why-review --validate-findings internally as a Findings Validation Gate). Challenge the active artifact rationale before the next artifact step:\n- Is this the right next artifact/solution to the stated problem? What was rejected and why?\n- Are the acceptance criteria, story, or TC constraints justified? What breaks if they change?\n- Pre-mortem: if this PBI ships and fails in 3 months, what breaks?\n- Are there simpler alternatives the team has not considered?\nOutput: Why-Review checklist with PASS/WARN/FAIL + adversarial analysis section.\nFAIL blocks the next artifact step — active artifact must be revised first.\n\nTDD-SPEC GATE (after refine, BEFORE the PBI is drafted):\nMap the refined idea’s acceptance criteria into TC specifications up front, so the PBI, stories, and plan are derived FROM the test specs:\n- Each material acceptance criterion should map to at least one TC ID\n- Route planned TC IDs to Feature doc Section 8 through /spec [mode=tests]; /docs-update later verifies workflow-feature docs and §8 TC ↔ integration test code sync\n- Cover happy path, validation failure, authorization/permission, and important edge cases where applicable\n- Review specs with review-artifact --type=spec-tests before pbi-challenge so reviewers evaluate a testable PBI\n- AI-generated TC drafts are reference-only until review and DoR gates accept them.\n\nHANDOFF:\nAt workflow-end, AI MUST ATTENTION present:\n- Summary: PBI created, test specs created/reviewed, docs sync completed, DoR result (PASS/WARN/FAIL), any blocking items\n- Recommended next workflow: /start-workflow workflow-feature or /start-workflow workflow-big-feature (if PBI is ready to implement)\n- Any DoR failures: list specific blocking criteria that must be resolved\nUNIVERSAL RULES:\n- Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.\n- Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks."
       },
       "sequence": [
         "idea",
         "review-artifact",
         "refine",
         "why-review",
+        "spec [mode=tests]",
+        "why-review",
+        "review-artifact --type=spec-tests",
+        "domain-analysis",
+        "why-review",
+        "plan",
+        "plan-review",
+        "plan-validate",
+        "why-review",
         "review-artifact --type=pbi",
         "story",
         "why-review",
         "review-artifact --type=story",
-        "spec [mode=tests]",
-        "why-review",
-        "review-artifact --type=spec-tests",
         "pbi-challenge",
         "dor-gate",
         "pbi-mockup",
@@ -582,14 +509,14 @@
         "workflow-end",
         "watzup"
       ],
-      "whenNotToUse": "Already have a drafted PBI (use pbi-challenge standalone), implementing a feature (use feature or big-feature)",
+      "whenNotToUse": "Already have a drafted PBI (use pbi-challenge standalone), already have canonical Feature Specs and only need the backlog (use workflow-spec-to-pbi for spec-first entry), implementing a workflow-feature (use workflow-feature or workflow-big-feature)",
       "whenToUse": "PO or BA wants to take a raw idea — OR PO is handing off an existing artifact/ticket/brief to BA — through to a grooming-ready PBI with user stories, TDD test specifications, Dev BA PIC challenge review, DoR validation, wireframes, and backlog prioritization"
     },
-    "product-discovery": {
+    "workflow-product-discovery": {
       "description": "Product discovery: raw vision or problem → structured brainstorm → prioritized opportunity map → N PBIs with stories, challenge review, DoR gate, and wireframes → cross-PBI ranked backlog ready for sprint planning",
       "name": "Product Discovery",
       "preActions": {
-        "injectContext": "PRODUCT DISCOVERY PROTOCOL:\nConverts a raw product vision or problem statement into a grooming-ready backlog of multiple PBIs through structured PO/BA discovery techniques.\n\nMANDATORY IMPORTANT MUST ATTENTION RULES:\n1. EVERY research stage requires AskUserQuestion validation before proceeding\n2. Save ALL artifacts to configured artifact and plan roots at EVERY step — write IMMEDIATELY after each task, never batch\n3. /brainstorm output MUST produce a scored opportunity map (RICE) before any /idea step\n4. TASK DECOMPOSITION GATE: After user selects opportunities, call TaskCreate for EVERY task (N opportunities x 8 steps = Nx8 tasks min) BEFORE processing any opportunity — do NOT start the loop without a complete task list\n5. The idea-to-pbi loop (steps 4-11) repeats for EACH opportunity selected from the map — NOT just once\n6. pbi-challenge requires Dev BA PIC (not the drafter) — confirm reviewer identity before that step\n7. dor-gate must pass (PASS or WARN) before pbi-mockup\n8. /prioritize at the end is cross-PBI — ranks ALL PBIs from this session together\n9. This workflow produces a BACKLOG only — no implementation. Hand off to the feature or full-feature-lifecycle workflow.\n10. SCALE MANAGEMENT: For 6+ opportunities, spawn one sub-agent per opportunity (each gets brainstorm context + task list); main context runs /prioritize at end. After every 3 opportunities, update session summary table.\n\nSTEP SELECTION GATE:\nAfter workflow activation, auto-select the applicable steps and skip irrelevant conditional steps. Default step set:\n- [x] Brainstorm — Double Diamond: problem frame, HMW, SCAMPER, opportunity map (RICE-scored)\n- [x] Market Research (web-research) — CONDITIONAL: skip for internal tools or when domain is well-understood\n- [x] Domain Analysis (domain-analysis) — CONDITIONAL: skip if no new domain entities involved\n- [x] Idea capture (idea) — REPEATS per opportunity\n- [x] PBI refinement (refine) — REPEATS per opportunity: hypothesis, AC, RICE, GIVEN/WHEN/THEN\n- [x] PBI review (review-artifact --type=pbi) — REPEATS per opportunity\n- [x] User stories (story) — REPEATS per opportunity\n- [x] Story review (review-artifact --type=story) — REPEATS per opportunity\n- [x] Dev BA PIC challenge (pbi-challenge) — REPEATS per opportunity\n- [x] Definition of Ready gate (dor-gate) — REPEATS per opportunity\n- [x] PBI mockup/wireframe (pbi-mockup) — CONDITIONAL per opportunity: skip for backend-only PBIs\n- [x] Cross-PBI prioritization (prioritize)\n\nMULTI-OPPORTUNITY LOOP (core mechanic):\nThe /brainstorm step produces a scored opportunity map — typically 3–8 opportunities ranked by RICE.\nFor EACH opportunity the team selects to develop:\n  1. Run /idea to capture as structured artifact → configured idea artifact root\n  2. Run /refine to create PBI with hypothesis, AC, RICE, GIVEN/WHEN/THEN → configured PBI artifact root\n  3. Run /review-artifact --type=pbi — BA quality check\n  4. Run /story — user stories per PBI\n  5. Run /review-artifact --type=story — story quality check\n  6. Run /pbi-challenge — Dev BA PIC review (challenge prompts, AC quality, feasibility)\n  7. Run /dor-gate — INVEST check, DoR pass/fail\n  8. Run /pbi-mockup — wireframe (SKIP for backend-only PBIs)\nAfter ALL opportunities are processed: run /prioritize across all PBIs.\n\nBRAINSTORM STEP REQUIREMENTS:\n- Detect scenario: problem-solving vs new product vs enhancement\n- Apply Double Diamond: problem framing (5 Whys/HMW/JTBD) → opportunity framing (OST/Lean Canvas) → ideation (SCAMPER/Crazy 8s) → convergence (RICE/Kano/2x2)\n- Output: opportunity map with 3–8 scored items\n- Present map to user: 'Which opportunities should we develop into PBIs?' (AskUserQuestion, multiSelect: true)\n- Document in plans/{plan-dir}/brainstorm-opportunity-map.md\n\nCROSS-PBI PRIORITIZE STEP:\n- Aggregate all PBIs produced in this session\n- Apply cross-PBI RICE scoring and dependency graph\n- Produce a sprint-ready ranked backlog\n- Flag Must-Have vs Should-Have vs Could-Have per release scope\n- Output: configured backlog artifact root/product-discovery-{date}-backlog.md\n\nHANDOFF:\nAt workflow-end, AI MUST ATTENTION present:\n- Summary: N PBIs created, X passed DoR, Y need rework\n- Recommended next workflow: /workflow-start feature (implement the top-ranked PBI from the backlog) OR /workflow-start big-feature (if single large PBI needs deep research + implementation)\n- Any PBIs that failed DoR gate: list blocking items\n\nAUTO-SKIP RULES:\n- web-research: skip if user says 'internal tool', 'well-understood domain', or 'no market research needed'\n- domain-analysis: skip if no new entities/aggregates — ask: 'Does this product involve new domain entities?'\n- pbi-mockup: skip per-PBI if PBI is backend-only (no UI changes)\n\nWHY-REVIEW GATE (after domain-analysis, before per-opportunity loop):\nBefore committing to the per-PBI loop, validate the opportunity map rationale:\n- Are the top-ranked opportunities truly the right problems to solve? What was deprioritized and why?\n- Are RICE scores well-founded or speculative? Challenge Reach and Impact estimates.\n- Pre-mortem: if these opportunities are built and miss in 6 months, what was the root cause?\n- Are there systemic alternatives (e.g., platform change, process change) that make these opportunities unnecessary?\nOutput: Why-Review checklist with PASS/WARN/FAIL per opportunity.\nFAIL on a high-ranked opportunity → remove from selection or revisit brainstorm framing.\nWARN → document risk and proceed with user acknowledgment.\nUNIVERSAL RULES:\n- Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.\n- Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks."
+        "injectContext": "PRODUCT DISCOVERY PROTOCOL:\nConverts a raw product vision or problem statement into a grooming-ready backlog of multiple PBIs through structured PO/BA discovery techniques.\n\nMANDATORY IMPORTANT MUST ATTENTION RULES:\n1. EVERY workflow-research stage requires AskUserQuestion validation before proceeding\n2. Save ALL artifacts to configured artifact and plan roots at EVERY step — write IMMEDIATELY after each task, never batch\n3. /brainstorm output MUST produce a scored opportunity map (RICE) before any /idea step\n4. TASK DECOMPOSITION GATE: After user selects opportunities, call TaskCreate for EVERY task (N opportunities x 8 steps = Nx8 tasks min) BEFORE processing any opportunity — do NOT start the loop without a complete task list\n5. The workflow-idea-to-pbi loop (steps 4-11) repeats for EACH opportunity selected from the map — NOT just once\n6. pbi-challenge requires Dev BA PIC (not the drafter) — confirm reviewer identity before that step\n7. dor-gate must pass (PASS or WARN) before pbi-mockup\n8. /prioritize at the end is cross-PBI — ranks ALL PBIs from this session together\n9. This workflow produces a BACKLOG only — no implementation. Hand off to the workflow-feature or workflow-big-feature workflow.\n10. SCALE MANAGEMENT: For 6+ opportunities, spawn one sub-agent per opportunity (each gets brainstorm context + task list); main context runs /prioritize at end. After every 3 opportunities, update session summary table.\n\nSTEP SELECTION GATE:\nAfter workflow activation, auto-select the applicable steps and skip irrelevant conditional steps. Default step set:\n- [x] Brainstorm — Double Diamond: problem frame, HMW, SCAMPER, opportunity map (RICE-scored)\n- [x] Market Research (web-research) — CONDITIONAL: skip for internal tools or when domain is well-understood\n- [x] Domain Analysis (domain-analysis) — CONDITIONAL: skip if no new domain entities involved\n- [x] Idea capture (idea) — REPEATS per opportunity\n- [x] PBI refinement (refine) — REPEATS per opportunity: hypothesis, AC, RICE, GIVEN/WHEN/THEN\n- [x] PBI review (review-artifact --type=pbi) — REPEATS per opportunity\n- [x] User stories (story) — REPEATS per opportunity\n- [x] Story review (review-artifact --type=story) — REPEATS per opportunity\n- [x] Dev BA PIC challenge (pbi-challenge) — REPEATS per opportunity\n- [x] Definition of Ready gate (dor-gate) — REPEATS per opportunity\n- [x] PBI mockup/wireframe (pbi-mockup) — CONDITIONAL per opportunity: skip for backend-only PBIs\n- [x] Cross-PBI prioritization (prioritize)\n\nMULTI-OPPORTUNITY LOOP (core mechanic):\nThe /brainstorm step produces a scored opportunity map — typically 3–8 opportunities ranked by RICE.\nFor EACH opportunity the team selects to develop:\n  1. Run /idea to capture as structured artifact → configured idea artifact root\n  2. Run /refine to create PBI with hypothesis, AC, RICE, GIVEN/WHEN/THEN → configured PBI artifact root\n  3. Run /review-artifact --type=pbi — BA quality check\n  4. Run /story — user stories per PBI\n  5. Run /review-artifact --type=story — story quality check\n  6. Run /pbi-challenge — Dev BA PIC review (challenge prompts, AC quality, feasibility)\n  7. Run /dor-gate — INVEST check, DoR pass/fail\n  8. Run /pbi-mockup — wireframe (SKIP for backend-only PBIs)\nAfter ALL opportunities are processed: run /prioritize across all PBIs.\n\nBRAINSTORM STEP REQUIREMENTS:\n- Detect scenario: problem-solving vs new product vs enhancement\n- Apply Double Diamond: problem framing (5 Whys/HMW/JTBD) → opportunity framing (OST/Lean Canvas) → ideation (SCAMPER/Crazy 8s) → convergence (RICE/Kano/2x2)\n- Output: opportunity map with 3–8 scored items\n- Present map to user: 'Which opportunities should we develop into PBIs?' (AskUserQuestion, multiSelect: true)\n- Document in plans/{plan-dir}/brainstorm-opportunity-map.md\n\nCROSS-PBI PRIORITIZE STEP:\n- Aggregate all PBIs produced in this session\n- Apply cross-PBI RICE scoring and dependency graph\n- Produce a sprint-ready ranked backlog\n- Flag Must-Have vs Should-Have vs Could-Have per release scope\n- Output: configured backlog artifact root/product-discovery-{date}-backlog.md\n\nHANDOFF:\nAt workflow-end, AI MUST ATTENTION present:\n- Summary: N PBIs created, X passed DoR, Y need rework\n- Recommended next workflow: /start-workflow workflow-feature (implement the top-ranked PBI from the backlog) OR /start-workflow workflow-big-feature (if single large PBI needs deep workflow-research + implementation)\n- Any PBIs that failed DoR gate: list blocking items\n\nAUTO-SKIP RULES:\n- web-research: skip if user says 'internal tool', 'well-understood domain', or 'no market workflow-research needed'\n- domain-analysis: skip if no new entities/aggregates — ask: 'Does this product involve new domain entities?'\n- pbi-mockup: skip per-PBI if PBI is backend-only (no UI changes)\n\nWHY-REVIEW GATE (after domain-analysis, before per-opportunity loop):\nBefore committing to the per-PBI loop, validate the opportunity map rationale:\n- Are the top-ranked opportunities truly the right problems to solve? What was deprioritized and why?\n- Are RICE scores well-founded or speculative? Challenge Reach and Impact estimates.\n- Pre-mortem: if these opportunities are built and miss in 6 months, what was the root cause?\n- Are there systemic alternatives (e.g., platform change, process change) that make these opportunities unnecessary?\nOutput: Why-Review checklist with PASS/WARN/FAIL per opportunity.\nFAIL on a high-ranked opportunity → remove from selection or revisit brainstorm framing.\nWARN → document risk and proceed with user acknowledgment.\nUNIVERSAL RULES:\n- Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.\n- Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks."
       },
       "sequence": [
         "brainstorm",
@@ -611,10 +538,10 @@
         "workflow-end",
         "watzup"
       ],
-      "whenNotToUse": "Single well-defined feature (use feature or idea-to-pbi), implementation-only work (use feature or big-feature), bug fixes (use bugfix), research-only without PBI output (use /investigate skill or deep-research)",
+      "whenNotToUse": "Single well-defined workflow-feature (use workflow-feature or workflow-idea-to-pbi), implementation-only work (use workflow-feature or workflow-big-feature), bug fixes (use workflow-bugfix), research-only without PBI output (use /investigate skill or deep-research)",
       "whenToUse": "PO/BA wants to go from a raw product idea, vision, or problem statement through structured brainstorming into a prioritized backlog of multiple PBIs with stories, challenge review, DoR validation, wireframes, and cross-PBI ranking — full product discovery sprint output without implementation"
     },
-    "refactor": {
+    "workflow-refactor": {
       "description": "Code improvement and restructuring workflow with search-first approach",
       "name": "Code Refactoring",
       "preActions": {
@@ -646,17 +573,17 @@
       "whenNotToUse": "Bug fixes, new feature development",
       "whenToUse": "User wants to restructure, reorganize, clean up, or improve existing code without changing behavior; technical debt"
     },
-    "research": {
+    "workflow-research": {
       "description": "Research & Synthesis: gather web sources on a topic, then synthesize into one of four artifacts selected by --output — cited knowledge report (synthesis), business/market viability evaluation (business-eval), marketing strategy (marketing), or structured course material (course)",
       "name": "Research & Synthesis",
       "preActions": {
         "injectContext": "RESEARCH & SYNTHESIS PROTOCOL:\nThe canonical entry point is the /workflow-research skill — it dispatches to one of four synthesis sequences via --output={synthesis|business-eval|marketing|course}. The Sequence below is the DEFAULT (--output=synthesis); for the other three intents keep the shared research scaffold (web-research → deep-research → … → knowledge-review → workflow-end) and swap ONLY the terminal synthesis skill(s) per the OUTPUT DISPATCH table.\n\nOUTPUT DISPATCH (select by intent BEFORE creating tasks; default synthesis):\n- synthesis (knowledge report): /web-research → /deep-research → /knowledge-synthesis → /knowledge-review → /workflow-end\n- business-eval (business/market evaluation): /web-research → /deep-research → /market-analysis → /business-evaluation → /knowledge-review → /workflow-end\n- marketing (marketing strategy): /web-research → /deep-research → /market-analysis → /strategy-builder → /knowledge-review → /workflow-end\n- course (course material): /web-research → /deep-research → /course-builder → /knowledge-review → /workflow-end\n\nRULES:\n- Detect the target artifact from the prompt and pick the matching --output BEFORE creating tasks; if ambiguous, default to synthesis and state the assumption.\n- Create the TaskCreate plan from the SELECTED --output sequence (not the default) when it differs.\n- Each step MUST ATTENTION invoke its Skill tool — marking a task completed without skill invocation is a workflow violation.\n- Keep claims evidence-based with cited sources; confidence >80% to assert.\n- This workflow produces research artifacts only — no code implementation.\nUNIVERSAL RULES:\n- Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.\n- Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks."
       },
       "sequence": ["web-research", "deep-research", "knowledge-synthesis", "knowledge-review", "workflow-end"],
-      "whenNotToUse": "Implementing code or features (use feature/big-feature), fixing bugs (use bugfix), updating project documentation (use documentation), investigating how existing code works (use /investigate skill), turning research into a PBI backlog (use product-discovery)",
+      "whenNotToUse": "Implementing code or features (use workflow-feature/big-feature), fixing bugs (use workflow-bugfix), updating project documentation (use the docs-update skill), investigating how existing code works (use /investigate skill), turning workflow-research into a PBI backlog (use workflow-product-discovery)",
       "whenToUse": "User wants to research a topic from web sources and synthesize the findings into a deliverable — a cited knowledge report, a business/market viability evaluation, a marketing strategy, or structured course material"
     },
-    "review-changes": {
+    "workflow-review-changes": {
       "description": "Review uncommitted changes, plan and fix issues, then re-review recursively until clean",
       "name": "Review Current Changes",
       "parallelGroups": [
@@ -722,17 +649,7 @@
       "whenNotToUse": "PR reviews, codebase reviews, branch comparisons",
       "whenToUse": "User wants to review current uncommitted, staged, or unstaged changes before committing"
     },
-    "spec-index": {
-      "description": "Regenerate DERIVED navigation aids — a per-bucket feature INDEX, cross-capability ERD, or reimplementation guide — assembled FROM the canonical tech-free 8-section Feature Specs under docs/specs/. The Feature Specs stay the single source of truth; this never extracts a separate per-module A-E engineering tree (retired 2026-06-10).",
-      "name": "Spec Discovery",
-      "preActions": {
-        "injectContext": "SPEC DISCOVERY PROTOCOL (DERIVED-AID GENERATOR — repurposed v4.0.0):\nGenerates regenerable navigation aids — a per-bucket feature INDEX, a cross-capability ERD, or a reimplementation guide — assembled FROM the canonical tech-free 8-section Feature Specs matching docs/specs/{Bucket}/README.*.md. The Feature Specs are the SINGLE source of truth; this workflow only assembles regenerable aids over them. It does NOT reverse-engineer a parallel spec layer.\n\n[RETIRED — MUST NOT RECREATE] The prior per-module A-E engineering bundle (A-domain-model, B-business-rules, C-api-contracts, D-events, E-user-journeys), M## directories, 00-module-registry.md, 01-domain-erd.md, 06-reimplementation-guide.md, docs/specs/README.md, and docs/specs/PRIORITY-INDEX.md were DELETED 2026-06-10. Emitting any of them resurrects the retired tree (the thin-index-only contract: output is DERIVED — never emit A-E bundle files). Canonical authority: docs/project-reference/spec-system-reference.md → 'spec-index — Repurposed'.\n\nMANDATORY IMPORTANT MUST ATTENTION RULES:\n1. SCOPE GATE FIRST: use AskUserQuestion to confirm Bucket(s) (one / several / all of docs/specs/), Mode (index | audit), and Artifacts (INDEX.md / cross-capability ERD / reimplementation guide). Default = index, INDEX.md only.\n2. If the target bucket has NO Feature Specs matching docs/specs/{Bucket}/README.*.md, STOP and route to /spec — there is nothing to derive from. NEVER fabricate a spec to index.\n3. Output is DERIVED and regenerable — every generated file carries a '> DERIVED — regenerate via /spec-index; do NOT hand-edit' banner. It is NEVER a second source of truth.\n4. §1-7 of a Feature Spec are tech-free; the derived INDEX and ERD inherit that tech-free stance. The reimplementation guide is the SOLE derived artifact allowed to name a target rebuild stack (spec-principles.md §3 rebuild-guide exception).\n5. Every catalog row / ERD entity links back to its source Feature Spec; mark [UNVERIFIED] rather than guessing. Read docs/project-reference/spec-principles.md §3 (tech-agnostic + banned-token list) before writing any prose.\n6. App Bucket mapping: resolve service→bucket assignments from docs/project-reference/spec-system-reference.md → 'App Bucket Mapping' (single canonical table; do not inline it here).\n\nWORKFLOW EXECUTION:\n\nSTEP 1 — READ SOURCE FEATURE SPECS:\n  Glob docs/specs/{Bucket}/README.*.md → enumerate canonical specs. Per spec extract ONLY: capability name + file link · summary (first sentence of §1 Overview) · feature code + TC count + status mix (§8 Test Specifications) · entities + relationships (§5 Domain Model mermaid block, for ERD assembly). Do NOT re-derive business rules / API contracts / events into new files — they live in §1-7 and in code. You are indexing, not extracting. (Optional: parallel reader sub-agents, one per spec — an optimization, not a gate.)\n\nSTEP 2 — ASSEMBLE DERIVED AIDS:\n  2a INDEX.md (default): regenerate docs/specs/{Bucket}/INDEX.md as a feature catalog (columns: Capability link | Summary | Feature Code | TCs | Status) with the DERIVED banner. spec maintains the SAME file — keep the schema identical so the two never diverge.\n  2b Cross-capability ERD (on request): merge every spec's §5 mermaid erDiagram into one; dedupe entities by name; keep cross-capability relationships; ERD stays tech-free (entity + relationship names only). Write docs/specs/{Bucket}/{Bucket}.erd.md with the DERIVED banner. Do NOT name it 01-domain-erd.md (retired).\n  2c Reimplementation guide (explicit request only): build-order narrative (capability dependency order, integration touchpoints, suggested rebuild sequence). The ONLY derived artifact permitted to name a target stack. Write docs/specs/{Bucket}/{Bucket}.reimplementation-guide.md with the DERIVED banner. Do NOT name it 06-reimplementation-guide.md (retired).\n\nAUDIT MODE (Mode=audit): do NOT regenerate — compare each derived aid's age against its source Feature Specs (mtime/git) and emit a stale-list report (which aids lag their specs). No writes beyond the report.\n\nHARD PROHIBITIONS: MUST NOT emit M## dirs, A-E files, 00-module-registry.md, 01-domain-erd.md, 06-reimplementation-guide.md, docs/specs/README.md, or docs/specs/PRIORITY-INDEX.md. MUST NOT populate a parallel spec layer. MUST NOT put a tech stack name in §1-7-derived output (INDEX/ERD) — only the reimplementation guide may.\n\nHANDOFF at workflow-end:\n  Present: derived aids regenerated (which buckets, which artifacts), and any [UNVERIFIED] / stale entries.\n  Recommend: /spec (author or fix a source Feature Spec), /spec [mode=sync] (§8 ↔ test code).\nUNIVERSAL RULES:\n- Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.\n- Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks."
-      },
-      "sequence": ["scout", "spec-index", "review-changes", "review-artifact", "workflow-end", "watzup"],
-      "whenNotToUse": "Authoring or fixing the canonical business content of a capability (use spec — Feature Specs are the source of truth, this only derives aids over them), syncing §8 test specs to test code (use /spec [mode=sync]), reverse-engineering specs from a brand-new external codebase with no docs/specs/ tree yet (author Feature Specs via spec first), refactoring or optimizing code (use refactor or /performance-review skill)",
-      "whenToUse": "Regenerating a per-bucket feature INDEX.md after Feature Specs changed, assembling a cross-capability ERD from the §5 domain-model blocks, producing a reimplementation/build-order guide for a rebuild, or auditing which derived aids have gone stale against their source Feature Specs — derived INDEX/ERD regeneration ONLY (never authors canonical spec content). Authoring or syncing canonical spec content → use spec-driven-dev."
-    },
-    "spec-driven-dev": {
+    "workflow-spec-driven-dev": {
       "description": "Unified spec-driven development — authors and maintains ONE canonical artifact per capability: the tech-free 8-section Feature Spec at docs/specs/{Bucket}/README.{Feature}.md (code is the technical source of truth; derived bucket INDEX/ERD are regenerable aids). Modes: init-full (zero → Feature Specs), update (incremental sync from code changes), audit (staleness check).",
       "name": "Spec-Driven Development",
       "preActions": {
@@ -754,7 +671,7 @@
       "whenNotToUse": "Understanding one specific feature (use /investigate skill), authoring/updating a single Feature Spec (use spec directly), regenerating only the derived bucket index/ERD (use spec-index directly)",
       "whenToUse": "Initial Feature Spec generation from zero docs, maintaining spec sync after code changes, quarterly spec health audits, before tech migrations, after major features land — authors + three-way-syncs the canonical Feature Spec. Use spec-index instead when only regenerating derived indexes/ERDs."
     },
-    "spec-to-pbi": {
+    "workflow-spec-to-pbi": {
       "description": "Generate a complete, dependency-aware PBI backlog from existing canonical Feature Specs (docs/specs/{Bucket}/). Audits spec freshness, decomposes large Feature Specs by capability and feature, creates PBIs/stories/DoR evidence, and produces a ranked backlog.",
       "name": "Spec to PBI Backlog",
       "preActions": {
@@ -783,10 +700,10 @@
         "workflow-end",
         "watzup"
       ],
-      "whenNotToUse": "Raw product vision without any Feature Spec (use product-discovery), one informal idea (use idea-to-pbi), implementation work after PBIs are ready (use feature or big-feature), spec generation/update only (use spec-driven-dev).",
+      "whenNotToUse": "Raw product vision without any Feature Spec (use workflow-product-discovery), one informal idea (use workflow-idea-to-pbi), implementation work after PBIs are ready (use workflow-feature or workflow-big-feature), spec generation/update only (use workflow-spec-driven-dev).",
       "whenToUse": "User wants to create all PBIs from an existing Feature Spec, convert a large Feature Spec into a complete prioritized backlog, generate dependent PBIs from docs/specs, split a very big Feature Spec into sprint-ready PBIs, or produce a ranked implementation order from a bucket of Feature Specs."
     },
-    "spec-sync": {
+    "workflow-spec-sync": {
       "description": "Update test specs and feature docs after code changes, bug fixes, or PR reviews",
       "name": "Spec Sync (Post-Change)",
       "preActions": {
@@ -805,10 +722,10 @@
         "docs-update",
         "workflow-end"
       ],
-      "whenNotToUse": "New feature implementation (use feature), no code changes yet, idea refinement",
+      "whenNotToUse": "New workflow-feature implementation (use workflow-feature), no code changes yet, idea refinement",
       "whenToUse": "After fixing a bug update test specs, after code changes update test specs, after PR review update test specs, sync test specs after changes, update test documentation after implementation"
     },
-    "visualize": {
+    "workflow-visualize": {
       "description": "Create visual Excalidraw diagrams from codebase investigation or web research",
       "name": "Visual Diagram",
       "preActions": {
@@ -825,10 +742,10 @@
         "injectContext": "SEED TEST DATA PROTOCOL:\n⚠️ PROJECT CONTEXT: Read docs/project-config.json → 'Data Seeders' context group for project-specific seeder base class, file location, config keys, and DI registration pattern. Then read docs/project-reference/seed-test-data-reference.md for the complete project-specific implementation guide.\n\nUNIVERSAL RULES (apply to ALL projects):\n1. Environment gate FIRST — development or config-enabled only. NEVER production.\n2. Command-based ONLY — call application-layer commands. NEVER direct DB/repo for domain entities. Seeder = QC orchestrator.\n3. No duplicate logic — commands own validation + domain rules; seeder provides valid inputs.\n4. Idempotency — check existing count BEFORE seeding; seed only remaining = target - existing.\n5. Count-configurable — read count from project config key (see project-config.json). Loop from existing to target.\n6. Restart-safe — idempotency inherently handles restarts.\n\nPROJECT-SPECIFIC CONTEXT:\n- Read docs/project-config.json → 'Data Seeders' rules for environment gate key, count key, and DI registration.\n- Read docs/project-reference/seed-test-data-reference.md for implementation template, reference files, and project-specific DI scope rules.\nUNIVERSAL RULES:\n- Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.\n- Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks."
       },
       "sequence": ["scout", "investigate", "seed-test-data", "review-changes", "code-simplifier", "docs-update", "workflow-end", "watzup"],
-      "whenNotToUse": "Writing integration tests (use write-integration-test), production data migration (use /db-migrate skill), seeding reference/config data without domain commands",
+      "whenNotToUse": "Writing integration tests (use workflow-write-integration-test), production data migration (use /db-migrate skill), seeding reference/config data without domain commands",
       "whenToUse": "User wants to seed test data, implement data seeders, generate realistic development environment data, add happy-path scenarios for a feature, create dummy data for manual QC testing, fill dev database with realistic test cases"
     },
-    "write-integration-test": {
+    "workflow-write-integration-test": {
       "description": "Write or update integration tests for existing code — spec-first: investigate domain logic → write/update specs → generate test code → 7-gate review (incl. change coverage) → run and verify",
       "name": "Write Integration Tests",
       "preActions": {
@@ -848,7 +765,7 @@
         "workflow-end",
         "watzup"
       ],
-      "whenNotToUse": "No implementation yet (use feature or bugfix), spec-only with no code generation (use /spec [mode=tests] directly)",
+      "whenNotToUse": "No implementation yet (use workflow-feature or workflow-bugfix), spec-only with no code generation (use /spec [mode=tests] directly)",
       "whenToUse": "Write integration tests for a specific command/handler, add test coverage to an untested feature, update integration tests after code changes, integration test authoring from scratch for a feature area, cover uncommitted code changes with integration tests, generate integration tests from existing test specs or feature docs, review/audit existing integration tests for quality, flakiness, traceability, or failures"
     }
   }

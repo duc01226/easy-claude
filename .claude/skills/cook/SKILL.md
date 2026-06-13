@@ -17,7 +17,7 @@ context-budget: high
 
 ## Quick Summary
 
-**Goal:** Implement features with deep research, comprehensive planning, maximum quality verification.
+**Goal:** Ship a correct, fully-verified feature that satisfies the saved Goal Contract — implemented with deep research, comprehensive planning, and maximum quality verification (planned, reviewed, tested, documented) — with no skipped quality gate on any non-trivial change.
 
 **Workflow:**
 
@@ -38,15 +38,14 @@ context-budget: high
 > DRY, SRP, abstraction, design patterns, naming, layering, tests — every
 > technique exists to serve one goal: **making the next change cheaper**.
 
-When evaluating code, a refactor, a test, or an abstraction, ask:
+When evaluating code, refactor, test, or abstraction, ask:
 **does this make the next change cheaper or more expensive?**
 
-- Reject "best practices" that raise change cost (premature abstraction,
+- Reject "best practices" raising change cost (premature abstraction,
   speculative generality, leaky indirection, ceremony without payoff).
-- Name the real enemies in findings: **coupling, hidden state, duplicated
+- Name real enemies in findings: **coupling, hidden state, duplicated
   knowledge, unclear intent, irreversible decisions exposed too early**.
-- A simpler design that is easy to change beats a sophisticated design that
-  isn't.
+- Simpler design easy to change beats sophisticated design that isn't.
 
 Apply this lens **before** invoking any specific rule, pattern, or checklist
 below — if a downstream rule would raise change cost, this principle wins.
@@ -100,7 +99,7 @@ below — if a downstream rule would raise change cost, this principle wins.
     - Edge cases, failure modes
     - Security implications
     - Performance considerations
-- Use `/scout-ext` for comprehensive codebase analysis
+- Use `/scout --ext` for comprehensive codebase analysis
 - Research reports max 150 lines each
 - **External Memory:** Write all research to `.ai/workspace/analysis/{task-name}.analysis.md`. Re-read ENTIRE file before planning.
 - **Pre-Implementation Trace Gate:** For bugfix, failed verification, stale/incorrect final output, regression, or behavior-changing fix plans, MUST ATTENTION confirm the plan/referenced analysis includes `Debugger Trace: End -> Start`, all feeder paths, hypothesis matrix, owning fix layer, and forward convergence proof. If missing, STOP and produce the missing-trace list before editing.
@@ -438,6 +437,8 @@ mistakes compound through later tasks.
 <!-- /SYNC:goal-contract-satisfaction-loop:reminder -->
 
 ## Closing Reminders
+
+**IMPORTANT MUST ATTENTION Goal:** Ship a correct, fully-verified feature that satisfies the saved Goal Contract — research-backed, planned, reviewed, tested, documented — with no skipped quality gate on any non-trivial change.
 
 - **MANDATORY IMPORTANT MUST ATTENTION** default mode HARD — opt out to fast mode ONLY when ALL trivial-task conditions met
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks via `TaskCreate` BEFORE starting

@@ -108,16 +108,18 @@ const sequenceByWorkflow = {
 function makeWorkflowJson() {
   const workflows = {};
   for (const workflowId of workflowIds) {
-    workflows[workflowId] = {
+    // JSON workflow keys are `workflow-`-prefixed (matches production workflows.json);
+    // the activation skill dir is identity (`workflow-bugfix` → skills/workflow-bugfix).
+    workflows[`workflow-${workflowId}`] = {
       sequence: sequenceByWorkflow[workflowId],
     };
   }
 
-  workflows.bugfix.description =
+  workflows["workflow-bugfix"].description =
     "Bugfix workflow with end-to-start debugger trace from observed final output to owning fix layer";
-  workflows.bugfix.whenToUse =
+  workflows["workflow-bugfix"].whenToUse =
     "Use for bug reports with observed final output, all feeder paths, hypothesis matrix, owning fix layer, and forward convergence proof";
-  workflows.bugfix.preActions = {
+  workflows["workflow-bugfix"].preActions = {
     injectContext:
       "END-TO-START TRACE: observed final state, feeder paths, hypothesis matrix, owning fix layer, forward convergence proof",
   };
@@ -136,7 +138,7 @@ function makeWorkflowJson() {
 
 test("verify-workflow-cycle-compliance debugger trace metadata policy", () => {
   assert.equal(
-    checkWorkflowDebuggerTracePolicy("bugfix", {
+    checkWorkflowDebuggerTracePolicy("workflow-bugfix", {
       description: "Bugfix with end-to-start debugger trace",
       whenToUse: "Observed final output and all feeder paths",
       preActions: {
@@ -148,7 +150,7 @@ test("verify-workflow-cycle-compliance debugger trace metadata policy", () => {
   );
 
   assert.match(
-    checkWorkflowDebuggerTracePolicy("bugfix", {
+    checkWorkflowDebuggerTracePolicy("workflow-bugfix", {
       description: "Bugfix with normal investigation",
       preActions: { injectContext: "Find root cause and fix." },
     }),
@@ -409,7 +411,7 @@ test("verify-workflow-cycle-compliance enforces spec before implementation plann
     await fs.mkdir(path.join(tempRoot, ".agents", "skills"), { recursive: true });
 
     const workflowsJson = makeWorkflowJson();
-    workflowsJson.workflows.feature.sequence = [
+    workflowsJson.workflows["workflow-feature"].sequence = [
       "scout",
       "investigate",
       "plan",
@@ -435,7 +437,7 @@ test("verify-workflow-cycle-compliance enforces spec before implementation plann
     for (const workflowId of workflowIds) {
       const steps =
         workflowId === "feature"
-          ? workflowsJson.workflows.feature.sequence
+          ? workflowsJson.workflows["workflow-feature"].sequence
           : sequenceByWorkflow[workflowId];
       await writeSkillFile(
         path.join(tempRoot, ".claude", "skills"),

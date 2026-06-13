@@ -38,6 +38,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..', '..');
+const { buildWorkflowSkillsCatalog } = require('./lib/workflow-skills-catalog.cjs');
 const WORKFLOWS_PATH = path.join(ROOT, '.claude', 'workflows.json');
 const DEV_RULES_PATH = path.join(ROOT, '.claude', 'docs', 'development-rules.md');
 const PROJECT_CONFIG_PATH = path.join(ROOT, 'docs', 'project-config.json');
@@ -504,6 +505,13 @@ function generateCommonProtocolFile(workflowConfig) {
         `## Workflow Catalog (${workflowCount} workflows)`,
         '',
         catalog,
+        '',
+        '---',
+        '',
+        // Composable step-skills index only — the Workflow Catalog above already lists
+        // workflows/steps/when-to-use, and the PROMPT PROTOCOL covers routing. This adds
+        // the missing piece: the distinct step-skills an AI can compose into a custom workflow.
+        buildWorkflowSkillsCatalog({ rootDir: ROOT, sections: ['skills'] }),
         '',
         '---'
     ];

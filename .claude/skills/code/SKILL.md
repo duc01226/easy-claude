@@ -15,7 +15,7 @@ description: '[Implementation] Use when you need to start coding & testing an ex
 
 ## Quick Summary
 
-**Goal:** Execute an existing implementation plan phase-by-phase with testing, code review, and user approval gates.
+**Goal:** Land the selected plan phase as working, fully-tested, reviewed, user-approved code — executing it phase-by-phase through testing, code review, and approval gates — committed only after every quality gate (100% tests, 0 critical issues, explicit approval) passes — NEVER bypass a gate to declare done.
 
 > **Renamed:** folds the former `/code-auto` (→ `--approval=off`), `/code-no-test` (→ `--tests=off`), and `/code-parallel` (→ `--parallel`) skills — those names no longer resolve as slash commands; use `/code` with the matching flag.
 
@@ -119,7 +119,7 @@ Read plan file completely. Map dependencies. List ambiguities. Identify required
 
 ## Step 2: Implementation
 
-Implement selected plan phase step-by-step following extracted tasks. Mark tasks complete as done. For UI work, call `ui-ux-designer` subagent. Run type checking and compile to verify.
+Implement selected plan phase step-by-step following extracted tasks. Mark tasks complete as done. UI work → call `ui-ux-designer` subagent. Run type check + compile to verify.
 
 **Output:** `✓ Step 2: Implemented [N] files - [X/Y] tasks complete, compilation passed`
 
@@ -127,7 +127,7 @@ Implement selected plan phase step-by-step following extracted tasks. Mark tasks
 
 ## Step 3: Testing
 
-Call `tester` subagent. If ANY tests fail: STOP, call `debugger` subagent, fix, re-run. Repeat until 100% pass.
+Call `tester` subagent. ANY tests fail → STOP, call `debugger` subagent, fix, re-run. Repeat until 100% pass.
 
 **Testing standards:** Unit tests may use mocks. Integration tests use test environment. Forbidden: commenting out tests, changing assertions to pass, TODO/FIXME to defer fixes.
 
@@ -139,7 +139,7 @@ Call `tester` subagent. If ANY tests fail: STOP, call `debugger` subagent, fix, 
 
 ## Step 4: Code Review
 
-Call `code-reviewer` subagent. If critical issues found: STOP, fix, re-run `tester`, re-run `code-reviewer`. Repeat until no critical issues.
+Call `code-reviewer` subagent. Critical issues found → STOP, fix, re-run `tester`, re-run `code-reviewer`. Repeat until no critical issues.
 
 **Output:** `✓ Step 4: Code reviewed - [0] critical issues`
 
@@ -218,7 +218,7 @@ Execute every step in declared order; proceed only when validation passes and th
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use `AskUserQuestion` to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
 >
-> 1. **Activate `refactor` workflow** (Recommended) — scout → investigate → plan → code → review → sre-review → test → docs
+> 1. **Activate `workflow-refactor` workflow** (Recommended) — scout → investigate → plan → code → review → sre-review → test → docs
 > 2. **Execute `/code` directly** — run this skill standalone
 
 ---
@@ -237,7 +237,7 @@ Execute every step in declared order; proceed only when validation passes and th
 
 > **MANDATORY IMPORTANT MUST ATTENTION:** If this skill is called **outside a workflow** (standalone `/code`), you MUST ATTENTION create a `TaskCreate` todo task for `/review-changes` as the **last task** in your task list. This ensures all changes are reviewed before commit even without a workflow enforcing it.
 >
-> If already running inside a workflow (e.g., `feature`, `refactor`), skip this — the workflow sequence handles `/review-changes` at the appropriate step.
+> If already running inside a workflow (e.g., `workflow-feature`, `workflow-refactor`), skip this — the workflow sequence handles `/review-changes` at the appropriate step.
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
 
@@ -424,6 +424,8 @@ Execute every step in declared order; proceed only when validation passes and th
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Goal:** Land the selected plan phase as working, fully-tested, reviewed, user-approved code — committed only after every quality gate (100% tests, 0 critical issues, explicit approval) passes — NEVER bypass a gate to declare done.
+**MANDATORY IMPORTANT MUST ATTENTION** execute Steps 0-6 in declared order; tests 100% (Step 3), critical issues 0 (Step 4), explicit user approval (Step 5) are BLOCKING gates — NEVER skip a step or proceed on failed validation — why: a faked-green gate ships the regression it exists to catch.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting.
 **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — never auto-decide.
 **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.

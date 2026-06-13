@@ -28,7 +28,7 @@ disable-model-invocation: true
 - MUST ATTENTION verify integration suites with 3 consecutive passing runs without DB reset before declaring done.
 - NEVER skip mandatory workflow or skill gates.
 
-**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /spec [mode=tests] -> /why-review -> /review-artifact --type=spec-tests -> /integration-test -> /integration-test-review -> /integration-test-verify -> /spec [mode=sync] -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /scout -> /feature-investigation -> /spec [mode=tests] -> /why-review -> /review-artifact --type=spec-tests -> /integration-test -> /integration-test-review -> /integration-test-verify -> /spec [mode=sync] -> /docs-update -> /workflow-end -> /watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
@@ -36,9 +36,9 @@ disable-model-invocation: true
 
 > **Goal Contract propagation (workflow-owned):** At workflow start, resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from the test request). Each generated test maps to a saved goal invariant/criterion — a test protecting NO saved invariant needs a recorded justification. After `/integration-test-verify`, append the verification evidence (pass/fail counts, runner command, report path) to the goal file's Iteration Log and emit the Goal Satisfaction matrix (PASS/FAIL/BLOCKED) before `/workflow-end`.
 
-Activate the `write-integration-test` workflow. Run `/workflow-start write-integration-test` with the user's prompt as context.
+Activate the `workflow-write-integration-test` workflow. Run `/start-workflow workflow-write-integration-test` with the user's prompt as context.
 
-**Steps:** /scout → /investigate → /spec [mode=tests] → /why-review → /review-artifact --type=spec-tests → /integration-test → /integration-test-review → /integration-test-verify → /spec [mode=sync] → /docs-update → /workflow-end → /watzup
+**Steps:** /scout → /feature-investigation → /spec [mode=tests] → /why-review → /review-artifact --type=spec-tests → /integration-test → /integration-test-review → /integration-test-verify → /spec [mode=sync] → /docs-update → /workflow-end → /watzup
 
 > **[STEP PURPOSES]** Every step has a distinct purpose — NEVER deduplicate or batch:
 >
@@ -55,7 +55,7 @@ Activate the `write-integration-test` workflow. Run `/workflow-start write-integ
 
 ---
 
-**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /spec [mode=tests] -> /why-review -> /review-artifact --type=spec-tests -> /integration-test -> /integration-test-review -> /integration-test-verify -> /spec [mode=sync] -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /scout -> /feature-investigation -> /spec [mode=tests] -> /why-review -> /review-artifact --type=spec-tests -> /integration-test -> /integration-test-review -> /integration-test-verify -> /spec [mode=sync] -> /docs-update -> /workflow-end -> /watzup
 
 <!-- SYNC:ai-mistake-prevention -->
 

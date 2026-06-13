@@ -15,7 +15,7 @@ description: '[Planning] Use when you need to validate a plan with critical ques
 
 ## Quick Summary
 
-**Goal:** Interview user with critical questions to validate assumptions and surface issues in plan before coding begins.
+**Goal:** Force every assumption-laden plan decision and every preservation-critical behavior through explicit user confirmation BEFORE implementation — by interviewing the user with critical questions that validate assumptions and surface issues — so no unstated assumption silently reaches code.
 
 **Workflow:**
 
@@ -39,18 +39,17 @@ description: '[Planning] Use when you need to validate a plan with critical ques
 > DRY, SRP, abstraction, design patterns, naming, layering, tests — every
 > technique exists to serve one goal: **making the next change cheaper**.
 
-When evaluating code, a refactor, a test, or an abstraction, ask:
-**does this make the next change cheaper or more expensive?**
+Evaluating code, refactor, test, abstraction, ask:
+**does this make next change cheaper or more expensive?**
 
-- Reject "best practices" that raise change cost (premature abstraction,
+- Reject "best practices" raising change cost (premature abstraction,
   speculative generality, leaky indirection, ceremony without payoff).
-- Name the real enemies in findings: **coupling, hidden state, duplicated
+- Name real enemies in findings: **coupling, hidden state, duplicated
   knowledge, unclear intent, irreversible decisions exposed too early**.
-- A simpler design that is easy to change beats a sophisticated design that
-  isn't.
+- Simpler design easy to change beats sophisticated design that isn't.
 
 Apply this lens **before** invoking any specific rule, pattern, or checklist
-below — if a downstream rule would raise change cost, this principle wins.
+below — if a downstream rule raises change cost, this principle wins.
 
 ---
 
@@ -423,14 +422,14 @@ After validation:
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Goal:** Force every assumption-laden plan decision and every preservation-critical behavior through explicit user confirmation BEFORE implementation — so no unstated assumption silently reaches code.
+
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
 - **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — NEVER auto-decide
 - **MANDATORY IMPORTANT MUST ATTENTION** detect plan type (Phase 0) BEFORE generating questions — bugfix ALWAYS triggers Preservation
 - **MANDATORY IMPORTANT MUST ATTENTION** add final review task to verify work quality
 - **MANDATORY IMPORTANT MUST ATTENTION** NEVER modify phase files — document what needs updating only
 - **MANDATORY IMPORTANT MUST ATTENTION** for bugfix plans, trigger Preservation question (keywords: fix, bug, regression, broken, defect)
-
-**IMPORTANT MUST ATTENTION** for bugfix plans, trigger Preservation question (keywords: fix, bug, regression, broken, defect)
 
 **Anti-Rationalization:**
 

@@ -350,18 +350,6 @@
   path: design-spec/SKILL.md
   removal_after: null
   status: active
-- category: frontend
-  deprecated_by: null
-  deprecated_since: null
-  description: '[Workflow] Use when activating the Design Workflow for product, marketing,
-    or creative UI design work.'
-  has_references: false
-  has_scripts: false
-  last_reviewed: null
-  name: design-workflow
-  path: design-workflow/SKILL.md
-  removal_after: null
-  status: active
 - category: infrastructure
   deprecated_by: null
   deprecated_since: null
@@ -1386,18 +1374,6 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Investigation] Use when scouting directories with external agentic
-    tools.'
-  has_references: false
-  has_scripts: false
-  last_reviewed: null
-  name: scout-ext
-  path: scout-ext/SKILL.md
-  removal_after: null
-  status: active
-- category: other
-  deprecated_by: null
-  deprecated_since: null
   description: '[Code Quality] Use when you need to perform a security review or audit
     on any scope — application code (OWASP Top 10 2025), secrets exposure, dependency/supply-chain
     malware, third-party repository vetting before install, infrastructure/config,
@@ -1486,6 +1462,18 @@
   last_reviewed: null
   name: sre-review
   path: sre-review/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
+  description: '[Skill Management] Use when starting a detected workflow, initializing
+    workflow state, or activating a workflow sequence.'
+  has_references: false
+  has_scripts: false
+  last_reviewed: null
+  name: start-workflow
+  path: start-workflow/SKILL.md
   removal_after: null
   status: active
 - category: other
@@ -1727,18 +1715,6 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Workflow] Use when activating the Documentation Update workflow for
-    documentation creation and update workflow with plan validation.'
-  has_references: false
-  has_scripts: false
-  last_reviewed: null
-  name: workflow-documentation
-  path: workflow-documentation/SKILL.md
-  removal_after: null
-  status: active
-- category: other
-  deprecated_by: null
-  deprecated_since: null
   description: '[Workflow] Use when activating the E2E testing workflow to generate,
     update, or maintain Playwright/E2E tests. Pick mode with --source={changes|recording|update-ui}.'
   has_references: false
@@ -1783,19 +1759,6 @@
   last_reviewed: null
   name: workflow-feature-spec
   path: workflow-feature-spec/SKILL.md
-  removal_after: null
-  status: active
-- category: other
-  deprecated_by: null
-  deprecated_since: null
-  description: '[Workflow] Use when activating the Full Feature Lifecycle workflow
-    for complete feature from idea through implementation, testing, and documentation
-    (PO→BA→Designer→Dev→QA).'
-  has_references: false
-  has_scripts: false
-  last_reviewed: null
-  name: workflow-full-feature-lifecycle
-  path: workflow-full-feature-lifecycle/SKILL.md
   removal_after: null
   status: active
 - category: other
@@ -1920,18 +1883,6 @@
   last_reviewed: null
   name: workflow-spec-to-pbi
   path: workflow-spec-to-pbi/SKILL.md
-  removal_after: null
-  status: active
-- category: other
-  deprecated_by: null
-  deprecated_since: null
-  description: '[Skill Management] Use when starting a detected workflow, initializing
-    workflow state, or activating a workflow sequence.'
-  has_references: false
-  has_scripts: false
-  last_reviewed: null
-  name: workflow-start
-  path: workflow-start/SKILL.md
   removal_after: null
   status: active
 - category: other

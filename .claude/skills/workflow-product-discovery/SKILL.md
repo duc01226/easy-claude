@@ -7,9 +7,7 @@ disable-model-invocation: true
 
 ## Quick Summary
 
-**Goal:** [Workflow] Trigger Product Discovery workflow — raw vision or problem → structured brainstorm → prioritized opportunity map → N PBIs with stories, challenge review, DoR gate, and HTML mock-ups → cross-PBI ranked backlog ready for sprint planning.
-
-**Final Purpose:** Ensure product discovery converts raw opportunities into reviewed, prioritized PBIs ready for sprint planning.
+**Goal:** [Workflow] Trigger the Product Discovery workflow to convert raw opportunities — a raw vision or problem → structured brainstorm → prioritized opportunity map → N PBIs with stories, challenge review, DoR gate, and HTML mock-ups → cross-PBI ranked backlog — into reviewed, prioritized PBIs ready for sprint planning.
 
 **Workflow:**
 
@@ -34,9 +32,9 @@ disable-model-invocation: true
 
 ## When NOT to Use
 
-- Single well-defined feature → use `feature` or `idea-to-pbi`
-- Implementation work (code writing) → use `feature` or `big-feature`
-- Bug fixes → use `bugfix`
+- Single well-defined feature → use `workflow-feature` or `workflow-idea-to-pbi`
+- Implementation work (code writing) → use `workflow-feature` or `workflow-big-feature`
+- Bug fixes → use `workflow-bugfix`
 - Research only, no PBI output needed → use `investigation` or `deep-research`
 
 ## Key Mechanics
@@ -132,7 +130,7 @@ At `/workflow-end`, AI presents:
 
 - Session summary: N PBIs created, X passed DoR, Y need rework
 - Ranked backlog with RICE scores
-- Recommended next step: `/full-feature-lifecycle` (backlog ready for delivery) or `/big-feature` (single large PBI needs deep research + implementation)
+- Recommended next step: `/workflow-feature` (implement a delivery-ready PBI) or `/big-feature` (single large PBI needs deep research + implementation)
 - Blocked PBIs: list DoR failures with specific blocking items
 
 ## Conditional Skip Rules
@@ -152,7 +150,7 @@ At `/workflow-end`, AI presents:
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
-Activate the `product-discovery` workflow. Run `/workflow-start product-discovery` with the user's prompt as context.
+Activate the `workflow-product-discovery` workflow. Run `/start-workflow workflow-product-discovery` with the user's prompt as context.
 
 **Steps:**
 /brainstorm → /web-research → /domain-analysis → /why-review
@@ -268,7 +266,7 @@ Activate the `product-discovery` workflow. Run `/workflow-start product-discover
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Final Purpose:** Ensure product discovery converts raw opportunities into reviewed, prioritized PBIs ready for sprint planning.
+**IMPORTANT MUST ATTENTION Goal:** Ensure product discovery converts raw opportunities into reviewed, prioritized PBIs ready for sprint planning.
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting — one task per opportunity × step
 - **MANDATORY IMPORTANT MUST ATTENTION** brainstorm output MUST produce a scored opportunity map before any /idea step
 - **MANDATORY IMPORTANT MUST ATTENTION** why-review runs after domain-analysis — FAIL removes opportunity from selection, WARN requires user acknowledgment
@@ -285,5 +283,5 @@ Activate the `product-discovery` workflow. Run `/workflow-start product-discover
 | Evasion | Rebuttal |
 | ------- | -------- |
 | "Purpose obvious" | Anchor it anyway — primacy/recency keeps outcome active through long prompts. |
-| "Existing reminders enough" | Echo Final Purpose in Closing Reminders — bottom anchor prevents drift. |
+| "Existing reminders enough" | Echo Goal in Closing Reminders — bottom anchor prevents drift. |
 | "Skip evidence for prompt edits" | Cite changed file evidence and verify no stale protocol text remains. |

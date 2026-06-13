@@ -15,38 +15,38 @@ description: '[Quality] Use when setting up an agent quality harness with feedfo
 
 ## Quick Summary
 
-**Goal:** Set up the complete outer agent harness for a greenfield project so all subsequent AI coding agents operate with maximum guidance and earliest-possible quality feedback.
+**Goal:** Wire every feedforward guide and feedback sensor into the greenfield project so all later AI coding agents operate with maximum guidance and self-correct against quality gates BEFORE human review — raising first-attempt quality and catching defects at the earliest, cheapest stage.
 
-**What this produces:**
+**Produces:**
 
 - Feedforward guides: CLAUDE.md/AGENTS.md conventions, architecture docs, pattern catalogs, skill activation rules
 - Computational feedback sensors: configured via `/linter-setup` (linters, formatters, pre-commit hooks, CI gates)
 - Inferential feedback sensors: AI review skills wired to lifecycle stages
 - Harness inventory: `.ai/workspace/harness/harness-inventory.md`
 
-**When invoked:** After `/scaffold` and `/linter-setup` in the greenfield workflow. Assumes scaffolding is complete.
+**When invoked:** After `/scaffold` + `/linter-setup` in greenfield workflow. Assumes scaffolding complete.
 
-**What it does NOT do:** Install linters or configure formatters — that is `/linter-setup`'s responsibility.
+**Does NOT do:** Install linters or configure formatters — that is `/linter-setup`'s responsibility.
 
 ---
 
 ## Activation Guards
 
 **Check 1 — Linter-setup prerequisite (BLOCK if missing):**
-Before running any phases, verify `/linter-setup` has completed by checking for:
+Before running any phases, verify `/linter-setup` completed by checking for:
 
 - Linter config file at project root (e.g., `.eslintrc`, `pyproject.toml`, `.editorconfig`)
 - Pre-commit hook config (e.g., `.husky/`, `.pre-commit-config.yaml`)
 - CI quality gate definition
 
-If any of these are missing → `AskUserQuestion`: "/linter-setup appears incomplete. Computational feedback sensors must be in place before harness setup. Run /linter-setup first, then return here?"
+If any missing → `AskUserQuestion`: "/linter-setup appears incomplete. Computational feedback sensors must be in place before harness setup. Run /linter-setup first, then return here?"
 **BLOCK** Phase A/B/C/D/E until linter-setup verification passes.
 
 **Check 2 — Existing harness inventory:**
 Check for `.ai/workspace/harness/harness-inventory.md`
 
 - If found → `AskUserQuestion`: "Harness inventory already exists — re-run to enhance existing harness, or skip?"
-- Proceed even when `CLAUDE.md`/`AGENTS.md` are present — those are feedforward guides this skill may enhance, never signals to skip
+- Proceed even when `CLAUDE.md`/`AGENTS.md` present — those are feedforward guides this skill may enhance, NEVER signals to skip
 
 ---
 
@@ -301,9 +301,11 @@ Present inventory to user for review via `AskUserQuestion`.
 
 ## Closing Reminders
 
-**MUST ATTENTION** never auto-decide feedforward guide content — present draft and confirm with `AskUserQuestion`
-**MUST ATTENTION** verify `/linter-setup` completed before Phase C passes
-**MUST ATTENTION** write harness-inventory.md incrementally (append after each phase) — never hold in memory
-**MUST ATTENTION** harness is a living document — update inventory when new sensors are added later
+**IMPORTANT MUST ATTENTION Goal:** Wire every feedforward guide and feedback sensor into the project so all later AI agents self-correct against quality gates BEFORE human review — raising first-attempt quality and catching defects at the earliest, cheapest stage.
+**IMPORTANT MUST ATTENTION** NEVER auto-decide feedforward guide content — present draft and confirm with `AskUserQuestion` — why: harness conventions bind every future agent; silent choices propagate
+**IMPORTANT MUST ATTENTION** ALWAYS verify `/linter-setup` completed before Phase C passes — computational sensors must precede inferential ones — why: keep quality left, cheapest gates fire first
+**IMPORTANT MUST ATTENTION** write harness-inventory.md incrementally (append after each phase) — NEVER hold in memory — why: context loss drops findings
+**IMPORTANT MUST ATTENTION** harness is a living document — update inventory when new sensors added later
+**IMPORTANT MUST ATTENTION** NEVER skip phases A-F — each phase BLOCKS the next until its guard passes
 
 **[TASK-PLANNING]** Before acting, analyze task scope and break it into small todo tasks using `TaskCreate`.

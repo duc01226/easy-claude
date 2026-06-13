@@ -15,7 +15,7 @@ description: '[Testing] Use when you need to run tests locally and analyze the s
 
 ## Quick Summary
 
-**Goal:** Run tests locally via `tester` subagent and analyze the summary report.
+**Goal:** Deliver an accurate, read-only pass/fail verdict — by running tests locally via the `tester` subagent and analyzing the summary report — with exact counts, failing-test names, report path, and Goal Contract evidence, so the user knows the true test state without any fix applied.
 
 **Workflow:**
 
@@ -172,6 +172,8 @@ below — if a downstream rule would raise change cost, this principle wins.
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Goal:** deliver an accurate, read-only pass/fail verdict — exact counts, failing-test names, report path, and Goal Contract evidence — so the user knows the true test state without any fix applied.
+**MANDATORY IMPORTANT MUST ATTENTION** READ-ONLY — run tests via the `tester` subagent and report results; NEVER implement fixes here — why: fixing is `/fix`'s job; mixing the two hides the true test state.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting.
 **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — never auto-decide.
 **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.

@@ -15,9 +15,7 @@ description: '[Code Quality] Use when reviewing service-layer and API changes fo
 
 ## Quick Summary
 
-**Goal:** Assess production readiness of service-layer and API changes — score observability, reliability, data integrity, and database performance.
-
-**Final Purpose:** Ensure service/API changes are production-ready for observability, reliability, data integrity, and database performance.
+**Goal:** Ensure service/API changes are production-ready for observability, reliability, data integrity, and database performance — scoring each of these dimensions on service-layer and API changes.
 
 **When to use:** After implementing backend service or API changes, before committing. Frontend-only changes exempt.
 
@@ -205,7 +203,7 @@ When a review pass finds issues, validate findings before any fix. Do not spawn 
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If NOT already in workflow, MUST ATTENTION use `AskUserQuestion` to ask user:
 >
-> 1. **Activate `feature` workflow** (Recommended) — scout → investigate → plan → cook → review → sre-review → test → docs
+> 1. **Activate `workflow-feature` workflow** (Recommended) — scout → investigate → plan → cook → review → sre-review → test → docs
 > 2. **Execute `/sre-review` directly** — run standalone
 
 ---
@@ -653,7 +651,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Final Purpose:** Ensure service/API changes are production-ready for observability, reliability, data integrity, and database performance.
+**IMPORTANT MUST ATTENTION Goal:** Ensure service/API changes are production-ready for observability, reliability, data integrity, and database performance.
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks via `TaskCreate` BEFORE starting
 - **MANDATORY IMPORTANT MUST ATTENTION** validate findings before fixes; after validated fixes, rerun the full review before declaring PASS. A clean review pass ENDS the review.
 - **MANDATORY IMPORTANT MUST ATTENTION** every score requires `file:line` evidence — unprovable score = 0

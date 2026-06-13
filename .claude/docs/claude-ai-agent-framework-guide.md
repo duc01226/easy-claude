@@ -5,7 +5,7 @@
 **Audience:** AI engineers, tech leads, and teams wanting to build reliable AI-assisted development systems.
 **Scope:** What each layer does, why it exists, how the pieces compose, the design principles behind every decision, and which AI agent best practices each addresses.
 
-> **Document Sync Status** — Current local verification (2026-06-11): **66 hook files · 176 skills · 21 workflows · 28 agents** using the ADR-0002 filesystem metrics. Codex mirrors are committed under `.agents/`, `.codex/`, and `AGENTS.md`; Copilot instructions are generated on demand by the Copilot sync skills/scripts. Notable mechanisms documented here include multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential-thinking.
+> **Document Sync Status** — Current local verification (2026-06-13): **54 hook files · 156 skills · 17 workflows · 29 agents** using the ADR-0002 filesystem metrics. Codex mirrors are committed under `.agents/`, `.codex/`, and `AGENTS.md`; Copilot instructions are generated on demand by the Copilot sync skills/scripts. Notable mechanisms documented here include multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential-thinking.
 
 ---
 
@@ -45,7 +45,7 @@
 
 ## 1. Executive Summary
 
-This framework wraps Claude Code in a three-pillar execution framework — **66 top-level hook files**, **176 skills**, **21 registered workflows**, and **28 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
+This framework wraps Claude Code in a three-pillar execution framework — **54 top-level hook files**, **156 skills**, **17 registered workflows**, and **29 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
 
 It is also **harness- and project-agnostic**: the `.claude/` source compiles to verified OpenAI Codex mirrors (`AGENTS.md`, `.agents/`, `.codex/`) and can generate GitHub Copilot instruction files on demand, while all project-specific knowledge is factored into `project-config.json` + reference docs — so the same behavior runs on any supported AI tool and ports to any codebase (Section 13).
 
@@ -65,10 +65,10 @@ It is also **harness- and project-agnostic**: the `.claude/` source compiles to 
 │  AI drifts from plan   │  Edit enforcement   │  Task gating     │
 │  AI injects duplicates │  Hooks (dedup)      │  File-based dedup│
 │  AI skips test specs   │  TDD skills/flows   │  Unified TC IDs  │
-│  AI misses lifecycle   │  21 workflows       │  Full SDLC cover │
+│  AI misses lifecycle   │  17 workflows       │  Full SDLC cover │
 │  AI skips research   │  big-feature wf      │  Step-select gate  │
 │  AI skips E2E tests    │  E2E skills/flows   │  Recording→test  │
-│  AI ignores doc format │  spec-context       │  8-section inject  │
+│  AI ignores doc format │  buildSpecContext   │  8-section inject  │
 │  AI reviews wrong surface│ Phase 0.7 detect  │  BE/FE/SCSS buckets│
 │  AI writes stale docs  │  DOC SYNC DEFERRAL  │  Review=read-only  │
 │  Docs phases skipped   │  docs-update BLOCK  │  8-task audit trail│
@@ -93,7 +93,7 @@ graph TB
 
     subgraph "Routing Layer"
         WR[Workflow Router<br/>workflow-router.cjs]
-        AUQ[Model Auto-Select<br/>workflow-start]
+        AUQ[Model Auto-Select<br/>start-workflow]
     end
 
     subgraph "Enforcement Layer — 66 Top-Level Hook Files"
@@ -124,7 +124,7 @@ graph TB
         PS[Planning Skills<br/>plan, investigate, scout]
     end
 
-    subgraph "Orchestration Layer — 21 Workflows"
+    subgraph "Orchestration Layer — 17 Workflows"
         FW[Feature Workflow]
         BW[Bugfix Workflow]
         RW[Refactor Workflow]
@@ -170,7 +170,7 @@ sequenceDiagram
     User->>Router: Submit prompt
     Router->>LLM: Inject workflow catalog + detection instructions
     LLM->>LLM: Auto-select best-matching workflow (model-driven)
-    LLM->>Router: Activate via workflow-start <workflowId>
+    LLM->>Router: Activate via start-workflow <workflowId>
 
     Router->>Skill: Activate workflow step 1 (/scout)
     Skill->>Hook: PreToolUse (Grep/Glob)
@@ -282,7 +282,7 @@ graph LR
 ### 4.3 Hook Files — Organized by Purpose
 
 ```
-HOOK SYSTEM (66 top-level hook files)
+HOOK SYSTEM (54 top-level hook files)
 │
 ├── SESSION LIFECYCLE (7 hooks)
 │   ├── session-init.cjs ─────────── Load config, set 25 env vars
@@ -312,33 +312,33 @@ HOOK SYSTEM (66 top-level hook files)
 │                                      commit ships behavioral code in an enforced
 │                                      area without its Feature Spec update
 │
-├── CONTEXT INJECTION (11 hooks)
-│   ├── backend-context.cjs ───────── Backend patterns for server files
-│   ├── frontend-context.cjs ──────── Frontend patterns for client files
-│   ├── design-system-context.cjs ── Design tokens for UI components
-│   ├── scss-styling-context.cjs ─── Styling patterns for style files
-│   ├── code-patterns-injector.cjs ── Project-specific code patterns
-│   ├── knowledge-context.cjs ──────── Framework/domain knowledge
-│   ├── lessons-injector.cjs ──────── Past mistakes from lessons.md
-│   ├── role-context-injector.cjs ── Role-based guidance (PO/BA/QA/Dev)
-│   ├── figma-context-extractor ──── Figma design context
-│   ├── code-review-rules-injector ── Code review standards
-│   └── spec-context.cjs ─────────── 8-section format + TC reminder for docs/specs/**
+├── CONTEXT INJECTION (9 pretooluse-ctx-* dispatchers + 2 standalone)
+│   │   The former standalone inject modules (backend/frontend/design-system/scss/
+│   │   code-patterns/knowledge/lessons/role/spec/artifact/code-review-rules/graph/
+│   │   mindset/mindset-compact/python-call-guide + canonical design-system guide)
+│   │   are now pure builder functions in lib/pretooluse-context-builders.cjs,
+│   │   dispatched by 9 cap-bounded processes via lib/pretooluse-dispatch.cjs:
+│   ├── pretooluse-ctx-edit.cjs ───── buildDesignSystemCanonicalGuide / DesignSystemContext / KnowledgeContext
+│   ├── pretooluse-ctx-edit-tail.cjs  buildBackendContext / FrontendContext / ScssStyling / CodePatterns / RoleContext / Lessons
+│   ├── pretooluse-ctx-edit-spec.cjs  buildSpecContext (docs/specs/** 8-section) / buildArtifactPath
+│   ├── pretooluse-ctx-canon.cjs ──── buildDesignSystemCanonicalGuide (Read|Skill)
+│   ├── pretooluse-ctx-crr.cjs ────── buildCodeReviewRules (code review standards)
+│   ├── pretooluse-ctx-dev.cjs ────── buildDevRules (development-rules.md)
+│   ├── pretooluse-ctx-graph.cjs ──── buildGraphContext (blast radius on review/debug)
+│   ├── pretooluse-ctx-mindset.cjs ── buildMindset (critical thinking + AI mistake prevention)
+│   ├── pretooluse-ctx-readbash.cjs   buildMindsetCompact / buildPythonGuide (read-only tools)
+│   ├── figma-context-extractor.cjs ─ Figma design context (standalone, NOT consolidated)
+│   └── ba-refinement-context.cjs ─── BA refinement context for PBI artifacts (standalone)
 │
-├── MINDSET INJECTION (2 hooks)
-│   ├── mindset-injector.cjs ──────── Critical thinking + AI mistake prevention on Edit|Write|Skill|Agent|Task
-│   └── mindset-compact-injector.cjs ─ Lightweight critical-thinking re-anchor on Read|Grep|Glob|Bash
-│
-├── POST-PROCESSING (7 hooks)
+├── POST-PROCESSING (6 hooks)
 │   ├── tool-output-swap.cjs ──────── Externalize large outputs (>50KB)
 │   ├── post-edit-prettier.cjs ────── Auto-format after edits
-│   ├── artifact-path-resolver.cjs ── Resolve artifact paths in outputs
 │   ├── bash-cleanup.cjs ─────────── Clean temp files
 │   ├── todo-tracker.cjs ─────────── Persist todo state to disk
 │   ├── workflow-step-tracker.cjs ── Track workflow step completion
 │   └── write-compact-marker.cjs ─── Save recovery state pre-compact
 │
-└── SUPPORT INFRASTRUCTURE (31 lib modules)
+└── SUPPORT INFRASTRUCTURE (33 lib modules)
     ├── State: ck-session-state, workflow-state, todo-state, edit-state
     ├── Context: context-injector-base, prompt-injections, context-tracker
     ├── Memory: swap-engine (externalize large outputs)
@@ -361,8 +361,8 @@ workflow-router.cjs               ← Main: detect workflow intent
 workflow-router-p2.cjs            ← Part 2: inject workflow catalog
 workflow-router-p3.cjs            ← Part 3: lesson-learned reminder
 
-mindset-injector.cjs              ← Full: critical thinking + AI mistakes + golden rules (Edit|Write|Skill|Agent|Task)
-mindset-compact-injector.cjs      ← Lightweight: critical-thinking only (Read|Grep|Glob|Bash) — cheap re-anchor
+pretooluse-ctx-mindset.cjs        ← Dispatches buildMindset: critical thinking + AI mistakes + golden rules (Skill|Agent|Edit|Write|MultiEdit|TaskCreate|TaskUpdate)
+pretooluse-ctx-readbash.cjs       ← Dispatches buildMindsetCompact: critical-thinking only (Read|Grep|Glob|Bash) — cheap re-anchor
 ```
 
 **Why this matters:** Previously, accumulating logic in a single hook file made it hard to reason about, test, and maintain. Part-file splitting applies single-responsibility at the file level — each part handles one concern.
@@ -380,9 +380,9 @@ graph TB
     end
 
     subgraph "PreToolUse Hook Pipeline"
-        BC[backend-context.cjs]
-        CP[code-patterns-injector.cjs]
-        LI[lessons-injector.cjs]
+        BC[pretooluse-ctx-edit-tail.cjs<br/>buildBackendContext]
+        CP[pretooluse-ctx-edit-tail.cjs<br/>buildCodePatterns]
+        LI[pretooluse-ctx-edit-tail.cjs<br/>buildLessons]
         EE[edit-enforcement.cjs]
     end
 
@@ -418,12 +418,12 @@ Hooks check the last N lines of the conversation transcript for dedup markers be
 ┌─────────────────────────────────────────────────────┐
 │  DEDUP MECHANISM                                     │
 │                                                      │
-│  Hook                    │ Marker           │ Lines  │
+│  Builder                 │ Marker           │ Lines  │
 │──────────────────────────│──────────────────│────────│
-│  backend-context.cjs     │ ## Backend Context│  300  │
-│  frontend-context.cjs    │ ## Frontend Context│ 300  │
-│  code-patterns-injector  │ ## Code Patterns  │  300  │
-│  lessons-injector (prompt)│ ## Learned Lessons│   50  │
+│  buildBackendContext     │ ## Backend Context│  300  │
+│  buildFrontendContext    │ ## Frontend Context│ 300  │
+│  buildCodePatterns       │ ## Code Patterns  │  300  │
+│  buildLessons (prompt)   │ ## Learned Lessons│   50  │
 │                                                      │
 │  IF marker found in last N lines → SKIP injection    │
 │  IF not found → INJECT (context was compacted away)  │
@@ -540,7 +540,7 @@ mindmap
       scaffold
       tech-stack-research
     Process & Collaboration
-      workflow-start
+      start-workflow
       workflow-end
       project-init
       project-manager
@@ -562,7 +562,7 @@ mindmap
       MCP management guidance
       skill-creator
       dual-ai
-    Workflow Triggers (21)
+    Workflow Triggers (17)
       workflow-feature
       workflow-big-feature
       workflow-bugfix
@@ -724,7 +724,7 @@ Three new review skills create quality checkpoints between artifact-producing st
 | `review-artifact --type=story`      | `/story` (stories)    | Vertical slicing quality, dependency tables, SPIDR      |
 | `review-artifact --type=spec-tests` | `/spec [mode=tests]` (specs) | TC coverage, traceability to ACs, boundary cases        |
 
-**Added to workflows:** idea-to-pbi, full-feature-lifecycle, big-feature, greenfield-init
+**Added to workflows:** workflow-idea-to-pbi, workflow-big-feature, workflow-greenfield-init
 
 **Why this matters:** Without review gates, artifacts flow through workflows unchecked. A vague PBI becomes vague stories which become vague tests. Review gates catch quality issues early when they're cheapest to fix.
 
@@ -798,45 +798,41 @@ Workflows are **JSON-defined sequences of skills** stored in `.claude/workflows.
 }
 ```
 
-### 6.2 Workflow Catalog (21 Workflows)
+### 6.2 Workflow Catalog (17 Workflows)
 
 ```
 WORKFLOW CATALOG
 │
 ├── DEVELOPMENT (3)
-│   ├── big-feature
-│   ├── bugfix
-│   └── feature
+│   ├── workflow-big-feature
+│   ├── workflow-bugfix
+│   └── workflow-feature
 │
 ├── REFACTORING (1)
-│   └── refactor
+│   └── workflow-refactor
 │
 ├── TESTING (4)
-│   ├── e2e (--source=changes|recording|update-ui)
-│   ├── spec-sync
+│   ├── workflow-e2e (--source=changes|recording|update-ui)
+│   ├── workflow-spec-sync
 │   ├── workflow-seed-test-data
-│   └── write-integration-test
+│   └── workflow-write-integration-test
 │
-├── DISCOVERY & PLANNING (7)
-│   ├── full-feature-lifecycle
-│   ├── greenfield-init
-│   ├── idea-to-pbi
-│   ├── product-discovery
-│   ├── research
-│   ├── spec-to-pbi
-│   └── spec-driven-dev
+├── DISCOVERY & PLANNING (6)
+│   ├── workflow-greenfield-init
+│   ├── workflow-idea-to-pbi
+│   ├── workflow-product-discovery
+│   ├── workflow-research
+│   ├── workflow-spec-to-pbi
+│   └── workflow-spec-driven-dev
 │
-├── DOCUMENTATION & SPEC (3)
-│   ├── documentation
-│   ├── feature-spec
-│   └── spec-index
+├── DOCUMENTATION & SPEC (1)
+│   └── workflow-feature-spec
 │
 ├── REVIEW (1)
-│   └── review-changes
+│   └── workflow-review-changes
 │
-└── DESIGN & VISUALIZATION (2)
-    ├── design-workflow
-    └── visualize
+└── DESIGN & VISUALIZATION (1)
+    └── workflow-visualize
 │
 ```
 
@@ -846,6 +842,10 @@ WORKFLOW CATALOG
 > performance → `/performance-review` · investigation → `/investigate` · migration → `/db-migrate` ·
 > package-upgrade → `/package-upgrade` skill · release-prep → `/sre-review` + `/quality-gate` ·
 > batch-operation / verification / deployment → direct execution with `/plan` + `/review-changes`.
+>
+> Removed in the 2026-06-13 prune: full-feature-lifecycle → `workflow-idea-to-pbi` (now idea→spec→pbi) then `workflow-feature` ·
+> documentation → `/docs-update` skill (or the docs-update step in `workflow-feature`) · spec-index → `/spec-index` skill (still a step in `workflow-spec-to-pbi`) ·
+> design-workflow → `/design-spec` → `/interface-design` (product UIs) or `/frontend-design` (marketing/creative).
 
 ### 6.3 Workflow Detection & Auto-Selection
 
@@ -864,7 +864,7 @@ sequenceDiagram
 
     Note over Router: LLM reads catalog,<br/>detects "bugfix" match,<br/>auto-selects best path
 
-    Router->>Skill: /workflow-start bugfix
+    Router->>Skill: /start-workflow workflow-bugfix
 
     Skill->>Todo: Create tasks for ALL steps:<br/>1. [Bugfix] /scout<br/>2. [Bugfix] /investigate<br/>3. [Bugfix] /debug-investigate<br/>4. [Bugfix] /plan<br/>...17 steps total
 
@@ -905,7 +905,7 @@ graph LR
     subgraph "Generic Framework (reusable)"
         H[66 Hook Files]
         S[176 Skills]
-        W[21 Workflows]
+        W[17 Workflows]
     end
 
     subgraph "Project-Specific (swappable)"
@@ -999,7 +999,7 @@ Beyond `project-config.json`, `settings.json` governs Claude Code's runtime beha
 
 ```mermaid
 flowchart TB
-    A["AI edits: src/services/orders/create-order.ts"] --> B["backend-context.cjs triggers"]
+    A["AI edits: src/services/orders/create-order.ts"] --> B["pretooluse-ctx-edit-tail.cjs → buildBackendContext triggers"]
     B --> C["Load project-config.json"]
     C --> D{"Match pathRegexes"}
     D -->|"src/services/ matches Backend Services"| E["Read backend-patterns-reference.md"]
@@ -1045,7 +1045,7 @@ This section maps each framework mechanism to the **AI agent best practice** it 
 │  Subagent spawned     │ Project context + lessons      │ sub-init│
 │  Edit|Write Agent|Skill│ Critical thinking + AI guardrails│ mindset│
 │  Read|Grep|Glob|Bash  │ Lightweight critical-thinking  │ mindset-compact│
-│  Write docs/specs/**  │ 8-section format + TC rules   │ spec-context│
+│  Write docs/specs/**  │ 8-section format + TC rules   │ buildSpecContext│
 │                                                                   │
 │  DEDUP: Each injection checks for its marker in last 300 lines  │
 │  of transcript. Skips if already present. Re-injects after      │
@@ -1066,7 +1066,7 @@ graph TB
 
     subgraph "The Reminder Solution"
         R1[prompt-context-assembler.cjs<br/>Re-injects rules + lessons EVERY prompt]
-        R2[lessons-injector.cjs<br/>Re-injects lessons on edit context]
+        R2[buildLessons via pretooluse-ctx-edit-tail.cjs<br/>Re-injects lessons on edit context]
     end
 
     F1 --> F2 --> F3
@@ -1106,7 +1106,7 @@ graph TB
 │  (steps: scout→investigate→spec [mode=tests]→plan→cook→test→docs)│
 │                                                                   │
 │  EXCEPTION: explicit invocation — when the user names a          │
-│  workflow or skill (workflow-start X, slash-skill), that exact   │
+│  workflow or skill (start-workflow X, slash-skill), that exact   │
 │  one runs without re-evaluation.                                  │
 │                                                                   │
 │  WHY: Prevents misrouting without blocking. "Fix this test"      │
@@ -1254,9 +1254,9 @@ flowchart TB
     end
 
     subgraph "Lesson Persisted"
-        P1[lessons-injector.cjs<br/>Injects on EVERY prompt]
-        P2[lessons-injector.cjs<br/>Injects on EVERY edit]
-        P3[subagent-init-*.cjs (8 subagent-init hooks)<br/>Injects into subagents]
+        P1[prompt-context-assembler.cjs<br/>Injects on EVERY prompt]
+        P2[buildLessons via pretooluse-ctx-edit-tail.cjs<br/>Injects on EVERY edit]
+        P3[subagent-init.cjs / -2 / -3 (3 SubagentStart dispatchers)<br/>Injects into subagents]
     end
 
     subgraph "Mistake Prevented"
@@ -1499,7 +1499,7 @@ TEST SPECIFICATION ARCHITECTURE
 
   Skills:    /spec [mode=tests] (write §8 TCs) → /integration-test (test code)
              /spec [mode=sync]  (forward-sync §8 ↔ test code)
-  Workflows: feature (spec-driven), spec-sync, write-integration-test
+  Workflows: workflow-feature (spec-driven), workflow-spec-sync, workflow-write-integration-test
 ```
 
 #### Case 1: Existing Code → Generate Test Specs
@@ -1548,10 +1548,10 @@ TEST SPECIFICATION ARCHITECTURE
 /spec [mode=tests] create test specs from PBI for order processing feature
 
 # Full spec-driven workflow (recommended — specs + tests before code by default)
-/workflow-start feature
+/start-workflow workflow-feature
 
 # Idea-to-PBI pipeline with test specs
-/workflow-start idea-to-pbi
+/start-workflow workflow-idea-to-pbi
 ```
 
 **What happens:**
@@ -1575,7 +1575,7 @@ TEST SPECIFICATION ARCHITECTURE
 **Key points:** `feature` writes and reviews test specs before implementation (spec-driven with tests by default, covering the former `tdd-feature` use case), includes a dedicated re-planning step after specs to refine the implementation plan with test infrastructure needs, and a `/spec [mode=sync]` step that keeps spec §8 TCs and integration-test code aligned.
 
 ```bash
-/workflow-start feature
+/start-workflow workflow-feature
 ```
 
 ```
@@ -1654,7 +1654,7 @@ feature:
 /spec [mode=tests] update test specs from PR #123
 
 # Full workflow (recommended for significant changes)
-/workflow-start spec-sync
+/start-workflow workflow-spec-sync
 ```
 
 **What happens:**
@@ -1693,7 +1693,7 @@ spec-sync: review-changes → spec [mode=tests] → spec [mode=sync] →
 /integration-test
 
 # Full workflow
-/workflow-start write-integration-test
+/start-workflow workflow-write-integration-test
 
 # After /spec [mode=tests] created specs
 /spec [mode=tests] → /integration-test
@@ -1735,7 +1735,7 @@ write-integration-test: scout → investigate → spec [mode=tests] → why-revi
 /integration-test review Orders
 
 # Full workflow (write-integration-test absorbs the former test-verify use case)
-/workflow-start write-integration-test
+/start-workflow workflow-write-integration-test
 ```
 
 **What happens:**
@@ -1795,7 +1795,7 @@ write-integration-test: scout → investigate → spec [mode=tests] → why-revi
 /integration-test verify {Service}
 
 # Full workflow (includes the /integration-test-verify traceability gate)
-/workflow-start write-integration-test
+/start-workflow workflow-write-integration-test
 ```
 
 **What happens:**
@@ -1823,7 +1823,7 @@ write-integration-test: scout → investigate → spec [mode=tests] → why-revi
 
 ```
 # Full workflow (recommended — absorbs the former test-verify use case)
-/workflow-start write-integration-test
+/start-workflow workflow-write-integration-test
 
 # Manual sequence
 /integration-test review Orders → /test → /integration-test diagnose {failures} → /integration-test verify {Service}
@@ -2536,7 +2536,8 @@ This section maps **established prompt engineering techniques** to specific fram
 │  WHERE APPLIED:                                                   │
 │                                                                   │
 │  1. CONTEXT INJECTION HOOKS — When editing a backend file,       │
-│     backend-context.cjs injects backend-patterns-reference.md    │
+│     buildBackendContext (via pretooluse-ctx-edit-tail.cjs)       │
+│     injects backend-patterns-reference.md                        │
 │     (~60KB of real code examples from the project). The AI       │
 │     sees actual repository patterns, validation patterns,        │
 │     event handler patterns — not generic instructions.           │
@@ -2754,10 +2755,10 @@ Context engineering is the discipline of **managing what information reaches the
 │  Edit file 4 → check last 300 lines for marker → NOT FOUND →   │
 │  Re-inject 60KB (compaction removed the marker = context lost)   │
 │                                                                   │
-│  DEDUP CONFIG per hook:                                           │
-│  • backend-context: marker "## Backend Context", window 300      │
-│  • frontend-context: marker "## Frontend Context", window 300    │
-│  • lessons-injector (prompt): marker "## Learned Lessons", 50    │
+│  DEDUP CONFIG per builder:                                        │
+│  • buildBackendContext: marker "## Backend Context", window 300  │
+│  • buildFrontendContext: marker "## Frontend Context", window 300│
+│  • buildLessons (prompt): marker "## Learned Lessons", 50        │
 │                                                                   │
 │  WHY VARIABLE WINDOWS: Lessons (small, 50 lines) need frequent   │
 │  re-injection. Backend patterns (large, 300 lines) stay longer.  │
@@ -2960,7 +2961,7 @@ graph TB
         DEB --> INC["Incremental update:<br/>re-parse changed file<br/>+ dependents"]
     end
 
-    subgraph "Hook 3: graph-context-injector.cjs"
+    subgraph "Hook 3: pretooluse-ctx-graph.cjs (buildGraphContext)"
         SKILL["PreToolUse(Skill)<br/>/code-review, /scout,<br/>/debug-investigate, /sre-review"] --> BR["Run graph-blast-radius"]
         BR --> INJ["Inject into context:<br/>Risk level, impacted files,<br/>untested functions"]
     end
@@ -3118,7 +3119,7 @@ A subtle failure mode: review sub-agents would sometimes edit feature docs or sp
 - `/docs-update` step later found docs "already updated" but with wrong content
 - Double-write race conditions when multiple parallel reviewers touched the same doc file
 
-The `review-changes.injectContext` in `workflows.json` now includes a **DOC SYNC DEFERRAL** block injected into every review sub-agent:
+The `workflow-review-changes.injectContext` in `workflows.json` now includes a **DOC SYNC DEFERRAL** block injected into every review sub-agent:
 
 ```
 DOC SYNC DEFERRAL: DO NOT update feature docs, engineering specs, or test spec TCs
@@ -3286,11 +3287,12 @@ The mindset layer fires at three distinct moments, each tuned for cost:
 │  UserPromptSubmit  →  prompt-context-assembler-closers.cjs (BOTTOM)  │
 │     graph/workflow/lesson closing gates — the recency bookend       │
 │                                                                     │
-│  PreToolUse: Edit|Write|Skill|Agent|Task → mindset-injector.cjs     │
-│     re-injects principles + Golden Rules before any consequential   │
-│     action (coding/planning/review skills, sub-agent spawn)         │
+│  PreToolUse: Edit|Write|Skill|Agent|Task → pretooluse-ctx-mindset   │
+│     (buildMindset) re-injects principles + Golden Rules before any  │
+│     consequential action (coding/planning/review skills, spawn)     │
 │                                                                     │
-│  PreToolUse: Read|Grep|Glob|Bash → mindset-compact-injector.cjs     │
+│  PreToolUse: Read|Grep|Glob|Bash → pretooluse-ctx-readbash          │
+│     (buildMindsetCompact)                                           │
 │     re-anchors ONLY the 1-line critical-thinking marker (cheap)     │
 │     so it can't scroll out during long read sessions                │
 └─────────────────────────────────────────────────────────────────────┘
@@ -3487,8 +3489,8 @@ flowchart TB
 | **Sequential thinking for complex problems**   | /sequential-thinking skill + /debug-investigate skill               | Skills    |
 | **Code proof tracing prevents hallucination**  | evidence-based-reasoning-protocol + /prove-fix                      | Skills    |
 | **State survives context compaction**          | Swap engine + todo-tracker + compact-recovery                       | State     |
-| **Lessons persist across sessions**            | docs/project-reference/lessons.md + lessons-injector.cjs            | Hooks     |
-| **Subagents inherit project context**          | 8 subagent-init-\*.cjs hooks inject CLAUDE.md + lessons             | Hooks     |
+| **Lessons persist across sessions**            | docs/project-reference/lessons.md + buildLessons (pretooluse-ctx-edit-tail.cjs) | Hooks     |
+| **Subagents inherit project context**          | 3 subagent-init\*.cjs dispatchers inject CLAUDE.md + lessons        | Hooks     |
 | **Safety boundaries**                          | path-boundary, privacy, scout blocks (exit code 2)                  | Hooks     |
 | **Task-gated edits**                           | edit-enforcement.cjs requires TaskCreate before edits               | Hooks     |
 | **Auto-formatting**                            | post-edit-prettier.cjs runs formatter after every edit              | Hooks     |
@@ -3523,9 +3525,9 @@ flowchart TB
 ├── ccstatusline.json ──── Status line display config (model, context, tokens, tok/s estimator)
 ├── .ck.json ──────────── Hook-specific config
 ├── .ckignore ─────────── Scout block patterns
-├── workflows.json ─────── 21 workflow definitions
+├── workflows.json ─────── 17 workflow definitions
 ├── workflows/ ──────────── Workflow definitions (primary-workflow.md, etc.)
-├── hooks/ ─────────────── 66 top-level hook files + 31 lib modules
+├── hooks/ ─────────────── 54 top-level hook files + 33 lib modules
 │   ├── session-init.cjs
 │   ├── workflow-router.cjs
 │   ├── prompt-context-assembler.cjs
@@ -3714,7 +3716,7 @@ The mirror compensates by **baking what hooks would have injected into the stati
 | Hook-delivered on Claude Code                                      | How the mirror delivers it to a hookless tool                                                                    |
 | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
 | `graph-session-init` / workflow catalog auto-injected              | Catalog written into `.codex/CODEX_CONTEXT.md` and `copilot-instructions.md` as static text                      |
-| `lessons-injector` re-injects `lessons.md`                         | Replaced by an explicit `CODEX:PROJECT-REFERENCE-LOADING` gate telling Codex to open the reference docs itself   |
+| `buildLessons` re-injects `lessons.md`                             | Replaced by an explicit `CODEX:PROJECT-REFERENCE-LOADING` gate telling Codex to open the reference docs itself   |
 | `prompt-context-assembler` injects project-config + reference docs | A loading gate instructs the tool to read `docs/project-config.json` + `docs/project-reference/**` at task start |
 | `/skill` slash invocation                                          | Rewritten to Codex's `$skill` invocation syntax; `Agent(...)` → `spawn_agent`, `subagent_type` → `agent_type`    |
 
@@ -3741,7 +3743,7 @@ Five verifier scripts (`.claude/scripts/codex/verify-*.mjs`, each with a unit te
 | `verify-sync-divergence`           | **Oracle gate** — re-runs the real mirror transform into a throwaway dir and diffs against the committed `.agents/skills`. Any difference = someone edited source without re-syncing, or hand-edited a mirror.                                                                               |
 | `verify-skill-protocol-compliance` | Bidirectional set-diff parity (every source skill has a mirror and vice-versa); the 6 strict-execution-contract sentences present in every mirror; **no Claude-isms** (`Agent(`, `subagent_type`) leak into Codex output; AGENTS.md context block byte-matches `CODEX_CONTEXT.md`.           |
 | `verify-workflow-cycle-compliance` | Workflow step-sequences in `workflows.json` match the skill files in **both** `.claude/skills` AND `.agents/skills` ("paired-drift" detection); ordered gates (integration → review → verify; docs-update → workflow-end) intact.                                                            |
-| `verify-no-project-residue`        | **Portability enforcement** — scans the generic surfaces for the literal `bravo`/`BravoSuite` and a denylist of this repo's framework symbols (`AppBaseComponent`, `PlatformVmStore`, `IPlatformRootRepository`, …). A reusable skill that hardcodes a project specific **fails the build**. |
+| `verify-no-project-residue`        | **Portability enforcement** — scans the generic surfaces for the origin project's literal name and a denylist of its framework symbols (configured per-project). A reusable skill that hardcodes a project-specific name **fails the build**. |
 | `verify-sdd-semantic-compliance`   | ~30 semantic assertions on the spec-driven cycle; Codex mirrors reference the _local_ shared-contract path, not the `.claude` source path.                                                                                                                                                   |
 
 `verify-no-project-residue` is the load-bearing one for "works for any project": it is impossible to merge a generic skill that leaked project-specific names, because the residue scan rejects it. Portability isn't a guideline — it's a gate.
@@ -3804,10 +3806,10 @@ This framework answers that question with **defense in depth**: multiple indepen
 | **Fail closed, not open**         | Safety hooks use `exit 2` (non-overridable block). When in doubt, block and explain rather than allow and hope.                                                                                                                                |
 | **Convention over configuration** | `project-config.json` centralizes all project-specific knowledge. Hooks read it at runtime — no hardcoded assumptions.                                                                                                                         |
 | **Enforce at the boundary**       | Hooks run as separate processes at lifecycle boundaries. The AI can't bypass them because they execute outside the LLM's control loop.                                                                                                         |
-| **Learn from mistakes**           | The `/learn` skill captures AI errors into `lessons.md`. The `lessons-injector.cjs` hook re-injects them on every prompt and edit. Past mistakes become future guardrails.                                                                     |
+| **Learn from mistakes**           | The `/learn` skill captures AI errors into `lessons.md`. `prompt-context-assembler.cjs` re-injects them on every prompt and `buildLessons` (via `pretooluse-ctx-edit-tail.cjs`) on every edit. Past mistakes become future guardrails.          |
 | **Plan before implement**         | `edit-enforcement.cjs` requires `TaskCreate` before any file edit. Combined with workflow step tracking, this ensures AI doesn't skip from question to code without a plan.                                                                    |
 | **State survives amnesia**        | External state files (todo, workflow progress, swap) persist to disk. After context compaction, `post-compact-recovery.cjs` restores progress — the AI resumes where it left off.                                                              |
-| **Stateless-per-turn invariants** | Rules are re-injected at every `UserPromptSubmit` via `mindset-injector` and `prompt-context-assembler`. The framework never trusts the AI to remember rules from prior turns — they are re-stated as invariants at each interaction boundary. |
+| **Stateless-per-turn invariants** | Rules are re-injected at every `UserPromptSubmit` via `prompt-context-assembler` (and re-anchored at PreToolUse by `pretooluse-ctx-mindset` / `buildMindset`). The framework never trusts the AI to remember rules from prior turns — they are re-stated as invariants at each interaction boundary. |
 | **Self-contained skill units**    | Skills inline shared protocols via `<!-- SYNC:tag -->` blocks rather than referencing external files. Each skill is a complete, deployable prompt unit. The `sync-skills-shared-protocols` skill keeps copies synchronized from a canonical source.          |
 | **Structural intelligence first** | The code graph (`code_graph.py`) is a HARD-GATE before any investigation concludes. Grep finds files; graph traces reveal callers, events, bus consumers, and API contracts — relationships that textual search cannot find.                   |
 
@@ -3864,7 +3866,7 @@ The framework succeeds because it aligns with how LLMs actually fail:
 
 ### The Result
 
-**66 top-level hook files**, **176 skills**, **21 registered workflows**, and **28 specialized agents** working in concert to deliver:
+**54 top-level hook files**, **156 skills**, **17 registered workflows**, and **29 specialized agents** working in concert to deliver:
 
 - **Fewer hallucinations** — Evidence gates and proof traces catch AI fabrications before they reach files
 - **Better code quality** — Pattern injection ensures AI follows project conventions, not generic training data

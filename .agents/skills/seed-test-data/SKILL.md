@@ -50,9 +50,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Implement or enhance test data seeders — simulate QC happy-path scenarios via application-layer commands; NEVER direct DB writes.
-
-**Final Purpose:** Ensure seeders create realistic, idempotent, valid test data through application paths without corrupting domain state.
+**Goal:** Implement or enhance test data seeders that create realistic, idempotent, valid test data through application-layer commands (NEVER direct DB writes) — simulating QC happy-path scenarios without corrupting domain state.
 
 **Workflow:**
 
@@ -117,7 +115,7 @@ Record with `file:line` evidence:
 
 ### Step 1.5: Verify Dev Config Keys
 
-Confirm dev config has both env gate key and count key. If absent, add following project's dev config convention.
+Confirm dev config has both env gate key and count key. If absent, add following project's dev config convention. — why: missing keys silently disable the gate or count, producing no-op or unbounded seeding.
 
 ### Step 2: Feature Scope Analysis
 
@@ -216,7 +214,7 @@ Review seeder at [file:path]. Verify with file:line evidence for each:
 Report: PASS or FAIL with file:line for each finding.
 ```
 
-**Fix loop:** If FAIL → validate findings → fix validated findings → restart the full review from the first phase. When the restarted review uses sub-agents, never reuse them across rounds. If the same blocker repeats across 3 full invocations with no progress, escalate to user.
+**Fix loop:** If FAIL → validate findings → fix validated findings → restart full review from first phase. When restarted review uses sub-agents, NEVER reuse them across rounds. If same blocker repeats across 3 full invocations with no progress, escalate to user.
 NEVER fix unvalidated findings. Do not spawn a fresh sub-agent only to re-review known findings before validation/fix.
 
 ---
@@ -336,7 +334,7 @@ NEVER fix unvalidated findings. Do not spawn a fresh sub-agent only to re-review
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Final Purpose:** Ensure seeders create realistic, idempotent, valid test data through application paths without corrupting domain state.
+**IMPORTANT MUST ATTENTION Goal:** Ensure seeders create realistic, idempotent, valid test data through application paths without corrupting domain state.
 **IMPORTANT MUST ATTENTION** task tracking — break all work into tasks BEFORE starting
 **IMPORTANT MUST ATTENTION** NEVER call repo/DB directly — use application-layer commands
 **IMPORTANT MUST ATTENTION** ALWAYS gate by environment FIRST; ALWAYS check count before seeding
@@ -369,7 +367,7 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
-4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
 6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.

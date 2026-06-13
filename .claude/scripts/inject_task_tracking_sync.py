@@ -46,7 +46,6 @@ SKILL_NAMES = [
     "debug-investigate",
     "feature-investigation",
     "scout",
-    "scout-ext",
     # workflow-write-integration-test step skills (those not already listed)
     # NOTE: `spec` (merged feature-spec router) is intentionally NOT a target —
     # it carries task-tracking via STEP-TASK-ANCHOR and writes its TC registry

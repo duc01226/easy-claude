@@ -15,7 +15,7 @@ description: '[Quality] Use when you need to research and configure code quality
 
 ## Quick Summary
 
-**Goal:** Install the full computational feedback sensor layer for any tech stack — linters, formatters, type checkers, static analyzers, pre-commit hooks, and CI quality gates.
+**Goal:** Ensure every code change is caught by an automated quality sensor — both locally (fast feedback) AND in CI (enforcement gate) — before it reaches main, with zero divergence between the two, by installing the full computational feedback sensor layer for the tech stack (linters, formatters, type checkers, static analyzers, pre-commit hooks, and CI quality gates).
 
 **Output:** Config files at project root + pre-commit hook config + CI quality gate step + `.editorconfig`.
 
@@ -74,22 +74,22 @@ For each tech stack layer detected, research these TOOL CATEGORIES using the que
 
 **Research process per category:**
 
-1. Search with the query template (WebSearch if available, otherwise apply knowledge with explicit confidence %)
+1. Search with query template (WebSearch if available, otherwise apply knowledge with explicit confidence %)
 2. Score top 3 candidates: community adoption, last release date, CI integration ease, config complexity
-3. Present to user via `AskUserQuestion`: "For {category} in {language}, which tool?" with top 2-3 as options + brief pros/cons
+3. Present via `AskUserQuestion`: "For {category} in {language}, which tool?" — top 2-3 as options + brief pros/cons
 
-**IMPORTANT:** If confidence in current ecosystem is <80% (e.g., fast-moving ecosystem, unfamiliar stack) → use WebSearch to verify before presenting options.
+**IMPORTANT:** Confidence in current ecosystem <80% (fast-moving ecosystem, unfamiliar stack) → use WebSearch to verify before presenting options. — why: tool ecosystems churn fast; stale recommendations cargo-cult dead tools.
 
 ---
 
 ## Installation & Configuration Protocol
 
-After user selects tools for each category:
+After user selects tools per category:
 
-1. Generate install command for the detected package manager
+1. Generate install command for detected package manager
 2. Generate config file with STRICTEST reasonable defaults
     - Rationale: starting strict is easier to loosen than starting loose is to tighten
-    - Loosen only with explicit user approval via `AskUserQuestion`
+    - Loosen ONLY with explicit user approval via `AskUserQuestion`
 3. Document what each enabled rule catches and why (one line per rule group)
 4. Generate sample config file: `.{tool}rc`, `{tool}.config.{ext}`, `pyproject.toml` section, etc.
 5. Add tool cache directories to `.gitignore`
@@ -233,6 +233,7 @@ After all config files generated, verify MUST ATTENTION each item:
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Goal:** Every code change is caught by an automated quality sensor — both locally (fast feedback) AND in CI (enforcement gate) — before it reaches main, with zero divergence between the two.
 **MUST ATTENTION** use QUERY TEMPLATES in Tool Research — never hardcode tool names in the research phase
 **MUST ATTENTION** present top 2-3 options per category via `AskUserQuestion` — never auto-select
 **MUST ATTENTION** verify pre-commit hook fires with an intentional violation before marking complete

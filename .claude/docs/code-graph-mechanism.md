@@ -54,7 +54,7 @@ The Code Review Graph builds a **persistent knowledge graph** of your codebase u
 │    Checks: Python? → tree-sitter? → graph.db?                     │
 │    Outputs: status message to Claude's context                     │
 │                                                                    │
-│  PreToolUse(Skill) → graph-context-injector.cjs                    │
+│  PreToolUse(Skill) → pretooluse-ctx-graph.cjs (buildGraphContext)                    │
 │    When: /code-review, /review-changes, /scout, /debug-investigate, etc.       │
 │    Runs: graph-blast-radius → injects summary into Claude's context      │
 │                                                                    │
@@ -91,7 +91,7 @@ graph TB
     subgraph "Hook Layer"
         SI["graph-session-init.cjs<br/>SessionStart"]
         AU["graph-auto-update.cjs<br/>PostToolUse — 3s debounce"]
-        CI["graph-context-injector.cjs<br/>PreToolUse(Skill)"]
+        CI["pretooluse-ctx-graph.cjs (buildGraphContext)<br/>PreToolUse(Skill)"]
     end
 
     subgraph "Claude Context"
@@ -222,7 +222,7 @@ python .claude/scripts/code_graph graph-blast-radius --json
         │
         │  Outputs JSON to stdout
         ▼
-graph-context-injector.cjs (CJS hook) captures JSON, formats text
+pretooluse-ctx-graph.cjs (buildGraphContext) (CJS hook) captures JSON, formats text
         │
         │  console.log() — injected into Claude's context
         ▼
@@ -239,11 +239,11 @@ Claude sees:
 | Event                        | Hook                         | What's Injected                                                     |
 | ---------------------------- | ---------------------------- | ------------------------------------------------------------------- |
 | Session start                | `graph-session-init.cjs`     | Status: "Graph active. 94 files, 875 nodes" or install instructions |
-| `/code-review` invoked       | `graph-context-injector.cjs` | Blast radius summary, risk level, impacted files                    |
-| `/review-changes` invoked    | `graph-context-injector.cjs` | Same as above                                                       |
-| `/scout` invoked             | `graph-context-injector.cjs` | Structural overview for exploration                                 |
-| `/debug-investigate` invoked | `graph-context-injector.cjs` | Dependency context for tracing                                      |
-| `/sre-review` invoked        | `graph-context-injector.cjs` | Impact assessment for prod readiness                                |
+| `/code-review` invoked       | `pretooluse-ctx-graph.cjs (buildGraphContext)` | Blast radius summary, risk level, impacted files                    |
+| `/review-changes` invoked    | `pretooluse-ctx-graph.cjs (buildGraphContext)` | Same as above                                                       |
+| `/scout` invoked             | `pretooluse-ctx-graph.cjs (buildGraphContext)` | Structural overview for exploration                                 |
+| `/debug-investigate` invoked | `pretooluse-ctx-graph.cjs (buildGraphContext)` | Dependency context for tracing                                      |
+| `/sre-review` invoked        | `pretooluse-ctx-graph.cjs (buildGraphContext)` | Impact assessment for prod readiness                                |
 | `/investigate` invoked       | (in-skill RECOMMENDED)       | Callers, imports, tests, inheritance queries for target             |
 | `/feature-investigation`     | (in-skill RECOMMENDED)       | Same graph queries for workflow-driven investigation                |
 | `/graph-query` invoked       | (standalone skill)           | Natural language graph queries, 8 patterns                          |
@@ -445,7 +445,7 @@ The BFS trace algorithm (`tools.py:trace_connections`) follows both structural e
 | `lib/graph-utils.cjs`        | (library)                | Python detection, availability check, graph invocation                  |
 | `graph-session-init.cjs`     | SessionStart             | Check graph status, inject guidance                                     |
 | `graph-auto-update.cjs`      | PostToolUse              | Incremental update after edits (3s debounce)                            |
-| `graph-context-injector.cjs` | PreToolUse(Skill\|Agent) | Auto-inject blast radius for review skills + graph CLI hints for agents |
+| `pretooluse-ctx-graph.cjs (buildGraphContext)` | PreToolUse(Skill\|Agent) | Auto-inject blast radius for review skills + graph CLI hints for agents |
 | `graph-grep-suggester.cjs`   | PostToolUse(Grep)        | Suggest graph queries when grep finds important entry-point files       |
 
 ### Skills (`.claude/skills/`)
@@ -468,7 +468,7 @@ scout, debug, code-review, review-changes, sre-review, investigate, feature-inve
 1. User: "fix the login timeout bug"
 
 2. Claude detects: bugfix workflow → /scout
-   PreToolUse fires → graph-context-injector.cjs
+   PreToolUse fires → pretooluse-ctx-graph.cjs (buildGraphContext)
    → Injects: "Risk: LOW | Changed: 0 files | No changes detected"
    (No changes yet — graph provides baseline)
 
@@ -477,7 +477,7 @@ scout, debug, code-review, review-changes, sre-review, investigate, feature-inve
    → Incremental update: re-parses auth.py + dependents
 
 4. User: /code-review
-   PreToolUse fires → graph-context-injector.cjs
+   PreToolUse fires → pretooluse-ctx-graph.cjs (buildGraphContext)
    → Runs graph-blast-radius on the fix
    → Injects: "Risk: MEDIUM | Changed: 1 file, 3 nodes | Impacted: 8 nodes in 5 files"
    → "Impacted files: middleware.py, api/routes.py, test_auth.py"
@@ -553,7 +553,7 @@ sequenceDiagram
 
     rect rgb(230, 245, 255)
         Note over WF,Graph: Step 1: /scout
-        WF->>Hook: graph-context-injector fires
+        WF->>Hook: pretooluse-ctx-graph (buildGraphContext) fires
         Hook->>Graph: graph-blast-radius (no changes yet)
         Graph-->>Hook: Baseline: 0 changed, 94 files indexed
         Hook-->>WF: Inject structural overview
@@ -568,7 +568,7 @@ sequenceDiagram
 
     rect rgb(230, 255, 230)
         Note over WF,Graph: Step 3: /code-review
-        WF->>Hook: graph-context-injector fires
+        WF->>Hook: pretooluse-ctx-graph (buildGraphContext) fires
         Hook->>Graph: graph-blast-radius on all changes
         Graph-->>Hook: Risk: MEDIUM, 8 impacted nodes
         Hook-->>WF: Inject review context
@@ -872,9 +872,9 @@ It's like a GPS navigator: the map data costs a few KB, but saves hours of drivi
 | Phase          | Trigger                                 | What's injected                                    | Cost       | Savings                                                 |
 | -------------- | --------------------------------------- | -------------------------------------------------- | ---------- | ------------------------------------------------------- |
 | Session start  | `graph-session-init.cjs` fires once     | "Graph active. 350 files, 1200 edges" (~30 tokens) | 30 tokens  | Claude knows graph exists, uses queries instead of grep |
-| `/scout` runs  | `graph-context-injector.cjs` auto-fires | Baseline structural overview (~200 tokens)         | 200 tokens | Claude maps code area in seconds vs minutes of grepping |
+| `/scout` runs  | `pretooluse-ctx-graph.cjs (buildGraphContext)` auto-fires | Baseline structural overview (~200 tokens)         | 200 tokens | Claude maps code area in seconds vs minutes of grepping |
 | File edited    | `graph-auto-update.cjs` fires silently  | Nothing visible — graph.db updated in background   | 0 tokens   | Graph stays current. No manual rebuild needed           |
-| `/code-review` | `graph-context-injector.cjs` auto-fires | Full blast radius report (~300 tokens)             | 300 tokens | Claude reviews 7 files instead of grepping 350          |
+| `/code-review` | `pretooluse-ctx-graph.cjs (buildGraphContext)` auto-fires | Full blast radius report (~300 tokens)             | 300 tokens | Claude reviews 7 files instead of grepping 350          |
 | `/investigate` | Skill RECOMMENDED section               | Claude runs targeted graph queries (~500 tokens)   | 500 tokens | 4 queries replace reading 47 grep matches               |
 | `/plan-review` | Completeness checklist item             | `importers_of` per planned file (~200 tokens)      | 200 tokens | Catches missed dependents before implementation         |
 

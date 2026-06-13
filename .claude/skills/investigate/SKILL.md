@@ -6,7 +6,7 @@ version: 2.2.1
 
 ## Quick Summary
 
-**Goal:** READ-ONLY exploration — understand how code works, zero changes.
+**Goal:** Produce an evidence-backed understanding of how existing code works through READ-ONLY exploration with zero changes — every claim traced to `file:line` or explicitly marked "inferred" — so the next decision or change rests on verified system flow, never assumption.
 
 **Workflow:**
 
@@ -172,7 +172,7 @@ For bug, failed-verification, or behavior-changing investigations, MUST ATTENTIO
 
 ## Related Skills
 
-`scout` (pre-discovery) | `feature` (implementation) | `debug-investigate` (debugging) | `graph-query` (natural language queries)
+`scout` (pre-discovery) | `workflow-feature` (implementation) | `debug-investigate` (debugging) | `graph-query` (natural language queries)
 
 ---
 
@@ -593,6 +593,8 @@ Find working reference → compare implementations → identify differences → 
 <!-- /SYNC:nested-task-creation:reminder -->
 
 ## Closing Reminders
+
+**IMPORTANT MUST ATTENTION Goal:** Produce an evidence-backed understanding of how existing code works — strictly READ-ONLY, every claim traced to `file:line` or explicitly marked "inferred" — so the next decision or change rests on verified system flow, never assumption.
 
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
 - **MANDATORY IMPORTANT MUST ATTENTION** Phase 0: classify scope (quick/deep/debug/recommendation) before acting

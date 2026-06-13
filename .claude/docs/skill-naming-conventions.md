@@ -37,7 +37,7 @@ Reference guide for naming Claude Code skills consistently in YourProject.
 
 ### Frontend Patterns (via docs + hooks)
 
-**Approach:** Frontend patterns are handled via `docs/project-reference/frontend-patterns-reference.md` (auto-injected by `frontend-context.cjs` hook). No tech-stack-specific skill needed — keeps the skill catalog generic.
+**Approach:** Frontend patterns are handled via `docs/project-reference/frontend-patterns-reference.md` (auto-injected by the `buildFrontendContext` builder, dispatched by `pretooluse-ctx-edit-tail.cjs`). No tech-stack-specific skill needed — keeps the skill catalog generic.
 
 **When to Use:**
 

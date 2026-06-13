@@ -15,7 +15,7 @@ description: '[Utilities] Use when you need to review recent changes and wrap up
 
 ## Quick Summary
 
-**Goal:** Review current branch changes, summarize impact/quality, and check for documentation staleness.
+**Goal:** Hand the developer a complete, evidence-backed wrap-up — by reviewing current branch changes and summarizing impact/quality — with a change summary, doc/spec staleness flags, root-cause lessons, and a `/understand` explanation, WITHOUT mutating any file, so they decide the next step from full context.
 
 **Workflow:**
 
@@ -45,7 +45,7 @@ Analyze the overall impact and quality of the changes.
 
 ## Doc Staleness Check (REQUIRED)
 
-After the change summary, run `git diff --name-only` (against base branch or recent commits) and cross-reference changed files against relevant documentation:
+After change summary, run `git diff --name-only` (against base branch or recent commits), cross-reference changed files against relevant docs:
 
 | Changed file pattern    | Docs to check for staleness                                                                   |
 | ----------------------- | --------------------------------------------------------------------------------------------- |
@@ -112,11 +112,11 @@ git log --since="30 days ago" --name-only -- docs/specs/ | head -10
 
 ## AI Mistake & Lesson Learned Analysis (REQUIRED)
 
-After the doc staleness check, review the entire session for AI mistakes and lessons learned.
+After doc staleness check, review entire session for AI mistakes and lessons learned.
 
 ### Step 1 — Surface all mistakes
 
-List every error made during this session. For each, note:
+List every error made during session. For each, note:
 
 - What happened (observable symptom — build fail, test fail, wrong output)
 - Where it happened (file:line if applicable)
@@ -145,7 +145,7 @@ For each mistake, apply this 3-step extraction:
 
 **2b. Find the class** — Where else could this SAME failure mode strike?
 
-If the failure mode only applies in one specific file or case → go up one abstraction level until it generalizes. A good lesson applies to ≥3 different contexts.
+If failure mode applies in only one specific file or case → go up one abstraction level until it generalizes. Good lesson applies to ≥3 different contexts.
 
 **2c. Write as a universal rule** — Strip ALL project-specific names:
 
@@ -165,7 +165,7 @@ Wait for user confirmation before invoking `/learn`.
 - A numbered list: failure mode → universal lesson → proposed `/learn` text
 - `No AI mistakes identified in this session` — if genuinely none found
 
-**Be honest and self-critical.** Surface-level symptom fixes ("always check file X") that only apply to this codebase are NOT lessons — they are noise. The purpose is root-cause prevention that compounds across sessions.
+**Be honest and self-critical.** Surface-level symptom fixes ("always check file X") applying only to this codebase are NOT lessons — they are noise. Purpose: root-cause prevention compounding across sessions.
 
 ---
 
@@ -173,7 +173,7 @@ Wait for user confirmation before invoking `/learn`.
 
 **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** before presenting these options, invoke `/understand` as the final mandatory todo task using the watzup summary and current change set as scope. If `/understand` is unavailable, stop and report that blocker instead of silently skipping the handoff.
 
-After `/understand` completes, you MUST ATTENTION use `AskUserQuestion` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
+After `/understand` completes, MUST ATTENTION use `AskUserQuestion` to present these options. NEVER skip because task seems "simple" or "obvious" — the user decides:
 
 - **"/workflow-end (Recommended)"** — Complete and close the active workflow
 - **"/commit"** — Commit changes if not using workflow
@@ -321,6 +321,8 @@ After `/understand` completes, you MUST ATTENTION use `AskUserQuestion` to prese
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Goal:** Hand the developer a complete, evidence-backed wrap-up — change summary, doc/spec staleness flags, root-cause lessons, and a `/understand` explanation — WITHOUT mutating any file, so they decide the next step from full context.
+**MANDATORY IMPORTANT MUST ATTENTION** stay READ-ONLY — only flag findings, NEVER implement or fix anything during watzup — why: watzup is a review/handoff, not an edit pass.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting.
 **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — never auto-decide.
 **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.

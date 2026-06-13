@@ -15,7 +15,7 @@ description: '[Project Management] Use when you need to prioritize backlog items
 
 ## Quick Summary
 
-**Goal:** Order 3+ backlog items using RICE, MoSCoW, or Value-Effort frameworks with scores and rationale.
+**Goal:** Produce a defensible ranked ordering of 3+ backlog items using RICE, MoSCoW, or Value-Effort frameworks so the team works highest-value items first — every rank backed by a score and tech-agnostic rationale (value/effort/risk/impact).
 
 **Workflow:**
 
@@ -35,27 +35,27 @@ description: '[Project Management] Use when you need to prioritize backlog items
 
 # Backlog Prioritization
 
-Order backlog items using data-driven prioritization frameworks to produce a ranked list with scores and rationale.
+Order backlog items using data-driven frameworks → ranked list with scores and rationale.
 
 ## When to Use
 
-- Sprint planning needs an ordered backlog (3+ items to rank)
-- Stakeholders need a priority ranking with justification
+- Sprint planning needs ordered backlog (3+ items to rank)
+- Stakeholders need priority ranking with justification
 - Feature roadmap ordering with objective criteria
 - Comparing competing features or initiatives
 
 ## When NOT to Use
 
-- Fewer than 3 items (just discuss directly)
+- Fewer than 3 items (discuss directly)
 - Creating PBIs or writing stories -- use `product-owner` or `story`
 - Full product strategy -- use `product-owner`
 - Project status tracking -- use `project-manager`
 
 ## Prerequisites
 
-- A list of 3+ backlog items (PBIs, features, or user stories)
+- List of 3+ backlog items (PBIs, features, user stories)
 - IF items exist as files: read from `team-artifacts/pbis/` or user-provided path
-- IF items provided inline: use the provided descriptions
+- IF items provided inline: use provided descriptions
 
 ## Workflow
 
@@ -164,7 +164,7 @@ Order backlog items using data-driven prioritization frameworks to produce a ran
 
 ## Optional Escalation: /llm-council on Ties
 
-**Gate evaluation:** After producing the prioritized backlog (per `## Workflow` step output), inspect the ranking output:
+**Gate evaluation:** After producing prioritized backlog (per `## Workflow` step output), inspect ranking output:
 
 - Top-2 RICE scores within 15% of each other → gate fires
 - Explicit MoSCoW tie (≥2 items in same Must/Should/Could band with material scope overlap) → gate fires
@@ -202,6 +202,7 @@ If gate does NOT fire, the prioritization decision stands; do NOT prompt.
 
 ## Closing Reminders
 
+- **IMPORTANT MUST ATTENTION Goal:** produce a defensible ranked ordering so the team works highest-value items first — every rank backed by a score and tech-agnostic rationale (value/effort/risk/impact)
 - **IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
 - **IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
 - **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)

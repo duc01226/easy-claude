@@ -15,7 +15,7 @@ description: '[Architecture] Use when designing solution architecture across bac
 
 ## Quick Summary
 
-**Goal:** Act as a solution architect — research, critically analyze, and recommend the complete technical architecture for a project or feature. Cover ALL architecture concerns: backend, frontend, design patterns, library ecosystem, testing strategy, CI/CD, deployment, monitoring, code quality, and dependency management. Produce a comprehensive comparison report with actionable recommendations.
+**Goal:** Act as solution architect to deliver a complete, evidence-backed, user-validated architecture decision report covering ALL concerns (backend, frontend, design patterns, library ecosystem, testing strategy, CI/CD, deployment, monitoring, code quality, dependency management) — every concern researched with 3+ options, every recommendation carrying confidence % + cited evidence, every decision confirmed by the user — so implementation proceeds on sound, owned architectural choices.
 
 **Workflow (12 steps):**
 
@@ -127,7 +127,7 @@ Evaluate applicability per layer:
 | **Outbox**          | Messaging      | Reliable event publishing with DB transactions    |
 | **Circuit Breaker** | Infrastructure | External service resilience                       |
 
-For each recommended pattern, document: **Apply to**, **Why**, **Example**, **Risk if skipped**.
+Per recommended pattern, document: **Apply to**, **Why**, **Example**, **Risk if skipped**.
 
 ---
 
@@ -214,7 +214,7 @@ WebSearch top 3 styling approaches for the confirmed frontend framework:
 
 ## Step 5: Library Ecosystem Research
 
-For EACH concern below, WebSearch top 3 library options for the confirmed tech stack. Evaluate: maturity, community, bundle size, maintenance activity, license, learning curve.
+Per concern below, WebSearch top 3 library options for confirmed tech stack. Evaluate: maturity, community, bundle size, maintenance activity, license, learning curve.
 
 ### Library Concerns Checklist
 
@@ -372,7 +372,7 @@ Research and recommend tooling for automated code quality:
 
 ### Scaffold Handoff (MANDATORY — consumed by `/scaffold`)
 
-After completing code quality research, produce this handoff table in the architecture report. The `/scaffold` skill reads this table to generate actual config files — without it, scaffold cannot auto-configure quality tooling.
+After code quality research, produce this handoff table in architecture report. `/scaffold` reads this table to generate actual config files — without it, scaffold cannot auto-configure quality tooling.
 
 ```markdown
 ### Scaffold Handoff — Tool Choices
@@ -394,7 +394,7 @@ After completing code quality research, produce this handoff table in the archit
 
 ## Step 10: Dependency Risk Assessment
 
-For EVERY recommended library/package, evaluate maintenance and obsolescence risk:
+Per recommended library/package, evaluate maintenance and obsolescence risk:
 
 ### Package Health Scorecard
 
@@ -594,6 +594,7 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Goal:** Deliver a complete, evidence-backed, user-validated architecture decision report — every concern researched with 3+ options, every recommendation carrying confidence % + cited evidence, every decision confirmed by the user — so implementation proceeds on sound, owned architectural choices.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting.
 **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — never auto-decide.
 **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.

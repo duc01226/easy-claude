@@ -60,19 +60,19 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $scout -> $investigate -> $excalidraw-diagram -> $workflow-end
+**IMPORTANT MANDATORY Steps:** $scout -> $feature-investigation -> $excalidraw-diagram -> $workflow-end
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its skill invocation — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
-Activate the `visualize` workflow. Run `$workflow-start visualize` with the user's prompt as context.
+Activate the `workflow-visualize` workflow. Run `$start-workflow workflow-visualize` with the user's prompt as context.
 
-**Steps:** $scout → $investigate → $excalidraw-diagram → $workflow-end
+**Steps:** $scout → $feature-investigation → $excalidraw-diagram → $workflow-end
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
 
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
 
-**IMPORTANT MANDATORY Steps:** $scout -> $investigate -> $excalidraw-diagram -> $workflow-end
+**IMPORTANT MANDATORY Steps:** $scout -> $feature-investigation -> $excalidraw-diagram -> $workflow-end
 
 <!-- SYNC:nested-task-creation -->
 
@@ -185,7 +185,7 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
-4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
 6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.

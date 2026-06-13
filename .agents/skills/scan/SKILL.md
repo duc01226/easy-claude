@@ -149,7 +149,7 @@ Read the full report. Apply the fresh-eyes protocol:
 
 ## Final Step: Enhance Scanned Doc (MANDATORY)
 
-**MUST ATTENTION** after the doc is written and verified, create a REQUIRED final todo task and run `$prompt-enhance <the target entry's doc>` — why: this reference doc is injected into AI context; attention-anchoring (top/bottom Final Purpose, inline READ summaries, token density) directly raises downstream AI output quality. A scan is NOT complete until its doc is prompt-enhanced.
+**MUST ATTENTION** after the doc is written and verified, create a REQUIRED final todo task and run `$prompt-enhance <the target entry's doc>` — why: this reference doc is injected into AI context; attention-anchoring (top/bottom Goal, inline READ summaries, token density) directly raises downstream AI output quality. A scan is NOT complete until its doc is prompt-enhanced.
 
 **task tracking (required, last task):** `Run $prompt-enhance <target doc> on the scanned doc`
 
@@ -275,7 +275,7 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
-4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
 6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.

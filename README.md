@@ -4,7 +4,7 @@
 
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **66 top-level hook files**, **160 skills**, **21 workflows**, and **29 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`, with Copilot instruction generation available through sync skills and scripts.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **66 top-level hook files**, **156 skills**, **17 workflows**, and **29 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`, with Copilot instruction generation available through sync skills and scripts.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -107,14 +107,14 @@ Optional scans (run if applicable):
 
 Runtime Node.js scripts that fire on Claude Code lifecycle events.
 
-| Category               | Hooks                                                                                                        | Purpose                                                                 |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
-| **Safety**             | `path-boundary-block`, `privacy-block`, `scout-block`                                                        | Prevent out-of-scope access, block secrets, limit broad searches        |
-| **Quality**            | `edit-enforcement`, `skill-enforcement`                                                                      | Force task tracking, enforce skill usage                                |
-| **Context Injection**  | `backend-context`, `frontend-context`, `design-system-context`, `code-patterns-injector`, `lessons-injector` | Auto-inject relevant patterns when editing specific file types          |
-| **Session Management** | `session-init`, `session-end`, `session-resume`, `post-compact-recovery`                                     | Initialize state, persist across compactions, recover after memory loss |
-| **Workflow**           | `workflow-router` (3 files), `workflow-step-tracker`, `todo-tracker`                                         | Detect intent, route to workflows, track step progress                  |
-| **Freshness Gates**    | `graph-build` gate, reference-docs staleness gate                                                            | Block investigations when code graph or reference docs are stale        |
+| Category               | Hooks                                                                                                           | Purpose                                                                 |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| **Safety**             | `path-boundary-block`, `privacy-block`, `scout-block`                                                           | Prevent out-of-scope access, block secrets, limit broad searches        |
+| **Quality**            | `edit-enforcement`, `skill-enforcement`                                                                         | Force task tracking, enforce skill usage                                |
+| **Context Injection**  | `pretooluse-ctx-*` (9 dispatchers) + `prompt-context-assembler` — builders in `pretooluse-context-builders.cjs` | Auto-inject relevant patterns when editing specific file types          |
+| **Session Management** | `session-init`, `session-end`, `session-resume`, `post-compact-recovery`                                        | Initialize state, persist across compactions, recover after memory loss |
+| **Workflow**           | `workflow-router` (3 files), `workflow-step-tracker`, `todo-tracker`                                            | Detect intent, route to workflows, track step progress                  |
+| **Freshness Gates**    | `graph-build` gate, reference-docs staleness gate                                                               | Block investigations when code graph or reference docs are stale        |
 
 **Context re-injection:** The framework re-injects CLAUDE.md rules, project config, and project-reference patterns at every `UserPromptSubmit` via `mindset-injector` and `prompt-context-assembler` (6 part-files). This stateless-per-turn design prevents context drift over long sessions. `dedup-constants.cjs` ensures each injection fires exactly once per session.
 
@@ -137,20 +137,20 @@ Markdown-based prompts with YAML frontmatter that guide AI behavior.
 | **Scanning**       | `/scan-project-structure`, `/scan-codebase-health`, `/scan-docs-index`                                         | Generate reference docs for hooks to auto-inject        |
 | **Documents**      | `/markdown-to-pdf`, `/markdown-to-docx`, `/pdf-to-markdown`                                                    | Document format conversion                              |
 
-### Workflows (21 definitions)
+### Workflows (17 definitions)
 
 End-to-end process orchestration with step enforcement.
 
-| Workflow                 | Focus                                                                   | Use When                                          |
-| ------------------------ | ----------------------------------------------------------------------- | ------------------------------------------------- |
-| `feature`                | Scout, investigate, plan, write specs, implement, review, test, docs    | Implementing a well-defined feature               |
-| `bugfix`                 | Trace root cause, write regression specs/tests, fix, prove, verify      | Fixing a bug without losing invariants            |
-| `big-feature`            | Idea, research, domain/tech analysis, stories, specs, implementation    | Large or ambiguous feature needing research       |
-| `greenfield-init`        | Product inception through scaffold, implementation, tests, docs         | New project from scratch                          |
-| `product-discovery`      | Brainstorm, research, PBIs, stories, DoR, mockups, ranked backlog       | Turning raw vision into implementation-ready work |
-| `spec-driven-dev`        | Engineering specs, feature docs, TDD specs, implementation sync         | Keeping specs, tests, code, and docs aligned      |
-| `write-integration-test` | Domain investigation, test specs, integration test code, review, verify | Adding or updating integration tests              |
-| `refactor`               | Search-first restructuring with plan, implementation, review, tests     | Code improvement without behavior drift           |
+| Workflow                          | Focus                                                                   | Use When                                          |
+| --------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------- |
+| `workflow-feature`                | Scout, investigate, plan, write specs, implement, review, test, docs    | Implementing a well-defined feature               |
+| `workflow-bugfix`                 | Trace root cause, write regression specs/tests, fix, prove, verify      | Fixing a bug without losing invariants            |
+| `workflow-big-feature`            | Idea, research, domain/tech analysis, stories, specs, implementation    | Large or ambiguous feature needing research       |
+| `workflow-greenfield-init`        | Product inception through scaffold, implementation, tests, docs         | New project from scratch                          |
+| `workflow-product-discovery`      | Brainstorm, research, PBIs, stories, DoR, mockups, ranked backlog       | Turning raw vision into implementation-ready work |
+| `workflow-spec-driven-dev`        | Engineering specs, feature docs, TDD specs, implementation sync         | Keeping specs, tests, code, and docs aligned      |
+| `workflow-write-integration-test` | Domain investigation, test specs, integration test code, review, verify | Adding or updating integration tests              |
+| `workflow-refactor`               | Search-first restructuring with plan, implementation, review, tests     | Code improvement without behavior drift           |
 
 ### Agents (29 specialists)
 
@@ -285,9 +285,9 @@ Seven principles that make this framework work reliably across any project:
 
 Most framework features work with Node.js and Python 3. Some skills require additional tools:
 
-| Skill              | Dependency          | Install                           |
-| ------------------ | ------------------- | --------------------------------- |
-| `devops`           | Docker, Wrangler    | `npm install -g wrangler`         |
+| Skill    | Dependency       | Install                   |
+| -------- | ---------------- | ------------------------- |
+| `devops` | Docker, Wrangler | `npm install -g wrangler` |
 
 See [INSTALLATION.md](.claude/skills/INSTALLATION.md) for full dependency list.
 

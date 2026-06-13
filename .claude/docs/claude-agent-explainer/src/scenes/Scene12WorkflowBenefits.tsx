@@ -3,14 +3,14 @@ import { C, ProgressBar, ChapterBadge, ScriptBar } from '../components/Shared';
 import { easeOut, staggeredEaseOut } from '../utils/animations';
 
 const SCRIPT_LINES = [
-    'Walk through /workflow-start feature to see how everything connects: scout → investigate → spec → plan → spec [mode=tests] → implement → integration-test → docs-update. Every approval is explicit — the AI shows the plan and waits for confirmation before writing a single line of code.',
+    'Walk through /start-workflow workflow-feature to see how everything connects: scout → investigate → spec → plan → spec [mode=tests] → implement → integration-test → docs-update. Every approval is explicit — the AI shows the plan and waits for confirmation before writing a single line of code.',
     "The spec-driven loop is mandatory: /idea-to-pbi writes TC-{FEATURE}-{NNN} test cases in Feature Spec Section 8 before development starts. The feature and fix workflows both require /spec [mode=tests] — code satisfies pre-existing specs, not the other way around. This prevents 'write first, spec later' drift.",
     'Harness engineering is what separates this from a collection of prompts. edit-enforcement.cjs blocks file edits without an active TaskCreate plan. skill-enforcement.cjs auto-activates the right protocol when file patterns match. These are Node.js hooks — they run unconditionally, regardless of what the AI decides.'
 ];
 
 const WORKFLOWS = [
     {
-        name: '/workflow-start feature',
+        name: '/start-workflow workflow-feature',
         label: 'Feature Dev',
         icon: '⚙️',
         color: C.green,

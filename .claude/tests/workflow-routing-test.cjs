@@ -152,7 +152,7 @@ assert(
     injection.includes('Workflow Detection Instructions'),
     'Missing Workflow Detection Instructions header'
 );
-assert('Injection references workflow-start', injection.includes('workflow-start'), 'Should reference /workflow-start for activation');
+assert('Injection references start-workflow', injection.includes('start-workflow'), 'Should reference /start-workflow for activation');
 assert(
     'Injection contains TaskCreate enforcement',
     injection.includes('TaskCreate') && injection.includes('MANDATORY'),

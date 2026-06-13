@@ -15,7 +15,7 @@ description: '[Architecture] Use when you need to analyze business domain: bound
 
 ## Quick Summary
 
-**Goal:** Analyze business domain: bounded contexts, aggregates, entities, VOs, domain events, cross-context relationships. Generate domain model report + ERD.
+**Goal:** Analyze business domain (bounded contexts, aggregates, entities, VOs, domain events, cross-context relationships) and generate a domain model report + ERD — producing a user-validated DDD domain model with correct bounded contexts, aggregate boundaries, and event flows so downstream implementation builds on the right invariants and avoids costly boundary rework after consumers depend on them.
 
 **Workflow:**
 
@@ -899,6 +899,7 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Goal:** Produce a user-validated DDD domain model — correct bounded contexts, aggregate boundaries, and event flows — so downstream implementation builds on the right invariants and avoids costly boundary rework after consumers depend on them.
 **MUST ATTENTION** `TaskCreate` ALL tasks BEFORE starting — never begin without task breakdown
 **MUST ATTENTION** validate EVERY bounded context + key relationship with user via `AskUserQuestion` — never auto-decide
 **MUST ATTENTION** domain events ALWAYS follow `{AggregateNoun}{PastTenseVerb}` naming — NEVER command-style

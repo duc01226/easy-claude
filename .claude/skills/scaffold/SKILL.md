@@ -15,9 +15,9 @@ description: '[Architecture] Use when scaffolding reusable OOP/SOLID project fou
 
 ## Quick Summary
 
-**Goal:** Generate and validate the project's architecture scaffolding — all base classes, interfaces, infrastructure abstractions, and reusable foundation code — BEFORE any feature story implementation begins.
+**Goal:** Generate and validate the project's architecture scaffolding — all base classes, interfaces, infrastructure abstractions, and reusable foundation code — BEFORE any feature story implementation begins, producing a copy-ready, OOP/SOLID-compliant architecture foundation with quality-gate tooling that every feature story reuses before implementation starts.
 
-**Purpose:** The scaffolded project should be copy-ready as a starter template for similar projects. All base code, utilities, interfaces, and infrastructure services are created. All setup follows best practices with generic functions any feature story could reuse.
+**Purpose:** Scaffolded project copy-ready as starter template for similar projects. All base code, utilities, interfaces, infrastructure services created. Setup follows best practices with generic functions any feature story could reuse.
 
 **Key distinction:** This is architecture infrastructure creation, NOT feature implementation. Creates the foundation layer that all stories build upon.
 
@@ -27,7 +27,7 @@ description: '[Architecture] Use when scaffolding reusable OOP/SOLID project fou
 
 **ALL conditions must be true to proceed:**
 
-1. **Workflow check:** Active workflow is `greenfield-init` OR `big-feature`. If not → SKIP this skill entirely, mark step as completed.
+1. **Workflow check:** Active workflow is `workflow-greenfield-init` OR `workflow-big-feature`. If not → SKIP this skill entirely, mark step as completed.
 2. **Existing scaffolding check:** AI MUST ATTENTION self-investigate for existing base/foundational abstractions:
     - Abstract/base classes: grep `abstract class.*Base|Base[A-Z]\w+|Abstract[A-Z]\w+`
     - Generic interfaces: grep `interface I\w+<|IGeneric|IBase`
@@ -441,6 +441,9 @@ Run ALL verification checklists from the production readiness protocol:
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Goal:** Produce a copy-ready, OOP/SOLID-compliant architecture foundation — base classes, infrastructure abstractions, and quality-gate tooling — that every feature story reuses before implementation starts.
+**MANDATORY IMPORTANT MUST ATTENTION** check Activation Guards FIRST — SKIP entirely if existing scaffolding found or workflow is not greenfield-init/big-feature.
+**MANDATORY IMPORTANT MUST ATTENTION** BLOCK `/cook` until both `/linter-setup` and `/harness-setup` complete and all production-readiness foundations verify.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting.
 **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — never auto-decide.
 **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.

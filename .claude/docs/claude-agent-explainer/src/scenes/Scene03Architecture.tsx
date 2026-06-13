@@ -5,16 +5,16 @@ import { easeOut, staggeredEaseOut } from '../utils/animations';
 const SCRIPT_LINES = [
     'The architecture has 6 layers and dependencies flow inward only — just like Clean Architecture. At the base is Configuration: a single project-config.json that makes the entire framework project-agnostic.',
     'The Enforcement Layer is the backbone: 66 top-level hook files fire on every session start, file edit, and tool call — injecting context, blocking unsafe actions, and enforcing task planning before any code is touched.',
-    "Here's what makes this powerful: swap project-config.json to point at any codebase and all 173 skills, 21 workflows, and 29 agents instantly adapt — zero reconfiguration of the intelligence layers above."
+    "Here's what makes this powerful: swap project-config.json to point at any codebase and all 173 skills, 17 workflows, and 29 agents instantly adapt — zero reconfiguration of the intelligence layers above."
 ];
 
 const LAYERS = [
     { label: 'Configuration Layer', sub: 'project-config.json · .ck.json · settings.json', color: C.dim, icon: '⚙️' },
     { label: 'State Layer', sub: 'Todo state · Workflow state · Swap engine (memory)', color: C.cyan, icon: '💾' },
-    { label: 'Orchestration Layer', sub: '21 Workflows · JSON sequences · Step enforcement', color: C.green, icon: '🔄' },
+    { label: 'Orchestration Layer', sub: '17 Workflows · JSON sequences · Step enforcement', color: C.green, icon: '🔄' },
     { label: 'Intelligence Layer', sub: '173 Skills · Shared protocols · Evidence gates', color: C.purple, icon: '⚡' },
     { label: 'Enforcement Layer', sub: '66 Hook Files · Safety · Quality · Context injection', color: C.blue, icon: '🪝' },
-    { label: 'User Layer', sub: 'Developer prompt → Workflow router → auto-select /workflow-start', color: C.amber, icon: '👤' }
+    { label: 'User Layer', sub: 'Developer prompt → Workflow router → auto-select /start-workflow', color: C.amber, icon: '👤' }
 ];
 
 export const Scene03Architecture: React.FC = () => {

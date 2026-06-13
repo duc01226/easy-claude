@@ -20,7 +20,7 @@ const INJECTIONS = [
         color: C.cyan
     },
     { trigger: 'Activate code-review', context: 'Code review rules + quality checklist', hook: 'code-review-rules-injector', color: C.amber },
-    { trigger: 'Subagent spawned', context: 'Full project context + lessons (8 subagent-init hooks)', hook: 'subagent-init-*.cjs', color: C.red }
+    { trigger: 'Subagent spawned', context: 'Full project context + lessons (3 subagent-init hooks)', hook: 'subagent-init*.cjs', color: C.red }
 ];
 
 export const Scene05ContextInjection: React.FC = () => {

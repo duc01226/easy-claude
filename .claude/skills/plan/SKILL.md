@@ -16,9 +16,7 @@ disable-model-invocation: false
 
 ## Quick Summary
 
-**Goal:** Research codebase, analyze, create detailed phased implementation plan with user collaboration.
-
-**Final Purpose:** Deliver a validated, implementation-ready plan — every phase startable immediately (exact file paths, zero open decisions, mapped TC IDs) — so coding proceeds without rework at minimum future change cost.
+**Goal:** Research the codebase and collaborate with the user to deliver a validated, implementation-ready phased plan — every phase startable immediately (exact file paths, zero open decisions, mapped TC IDs) — so coding proceeds without rework at minimum future change cost.
 
 **Workflow:**
 
@@ -41,18 +39,17 @@ disable-model-invocation: false
 > DRY, SRP, abstraction, design patterns, naming, layering, tests — every
 > technique exists to serve one goal: **making the next change cheaper**.
 
-When evaluating code, a refactor, a test, or an abstraction, ask:
-**does this make the next change cheaper or more expensive?**
+Evaluating code, refactor, test, abstraction, ask:
+**does this make next change cheaper or more expensive?**
 
-- Reject "best practices" that raise change cost (premature abstraction,
+- Reject "best practices" raising change cost (premature abstraction,
   speculative generality, leaky indirection, ceremony without payoff).
-- Name the real enemies in findings: **coupling, hidden state, duplicated
+- Name real enemies in findings: **coupling, hidden state, duplicated
   knowledge, unclear intent, irreversible decisions exposed too early**.
-- A simpler design that is easy to change beats a sophisticated design that
-  isn't.
+- Simpler design easy to change beats sophisticated design that isn't.
 
 Apply this lens **before** invoking any specific rule, pattern, or checklist
-below — if a downstream rule would raise change cost, this principle wins.
+below — if a downstream rule raises change cost, this principle wins.
 
 ---
 
@@ -78,12 +75,12 @@ below — if a downstream rule would raise change cost, this principle wins.
 
 ## Greenfield Mode
 
-> **Auto-detected:** If no existing codebase found (no discovered source directories, no manifest files, no populated `project-config.json`), skill auto-switches to greenfield mode. Planning artifacts (docs/, plans/, .claude/) don't count — repository must have actual code directories with content.
+> **Auto-detected:** No existing codebase found (no discovered source directories, no manifest files, no populated `project-config.json`) → skill auto-switches to greenfield mode. Planning artifacts (docs/, plans/, .claude/) don't count — repository must have actual code directories with content.
 
 **When greenfield detected:**
 
-1. Skip codebase analysis phase (researcher subagents that grep code)
-2. **Replace with:** market research + business evaluation phase using WebSearch + WebFetch
+1. Skip codebase analysis phase (researcher subagents grepping code)
+2. **Replace with:** market research + business evaluation phase via WebSearch + WebFetch
 3. Delegate architecture decisions to `solution-architect` agent
 4. Output: `plans/{id}/plan.md` with greenfield-specific phases (domain model, tech stack, project structure)
 5. Skip reading project reference docs (won't exist in greenfield)
@@ -117,7 +114,7 @@ When a `--mode` is present: (1) read the matching `references/mode-*.md`; (2) ap
 
 **Activation conditions (ALL must be true):**
 
-1. Active workflow is `greenfield-init` OR `big-feature`
+1. Active workflow is `workflow-greenfield-init` OR `workflow-big-feature`
 2. AI MUST ATTENTION self-investigate for existing base/foundational abstractions using these patterns:
     - Abstract/base classes: `abstract class.*Base|Base[A-Z]\w+|Abstract[A-Z]\w+`
     - Generic interfaces: `interface I\w+<|IGeneric|IBase`
@@ -262,7 +259,7 @@ After plan creation, offer validation interview to confirm decisions before impl
 
 > **MANDATORY IMPORTANT MUST ATTENTION:** If skill is called **outside a workflow** (standalone `/plan`), generated plan MUST ATTENTION include `/review-changes` as a **final phase/task** in plan. Ensures all implementation changes get reviewed before commit even without a workflow enforcing it.
 >
-> If already running inside a workflow (e.g., `feature`, `bugfix`), skip this — workflow sequence handles `/review-changes` at appropriate step.
+> If already running inside a workflow (e.g., `workflow-feature`, `workflow-bugfix`), skip this — workflow sequence handles `/review-changes` at appropriate step.
 
 ## Next Steps (Standalone: MUST ATTENTION ask user via `AskUserQuestion`. Skip if inside workflow.)
 
@@ -755,7 +752,7 @@ After creating all phase files, run **recursive decomposition loop**:
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Final Purpose:** deliver a validated, implementation-ready plan — every phase startable immediately (file paths, zero open decisions, mapped TCs) — so coding runs without rework at minimum future change cost
+**IMPORTANT MUST ATTENTION Goal:** deliver a validated, implementation-ready plan — every phase startable immediately (file paths, zero open decisions, mapped TCs) — so coding runs without rework at minimum future change cost
 **MANDATORY IMPORTANT MUST ATTENTION** default mode HARD — opt out to fast mode ONLY when ALL trivial-task conditions met
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks via `TaskCreate` BEFORE starting
 **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — never auto-decide

@@ -35,8 +35,8 @@ Hooks are standalone Node.js CJS scripts triggered by Claude Code at specific li
 | `SessionStart`     | startup, resume, clear, compact | `session-init`, `workflow-router`                                              |
 | `SessionEnd`       | Session closing                 | `session-end`                                                                  |
 | `UserPromptSubmit` | Each user message               | `workflow-router`, `prompt-context-assembler`                                  |
-| `SubagentStart`    | Subagent spawn                  | `subagent-init-identity`, `subagent-init-*.cjs` (13 hooks)                     |
-| `PreToolUse`       | Before tool execution           | `privacy-block`, `path-boundary-block`, `edit-enforcement`, `frontend-context` |
+| `SubagentStart`    | Subagent spawn                  | `subagent-init-2`, `subagent-init-3` (2 cap-bounded dispatchers)               |
+| `PreToolUse`       | Before tool execution           | `privacy-block`, `path-boundary-block`, `edit-enforcement`, `pretooluse-ctx-*` |
 | `PostToolUse`      | After tool execution            | `tool-output-swap`, `todo-tracker`                                             |
 | `PreCompact`       | Before context compaction       | `write-compact-marker`                                                         |
 | `Notification`     | System notifications            | Various                                                                        |
@@ -101,7 +101,7 @@ main().catch(() => process.exit(0)); // Fail-open
 
 ### 2.3 Pattern C: Context Injector Base
 
-Used by context injection hooks (`frontend-context`, `backend-context`, `scss-styling-context`, `knowledge-context`) via `lib/context-injector-base.cjs`.
+Used by the consolidated context-injection builder functions in `lib/pretooluse-context-builders.cjs` — formerly the standalone `frontend-context`, `backend-context`, `scss-styling-context`, and `knowledge-context` hooks (since merged into builders) — via `lib/context-injector-base.cjs`.
 
 ```js
 const { parsePreToolUseInput, wasRecentlyInjected } = require('./lib/context-injector-base.cjs');

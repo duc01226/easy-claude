@@ -42,7 +42,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** [Workflow] Trigger Idea to PBI workflow — capture or review idea/artifact, refine to PBI, validate design rationale, create stories, generate TDD test specs, challenge review, DoR gate, mockup, prioritize.
+**Goal:** [Workflow] Trigger Idea to PBI workflow — capture or review idea/artifact, refine, generate TDD test specs from the idea, model the domain, plan, derive the PBI and stories, challenge review, DoR gate, mockup, prioritize (idea → specs → from specs to PBI).
 
 **Workflow:**
 
@@ -71,10 +71,10 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## When NOT to Use
 
-- Multiple opportunities from a discovery sprint → use `product-discovery`
-- Full feature lifecycle including implementation → use `full-feature-lifecycle`
-- Implementation-only (PBI already exists and is DoR-ready) → use `feature` or `big-feature`
-- Bug fixes → use `bugfix`
+- Multiple opportunities from a discovery sprint → use `workflow-product-discovery`
+- Already have canonical Feature Specs and only need the backlog → use `workflow-spec-to-pbi` (spec-first entry)
+- Implementation-only (PBI already exists and is DoR-ready) → use `workflow-feature` or `workflow-big-feature`
+- Bug fixes → use `workflow-bugfix`
 
 ## Key Mechanics
 
@@ -88,13 +88,19 @@ After confirming the workflow, present the full step list and let the user desel
 - [ ] PO → BA handoff (handoff)                    — CONDITIONAL
 - [x] Refine to PBI (refine)
 - [x] Refinement rationale review (why-review)
-- [x] PBI review (review-artifact --type=pbi)
+- [x] Test specifications (spec [mode=tests])       — idea → specs
+- [x] Test-spec rationale review (why-review)
+- [x] Test specification review (review-artifact --type=spec-tests)
+- [ ] Domain analysis (domain-analysis)            — CONDITIONAL
+- [x] Domain rationale review (why-review)
+- [x] Implementation plan (plan)
+- [x] Plan review (plan-review)
+- [x] Plan validation (plan-validate)
+- [x] Plan rationale review (why-review)
+- [x] PBI review (review-artifact --type=pbi)       — from specs to PBI
 - [x] User stories (story)
 - [x] Story rationale review (why-review)
 - [x] Story review (review-artifact --type=story)
-- [x] Test specifications (spec [mode=tests])
-- [x] Test-spec rationale review (why-review)
-- [x] Test specification review (review-artifact --type=spec-tests)
 - [x] Dev BA PIC challenge (pbi-challenge)
 - [x] Definition of Ready gate (dor-gate)
 - [x] PBI HTML mock-up (pbi-mockup)                — CONDITIONAL
@@ -112,13 +118,19 @@ Mark skipped steps as completed immediately.
 Task tracking: "Idea capture"
 Task tracking: "Refine to PBI"
 Task tracking: "Refinement rationale review (why-review after refine)"
+Task tracking: "Test specifications (spec [mode=tests])"
+Task tracking: "Test-spec rationale review (why-review after spec [mode=tests])"
+Task tracking: "Test specification review (review-artifact --type=spec-tests)"
+Task tracking: "Domain analysis (domain-analysis)" [if domain entities change]
+Task tracking: "Domain rationale review (why-review after domain-analysis)"
+Task tracking: "Implementation plan (plan)"
+Task tracking: "Plan review (plan-review)"
+Task tracking: "Plan validation (plan-validate)"
+Task tracking: "Plan rationale review (why-review after plan-validate)"
 Task tracking: "PBI review (review-artifact --type=pbi)"
 Task tracking: "User stories (story)"
 Task tracking: "Story rationale review (why-review after story)"
 Task tracking: "Story review"
-Task tracking: "Test specifications (spec [mode=tests])"
-Task tracking: "Test-spec rationale review (why-review after spec [mode=tests])"
-Task tracking: "Test specification review (review-artifact --type=spec-tests)"
 Task tracking: "Dev BA PIC challenge"
 Task tracking: "Definition of Ready gate"
 Task tracking: "PBI HTML mock-up" [if UI]
@@ -133,7 +145,7 @@ One task per step. Mark each completed immediately when done — never batch.
 
 This is the adversarial design rationale check. Purpose: validate the **WHY** of each artifact before investing in the next.
 
-The workflow contains repeated `$why-review` gates after the non-review artifact steps. Use purpose-specific labels in sequence: refinement rationale, story rationale, and test-spec rationale. Do not deduplicate them.
+The workflow contains repeated `$why-review` gates after the non-review artifact steps. Use purpose-specific labels in sequence: refinement rationale (after refine), test-spec rationale (after spec [mode=tests]), domain rationale (after domain-analysis), plan rationale (after plan-validate), and story rationale (after story). Do not deduplicate them.
 
 > The standalone gate after `review-artifact --type=pbi` is intentionally omitted: `review-artifact --type=pbi` (like every review skill) already self-invokes `$why-review --validate-findings` as an internal Findings Validation Gate, so a separate why-review step right after it would be duplicate work.
 
@@ -149,13 +161,13 @@ The workflow contains repeated `$why-review` gates after the non-review artifact
 
 | Result | Action                                          |
 | ------ | ----------------------------------------------- |
-| PASS   | Proceed to `$story`                             |
+| PASS   | Proceed to the next artifact step               |
 | WARN   | Document risk, proceed with user acknowledgment |
 | FAIL   | Revise PBI in `$refine` before continuing       |
 
-### 4. TDD-Spec Gate (After review-artifact --type=story, Before pbi-challenge)
+### 4. TDD-Spec Gate (After refine, Before the PBI is drafted)
 
-Generate and review test specifications before challenge and DoR gates so reviewers evaluate a testable PBI.
+Generate and review test specifications right after refine — BEFORE the PBI is drafted — so the PBI, stories, and plan are derived FROM the test specs (idea → specs → from specs to PBI).
 
 AI-generated TC drafts are reference-only until `$review-artifact --type=spec-tests`, `$pbi-challenge`, and `$dor-gate` accept them for delivery planning.
 
@@ -204,6 +216,7 @@ Write output IMMEDIATELY after each step — never batch across steps.
 | Step               | Skip When                             |
 | ------------------ | ------------------------------------- |
 | `$review-artifact` | No existing artifact — raw idea input |
+| `$domain-analysis` | Idea introduces no new/changed domain entities |
 | `$pbi-mockup`      | Backend-only PBI — no UI changes      |
 
 ---
@@ -221,20 +234,21 @@ Purpose:
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $idea -> $review-artifact -> $refine -> $why-review -> $review-artifact --type=pbi -> $story -> $why-review -> $review-artifact --type=story -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $prioritize -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $idea -> $review-artifact -> $refine -> $why-review -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $domain-analysis -> $why-review -> $plan -> $plan-review -> $plan-validate -> $why-review -> $review-artifact --type=pbi -> $story -> $why-review -> $review-artifact --type=story -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $prioritize -> $docs-update -> $workflow-end -> $watzup
 
-**IMPORTANT MANDATORY Steps:** $idea -> $review-artifact -> $refine -> $why-review -> $review-artifact --type=pbi -> $story -> $why-review -> $review-artifact --type=story -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $prioritize -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $idea -> $review-artifact -> $refine -> $why-review -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $domain-analysis -> $why-review -> $plan -> $plan-review -> $plan-validate -> $why-review -> $review-artifact --type=pbi -> $story -> $why-review -> $review-artifact --type=story -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $prioritize -> $docs-update -> $workflow-end -> $watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its skill invocation — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
-Activate the `idea-to-pbi` workflow. Run `$workflow-start idea-to-pbi` with the user's prompt as context.
+Activate the `workflow-idea-to-pbi` workflow. Run `$start-workflow workflow-idea-to-pbi` with the user's prompt as context.
 
 **Steps:**
-$idea → $review-artifact (conditional) → $refine → $why-review → $review-artifact --type=pbi → $story → $why-review → $review-artifact --type=story → $spec [mode=tests] → $why-review → $review-artifact --type=spec-tests → $pbi-challenge → $dor-gate → $pbi-mockup → $prioritize → $docs-update → $workflow-end → $watzup
+$idea → $review-artifact (conditional) → $refine → $why-review → $spec [mode=tests] → $why-review → $review-artifact --type=spec-tests → $domain-analysis (conditional) → $why-review → $plan → $plan-review → $plan-validate → $why-review → $review-artifact --type=pbi → $story → $why-review → $review-artifact --type=story → $pbi-challenge → $dor-gate → $pbi-mockup → $prioritize → $docs-update → $workflow-end → $watzup
 
 > **Conditional steps:**
 >
 > - `$review-artifact` — skip if no existing artifact/ticket/PRD; proceed straight to `$refine`
+> - `$domain-analysis` — skip if the idea introduces no new/changed domain entities
 > - `$pbi-mockup` — skip if PBI is backend-only (no UI changes)
 
 ---
@@ -346,8 +360,8 @@ $idea → $review-artifact (conditional) → $refine → $why-review → $review
 ## Closing Reminders
 
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting — one task per step
-- **MANDATORY IMPORTANT MUST ATTENTION** run all three purpose-specific why-review gates: after refine, after story, and after spec [mode=tests]; FAIL blocks the next artifact step, WARN requires user acknowledgment
-- **MANDATORY IMPORTANT MUST ATTENTION** spec [mode=tests] and review-artifact --type=spec-tests run after review-artifact --type=story and before pbi-challenge
+- **MANDATORY IMPORTANT MUST ATTENTION** run all five purpose-specific why-review gates: after refine, after spec [mode=tests], after domain-analysis, after plan-validate, and after story; FAIL blocks the next artifact step, WARN requires user acknowledgment
+- **MANDATORY IMPORTANT MUST ATTENTION** spec [mode=tests] and review-artifact --type=spec-tests run right after refine and before the PBI is drafted (idea → specs → from specs to PBI)
 - **MANDATORY IMPORTANT MUST ATTENTION** pbi-challenge must be run by a reviewer different from the drafter
 - **MANDATORY IMPORTANT MUST ATTENTION** dor-gate must pass (PASS or WARN) before pbi-mockup is finalized
 - **MANDATORY IMPORTANT MUST ATTENTION** write each artifact immediately — never batch output across steps
@@ -370,7 +384,7 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
-4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
 6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.

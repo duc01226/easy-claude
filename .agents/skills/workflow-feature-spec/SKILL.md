@@ -58,18 +58,18 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
 - NEVER skip mandatory workflow or skill gates.
 
-**IMPORTANT MANDATORY Steps:** $scout -> $investigate -> $plan -> $plan-review -> $plan-validate -> $why-review -> $docs-update -> $workflow-review-changes -> $review-post-task -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $scout -> $feature-investigation -> $plan -> $plan-review -> $plan-validate -> $why-review -> $docs-update -> $workflow-review-changes -> $review-post-task -> $workflow-end -> $watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its skill invocation — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 > **[BLOCKING]** Read `docs/project-reference/spec-principles.md` before starting this workflow — baseline for completeness, TC quality, and **tech-agnostic output (§3)**: generated prose/headings name no framework/product/language/design-pattern; source paths and class names appear ONLY in evidence fields (`**Evidence**`, `[Source:]`), frontmatter, and Mermaid.
 
-Activate the `feature-spec` workflow. Run `$workflow-start feature-spec` with the user's prompt as context.
+Activate the `workflow-feature-spec` workflow. Run `$start-workflow workflow-feature-spec` with the user's prompt as context.
 
-**Steps:** $scout → $investigate → $plan → $plan-review → $plan-validate → $why-review → $docs-update → $workflow-review-changes → $review-post-task → $workflow-end → $watzup _(sequence is shared with the `documentation` workflow; this workflow is differentiated by its injectContext domain: **tech-free 8-section Feature Spec** template enforcement + `TC-{FEATURE}-{NNN}` GIVEN/WHEN/THEN test cases + `[Source: namespace/service/id]` abstract evidence anchors — see `workflows.json` `feature-spec.injectContext`)._
+**Steps:** $scout → $feature-investigation → $plan → $plan-review → $plan-validate → $why-review → $docs-update → $workflow-review-changes → $review-post-task → $workflow-end → $watzup _(this workflow is differentiated by its injectContext domain: **tech-free 8-section Feature Spec** template enforcement + `TC-{FEATURE}-{NNN}` GIVEN/WHEN/THEN test cases + `[Source: namespace/service/id]` abstract evidence anchors — see `workflows.json` `workflow-feature-spec.injectContext`)._
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $scout -> $investigate -> $plan -> $plan-review -> $plan-validate -> $why-review -> $docs-update -> $workflow-review-changes -> $review-post-task -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $scout -> $feature-investigation -> $plan -> $plan-review -> $plan-validate -> $why-review -> $docs-update -> $workflow-review-changes -> $review-post-task -> $workflow-end -> $watzup
 
 <!-- SYNC:ai-mistake-prevention -->
 
@@ -198,7 +198,7 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
-4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
 6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.

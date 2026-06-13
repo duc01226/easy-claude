@@ -39,7 +39,7 @@ Help users install, configure, troubleshoot, and extend Claude Code CLI -- Anthr
 
 ## When NOT to Use
 
-- Writing application code -- use the `feature` workflow, `fix`, or `refactoring` skills
+- Writing application code -- use the `workflow-feature` workflow, `fix`, or `refactoring` skills
 - Creating or managing MCP servers -- use MCP documentation and project MCP config directly
 - AI prompt engineering -- use general prompt-engineering guidance directly
 

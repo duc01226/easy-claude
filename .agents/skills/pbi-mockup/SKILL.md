@@ -50,7 +50,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Ask AI to generate a self-contained HTML mock-up file from finalized PBI/story artifacts, styled from the project's reference design docs, existing UI, components, and domain entities. One HTML file per PBI covering all stories.
+**Goal:** Give stakeholders a realistic, system-matching visual preview of every story's UI — by generating a self-contained HTML mock-up file (one per PBI covering all stories) from finalized PBI/story artifacts, styled from the project's reference design docs, existing UI, components, and real domain entity data — before implementation begins, so layout/UX/state gaps surface while changes are still cheap.
 
 **Workflow:**
 
@@ -89,7 +89,7 @@ Generate visual HTML mockup reports from PBI and user story artifacts.
 - After PBI and stories are finalized (reviewed, challenged, gated)
 - Before moving to implementation planning or design spec
 - When stakeholders need a visual preview of the feature
-- As the final step in `idea-to-pbi` and similar workflows
+- As the final step in `workflow-idea-to-pbi` and similar workflows
 
 **NOT for**: Implementing production UI (use `$cook`), creating design specs (use `$design-spec`), or wireframing from scratch (use `$design-spec --mode=wireframe`).
 
@@ -350,7 +350,7 @@ Before completing:
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use a direct user question to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
 >
-> 1. **Activate `idea-to-pbi` workflow** (Recommended) — includes mockup as final step
+> 1. **Activate `workflow-idea-to-pbi` workflow** (Recommended) — includes mockup as final step
 > 2. **Execute `$pbi-mockup` directly** — run this skill standalone on an existing PBI
 
 ---
@@ -418,6 +418,7 @@ Before completing:
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Goal:** Give stakeholders a realistic, system-matching visual preview of every story's UI — built from real domain data and the project's actual design system — before implementation begins, so layout/UX/state gaps surface while changes are still cheap.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting.
 **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via a direct user question — never auto-decide.
 **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.
@@ -438,7 +439,7 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
-4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
 6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.

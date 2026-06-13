@@ -15,7 +15,7 @@ description: '[Code Quality] Use when you need to prove fix correctness with cod
 
 ## Quick Summary
 
-**Goal:** Prove (or disprove) that each fix change is correct by building a code proof trace — like a debugger stack trace — with confidence percentages per change.
+**Goal:** Block shipping an unproven fix — build a code proof trace (like a debugger stack trace) for each fix change with confidence percentages, so every code change carries a `file:line` evidence chain and confidence score and a fix ships only when its correctness is proven (≥80%), not assumed.
 
 **Workflow:**
 
@@ -44,7 +44,7 @@ description: '[Code Quality] Use when you need to prove fix correctness with cod
 
 # Prove Fix
 
-Post-fix verification skill that builds evidence-based proof chains for every code change. Think of it as a code debugger's stack trace, but for proving WHY a fix is correct.
+Post-fix verification skill building evidence-based proof chains for every code change. A code debugger's stack trace, but for proving WHY a fix is correct.
 
 ---
 
@@ -52,13 +52,13 @@ Post-fix verification skill that builds evidence-based proof chains for every co
 
 - **After `/fix`** in bugfix, hotfix, or any fix workflow
 - After applying code changes that fix a reported bug
-- When you need to verify fix correctness before review/commit
+- Verify fix correctness before review/commit
 
 ## When NOT to Use
 
-- Before the fix is applied (use `/debug-investigate` instead)
-- For new feature verification (use `/test` instead)
-- For code quality review (use `/code-review` instead)
+- Before fix applied (use `/debug-investigate` instead)
+- New feature verification (use `/test` instead)
+- Code quality review (use `/code-review` instead)
 
 ---
 
@@ -86,7 +86,7 @@ CHANGE #N: [short description]
 
 ## Step 2: Proof Trace (per change)
 
-For EACH change, build a **stack-trace-style proof chain**. This is the core of the skill.
+For EACH change, build a **stack-trace-style proof chain** — the core of the skill.
 
 ### Proof Trace Format
 
@@ -316,7 +316,7 @@ This skill is the **mandatory verification gate** between `/fix` and `/code-simp
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use `AskUserQuestion` to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
 >
-> 1. **Activate `bugfix` workflow** (Recommended) — scout → investigate → debug → plan → fix → prove-fix → review → test
+> 1. **Activate `workflow-bugfix` workflow** (Recommended) — scout → investigate → debug → plan → fix → prove-fix → review → test
 > 2. **Execute `/prove-fix` directly** — run this skill standalone
 
 ---
@@ -523,6 +523,7 @@ This skill is the **mandatory verification gate** between `/fix` and `/code-simp
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Goal:** block shipping an unproven fix — every code change carries a `file:line` evidence chain and confidence score, so a fix ships only when its correctness is proven (≥80%), not assumed.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting.
 **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — never auto-decide.
 **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.

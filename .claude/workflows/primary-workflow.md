@@ -93,7 +93,7 @@
 
 ## Workflow Catalog Reference
 
-All workflows are defined in `.claude/workflows.json` — the canonical catalog (21 workflows). Each workflow composes a subset of the phases above into a specific sequence. Tables below are regenerated from the live catalog.
+All workflows are defined in `.claude/workflows.json` — the canonical catalog (17 workflows). Each workflow composes a subset of the phases above into a specific sequence. Tables below are regenerated from the live catalog.
 
 ### Core Development Workflows
 
@@ -104,16 +104,14 @@ All workflows are defined in `.claude/workflows.json` — the canonical catalog 
 | **refactor**               | 0→1→2→3→4→5→6                   | Code restructuring without behavior change, technical debt                  |
 | **big-feature**            | Full lifecycle with research    | Large/ambiguous features needing market research, domain modeling           |
 | **review-changes**         | 5→3→5→6                         | Pre-commit review of uncommitted changes (recursive fix loop)               |
-| **documentation**          | 0→1→2→6                         | Documentation creation/update (READMEs, code comments)                      |
 | **feature-spec**           | 0→1→2→6                         | Business feature docs (tech-free 8-section template, TCs in Section 8)      |
 | **greenfield-init**        | Full inception + implementation | New project from scratch                                                    |
-| **full-feature-lifecycle** | PO→BA→Designer→Dev→QA           | End-to-end idea → PBI → stories → design → implementation → testing → docs  |
 
 ### PBI & Discovery Workflows
 
 | Workflow              | Flow                                                                                                           |
 | --------------------- | -------------------------------------------------------------------------------------------------------------- |
-| **idea-to-pbi**       | PO/BA: idea (or PO artifact) → review → refine → stories → TDD specs → DoR gate → prioritize                   |
+| **idea-to-pbi**       | PO/BA: idea (or PO artifact) → review → refine → stories → spec [mode=tests] (specs) → domain-analysis → plan → DoR gate → prioritize |
 | **product-discovery** | Raw vision/problem → brainstorm → N PBIs with stories, challenge review, DoR gate, wireframes → ranked backlog |
 | **spec-to-pbi**       | Existing Feature Specs → dependency-aware PBI backlog with stories, DoR gate, prioritization                   |
 
@@ -122,7 +120,6 @@ All workflows are defined in `.claude/workflows.json` — the canonical catalog 
 | Workflow            | Purpose                                                                                                                |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | **spec-driven-dev** | Author/maintain the canonical tech-free 8-section Feature Spec — initial generation, sync after changes, health audits |
-| **spec-index**      | Regenerate DERIVED navigation aids from Feature Specs: per-bucket INDEX, cross-capability ERD, reimplementation guide  |
 | **spec-sync**       | Update test specs and feature docs after code changes, bug fixes, or PR reviews                                        |
 
 ### Test & Data Workflows
@@ -137,7 +134,6 @@ All workflows are defined in `.claude/workflows.json` — the canonical catalog 
 
 | Workflow            | Purpose                                          |
 | ------------------- | ------------------------------------------------ |
-| **design-workflow** | Design spec → interface/frontend design → review |
 | **visualize**       | Codebase or knowledge → Excalidraw diagrams      |
 
 ### Research & Content Workflows
@@ -154,5 +150,5 @@ All workflows are defined in `.claude/workflows.json` — the canonical catalog 
 **MANDATORY IMPORTANT MUST ATTENTION** compile-check after every code file change
 **MANDATORY IMPORTANT MUST ATTENTION** never use fake data/mocks/cheats just to pass tests — fix real issues
 **MANDATORY IMPORTANT MUST ATTENTION** activate relevant skills from catalog during the process
-**MANDATORY IMPORTANT MUST ATTENTION** auto-select the best-matching workflow from the catalog and activate it via `/workflow-start <workflowId>` — selection is model-driven; do not ask the user to confirm activation
+**MANDATORY IMPORTANT MUST ATTENTION** auto-select the best-matching workflow from the catalog and activate it via `/start-workflow <workflowId>` — selection is model-driven; do not ask the user to confirm activation
 **MANDATORY IMPORTANT MUST ATTENTION** run at least ONE graph command on key files before concluding investigation/plan/fix

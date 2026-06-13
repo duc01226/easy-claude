@@ -2,9 +2,9 @@ metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
   last_updated: '2026-06-13'
-  total_skills: 160
+  total_skills: 156
   total_by_status:
-    active: 160
+    active: 156
     deprecated: 0
     experimental: 0
 categories:
@@ -70,18 +70,6 @@ skills:
       description: '[Project Management] Use when you need to create UI/UX design
         specifications from requirements, PBIs, or user stories. Use --mode=wireframe
         to convert hand-drawn/digital wireframes or UI sketches into structured specs.'
-      category: frontend
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-      last_reviewed: null
-    - name: design-workflow
-      path: design-workflow/SKILL.md
-      description: '[Workflow] Use when activating the Design Workflow for product,
-        marketing, or creative UI design work.'
       category: frontend
       has_scripts: false
       has_references: false
@@ -1325,18 +1313,6 @@ skills:
       deprecated_since: null
       removal_after: null
       last_reviewed: null
-    - name: scout-ext
-      path: scout-ext/SKILL.md
-      description: '[Investigation] Use when scouting directories with external agentic
-        tools.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-      last_reviewed: null
     - name: security-review
       path: security-review/SKILL.md
       description: '[Code Quality] Use when you need to perform a security review
@@ -1397,6 +1373,18 @@ skills:
       path: sre-review/SKILL.md
       description: '[Code Quality] Use when reviewing service-layer and API changes
         for production readiness.'
+      category: other
+      has_scripts: false
+      has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+      last_reviewed: null
+    - name: start-workflow
+      path: start-workflow/SKILL.md
+      description: '[Skill Management] Use when starting a detected workflow, initializing
+        workflow state, or activating a workflow sequence.'
       category: other
       has_scripts: false
       has_references: false
@@ -1543,18 +1531,6 @@ skills:
       deprecated_since: null
       removal_after: null
       last_reviewed: null
-    - name: workflow-documentation
-      path: workflow-documentation/SKILL.md
-      description: '[Workflow] Use when activating the Documentation Update workflow
-        for documentation creation and update workflow with plan validation.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-      last_reviewed: null
     - name: workflow-e2e
       path: workflow-e2e/SKILL.md
       description: '[Workflow] Use when activating the E2E testing workflow to generate,
@@ -1597,19 +1573,6 @@ skills:
       path: workflow-feature-spec/SKILL.md
       description: '[Workflow] Use when activating the Business Feature Documentation
         workflow for 8-section tech-free feature docs.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-      last_reviewed: null
-    - name: workflow-full-feature-lifecycle
-      path: workflow-full-feature-lifecycle/SKILL.md
-      description: '[Workflow] Use when activating the Full Feature Lifecycle workflow
-        for complete feature from idea through implementation, testing, and documentation
-        (PO→BA→Designer→Dev→QA).'
       category: other
       has_scripts: false
       has_references: false
@@ -1721,18 +1684,6 @@ skills:
       description: '[Workflow] Use when activating the Spec to PBI Backlog workflow
         to convert canonical tech-free Feature Specs into complete, prioritized, dependency-aware
         PBIs and stories.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-      last_reviewed: null
-    - name: workflow-start
-      path: workflow-start/SKILL.md
-      description: '[Skill Management] Use when starting a detected workflow, initializing
-        workflow state, or activating a workflow sequence.'
       category: other
       has_scripts: false
       has_references: false

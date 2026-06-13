@@ -17,9 +17,7 @@ disable-model-invocation: true
 
 ## Quick Summary
 
-**Goal:** Single entry point for spec-driven doc generation and maintenance over **ONE canonical artifact** — the tech-free **8-section Feature Spec** at `docs/specs/{Bucket}/README.{Feature}.md`. Code is the technical source of truth; there is no parallel engineering tree.
-
-**Final Purpose:** Ensure the Feature Spec, implementation, tests, and project docs stay synchronized through a governed spec-driven workflow.
+**Goal:** Keep the Feature Spec, implementation, tests, and project docs synchronized through a governed spec-driven workflow — a single entry point for spec-driven doc generation and maintenance over **ONE canonical artifact**, the tech-free **8-section Feature Spec** at `docs/specs/{Bucket}/README.{Feature}.md` (code is the technical source of truth; there is no parallel engineering tree).
 
 > **[SINGLE HOME]** There is ONE canonical artifact — the tech-free 8-section Feature Spec authored by `spec` at `docs/specs/{Bucket}/`. There is no parallel A-E "Engineering Spec" bundle and no separate Business Feature Docs tree; `spec-index` only regenerates a DERIVED index/ERD over the Feature Specs. Authority: [`docs/project-reference/spec-system-reference.md`](../../../docs/project-reference/spec-system-reference.md).
 
@@ -497,7 +495,7 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Final Purpose:** Ensure the Feature Spec, implementation, tests, and project docs stay synchronized through a governed spec-driven workflow.
+**IMPORTANT MUST ATTENTION Goal:** Ensure the Feature Spec, implementation, tests, and project docs stay synchronized through a governed spec-driven workflow.
 - **[BLOCKING]** Confirm mode via `AskUserQuestion` BEFORE any action — NEVER skip Step 0
 - **[BLOCKING]** Invoke `Skill` tool for EACH step — NEVER batch-complete or mark done without invocation
 - **[BLOCKING]** Spawn sub-agents for 4+ capabilities in ONE message — NEVER sequential spawning
@@ -519,6 +517,6 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 | Evasion | Rebuttal |
 | ------- | -------- |
 | "Purpose obvious" | Anchor it anyway — primacy/recency keeps outcome active through long prompts. |
-| "Existing reminders enough" | Echo Final Purpose in Closing Reminders — bottom anchor prevents drift. |
+| "Existing reminders enough" | Echo Goal in Closing Reminders — bottom anchor prevents drift. |
 | "Skip evidence for prompt edits" | Cite changed file evidence and verify no stale protocol text remains. |
 | "Re-extract the A-E engineering bundle" | Not part of the spec model. ONE Feature Spec; the ERD is §5. `spec-index` only regenerates a derived index. |

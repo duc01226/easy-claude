@@ -25,57 +25,49 @@ const COPILOT_CARRIER = path.join(".github", "instructions", "common-protocol.in
 const PROMPT_INJECTIONS = path.join(".claude", "hooks", "lib", "prompt-injections.cjs");
 
 const TARGET_WORKFLOW_IDS = [
-  "big-feature",
-  "bugfix",
-  "feature",
-  "full-feature-lifecycle",
-  "spec-sync",
+  "workflow-big-feature",
+  "workflow-bugfix",
+  "workflow-feature",
+  "workflow-spec-sync",
 ];
 
-const WORKFLOW_SKILL_NAME_OVERRIDES = new Map([
-  ["spec-index", "spec-index"],
-  ["workflow-seed-test-data", "workflow-seed-test-data"],
-  // workflow id already contains "workflow" → skill dir is `design-workflow`,
-  // not the `workflow-{id}` fallback `workflow-design-workflow`.
-  ["design-workflow", "design-workflow"],
-]);
+// Workflow IDs are all `workflow-`-prefixed and their activation skill dir is identity
+// (`workflow-bugfix` → `.claude/skills/workflow-bugfix/`). No id currently needs a
+// non-identity mapping, so getWorkflowSkillName() returns identity for every id. The empty
+// override map is kept as the extension point if a divergent skill dir is ever introduced.
+const WORKFLOW_SKILL_NAME_OVERRIDES = new Map([]);
 
 const TDD_WORKFLOW_IDS = new Set([
-  "big-feature",
-  "bugfix",
-  "feature",
-  "full-feature-lifecycle",
-  "spec-sync",
+  "workflow-big-feature",
+  "workflow-bugfix",
+  "workflow-feature",
+  "workflow-spec-sync",
 ]);
 
 const REVIEW_GATE_WORKFLOW_IDS = new Set([
-  "big-feature",
-  "bugfix",
-  "feature",
-  "full-feature-lifecycle",
-  "spec-sync",
+  "workflow-big-feature",
+  "workflow-bugfix",
+  "workflow-feature",
+  "workflow-spec-sync",
 ]);
 
 const IMPLEMENTATION_WORKFLOW_IDS = new Set([
-  "big-feature",
-  "bugfix",
-  "feature",
-  "full-feature-lifecycle",
+  "workflow-big-feature",
+  "workflow-bugfix",
+  "workflow-feature",
 ]);
 
 const IMPLEMENTATION_STEPS = new Set(["cook", "fix", "code"]);
 const CANONICAL_SPEC_BEFORE_FIRST_PLAN_WORKFLOW_IDS = new Set([
-  "bugfix",
-  "feature",
-  "full-feature-lifecycle",
+  "workflow-bugfix",
+  "workflow-feature",
 ]);
 const CANONICAL_SPEC_BEFORE_IMPLEMENTATION_WORKFLOW_IDS = new Set([
-  "big-feature",
-  "bugfix",
-  "feature",
-  "full-feature-lifecycle",
+  "workflow-big-feature",
+  "workflow-bugfix",
+  "workflow-feature",
 ]);
-const DEBUGGER_TRACE_WORKFLOW_IDS = new Set(["bugfix"]);
+const DEBUGGER_TRACE_WORKFLOW_IDS = new Set(["workflow-bugfix"]);
 const DEBUGGER_TRACE_WORKFLOW_TERMS = [
   "end-to-start",
   "observed final",
@@ -104,7 +96,7 @@ const GOAL_CONTRACT_SATISFACTION_PATTERN = /goal satisfaction/i;
 // Entry/implementation/fix skills: must resolve + read the active goal before work.
 const GOAL_CONTRACT_SKILL_IDS = [
   "plan", // creates {plan-dir}/goal.md during plan bootstrap
-  "workflow-start", // resolves the active goal before child task creation
+  "start-workflow", // resolves the active goal before child task creation
   "cook", // reads the goal contract before implementation
   "code", // reads the goal during analysis/task extraction
   "feature", // maps success validation to saved criteria
@@ -130,7 +122,6 @@ const GOAL_CONTRACT_WORKFLOW_SKILL_IDS = [
   "workflow-feature",
   "workflow-bugfix",
   "workflow-review-changes",
-  "workflow-full-feature-lifecycle",
   "workflow-write-integration-test",
   "workflow-spec-driven-dev",
   "test",
@@ -463,7 +454,9 @@ function formatSequenceDiff(expected, actual) {
 }
 
 function getWorkflowSkillName(workflowId) {
-  return WORKFLOW_SKILL_NAME_OVERRIDES.get(workflowId) ?? `workflow-${workflowId}`;
+  // Workflow ids are already `workflow-`-prefixed (Object.keys(workflows)); the activation
+  // skill dir is identity for every id (WORKFLOW_SKILL_NAME_OVERRIDES is currently empty).
+  return WORKFLOW_SKILL_NAME_OVERRIDES.get(workflowId) ?? workflowId;
 }
 
 // Inline twin of renderBarrierToken in sync-context-workflows.mjs / sync-copilot-workflows.cjs.

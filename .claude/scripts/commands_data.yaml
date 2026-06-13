@@ -298,12 +298,6 @@
   - tasks-or-prompt
   power_level: 3
   category: review
-- name: /ck:scout:ext
-  path: scout/ext.md
-  description: ''
-  argument_hint: ''
-  power_level: 0
-  category: scout
 - name: /ck:scout
   path: scout.md
   description: ''

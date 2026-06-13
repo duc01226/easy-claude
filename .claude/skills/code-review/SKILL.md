@@ -17,9 +17,7 @@ context-budget: critical
 
 ## Quick Summary
 
-**Goal:** Ensure technical correctness: receiving feedback with verification (not performative agreement), requesting targeted systematic reviews via code-reviewer subagent, enforcing verification gates before completion claims.
-
-**Final Purpose:** Ensure reviewed code is correct, easy to change, convention-aligned, and verification-backed before acceptance or handoff.
+**Goal:** Ensure reviewed code is correct, easy to change, convention-aligned, and verification-backed before acceptance or handoff — via receiving feedback with verification (not performative agreement), requesting targeted systematic reviews through the code-reviewer subagent, and enforcing verification gates before completion claims.
 
 > **Routing boundary:** If the user asks to review current changes, uncommitted work, staged/unstaged diffs, or a branch-to-branch diff, use `review-changes` instead.
 
@@ -378,7 +376,7 @@ For large changesets: categorize files by concern → fire parallel `code-review
 
 > **MANDATORY MUST ATTENTION — NO EXCEPTIONS:** If NOT already in a workflow, use `AskUserQuestion` to ask user:
 >
-> 1. **Activate `review-changes` workflow** (Recommended) — full review → validated fix cycle → re-review until clean
+> 1. **Activate `workflow-review-changes` workflow** (Recommended) — full review → validated fix cycle → re-review until clean
 > 2. **Execute `/code-review` directly** — run standalone
 
 ---
@@ -1193,7 +1191,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Final Purpose:** Ensure reviewed code is correct, easy to change, convention-aligned, and verification-backed before acceptance or handoff.
+**IMPORTANT MUST ATTENTION Goal:** Ensure reviewed code is correct, easy to change, convention-aligned, and verification-backed before acceptance or handoff.
 - **MANDATORY MUST ATTENTION** Nested Task Expansion Contract — when invoked inside a workflow, STILL expand internal phases via `TaskCreate` with `[N.M] $skill-name — phase` prefix and `TaskUpdate(parentTaskId, addBlockedBy: [childIds])` linkage. Workflow row is container, not substitute.
 - **MANDATORY MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
 - **MANDATORY MUST ATTENTION** validate decisions with user via `AskUserQuestion` — never auto-decide
@@ -1216,5 +1214,5 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 | Evasion | Rebuttal |
 | ------- | -------- |
 | "Purpose obvious" | Anchor it anyway — primacy/recency keeps outcome active through long prompts. |
-| "Existing reminders enough" | Echo Final Purpose in Closing Reminders — bottom anchor prevents drift. |
+| "Existing reminders enough" | Echo Goal in Closing Reminders — bottom anchor prevents drift. |
 | "Skip evidence for prompt edits" | Cite changed file evidence and verify no stale protocol text remains. |

@@ -33,7 +33,7 @@ SKILL_NAMES = [
     "fix",
     # Investigate / scout family
     "investigate", "debug-investigate", "feature-investigation",
-    "scout", "scout-ext",
+    "scout",
     # Refactor / migration / scaffold
     "refactoring", "db-migrate", "scaffold",
     # Review family

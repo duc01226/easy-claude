@@ -263,7 +263,7 @@ CODE_AGENTS = {
 }
 CORE_ONLY_AGENTS = {
     "business-analyst", "docs-manager", "git-manager", "journal-writer",
-    "knowledge-worker", "product-owner", "project-manager",
+    "knowledge-worker", "product-owner", "project-manager", "qc-specialist",
 }
 
 

@@ -51,9 +51,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Research codebase, analyze, create detailed phased implementation plan with user collaboration.
-
-**Final Purpose:** Deliver a validated, implementation-ready plan — every phase startable immediately (exact file paths, zero open decisions, mapped TC IDs) — so coding proceeds without rework at minimum future change cost.
+**Goal:** Research the codebase and collaborate with the user to deliver a validated, implementation-ready phased plan — every phase startable immediately (exact file paths, zero open decisions, mapped TC IDs) — so coding proceeds without rework at minimum future change cost.
 
 **Workflow:**
 
@@ -76,18 +74,17 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 > DRY, SRP, abstraction, design patterns, naming, layering, tests — every
 > technique exists to serve one goal: **making the next change cheaper**.
 
-When evaluating code, a refactor, a test, or an abstraction, ask:
-**does this make the next change cheaper or more expensive?**
+Evaluating code, refactor, test, abstraction, ask:
+**does this make next change cheaper or more expensive?**
 
-- Reject "best practices" that raise change cost (premature abstraction,
+- Reject "best practices" raising change cost (premature abstraction,
   speculative generality, leaky indirection, ceremony without payoff).
-- Name the real enemies in findings: **coupling, hidden state, duplicated
+- Name real enemies in findings: **coupling, hidden state, duplicated
   knowledge, unclear intent, irreversible decisions exposed too early**.
-- A simpler design that is easy to change beats a sophisticated design that
-  isn't.
+- Simpler design easy to change beats sophisticated design that isn't.
 
 Apply this lens **before** invoking any specific rule, pattern, or checklist
-below — if a downstream rule would raise change cost, this principle wins.
+below — if a downstream rule raises change cost, this principle wins.
 
 ---
 
@@ -113,12 +110,12 @@ below — if a downstream rule would raise change cost, this principle wins.
 
 ## Greenfield Mode
 
-> **Auto-detected:** If no existing codebase found (no discovered source directories, no manifest files, no populated `project-config.json`), skill auto-switches to greenfield mode. Planning artifacts (docs/, plans/, .claude/) don't count — repository must have actual code directories with content.
+> **Auto-detected:** No existing codebase found (no discovered source directories, no manifest files, no populated `project-config.json`) → skill auto-switches to greenfield mode. Planning artifacts (docs/, plans/, .claude/) don't count — repository must have actual code directories with content.
 
 **When greenfield detected:**
 
-1. Skip codebase analysis phase (researcher subagents that grep code)
-2. **Replace with:** market research + business evaluation phase using WebSearch + WebFetch
+1. Skip codebase analysis phase (researcher subagents grepping code)
+2. **Replace with:** market research + business evaluation phase via WebSearch + WebFetch
 3. Delegate architecture decisions to `solution-architect` agent
 4. Output: `plans/{id}/plan.md` with greenfield-specific phases (domain model, tech stack, project structure)
 5. Skip reading project reference docs (won't exist in greenfield)
@@ -152,7 +149,7 @@ When a `--mode` is present: (1) read the matching `references/mode-*.md`; (2) ap
 
 **Activation conditions (ALL must be true):**
 
-1. Active workflow is `greenfield-init` OR `big-feature`
+1. Active workflow is `workflow-greenfield-init` OR `workflow-big-feature`
 2. AI MUST ATTENTION self-investigate for existing base/foundational abstractions using these patterns:
     - Abstract/base classes: `abstract class.*Base|Base[A-Z]\w+|Abstract[A-Z]\w+`
     - Generic interfaces: `interface I\w+<|IGeneric|IBase`
@@ -297,7 +294,7 @@ After plan creation, offer validation interview to confirm decisions before impl
 
 > **MANDATORY IMPORTANT MUST ATTENTION:** If skill is called **outside a workflow** (standalone `$plan`), generated plan MUST ATTENTION include `$review-changes` as a **final phase/task** in plan. Ensures all implementation changes get reviewed before commit even without a workflow enforcing it.
 >
-> If already running inside a workflow (e.g., `feature`, `bugfix`), skip this — workflow sequence handles `$review-changes` at appropriate step.
+> If already running inside a workflow (e.g., `workflow-feature`, `workflow-bugfix`), skip this — workflow sequence handles `$review-changes` at appropriate step.
 
 ## Next Steps (Standalone: MUST ATTENTION ask user via a direct user question. Skip if inside workflow.)
 
@@ -790,7 +787,7 @@ After creating all phase files, run **recursive decomposition loop**:
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Final Purpose:** deliver a validated, implementation-ready plan — every phase startable immediately (file paths, zero open decisions, mapped TCs) — so coding runs without rework at minimum future change cost
+**IMPORTANT MUST ATTENTION Goal:** deliver a validated, implementation-ready plan — every phase startable immediately (file paths, zero open decisions, mapped TCs) — so coding runs without rework at minimum future change cost
 **MANDATORY IMPORTANT MUST ATTENTION** default mode HARD — opt out to fast mode ONLY when ALL trivial-task conditions met
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks via task tracking BEFORE starting
 **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via a direct user question — never auto-decide
@@ -829,7 +826,7 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
-4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
 6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.

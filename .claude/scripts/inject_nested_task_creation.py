@@ -42,7 +42,7 @@ SKILL_NAMES = [
     "fix",
     # Investigate / scout family
     "investigate", "debug-investigate", "feature-investigation",
-    "scout", "scout-ext",
+    "scout",
     # Refactor / migration / scaffold
     "refactoring", "db-migrate", "scaffold",
     # Workflow step skills (inner phases)
@@ -54,10 +54,9 @@ SKILL_NAMES = [
     # ---- Orchestrator skills (workflow-*) ----
     "workflow-big-feature",
     "workflow-bugfix",
-    "design-workflow",
-    "workflow-documentation", "workflow-e2e", "workflow-feature",
+    "workflow-e2e", "workflow-feature",
     "workflow-feature-spec",
-    "workflow-full-feature-lifecycle", "workflow-greenfield-init",
+    "workflow-greenfield-init",
     "workflow-idea-to-pbi",
     "workflow-product-discovery",
     "workflow-refactor", "workflow-research",
@@ -66,7 +65,7 @@ SKILL_NAMES = [
     "workflow-spec-sync",
     "workflow-visualize",
     "workflow-write-integration-test",
-    # workflow-end + workflow-start intentionally excluded — they are state-only,
+    # workflow-end + start-workflow intentionally excluded — they are state-only,
     # no multi-phase internal work.
 ]
 

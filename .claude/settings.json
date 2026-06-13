@@ -218,10 +218,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/python-call-guide.cjs"
-          },
-          {
-            "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/windows-command-detector.cjs"
           },
           {
@@ -292,7 +288,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/graph-context-injector.cjs"
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pretooluse-ctx-graph.cjs"
           }
         ]
       },
@@ -301,15 +297,25 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/code-review-rules-injector.cjs"
-          },
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pretooluse-ctx-crr.cjs"
+          }
+        ]
+      },
+      {
+        "matcher": "Skill|Agent|Edit|Write|MultiEdit|TaskCreate|TaskUpdate",
+        "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/dev-rules-injector.cjs"
-          },
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pretooluse-ctx-dev.cjs"
+          }
+        ]
+      },
+      {
+        "matcher": "Skill|Agent|Edit|Write|MultiEdit|TaskCreate|TaskUpdate",
+        "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/mindset-injector.cjs"
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pretooluse-ctx-mindset.cjs"
           }
         ]
       },
@@ -318,7 +324,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/mindset-compact-injector.cjs"
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pretooluse-ctx-readbash.cjs"
           }
         ]
       },
@@ -327,44 +333,16 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/knowledge-context.cjs"
-          },
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/design-system-context.cjs"
-          },
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/design-system-canonical-guide.cjs"
-          },
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/code-patterns-injector.cjs"
-          },
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/backend-context.cjs"
-          },
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/frontend-context.cjs"
-          },
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/scss-styling-context.cjs"
-          },
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/lessons-injector.cjs"
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pretooluse-ctx-edit.cjs"
           }
         ]
       },
       {
-        "matcher": "Write",
+        "matcher": "Edit|Write|MultiEdit",
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/role-context-injector.cjs"
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pretooluse-ctx-edit-tail.cjs"
           }
         ]
       },
@@ -382,7 +360,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/spec-context.cjs"
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pretooluse-ctx-edit-spec.cjs"
           }
         ]
       },
@@ -409,16 +387,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/design-system-canonical-guide.cjs"
-          }
-        ]
-      },
-      {
-        "matcher": "Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/artifact-path-resolver.cjs"
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pretooluse-ctx-canon.cjs"
           }
         ]
       },
@@ -541,35 +510,15 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/subagent-init-identity.cjs"
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/subagent-init.cjs"
           },
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/subagent-init-patterns.cjs"
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/subagent-init-2.cjs"
           },
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/subagent-init-dev-rules.cjs"
-          },
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/subagent-init-code-review-rules.cjs"
-          },
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/subagent-init-lessons.cjs"
-          },
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/subagent-init-ai-mistakes.cjs"
-          },
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/subagent-init-context-guard.cjs"
-          },
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/subagent-init-todos.cjs"
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/subagent-init-3.cjs"
           }
         ]
       }

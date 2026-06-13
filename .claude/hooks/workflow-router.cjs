@@ -12,7 +12,7 @@
 const fs = require('fs');
 const path = require('path');
 const { loadWorkflowConfig } = require('./lib/wr-config.cjs');
-const { WORKFLOW_CATALOG: WORKFLOW_CATALOG_MARKER, DEDUP_LINES, TOP_DEDUP_LINES } = require('./lib/dedup-constants.cjs');
+const { WORKFLOW_CATALOG: WORKFLOW_CATALOG_MARKER, WORKFLOW_CATALOG_P2, WORKFLOW_CATALOG_P3, DEDUP_LINES, TOP_DEDUP_LINES } = require('./lib/dedup-constants.cjs');
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CATALOG GENERATION
@@ -63,14 +63,14 @@ function buildCatalogInjection(config) {
     const lines = [];
 
     lines.push('');
-    lines.push('## Workflow Catalog');
+    lines.push(WORKFLOW_CATALOG_MARKER);
     lines.push('');
     lines.push('> **MANDATORY:** You MUST ATTENTION check every prompt against this catalog before responding.');
     lines.push('> Detect the best-match workflow AND evaluate if direct execution, a skill, a standard workflow, or a custom step combination fits better.');
     lines.push('> Auto-select the best option yourself; do not ask the user to choose between workflow/direct/skill/custom paths.');
     lines.push('');
     lines.push('> **IMPORTANT:** MUST ATTENTION create todo tasks for ALL steps. Do NOT skip any steps in the selected workflow.');
-    lines.push(`> **NOTE:** This is part 1 of 3. See "## Workflow Catalog (continued)" and "## Workflow Catalog (part 3)" below for the remaining ${allEntries.length - thirdCount} workflows.`);
+    lines.push(`> **NOTE:** This is part 1 of 3. See "${WORKFLOW_CATALOG_P2}" and "${WORKFLOW_CATALOG_P3}" below for the remaining ${allEntries.length - thirdCount} workflows.`);
     lines.push('');
 
     lines.push(buildWorkflowCatalog(config, 0, thirdCount));
@@ -80,9 +80,9 @@ function buildCatalogInjection(config) {
     lines.push('');
     lines.push('1. **MATCH:** Compare the user\'s prompt against EVERY "Use" field across ALL THREE catalog parts. Match semantics, not exact keywords.');
     lines.push('2. **ANALYZE:** Identify the best path: execute directly, invoke a skill, activate a standard workflow, or compose a custom workflow. A custom workflow is appropriate when no single workflow fits cleanly, the task spans multiple workflow boundaries, or trimming/reordering standard steps improves fit.');
-    lines.push('3. **AUTO-SELECT:** Choose the best path yourself. Explicit `/skill`, `/workflow-*`, or `/workflow-start <id>` prompts count as the user choosing that path and should execute directly.');
+    lines.push('3. **AUTO-SELECT:** Choose the best path yourself. Explicit `/skill`, `/workflow-*`, or `/start-workflow <id>` prompts count as the user choosing that path and should execute directly.');
     lines.push('4. **COMPOSE (if custom):** Select steps from existing workflow step libraries. Use a 1-line rationale internally (e.g. `scout → plan → fix → test → docs-update — skipping cook since plan is already defined`).');
-    lines.push('5. **ACTIVATE:** Call `/workflow-start <workflowId>` for a selected standard workflow; invoke the selected skill; sequence custom steps manually; or execute directly when that is the best fit.');
+    lines.push('5. **ACTIVATE:** Call `/start-workflow <workflowId>` for a selected standard workflow; invoke the selected skill; sequence custom steps manually; or execute directly when that is the best fit.');
     lines.push('6. **TaskCreate:** Create `[Workflow]` tasks for each workflow/custom step BEFORE any other action');
     lines.push('');
 
@@ -101,14 +101,14 @@ function buildActiveWorkflowContext(state, config) {
 
     const lines = [];
     lines.push(`> **Active workflow:** ${state.workflowType} (step: ${currentStep || 'unknown'})`);
-    lines.push('> To switch workflows, call `/workflow-start <newId>` (auto-switches).');
+    lines.push('> To switch workflows, call `/start-workflow <newId>` (auto-switches).');
     lines.push('');
     lines.push(buildCatalogInjection(config));
     return lines.join('\n');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// POST-ACTIVATION OUTPUT (used by step-tracker after /workflow-start)
+// POST-ACTIVATION OUTPUT (used by step-tracker after /start-workflow)
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
@@ -153,7 +153,7 @@ function getStepDescription(step) {
 
 /**
  * Build post-activation workflow instructions (preActions + sequence + TaskCreate template).
- * Used by step-tracker after /workflow-start creates state.
+ * Used by step-tracker after /start-workflow creates state.
  * @param {string} workflowId - Workflow identifier
  * @param {Object} workflow - Workflow definition
  * @param {Object} config - Full workflow configuration

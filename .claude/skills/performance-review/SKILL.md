@@ -44,7 +44,7 @@ description: '[Debugging] Use when analyzing or optimizing performance bottlenec
 
 ## Quick Summary
 
-**Goal:** Find real performance bottlenecks, especially database waste: too many rows, too many columns, missing/unused indexes, query-in-loop fan-out, unbounded materialization, slow joins/aggregations, write amplification.
+**Goal:** Ensure every shipped performance fix removes a measured (or static-risk-labeled) real bottleneck — especially database waste (too many rows, too many columns, missing/unused indexes, query-in-loop fan-out, unbounded materialization, slow joins/aggregations, write amplification) — while preserving behavior, authorization, and semantics, proven by before/after evidence, validated via `/why-review` before any fix, and confirmed by a clean full Phase-0 re-review — never a guess-driven change that hides waste or breaks correctness.
 
 > **Renamed:** formerly `/performance` — that name no longer resolves as a slash command; use `/performance-review`.
 
@@ -380,6 +380,7 @@ If evidence insufficient, output: `Insufficient evidence. Verified: [...]. Not v
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Goal:** Ensure every shipped performance fix removes a measured (or static-risk-labeled) bottleneck while preserving behavior, authorization, and semantics — proven by before/after evidence, validated via `/why-review` before any fix, and confirmed by a clean full Phase-0 re-review — never a guess-driven change that hides waste or breaks correctness.
 **IMPORTANT MANDATORY MUST ATTENTION** stay project-generic: discover local stack, conventions, query APIs, index definitions, metrics, and report paths before judging.
 **IMPORTANT MANDATORY MUST ATTENTION** prove every performance claim with measurement or static evidence: `file:line`, query text/shape, row counts, query plan/explain output, trace, profile, or logs.
 **IMPORTANT MANDATORY MUST ATTENTION** review database performance one dimension at a time: over-fetching, filters, indexes, N+1 fan-out, batching, aggregation/join shape, materialization, writes, caching.

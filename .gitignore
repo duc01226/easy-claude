@@ -4,6 +4,8 @@
 .code-graph/
 plans/
 .claude-md.backup
+*.bak
+.claude/settings.json.*.bak
 tmp/
 .claude/scheduled_tasks.lock
 node_modules/
@@ -11,3 +13,7 @@ node_modules/
 !.claude/scripts/codex/tests/fixtures/
 !.claude/scripts/codex/tests/fixtures/*.md
 .codex/hooks.sync.report.json
+
+# Scratch report dumps + orphan test baselines (workflow-review-changes hygiene)
+rep-*.txt
+_baseline-*.txt

@@ -50,7 +50,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** [Process] End the active workflow and clear state. Runs near the end of workflow sequences before the post-workflow `$watzup` handoff. Clears workflow tracking so next prompt gets fresh workflow detection. **Before clearing state, prints a one-way developer-comprehension recap** of what the workflow changed (what / purpose / how / why) so the developer understands the work without re-reading the diff.
+**Goal:** [Process] Close the active workflow cleanly — clear workflow tracking so the next prompt gets fresh detection, and before clearing state print a one-way developer-comprehension recap (what / purpose / how / why) of what the workflow changed so the developer understands the work without re-reading the diff.
 
 **Workflow:**
 
@@ -71,9 +71,9 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## When This Runs
 
-This skill is the **workflow state-closure step**. In workflows that include `$watzup`, it runs after final verification/docs work and before `$watzup`, so the active workflow is closed before the post-workflow summary and `$understand` handoff. As its penultimate action — after all workflow work is done, before clearing state — it prints the one-way developer-comprehension recap of what the workflow changed. Use `$understand` for the deep standalone explainer of any target.
+This skill is the **workflow state-closure step**. In workflows including `$watzup`, runs after final verification/docs work and before `$watzup`, so active workflow closes before post-workflow summary and `$understand` handoff. As penultimate action — after all workflow work done, before clearing state — prints one-way developer-comprehension recap of what workflow changed. Use `$understand` for deep standalone explainer of any target.
 
-**NOT for**: Manual invocation mid-workflow (use workflow switching via `$workflow-start` instead).
+**NOT for**: Manual invocation mid-workflow (use workflow switching via `$start-workflow` instead).
 
 ---
 
@@ -129,7 +129,7 @@ This skill is the **workflow state-closure step**. In workflows that include `$w
 
 ## See Also
 
-- **Skill:** `$workflow-start` - Start/switch workflows
+- **Skill:** `$start-workflow` - Start/switch workflows
 - **Hook:** `workflow-step-tracker.cjs` - Clears state on final step completion
 - **Hook:** `workflow-router.cjs` - Detects active vs inactive workflows
 
@@ -218,6 +218,7 @@ Finalize and close the active workflow, clearing state so the next user prompt t
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Goal:** Close the active workflow cleanly — leave the developer understanding what changed (via the diff-gated recap) and the next prompt free to trigger fresh workflow detection.
 **IMPORTANT MUST ATTENTION** when the workflow changed code (diff present), print the comprehension recap — what changed / purpose / how it works / why — optimized for easiest learning; depth throttled by `codingLevel`, NEVER fully skip when changes exist
 **IMPORTANT MUST ATTENTION** the recap is one-way and NEVER blocks — no quiz, no teach-back; deeper comprehension is the standalone `$understand` skill
 **IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting
@@ -241,7 +242,7 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
-4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
 6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.

@@ -15,7 +15,7 @@ description: '[Project Management] Use when converting ideas to PBIs, validating
 
 ## Quick Summary
 
-**Goal:** Transform raw ideas into actionable PBIs using BA best practices, hypothesis validation, domain research.
+**Goal:** Transform raw ideas into a Definition-of-Ready PBI using BA best practices, hypothesis validation, and domain research — problem-validated, tech-agnostic, with testable acceptance criteria, estimates, and a Dependencies table — so a team can build it without re-asking what or why.
 
 **Workflow:**
 
@@ -76,7 +76,7 @@ If running in workflow (big-feature, greenfield-init, etc.):
 2. Read `plan.md` — project scope, goals, architecture decisions, domain model
 3. Read existing research — `{plan-dir}/research/*.md` for business evaluation, domain analysis
 4. Read `docs/project-reference/domain-entities-reference.md` (if exists) — existing domain entities
-5. Use plan context — don't re-ask questions already answered in prior steps
+5. Use plan context — don't re-ask questions answered in prior steps
 
 ## Phase 1: Idea Intake & Context Loading
 
@@ -97,7 +97,7 @@ Use WebSearch with domain terms. Summarize in max 3 bullets (market context, com
 
 ## Phase 3: Problem Hypothesis Validation
 
-Validate hypothesis with user via AskUserQuestion. 42% of startups fail due to no market need — validate before building.
+Validate hypothesis with user via AskUserQuestion. 42% of startups fail from no market need — validate before building.
 
 **Skip:** `--skip-hypothesis`, validated hypothesis exists, bug fix/tech debt.
 
@@ -931,6 +931,7 @@ For domain PBIs: detect module from `docs/specs/` directory names, extract busin
 
 ## Closing Reminders
 
+- **IMPORTANT MUST ATTENTION Goal:** emit a Definition-of-Ready PBI — problem-validated, tech-agnostic, with testable acceptance criteria, estimates, and a Dependencies table — so a team can build it without re-asking what or why
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small tasks via `TaskCreate` BEFORE starting
 - **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — NEVER auto-decide
 - **MANDATORY IMPORTANT MUST ATTENTION** add final review task to verify work quality

@@ -20,11 +20,9 @@ context-budget: high
 
 ## Quick Summary
 
-**Goal:** Perform a comprehensive security review against OWASP Top 10 (2025), supply-chain/malware threats, secrets exposure, infrastructure misconfiguration, and host compromise indicators.
+**Goal:** Ensure the reviewed scope resists credible security failures — exploitable authorization, injection, data, dependency, supply-chain, configuration, pipeline, and host-level risks — via a comprehensive review against OWASP Top 10 (2025), supply-chain/malware threats, secrets exposure, infrastructure misconfiguration, and host compromise indicators, proven with evidence before handoff.
 
 > **Renamed:** consolidates the former `/security` and `/arch-security-review` skills — those names no longer resolve as slash commands; use `/security-review`.
-
-**Final Purpose:** Ensure the reviewed scope resists credible security failures — exploitable authorization, injection, data, dependency, supply-chain, configuration, pipeline, and host-level risks — proven with evidence before handoff.
 
 **Workflow:**
 
@@ -62,7 +60,7 @@ context-budget: high
 
 ## Scope Modes
 
-Resolve the mode from `<scope>` arguments. When ambiguous, default to `changes` if a diff exists, else ask.
+Resolve mode from `<scope>` arguments. When ambiguous, default to `changes` if diff exists, else ask.
 
 | Mode               | Trigger                                                           | Domains                                                         |
 | ------------------ | ----------------------------------------------------------------- | --------------------------------------------------------------- |
@@ -80,7 +78,7 @@ Resolve the mode from `<scope>` arguments. When ambiguous, default to `changes` 
 
 ### D1 — Application Security: OWASP Top 10 (2025)
 
-Evaluate every category against the in-scope code. Categories updated to the OWASP Top 10:2025 release.
+Evaluate every category against in-scope code. Categories updated to OWASP Top 10:2025 release.
 
 **A01 Broken Access Control (now includes SSRF)** — #1 risk.
 
@@ -397,7 +395,7 @@ If `.code-graph/graph.db` exists, enhance analysis with structural queries:
 
 ### Graph-Trace for Data Flow Analysis
 
-When graph DB is available, use `trace` to analyze data flow paths for security review:
+When graph DB available, use `trace` to analyze data flow paths for security review:
 
 - `python .claude/scripts/code_graph trace <entry-point> --direction downstream --json` — trace data flow from input to all consumers (find where untrusted data travels)
 - `python .claude/scripts/code_graph trace <sensitive-file> --direction upstream --json` — find all entry points that reach sensitive code
@@ -410,7 +408,7 @@ When graph DB is available, use `trace` to analyze data flow paths for security 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use `AskUserQuestion` to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
 >
 > 1. **Run audit chain** (Recommended for audits) — /scout → /security-review → /watzup
-> 2. **Activate `review-changes` workflow** — full review → fix → test loop
+> 2. **Activate `workflow-review-changes` workflow** — full review → fix → test loop
 > 3. **Execute `/security-review` directly** — run this skill standalone
 
 ---
@@ -710,7 +708,7 @@ When graph DB is available, use `trace` to analyze data flow paths for security 
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Final Purpose:** Ensure the reviewed scope resists credible security failures — authorization, injection, data, dependency/supply-chain, configuration, pipeline, and host-level risks — proven with evidence before handoff.
+**IMPORTANT MUST ATTENTION Goal:** Ensure the reviewed scope resists credible security failures — authorization, injection, data, dependency/supply-chain, configuration, pipeline, and host-level risks — proven with evidence before handoff.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting.
 **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — never auto-decide.
 **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.
@@ -725,7 +723,7 @@ When graph DB is available, use `trace` to analyze data flow paths for security 
 | Evasion | Rebuttal |
 | ------- | -------- |
 | "Purpose obvious" | Anchor it anyway — primacy/recency keeps outcome active through long prompts. |
-| "Existing reminders enough" | Echo Final Purpose in Closing Reminders — bottom anchor prevents drift. |
+| "Existing reminders enough" | Echo Goal in Closing Reminders — bottom anchor prevents drift. |
 | "Skip evidence for prompt edits" | Cite changed file evidence and verify no stale protocol text remains. |
 | "Code is clean so system is safe" | Code is one of ten domains — deps, config, pipeline, and host can each be the breach. |
 | "Popular repo, safe to install" | Stars are not vetting — run the D4 gate before the first install command. |

@@ -16,7 +16,7 @@ disable-model-invocation: false
 
 ## Quick Summary
 
-**Goal:** Systematically diagnose and fix complex bugs using parallel subagent investigation.
+**Goal:** Eliminate the root cause of an issue using parallel subagent investigation — traced end-to-start with `file:line` evidence and fixed at the lowest invariant-owning layer (never the crash site) — then prove the fix with `/prove-fix` so the disease is cured, not just the symptom.
 
 **Workflow:**
 
@@ -518,6 +518,8 @@ Analyze skills catalog and activate other needed skills during the process.
 <!-- /SYNC:goal-contract-satisfaction-loop:reminder -->
 
 ## Closing Reminders
+
+**IMPORTANT MUST ATTENTION Goal:** Eliminate the root cause of an issue — traced end-to-start with `file:line` evidence and fixed at the lowest invariant-owning layer (never the crash site) — then prove the fix with `/prove-fix` so the disease is cured, not just the symptom.
 
 **IMPORTANT MUST ATTENTION** default mode HARD — opt out to fast mode ONLY when bug is genuinely trivial (all 5 conditions met)
 **IMPORTANT MUST ATTENTION** break work into small todo tasks via `TaskCreate` BEFORE starting

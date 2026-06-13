@@ -32,7 +32,7 @@ const SESSION_END = getHookPath('session-end.cjs');
 // ============================================================================
 // v2.0.0: Removed regex-based intent detection (triggerPatterns, excludePatterns,
 // priority). Router now injects a compact workflow catalog on qualifying prompts.
-// AI reads catalog, selects workflow, calls /workflow-start <id>.
+// AI reads catalog, selects workflow, calls /start-workflow <id>.
 
 const workflowCatalogInjectionTests = [
     {

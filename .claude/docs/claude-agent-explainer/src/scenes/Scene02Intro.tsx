@@ -3,7 +3,7 @@ import { C, ProgressBar, Divider, ScriptBar } from '../components/Shared';
 import { easeOut, counter, staggeredEaseOut } from '../utils/animations';
 
 const SCRIPT_LINES = [
-    'The Claude AI Agent Framework is a 3-layer system: 66 top-level hook files enforce correctness on every tool call, 173 skills encode expert protocols into slash commands, and 21 workflows sequence every SDLC stage end-to-end.',
+    'The Claude AI Agent Framework is a 3-layer system: 66 top-level hook files enforce correctness on every tool call, 173 skills encode expert protocols into slash commands, and 17 workflows sequence every SDLC stage end-to-end.',
     'The key insight: instead of engineering the perfect prompt once, you engineer a system that enforces the right behavior every time — across 29 specialized agents covering the full development lifecycle.'
 ];
 

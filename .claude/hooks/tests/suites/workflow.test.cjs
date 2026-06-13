@@ -592,7 +592,7 @@ const workflowRouterTests = [
 
 const catalogStructureTests = [
     {
-        name: '[workflow-router] catalog includes workflow-start activation instruction',
+        name: '[workflow-router] catalog includes start-workflow activation instruction',
         fn: async () => {
             const tmpDir = createTempDir();
             try {
@@ -600,7 +600,7 @@ const catalogStructureTests = [
                 const result = await runHook(WORKFLOW_ROUTER, input, { cwd: tmpDir });
                 assertAllowed(result.code, 'Should not block');
                 const output = result.stdout;
-                assertContains(output, 'workflow-start', 'Should reference /workflow-start activation');
+                assertContains(output, 'start-workflow', 'Should reference /start-workflow activation');
             } finally {
                 cleanupTempDir(tmpDir);
             }
@@ -772,7 +772,7 @@ const deadModuleVerificationTests = [
         fn: async () => {
             const configPath = path.resolve(__dirname, '..', '..', '..', 'workflows.json');
             const data = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-            const text = data.workflows?.['review-changes']?.preActions?.injectContext || '';
+            const text = data.workflows?.['workflow-review-changes']?.preActions?.injectContext || '';
             assertContains(text, 'MULTILINGUAL UI SYNC CHECK', 'review-changes workflow should include multilingual UI sync guidance');
         }
     }

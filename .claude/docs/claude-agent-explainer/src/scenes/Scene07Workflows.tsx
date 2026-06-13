@@ -4,18 +4,18 @@ import { easeOut, staggeredEaseOut } from '../utils/animations';
 
 const SCRIPT_LINES = [
     'Workflows are JSON-defined step sequences. The bugfix workflow sequences (abridged): scout → investigate → debug-investigate → plan → plan-validate → spec [mode=tests] → integration-test (RED) → fix → prove-fix → integration-test (GREEN) → test → docs-update. Every step is mandatory — the AI cannot skip investigation to jump straight to code.',
-    'The detection flow is the secret ingredient: every user prompt passes through workflow-router.cjs, which injects the catalog; the model auto-selects the best-matching workflow and activates it via /workflow-start, then creates TaskCreate items for every step — making the entire process auditable and resumable after any context compaction.'
+    'The detection flow is the secret ingredient: every user prompt passes through workflow-router.cjs, which injects the catalog; the model auto-selects the best-matching workflow and activates it via /start-workflow, then creates TaskCreate items for every step — making the entire process auditable and resumable after any context compaction.'
 ];
 
 const GROUPS = [
-    { label: 'Core Development', count: 9, color: C.blue, examples: 'feature · bugfix · refactor · big-feature · review-changes' },
-    { label: 'PBI & Discovery', count: 4, color: C.amber, examples: 'idea-to-pbi · product-discovery · research · spec-to-pbi' },
-    { label: 'Spec-Driven', count: 3, color: C.purple, examples: 'spec-driven-dev · spec-index · spec-sync' },
-    { label: 'Test & Data', count: 3, color: C.green, examples: 'e2e · write-integration-test · workflow-seed-test-data' },
-    { label: 'Design & Visualization', count: 2, color: C.cyan, examples: 'design-workflow · visualize' }
+    { label: 'Core Development', count: 7, color: C.blue, examples: 'workflow-feature · workflow-bugfix · workflow-refactor · workflow-big-feature · workflow-review-changes' },
+    { label: 'PBI & Discovery', count: 4, color: C.amber, examples: 'workflow-idea-to-pbi · workflow-product-discovery · workflow-research · workflow-spec-to-pbi' },
+    { label: 'Spec-Driven', count: 2, color: C.purple, examples: 'workflow-spec-driven-dev · workflow-spec-sync' },
+    { label: 'Test & Data', count: 3, color: C.green, examples: 'workflow-e2e · workflow-write-integration-test · workflow-seed-test-data' },
+    { label: 'Design & Visualization', count: 1, color: C.cyan, examples: 'workflow-visualize' }
 ];
 
-const FLOW = ['User Prompt', 'workflow-router.cjs (catalog)', 'Model auto-selects', '/workflow-start', 'TaskCreate ALL steps', 'Execute step-by-step'];
+const FLOW = ['User Prompt', 'workflow-router.cjs (catalog)', 'Model auto-selects', '/start-workflow', 'TaskCreate ALL steps', 'Execute step-by-step'];
 const FLOW_COLORS = [C.text, C.blue, C.amber, C.green, C.purple, C.green];
 
 export const Scene07Workflows: React.FC = () => {
@@ -29,7 +29,7 @@ export const Scene07Workflows: React.FC = () => {
                 {/* Left */}
                 <div style={{ width: 400, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
                     <div style={{ opacity: easeOut(frame, 0, 14), fontSize: 14, fontWeight: 700, color: C.green, letterSpacing: 3 }}>
-                        WORKFLOW SYSTEM · 21 WORKFLOWS
+                        WORKFLOW SYSTEM · 17 WORKFLOWS
                     </div>
                     <div style={{ opacity: easeOut(frame, 8, 20), fontSize: 44, fontWeight: 800, color: C.text, lineHeight: 1.1 }}>
                         JSON-defined step sequences.

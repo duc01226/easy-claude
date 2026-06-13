@@ -71,7 +71,7 @@ Before writing code, you MUST grep/glob for 3+ similar examples and follow the l
 
 1. Explicit slash command — the message starts with `/command-name` as the first token (e.g. `$plan do X`). Execute that skill/workflow directly. Skill names referenced as nouns (e.g. "update /skill-a") are NOT slash commands; workflow detection still required.
 2. For ordinary prompts, evaluate the best path: execute directly, invoke a skill, activate a standard workflow, or compose a custom workflow. Auto-select the best option yourself; do not ask the user to choose the execution path.
-3. If the selected path is a workflow, call `$workflow-start <workflowId>`; if it is a skill, invoke that skill; if it is custom, sequence the steps manually; if direct is best, answer or implement directly.
+3. If the selected path is a workflow, call `$start-workflow <workflowId>`; if it is a skill, invoke that skill; if it is custom, sequence the steps manually; if direct is best, answer or implement directly.
 4. Create task tracking for multi-step selected paths before execution and keep it synchronized.
 
 **Modification beats research.** When a prompt mixes research and modification intent, treat it as modification (investigation is a substep of `$plan`).

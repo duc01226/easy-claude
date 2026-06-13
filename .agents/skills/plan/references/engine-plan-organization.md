@@ -436,7 +436,7 @@ All agents writing reports MUST ATTENTION:
 
 ## Related
 
-- `feature`
+- `workflow-feature`
 - `problem-solving`
 - `plan-analysis`
 

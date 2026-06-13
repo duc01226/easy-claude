@@ -15,7 +15,7 @@ description: '[Project Management] Use when creating user stories from PBIs, sli
 
 ## Quick Summary
 
-**Goal:** Break Product Backlog Items into implementable user stories using vertical slicing, SPIDR splitting, and INVEST criteria.
+**Goal:** Produce sprint-ready, INVEST-valid user stories — tech-agnostic, testable GWT criteria, evidence-cited estimates, dependency-mapped — by breaking Product Backlog Items into implementable stories via vertical slicing and SPIDR splitting, so a team with zero codebase knowledge can implement on any stack.
 
 > **MANDATORY IMPORTANT MUST ATTENTION** Plan ToDo Task to READ the following project-specific reference docs:
 >
@@ -708,7 +708,7 @@ Example for a "Create Invoice" story:
 
 ```
 
-**Why:** Without systematic task breakdown, stories become monolithic — leading to missed edge cases, incomplete specs, and context loss during implementation.
+**Why:** Without systematic task breakdown, stories become monolithic — missed edge cases, incomplete specs, context loss during implementation.
 
 ---
 
@@ -835,7 +835,11 @@ Example for a "Create Invoice" story:
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Goal:** produce sprint-ready, INVEST-valid user stories — tech-agnostic, testable GWT criteria, evidence-cited estimates, dependency-mapped — that a team with zero codebase knowledge can implement on any stack.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting.
+**MANDATORY IMPORTANT MUST ATTENTION** every story MUST satisfy AI-SDD mandates M1-M5 — tech-agnostic prose, `FR-`/`BR-` logical ID, testable GWT criteria, rebuild-from-scratch — reject and rework on any failure condition — why: stories drive implementation on any stack.
+**MANDATORY IMPORTANT MUST ATTENTION** every story set includes a Story Dependencies table with no orphan stories; SP >8 MUST split, >5 SHOULD split — why: ordering feeds `/prioritize` and `/plan`.
+**MANDATORY IMPORTANT MUST ATTENTION** estimation is bottom-up — phase hours drive `man_days_traditional`, SP DERIVED; compute test_count explicitly, never hand-wave "+tests".
 **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — never auto-decide.
 **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.
 ````

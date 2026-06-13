@@ -51,9 +51,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Make sure the **developer** understands the work by always delivering a clear, detailed, one-way explanation of **WHAT** it is, its **PURPOSE** (why it exists), **HOW** it works (the mechanics), and **WHY this way** (the trade-offs and rejected alternatives). **AI derives WHAT to explain from the user's prompt.** There are no fixed modes — the scope flexes to whatever the developer needs explained.
-
-**Final Purpose:** Developer carries genuine, traced understanding of whatever matters right now — so AI accelerates the human without eroding their grasp of the codebase. The explanation is given in full **regardless of the developer's coding level** — never skipped, never gated.
+**Goal:** Leave the **developer** carrying genuine, traced understanding of whatever matters right now — so AI accelerates the human without eroding their grasp of the codebase — by always delivering a clear, detailed, one-way explanation of **WHAT** it is, its **PURPOSE** (why it exists), **HOW** it works (the mechanics), and **WHY this way** (the trade-offs and rejected alternatives). **AI derives WHAT to explain from the user's prompt.** There are no fixed modes — the scope flexes to whatever the developer needs explained, and the explanation is given in full **regardless of the developer's coding level** — never skipped, never gated.
 
 **Scope is prompt-driven — flexible for all cases:**
 
@@ -314,7 +312,7 @@ Offer a simpler restatement or analogy for any point that is dense — proactive
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Final Purpose:** developer carries genuine, traced understanding of whatever matters right now — AI accelerates the human without eroding their grasp of the codebase. The explanation is always given in full, regardless of coding level.
+**IMPORTANT MUST ATTENTION Goal:** developer carries genuine, traced understanding of whatever matters right now — AI accelerates the human without eroding their grasp of the codebase. The explanation is always given in full, regardless of coding level.
 
 - **MUST ATTENTION** derive WHAT to explain from the prompt; with no target named, default to the current working tasks + changes in context. Never impose a fixed agenda.
 - **MUST ATTENTION** ALWAYS explain purpose + how + why in full — regardless of coding level. Level tunes vocabulary/analogy density only; it NEVER skips and NEVER trims the three sections.
@@ -351,7 +349,7 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
-4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
 6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.

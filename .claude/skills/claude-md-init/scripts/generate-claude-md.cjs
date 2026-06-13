@@ -22,6 +22,10 @@ const WORKFLOW_GATE_PATH = path.join(__dirname, '..', '..', 'shared', 'workflow-
 const GATE_OPEN = '<!-- CK:WORKFLOW-GATE -->';
 const GATE_CLOSE = '<!-- /CK:WORKFLOW-GATE -->';
 const GATE_BLOCK_RE = /<!-- CK:WORKFLOW-GATE -->[\s\S]*?<!-- \/CK:WORKFLOW-GATE -->/g;
+// Concise workflows-index + composable step-skills reference, derived from workflows.json.
+// Stamped right after the gate so CLAUDE.md carries the same workflow/skill catalog the
+// hookless Codex/Copilot mirrors get. The block is idempotently strip-and-restamped.
+const SKILLS_BLOCK_RE = /<!-- CK:WORKFLOW-SKILLS -->[\s\S]*?<!-- \/CK:WORKFLOW-SKILLS -->/g;
 // Inline fallback keeps the generator portable if the shared file is absent in a partial install.
 const WORKFLOW_GATE_FALLBACK = `${GATE_OPEN}
 
@@ -34,8 +38,8 @@ const WORKFLOW_GATE_FALLBACK = `${GATE_OPEN}
 > | --- | --- |
 > | A simple, straightforward task with a clear target and low risk | **direct execution** — do it without a workflow |
 > | A simple task that needs a few coordinated steps or skills | **custom simple workflow** — sequence only the necessary skills/steps |
-> | A non-trivial bug, error, crash, regression, or wrong/stale output | **\`bugfix\` workflow** — \`/workflow-start bugfix\` |
-> | A non-trivial new feature, capability, or enhancement | **\`feature\` workflow** — \`/workflow-start feature\` (use \`big-feature\` when scope is large/ambiguous) |
+> | A non-trivial bug, error, crash, regression, or wrong/stale output | **\`workflow-bugfix\` workflow** — \`/start-workflow workflow-bugfix\` |
+> | A non-trivial new feature, capability, or enhancement | **\`workflow-feature\` workflow** — \`/start-workflow workflow-feature\` (use \`workflow-big-feature\` when scope is large/ambiguous) |
 > | Anything matching a skill's or workflow's "Use" clause | that skill / workflow |
 > | A one-off question, or a truly trivial edit | direct execution |
 >
@@ -60,6 +64,30 @@ function loadWorkflowGate() {
         // Shared file unavailable — use the inline fallback below.
     }
     return WORKFLOW_GATE_FALLBACK;
+}
+
+/**
+ * Build the CK:WORKFLOW-SKILLS block (composable step-skills index only) from
+ * workflows.json. Returns '' if the shared builder is unavailable so CLAUDE.md generation
+ * never fails on a partial install (the gate alone still stamps).
+ *
+ * Skills-only by design: Claude receives the full 17-workflow catalog LIVE on every prompt
+ * via the workflow-router.cjs hook (richer — adds "Not for" + detection instructions +
+ * active-workflow state, recency-managed). Re-stamping that same workflows index statically
+ * here is pure duplication for the one runtime (Claude) that reads CLAUDE.md. The composable
+ * step-skills table is NOT hook-injected, so it stays. The hookless mirrors derive their own
+ * catalogs independently from workflows.json (AGENTS.md via sync-context-workflows.mjs which
+ * strips this CK block and regenerates; Copilot via sync-copilot-workflows.cjs), so this
+ * narrowing does not touch them.
+ */
+function loadWorkflowSkillsCatalog() {
+    try {
+        const { buildWorkflowSkillsCatalog, CK_SKILLS_START, CK_SKILLS_END } = require('../../../scripts/lib/workflow-skills-catalog.cjs');
+        const body = buildWorkflowSkillsCatalog({ rootDir: PROJECT_DIR, sections: ['skills'] });
+        return `${CK_SKILLS_START}\n${body}\n${CK_SKILLS_END}`;
+    } catch {
+        return '';
+    }
 }
 
 const SECTION_OPEN = /^<!-- SECTION:(\S+) -->$/;
@@ -119,15 +147,21 @@ function ensureSentinel(content) {
  */
 function stampHeader(content) {
     let text = ensureSentinel(content);
-    text = text.replace(GATE_BLOCK_RE, '').replace(/^\n+/, '').replace(/\n{3,}/g, '\n\n');
+    text = text
+        .replace(GATE_BLOCK_RE, '')
+        .replace(SKILLS_BLOCK_RE, '')
+        .replace(/^\n+/, '')
+        .replace(/\n{3,}/g, '\n\n');
     if (!hasGuides(text)) return text;
     const gate = loadWorkflowGate();
+    const skills = loadWorkflowSkillsCatalog();
+    const header = skills ? `${gate}\n\n${skills}` : gate;
     const m = text.match(SENTINEL_RE);
     if (m) {
         const at = text.indexOf(m[0]) + m[0].length;
-        return `${text.slice(0, at)}\n\n${gate}\n\n${text.slice(at).replace(/^\n+/, '')}`;
+        return `${text.slice(0, at)}\n\n${header}\n\n${text.slice(at).replace(/^\n+/, '')}`;
     }
-    return `${gate}\n\n${text}`;
+    return `${header}\n\n${text}`;
 }
 
 /**

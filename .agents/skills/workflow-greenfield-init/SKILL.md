@@ -93,11 +93,11 @@ This workflow has steps that appear multiple times. When creating tasks, use the
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its skill invocation — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
-Activate the `greenfield-init` workflow. Run `$workflow-start greenfield-init` with the user's prompt as context.
+Activate the `workflow-greenfield-init` workflow. Run `$start-workflow workflow-greenfield-init` with the user's prompt as context.
 
 **Steps:** $idea → $web-research → $deep-research → $business-evaluation → $domain-analysis → $why-review → $tech-stack-research → $architecture-design → $why-review → $plan → $plan-review → $security-review → $performance-review → $plan-review → $refine → $why-review → $review-artifact --type=pbi → $story → $why-review → $review-artifact --type=story → $pbi-challenge → $dor-gate → $pbi-mockup → $plan-validate → $why-review → $spec [mode=tests] → $why-review → $review-artifact --type=spec-tests → $plan → $plan-review → $scaffold → $linter-setup → $harness-setup → $why-review → $cook → $review-domain-entities → $spec [mode=tests] → $why-review → $review-artifact --type=spec-tests → $plan → $plan-review → $integration-test → $integration-test-review → $integration-test-verify → $test → $workflow-review-changes → $sre-review → $security-review → $changelog → $test → $docs-update → $workflow-end → $watzup
 
-> **Lean variant (`mode=lean`)** — for low-risk or solo greenfield inception, a trimmed path is available (formerly a separate lean greenfield wrapper, now merged here). It keeps the same backbone but drops the per-step `$why-review` rationale gates (retaining only the single pre-`$cook` `$why-review`), `$pbi-challenge`, `$dor-gate`, and the `$integration-test-review` + `$integration-test-verify` gates. Use ONLY when inception risk is low; default to the full rigorous sequence above. The authoritative sequence is the `greenfield-init` entry in `workflows.json` — the lean path is a documented gate-skip option, not a separate workflow.
+> **Lean variant (`mode=lean`)** — for low-risk or solo greenfield inception, a trimmed path is available (formerly a separate lean greenfield wrapper, now merged here). It keeps the same backbone but drops the per-step `$why-review` rationale gates (retaining only the single pre-`$cook` `$why-review`), `$pbi-challenge`, `$dor-gate`, and the `$integration-test-review` + `$integration-test-verify` gates. Use ONLY when inception risk is low; default to the full rigorous sequence above. The authoritative sequence is the `workflow-greenfield-init` entry in `workflows.json` — the lean path is a documented gate-skip option, not a separate workflow.
 
 ---
 
@@ -228,7 +228,7 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
-4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
 6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.

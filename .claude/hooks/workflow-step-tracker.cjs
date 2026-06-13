@@ -96,8 +96,8 @@ async function main() {
         // Get session ID
         const sessionId = getSessionId();
 
-        // Handle /workflow-start <id> invocations
-        if (skillName === 'workflow-start') {
+        // Handle /start-workflow <id> invocations
+        if (skillName === 'start-workflow') {
             const workflowId = (toolInput.args || '').trim();
             const config = loadWorkflowConfig();
 

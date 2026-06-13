@@ -29,7 +29,7 @@ disable-model-invocation: true
 > **[BLOCKING]** Each step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 > **[BLOCKING]** Read `docs/project-reference/spec-principles.md` before updating test specs — Section 7 TC coverage mapping is the canonical baseline.
 
-Activate the `spec-sync` workflow. Run `/workflow-start spec-sync` with the user's prompt as context.
+Activate the `workflow-spec-sync` workflow. Run `/start-workflow workflow-spec-sync` with the user's prompt as context.
 
 **Steps:** /workflow-review-changes → /spec [mode=tests] → /why-review → /review-artifact --type=spec-tests → /spec [mode=sync] → /integration-test → /integration-test-review → /integration-test-verify → /test → /docs-update → /workflow-end
 

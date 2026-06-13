@@ -32,12 +32,12 @@ const LESSONS_PATH = path.join(PROJECT_DIR, 'docs', 'project-reference', 'lesson
  * @param {boolean} [skipDedup=false] - Skip dedup check (for PreToolUse)
  * @returns {string|null} Formatted lessons content or null
  */
-function injectLessons(transcriptPath, skipDedup = false) {
+function injectLessons(transcriptPath, skipDedup = false, preloadedLines = null) {
     if (!fs.existsSync(LESSONS_PATH)) return null;
     const content = fs.readFileSync(LESSONS_PATH, 'utf-8').trim();
     if (!content.split('\n').some(l => l.trim().startsWith('- ['))) return null;
 
-    if (!skipDedup && wasMarkerRecentlyInjected(transcriptPath, LESSONS_MARKER, DEDUP_LINES.LESSONS)) {
+    if (!skipDedup && wasMarkerRecentlyInjected(transcriptPath, LESSONS_MARKER, DEDUP_LINES.LESSONS, TOP_DEDUP_LINES, preloadedLines)) {
         return null;
     }
 
@@ -54,17 +54,26 @@ function injectLessons(transcriptPath, skipDedup = false) {
  * prompts) but has scrolled past the bottom dedup window due to tool call output.
  * After compaction, both top and bottom are reset → correctly triggers re-injection.
  *
+ * M1 (single-scan): when `preloadedLines` (pre-split transcript lines) is
+ * supplied, the internal readFileSync/split is skipped. Backward-compatible:
+ * omit it and the function reads the transcript itself, exactly as before.
+ *
  * @param {string} transcriptPath - Path to transcript file
  * @param {string} marker - Dedup marker string to search for
  * @param {number} bottomLines - Number of trailing lines to check (recency)
  * @param {number} [topLines=50] - Number of leading lines to check (primacy)
+ * @param {string[]|null} [preloadedLines] - Pre-split transcript lines (skips fs read)
  * @returns {boolean}
  */
-function wasMarkerRecentlyInjected(transcriptPath, marker, bottomLines, topLines = TOP_DEDUP_LINES) {
+function wasMarkerRecentlyInjected(transcriptPath, marker, bottomLines, topLines = TOP_DEDUP_LINES, preloadedLines = null) {
     try {
-        if (!transcriptPath || !fs.existsSync(transcriptPath)) return false;
-        const transcript = fs.readFileSync(transcriptPath, 'utf-8');
-        const allLines = transcript.split('\n');
+        let allLines;
+        if (Array.isArray(preloadedLines)) {
+            allLines = preloadedLines;
+        } else {
+            if (!transcriptPath || !fs.existsSync(transcriptPath)) return false;
+            allLines = fs.readFileSync(transcriptPath, 'utf-8').split('\n');
+        }
 
         // Bottom check (recency) — marker still in recent output
         if (allLines.slice(-bottomLines).some(l => l.includes(marker))) return true;
@@ -84,8 +93,8 @@ function wasMarkerRecentlyInjected(transcriptPath, marker, bottomLines, topLines
  * @param {boolean} [skipDedup=false] - Skip dedup check (always inject)
  * @returns {string|null} Formatted text or null if recently injected
  */
-function injectCriticalContext(transcriptPath, skipDedup = false) {
-    if (!skipDedup && wasMarkerRecentlyInjected(transcriptPath, CRITICAL_THINKING_MARKER, DEDUP_LINES.CRITICAL_THINKING)) {
+function injectCriticalContext(transcriptPath, skipDedup = false, preloadedLines = null) {
+    if (!skipDedup && wasMarkerRecentlyInjected(transcriptPath, CRITICAL_THINKING_MARKER, DEDUP_LINES.CRITICAL_THINKING, TOP_DEDUP_LINES, preloadedLines)) {
         return null;
     }
 
@@ -106,8 +115,8 @@ function injectCriticalContext(transcriptPath, skipDedup = false) {
  * @param {boolean} [skipDedup=false] - Skip dedup check (always inject)
  * @returns {string|null} Formatted text or null if recently injected
  */
-function injectAiMistakePrevention(transcriptPath, skipDedup = false) {
-    if (!skipDedup && wasMarkerRecentlyInjected(transcriptPath, AI_MISTAKE_PREVENTION_MARKER, DEDUP_LINES.AI_MISTAKE_PREVENTION)) {
+function injectAiMistakePrevention(transcriptPath, skipDedup = false, preloadedLines = null) {
+    if (!skipDedup && wasMarkerRecentlyInjected(transcriptPath, AI_MISTAKE_PREVENTION_MARKER, DEDUP_LINES.AI_MISTAKE_PREVENTION, TOP_DEDUP_LINES, preloadedLines)) {
         return null;
     }
 
@@ -135,7 +144,7 @@ function injectAiMistakePrevention(transcriptPath, skipDedup = false) {
         `- **Holistic-first debugging — resist nearest-attention trap.** Don't dive into first plausible cause. List EVERY precondition (config, env vars, paths, DB, endpoints, creds, versions, DI, data). Verify each against evidence (grep/query — not reasoning). Ask "what would falsify this?" — if nothing, it's not a hypothesis. Most expensive failure: going deeper in "obvious" layer while bug sits in layer never questioned.`,
         `- **Surgical changes — apply the diff test (context-aware).** Two modes: (1) Bug fix → every line traces to the bug; no restyling; orphan cleanup only for imports YOUR changes made unused. (2) Review/enhancement → implement improvements AND announce as "Enhancement beyond main request: [what]". Never silently scope-creep. Diff test: "Would this line exist if I wasn't asked to do X?" — if no, delete or announce.`,
         `- **Surface ambiguity before coding — don't pick silently.** Multiple valid interpretations → present each with effort: "[Request] could mean (1) [N h], (2) [N h]. Which matters?" List scope/format/volume/constraints assumptions first. If simpler path exists, say so. Never silently pick.`,
-        `- **[MANDATORY FIRST ACTION] ALWAYS activate a suitable skill or workflow BEFORE responding.** Match task against workflow catalog + skill list; invoke via Skill tool or \`/workflow-start <workflowId>\`. NEVER answer or write code before checking. Skip = protocol violation.`,
+        `- **[MANDATORY FIRST ACTION] ALWAYS activate a suitable skill or workflow BEFORE responding.** Match task against workflow catalog + skill list; invoke via Skill tool or \`/start-workflow <workflowId>\`. NEVER answer or write code before checking. Skip = protocol violation.`,
         `- **Why-Review adversarial mindset — apply when reviewing any plan, decision, or design.** Default SKEPTIC not VALIDATOR: steel-man a rejected alternative, invert each stated reason ("what does it sacrifice?"), stress-test top 2-3 assumptions, run pre-mortem ("ships, fails in 3 months — what breaks?"), surface 1-2 alternatives author missed. Section presence ≠ quality; quality = causal reasoning + concrete mitigations + evidence, not "it's better" or "monitor closely".`,
         `- **Front-load report-write in sub-agent prompts for large reviews.** Many-file sub-agents hit budget before final write — findings lost. Design prompts so: (1) report-write is first explicit deliverable, (2) append per-file/section (not batched), (3) scope bounded so reads don't exhaust budget. Truncated mid-sentence with no report file → spawn narrower scope, don't retry same prompt.`,
         `- **After context compaction, re-verify all prior phase outcomes before continuing.** Summaries describe intent, not environment state (git index, filesystem, processes). On resume, FIRST audit: git status, re-read modified files, verify filesystem. Every "completed" claim is an untested hypothesis until evidence confirms.`,
@@ -200,7 +209,7 @@ ${portabilityBoundary}
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
-4. **ACTIVATE:** For a selected workflow, call \`/workflow-start <workflowId>\`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+4. **ACTIVATE:** For a selected workflow, call \`/start-workflow <workflowId>\`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** \`TaskCreate\` for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
 6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)`;
 }

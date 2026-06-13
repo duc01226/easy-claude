@@ -104,7 +104,7 @@ function countWorkflows() {
 function countSubagentInitHooks() {
     const hooksDir = path.join(REPO_ROOT, '.claude', 'hooks');
     return fs.readdirSync(hooksDir, { withFileTypes: true })
-        .filter((entry) => entry.isFile() && /^subagent-init-.*\.cjs$/.test(entry.name))
+        .filter((entry) => entry.isFile() && /^subagent-init.*\.cjs$/.test(entry.name))
         .length;
 }
 

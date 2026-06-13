@@ -50,7 +50,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Capture raw product ideas as structured backlog artifacts with project module context.
+**Goal:** Turn a vague product idea into a validated, tech-agnostic, module-anchored backlog artifact ready for `$refine` to convert into a PBI — preserving problem intent without leaking solution or stack choices.
 
 > **MANDATORY IMPORTANT MUST ATTENTION** task tracking task to READ project-specific reference doc:
 > `project-structure-reference.md` — project patterns and structure. Not found → search: project documentation, coding standards, architecture docs.
@@ -261,7 +261,7 @@ $idea "Add goal progress tracking notification"
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** Not already in workflow → MUST ATTENTION use a direct user question:
 >
-> 1. **Activate `idea-to-pbi` workflow** (Recommended) — idea → refine → review-artifact --type=pbi → story → review-artifact --type=story → prioritize
+> 1. **Activate `workflow-idea-to-pbi` workflow** (Recommended) — idea → refine → review-artifact --type=pbi → story → review-artifact --type=story → prioritize
 > 2. **Execute `$idea` directly** — run standalone
 
 ---
@@ -368,10 +368,12 @@ $idea "Add goal progress tracking notification"
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Goal:** Turn a vague product idea into a validated, tech-agnostic, module-anchored backlog artifact ready for `$refine` to convert into a PBI — preserving problem intent without leaking solution or stack choices.
 **IMPORTANT MUST ATTENTION** task tracking break ALL work into small tasks BEFORE starting
 **IMPORTANT MUST ATTENTION** validate all decisions with user via a direct user question — NEVER auto-decide
 **IMPORTANT MUST ATTENTION** Discovery Interview + Validation NEVER optional — MANDATORY steps
-**IMPORTANT MUST ATTENTION** NEVER ask about tech stack in greenfield mode — defer to business-evaluation phase
+**IMPORTANT MUST ATTENTION** NEVER ask about tech stack in greenfield mode — defer to business-evaluation phase — why: stack is a research-driven decision after business analysis, not a capture-time guess
+**IMPORTANT MUST ATTENTION** ALWAYS keep problem statement tech-agnostic (M1) — name no framework/product/language/pattern — why: PBI inherits the narrative cleanly downstream
 **IMPORTANT MUST ATTENTION** auto-detect module silently — prompt only when ambiguous
 **IMPORTANT MUST ATTENTION** add final review task to verify work quality
 
@@ -398,7 +400,7 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
-4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
 6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.

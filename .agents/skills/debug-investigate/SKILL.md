@@ -50,9 +50,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Investigate, identify root cause with `file:line` evidence. Investigation-only — hand off to `$fix` for implementation.
-
-**Final Purpose:** Deliver a `$why-review`-validated root cause pinned to `file:line` at the invariant-owning layer — so `$fix` corrects the cause, not the symptom — or an honest "hypothesis, not confirmed" naming the evidence gaps.
+**Goal:** Deliver a `$why-review`-validated root cause pinned to `file:line` at the invariant-owning layer — investigation-only, so `$fix` corrects the cause, not the symptom — or an honest "hypothesis, not confirmed" naming the evidence gaps.
 
 **Workflow:**
 
@@ -84,7 +82,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 | Security / auth             | Access denied, token issues, permission bypass          | `security-auditor`                 |
 
 **Cross-service bugs:** Run graph trace FIRST — grep alone misses implicit bus connections.
-**OOM / memory exhaustion:** Check row COUNT before row SIZE. Unbounded query loading thousands of records is the more common cause. Triage: (1) missing DB-level filter? (2) excessive row size?
+**OOM / memory exhaustion:** Check row COUNT before row SIZE. Unbounded query loading thousands of records is more common cause. Triage: (1) missing DB-level filter? (2) excessive row size?
 
 ## Debug Mindset (NON-NEGOTIABLE)
 
@@ -220,7 +218,7 @@ After `$fix` applies changes, `$prove-fix` MUST be run — builds code proof tra
 
 **MUST ATTENTION — NO EXCEPTIONS:** Not in workflow? Use a direct user question:
 
-1. **Activate `bugfix` workflow** (Recommended) — scout → investigate → debug → plan → fix → prove-fix → review → test
+1. **Activate `workflow-bugfix` workflow** (Recommended) — scout → investigate → debug → plan → fix → prove-fix → review → test
 2. **Execute `$debug-investigate` directly** — standalone
 
 ---
@@ -729,7 +727,7 @@ After `$fix` applies changes, `$prove-fix` MUST be run — builds code proof tra
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Final Purpose:** Deliver a `$why-review`-validated root cause pinned to `file:line` at the invariant-owning layer — so `$fix` corrects the cause, not the symptom — or an honest "hypothesis, not confirmed" naming the evidence gaps.
+**IMPORTANT MUST ATTENTION Goal:** Deliver a `$why-review`-validated root cause pinned to `file:line` at the invariant-owning layer — so `$fix` corrects the cause, not the symptom — or an honest "hypothesis, not confirmed" naming the evidence gaps.
 **MUST ATTENTION** Phase 0 FIRST — classify bug type, route to specialized agent (`performance-optimizer` / `security-auditor`) before any investigation
 **MUST ATTENTION** NEVER fix at crash site — trace full data flow, fix at invariant-owning layer
 **MUST ATTENTION** NEVER report root cause without `file:line` evidence; Confidence <60% = DO NOT recommend
@@ -761,7 +759,7 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
-4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
 6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.

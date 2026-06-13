@@ -50,9 +50,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Simplify and refine code for clarity, consistency, maintainability — preserving all functionality.
-
-**Final Purpose:** Lower the cost of the next change — cut coupling, hidden state, duplicated knowledge, unclear intent — without altering any observable behavior. — why: every simplification serves future change cost, not aesthetics.
+**Goal:** Lower the cost of the next change — cut coupling, hidden state, duplicated knowledge, unclear intent — by simplifying and refining code for clarity, consistency, and maintainability without altering any observable behavior. — why: every simplification serves future change cost, not aesthetics.
 
 > **MANDATORY IMPORTANT MUST ATTENTION** Plan task to READ:
 >
@@ -249,7 +247,7 @@ function getData() {
 
 ## Self-Recursive Verification (MANDATORY after simplifications)
 
-After simplifications are applied, verification requires a **self-recursive simplification pass** over the updated diff. Do not spawn a fresh-context reviewer just to re-review this skill's own findings. Repeat analyze → simplify → verify until this skill finds no further simplification opportunities, or stop for an unsafe/no-progress/user-decision blocker.
+After simplifications applied, verification requires a **self-recursive simplification pass** over the updated diff. Do NOT spawn a fresh-context reviewer to re-review this skill's own findings. Repeat analyze → simplify → verify until this skill finds no further simplification opportunities, or stop on an unsafe/no-progress/user-decision blocker.
 
 ## Self-Review Gate (MANDATORY when this skill changed code)
 
@@ -263,15 +261,15 @@ After simplifications are applied, verification requires a **self-recursive simp
 >
 > **Recursion safety:** `$code-review` is a LEAF review skill — it does NOT invoke `$code-simplifier` back, so there is no cycle. Use `$code-review` here, NEVER `$review-changes` (the heavyweight workflow that itself contains `$code-simplifier` and would recurse).
 >
-> **Why this gate exists:** `$code-simplifier` rewrites code after the main review batch has already run. Without this gate, the simplifier's output would ship unreviewed. This gate moves that review responsibility into the mutator itself — so the `review-changes` workflow no longer needs a separate `$code-review` step after `$code-simplifier`.
+> **Why this gate exists:** `$code-simplifier` rewrites code after the main review batch has already run. Without this gate, the simplifier's output would ship unreviewed. This gate moves that review responsibility into the mutator itself — so the `workflow-review-changes` workflow no longer needs a separate `$code-review` step after `$code-simplifier`.
 
-When used standalone (outside a review workflow), this self-review gate is sufficient for the simplifier's own changes; you may still finish with `$review-changes` or the active workflow's review gate for broader, whole-changeset coverage.
+Used standalone (outside a review workflow), this self-review gate is sufficient for the simplifier's own changes; you may still finish with `$review-changes` or the active workflow's review gate for broader, whole-changeset coverage.
 
 ## Workflow Recommendation
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If NOT already in workflow, use a direct user question to ask user. Do NOT decide this is "simple enough to skip" — the user decides:
 >
-> 1. **Activate `review-changes` workflow** (Recommended) — full review-changes restart gate → validated fix cycle (plan → plan-review → cook) → re-review → docs
+> 1. **Activate `workflow-review-changes` workflow** (Recommended) — full review-changes restart gate → validated fix cycle (plan → plan-review → cook) → re-review → docs
 > 2. **Execute `$code-simplifier` directly** — run standalone (this skill self-reviews its own changes via the Self-Review Gate)
 
 ---
@@ -510,7 +508,7 @@ Rules:
 
 ## Closing Reminders
 
-- **IMPORTANT MUST ATTENTION Final Purpose:** lower the cost of the next change — cut coupling, hidden state, duplicated knowledge, unclear intent — without altering observable behavior
+- **IMPORTANT MUST ATTENTION Goal:** lower the cost of the next change — cut coupling, hidden state, duplicated knowledge, unclear intent — without altering observable behavior
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks via task tracking BEFORE starting
 - **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via a direct user question — never auto-decide
 - **MANDATORY IMPORTANT MUST ATTENTION** add final review task to verify work quality
@@ -555,7 +553,7 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
-4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
 6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.

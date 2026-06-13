@@ -41,25 +41,23 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Two-phase optimization: (1) Caveman Compression — strip stop words + grammatical scaffolding, preserve semantic meaning; (2) Prompt Enhancement — apply AI attention anchoring so AI reads and follows all instructions.
-
-**Final Purpose:** Every enhanced prompt or skill must clearly state its ultimate purpose in both the top summary and bottom reminders so AI optimizes for the right outcome.
+**Goal:** Two-phase optimization — (1) Caveman Compression strips stop words + grammatical scaffolding while preserving semantic meaning; (2) Prompt Enhancement applies AI attention anchoring so AI reads and follows all instructions — producing a prompt/skill that states its objective and ultimate outcome (one consolidated Goal) in both top summary and bottom reminders so AI optimizes for the right result.
 
 **Workflow:**
 
 1. **Detect** — Classify target: skill file, protocol file, or general doc
 2. **Read** — Read target file completely
-3. **Purpose** — Derive one-sentence Final Purpose from the target's goal, task, constraints, and success criteria
+3. **Goal** — Derive the target's one-sentence Goal (what it achieves + the ultimate outcome it must cause) from the target's task, constraints, and success criteria
 4. **Compress** — Apply caveman compression (Phase 1)
 5. **Enhance** — Apply AI attention anchoring transforms (Phase 2)
-6. **Verify** — No content loss, rule density ≥ pre-optimization, Final Purpose anchored top and bottom
+6. **Verify** — No content loss, rule density ≥ pre-optimization, Goal anchored top and bottom
 
 **Key Rules:**
 
 - **Operation flag** (see [Operation Mode](#operation-mode---op)): `--op=enhance` (default) = compress + anchor + skill-principles; `--op=compress` = token-strip only; `--op=expand` = reconstruct compressed text into fluent form (inverse Phase 1 + structural Transform 4)
 - NEVER skip Phase 1 (compress) before Phase 2 (enhance) — compression removes noise, enhancement structures signal
 - NEVER remove meaningful rules, constraints, code examples, or `file:line` evidence
-- MUST ATTENTION derive the target's Final Purpose and add it to both `## Quick Summary` and `## Closing Reminders`
+- MUST ATTENTION derive the target's Goal and add it to both `## Quick Summary` and `## Closing Reminders`
 - Post-optimization rule density (MUST ATTENTION/NEVER/ALWAYS per 100 lines) MUST be ≥ pre-optimization
 - Caveman compression applies to prose only — NEVER compress code blocks, YAML, or structured tables
 - Prompt quality > token count, but verbose prompts degrade quality — optimize clarity-per-token
@@ -79,13 +77,13 @@ No file? Ask via a direct user question. Text passed (not file path)? Apply cave
 
 Route on `--op` (default `enhance`). Transforms 1-3 (inline summaries, top summary, closing reminders — the shared SYNC base block below) are identical across all ops; only Phase 1 and Transform 4 differ:
 
-| `--op`                | Phase 1                                        | Transform 4            | Skill-principles + Final Purpose | Former skill       |
+| `--op`                | Phase 1                                        | Transform 4            | Skill-principles + Goal           | Former skill       |
 | --------------------- | ---------------------------------------------- | ---------------------- | -------------------------------- | ------------------ |
 | `enhance` *(default)* | Caveman Compression                            | Conciseness pass       | Applied (skill files)            | host               |
 | `compress`            | Caveman Compression                            | Conciseness pass       | Skipped (pure token strip)       | `/prompt-compress` |
 | `expand`              | **Language Expansion** (inverse — branch below) | **Structural Clarity** | Skipped                          | `/prompt-expand`   |
 
-- `enhance` / `compress` → run **Phase 1: Caveman Compression** + **Transform 4: Conciseness** below. `enhance` additionally derives the Final Purpose and (for skill files) applies the Universal Skill-Building Principles; `compress` skips both for a pure token-reduction pass.
+- `enhance` / `compress` → run **Phase 1: Caveman Compression** + **Transform 4: Conciseness** below. `enhance` additionally derives the Goal and (for skill files) applies the Universal Skill-Building Principles; `compress` skips both for a pure token-reduction pass.
 - `expand` → run the **Language Expansion branch** below INSTEAD of Caveman Compression, and the **Structural Clarity** Transform 4 instead of conciseness.
 - No `--op` provided → `enhance`.
 
@@ -253,8 +251,8 @@ Prompt quality FIRST. Verbose prompts degrade quality — AI attention dilutes a
 1. Read target file completely
 2. Record: current line count, rule density (MUST ATTENTION/NEVER/ALWAYS count)
 3. List all READ references → classify as `.claude/` (needs inline summary) or `docs/` (skip)
-4. Derive one-sentence **Final Purpose** from target goal/task/outcomes/guardrails; cite source lines or mark inferred with confidence
-5. Identify: missing Quick Summary, missing Final Purpose, missing Closing Reminders, prose-heavy sections
+4. Derive the one-sentence **Goal** (what it achieves + ultimate outcome it must cause) from target task/outcomes/guardrails; cite source lines or mark inferred with confidence
+5. Identify: missing Quick Summary, missing Goal, missing Closing Reminders, prose-heavy sections
 
 ### Step 2: Caveman Compression Pass
 
@@ -275,15 +273,15 @@ For each `.claude/` protocol reference:
 ### Step 4: Add/Fix Top Section
 
 - Missing Quick Summary → create from file content
-- Present but weak → strengthen with Goal, Final Purpose, Workflow, Key Rules
-- Add `**Final Purpose:** [ultimate outcome this prompt/skill must cause]` directly under `**Goal:**`
+- Present but weak → strengthen with Goal, Workflow, Key Rules
+- Ensure `**Goal:**` states what the skill achieves AND the ultimate outcome it must cause — a single consolidated line (never split the objective and outcome into two separate lines)
 - Protocol summaries appear before Quick Summary
 
 ### Step 5: Add/Fix Bottom Section
 
 - Missing Closing Reminders → add standard section
 - Pick rules AI most commonly skips (evidence-based, task creation, pattern search)
-- Echo the same Final Purpose near the start of Closing Reminders: `**IMPORTANT MUST ATTENTION Final Purpose:** ...`
+- Echo the same Goal near the start of Closing Reminders: `**IMPORTANT MUST ATTENTION Goal:** ...`
 - Remove old "IMPORTANT Task Planning Notes" if superseded by Closing Reminders
 
 ### Step 6: Verify
@@ -293,7 +291,7 @@ For each `.claude/` protocol reference:
 | No YAML corruption  | Frontmatter intact                             |
 | No content loss     | All rules, code, paths present                 |
 | Rule density        | Post ≥ pre (count MUST ATTENTION/NEVER/ALWAYS) |
-| Final Purpose       | Present in Quick Summary and Closing Reminders |
+| Goal                | Present in Quick Summary and Closing Reminders |
 | Line count          | Reduced (compression worked)                   |
 | Formatting          | Blank lines between sections, headers correct  |
 | READ classification | `.claude/` → inline summary, `docs/` → skipped |
@@ -415,9 +413,7 @@ For each `.claude/` protocol reference:
 >
 > ## Quick Summary
 >
-> **Goal:** [One sentence — what this skill achieves]
->
-> **Final Purpose:** [One sentence — ultimate outcome this prompt/skill must cause]
+> **Goal:** [One sentence — what this skill achieves AND the ultimate outcome it must cause]
 >
 > **Workflow:**
 >
@@ -437,7 +433,7 @@ For each `.claude/` protocol reference:
 >
 > ## Closing Reminders
 >
-> **IMPORTANT MUST ATTENTION Final Purpose:** [same purpose as Quick Summary]
+> **IMPORTANT MUST ATTENTION Goal:** [same goal as Quick Summary]
 > **IMPORTANT MUST ATTENTION** [echo rule #1 from the top section]
 > **IMPORTANT MUST ATTENTION** [echo rule #2]
 > **IMPORTANT MUST ATTENTION** [echo rule #3]
@@ -493,10 +489,11 @@ For each `.claude/` protocol reference:
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Goal:** Two-phase optimization (caveman compression + attention anchoring) that produces a prompt/skill stating its objective and ultimate outcome (one consolidated Goal) anchored top and bottom, so AI optimizes for the right result.
 **IMPORTANT MUST ATTENTION** select `--op` FIRST (default `enhance`) — `compress`/`enhance` apply caveman compression FIRST (Phase 1) before structural enhancement (never skip); `expand` applies Language Expansion (inverse) instead — why: expand reconstructs, it does not strip
 **IMPORTANT MUST ATTENTION** NEVER compress code blocks, YAML frontmatter, structured tables, or SYNC tags
 **IMPORTANT MUST ATTENTION** read target file completely before any changes
-**IMPORTANT MUST ATTENTION** derive the target's one-sentence Final Purpose, then place it in both `## Quick Summary` and `## Closing Reminders` — why: AI must know the ultimate outcome after enhancement
+**IMPORTANT MUST ATTENTION** derive the target's one-sentence Goal (what it achieves + ultimate outcome), then place it in both `## Quick Summary` and `## Closing Reminders` — why: AI must know the ultimate outcome after enhancement
 **IMPORTANT MUST ATTENTION** read each referenced protocol file to write accurate inline summaries — NEVER guess content
 **IMPORTANT MUST ATTENTION** apply primacy-recency anchoring — 3 critical rules in first 5 AND last 5 lines of every enhanced file
 **IMPORTANT MUST ATTENTION** verify rule density: count MUST ATTENTION/NEVER/ALWAYS before and after — post ≥ pre
@@ -530,7 +527,7 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
-4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
 6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.

@@ -16,7 +16,7 @@ disable-model-invocation: false
 
 ## Quick Summary
 
-**Goal:** Facilitate a structured PO/BA brainstorming session using the Double Diamond process — diverge to discover problems and opportunities, then converge to validate and prioritize ideas before committing to implementation.
+**Goal:** Facilitate a structured PO/BA brainstorming session via the Double Diamond process (diverge to discover problems and opportunities, then converge to validate and prioritize) to deliver a scored, ranked shortlist of 3-5 candidate ideas — each carrying a problem + value hypothesis, an identified riskiest assumption, and the cheapest validation test designed — so the team commits to the right problem AND the right solution before building, never to a flat unvalidated idea list.
 
 **Three Scenarios:**
 
@@ -84,7 +84,7 @@ Ask:
 
 ## Phase 1: Problem Framing — Diamond 1 Diverge
 
-**Goal:** Fully understand the problem space before jumping to solutions. The #1 failure in brainstorming: solving the wrong problem.
+**Goal:** Fully understand problem space before jumping to solutions. #1 brainstorming failure: solving the wrong problem.
 
 **Time-box:** 20–45 minutes of session time.
 
@@ -181,7 +181,7 @@ From the POV statement:
 
 ## Phase 2: Opportunity Framing — Diamond 1 Converge
 
-**Goal:** Narrow problem space to the highest-opportunity focus areas before ideating solutions.
+**Goal:** Narrow problem space to highest-opportunity focus areas before ideating solutions.
 
 ### 2.1 — Opportunity Solution Tree (OST) — for Enhancement
 
@@ -262,7 +262,7 @@ Connects customer profile to product value:
 
 ## Phase 3: Ideation — Diamond 2 Diverge
 
-**Goal:** Generate maximum quantity of solution ideas without judgment. Quality comes in Phase 4.
+**Goal:** Generate maximum quantity of solution ideas without judgment. Quality comes Phase 4.
 
 **Critical rule:** NO evaluation in this phase. Every idea is valid. "Yes, and..." not "Yes, but..."
 
@@ -432,7 +432,7 @@ For each idea in the shortlist, assign release priority:
 
 ## Phase 5: Hypothesis Validation
 
-**Goal:** Before committing to build, test your riskiest assumptions. 42% of startups fail because no market need — validate before building.
+**Goal:** Before committing to build, test riskiest assumptions. 42% of startups fail from no market need — validate before building.
 
 ### 5.1 — Problem Hypothesis
 
@@ -826,6 +826,7 @@ After brainstorm session concludes, use `AskUserQuestion` to present next steps:
 
 ## Closing Reminders
 
+- **IMPORTANT MUST ATTENTION Goal:** Deliver a scored, ranked shortlist of 3-5 candidate ideas — each carrying a problem + value hypothesis, an identified riskiest assumption, and the cheapest validation test designed — so the team commits to the right problem AND the right solution before building, never to a flat unvalidated idea list.
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
 - **MANDATORY IMPORTANT MUST ATTENTION** detect scenario type FIRST — different scenarios use different technique sequences
 - **MANDATORY IMPORTANT MUST ATTENTION** separate diverge (generate) and converge (evaluate) — NEVER mix them

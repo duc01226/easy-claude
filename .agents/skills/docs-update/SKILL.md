@@ -50,7 +50,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Detect impacted docs from code changes; orchestrate updates across all doc types.
+**Goal:** Detect impacted docs from code changes and orchestrate updates across all doc types so every code/spec/test change leaves documentation in sync — impacted Feature Specs, §8 TCs, test-code links, and derived indexes all reflect the shipped behavior, with zero drift left silent.
 
 **Orchestration Model:**
 
@@ -246,7 +246,7 @@ Mode: update (existing docs only, do not create from scratch).
 
 ### Step 2.4: Code↔Spec Sync-Verify (final pass — runs because docs-update is last in every sequence)
 
-> **Purpose:** docs-update already runs LAST in feature/bugfix/big-feature/full-feature-lifecycle, so this is the workflow's final gate. It is the **order-time partner of the Phase 4 commit hook** (this step guides; the hook enforces). Verify the SHIPPED code actually matches the mapped tech-free 8-section Feature Spec before the workflow completes.
+> **Purpose:** docs-update already runs LAST in feature/bugfix/big-feature, so this is the workflow's final gate. It is the **order-time partner of the Phase 4 commit hook** (this step guides; the hook enforces). Verify the SHIPPED code actually matches the mapped tech-free 8-section Feature Spec before the workflow completes.
 
 For each module touched in this run, diff the changed code against its Feature Spec and check three sets:
 
@@ -648,6 +648,7 @@ $ARGUMENTS
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Goal:** Every code/spec/test change leaves documentation in sync — impacted Feature Specs, §8 TCs, test-code links, and derived indexes all reflect the shipped behavior, with zero drift left silent.
 **MUST ATTENTION** Nested Task Expansion Contract — when invoked inside a workflow, STILL expand internal phases via task tracking with `[N.M] $skill-name — phase` prefix and `TaskUpdate(parentTaskId, addBlockedBy: [childIds])` linkage. Workflow row is container, not substitute.
 **MUST ATTENTION** create ALL 8 tasks via task tracking BEFORE any action — see Mandatory Task Creation table
 **MUST ATTENTION** follow fixed step-skill order: `0 -> 1 -> 2 -> 2.5 -> 3 -> 4 -> 5 -> final review` — NEVER reorder without explicit user approval
@@ -688,7 +689,7 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
-4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
 6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.

@@ -25,7 +25,7 @@ disable-model-invocation: true
 
 **IMPORTANT MANDATORY Steps:** /web-research -> /deep-research -> /knowledge-synthesis -> /knowledge-review -> /workflow-end
 
-> These steps are the default `--output=synthesis` sequence (identical to the catalog `research` workflow sequence). For `--output={business-eval|marketing|course}` the terminal synthesis skill(s) swap per the **Output Dispatch** table below — the research scaffold and `/knowledge-review -> /workflow-end` closure are invariant.
+> These steps are the default `--output=synthesis` sequence (identical to the catalog `workflow-research` workflow sequence). For `--output={business-eval|marketing|course}` the terminal synthesis skill(s) swap per the **Output Dispatch** table below — the research scaffold and `/knowledge-review -> /workflow-end` closure are invariant.
 
 ---
 
@@ -42,7 +42,7 @@ All modes share the research scaffold `/web-research → /deep-research → … 
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
-This skill IS the canonical Research & Synthesis entry point — invoke it directly with `--output=<mode>` (default `synthesis`) and execute the selected sequence from the dispatch table above: invoke each step skill in order via the `Skill` tool with the user's prompt as context. The workflow catalog also exposes a `research` id purely so the auto-router can detect research/business-eval/marketing/course intents; `/workflow-start research` is equally valid and injects the same OUTPUT DISPATCH table — either path executes the sequence for the selected `--output`.
+This skill IS the canonical Research & Synthesis entry point — invoke it directly with `--output=<mode>` (default `synthesis`) and execute the selected sequence from the dispatch table above: invoke each step skill in order via the `Skill` tool with the user's prompt as context. The workflow catalog also exposes a `workflow-research` id purely so the auto-router can detect research/business-eval/marketing/course intents; `/start-workflow workflow-research` is equally valid and injects the same OUTPUT DISPATCH table — either path executes the sequence for the selected `--output`.
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
 

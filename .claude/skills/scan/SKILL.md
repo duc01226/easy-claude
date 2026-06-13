@@ -114,7 +114,7 @@ Read the full report. Apply the fresh-eyes protocol:
 
 ## Final Step: Enhance Scanned Doc (MANDATORY)
 
-**MUST ATTENTION** after the doc is written and verified, create a REQUIRED final todo task and run `/prompt-enhance <the target entry's doc>` — why: this reference doc is injected into AI context; attention-anchoring (top/bottom Final Purpose, inline READ summaries, token density) directly raises downstream AI output quality. A scan is NOT complete until its doc is prompt-enhanced.
+**MUST ATTENTION** after the doc is written and verified, create a REQUIRED final todo task and run `/prompt-enhance <the target entry's doc>` — why: this reference doc is injected into AI context; attention-anchoring (top/bottom Goal, inline READ summaries, token density) directly raises downstream AI output quality. A scan is NOT complete until its doc is prompt-enhanced.
 
 **TaskCreate (required, last task):** `Run /prompt-enhance <target doc> on the scanned doc`
 

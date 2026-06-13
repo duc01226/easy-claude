@@ -173,7 +173,7 @@ graph TD
 ## Related Skills
 
 - `project-manager` -- for sprint planning and status tracking
-- `feature` -- for implementing features after dependency analysis
+- `workflow-feature` -- for implementing features after dependency analysis
 - `package-upgrade` -- for npm/NuGet package dependency upgrades
 
 ---

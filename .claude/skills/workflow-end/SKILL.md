@@ -15,7 +15,7 @@ description: '[Process] Use when you need to end the active workflow and clear s
 
 ## Quick Summary
 
-**Goal:** [Process] End the active workflow and clear state. Runs near the end of workflow sequences before the post-workflow `/watzup` handoff. Clears workflow tracking so next prompt gets fresh workflow detection. **Before clearing state, prints a one-way developer-comprehension recap** of what the workflow changed (what / purpose / how / why) so the developer understands the work without re-reading the diff.
+**Goal:** [Process] Close the active workflow cleanly — clear workflow tracking so the next prompt gets fresh detection, and before clearing state print a one-way developer-comprehension recap (what / purpose / how / why) of what the workflow changed so the developer understands the work without re-reading the diff.
 
 **Workflow:**
 
@@ -36,9 +36,9 @@ description: '[Process] Use when you need to end the active workflow and clear s
 
 ## When This Runs
 
-This skill is the **workflow state-closure step**. In workflows that include `/watzup`, it runs after final verification/docs work and before `/watzup`, so the active workflow is closed before the post-workflow summary and `/understand` handoff. As its penultimate action — after all workflow work is done, before clearing state — it prints the one-way developer-comprehension recap of what the workflow changed. Use `/understand` for the deep standalone explainer of any target.
+This skill is the **workflow state-closure step**. In workflows including `/watzup`, runs after final verification/docs work and before `/watzup`, so active workflow closes before post-workflow summary and `/understand` handoff. As penultimate action — after all workflow work done, before clearing state — prints one-way developer-comprehension recap of what workflow changed. Use `/understand` for deep standalone explainer of any target.
 
-**NOT for**: Manual invocation mid-workflow (use workflow switching via `/workflow-start` instead).
+**NOT for**: Manual invocation mid-workflow (use workflow switching via `/start-workflow` instead).
 
 ---
 
@@ -94,7 +94,7 @@ This skill is the **workflow state-closure step**. In workflows that include `/w
 
 ## See Also
 
-- **Skill:** `/workflow-start` - Start/switch workflows
+- **Skill:** `/start-workflow` - Start/switch workflows
 - **Hook:** `workflow-step-tracker.cjs` - Clears state on final step completion
 - **Hook:** `workflow-router.cjs` - Detects active vs inactive workflows
 
@@ -183,6 +183,7 @@ Finalize and close the active workflow, clearing state so the next user prompt t
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Goal:** Close the active workflow cleanly — leave the developer understanding what changed (via the diff-gated recap) and the next prompt free to trigger fresh workflow detection.
 **IMPORTANT MUST ATTENTION** when the workflow changed code (diff present), print the comprehension recap — what changed / purpose / how it works / why — optimized for easiest learning; depth throttled by `codingLevel`, NEVER fully skip when changes exist
 **IMPORTANT MUST ATTENTION** the recap is one-way and NEVER blocks — no quiz, no teach-back; deeper comprehension is the standalone `/understand` skill
 **IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting

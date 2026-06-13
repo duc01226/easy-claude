@@ -15,7 +15,7 @@ description: '[Architecture] Use when you need to research, analyze, and compare
 
 ## Quick Summary
 
-**Goal:** Research, analyze, and compare tech stack options for each layer of the system. Act as a solution architect — derive technical requirements from business analysis, research current market, produce detailed comparison report, and present options to user for decision.
+**Goal:** Deliver a user-confirmed, per-layer tech stack — each choice backed by 3+ researched options, weighted scoring, cited evidence, and a confidence % — by acting as a solution architect who derives technical requirements from business analysis, researches the current market, and produces a detailed comparison report, so the team commits to a stack fit for scale, budget, skills, and timeline, not familiarity.
 
 **Workflow:**
 
@@ -235,7 +235,9 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Goal:** deliver a user-confirmed, per-layer tech stack — each choice backed by 3+ researched options, weighted scoring, cited evidence, and a confidence % — so the team commits to a stack fit for scale, budget, skills, and timeline, not familiarity.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting.
+**MANDATORY IMPORTANT MUST ATTENTION** research minimum 3 options per stack layer; every recommendation carries confidence % + cited evidence (URL, benchmark, case study) — never recommend on familiarity alone.
 **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — never auto-decide.
 **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.
 

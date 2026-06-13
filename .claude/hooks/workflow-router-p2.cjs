@@ -16,8 +16,7 @@
 
 const fs = require('fs');
 const { loadWorkflowConfig } = require('./lib/wr-config.cjs');
-
-const CATALOG_P2_MARKER = '## Workflow Catalog (continued)';
+const { WORKFLOW_CATALOG_P2: CATALOG_P2_MARKER } = require('./lib/dedup-constants.cjs');
 const DEDUP_BOTTOM_LINES = 150; // ~half catalog size
 const DEDUP_TOP_LINES = 50;
 

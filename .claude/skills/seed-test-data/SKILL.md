@@ -16,9 +16,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob, TaskCreate, Agent
 
 ## Quick Summary
 
-**Goal:** Implement or enhance test data seeders — simulate QC happy-path scenarios via application-layer commands; NEVER direct DB writes.
-
-**Final Purpose:** Ensure seeders create realistic, idempotent, valid test data through application paths without corrupting domain state.
+**Goal:** Implement or enhance test data seeders that create realistic, idempotent, valid test data through application-layer commands (NEVER direct DB writes) — simulating QC happy-path scenarios without corrupting domain state.
 
 **Workflow:**
 
@@ -83,7 +81,7 @@ Record with `file:line` evidence:
 
 ### Step 1.5: Verify Dev Config Keys
 
-Confirm dev config has both env gate key and count key. If absent, add following project's dev config convention.
+Confirm dev config has both env gate key and count key. If absent, add following project's dev config convention. — why: missing keys silently disable the gate or count, producing no-op or unbounded seeding.
 
 ### Step 2: Feature Scope Analysis
 
@@ -182,7 +180,7 @@ Review seeder at [file:path]. Verify with file:line evidence for each:
 Report: PASS or FAIL with file:line for each finding.
 ```
 
-**Fix loop:** If FAIL → validate findings → fix validated findings → restart the full review from the first phase. When the restarted review uses sub-agents, never reuse them across rounds. If the same blocker repeats across 3 full invocations with no progress, escalate to user.
+**Fix loop:** If FAIL → validate findings → fix validated findings → restart full review from first phase. When restarted review uses sub-agents, NEVER reuse them across rounds. If same blocker repeats across 3 full invocations with no progress, escalate to user.
 NEVER fix unvalidated findings. Do not spawn a fresh sub-agent only to re-review known findings before validation/fix.
 
 ---
@@ -302,7 +300,7 @@ NEVER fix unvalidated findings. Do not spawn a fresh sub-agent only to re-review
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Final Purpose:** Ensure seeders create realistic, idempotent, valid test data through application paths without corrupting domain state.
+**IMPORTANT MUST ATTENTION Goal:** Ensure seeders create realistic, idempotent, valid test data through application paths without corrupting domain state.
 **IMPORTANT MUST ATTENTION** `TaskCreate` — break all work into tasks BEFORE starting
 **IMPORTANT MUST ATTENTION** NEVER call repo/DB directly — use application-layer commands
 **IMPORTANT MUST ATTENTION** ALWAYS gate by environment FIRST; ALWAYS check count before seeding

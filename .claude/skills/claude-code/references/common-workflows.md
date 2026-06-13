@@ -105,7 +105,7 @@ claude "analyze the changes in PR #42"
 
 ```bash
 /code-review analyze authentication implementation
-/scout-ext find all payment-related files
+/scout --ext find all payment-related files
 ```
 
 **Strategic planning:**

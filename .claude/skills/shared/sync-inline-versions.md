@@ -1118,9 +1118,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 >
 > ## Quick Summary
 >
-> **Goal:** [One sentence — what this skill achieves]
->
-> **Final Purpose:** [One sentence — ultimate outcome this prompt/skill must cause]
+> **Goal:** [One sentence — what this skill achieves AND the ultimate outcome it must cause]
 >
 > **Workflow:**
 >
@@ -1140,7 +1138,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 >
 > ## Closing Reminders
 >
-> **IMPORTANT MUST ATTENTION Final Purpose:** [same purpose as Quick Summary]
+> **IMPORTANT MUST ATTENTION Goal:** [same goal as Quick Summary]
 > **IMPORTANT MUST ATTENTION** [echo rule #1 from the top section]
 > **IMPORTANT MUST ATTENTION** [echo rule #2]
 > **IMPORTANT MUST ATTENTION** [echo rule #3]

@@ -39,11 +39,11 @@ description: '[Planning] Use when you need to start a new project from scratch w
 
 ## Entry Point
 
-This skill is the explicit entry point for the `greenfield-init` workflow.
+This skill is the explicit entry point for the `workflow-greenfield-init` workflow.
 
 **When invoked:**
 
-1. Activate the `greenfield-init` workflow via `/workflow-start greenfield-init`
+1. Activate the `workflow-greenfield-init` workflow via `/start-workflow workflow-greenfield-init`
 2. The workflow handles step sequencing, task creation, and progress tracking
 3. Each step delegates to the appropriate skill (idea, web-research, domain-analysis, tech-stack-research, etc.)
 4. The `solution-architect` agent provides architecture guidance throughout
@@ -57,7 +57,7 @@ This skill is the explicit entry point for the `greenfield-init` workflow.
 
 ## When NOT to Use
 
-- Existing codebase with code (use `/plan` or `/workflow-start feature` instead)
+- Existing codebase with code (use `/plan` or `/start-workflow workflow-feature` instead)
 - Bug fixes, refactoring, or feature implementation
 - Quick prototyping (use `/cook` instead)
 

@@ -15,9 +15,7 @@ description: '[Workflow] Use when activating the Review Current Changes workflow
 
 ## Quick Summary
 
-**Goal:** Review all uncommitted changes, validate findings, fix only validated findings, then re-run `/review-changes` INLINE (only when `/cook` actually changed files) — repeat the plan→cook→review-changes loop until a complete pass is clean.
-
-**Final Purpose:** Ensure changed work reaches clean review through validated findings, verified fixes, full re-review, and synchronized docs/tests.
+**Goal:** Ensure changed work reaches clean review through validated findings, verified fixes, full re-review, and synchronized docs/tests — review all uncommitted changes, validate findings, fix only validated findings, then re-run `/review-changes` INLINE (only when `/cook` actually changed files), repeating the plan→cook→review-changes loop until a complete pass is clean.
 
 **Sequence:** /review-changes (owns UI review — invokes /review-ui internally when frontend changes) → /why-review (validate findings) → **[parallel batch]** /review-architecture + /review-domain-entities (if entity changes) + /performance-review + /integration-test-review + /security-review → /code-simplifier (self-reviews its own changes via /code-review) → /plan → /plan-review → /cook → **/review-changes (conditional inline re-review — only if /cook changed files; loops /plan→/cook→/review-changes until clean)** → /docs-update → /workflow-end → /watzup
 
@@ -254,7 +252,7 @@ Main Session: Review → Validate findings → Plan → Fix (/cook) → /review-
 
 > **[BLOCKING SEQUENCING]** Step 1 `/review-changes` is SEQUENTIAL and MUST run FIRST — it produces the baseline (surface analysis + integration-test/translation gap detection) consumed by all downstream reviewers, AND owns the UI review (invokes `/review-ui` internally via a ui-ux-designer sub-agent when the diff has frontend/UI files). Step 2 `/why-review` is SEQUENTIAL and runs immediately after — it validates the `/review-changes` findings (drops false positives) before any parallel reviewer spawns. Steps 3–7 (`/review-architecture`, `/review-domain-entities`, `/performance-review`, `/integration-test-review`, `/security-review`) form a PARALLEL BATCH — spawn all in ONE message via specialized `Agent` tool calls (`architect`, `code-reviewer`, `performance-optimizer`, `integration-tester`, `security-auditor`). Step 8 `/code-simplifier` is SEQUENTIAL and waits until ALL parallel batch sub-agents return + consolidation summary is built; it self-reviews the code it changes via `/code-review` (scoped to its own changed files) before returning, so there is no separate workflow-level code-review step. Steps 9+ proceed sequentially as listed.
 
-> **[WORKFLOW-IN-WORKFLOW: MUST RUN AS SUB-AGENT when inside another workflow]** This skill activates the full `review-changes` workflow (15 steps). When invoked as a step inside a parent workflow (e.g., `feature`, `bugfix`, `refactor`), it MUST execute via `Agent` tool (`subagent_type: "code-reviewer"`) — NEVER as an inline `Skill` tool call. Inline execution absorbs 15 steps of context into the parent session.
+> **[WORKFLOW-IN-WORKFLOW: MUST RUN AS SUB-AGENT when inside another workflow]** This skill activates the full `workflow-review-changes` workflow (15 steps). When invoked as a step inside a parent workflow (e.g., `workflow-feature`, `workflow-bugfix`, `workflow-refactor`), it MUST execute via `Agent` tool (`subagent_type: "code-reviewer"`) — NEVER as an inline `Skill` tool call. Inline execution absorbs 15 steps of context into the parent session.
 >
 > **Sub-agent prompt must include:** current git diff, feature/task description, instruction to return SYNC:subagent-return-contract summary and write full findings to `plans/reports/`.
 >
@@ -264,7 +262,7 @@ Main Session: Review → Validate findings → Plan → Fix (/cook) → /review-
 > **[CONDITIONAL INLINE RE-REVIEW]** After validated fixes in `/cook` — and ONLY if `/cook` changed files — re-run `/review-changes` INLINE (step 12) over the current full diff. If `/cook` made no changes, skip step 12. Clean review passes with zero findings end the loop; repeated blockers stop after 3 no-progress invocations.
 > **[REPEATED BLOCKER CAP]** Track re-review invocations in conversation context, not persistent files. After a fix cycle, PASS = a complete inline `/review-changes` re-review pass finds zero findings without more fixes; stop after the same blocker repeats 3 times with no progress.
 
-Activate the `review-changes` workflow. Run `/workflow-start review-changes` with the user's prompt as context.
+Activate the `workflow-review-changes` workflow. Run `/start-workflow workflow-review-changes` with the user's prompt as context.
 
 <!-- SYNC:parallel-phase-advancement -->
 
@@ -496,7 +494,7 @@ Activate the `review-changes` workflow. Run `/workflow-start review-changes` wit
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Final Purpose:** Ensure changed work reaches clean review through validated findings, verified fixes, full re-review, and synchronized docs/tests.
+**IMPORTANT MUST ATTENTION Goal:** Ensure changed work reaches clean review through validated findings, verified fixes, full re-review, and synchronized docs/tests.
 **IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting — create ALL 15 tasks immediately
 **IMPORTANT MUST ATTENTION** after fixes in `/cook` (and ONLY if `/cook` changed files), re-run `/review-changes` INLINE over the current full diff from Phase 0; loop `/plan`→`/cook`→`/review-changes` until clean
 **IMPORTANT MUST ATTENTION** track full re-review invocations and repeated blockers in conversation context (session-scoped, no persistent files) — stop after the same blocker repeats 3 times with no progress and escalate via `AskUserQuestion`
@@ -522,5 +520,5 @@ Activate the `review-changes` workflow. Run `/workflow-start review-changes` wit
 | Evasion | Rebuttal |
 | ------- | -------- |
 | "Purpose obvious" | Anchor it anyway — primacy/recency keeps outcome active through long prompts. |
-| "Existing reminders enough" | Echo Final Purpose in Closing Reminders — bottom anchor prevents drift. |
+| "Existing reminders enough" | Echo Goal in Closing Reminders — bottom anchor prevents drift. |
 | "Skip evidence for prompt edits" | Cite changed file evidence and verify no stale protocol text remains. |

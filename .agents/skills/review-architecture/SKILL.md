@@ -50,9 +50,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Validate changed code against architecture: layers, service boundaries, message flow, CQRS, repositories, entity events, frontend architecture, generated artifacts, and quality tooling.
-
-**Final Purpose:** Ensure changes preserve architecture boundaries, ownership, message flow, and generated artifact integrity before handoff.
+**Goal:** Ensure changes preserve architecture boundaries, ownership, message flow, and generated artifact integrity before handoff — validating changed code against layers, service boundaries, message flow, CQRS, repositories, entity events, frontend architecture, generated artifacts, and quality tooling.
 
 **Default scope:** All uncommitted changes (staged + unstaged). Override: specify files, directories, services, or full codebase.
 
@@ -89,28 +87,28 @@ $ARGUMENTS
 
 ## First Principle — Easy to Change
 
-> **Success metric: future change cost.** DRY, SRP, abstraction, patterns, naming, layering, and tests exist to make the next change cheaper.
+> **Success metric: future change cost.** DRY, SRP, abstraction, patterns, naming, layering, tests exist to make next change cheaper.
 
 Before applying any rule, ask: **does this lower or raise future change cost?**
 
-- Reject "best practices" that raise cost: premature abstraction, speculative generality, leaky indirection, ceremony without payoff.
-- Name the real enemies: **coupling, hidden state, duplicated knowledge, unclear intent, irreversible decisions exposed too early**.
-- Prefer simple, reversible design over sophisticated rigid design.
-- If a downstream rule raises change cost, this principle wins.
+- Reject "best practices" raising cost: premature abstraction, speculative generality, leaky indirection, ceremony without payoff.
+- Name real enemies: **coupling, hidden state, duplicated knowledge, unclear intent, irreversible decisions exposed too early**.
+- Prefer simple reversible design over sophisticated rigid design.
+- If downstream rule raises change cost, this principle wins.
 
 ---
 
 ## Quality Tooling Principle — Tech-Stack Adaptive
 
-> Architecture review includes automated quality guardrails. Without stack-appropriate linting, formatting, type checks, static analysis, dependency/security-review scanning, and CI enforcement, defects depend on reviewer memory.
+> Architecture review includes automated quality guardrails. Without stack-appropriate linting, formatting, type checks, static analysis, dependency/security-review scanning, CI enforcement, defects depend on reviewer memory.
 
-Evaluate detected stacks, not a fixed tool list:
+Evaluate detected stacks, not fixed tool list:
 
-- Detect stacks from project-reference docs, manifests, lock files, build files, and CI before recommending tools.
-- For each production stack, verify formatter/style config, linter/code analyzer, compiler/type-check strictness, dependency/vulnerability scanning, tests/coverage, and CI/pre-commit enforcement.
-- Prefer official or ecosystem-standard tooling; if local docs are absent/stale, check current official docs before recommending setup.
+- Detect stacks from project-reference docs, manifests, lock files, build files, CI before recommending tools.
+- For each production stack, verify formatter/style config, linter/code analyzer, compiler/type-check strictness, dependency/vulnerability scanning, tests/coverage, CI/pre-commit enforcement.
+- Prefer official or ecosystem-standard tooling; if local docs absent/stale, check current official docs before recommending setup.
 - MUST ATTENTION recommend enforceable best practice only: installed but unwired tool = WARN; production source with no relevant automated quality gate = BLOCKED.
-- Identify the missing capability first; map to a local equivalent before prescribing new tooling.
+- Identify missing capability first; map to local equivalent before prescribing new tooling.
 
 ---
 
@@ -169,7 +167,7 @@ For EACH file in scope, evaluate against ALL applicable categories. Skip categor
 
 MUST ATTENTION review serially. For each applicable category: read docs/source evidence → derive risk with `Think:` → grep 3+ examples/counterexamples → record PASS/WARN/BLOCKED. NEVER scan categories simultaneously.
 
-> **Portability note (MUST ATTENTION):** The concrete framework symbols, base-class names, and directory conventions in Categories 2–8 below are **illustrative examples** — the authoritative form for the repository under review is sourced from the Phase 0 reference docs (`backend-patterns-reference.md`, `frontend-patterns-reference.md`, `project-structure-reference.md`), so verify code against those docs. On any stack, map each example to the project's equivalent as named in its own reference docs, and flag deviations from the project's **actual** convention — never from these literal names. Same discipline as Category 5: read project docs at review time; never treat a hardcoded name as universal.
+> **Portability note (MUST ATTENTION):** Concrete framework symbols, base-class names, directory conventions in Categories 2–8 below are **illustrative examples** — authoritative form for the repository under review sourced from Phase 0 reference docs (`backend-patterns-reference.md`, `frontend-patterns-reference.md`, `project-structure-reference.md`), so verify code against those docs. On any stack, map each example to project's equivalent as named in its own reference docs, flag deviations from project's **actual** convention — never from these literal names. Same discipline as Category 5: read project docs at review time; never treat hardcoded name as universal.
 
 ---
 
@@ -450,7 +448,7 @@ If `architectureRules` absent from project-config.json: skip silently.
 
 ## Phase 5: Why-Review Self-Validation Gate (MANDATORY when findings exist)
 
-> **Purpose:** Adversarial validation of own findings BEFORE handoff. Catches over-flagged Highs, false positives, and severity inflation at the source rather than letting them propagate downstream.
+> **Purpose:** Adversarial validation of own findings BEFORE handoff. Catches over-flagged Highs, false positives, severity inflation at source rather than letting them propagate downstream.
 
 **Trigger:** Any finding produced (Critical, High, Medium, OR Low). Skip ONLY when the report's verdict is unconditional PASS with literally zero findings.
 
@@ -467,7 +465,7 @@ If `architectureRules` absent from project-config.json: skip silently.
 - Verdict is unconditional PASS with zero findings → log "Skipped — no findings to validate"
 - Why-review skill itself is the active context (avoid recursion)
 
-**Why this exists:** AI sub-agent reports inherit confirmation bias — the orchestrator absorbs severity claims as ground truth. The 2026-05-09 review incident produced 5 Highs; adversarial validation demoted 3 of them. Codify this as standard practice.
+**Why this exists:** AI sub-agent reports inherit confirmation bias — orchestrator absorbs severity claims as ground truth. The 2026-05-09 review incident produced 5 Highs; adversarial validation demoted 3 of them. Codify as standard practice.
 
 ---
 
@@ -924,7 +922,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Final Purpose:** Ensure changes preserve architecture boundaries, ownership, message flow, and generated artifact integrity before handoff.
+**IMPORTANT MUST ATTENTION Goal:** Ensure changes preserve architecture boundaries, ownership, message flow, and generated artifact integrity before handoff.
 **MUST ATTENTION** break work into small tasks using task tracking BEFORE starting
 **MUST ATTENTION** read project architecture docs BEFORE reviewing — rules come from docs, not general knowledge
 **MUST ATTENTION** every violation requires `file:line` proof — NEVER speculate
@@ -966,7 +964,7 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
-4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
 6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.

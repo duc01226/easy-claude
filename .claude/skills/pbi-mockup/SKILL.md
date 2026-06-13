@@ -15,7 +15,7 @@ description: '[Project Management] Use when you need to generate an HTML mockup 
 
 ## Quick Summary
 
-**Goal:** Ask AI to generate a self-contained HTML mock-up file from finalized PBI/story artifacts, styled from the project's reference design docs, existing UI, components, and domain entities. One HTML file per PBI covering all stories.
+**Goal:** Give stakeholders a realistic, system-matching visual preview of every story's UI — by generating a self-contained HTML mock-up file (one per PBI covering all stories) from finalized PBI/story artifacts, styled from the project's reference design docs, existing UI, components, and real domain entity data — before implementation begins, so layout/UX/state gaps surface while changes are still cheap.
 
 **Workflow:**
 
@@ -54,7 +54,7 @@ Generate visual HTML mockup reports from PBI and user story artifacts.
 - After PBI and stories are finalized (reviewed, challenged, gated)
 - Before moving to implementation planning or design spec
 - When stakeholders need a visual preview of the feature
-- As the final step in `idea-to-pbi` and similar workflows
+- As the final step in `workflow-idea-to-pbi` and similar workflows
 
 **NOT for**: Implementing production UI (use `/cook`), creating design specs (use `/design-spec`), or wireframing from scratch (use `/design-spec --mode=wireframe`).
 
@@ -315,7 +315,7 @@ Before completing:
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use `AskUserQuestion` to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
 >
-> 1. **Activate `idea-to-pbi` workflow** (Recommended) — includes mockup as final step
+> 1. **Activate `workflow-idea-to-pbi` workflow** (Recommended) — includes mockup as final step
 > 2. **Execute `/pbi-mockup` directly** — run this skill standalone on an existing PBI
 
 ---
@@ -383,6 +383,7 @@ Before completing:
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Goal:** Give stakeholders a realistic, system-matching visual preview of every story's UI — built from real domain data and the project's actual design system — before implementation begins, so layout/UX/state gaps surface while changes are still cheap.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting.
 **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — never auto-decide.
 **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.

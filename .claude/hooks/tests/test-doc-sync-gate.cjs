@@ -9,7 +9,7 @@
  *      OS temp dir, exercising the real hook via stdin/exit-code (mirrors
  *      test-git-commit-block.cjs). The hook's lib resolves config + runs git in
  *      CLAUDE_PROJECT_DIR, so pointing that at the temp repo fully isolates the
- *      suite from the real BravoSUITE index.
+ *      suite from the host project's real index.
  *
  * Covers TC-DOCSYS-041..048.
  *
@@ -57,8 +57,8 @@ function runHook(input, env = {}, cwd) {
   });
 }
 
-const AREA_CODE = 'src/Services/bravoGROWTH/';
-const AREA_DOCS = 'docs/specs/bravoGROWTH/';
+const AREA_CODE = 'src/Services/ExampleArea/';
+const AREA_DOCS = 'docs/specs/ExampleArea/';
 
 function gitAvailable() {
   try {
@@ -102,7 +102,7 @@ function makeRepo() {
     JSON.stringify({
       workflowPatterns: {
         docSyncGate: {
-          enforcedAreas: [{ name: 'bravoGROWTH', codePathPrefixes: [AREA_CODE], graceDays: 0 }]
+          enforcedAreas: [{ name: 'ExampleArea', codePathPrefixes: [AREA_CODE], graceDays: 0 }]
         }
       }
     })
@@ -133,28 +133,44 @@ const editInput = file => ({ tool_name: 'Edit', tool_input: { file_path: file, o
 // ===========================================================================
 function testClassifier() {
   log('\n--- A. Classifier unit (lib/doc-sync-classify.cjs) ---');
-  // Force the lib to resolve config from this repo (the real one is fine here).
   const cls = require(path.join(HOOKS_DIR, 'lib', 'doc-sync-classify.cjs'));
-  const cfg = cls.loadConfig();
 
-  logResult('config loads + enabled', cfg && cfg.enabled === true, JSON.stringify(cfg && cfg.enabled));
+  // Smoke: the real repo config still parses + loads as an object. Enforced-area
+  // CONTENT is project-specific (a generic/portable framework legitimately defines
+  // none), so the classifier LOGIC below is exercised against a synthetic,
+  // project-neutral cfg rather than whatever the host project-config happens to
+  // contain. Keeps the unit test deterministic and free of any project residue.
+  const realCfg = cls.loadConfig();
+  logResult('config loads (real repo)', !!realCfg && typeof realCfg === 'object', JSON.stringify(realCfg && realCfg.enabled));
+
+  const cfg = {
+    enabled: true,
+    behavioralCodeExtensions: ['.cs', '.ts'],
+    fastExit: {
+      pathPrefixes: ['docs/', '.claude/', 'plans/', 'tmp/'],
+      pathContains: ['/tests/', '.test.', '.spec.', 'Tests/', 'IntegrationTests/', '/obj/', '/bin/', '/migrations/'],
+      extensions: ['.md', '.json', '.scss', '.css', '.html', '.csproj', '.sln']
+    },
+    enforcedAreas: [{ name: 'ExampleArea', codePathPrefixes: ['src/Services/ExampleArea/'], graceDays: 0 }]
+  };
+
   logResult('fast-exit: docs/', cls.isFastExit('docs/specs/x.md', cfg) === true);
-  logResult('fast-exit: .md extension', cls.isFastExit('src/Services/bravoGROWTH/x.md', cfg) === true);
-  logResult('fast-exit: integration test', cls.isFastExit('src/Services/bravoGROWTH/Growth.IntegrationTests/X.cs', cfg) === true);
-  logResult('NOT fast-exit: real growth .cs', cls.isFastExit('src/Services/bravoGROWTH/Growth.Application/Foo.cs', cfg) === false);
+  logResult('fast-exit: .md extension', cls.isFastExit('src/Services/ExampleArea/x.md', cfg) === true);
+  logResult('fast-exit: integration test', cls.isFastExit('src/Services/ExampleArea/Example.IntegrationTests/X.cs', cfg) === true);
+  logResult('NOT fast-exit: real code .cs', cls.isFastExit('src/Services/ExampleArea/Example.Application/Foo.cs', cfg) === false);
 
-  const hit = cls.behavioralCodeHit('src/Services/bravoGROWTH/Growth.Application/Foo.cs', cfg);
-  logResult('behavioral hit: growth .cs → bravoGROWTH', !!hit && hit.area.name === 'bravoGROWTH');
-  logResult('no hit: unenforced service .cs', cls.behavioralCodeHit('src/Services/Accounts/Foo.cs', cfg) === null);
-  logResult('no hit: growth test .cs (fast-exit)', cls.behavioralCodeHit('src/Services/bravoGROWTH/Growth.IntegrationTests/X.cs', cfg) === null);
+  const hit = cls.behavioralCodeHit('src/Services/ExampleArea/Example.Application/Foo.cs', cfg);
+  logResult('behavioral hit: code .cs → ExampleArea', !!hit && hit.area.name === 'ExampleArea');
+  logResult('no hit: unenforced service .cs', cls.behavioralCodeHit('src/Services/Other/Foo.cs', cfg) === null);
+  logResult('no hit: test .cs (fast-exit)', cls.behavioralCodeHit('src/Services/ExampleArea/Example.IntegrationTests/X.cs', cfg) === null);
 
   logResult(
     'feature-doc area resolves',
-    !!cls.areaForFeatureDoc('docs/specs/bravoGROWTH/README.GoalManagementFeature.md', cfg)
+    !!cls.areaForFeatureDoc('docs/specs/ExampleArea/README.SampleFeature.md', cfg)
   );
   logResult(
     'feature-doc area null for other docs',
-    cls.areaForFeatureDoc('docs/specs/Accounts/README.X.md', cfg) === null
+    cls.areaForFeatureDoc('docs/specs/Other/README.X.md', cfg) === null
   );
   logResult('toRepoRel strips project root', typeof cls.toRepoRel('foo/bar.cs') === 'string');
 }
@@ -163,14 +179,14 @@ function testClassifier() {
 // B. Integration tests (isolated temp git repo)
 // ===========================================================================
 async function testCommitWarnStale() {
-  log('\n--- B1. TC-DOCSYS-041: commit with stale growth code (no doc) → WARN/ALLOW ---');
+  log('\n--- B1. TC-DOCSYS-041: commit with stale area code (no doc) → WARN/ALLOW ---');
   const { dir, g } = makeRepo();
   try {
-    writeFile(dir, `${AREA_CODE}Growth.Application/Foo.cs`, 'public class Foo { int X() => 1; }\n');
+    writeFile(dir, `${AREA_CODE}Example.Application/Foo.cs`, 'public class Foo { int X() => 1; }\n');
     g(['add', '-A']);
     g(['commit', '-qm', 'baseline']);
     // real behavioral change, no doc staged
-    writeFile(dir, `${AREA_CODE}Growth.Application/Foo.cs`, 'public class Foo { int X() => 42; }\n');
+    writeFile(dir, `${AREA_CODE}Example.Application/Foo.cs`, 'public class Foo { int X() => 42; }\n');
     g(['add', '-A']);
     const r = await runHook(commitInput(), { CLAUDE_PROJECT_DIR: dir }, dir);
     logResult('TC-DOCSYS-041 allows with warning (exit 0)', r.code === 0, `exit ${r.code}`);
@@ -184,12 +200,12 @@ async function testCommitAllowSynced() {
   log('\n--- B2. TC-DOCSYS-042: commit with code + feature doc staged → ALLOW ---');
   const { dir, g } = makeRepo();
   try {
-    writeFile(dir, `${AREA_CODE}Growth.Application/Foo.cs`, 'public class Foo { int X() => 1; }\n');
-    writeFile(dir, `${AREA_DOCS}README.GoalManagementFeature.md`, '---\nlast_synced: 2026-06-10\n---\n# Goal\n');
+    writeFile(dir, `${AREA_CODE}Example.Application/Foo.cs`, 'public class Foo { int X() => 1; }\n');
+    writeFile(dir, `${AREA_DOCS}README.SampleFeature.md`, '---\nlast_synced: 2026-06-10\n---\n# Goal\n');
     g(['add', '-A']);
     g(['commit', '-qm', 'baseline']);
-    writeFile(dir, `${AREA_CODE}Growth.Application/Foo.cs`, 'public class Foo { int X() => 42; }\n');
-    writeFile(dir, `${AREA_DOCS}README.GoalManagementFeature.md`, '---\nlast_synced: 2026-06-11\n---\n# Goal\nAC-GM-01 changed.\n');
+    writeFile(dir, `${AREA_CODE}Example.Application/Foo.cs`, 'public class Foo { int X() => 42; }\n');
+    writeFile(dir, `${AREA_DOCS}README.SampleFeature.md`, '---\nlast_synced: 2026-06-11\n---\n# Goal\nAC-GM-01 changed.\n');
     g(['add', '-A']);
     const r = await runHook(commitInput(), { CLAUDE_PROJECT_DIR: dir }, dir);
     logResult('TC-DOCSYS-042 allows (exit 0)', r.code === 0, `exit ${r.code}`);
@@ -202,7 +218,7 @@ async function testEditDocAllows() {
   log('\n--- B3. TC-DOCSYS-043: editing the Feature Spec doc itself → ALLOW (no deadlock) ---');
   const { dir } = makeRepo();
   try {
-    const docAbs = writeFile(dir, `${AREA_DOCS}README.GoalManagementFeature.md`, '---\nlast_synced: 2026-06-10\n---\n# Goal\n');
+    const docAbs = writeFile(dir, `${AREA_DOCS}README.SampleFeature.md`, '---\nlast_synced: 2026-06-10\n---\n# Goal\n');
     const r = await runHook(editInput(docAbs), { CLAUDE_PROJECT_DIR: dir }, dir);
     logResult('TC-DOCSYS-043 allows doc edit (exit 0)', r.code === 0, `exit ${r.code}`);
     logResult('TC-DOCSYS-043 silent (no warn on doc)', !r.stdout.includes('[doc-sync]') && !r.stderr.includes('[doc-sync]'));
@@ -215,12 +231,12 @@ async function testToolingOnlyAllows() {
   log('\n--- B4. TC-DOCSYS-044: tooling/test-only diff → ALLOW (fast-exit) ---');
   const { dir, g } = makeRepo();
   try {
-    writeFile(dir, `${AREA_CODE}Growth.IntegrationTests/FooTests.cs`, '// test\n');
-    writeFile(dir, `${AREA_DOCS}README.GoalManagementFeature.md`, '# doc\n');
+    writeFile(dir, `${AREA_CODE}Example.IntegrationTests/FooTests.cs`, '// test\n');
+    writeFile(dir, `${AREA_DOCS}README.SampleFeature.md`, '# doc\n');
     writeFile(dir, 'README.md', '# root\n');
     g(['add', '-A']);
     g(['commit', '-qm', 'baseline']);
-    writeFile(dir, `${AREA_CODE}Growth.IntegrationTests/FooTests.cs`, '// test changed\n');
+    writeFile(dir, `${AREA_CODE}Example.IntegrationTests/FooTests.cs`, '// test changed\n');
     writeFile(dir, 'README.md', '# root changed\n');
     g(['add', '-A']);
     const r = await runHook(commitInput(), { CLAUDE_PROJECT_DIR: dir }, dir);
@@ -234,10 +250,10 @@ async function testOverrideIndependentOfWorkflow() {
   log('\n--- B5. TC-DOCSYS-045: gate ignores workflow/quick: state (fires regardless) ---');
   const { dir, g } = makeRepo();
   try {
-    writeFile(dir, `${AREA_CODE}Growth.Application/Foo.cs`, 'class Foo{}\n');
+    writeFile(dir, `${AREA_CODE}Example.Application/Foo.cs`, 'class Foo{}\n');
     g(['add', '-A']);
     g(['commit', '-qm', 'baseline']);
-    writeFile(dir, `${AREA_CODE}Growth.Application/Foo.cs`, 'class Foo{ int x=1; }\n');
+    writeFile(dir, `${AREA_CODE}Example.Application/Foo.cs`, 'class Foo{ int x=1; }\n');
     g(['add', '-A']);
     // Real commit with workflow detection forced OFF (CK_WORKFLOW='') — the gate must
     // still fire, proving it ignores workflow/quick: state. (A 'quick:'-prefixed string
@@ -253,10 +269,10 @@ async function testAuditedOverride() {
   log('\n--- B6. TC-DOCSYS-046: DOC_SYNC_OVERRIDE=1 → ALLOW + audit log ---');
   const { dir, g } = makeRepo();
   try {
-    writeFile(dir, `${AREA_CODE}Growth.Application/Foo.cs`, 'class Foo{}\n');
+    writeFile(dir, `${AREA_CODE}Example.Application/Foo.cs`, 'class Foo{}\n');
     g(['add', '-A']);
     g(['commit', '-qm', 'baseline']);
-    writeFile(dir, `${AREA_CODE}Growth.Application/Foo.cs`, 'class Foo{ int x=1; }\n');
+    writeFile(dir, `${AREA_CODE}Example.Application/Foo.cs`, 'class Foo{ int x=1; }\n');
     g(['add', '-A']);
     const r = await runHook(commitInput(), { CLAUDE_PROJECT_DIR: dir, DOC_SYNC_OVERRIDE: '1' }, dir);
     logResult('TC-DOCSYS-046 allows (exit 0)', r.code === 0, `exit ${r.code}`);
@@ -269,12 +285,12 @@ async function testAuditedOverride() {
 }
 
 async function testEditWarnNonBlocking() {
-  log('\n--- B7. TC-DOCSYS-047: Write/Edit on stale growth code → WARN, exit 0 ---');
+  log('\n--- B7. TC-DOCSYS-047: Write/Edit on stale area code → WARN, exit 0 ---');
   const { dir, g } = makeRepo();
   try {
-    const codeAbs = writeFile(dir, `${AREA_CODE}Growth.Application/Foo.cs`, 'class Foo{}\n');
+    const codeAbs = writeFile(dir, `${AREA_CODE}Example.Application/Foo.cs`, 'class Foo{}\n');
     // Feature doc synced long ago → any later code commit = drift.
-    writeFile(dir, `${AREA_DOCS}README.GoalManagementFeature.md`, '---\nlast_synced: 2000-01-01\n---\n# Goal\n');
+    writeFile(dir, `${AREA_DOCS}README.SampleFeature.md`, '---\nlast_synced: 2000-01-01\n---\n# Goal\n');
     g(['add', '-A']);
     g(['commit', '-qm', 'baseline (code changed after 2000-01-01)']);
     const r = await runHook(editInput(codeAbs), { CLAUDE_PROJECT_DIR: dir }, dir);
@@ -286,13 +302,13 @@ async function testEditWarnNonBlocking() {
 }
 
 async function testRenameNoopAllows() {
-  log('\n--- B8. TC-DOCSYS-048: pure rename/noop of growth code → ALLOW (no false deny) ---');
+  log('\n--- B8. TC-DOCSYS-048: pure rename/noop of area code → ALLOW (no false deny) ---');
   const { dir, g } = makeRepo();
   try {
-    writeFile(dir, `${AREA_CODE}Growth.Application/Foo.cs`, 'class Foo{ int x=1; }\n');
+    writeFile(dir, `${AREA_CODE}Example.Application/Foo.cs`, 'class Foo{ int x=1; }\n');
     g(['add', '-A']);
     g(['commit', '-qm', 'baseline']);
-    g(['mv', `${AREA_CODE}Growth.Application/Foo.cs`, `${AREA_CODE}Growth.Application/Bar.cs`]); // pure rename
+    g(['mv', `${AREA_CODE}Example.Application/Foo.cs`, `${AREA_CODE}Example.Application/Bar.cs`]); // pure rename
     const r = await runHook(commitInput(), { CLAUDE_PROJECT_DIR: dir }, dir);
     logResult('TC-DOCSYS-048 allows rename-noop (exit 0)', r.code === 0, `exit ${r.code}`);
   } finally {

@@ -50,7 +50,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Execute broad web search on a topic, collect and classify sources, build a structured source map.
+**Goal:** Execute broad web search on a topic, collect and classify sources, and produce a tiered, deduplicated source map plus a gap list — the triaged candidate-source feedstock that `deep-research` dives into next — NOT a final research report.
 
 **Workflow:**
 
@@ -72,7 +72,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Step 1: Define Search Scope
 
-Parse the user's topic and generate 5-10 search queries that cover:
+Parse user's topic, generate 5-10 search queries covering:
 
 - **Definition/overview** — "what is {topic}"
 - **Current state** — "{topic} 2026" or "{topic} latest"
@@ -98,7 +98,7 @@ For each result, classify by Tier:
 - **Tier 3:** Established blogs, verified experts, Wikipedia
 - **Tier 4:** Forums, personal blogs, social media
 
-Filter out duplicates (same URL or same content from syndication).
+Filter out duplicates (same URL or syndicated content).
 
 ## Step 4: Build Source Map
 
@@ -139,7 +139,7 @@ Note gaps for the `deep-research` step.
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use a direct user question to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
 >
-> 1. **Activate `research` workflow** (Recommended) — web-research → deep-research → synthesis → review
+> 1. **Activate `workflow-research` workflow** (Recommended) — web-research → deep-research → synthesis → review
 > 2. **Execute `$web-research` directly** — run this skill standalone
 
 ---
@@ -208,6 +208,8 @@ Note gaps for the `deep-research` step.
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Goal:** Produce a tiered, deduplicated source map plus a gap list — the triaged candidate-source feedstock that `deep-research` dives into next — NOT a final research report.
+**IMPORTANT MUST ATTENTION** cap WebSearch at 10 calls per invocation, and rank sources by tier (1 official > 4 forums) — why: bounded fan-out + tier ranking keep the feedstock high-signal for deep-research.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting.
 **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via a direct user question — never auto-decide.
 **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.
@@ -228,7 +230,7 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
-4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
 6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.

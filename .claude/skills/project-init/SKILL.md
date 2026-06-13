@@ -10,9 +10,7 @@ disable-model-invocation: false
 
 ## Quick Summary
 
-**Goal:** Initialize or re-evaluate all portable project context files through one idempotent route.
-
-**Final Purpose:** Any agent, with or without hooks, can discover missing context and reach a verified state with project config, reference docs, root instruction files, and Codex mirrors aligned.
+**Goal:** Initialize or re-evaluate all portable project context files through one idempotent route, so any agent — with or without hooks — can discover missing context and reach a verified state with project config, reference docs, root instruction files, and Codex mirrors aligned.
 
 **Workflow:**
 
@@ -229,7 +227,7 @@ Report:
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Final Purpose:** any agent, with or without hooks, reaches a verified project-context state before project-specific work.
+**IMPORTANT MUST ATTENTION Goal:** any agent, with or without hooks, reaches a verified project-context state before project-specific work.
 **IMPORTANT MUST ATTENTION** use `/project-init` as the unified missing-context route; lower-level skills remain implementation steps.
 **IMPORTANT MUST ATTENTION** before doing anything, create many small task-plan rows covering every setup phase, the post-config parallel group, and the final review skill calls.
 **IMPORTANT MUST ATTENTION** after config exists, call `/scan-all` and `/workflow-spec-driven-dev` as a parallel group when possible, then wait for both outcomes.

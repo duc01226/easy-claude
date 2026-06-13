@@ -84,7 +84,7 @@ async function main() {
         // WORKFLOW GATE: Compact mandatory reminder (always, no dedup)
         // ═══════════════════════════════════════════════════════════════════════
         console.log(
-            `**[BLOCKING] [WORKFLOW-GATE] MANDATORY IMPORTANT MUST ATTENTION CRITICAL \u2014 Do not skip for any reason. First action: workflow detection. If prompt starts with explicit /skill or /workflow command, execute it directly. Otherwise auto-select the best path: direct, skill, standard workflow, or custom workflow — do not ask the user to choose. Then ACTIVATE the route: for a workflow, invoke /workflow-start <id> as a tool call (it loads the canonical step sequence and builds the task list 1:1) — declaring \`Route: ...\` in prose or hand-writing your own task list is NOT activation.**`
+            `**[BLOCKING] [WORKFLOW-GATE] MANDATORY IMPORTANT MUST ATTENTION CRITICAL \u2014 Do not skip for any reason. First action: workflow detection. If prompt starts with explicit /skill or /workflow command, execute it directly. Otherwise auto-select the best path: direct, skill, standard workflow, or custom workflow — do not ask the user to choose. Then ACTIVATE the route: for a workflow, invoke /start-workflow <id> as a tool call (it loads the canonical step sequence and builds the task list 1:1) — declaring \`Route: ...\` in prose or hand-writing your own task list is NOT activation.**`
         );
 
         // ═══════════════════════════════════════════════════════════════════════

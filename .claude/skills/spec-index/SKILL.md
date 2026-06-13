@@ -18,7 +18,7 @@ description: '[General] Use when you need to (re)generate a DERIVED navigation i
 
 > **Portability:** `docs/specs/` is the fixed Feature Spec root.
 
-**Goal:** Generate, on demand, a **DERIVED** navigation index / cross-capability ERD / reimplementation guide **assembled FROM** the canonical tech-free 8-section Feature Specs under `docs/specs/{Bucket}/`. The Feature Specs are the source of truth; this skill only assembles regenerable aids over them.
+**Goal:** Generate, on demand, a regenerable single-writer navigation layer (catalog + cross-capability ERD + rebuild guide) **assembled FROM** the canonical tech-free 8-section Feature Specs under `docs/specs/{Bucket}/` — so a bucket can be browsed or replatformed without ever forking a second, hand-maintained source of truth. The Feature Specs are the source of truth; this skill only assembles regenerable aids over them.
 
 > **Renamed:** repurposes the former `/spec-discovery` skill (v4.0.0 derived-aid rewrite) — `/spec-discovery` no longer resolves as a slash command; use `/spec-index`.
 
@@ -255,6 +255,7 @@ A **derived-index generator** over the single-home spec tree. The canonical know
 
 ## Closing Reminders
 
+- **IMPORTANT MUST ATTENTION Goal:** Give readers a regenerable, single-writer navigation layer (catalog + cross-capability ERD + rebuild guide) over the canonical Feature Specs — so a bucket can be browsed or replatformed without ever forking a second, hand-maintained source of truth
 - **IMPORTANT MUST ATTENTION [BLOCKING]** Output is DERIVED — never emit `M##`/A-E/`00-module-registry`/`01-domain-erd`/`06-reimplementation-guide`/QA-dashboard files (see Hard Prohibitions). The thin-index-only contract applies.
 - **IMPORTANT MUST ATTENTION [BLOCKING]** The Feature Spec (`docs/specs/{Bucket}/README.{Feature}.md`) is the source of truth — this skill assembles, never authors, business content.
 - **IMPORTANT MUST ATTENTION [BLOCKING]** Confirm bucket + mode + artifacts via `AskUserQuestion` BEFORE Step 1 — NEVER auto-start.

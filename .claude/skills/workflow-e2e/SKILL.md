@@ -89,7 +89,7 @@ E2E UPDATE UI PROTOCOL:
 - Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
 - Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks.
 
-Activate the `e2e` workflow. Run `/workflow-start e2e` with the user's prompt as context and the resolved `--source` protocol above.
+Activate the `workflow-e2e` workflow. Run `/start-workflow workflow-e2e` with the user's prompt as context and the resolved `--source` protocol above.
 
 **Steps:** /scout → /e2e-test → /test → /docs-update → /workflow-end → /watzup
 

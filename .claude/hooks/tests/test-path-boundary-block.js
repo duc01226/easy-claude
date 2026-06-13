@@ -289,7 +289,7 @@ const winFlagAllowTests = [
     },
     {
         name: 'cd /d D:\\path - should allow (cross-drive change flag)',
-        input: { tool_input: { command: 'cd /d D:\\GitSources\\BravoSuite' } },
+        input: { tool_input: { command: 'cd /d D:\\GitSources\\SampleRepo' } },
         expectBlock: false
     },
     {
@@ -301,7 +301,7 @@ const winFlagAllowTests = [
         name: 'cd /d + dir /b /s chained - should allow (regression: real user report)',
         input: {
             tool_input: {
-                command: 'cd /d D:\\GitSources\\BravoSuite && dir /b /s src\\Services\\Dockerfile & dir /b Bravo-DevStarts\\StartDocker'
+                command: 'cd /d D:\\GitSources\\SampleRepo && dir /b /s src\\Services\\Dockerfile & dir /b Sample-DevStarts\\StartDocker'
             }
         },
         expectBlock: false
@@ -364,7 +364,7 @@ const cdNavigationTests = [
     },
     {
         name: 'pushd outside target - should allow (navigation exempt)',
-        input: { tool_input: { command: 'pushd D:\\GitSources\\BravoSuite' } },
+        input: { tool_input: { command: 'pushd D:\\GitSources\\SampleRepo' } },
         expectBlock: false
     },
     {

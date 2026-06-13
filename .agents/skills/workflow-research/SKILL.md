@@ -60,7 +60,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **IMPORTANT MANDATORY Steps:** $web-research -> $deep-research -> $knowledge-synthesis -> $knowledge-review -> $workflow-end
 
-> These steps are the default `--output=synthesis` sequence (identical to the catalog `research` workflow sequence). For `--output={business-eval|marketing|course}` the terminal synthesis skill(s) swap per the **Output Dispatch** table below — the research scaffold and `$knowledge-review -> $workflow-end` closure are invariant.
+> These steps are the default `--output=synthesis` sequence (identical to the catalog `workflow-research` workflow sequence). For `--output={business-eval|marketing|course}` the terminal synthesis skill(s) swap per the **Output Dispatch** table below — the research scaffold and `$knowledge-review -> $workflow-end` closure are invariant.
 
 ---
 
@@ -77,7 +77,7 @@ All modes share the research scaffold `$web-research → $deep-research → … 
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its skill invocation — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
-This skill IS the canonical Research & Synthesis entry point — invoke it directly with `--output=<mode>` (default `synthesis`) and execute the selected sequence from the dispatch table above: invoke each step skill in order via the skill invocation with the user's prompt as context. The workflow catalog also exposes a `research` id purely so the auto-router can detect research/business-eval/marketing/course intents; `$workflow-start research` is equally valid and injects the same OUTPUT DISPATCH table — either path executes the sequence for the selected `--output`.
+This skill IS the canonical Research & Synthesis entry point — invoke it directly with `--output=<mode>` (default `synthesis`) and execute the selected sequence from the dispatch table above: invoke each step skill in order via the skill invocation with the user's prompt as context. The workflow catalog also exposes a `workflow-research` id purely so the auto-router can detect research/business-eval/marketing/course intents; `$start-workflow workflow-research` is equally valid and injects the same OUTPUT DISPATCH table — either path executes the sequence for the selected `--output`.
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
 
@@ -194,7 +194,7 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
-4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
 6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.

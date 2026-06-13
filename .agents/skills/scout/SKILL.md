@@ -50,7 +50,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Fast, parallel codebase file discovery to locate all files relevant to a task.
+**Goal:** Deliver a complete, prioritized map of every file relevant to the task via fast, parallel codebase discovery — grep + graph combined — so downstream work starts with full coverage and zero blind spots.
 
 **Workflow:**
 
@@ -66,6 +66,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - Speed over depth — return file paths only, no content analysis
 - Target 3-5 minutes total; 3-minute timeout per agent
 - NEVER skip graph expansion when `.code-graph/graph.db` exists
+- `--ext` / `--engine=external` switches the search engine to the `scout-external` agent (gemini/opencode CLIs); default is internal subagents
 
 # Scout — Fast Codebase File Discovery
 
@@ -73,16 +74,16 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Phase 0: Classify Search Scope
 
-**Before spawning agents**, classify the request:
+**Before spawning agents**, classify request:
 
 | Scope         | Detection                                     | Agent Strategy           |
 | ------------- | --------------------------------------------- | ------------------------ |
 | Backend-only  | server-side class names, domain entities, API handlers | Agents 1+2, skip Agent 3 |
 | Frontend-only | component names, client-side source, UI features | Agent 3 only             |
 | Full-stack    | Feature name spanning both layers             | All 3 agents             |
-| Unknown       | Ambiguous prompt                              | Default to all 3 agents  |
+| Unknown       | Ambiguous prompt                              | Default all 3 agents     |
 
-**Think:** Does prompt mention a specific layer? Does entity exist in backend, frontend, or both? Adjust agent count — avoid spawning unnecessary agents.
+**Think:** Prompt mention specific layer? Entity exist in backend, frontend, or both? Adjust agent count — avoid spawning unnecessary agents.
 
 ---
 
@@ -93,7 +94,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - Before changes affecting multiple parts
 - Mapping file landscape before investigation or implementation
 
-**NOT for:** Deep code analysis (→ `feature-investigation`), debugging (→ `debug-investigate`), implementation (→ `feature`).
+**NOT for:** Deep code analysis (use `feature-investigation`), debugging (use `debug-investigate`), implementation (use `workflow-feature`).
 
 ---
 
@@ -112,6 +113,15 @@ Extract from USER_PROMPT:
 Spawn SCALE number of `scout` subagents in parallel via `spawn_agent` tool (`agent_type: "scout"`).
 
 **WHY `scout` not `Explore`:** Custom `scout` agents read `.claude/agents/scout.md` — includes graph CLI knowledge + Bash access. Built-in `Explore` agents have NO graph awareness.
+
+#### Engine Selection (`--ext` / `--engine=external`)
+
+Detect the engine flag in args (default: **internal**):
+
+- **Internal (default):** spawn `agent_type: "scout"` — the parallel grep/glob/graph search described below.
+- **External (`--ext` or `--engine=external`):** spawn `agent_type: "scout-external"` instead. That agent (`.claude/agents/scout-external.md`) owns the `gemini`/`opencode` CLI dispatch, the Explore fallback, and the install prompt when those CLIs are absent.
+
+Flag only switches **which subagent runs**. Orchestration identical for both engines: Phase 0 classify, Step 3 graph-expand (run by you, main agent), low-result check, synthesize. Output contract (numbered, prioritized file list) same.
 
 #### Agent Distribution
 
@@ -601,6 +611,7 @@ Combine grep + graph into numbered, prioritized file list (see Results Format).
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Goal:** Deliver a complete, prioritized map of every file relevant to the task — grep + graph combined — so downstream work starts with full coverage and zero blind spots.
 **MUST ATTENTION** run Phase 0 classification BEFORE spawning agents — scope determines agent count
 **MUST ATTENTION** graph expand is NOT optional — run at least ONE graph command on key files when `.code-graph/graph.db` exists
 **MUST ATTENTION** if <5 files found, re-check keywords and run second pass with alternates
@@ -633,7 +644,7 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
-4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
 6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.

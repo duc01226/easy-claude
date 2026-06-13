@@ -50,7 +50,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Install the full computational feedback sensor layer for any tech stack — linters, formatters, type checkers, static analyzers, pre-commit hooks, and CI quality gates.
+**Goal:** Ensure every code change is caught by an automated quality sensor — both locally (fast feedback) AND in CI (enforcement gate) — before it reaches main, with zero divergence between the two, by installing the full computational feedback sensor layer for the tech stack (linters, formatters, type checkers, static analyzers, pre-commit hooks, and CI quality gates).
 
 **Output:** Config files at project root + pre-commit hook config + CI quality gate step + `.editorconfig`.
 
@@ -109,22 +109,22 @@ For each tech stack layer detected, research these TOOL CATEGORIES using the que
 
 **Research process per category:**
 
-1. Search with the query template (WebSearch if available, otherwise apply knowledge with explicit confidence %)
+1. Search with query template (WebSearch if available, otherwise apply knowledge with explicit confidence %)
 2. Score top 3 candidates: community adoption, last release date, CI integration ease, config complexity
-3. Present to user via a direct user question: "For {category} in {language}, which tool?" with top 2-3 as options + brief pros/cons
+3. Present via a direct user question: "For {category} in {language}, which tool?" — top 2-3 as options + brief pros/cons
 
-**IMPORTANT:** If confidence in current ecosystem is <80% (e.g., fast-moving ecosystem, unfamiliar stack) → use WebSearch to verify before presenting options.
+**IMPORTANT:** Confidence in current ecosystem <80% (fast-moving ecosystem, unfamiliar stack) → use WebSearch to verify before presenting options. — why: tool ecosystems churn fast; stale recommendations cargo-cult dead tools.
 
 ---
 
 ## Installation & Configuration Protocol
 
-After user selects tools for each category:
+After user selects tools per category:
 
-1. Generate install command for the detected package manager
+1. Generate install command for detected package manager
 2. Generate config file with STRICTEST reasonable defaults
     - Rationale: starting strict is easier to loosen than starting loose is to tighten
-    - Loosen only with explicit user approval via a direct user question
+    - Loosen ONLY with explicit user approval via a direct user question
 3. Document what each enabled rule catches and why (one line per rule group)
 4. Generate sample config file: `.{tool}rc`, `{tool}.config.{ext}`, `pyproject.toml` section, etc.
 5. Add tool cache directories to `.gitignore`
@@ -268,6 +268,7 @@ a direct user question:
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Goal:** Every code change is caught by an automated quality sensor — both locally (fast feedback) AND in CI (enforcement gate) — before it reaches main, with zero divergence between the two.
 **MUST ATTENTION** use QUERY TEMPLATES in Tool Research — never hardcode tool names in the research phase
 **MUST ATTENTION** present top 2-3 options per category via a direct user question — never auto-select
 **MUST ATTENTION** verify pre-commit hook fires with an intentional violation before marking complete
@@ -288,7 +289,7 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
-4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
 6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.

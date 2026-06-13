@@ -34,7 +34,7 @@ tags:
 
 **What gets synced:**
 
-- Workflow-First Gate (from `.claude/skills/shared/workflow-first-gate.md`) — **SCRIPT-GENERATED**, stamped at the top of `copilot-instructions.md` so Copilot (no hooks) gets the same bug→`bugfix` / feature→`feature` routing rule
+- Workflow-First Gate (from `.claude/skills/shared/workflow-first-gate.md`) — **SCRIPT-GENERATED**, stamped at the top of `copilot-instructions.md` so Copilot (no hooks) gets the same bug→`workflow-bugfix` / feature→`workflow-feature` routing rule
 - Workflow catalog (from workflows.json) — **SCRIPT-GENERATED**
 - Dev rules (from development-rules.md) — **SCRIPT-GENERATED**
 - Missing `docs/copilot-registry.json` bootstrap — **AI-CREATED before generation**, from current `CLAUDE.md` + `docs/project-reference/**/*.md`

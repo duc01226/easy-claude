@@ -129,15 +129,14 @@ The `codeReview` section configures automatic injection of project-specific revi
 
 **Schema:** Each workflow entry supports `description`, `name`, `parallelGroups`, `preActions`, `sequence`, `stepMeta`, `whenNotToUse`, `whenToUse`. There are NO `priority` or `triggers` properties — detection is semantic: the model matches the prompt against each workflow's `whenToUse`/`whenNotToUse` descriptions and auto-selects the best fit (works in any prompt language).
 
-**Live catalog (21 workflows):** `big-feature`, `bugfix`, `design-workflow`, `documentation`, `e2e`, `feature`, `feature-spec`, `full-feature-lifecycle`, `greenfield-init`, `idea-to-pbi`, `product-discovery`, `refactor`, `research`, `review-changes`, `spec-index`, `spec-driven-dev`, `spec-to-pbi`, `spec-sync`, `visualize`, `workflow-seed-test-data`, `write-integration-test`.
+**Live catalog (17 workflows):** `workflow-big-feature`, `workflow-bugfix`, `workflow-e2e`, `workflow-feature`, `workflow-feature-spec`, `workflow-greenfield-init`, `workflow-idea-to-pbi`, `workflow-product-discovery`, `workflow-refactor`, `workflow-research`, `workflow-review-changes`, `workflow-spec-driven-dev`, `workflow-spec-to-pbi`, `workflow-spec-sync`, `workflow-visualize`, `workflow-seed-test-data`, `workflow-write-integration-test`.
 
 | Workflow         | Sequence (abridged, from `workflows.json`)                                                        | whenToUse (abridged)                              |
 | ---------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| `feature`        | scout → investigate → … → plan → plan-review → … → cook → … → integration-test → … → workflow-end | Well-defined feature implementation               |
-| `bugfix`         | scout → investigate → debug-investigate → … → fix → prove-fix → … → workflow-end                  | Bug, error, crash, regression; end-to-start trace |
-| `refactor`       | scout → investigate → plan → … → code → … → workflow-end                                          | Restructure code without behavior change          |
-| `documentation`  | scout → investigate → plan → … → docs-update → … → workflow-end                                   | Create/update documentation, READMEs, comments    |
-| `review-changes` | review-changes → why-review → parallel reviewers → code-simplifier → … → workflow-end             | Review uncommitted changes before committing      |
+| `workflow-feature`        | scout → investigate → … → plan → plan-review → … → cook → … → integration-test → … → workflow-end | Well-defined feature implementation               |
+| `workflow-bugfix`         | scout → investigate → debug-investigate → … → fix → prove-fix → … → workflow-end                  | Bug, error, crash, regression; end-to-start trace |
+| `workflow-refactor`       | scout → investigate → plan → … → code → … → workflow-end                                          | Restructure code without behavior change          |
+| `workflow-review-changes` | review-changes → why-review → parallel reviewers → code-simplifier → … → workflow-end             | Review uncommitted changes before committing      |
 
 ---
 

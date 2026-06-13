@@ -345,7 +345,7 @@ For an accessibility-audit deliverable, produce this checklist report and save i
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use `AskUserQuestion` to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
 >
-> 1. **Activate `design-workflow` workflow** (Recommended) — design-spec → code-review
+> 1. **Run the design sequence** (Recommended) — `/design-spec` → `/interface-design` (product UIs) or `/frontend-design` (marketing/creative) → `/workflow-review-changes`
 > 2. **Execute `/design-spec` directly** — run this skill standalone
 
 ---

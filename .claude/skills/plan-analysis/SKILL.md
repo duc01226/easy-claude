@@ -201,7 +201,7 @@ Verify under `## Specification Validation`:
 ## Related
 
 - `plan`
-- `feature`
+- `workflow-feature`
 
 - **MANDATORY FINAL TASKS:** After creating all planning todo tasks, ALWAYS add these three final tasks:
     1. **Task: "Write test specifications for each phase"** — Add `## Test Specifications` with TC-{FEATURE}-{NNN} IDs to every phase file. Use `/spec [mode=tests]` if feature docs exist. Use `Evidence: TBD` for TDD-first mode.

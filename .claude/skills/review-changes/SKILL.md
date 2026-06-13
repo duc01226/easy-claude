@@ -15,9 +15,7 @@ description: '[Code Quality] Use when reviewing current changes, staged or unsta
 
 ## Quick Summary
 
-**Goal:** Review current working-tree, staged, branch, or commit diffs across code, docs, config, infra, and non-code artifacts. Find correctness bugs, flaws, missing updates, stale docs, and convention drift with evidence.
-
-**Final Purpose:** Ensure every reviewed change is defect-free, evidence-backed, convention-aligned, and synchronized with required tests/docs before handoff; when code files changed, also prove the code stays easy to change.
+**Goal:** Review current working-tree, staged, branch, or commit diffs across code, docs, config, infra, and non-code artifacts — finding correctness bugs, flaws, missing updates, stale docs, and convention drift with evidence — so every reviewed change is defect-free, evidence-backed, convention-aligned, and synchronized with required tests/docs before handoff; when code files changed, also prove the code stays easy to change.
 
 > **Routing boundary:** This skill reviews a **git diff** — working-tree (default), staged, branch, or commit. For an explicit file-set or SHA-range review, processing received review feedback, or a pre-completion verification gate over already-known scope, use `code-review` instead.
 
@@ -101,23 +99,22 @@ Use these sources:
 
 ## First Principle — Easy to Change
 
-Apply this gate when the diff includes source-code or code-adjacent files
+Apply this gate when diff includes source-code or code-adjacent files
 (`.cs`, `.ts`, `.html`, `.scss`, `.css`, tests, scripts, build/config-as-code).
 Pure docs-only changes skip this gate except for executable examples or code
 snippets.
 
 > **Success metric: _future change cost_.**
-> DRY, SRP, abstraction, design patterns, naming, layering, tests — all serve one goal: **make the next change cheaper**.
+> DRY, SRP, abstraction, design patterns, naming, layering, tests — all serve one goal: **make next change cheaper**.
 
-When evaluating code, refactor, test, or abstraction, ask: **does this make the next change cheaper or more expensive?**
+When evaluating code, refactor, test, or abstraction, ask: **does this make next change cheaper or more expensive?**
 
 - Reject "best practices" raising change cost: premature abstraction, speculative generality, leaky indirection, ceremony without payoff.
 - Name real enemies in findings: **coupling, hidden state, duplicated knowledge, unclear intent, irreversible decisions exposed too early**.
-- Favor project-owned boundaries around external libraries, for example component/service input-output contracts, when they localize future library changes; reject pass-through wrappers that add ceremony without lowering change cost.
-- A simpler design that is easy to change beats a sophisticated design that
-  isn't.
+- Favor project-owned boundaries around external libraries, e.g. component/service input-output contracts, when they localize future library changes; reject pass-through wrappers adding ceremony without lowering change cost.
+- Simpler design easy to change beats sophisticated design that isn't.
 
-Apply this lens **before** specific rules, patterns, or checklists below. If a downstream rule raises change cost, this principle wins.
+Apply this lens **before** specific rules, patterns, or checklists below. If downstream rule raises change cost, this principle wins.
 
 ---
 
@@ -792,7 +789,7 @@ With all category findings combined, assess:
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If NOT already in a workflow, MUST use `AskUserQuestion` to ask user. Do NOT judge task complexity or decide "simple enough to skip" — user decides, not you:
 >
-> 1. **Activate `review-changes` workflow** (Recommended) — run the canonical workflow from `.claude/workflows.json`; it sequences this skill, findings validation, parallel reviewers, `code-simplifier` self-review, fix-plan cycle, full re-review restart, docs, and handoff.
+> 1. **Activate `workflow-review-changes` workflow** (Recommended) — run the canonical workflow from `.claude/workflows.json`; it sequences this skill, findings validation, parallel reviewers, `code-simplifier` self-review, fix-plan cycle, full re-review restart, docs, and handoff.
 > 2. **Execute `/review-changes` directly** — run this skill standalone
 
 ---
@@ -1699,7 +1696,7 @@ For each identified concern: create a `TaskCreate` sub-task, work through it wit
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Final Purpose:** Ensure every reviewed change is defect-free, evidence-backed, convention-aligned, and synchronized with required tests/docs before handoff; when code files changed, also prove the code stays easy to change.
+**IMPORTANT MUST ATTENTION Goal:** Ensure every reviewed change is defect-free, evidence-backed, convention-aligned, and synchronized with required tests/docs before handoff; when code files changed, also prove the code stays easy to change.
 
 > **[CRITICAL — TOP 3 RULES REPEATED]**
 >
@@ -1753,4 +1750,4 @@ For each identified concern: create a `TaskCreate` sub-task, work through it wit
 
 **IMPORTANT MUST ATTENTION** graph blast-radius runs first when `.code-graph/graph.db` exists.
 **IMPORTANT MUST ATTENTION** every claim needs `file:line` proof; every stale docs/tests decision needs evidence.
-**IMPORTANT MUST ATTENTION Final Purpose:** Ensure every reviewed change is defect-free, evidence-backed, convention-aligned, and synchronized with required tests/docs before handoff; when code files changed, also prove the code stays easy to change.
+**IMPORTANT MUST ATTENTION Goal:** Ensure every reviewed change is defect-free, evidence-backed, convention-aligned, and synchronized with required tests/docs before handoff; when code files changed, also prove the code stays easy to change.

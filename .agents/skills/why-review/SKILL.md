@@ -39,7 +39,7 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 Do not read all docs blindly. Start from `docs-index-reference.md`, then open only relevant files for the task.
 <!-- CODEX:PROJECT-REFERENCE-LOADING:END -->
 
-> **[FINAL PURPOSE REMINDER — MUST ATTENTION CRITICAL]**
+> **[GOAL REMINDER — MUST ATTENTION CRITICAL]**
 >
 > Ensure every review target is reasonable, correct, proof-backed, and best-practice aligned.
 
@@ -54,9 +54,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Resolve requested review target, then apply matching adversarial review path: plan/PBI rationale, code changes, docs/spec/report, findings, or explicit artifact.
-
-**Final Purpose:** Ensure decisions, findings, and plans survive adversarial rationale review before downstream work proceeds.
+**Goal:** Resolve the requested review target and apply the matching adversarial review path (plan/PBI rationale, code changes, docs/spec/report, findings, or explicit artifact) so decisions, findings, and plans survive adversarial rationale review before downstream work proceeds.
 
 **Workflow:** Detect mode/target → route path/docs/graph/sub-agent focus → review dimensions/adversarial gates/Easy-to-Change → validate findings via terminal `--validate-findings` → ask next step in full mode.
 
@@ -107,7 +105,7 @@ Apply before any rule/checklist below; if downstream rule raises change cost, th
 
 **Default stance: SKEPTIC, not validator. Your job is to find what's wrong, not confirm what's right.**
 
-> **Confirmation bias trap:** After reading a coherent plan, AI naturally finds reasons to agree. Current context (post-plan, post-fix) amplifies this — you already saw the reasoning and rationalized it. This section breaks that loop.
+> **Confirmation bias trap:** After reading a coherent plan, AI naturally finds reasons to agree. Current context (post-plan, post-fix) amplifies this — you already saw the reasoning and rationalized it. This section breaks that loop. — why: a reviewer who already endorsed the reasoning cannot also be its skeptic without a forced reset.
 
 ### Adversarial Techniques (apply ALL before concluding)
 
@@ -164,7 +162,7 @@ Analyze user request, not only literal argument shape. Determine target, then ch
 3. "No active plan found. Run `$plan` first." valid ONLY for unresolved plan-rationale requests.
 4. MUST ATTENTION record target type, evidence, confidence; NEVER silently convert target types.
 
-**Active-goal read (BEFORE judging rationale):** Resolve the active Goal Contract per the goal-contract-satisfaction-loop protocol (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md`). When one exists, review the artifact's rationale AGAINST the saved Original Request, Purpose, and Success Criteria — flag rationale that justifies work the saved goal never asked for, and saved required criteria the artifact's reasoning never addresses. When none exists, record `No active goal — rationale reviewed against the current request only.` Full mode only; `--validate-findings` terminal mode skips this read.
+**Active-goal read (BEFORE judging rationale):** Resolve active Goal Contract per goal-contract-satisfaction-loop protocol (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md`). When one exists, review artifact's rationale AGAINST saved Original Request, Purpose, Success Criteria — flag rationale justifying work the saved goal never asked for, and saved required criteria the artifact's reasoning never addresses. When none exists, record `No active goal — rationale reviewed against the current request only.` Full mode only; `--validate-findings` terminal mode skips this read.
 
 ### Review Focus Routing
 
@@ -388,7 +386,7 @@ Return verdict path + status. **Caller owns reconciliation and bounded re-do; ro
 
 After first next-step question, evaluate gate:
 
-1. **Workflow suppression first:** read `plans/.workflow-state.json` or equivalent `workflowId`. Suppress council for `refactor`, `bugfix`, and `test-*`. Rationale: council costs 11 LLM calls; these workflows are routine/reversible/test-only enough for `$why-review`. Matches `.claude/skills/llm-council/SKILL.md` "Workflow Integration".
+1. **Workflow suppression first:** read `plans/.workflow-state.json` or equivalent `workflowId`. Suppress council for `workflow-refactor`, `workflow-bugfix`, and `test-*`. Rationale: council costs 11 LLM calls; these workflows are routine/reversible/test-only enough for `$why-review`. Matches `.claude/skills/llm-council/SKILL.md` "Workflow Integration".
 2. **Frontmatter gate:** read active `plan.md` or PBI frontmatter. Gate fires when ANY true: `cross_service_impact != NONE`; `breaking_changes`; `complexity in {high, critical}` or `story_points >= 13`; `new_framework`; `irreversible`; `security_critical`; `performance_critical`; `cost_high`.
 3. **Override/defaults:** absent fields default no-fire; `council_suppress: true` skips prompt and logs reason.
 
@@ -823,7 +821,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Final Purpose:** Ensure decisions, findings, and plans survive adversarial rationale review before downstream work proceeds.
+**IMPORTANT MUST ATTENTION Goal:** Ensure decisions, findings, and plans survive adversarial rationale review before downstream work proceeds.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting.
 **MANDATORY IMPORTANT MUST ATTENTION** resolve the user's requested review target BEFORE reviewing: plan/PBI rationale, code changes, docs/spec/report, findings, or another artifact. Commit/PR/diff input defaults to code-change review; "no active plan" applies ONLY to unresolved plan-rationale requests.
 **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via a direct user question — why: review gate needs user-owned next step, not AI auto-proceed.
@@ -851,7 +849,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
 
-> **[FINAL PURPOSE REMINDER — MUST ATTENTION CRITICAL]**
+> **[GOAL REMINDER — MUST ATTENTION CRITICAL]**
 >
 > Ensure every review target is reasonable, correct, proof-backed, and best-practice aligned.
 
@@ -885,7 +883,7 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
-4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
 6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.

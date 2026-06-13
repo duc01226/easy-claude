@@ -50,7 +50,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** [Utilities] Use when the user wants to visualize workflows, architectures, or concepts as Excalidraw diagram JSON files.
+**Goal:** Produce `.excalidraw` JSON diagrams that visualize workflows, architectures, or concepts and visually ARGUE a concept — where the structure itself carries the meaning and (for technical diagrams) concrete evidence artifacts teach — validated through the render-view-fix loop until the rendered image matches the conceptual design.
 
 **Workflow:**
 
@@ -758,9 +758,12 @@ Generate `.excalidraw` JSON files that **argue visually**, not just display info
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Goal:** Produce `.excalidraw` JSON diagrams that visually ARGUE a concept — where the structure itself carries the meaning and (for technical diagrams) concrete evidence artifacts teach — validated through the render-view-fix loop until the rendered image matches the conceptual design.
+
 **IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting
 **IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
+**IMPORTANT MUST ATTENTION** diagrams must ARGUE not DISPLAY — run the Render & Validate loop; NEVER ship JSON without rendering to PNG and viewing it
 **IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
@@ -779,7 +782,7 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
-4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
 6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.

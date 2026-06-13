@@ -15,9 +15,7 @@ description: '[DDD Quality] Use when you need to review domain entities and valu
 
 ## Quick Summary
 
-**Goal:** Detect DDD design quality violations in domain entities and value objects across any technology stack. Adapts to project-specific patterns via config/reference docs discovery.
-
-**Final Purpose:** Ensure domain entities and value objects preserve invariants, aggregate boundaries, and discovered DDD conventions.
+**Goal:** Detect DDD design quality violations in domain entities and value objects across any technology stack — adapting to project-specific patterns via config/reference docs discovery — so domain entities and value objects preserve invariants, aggregate boundaries, and discovered DDD conventions.
 
 **Workflow:**
 
@@ -47,22 +45,16 @@ description: '[DDD Quality] Use when you need to review domain entities and valu
 
 ## First Principle — Easy to Change
 
-> **The success metric of every coding decision is _future change cost_.**
-> DRY, SRP, abstraction, design patterns, naming, layering, tests — every
-> technique exists to serve one goal: **making the next change cheaper**.
+> **Success metric of every coding decision = _future change cost_.**
+> DRY, SRP, abstraction, design patterns, naming, layering, tests — every technique serves one goal: **make next change cheaper**.
 
-When evaluating code, a refactor, a test, or an abstraction, ask:
-**does this make the next change cheaper or more expensive?**
+Evaluating code, refactor, test, abstraction — ask: **does this make next change cheaper or more expensive?**
 
-- Reject "best practices" that raise change cost (premature abstraction,
-  speculative generality, leaky indirection, ceremony without payoff).
-- Name the real enemies in findings: **coupling, hidden state, duplicated
-  knowledge, unclear intent, irreversible decisions exposed too early**.
-- A simpler design that is easy to change beats a sophisticated design that
-  isn't.
+- Reject "best practices" raising change cost (premature abstraction, speculative generality, leaky indirection, ceremony without payoff).
+- Name real enemies in findings: **coupling, hidden state, duplicated knowledge, unclear intent, irreversible decisions exposed too early**.
+- Simpler design easy to change beats sophisticated design that isn't.
 
-Apply this lens **before** invoking any specific rule, pattern, or checklist
-below — if a downstream rule would raise change cost, this principle wins.
+Apply this lens **before** invoking any specific rule, pattern, or checklist below — if a downstream rule raises change cost, this principle wins.
 
 ---
 
@@ -830,7 +822,7 @@ If no domain entity files match in changes mode → announce "No domain entity c
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Final Purpose:** Ensure domain entities and value objects preserve invariants, aggregate boundaries, and discovered DDD conventions.
+**IMPORTANT MUST ATTENTION Goal:** Ensure domain entities and value objects preserve invariants, aggregate boundaries, and discovered DDD conventions.
 - **MANDATORY MUST ATTENTION** Phase 0 project discovery FIRST — discovered conventions override ALL generic rules. NEVER apply generic patterns without verifying project base classes.
 - **MANDATORY MUST ATTENTION** run mandatory grep patterns in Phase 1 BEFORE reading individual files — fastest path to highest-signal violations.
 - **MANDATORY MUST ATTENTION** validate findings before fixes; after validated fixes, restart the full review before declaring PASS. A clean review pass ENDS the review.
@@ -858,5 +850,5 @@ If no domain entity files match in changes mode → announce "No domain entity c
 | Evasion | Rebuttal |
 | ------- | -------- |
 | "Purpose obvious" | Anchor it anyway — primacy/recency keeps outcome active through long prompts. |
-| "Existing reminders enough" | Echo Final Purpose in Closing Reminders — bottom anchor prevents drift. |
+| "Existing reminders enough" | Echo Goal in Closing Reminders — bottom anchor prevents drift. |
 | "Skip evidence for prompt edits" | Cite changed file evidence and verify no stale protocol text remains. |

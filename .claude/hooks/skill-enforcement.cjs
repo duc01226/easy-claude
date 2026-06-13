@@ -131,8 +131,8 @@ function main() {
             process.exit(0);
         }
 
-        // Always allow workflow-start itself
-        if (normalizeSkill(skillName) === 'workflow-start') process.exit(0);
+        // Always allow start-workflow itself
+        if (normalizeSkill(skillName) === 'start-workflow') process.exit(0);
 
         const workflowActive = hasActiveWorkflow(sessionId);
         const todosExist = hasTodos(sessionId);

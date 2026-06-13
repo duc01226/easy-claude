@@ -16,7 +16,7 @@ description: '[Documentation] Use when updating impacted documentation after cod
 
 ## Quick Summary
 
-**Goal:** Detect impacted docs from code changes; orchestrate updates across all doc types.
+**Goal:** Detect impacted docs from code changes and orchestrate updates across all doc types so every code/spec/test change leaves documentation in sync — impacted Feature Specs, §8 TCs, test-code links, and derived indexes all reflect the shipped behavior, with zero drift left silent.
 
 **Orchestration Model:**
 
@@ -212,7 +212,7 @@ Mode: update (existing docs only, do not create from scratch).
 
 ### Step 2.4: Code↔Spec Sync-Verify (final pass — runs because docs-update is last in every sequence)
 
-> **Purpose:** docs-update already runs LAST in feature/bugfix/big-feature/full-feature-lifecycle, so this is the workflow's final gate. It is the **order-time partner of the Phase 4 commit hook** (this step guides; the hook enforces). Verify the SHIPPED code actually matches the mapped tech-free 8-section Feature Spec before the workflow completes.
+> **Purpose:** docs-update already runs LAST in feature/bugfix/big-feature, so this is the workflow's final gate. It is the **order-time partner of the Phase 4 commit hook** (this step guides; the hook enforces). Verify the SHIPPED code actually matches the mapped tech-free 8-section Feature Spec before the workflow completes.
 
 For each module touched in this run, diff the changed code against its Feature Spec and check three sets:
 
@@ -614,6 +614,7 @@ $ARGUMENTS
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Goal:** Every code/spec/test change leaves documentation in sync — impacted Feature Specs, §8 TCs, test-code links, and derived indexes all reflect the shipped behavior, with zero drift left silent.
 **MUST ATTENTION** Nested Task Expansion Contract — when invoked inside a workflow, STILL expand internal phases via `TaskCreate` with `[N.M] $skill-name — phase` prefix and `TaskUpdate(parentTaskId, addBlockedBy: [childIds])` linkage. Workflow row is container, not substitute.
 **MUST ATTENTION** create ALL 8 tasks via `TaskCreate` BEFORE any action — see Mandatory Task Creation table
 **MUST ATTENTION** follow fixed step-skill order: `0 -> 1 -> 2 -> 2.5 -> 3 -> 4 -> 5 -> final review` — NEVER reorder without explicit user approval

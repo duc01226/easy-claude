@@ -456,7 +456,7 @@ All long-running workflows should follow this pattern:
 | `/context`               | Load project context                |
 | `/compact`               | Manually trigger context compaction |
 | `/watzup`                | Generate progress summary           |
-| `feature`                | Uses task analysis notes pattern    |
+| `workflow-feature`                | Uses task analysis notes pattern    |
 | `debug-investigate`      | Uses investigation logs             |
 | `feature-investigation`  | Uses analysis report pattern        |
 

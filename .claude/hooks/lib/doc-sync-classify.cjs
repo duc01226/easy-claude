@@ -44,8 +44,8 @@ function loadConfig() {
       ? projectAreas
       : Array.isArray(cfg.enforcedAreas) ? cfg.enforcedAreas : [];
     // Normalise enforced-area path prefixes to a trailing slash so startsWith()
-    // only matches whole path segments — prevents 'src/Services/bravoGROWTH'
-    // from matching a sibling 'src/Services/bravoGROWTHX/...'. Idempotent.
+    // only matches whole path segments — prevents 'src/Services/Example'
+    // from matching a sibling 'src/Services/ExampleX/...'. Idempotent.
     for (const area of cfg.enforcedAreas) {
       if (!area || typeof area !== 'object') continue;
       if (Array.isArray(area.codePathPrefixes)) {

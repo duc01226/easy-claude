@@ -161,7 +161,7 @@ CATEGORY_GUIDES = {
         "title": "Codebase Exploration",
         "workflow": [
             ("Find files", "`/scout` \"what to find\""),
-            ("External tools", "`/scout-ext` \"query\""),
+            ("External tools", "`/scout --ext` \"query\""),
         ],
         "tip": "Be specific about what you're looking for",
     },

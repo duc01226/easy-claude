@@ -51,7 +51,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Facilitate a structured PO/BA brainstorming session using the Double Diamond process — diverge to discover problems and opportunities, then converge to validate and prioritize ideas before committing to implementation.
+**Goal:** Facilitate a structured PO/BA brainstorming session via the Double Diamond process (diverge to discover problems and opportunities, then converge to validate and prioritize) to deliver a scored, ranked shortlist of 3-5 candidate ideas — each carrying a problem + value hypothesis, an identified riskiest assumption, and the cheapest validation test designed — so the team commits to the right problem AND the right solution before building, never to a flat unvalidated idea list.
 
 **Three Scenarios:**
 
@@ -119,7 +119,7 @@ Ask:
 
 ## Phase 1: Problem Framing — Diamond 1 Diverge
 
-**Goal:** Fully understand the problem space before jumping to solutions. The #1 failure in brainstorming: solving the wrong problem.
+**Goal:** Fully understand problem space before jumping to solutions. #1 brainstorming failure: solving the wrong problem.
 
 **Time-box:** 20–45 minutes of session time.
 
@@ -216,7 +216,7 @@ From the POV statement:
 
 ## Phase 2: Opportunity Framing — Diamond 1 Converge
 
-**Goal:** Narrow problem space to the highest-opportunity focus areas before ideating solutions.
+**Goal:** Narrow problem space to highest-opportunity focus areas before ideating solutions.
 
 ### 2.1 — Opportunity Solution Tree (OST) — for Enhancement
 
@@ -297,7 +297,7 @@ Connects customer profile to product value:
 
 ## Phase 3: Ideation — Diamond 2 Diverge
 
-**Goal:** Generate maximum quantity of solution ideas without judgment. Quality comes in Phase 4.
+**Goal:** Generate maximum quantity of solution ideas without judgment. Quality comes Phase 4.
 
 **Critical rule:** NO evaluation in this phase. Every idea is valid. "Yes, and..." not "Yes, but..."
 
@@ -467,7 +467,7 @@ For each idea in the shortlist, assign release priority:
 
 ## Phase 5: Hypothesis Validation
 
-**Goal:** Before committing to build, test your riskiest assumptions. 42% of startups fail because no market need — validate before building.
+**Goal:** Before committing to build, test riskiest assumptions. 42% of startups fail from no market need — validate before building.
 
 ### 5.1 — Problem Hypothesis
 
@@ -861,6 +861,7 @@ After brainstorm session concludes, use a direct user question to present next s
 
 ## Closing Reminders
 
+- **IMPORTANT MUST ATTENTION Goal:** Deliver a scored, ranked shortlist of 3-5 candidate ideas — each carrying a problem + value hypothesis, an identified riskiest assumption, and the cheapest validation test designed — so the team commits to the right problem AND the right solution before building, never to a flat unvalidated idea list.
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting
 - **MANDATORY IMPORTANT MUST ATTENTION** detect scenario type FIRST — different scenarios use different technique sequences
 - **MANDATORY IMPORTANT MUST ATTENTION** separate diverge (generate) and converge (evaluate) — NEVER mix them
@@ -886,7 +887,7 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
-4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
 6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.

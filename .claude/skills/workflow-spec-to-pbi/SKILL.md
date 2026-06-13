@@ -42,7 +42,7 @@ disable-model-invocation: true
 
 ### 1. Activate
 
-Run `/workflow-start spec-to-pbi` with the user's prompt as context.
+Run `/start-workflow workflow-spec-to-pbi` with the user's prompt as context.
 
 ### 2. Load Spec Context
 

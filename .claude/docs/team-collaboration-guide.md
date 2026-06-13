@@ -27,9 +27,9 @@ Claude Code uses a **three-pillar architecture** to assist every role:
 
 | Pillar                        | What It Does                                                     | Count                   |
 | ----------------------------- | ---------------------------------------------------------------- | ----------------------- |
-| **Hooks** (Enforcement)       | Auto-inject context, enforce quality gates, block unsafe actions | 66 top-level hook files |
+| **Hooks** (Enforcement)       | Auto-inject context, enforce quality gates, block unsafe actions | 54 top-level hook files |
 | **Skills** (Intelligence)     | Prompt-engineered protocols loaded on demand via `/skill-name`   | 176 skills              |
-| **Workflows** (Orchestration) | Multi-step sequences of skills with progress tracking            | 21 workflows            |
+| **Workflows** (Orchestration) | Multi-step sequences of skills with progress tracking            | 17 workflows            |
 
 ### Workflow Detection
 
@@ -153,7 +153,7 @@ Hooks automatically inject relevant project knowledge (backend patterns, fronten
 2. **Review against design system**
    Spec auto-maps to tokens in `docs/project-reference/design-system/`
 
-**Workflow trigger:** Say "design spec for" → activates **design-workflow**
+**Workflow trigger:** Say "design spec for" → runs **/design-spec** then **/interface-design** (or **/frontend-design**)
 
 ---
 
@@ -285,7 +285,7 @@ QC:                              /quality-gate ──→ [PASS/FAIL report]
 
 ---
 
-### Workflow 3: Design Workflow (`design-workflow`)
+### Workflow 3: Design (`/design-spec` → `/interface-design` or `/frontend-design`)
 
 **Trigger:** "ui spec", "component spec", "design the", "landing page", "screenshot"
 **Roles:** UX Designer, Developer
@@ -327,7 +327,6 @@ Claude provides end-to-end workflows that span multiple roles:
 | Workflow                 | Roles | Trigger          | Steps                                                                         |
 | ------------------------ | ----- | ---------------- | ----------------------------------------------------------------------------- |
 | `idea-to-pbi` (PO→BA)    | PO→BA | "hand off to BA" | `/idea` → `/review-artifact` → `/refine` → `/story` (conditional first step)  |
-| `full-feature-lifecycle` | All   | "full lifecycle" | `/idea` → `/refine` → `/story` → `/design-spec` → `/plan` → `/cook` → `/test` |
 
 Each workflow tracks progress across roles so the next role has full visibility into upstream artifacts.
 
@@ -492,7 +491,7 @@ PLANNING
 | BA   | `/refine`, `/story`                         | idea-to-pbi            |
 | QA   | `/spec [mode=tests]`, `/integration-test`, `/test` | write-integration-test |
 | QC   | `/quality-gate`, `/review-artifact`         | —                      |
-| UX   | `/design-spec`, `/frontend-design`          | design-workflow        |
+| UX   | `/design-spec`, `/frontend-design`          | —                      |
 | PM   | `/project-manager`, `/dependency`           | —                      |
 
 ### Workflow Quick Triggers
@@ -501,9 +500,8 @@ PLANNING
 | ------------------------------ | ---------------------- | -------------------------------------- |
 | "new idea" / "feature request" | idea-to-pbi            | /idea → /refine → /story → /prioritize |
 | "test this PBI" / "test cases" | `/spec [mode=tests]` (skill) | /spec [mode=tests] → /quality-gate     |
-| "design spec for"              | design-workflow        | /design-spec → /code-review            |
+| "design spec for"              | `/design-spec`         | /design-spec → /interface-design       |
 | "TDD" / "test-first"           | feature                | /plan → /spec [mode=tests] → /cook → /test |
-| "full lifecycle"               | full-feature-lifecycle | /idea → ... → /docs-update             |
 
 ### Common Patterns
 

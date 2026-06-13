@@ -15,7 +15,7 @@ description: '[Project Management] Use when capturing new ideas, feature request
 
 ## Quick Summary
 
-**Goal:** Capture raw product ideas as structured backlog artifacts with project module context.
+**Goal:** Turn a vague product idea into a validated, tech-agnostic, module-anchored backlog artifact ready for `/refine` to convert into a PBI — preserving problem intent without leaking solution or stack choices.
 
 > **MANDATORY IMPORTANT MUST ATTENTION** TaskCreate task to READ project-specific reference doc:
 > `project-structure-reference.md` — project patterns and structure. Not found → search: project documentation, coding standards, architecture docs.
@@ -226,7 +226,7 @@ Module detected: "Module context from {module} will be used during refinement."
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** Not already in workflow → MUST ATTENTION use `AskUserQuestion`:
 >
-> 1. **Activate `idea-to-pbi` workflow** (Recommended) — idea → refine → review-artifact --type=pbi → story → review-artifact --type=story → prioritize
+> 1. **Activate `workflow-idea-to-pbi` workflow** (Recommended) — idea → refine → review-artifact --type=pbi → story → review-artifact --type=story → prioritize
 > 2. **Execute `/idea` directly** — run standalone
 
 ---
@@ -333,10 +333,12 @@ Module detected: "Module context from {module} will be used during refinement."
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Goal:** Turn a vague product idea into a validated, tech-agnostic, module-anchored backlog artifact ready for `/refine` to convert into a PBI — preserving problem intent without leaking solution or stack choices.
 **IMPORTANT MUST ATTENTION** `TaskCreate` break ALL work into small tasks BEFORE starting
 **IMPORTANT MUST ATTENTION** validate all decisions with user via `AskUserQuestion` — NEVER auto-decide
 **IMPORTANT MUST ATTENTION** Discovery Interview + Validation NEVER optional — MANDATORY steps
-**IMPORTANT MUST ATTENTION** NEVER ask about tech stack in greenfield mode — defer to business-evaluation phase
+**IMPORTANT MUST ATTENTION** NEVER ask about tech stack in greenfield mode — defer to business-evaluation phase — why: stack is a research-driven decision after business analysis, not a capture-time guess
+**IMPORTANT MUST ATTENTION** ALWAYS keep problem statement tech-agnostic (M1) — name no framework/product/language/pattern — why: PBI inherits the narrative cleanly downstream
 **IMPORTANT MUST ATTENTION** auto-detect module silently — prompt only when ambiguous
 **IMPORTANT MUST ATTENTION** add final review task to verify work quality
 

@@ -50,9 +50,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Assess production readiness of service-layer and API changes — score observability, reliability, data integrity, and database performance.
-
-**Final Purpose:** Ensure service/API changes are production-ready for observability, reliability, data integrity, and database performance.
+**Goal:** Ensure service/API changes are production-ready for observability, reliability, data integrity, and database performance — scoring each of these dimensions on service-layer and API changes.
 
 **When to use:** After implementing backend service or API changes, before committing. Frontend-only changes exempt.
 
@@ -240,7 +238,7 @@ When a review pass finds issues, validate findings before any fix. Do not spawn 
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If NOT already in workflow, MUST ATTENTION use a direct user question to ask user:
 >
-> 1. **Activate `feature` workflow** (Recommended) — scout → investigate → plan → cook → review → sre-review → test → docs
+> 1. **Activate `workflow-feature` workflow** (Recommended) — scout → investigate → plan → cook → review → sre-review → test → docs
 > 2. **Execute `$sre-review` directly** — run standalone
 
 ---
@@ -688,7 +686,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Final Purpose:** Ensure service/API changes are production-ready for observability, reliability, data integrity, and database performance.
+**IMPORTANT MUST ATTENTION Goal:** Ensure service/API changes are production-ready for observability, reliability, data integrity, and database performance.
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks via task tracking BEFORE starting
 - **MANDATORY IMPORTANT MUST ATTENTION** validate findings before fixes; after validated fixes, rerun the full review before declaring PASS. A clean review pass ENDS the review.
 - **MANDATORY IMPORTANT MUST ATTENTION** every score requires `file:line` evidence — unprovable score = 0
@@ -718,7 +716,7 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
-4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
 6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.

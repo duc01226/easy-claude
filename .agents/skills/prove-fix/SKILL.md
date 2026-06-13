@@ -50,7 +50,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Prove (or disprove) that each fix change is correct by building a code proof trace — like a debugger stack trace — with confidence percentages per change.
+**Goal:** Block shipping an unproven fix — build a code proof trace (like a debugger stack trace) for each fix change with confidence percentages, so every code change carries a `file:line` evidence chain and confidence score and a fix ships only when its correctness is proven (≥80%), not assumed.
 
 **Workflow:**
 
@@ -79,7 +79,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 # Prove Fix
 
-Post-fix verification skill that builds evidence-based proof chains for every code change. Think of it as a code debugger's stack trace, but for proving WHY a fix is correct.
+Post-fix verification skill building evidence-based proof chains for every code change. A code debugger's stack trace, but for proving WHY a fix is correct.
 
 ---
 
@@ -87,13 +87,13 @@ Post-fix verification skill that builds evidence-based proof chains for every co
 
 - **After `$fix`** in bugfix, hotfix, or any fix workflow
 - After applying code changes that fix a reported bug
-- When you need to verify fix correctness before review/commit
+- Verify fix correctness before review/commit
 
 ## When NOT to Use
 
-- Before the fix is applied (use `$debug-investigate` instead)
-- For new feature verification (use `$test` instead)
-- For code quality review (use `$code-review` instead)
+- Before fix applied (use `$debug-investigate` instead)
+- New feature verification (use `$test` instead)
+- Code quality review (use `$code-review` instead)
 
 ---
 
@@ -121,7 +121,7 @@ CHANGE #N: [short description]
 
 ## Step 2: Proof Trace (per change)
 
-For EACH change, build a **stack-trace-style proof chain**. This is the core of the skill.
+For EACH change, build a **stack-trace-style proof chain** — the core of the skill.
 
 ### Proof Trace Format
 
@@ -351,7 +351,7 @@ This skill is the **mandatory verification gate** between `$fix` and `$code-simp
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use a direct user question to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
 >
-> 1. **Activate `bugfix` workflow** (Recommended) — scout → investigate → debug → plan → fix → prove-fix → review → test
+> 1. **Activate `workflow-bugfix` workflow** (Recommended) — scout → investigate → debug → plan → fix → prove-fix → review → test
 > 2. **Execute `$prove-fix` directly** — run this skill standalone
 
 ---
@@ -558,6 +558,7 @@ This skill is the **mandatory verification gate** between `$fix` and `$code-simp
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Goal:** block shipping an unproven fix — every code change carries a `file:line` evidence chain and confidence score, so a fix ships only when its correctness is proven (≥80%), not assumed.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting.
 **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via a direct user question — never auto-decide.
 **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.
@@ -579,7 +580,7 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
-4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
 6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.

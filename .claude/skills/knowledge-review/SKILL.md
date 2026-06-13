@@ -6,9 +6,7 @@ description: '[Research] Use when you need to review knowledge artifacts for com
 
 ## Quick Summary
 
-**Goal:** Review knowledge artifacts for quality, completeness, and protocol compliance.
-
-**Final Purpose:** Ensure knowledge artifacts are evidence-backed, complete, protocol-compliant, and safe to use for decisions.
+**Goal:** Ensure knowledge artifacts are evidence-backed, complete, protocol-compliant, and safe to use for decisions — reviewing for quality, completeness, citation accuracy, and template compliance.
 
 **Workflow:**
 
@@ -29,50 +27,44 @@ description: '[Research] Use when you need to review knowledge artifacts for com
 
 ## First Principle — Easy to Change
 
-> **The success metric of every coding decision is _future change cost_.**
-> DRY, SRP, abstraction, design patterns, naming, layering, tests — every
-> technique exists to serve one goal: **making the next change cheaper**.
+> **Success metric of every coding decision: _future change cost_.**
+> DRY, SRP, abstraction, design patterns, naming, layering, tests — every technique serves one goal: **making next change cheaper**.
 
-When evaluating code, a refactor, a test, or an abstraction, ask:
-**does this make the next change cheaper or more expensive?**
+When evaluating code, refactor, test, or abstraction, ask: **does this make next change cheaper or more expensive?**
 
-- Reject "best practices" that raise change cost (premature abstraction,
-  speculative generality, leaky indirection, ceremony without payoff).
-- Name the real enemies in findings: **coupling, hidden state, duplicated
-  knowledge, unclear intent, irreversible decisions exposed too early**.
-- A simpler design that is easy to change beats a sophisticated design that
-  isn't.
+- Reject "best practices" raising change cost (premature abstraction, speculative generality, leaky indirection, ceremony without payoff).
+- Name real enemies in findings: **coupling, hidden state, duplicated knowledge, unclear intent, irreversible decisions exposed too early**.
+- Simpler design that is easy to change beats sophisticated design that isn't.
 
-Apply this lens **before** invoking any specific rule, pattern, or checklist
-below — if a downstream rule would raise change cost, this principle wins.
+Apply this lens **before** invoking any specific rule, pattern, or checklist below — if downstream rule would raise change cost, this principle wins.
 
 ---
 
 ## Adversarial Review Mindset (NON-NEGOTIABLE)
 
-**Default stance: SKEPTIC challenging research quality, not confirming research completeness.**
+**Default stance: SKEPTIC challenging research quality, NOT confirming research completeness.**
 
-> **Source confirmation bias trap:** AI naturally gravitates toward sources that confirm its working hypothesis. The knowledge artifact was built iteratively — by the time it's complete, the framing is locked in. This section forces challenge of both the sources AND the framing.
+> **Source confirmation bias trap:** AI gravitates toward sources confirming its working hypothesis. Knowledge artifact built iteratively — by completion, framing is locked in. This section forces challenge of both sources AND framing.
 
 ### Adversarial Techniques (apply ALL before concluding)
 
 **1. Source Bias Detection**
-For the top 3 claims in the artifact: "What sources CONTRADICT this claim?" If no contradicting source is cited — either the reviewer didn't look, or the evidence is truly one-sided. Ask: "What would a skeptic of this conclusion cite?" If no counterevidence is addressed, the confidence score is inflated.
+Top 3 claims: "What sources CONTRADICT this claim?" No contradicting source cited → either reviewer didn't look, or evidence truly one-sided. Ask: "What would skeptic of this conclusion cite?" No counterevidence addressed → confidence score inflated.
 
 **2. Confidence Calibration Challenge**
-For each confidence score ≥ 80%: "What would need to be true for this confidence to be wrong?" High confidence is only warranted when: (a) multiple independent sources agree, (b) contradicting evidence is addressed, (c) the methodology is sound. Challenge any score that rests on a single source or on undisclosed assumptions.
+Each confidence score ≥ 80%: "What would need to be true for this confidence to be wrong?" High confidence warranted ONLY when: (a) multiple independent sources agree, (b) contradicting evidence addressed, (c) methodology sound. Challenge any score resting on single source or undisclosed assumptions.
 
 **3. Alternative Conclusion Check**
-Given the same evidence, what DIFFERENT conclusion could a reasonable expert reach? If the artifact does not address at least one credible alternative interpretation, the analysis is incomplete. State the strongest alternative conclusion.
+Given same evidence, what DIFFERENT conclusion could reasonable expert reach? Artifact not addressing 1+ credible alternative interpretation → analysis incomplete. State strongest alternative conclusion.
 
 **4. Cherry-Picking Detection**
-Count the sources that support the main conclusion vs. sources that challenge it. If the ratio is > 3:1 in favor of supporting sources without explicit explanation of why contradicting sources were discounted — flag cherry-picking.
+Count sources supporting main conclusion vs. sources challenging it. Ratio > 3:1 favoring supporting sources without explicit explanation of why contradicting sources discounted → flag cherry-picking.
 
 **5. Pre-Mortem**
-Assume the recommendation in this artifact is implemented and fails. Write the most plausible failure scenario given the research limitations. If the artifact doesn't acknowledge this failure mode — it's missing a risk section.
+Assume artifact's recommendation implemented and fails. Write most plausible failure scenario given research limitations. Artifact not acknowledging this failure mode → missing a risk section.
 
 **6. Contrarian Pass**
-Before writing any verdict, generate at least 2 sentences arguing the OPPOSITE conclusion about the artifact's quality. Then decide which argument is stronger.
+Before writing any verdict, generate 2+ sentences arguing OPPOSITE conclusion about artifact's quality. Then decide which argument is stronger.
 
 ### Forbidden Patterns
 
@@ -84,14 +76,14 @@ Before writing any verdict, generate at least 2 sentences arguing the OPPOSITE c
 
 ### Anti-Bias Gate (MANDATORY before finalizing verdict)
 
-- [ ] Found at least 1 contradicting source per major claim (or flagged its absence)
-- [ ] Challenged at least 1 confidence score ≥ 80% with a stress test
-- [ ] Stated the strongest alternative conclusion from the same evidence
-- [ ] Checked source balance (supporting vs. contradicting ratio)
-- [ ] Ran pre-mortem on the main recommendation
-- [ ] Generated at least 2 sentences arguing the opposite verdict
+- MUST ATTENTION found 1+ contradicting source per major claim (or flagged its absence)
+- MUST ATTENTION challenged 1+ confidence score ≥ 80% with a stress test
+- MUST ATTENTION stated strongest alternative conclusion from same evidence
+- MUST ATTENTION checked source balance (supporting vs. contradicting ratio)
+- MUST ATTENTION ran pre-mortem on main recommendation
+- MUST ATTENTION generated 2+ sentences arguing opposite verdict
 
-If any box is unchecked → adversarial review incomplete. Go back.
+Any item unmet → adversarial review incomplete. Go back. — why: skipping the gate ships confirmation-biased verdicts as fact.
 
 # Knowledge Review
 
@@ -557,7 +549,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Final Purpose:** Ensure knowledge artifacts are evidence-backed, complete, protocol-compliant, and safe to use for decisions.
+**IMPORTANT MUST ATTENTION Goal:** Ensure knowledge artifacts are evidence-backed, complete, protocol-compliant, and safe to use for decisions.
 **IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
 **IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
@@ -579,5 +571,5 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 | Evasion | Rebuttal |
 | ------- | -------- |
 | "Purpose obvious" | Anchor it anyway — primacy/recency keeps outcome active through long prompts. |
-| "Existing reminders enough" | Echo Final Purpose in Closing Reminders — bottom anchor prevents drift. |
+| "Existing reminders enough" | Echo Goal in Closing Reminders — bottom anchor prevents drift. |
 | "Skip evidence for prompt edits" | Cite changed file evidence and verify no stale protocol text remains. |

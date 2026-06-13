@@ -12,6 +12,25 @@ import {
 
 const rootDir = process.cwd();
 const require = createRequire(import.meta.url);
+
+// CK markers for the Workflow & Skills catalog block. Declared locally (not imported
+// from the builder) so the dedup regex in main() still works when the builder module
+// is absent in a stripped portable Codex tree. TWIN: keep byte-identical with the
+// exports in .claude/scripts/lib/workflow-skills-catalog.cjs.
+const CK_SKILLS_START = "<!-- CK:WORKFLOW-SKILLS -->";
+const CK_SKILLS_END = "<!-- /CK:WORKFLOW-SKILLS -->";
+
+// Resolve the shared catalog builder at RUNTIME from the consuming repo root — never a
+// file-relative `../lib` require, which would escape the portable Codex tree (only
+// .claude/scripts/codex/*.mjs travel). Guarded like prompt-injections.cjs below: if the
+// builder is absent (stripped portable consumer), the skills block is simply omitted.
+function loadCatalogBuilder() {
+  try {
+    return require(path.join(rootDir, ".claude", "scripts", "lib", "workflow-skills-catalog.cjs"));
+  } catch {
+    return null;
+  }
+}
 const workflowsPath = path.join(rootDir, ".claude", "workflows.json");
 const ckConfigPath = path.join(rootDir, ".claude", ".ck.json");
 const claudeInstructionsPath = path.join(rootDir, "CLAUDE.md");
@@ -273,7 +292,7 @@ function buildWorkflowSection(workflowEntries) {
   lines.push("## Workflow Protocol (Hookless)");
   lines.push("");
   lines.push("Use this protocol for workflow execution in Codex (no hook dependency):");
-  lines.push("1. Detect: execute explicit `$skill`, `$workflow-*`, or `$workflow-start <id>` prompts directly; otherwise match request against workflow catalog and skill list.");
+  lines.push("1. Detect: execute explicit `$skill`, `$workflow-*`, or `$start-workflow <id>` prompts directly; otherwise match request against workflow catalog and skill list.");
   lines.push("2. Analyze: choose the best path: direct execution, skill, standard workflow, or custom step combination.");
   lines.push("3. Auto-select: pick the best path yourself without asking the user to choose between direct/skill/workflow/custom options.");
   lines.push("4. Activate: execute direct work, invoke the selected skill, start the selected workflow sequence, or run the custom sequence.");
@@ -330,6 +349,18 @@ function buildWorkflowSection(workflowEntries) {
     lines.push("```text");
     lines.push(typeof protocol === "string" && protocol.trim().length > 0 ? protocol.trim() : "No injectContext protocol defined.");
     lines.push("```");
+    lines.push("");
+  }
+
+  // Composable step-skills index. Only the skills section is emitted here — the Quick
+  // Keyword Lookup + Workflow Details above already cover workflows/steps/routing, so a
+  // second workflow index would duplicate. Emitted with CK markers so the CLAUDE.md
+  // mirror copy can strip it in main() (avoids AGENTS.md double-bake).
+  const catalog = loadCatalogBuilder();
+  if (catalog) {
+    lines.push(CK_SKILLS_START);
+    lines.push(catalog.buildWorkflowSkillsCatalog({ rootDir, sections: ["skills"] }));
+    lines.push(CK_SKILLS_END);
     lines.push("");
   }
 
@@ -514,9 +545,19 @@ async function main() {
   );
   contextMd = `${contextMd.trimEnd()}\n`;
 
-  const claudeInstructionsMd = claudeInstructionsRaw
+  // Strip the workflow-skills catalog from the CLAUDE.md mirror copy: the Codex
+  // context block (above) already carries it, and AGENTS.md = claudeMirror + contextMirror.
+  // Without this strip the catalog would appear twice in AGENTS.md.
+  const claudeInstructionsDeduped =
+    typeof claudeInstructionsRaw === "string"
+      ? claudeInstructionsRaw.replace(
+          new RegExp(`${CK_SKILLS_START}[\\s\\S]*?${CK_SKILLS_END}\\n?`, "m"),
+          ""
+        )
+      : claudeInstructionsRaw;
+  const claudeInstructionsMd = claudeInstructionsDeduped
     ? rewriteClaudeToolTermsForCodex(
-        rewriteSkillMentionsForCodex(claudeInstructionsRaw, skillReferenceMap)
+        rewriteSkillMentionsForCodex(claudeInstructionsDeduped, skillReferenceMap)
       )
     : null;
 

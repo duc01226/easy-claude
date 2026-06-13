@@ -15,9 +15,7 @@ description: '[Code Quality] Use when you need to review artifact quality (PBI, 
 
 ## Quick Summary
 
-**Goal:** Review an artifact (PBI, design spec, story, test spec) for completeness and quality before handoff.
-
-**Final Purpose:** Ensure reviewed artifacts are complete, evidence-backed, and ready for handoff without missing assumptions or acceptance gaps.
+**Goal:** Review an artifact (PBI, design spec, story, test spec) for completeness and quality so reviewed artifacts are complete, evidence-backed, and ready for handoff without missing assumptions or acceptance gaps.
 
 **Workflow:**
 
@@ -39,18 +37,17 @@ description: '[Code Quality] Use when you need to review artifact quality (PBI, 
 > DRY, SRP, abstraction, design patterns, naming, layering, tests — every
 > technique exists to serve one goal: **making the next change cheaper**.
 
-When evaluating code, a refactor, a test, or an abstraction, ask:
-**does this make the next change cheaper or more expensive?**
+When evaluating code, refactor, test, or abstraction, ask:
+**does this make next change cheaper or more expensive?**
 
-- Reject "best practices" that raise change cost (premature abstraction,
+- Reject "best practices" raising change cost (premature abstraction,
   speculative generality, leaky indirection, ceremony without payoff).
-- Name the real enemies in findings: **coupling, hidden state, duplicated
+- Name real enemies in findings: **coupling, hidden state, duplicated
   knowledge, unclear intent, irreversible decisions exposed too early**.
-- A simpler design that is easy to change beats a sophisticated design that
-  isn't.
+- Simpler design easy to change beats sophisticated design that isn't.
 
 Apply this lens **before** invoking any specific rule, pattern, or checklist
-below — if a downstream rule would raise change cost, this principle wins.
+below — if downstream rule would raise change cost, this principle wins.
 
 ---
 
@@ -58,24 +55,24 @@ below — if a downstream rule would raise change cost, this principle wins.
 
 **Default stance: SKEPTIC challenging artifact quality and completeness, not confirming presence of sections.**
 
-> **Presence-quality confusion trap:** An artifact with all required sections LOOKS complete. But sections that exist but contain weak, ambiguous, or untestable content are worse than missing sections — they create false confidence. This section forces quality challenge beyond existence checks.
+> **Presence-quality confusion trap:** Artifact with all required sections LOOKS complete. But sections that exist yet contain weak, ambiguous, or untestable content are worse than missing sections — they create false confidence. This section forces quality challenge beyond existence checks.
 
 ### Adversarial Techniques (apply ALL before concluding)
 
 **1. Steel-Man the Alternatives**
-Before accepting the chosen approach in any design artifact: argue FOR the strongest rejected alternative as vigorously as possible. Would a senior domain expert seriously consider it? If yes — the artifact's dismissal needs stronger justification.
+Before accepting chosen approach in any design artifact: argue FOR strongest rejected alternative as vigorously as possible. Would a senior domain expert seriously consider it? If yes — artifact's dismissal needs stronger justification.
 
 **2. Assumption Stress Test**
-List the 3 biggest assumptions embedded in the artifact. For each: "What if this is wrong?" An artifact that breaks when 2 of its 3 core assumptions fail is fragile. Flag unaddressed failure modes.
+List the 3 biggest assumptions embedded in artifact. For each: "What if this is wrong?" An artifact that breaks when 2 of its 3 core assumptions fail is fragile. Flag unaddressed failure modes.
 
 **3. Acceptance Criteria Testability**
-For each acceptance criterion: "Can a QA engineer write a specific automated test for this — without asking clarifying questions?" If not — the AC is ambiguous. Flag it. Vague ACs ("the feature works correctly") are NOT acceptance criteria.
+For each acceptance criterion: "Can a QA engineer write a specific automated test for this — without asking clarifying questions?" If not — AC is ambiguous. Flag it. Vague ACs ("feature works correctly") are NOT acceptance criteria.
 
 **4. Pre-Mortem**
-Assume the artifact is implemented exactly as written and the feature fails in production within 3 months. Write the most plausible failure scenario. If you can't find one, look harder — every implementation has a failure mode.
+Assume artifact is implemented exactly as written and feature fails in production within 3 months. Write the most plausible failure scenario. If you can't find one, look harder — every implementation has a failure mode.
 
 **5. Unseen Alternatives**
-Identify 1-2 approaches NOT mentioned in the artifact. Were they genuinely not considered, or considered and excluded without documented reasoning? Missing alternatives without exclusion reasoning = incomplete analysis.
+Identify 1-2 approaches NOT mentioned in artifact. Genuinely not considered, or considered and excluded without documented reasoning? Missing alternatives without exclusion reasoning = incomplete analysis.
 
 **6. Contrarian Pass**
 Before writing any verdict, generate at least 2 sentences arguing the OPPOSITE conclusion. Then decide which argument is stronger based on evidence.
@@ -192,9 +189,9 @@ If ANY box fails → verdict is NEEDS WORK; list each violated mandate ID with i
 
 ## Readability Checklist (MUST ATTENTION evaluate)
 
-Before approving, verify the code is **easy to read, easy to maintain, easy to understand**:
+Before approving, verify code is **easy to read, easy to maintain, easy to understand**:
 
-- **Schema visibility** — If a function computes a data structure (object, map, config), a comment should show the output shape so readers don't have to trace the code
+- **Schema visibility** — If function computes a data structure (object, map, config), a comment should show output shape so readers don't trace the code
 - **Non-obvious data flows** — If data transforms through multiple steps (A → B → C), a brief comment should explain the pipeline
 - **Self-documenting signatures** — Function params should explain their role; flag unused params
 - **Magic values** — Unexplained numbers/strings should be named constants or have inline rationale
@@ -756,7 +753,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Final Purpose:** Ensure reviewed artifacts are complete, evidence-backed, and ready for handoff without missing assumptions or acceptance gaps.
+**IMPORTANT MUST ATTENTION Goal:** Ensure reviewed artifacts are complete, evidence-backed, and ready for handoff without missing assumptions or acceptance gaps.
 **IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
 **IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
@@ -774,10 +771,11 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > the next change cheaper or more expensive?_ If it doesn't reduce future
 > change cost, reject it. Coupling, hidden state, duplicated knowledge, and
 > unclear intent are the real enemies — call them out by name.
+
 **Anti-Rationalization:**
 
 | Evasion | Rebuttal |
 | ------- | -------- |
 | "Purpose obvious" | Anchor it anyway — primacy/recency keeps outcome active through long prompts. |
-| "Existing reminders enough" | Echo Final Purpose in Closing Reminders — bottom anchor prevents drift. |
+| "Existing reminders enough" | Echo Goal in Closing Reminders — bottom anchor prevents drift. |
 | "Skip evidence for prompt edits" | Cite changed file evidence and verify no stale protocol text remains. |

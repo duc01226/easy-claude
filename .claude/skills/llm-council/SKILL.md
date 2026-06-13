@@ -210,7 +210,7 @@ First action: [single next step]
 
 ## Workflow Integration
 
-Opt-in escalation hook from host skills. NEVER wire into `bugfix`, `refactor`, or `test-*` workflows. Blacklist is enforced at the `why-review` gate (Step A — workflow context check) before the 8-OR frontmatter gate evaluates.
+Opt-in escalation hook from host skills. NEVER wire into `workflow-bugfix`, `workflow-refactor`, or `test-*` workflows. Blacklist is enforced at the `why-review` gate (Step A — workflow context check) before the 8-OR frontmatter gate evaluates.
 
 | Host skill                       | Mode                                       | Default                  | Gate                                                             |
 | -------------------------------- | ------------------------------------------ | ------------------------ | ---------------------------------------------------------------- |

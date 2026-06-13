@@ -20,7 +20,7 @@ triggers:
 
 ## Quick Summary
 
-**Goal:** Generate business-focused changelog entries by systematically reviewing file changes.
+**Goal:** Produce a Keep-a-Changelog entry under `[Unreleased]` by systematically reviewing file changes — telling users, in business terms citing affected logical IDs and flagging breaking changes, what changed and why it matters, NEVER what files/classes were touched.
 
 **Workflow:**
 
@@ -48,15 +48,15 @@ Generate business-focused changelog entries by systematically reviewing file cha
 1. **Find existing CHANGELOG.md location**
     - Check root: `./CHANGELOG.md` (preferred)
     - Fallback: `./docs/CHANGELOG.md`
-    - If not found: Create at root
+    - Not found: create at root
 
-2. **Read current changelog** to understand format and last entries
+2. **Read current changelog** — understand format + last entries
 
 ## Workflow
 
 ### Step 1: Gather Changes
 
-Determine change scope based on mode:
+Determine change scope by mode:
 
 ```bash
 # PR/Branch-based (default)
@@ -118,7 +118,7 @@ For each changed file:
 
 1. Read file or diff
 2. Identify **business impact** (not just technical change)
-3. Check box and note in temp file
+3. Check box, note in temp file
 4. Categorize into appropriate section
 
 **Business Focus Guidelines**:
@@ -134,9 +134,9 @@ For each changed file:
 
 Read temp notes file completely. Ask:
 
-- What's the main feature/fix?
-- Who benefits and how?
-- What can users now do that they couldn't before?
+- Main feature/fix?
+- Who benefits, how?
+- What can users now do they couldn't before?
 
 ### Step 5: Generate Changelog Entry
 
@@ -173,7 +173,7 @@ Format (Keep a Changelog):
 
 1. Read existing CHANGELOG.md
 2. Insert new entry under `[Unreleased]` section
-3. If no `[Unreleased]` section, create it after header
+3. No `[Unreleased]` section → create it after header
 4. Preserve existing entries
 
 ### Step 7: Cleanup
@@ -264,7 +264,7 @@ See `references/keep-a-changelog-format.md` for format specification.
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use `AskUserQuestion` to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
 >
-> 1. **Activate `feature` workflow** (Recommended) — scout → investigate → plan → cook → review → changelog
+> 1. **Activate `workflow-feature` workflow** (Recommended) — scout → investigate → plan → cook → review → changelog
 > 2. **Execute `/changelog` directly** — run this skill standalone
 
 ---
@@ -354,6 +354,9 @@ See `references/keep-a-changelog-format.md` for format specification.
 
 ## Closing Reminders
 
+**IMPORTANT MUST ATTENTION Goal:** Produce a Keep-a-Changelog entry under `[Unreleased]` that tells users — in business terms, citing affected logical IDs and flagging breaking changes — what changed and why it matters, NEVER what files/classes were touched.
+**MANDATORY IMPORTANT MUST ATTENTION** use business-focused language, group by module/feature, cite `FR-`/`BR-`/`TC-` logical IDs, flag breaking changes with `**BREAKING:**` — why: changelog readers track impact, not implementation.
+**MANDATORY IMPORTANT MUST ATTENTION** always insert under `[Unreleased]`; create it if missing; delete the temp notes file when done.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting.
 **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — never auto-decide.
 **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.

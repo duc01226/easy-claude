@@ -63,7 +63,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - MUST ATTENTION verify integration suites with 3 consecutive passing runs without DB reset before declaring done.
 - NEVER skip mandatory workflow or skill gates.
 
-**IMPORTANT MANDATORY Steps:** $scout -> $investigate -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $integration-test -> $integration-test-review -> $integration-test-verify -> $spec [mode=sync] -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $scout -> $feature-investigation -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $integration-test -> $integration-test-review -> $integration-test-verify -> $spec [mode=sync] -> $docs-update -> $workflow-end -> $watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its skill invocation — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
@@ -71,9 +71,9 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 > **Goal Contract propagation (workflow-owned):** At workflow start, resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from the test request). Each generated test maps to a saved goal invariant/criterion — a test protecting NO saved invariant needs a recorded justification. After `$integration-test-verify`, append the verification evidence (pass/fail counts, runner command, report path) to the goal file's Iteration Log and emit the Goal Satisfaction matrix (PASS/FAIL/BLOCKED) before `$workflow-end`.
 
-Activate the `write-integration-test` workflow. Run `$workflow-start write-integration-test` with the user's prompt as context.
+Activate the `workflow-write-integration-test` workflow. Run `$start-workflow workflow-write-integration-test` with the user's prompt as context.
 
-**Steps:** $scout → $investigate → $spec [mode=tests] → $why-review → $review-artifact --type=spec-tests → $integration-test → $integration-test-review → $integration-test-verify → $spec [mode=sync] → $docs-update → $workflow-end → $watzup
+**Steps:** $scout → $feature-investigation → $spec [mode=tests] → $why-review → $review-artifact --type=spec-tests → $integration-test → $integration-test-review → $integration-test-verify → $spec [mode=sync] → $docs-update → $workflow-end → $watzup
 
 > **[STEP PURPOSES]** Every step has a distinct purpose — NEVER deduplicate or batch:
 >
@@ -90,7 +90,7 @@ Activate the `write-integration-test` workflow. Run `$workflow-start write-integ
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $scout -> $investigate -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $integration-test -> $integration-test-review -> $integration-test-verify -> $spec [mode=sync] -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $scout -> $feature-investigation -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $integration-test -> $integration-test-review -> $integration-test-verify -> $spec [mode=sync] -> $docs-update -> $workflow-end -> $watzup
 
 <!-- SYNC:ai-mistake-prevention -->
 
@@ -270,7 +270,7 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
 2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
 3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
-4. **ACTIVATE:** For a selected workflow, call `$workflow-start <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
 6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
 **[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
