@@ -173,18 +173,46 @@ Markdown-based prompts with YAML frontmatter that guide AI behavior.
 
 ### Workflows (17 definitions)
 
-End-to-end process orchestration with step enforcement.
+End-to-end process orchestration with step enforcement. The table below shows the most-used workflows — see `.claude/workflows.json` for all 17 (including `workflow-feature-spec`, `workflow-spec-to-pbi`, `workflow-spec-sync`, `workflow-seed-test-data`, `workflow-visualize`).
 
-| Workflow                          | Focus                                                                   | Use When                                          |
-| --------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------- |
-| `workflow-feature`                | Scout, investigate, plan, write specs, implement, review, test, docs    | Implementing a well-defined feature               |
-| `workflow-bugfix`                 | Trace root cause, write regression specs/tests, fix, prove, verify      | Fixing a bug without losing invariants            |
-| `workflow-big-feature`            | Idea, research, domain/tech analysis, stories, specs, implementation    | Large or ambiguous feature needing research       |
-| `workflow-greenfield-init`        | Product inception through scaffold, implementation, tests, docs         | New project from scratch                          |
-| `workflow-product-discovery`      | Brainstorm, research, PBIs, stories, DoR, mockups, ranked backlog       | Turning raw vision into implementation-ready work |
-| `workflow-spec-driven-dev`        | Author + three-way-sync canonical Feature Specs and TDD test specs      | Keeping specs, tests, code, and docs aligned      |
-| `workflow-write-integration-test` | Domain investigation, test specs, integration test code, review, verify | Adding or updating integration tests              |
-| `workflow-refactor`               | Search-first restructuring with plan, implementation, review, tests     | Code improvement without behavior drift           |
+**Pick a workflow by use case:**
+
+| I want to…                                   | Workflow                          |
+| -------------------------------------------- | --------------------------------- |
+| Implement a well-defined feature             | `workflow-feature`                |
+| Fix a bug without losing invariants          | `workflow-bugfix`                 |
+| Build a large/ambiguous feature (needs R&D)  | `workflow-big-feature`            |
+| Refactor without changing behavior           | `workflow-refactor`               |
+| Start a brand-new project from scratch       | `workflow-greenfield-init`        |
+| Turn a raw vision into a ranked backlog      | `workflow-product-discovery`      |
+| Take one idea to a groomed PBI               | `workflow-idea-to-pbi`            |
+| Keep specs, tests, code & docs aligned       | `workflow-spec-driven-dev`        |
+| Add or update integration tests              | `workflow-write-integration-test` |
+| Generate/update E2E (Playwright) tests       | `workflow-e2e`                    |
+| Research a topic into a cited report         | `workflow-research`               |
+| **Review uncommitted changes before commit** | `workflow-review-changes`         |
+
+**How to run one:** just describe your task — the `WORKFLOW-GATE` auto-classifies and routes it (no menu, no confirmation). To force a specific one, run `/start-workflow <id>`; it loads that workflow's canonical step sequence and builds the task list 1:1. An explicit `/skill` or `/workflow` you type is always honored as-is.
+
+### Quality Gates & Review Skills
+
+Reviews are first-class skills you can run standalone, and several are chained automatically inside `workflow-review-changes` — the recommended gate before any commit. That workflow runs, in order: `/review-changes` → `/why-review` → `/review-architecture` → `/review-domain-entities` → `/performance-review` → `/integration-test-review` → `/security-review` → `/code-simplifier`, then re-reviews until clean.
+
+| Review skill               | Catches                                                                  |
+| -------------------------- | ------------------------------------------------------------------------ |
+| `/review-changes`          | General correctness/quality on staged, unstaged, or branch-diff changes  |
+| `/code-review`             | Targeted code-quality review and completion-claim verification           |
+| `/why-review`              | Weak rationale / unjustified changes in plans, diffs, PBIs, specs        |
+| `/review-architecture`     | Layering, messaging, service-boundary, CQRS, repo violations             |
+| `/review-domain-entities`  | DDD design quality of entities and value objects                         |
+| `/performance-review`      | N+1 queries, indexing, API latency, memory, render bottlenecks           |
+| `/security-review`         | OWASP Top 10, secrets exposure, dependency/supply-chain risk             |
+| `/integration-test-review` | Assertion quality, bug protection, repeatability, test↔spec traceability |
+| `/sre-review`              | Production readiness of service-layer and API changes                    |
+| `/review-ui`               | Overflow, responsive layout, z-index, SCSS/BEM quality                   |
+| `/plan-review`             | Plan validity, correctness, and best-practice gaps (recursive)           |
+| `/review-artifact`         | PBI / story / test-spec / design artifact quality before handoff         |
+| `/quality-gate`            | Run the consolidated quality-gate checklist                              |
 
 ### Agents (29 specialists)
 
