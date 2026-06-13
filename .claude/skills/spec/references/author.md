@@ -126,7 +126,7 @@ Plus YAML frontmatter (header/metadata). Domain events appear in Section 5 / Sec
 | `[mode=amend]` arg (bugfix caller) AND doc exists | **AMEND** | → Mode: AMEND (scoped: regression TC + AC adjust only) |
 | `--audit` flag OR user requests audit        | **AUDIT**  | → Mode: AUDIT                      |
 
-> **Scale gate for INIT mode (workflow context only):** If `workflow-spec-driven-dev` is the caller AND module_count ≥ 4 → MUST spawn sub-agents (one per module) in ONE message. When `spec` is invoked STANDALONE for a single module, no scale gate applies — single-module init is always single-session.
+> **Scale gate for INIT mode (workflow context only):** If `workflow-build-specs` is the caller AND module_count ≥ 4 → MUST spawn sub-agents (one per module) in ONE message. When `spec` is invoked STANDALONE for a single module, no scale gate applies — single-module init is always single-session.
 
 > **Mode: AMEND (bugfix scope — NOT a re-author).** Triggered by `spec [mode=amend]` from the bugfix workflow (inserted after `debug-investigate`, before `plan`). The Feature Spec already exists; a bug fix changes a narrow slice of behavior. Do the MINIMUM — touch only the sections the bug touches:
 >

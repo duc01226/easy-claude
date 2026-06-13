@@ -369,7 +369,7 @@ easy-claude/
 | -------------------------- | -------------------------------------------------------------------------------------------------------- |
 | **Core Development**       | `workflow-feature`, `workflow-bugfix`, `workflow-refactor`, `workflow-big-feature`                       |
 | **Discovery & Planning**   | `workflow-idea-to-pbi`, `workflow-product-discovery`, `workflow-greenfield-init`, `workflow-spec-to-pbi` |
-| **Spec & Documentation**   | `workflow-spec-driven-dev`, `workflow-spec-sync`, `workflow-feature-spec`, `workflow-research`           |
+| **Spec & Documentation**   | `workflow-build-specs`, `workflow-spec-sync`, `workflow-feature-spec`, `workflow-research`           |
 | **Testing**                | `workflow-write-integration-test`, `workflow-e2e`, `workflow-seed-test-data`                             |
 | **Review & Visualization** | `workflow-review-changes`, `workflow-visualize`                                                          |
 

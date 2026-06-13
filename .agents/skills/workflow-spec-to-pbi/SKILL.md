@@ -70,7 +70,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 - Raw product vision without any Feature Spec -> use `$workflow-product-discovery`.
 - One informal idea -> use `$workflow-idea-to-pbi`.
-- Spec creation/update only -> use `$workflow-spec-driven-dev`.
+- Spec creation/update only -> use `$workflow-build-specs`.
 - Implementation after PBIs are ready -> use `$workflow-feature` or `$workflow-big-feature`.
 
 ## Protocol

@@ -123,7 +123,7 @@ const GOAL_CONTRACT_WORKFLOW_SKILL_IDS = [
   "workflow-bugfix",
   "workflow-review-changes",
   "workflow-write-integration-test",
-  "workflow-spec-driven-dev",
+  "workflow-build-specs",
   "test",
   "quality-gate",
   "integration-test-verify",

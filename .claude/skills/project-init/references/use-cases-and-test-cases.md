@@ -24,13 +24,13 @@ Use this matrix when planning, implementing, or reviewing portable project initi
 | UC-PI-016 | Skills running without Claude hooks | Missing config/docs/root files | Auto-route to `/project-init` before project-specific work. |
 | UC-PI-017 | Generated mirrors are dirty | After source skill/setup edits | Edit `.claude` source first, then sync mirrors; never hand-edit generated mirrors. |
 | UC-PI-018 | Graph missing after docs/config setup | Re-evaluation | Create the required final background `/graph-build` sub-agent task so structural tracing is refreshed after setup/review/verification is otherwise done. |
-| UC-PI-019 | Empty folder with no product/capability scope | `/project-init` | Create/verify minimal portable context only when explicit; mandatory spec finalization task is deferred with evidence and exact next route (`/workflow-product-discovery` or `/greenfield`, then `/workflow-spec-driven-dev init-full`). |
+| UC-PI-019 | Empty folder with no product/capability scope | `/project-init` | Create/verify minimal portable context only when explicit; mandatory spec finalization task is deferred with evidence and exact next route (`/workflow-product-discovery` or `/greenfield`, then `/workflow-build-specs init-full`). |
 | UC-PI-020 | Greenfield project with manifests but no accepted product scope | `/project-init` | Initialize config/reference/root files, avoid fake Feature Specs from package names, and defer spec finalization until capability scope exists. |
-| UC-PI-021 | Greenfield project with accepted product/capability scope | `/project-init` | After config initialization, start the post-config parallel group: `/scan-all` plus `/workflow-spec-driven-dev`; recommend `init-full` for selected bucket/capabilities. |
-| UC-PI-022 | Existing/grown project with no Feature Specs | `/project-init` | After config initialization, start the post-config parallel group: `/scan-all` plus `/workflow-spec-driven-dev`; recommend `init-full` and split large scope per workflow rules. |
-| UC-PI-023 | Existing/grown project with Feature Specs present | `/project-init` | After config initialization, start the post-config parallel group: `/scan-all` plus `/workflow-spec-driven-dev`; recommend `audit`, or `update` when active diff/new requirement exists. |
+| UC-PI-021 | Greenfield project with accepted product/capability scope | `/project-init` | After config initialization, start the post-config parallel group: `/scan-all` plus `/workflow-build-specs`; recommend `init-full` for selected bucket/capabilities. |
+| UC-PI-022 | Existing/grown project with no Feature Specs | `/project-init` | After config initialization, start the post-config parallel group: `/scan-all` plus `/workflow-build-specs`; recommend `init-full` and split large scope per workflow rules. |
+| UC-PI-023 | Existing/grown project with Feature Specs present | `/project-init` | After config initialization, start the post-config parallel group: `/scan-all` plus `/workflow-build-specs`; recommend `audit`, or `update` when active diff/new requirement exists. |
 | UC-PI-024 | Fixed Feature Spec root | `/project-init` | Use `docs/specs/` for all Feature Specs; do not read a project-config spec-root override. |
-| UC-PI-025 | Post-config parallel context build | `/project-init` after `/project-config` | Create sibling tasks `Call /scan-all` and `Call /workflow-spec-driven-dev`, allow parallel execution, and wait for both outcomes before root/mirror/final review. |
+| UC-PI-025 | Post-config parallel context build | `/project-init` after `/project-config` | Create sibling tasks `Call /scan-all` and `Call /workflow-build-specs`, allow parallel execution, and wait for both outcomes before root/mirror/final review. |
 | UC-PI-026 | Final background graph refresh | Any `/project-init` run | After setup/review/verification is otherwise done, create `Spawn background /graph-build sub-agent`, run `/graph-build` in that background sub-agent, and record outcome or blocker. |
 
 ## Test Cases
@@ -65,14 +65,14 @@ Use this matrix when planning, implementing, or reviewing portable project initi
 | TC-PI-026 | Skill schema validity | New `project-init` skill | Skill validator passes frontmatter, Quick Summary, and SYNC tag balance. |
 | TC-PI-027 | Graph follow-up | Config/docs populated, graph missing | Route includes final background `/graph-build` sub-agent after setup/review/verification is otherwise done. |
 | TC-PI-028 | User-authored root file preservation | Markerless `CLAUDE.md` with project notes | Setup preserves notes while adding universal guides. |
-| TC-PI-029 | Mandatory spec finalization task | Any `/project-init` run | Task tracking includes `Call /workflow-spec-driven-dev` before final verification/report. |
+| TC-PI-029 | Mandatory spec finalization task | Any `/project-init` run | Task tracking includes `Call /workflow-build-specs` before final verification/report. |
 | TC-PI-030 | Empty project spec deferral | Empty/no-content temp dir | Spec finalization does not deep-scan and reports evidence-backed deferral plus next trigger. |
-| TC-PI-031 | Greenfield accepted scope | Temp project with manifest plus accepted capability scope | Spec finalization invokes `/workflow-spec-driven-dev init-full`. |
-| TC-PI-032 | Existing project no specs | Content-bearing temp project with `docs/specs/` missing/empty | Spec finalization invokes `/workflow-spec-driven-dev init-full` after context setup. |
-| TC-PI-033 | Existing project with specs | Content-bearing temp project with Feature Specs present | Spec finalization invokes `/workflow-spec-driven-dev audit`, or `update` when active diff/new requirement exists. |
+| TC-PI-031 | Greenfield accepted scope | Temp project with manifest plus accepted capability scope | Spec finalization invokes `/workflow-build-specs init-full`. |
+| TC-PI-032 | Existing project no specs | Content-bearing temp project with `docs/specs/` missing/empty | Spec finalization invokes `/workflow-build-specs init-full` after context setup. |
+| TC-PI-033 | Existing project with specs | Content-bearing temp project with Feature Specs present | Spec finalization invokes `/workflow-build-specs audit`, or `update` when active diff/new requirement exists. |
 | TC-PI-034 | Fixed Feature Spec root | Project config lacks a spec-root override | Spec finalization probes `docs/specs/` directly and does not require or read a configurable spec-root field. |
-| TC-PI-035 | Large grown project split | Scout finds >10 capabilities | Spec finalization requires grouped `/workflow-spec-driven-dev init-full` runs; 4-10 capabilities require sub-agents. |
-| TC-PI-036 | Post-config parallel context build | Content-bearing temp project after `/project-config` init | Task plan includes sibling `Call /scan-all` and `Call /workflow-spec-driven-dev`; `/project-init` does not proceed to root/mirror/final review until both have outcomes. |
+| TC-PI-035 | Large grown project split | Scout finds >10 capabilities | Spec finalization requires grouped `/workflow-build-specs init-full` runs; 4-10 capabilities require sub-agents. |
+| TC-PI-036 | Post-config parallel context build | Content-bearing temp project after `/project-config` init | Task plan includes sibling `Call /scan-all` and `Call /workflow-build-specs`; `/project-init` does not proceed to root/mirror/final review until both have outcomes. |
 | TC-PI-037 | Final background graph task | Any `/project-init` run after final review/verification | Task plan includes `Spawn background /graph-build sub-agent`; `/graph-build` is invoked in a background sub-agent and its outcome or blocker appears in the report. |
 
 ## Verification Commands

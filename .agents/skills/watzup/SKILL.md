@@ -114,7 +114,7 @@ ls docs/specs/ 2>/dev/null
 
 | Result                     | Action                                                                                                                                                                |
 | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Directory missing or empty | ⚠️ Flag: `"No Feature Specs found under docs/specs/. Consider running $workflow-spec-driven-dev (mode: init-full) to bootstrap spec-driven documentation for this codebase."` |
+| Directory missing or empty | ⚠️ Flag: `"No Feature Specs found under docs/specs/. Consider running $workflow-build-specs (mode: init-full) to bootstrap spec-driven documentation for this codebase."` |
 | Feature Specs exist        | Proceed to Step 2                                                                                                                                                     |
 
 ### Step 2 — Spec Staleness Check (only if bundle exists)
@@ -127,7 +127,7 @@ git log --since="30 days ago" --name-only -- docs/specs/ | head -10
 
 | Result                                                               | Action                                                                                                                                                    |
 | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| No commits in last 30 days AND business code changed in this session | ⚠️ Flag: `"Engineering spec bundle may be stale (no updates in >30 days). Consider running $workflow-spec-driven-dev (mode: audit) to verify freshness."` |
+| No commits in last 30 days AND business code changed in this session | ⚠️ Flag: `"Engineering spec bundle may be stale (no updates in >30 days). Consider running $workflow-build-specs (mode: audit) to verify freshness."` |
 | Recent commits found                                                 | ✅ Spec bundle is being maintained                                                                                                                        |
 
 ### Step 3 — Feature Docs Freshness Check

@@ -823,7 +823,7 @@ WORKFLOW CATALOG
 │   ├── workflow-product-discovery
 │   ├── workflow-research
 │   ├── workflow-spec-to-pbi
-│   └── workflow-spec-driven-dev
+│   └── workflow-build-specs
 │
 ├── DOCUMENTATION & SPEC (1)
 │   └── workflow-feature-spec

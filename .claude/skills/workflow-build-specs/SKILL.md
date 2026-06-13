@@ -1,44 +1,10 @@
 ---
-name: workflow-spec-driven-dev
+name: workflow-build-specs
+version: 3.0.0
+last_reviewed: 2026-06-10
 description: '[Workflow] Use when activating spec-driven development to keep the single canonical Feature Spec, implementation, and tests synchronized.'
 disable-model-invocation: true
 ---
-
-> Codex compatibility note:
-> - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - User-question prompts mean to ask the user directly in Codex.
-> - Ignore Claude-specific mode-switch instructions when they appear.
-> - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
-> - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
-> - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
-> - For workflow skills, execute each listed child-skill step explicitly and report step-by-step evidence.
-> - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
-<!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
-## Codex Project-Reference Loading (No Hooks)
-
-Codex does not receive Claude hook-based doc injection.
-When coding, planning, debugging, testing, or reviewing, open project docs explicitly using this routing.
-
-**Always read:**
-- `docs/project-config.json` (project-specific paths, commands, modules, and workflow/test settings)
-- `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
-- `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
-
-**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.
-
-**Situation-based docs:**
-- Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`, `project-structure-reference.md`
-- Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md`
-- Spec authoring, `docs/specs/` pathing, or TC format: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`
-- Behavior/public-contract changes or spec-test-code sync: `workflow-spec-test-code-cycle-reference.md` plus the spec docs above
-- Derived spec indexes/ERDs/reimplementation guides: `spec-system-reference.md` and source Feature Specs under `docs/specs/`
-- Integration test implementation/review: `integration-test-reference.md`
-- E2E test implementation/review: `e2e-test-reference.md`
-- Code review/audit work: `code-review-rules.md` plus domain docs above based on changed files
-
-Do not read all docs blindly. Start from `docs-index-reference.md`, then open only relevant files for the task.
-<!-- CODEX:PROJECT-REFERENCE-LOADING:END -->
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
@@ -80,18 +46,18 @@ Resolve service→bucket assignments from the canonical table in [`docs/project-
 
 - MUST ATTENTION define success criteria before execution and loop until observable verification passes.
 - MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
-- Confirm mode via a direct user question BEFORE any action — NEVER skip Step 0
-- Invoke skill invocation for EACH step — NEVER batch-complete or mark done without invocation
+- Confirm mode via `AskUserQuestion` BEFORE any action — NEVER skip Step 0
+- Invoke `Skill` tool for EACH step — NEVER batch-complete or mark done without invocation
 - Spawn sub-agents for 4+ capabilities in ONE message — NEVER sequential
 - §1-7 of every Feature Spec are STRICTLY tech-free; the §5 Mermaid ERD is authored **inside** the Feature Spec — there is no separate ERD file
 - Write findings incrementally after each section — NEVER hold in memory
-- If shared skills/workflows/hooks/sync tooling changed, run `npm run codex:sync` before `$workflow-end` or record explicit N/A evidence; verify generated mirrors are current.
+- If shared skills/workflows/hooks/sync tooling changed, run `npm run codex:sync` before `/workflow-end` or record explicit N/A evidence; verify generated mirrors are current.
 
 ---
 
 ## Step 0 — Mode Detection (MANDATORY FIRST)
 
-Use a direct user question to confirm mode before any action.
+Use `AskUserQuestion` to confirm mode before any action.
 
 **Auto-detection rules:**
 
@@ -127,10 +93,10 @@ Starting from zero: no `docs/specs/{Bucket}/README.{Feature}.md` for the target 
 ```
 ## Step A — Discovery (scout)
 
-$scout
+/scout
   → Holistic codebase map — capability registry, entry points, integration boundaries
   → Identify the set of capabilities in scope (one Feature Spec each)
-  → Task tracking: "scout — enumerate capabilities + entry points for {Bucket}"
+  → TaskCreate: "scout — enumerate capabilities + entry points for {Bucket}"
 
 ## Step B — Size Evaluation and Divide-and-Conquer Planning (MANDATORY — runs BEFORE plan)
 
@@ -149,30 +115,30 @@ ESTIMATE:
 **Recursive decomposition rule:** If a single capability's Feature Spec would exceed the caps
 (body §1-7 >1200 lines OR >40 TCs), split the capability into sibling specs.
 
-Task tracking: "size-evaluation — count capabilities, decide split strategy"
+TaskCreate: "size-evaluation — count capabilities, decide split strategy"
 
 ## Step C — Plan
 
-$plan
+/plan
   → ONE task per capability Feature Spec (author §1-7 + §8 placeholder)
   → Core domain capabilities first, supporting ones last
-  → Verify the current task list count ≥ capability_count before proceeding (BLOCKING gate)
-  → Task tracking: "plan — produce per-capability authoring plan"
+  → Verify TaskList count ≥ capability_count before proceeding (BLOCKING gate)
+  → TaskCreate: "plan — produce per-capability authoring plan"
 
 ## Step D — Plan Review
 
-$plan-review
+/plan-review
   → Validate: every in-scope capability has an authoring task, no gaps
   → Verify: no sub-agent handles >3 capabilities; each capability within caps
-  → Task tracking: "plan-review — validate capability coverage + caps"
+  → TaskCreate: "plan-review — validate capability coverage + caps"
 
 ## Step E — Plan Validation
 
-$plan-validate
+/plan-validate
   → User confirms: bucket, capability list, scope, split strategy
-  → Task tracking: "plan-validate — user confirms scope and split strategy"
+  → TaskCreate: "plan-validate — user confirms scope and split strategy"
 
-$spec [mode=init]
+/spec [mode=init]
   → Author the canonical tech-free 8-section Feature Spec PER capability:
       §1 Overview · §2 Glossary · §3 User Stories & AC · §4 Business Rules ·
       §5 Domain Model (Mermaid ERD — MANDATORY, authored INSIDE this file) ·
@@ -182,13 +148,13 @@ $spec [mode=init]
   → Sub-agents for 4+ capabilities (BLOCKING: ONE message spawn); each prompt includes capability name, output path, tech-agnostic contract, SYNC protocols
   → Caps: body §1-7 ≤1200 lines, whole file ≤1800 (hard) — split when body>1200 OR TCs>40
 
-$spec [mode=tests]
+/spec [mode=tests]
   → Populate Section 8 with TC-{FEATURE}-{NNN} entries (BDD, Business Intent, abstract Evidence, IntegrationTest field, Status)
 
-$review-artifact --type=spec-tests
+/review-artifact --type=spec-tests
   → Review §8 TCs for invariant coverage, GIVEN/WHEN/THEN completeness, duplicate TC IDs
 
-$review-artifact
+/review-artifact
   → Quality check the Feature Spec(s):
     - §1-7 strictly tech-free (zero framework/product/language terms in prose)
     - §5 Mermaid ERD present with entities, relationships, cardinalities
@@ -197,16 +163,16 @@ $review-artifact
   → PASS criteria: zero [UNVERIFIED] without exclusion reason + zero tech terms in §1-7
   → Gap found → validate findings → fix validated gaps → restart full review-artifact pass from the first check
 
-$docs-update
+/docs-update
   → Near-final synchronization sweep across project docs, the Feature Spec(s), and Section 8
-  → MUST run after review-artifact fixes and before $workflow-end
-  → (Optional) regenerate the derived bucket INDEX / ERD via $spec-index
+  → MUST run after review-artifact fixes and before /workflow-end
+  → (Optional) regenerate the derived bucket INDEX / ERD via /spec-index
   → Report skipped sub-phases explicitly when no impacted docs exist
 
-$workflow-end
+/workflow-end
 
-$watzup
-  → Session summary: capabilities authored, files written, ~lines, §8 TC counts, coverage gaps, open questions (confidence < 80%), plus final $understand handoff
+/watzup
+  → Session summary: capabilities authored, files written, ~lines, §8 TC counts, coverage gaps, open questions (confidence < 80%), plus final /understand handoff
 ```
 
 ---
@@ -226,42 +192,42 @@ Code changed (new feature, bug fix, refactor, new PBI). Sync the Feature Spec in
 ### Step Sequence
 
 ```
-$workflow-review-changes
+/workflow-review-changes
   → Full code review cycle + docs-update (Phase 2 spec diff-scoped sync)
   → Produces: impact map (capabilities affected, Feature Spec sections to update)
 
-$spec [mode=update]
+/spec [mode=update]
   → Update only the impacted sections of each affected Feature Spec (full 8-section pass with 3-pass verification when restructuring)
   → SKIP if docs-update Phase 2 completed with zero gaps — mark "Skipped: docs-update Phase 2 sufficient"
 
-$spec [mode=tests]
+/spec [mode=tests]
   → **EXPLICIT TC STEP — required when new functionality added**
   → SKIP if changes are purely cosmetic (CSS, comments, config) — mark "Skipped: no behavioral impact"
   → Mode detection: new commands/queries/endpoints → implement-first; PBI-driven → TDD-first; TC edits only → update
   → Write/update TCs in Section 8; grep existing IDs before assigning; never overwrite Tested TCs
 
-$review-artifact --type=spec-tests
+/review-artifact --type=spec-tests
   → Review updated/planned TCs for invariant coverage, GIVEN/WHEN/THEN completeness, stale TC handling, duplicate IDs
-  → SKIP if $spec [mode=tests] skipped — mark "Skipped: no TC changes"
+  → SKIP if /spec [mode=tests] skipped — mark "Skipped: no TC changes"
   → BLOCK sync if review finds missing invariants, ambiguous behavior, or TC/code/spec drift
 
-$spec [mode=sync]
+/spec [mode=sync]
   → Refresh the derived bucket INDEX TC counts from Section 8 (Section 8 stays canonical — no separate dashboard)
   → SKIP if no TC changes in this cycle
 
-$review-changes
+/review-changes
   → Holistic review of Feature Spec changes
   → Verify: spec changes match code changes (no over/under documentation); §8 covers all new functionality
 
-$docs-update
+/docs-update
   → Near-final synchronization sweep across project docs, the Feature Spec(s), and Section 8
-  → MUST run after review-changes fixes and before $workflow-end
+  → MUST run after review-changes fixes and before /workflow-end
   → Report skipped sub-phases explicitly when no impacted docs exist
 
-$workflow-end
+/workflow-end
 
-$watzup
-  → Summary: capabilities updated, Feature Spec sections changed, TCs added/updated, new open questions, plus final $understand handoff
+/watzup
+  → Summary: capabilities updated, Feature Spec sections changed, TCs added/updated, new open questions, plus final /understand handoff
 ```
 
 ### New PBI / Requirement Update Protocol
@@ -269,14 +235,14 @@ $watzup
 Triggering update from new PBI or requirement (not code change):
 
 ```
-After $workflow-review-changes:
+After /workflow-review-changes:
   → User provides PBI text or requirement description
   → Map requirement → affected domain entities → affected capabilities
-  → $dor-gate: required when a new/changed PBI is being made implementation-ready; PASS or WARN before planned specs/TCs become guidance
-  → $pbi-mockup: required when the PBI changes user-facing UI/journeys; skip with reason for backend-only requirements
+  → /dor-gate: required when a new/changed PBI is being made implementation-ready; PASS or WARN before planned specs/TCs become guidance
+  → /pbi-mockup: required when the PBI changes user-facing UI/journeys; skip with reason for backend-only requirements
   → Treat as "speculative update": add new rules/sections to the Feature Spec marked [PLANNED — not yet implemented]
   → Add corresponding TCs in Section 8 marked Status: Planned
-  → $review-artifact --type=spec-tests: review planned TCs before refreshing the derived index
+  → /review-artifact --type=spec-tests: review planned TCs before refreshing the derived index
   → These become implementation guidance, not verified spec
 ```
 
@@ -300,29 +266,29 @@ Budget multiplier: If last audit was >90 days ago → ×1.5 (more drift expected
 ### Step Sequence
 
 ```
-$scout
+/scout
   → Quick codebase scan: current state of entities, commands, controllers (lightweight, 30min max)
 
-$spec [mode=audit]
+/spec [mode=audit]
   → Compare each Feature Spec's last_updated vs git log of the source it documents
   → Output: stale capabilities/sections table with recommended update scope
 
-$review-artifact
+/review-artifact
   → Consolidated audit report
   → Produce: plans/reports/spec-audit-{date}-{Bucket}.md
   → Include: total stale coverage %, estimated update effort, priority order
-  → (Optional) $spec-index [mode=audit] — report which DERIVED index/ERD aids lag their source specs
+  → (Optional) /spec-index [mode=audit] — report which DERIVED index/ERD aids lag their source specs
 
-$docs-update
-  → Near-final synchronization sweep; MUST run after review-artifact conclusions and before $workflow-end
+/docs-update
+  → Near-final synchronization sweep; MUST run after review-artifact conclusions and before /workflow-end
   → Report skipped sub-phases explicitly when no impacted docs exist
 
-$workflow-end
+/workflow-end
 
-$watzup
+/watzup
   → Present action plan: which capabilities to update first
   → Recommend: run update mode scoped to stale capabilities
-  → Run final $understand handoff
+  → Run final /understand handoff
 ```
 
 ---
@@ -332,24 +298,24 @@ $watzup
 | Step                           | Skip When                                                                                                      |
 | ------------------------------ | -------------------------------------------------------------------------------------------------------------- |
 | §5 Mermaid ERD in init         | Never — the ERD is a mandatory section of the Feature Spec                                                     |
-| `$spec [mode=tests]` in init    | User explicitly requests a behavior-doc-only pass (TCs deferred to a later cycle)                              |
-| `$dor-gate` in update          | Update source is code diff only, existing PBI is already DoR-ready, or no PBI readiness decision is being made |
-| `$pbi-mockup` in update        | Backend-only/non-UI requirement, code diff only, or existing mockup already covers the change                  |
-| `$review-artifact --type=spec-tests` in update   | `$spec [mode=tests]` skipped because there were no TC changes                                                           |
-| `$spec [mode=sync]`   | No TC changes in this update cycle                                                                             |
-| `$docs-update` near-final sync | Never skip entirely; sub-phases may be skipped only with explicit reason in the docs-update report             |
-| `$review-artifact` audit pass  | No stale specs found AND no UNVERIFIED items                                                                   |
-| `$spec-index` (derived)        | No derived index/ERD is maintained for this bucket, or it is already current                                  |
+| `/spec [mode=tests]` in init    | User explicitly requests a behavior-doc-only pass (TCs deferred to a later cycle)                              |
+| `/dor-gate` in update          | Update source is code diff only, existing PBI is already DoR-ready, or no PBI readiness decision is being made |
+| `/pbi-mockup` in update        | Backend-only/non-UI requirement, code diff only, or existing mockup already covers the change                  |
+| `/review-artifact --type=spec-tests` in update   | `/spec [mode=tests]` skipped because there were no TC changes                                                           |
+| `/spec [mode=sync]`   | No TC changes in this update cycle                                                                             |
+| `/docs-update` near-final sync | Never skip entirely; sub-phases may be skipped only with explicit reason in the docs-update report             |
+| `/review-artifact` audit pass  | No stale specs found AND no UNVERIFIED items                                                                   |
+| `/spec-index` (derived)        | No derived index/ERD is maintained for this bucket, or it is already current                                  |
 
 ---
 
 ## Sub-Agent Coordination Protocol (init-full, 4+ capabilities)
 
-1. `$scout` + `$plan` in main context → capability registry + per-capability task list
+1. `/scout` + `/plan` in main context → capability registry + per-capability task list
 2. Spawn `spec` sub-agents (one per capability) in ONE message
 3. Wait for all sub-agents to complete
 4. Spawn `spec [mode=tests]` sub-agents (one per capability) in ONE message to populate Section 8
-5. Main context assembles + verifies in `$review-artifact`
+5. Main context assembles + verifies in `/review-artifact`
 
 Each `spec` sub-agent receives:
 
@@ -367,11 +333,11 @@ Each `spec` sub-agent receives:
 ```
 docs-update (as workflow step):
   Phase 1: Project docs (inline — unchanged)
-  Phase 2: $spec update mode (impacted sections of the Feature Spec)
-  Phase 3: $spec [mode=tests] (Section 8 TCs)
-  Phase 3.5: $review-artifact --type=spec-tests (required when Phase 3 changes TCs)
-  Phase 4: $spec [mode=sync] (refresh derived INDEX TC counts)
-  Phase 4.5: $spec-index (OPTIONAL — regenerate derived bucket INDEX / ERD if one is maintained)
+  Phase 2: /spec update mode (impacted sections of the Feature Spec)
+  Phase 3: /spec [mode=tests] (Section 8 TCs)
+  Phase 3.5: /review-artifact --type=spec-tests (required when Phase 3 changes TCs)
+  Phase 4: /spec [mode=sync] (refresh derived INDEX TC counts)
+  Phase 4.5: /spec-index (OPTIONAL — regenerate derived bucket INDEX / ERD if one is maintained)
 ```
 
 The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
@@ -395,40 +361,40 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 
 | Goal                                               | Use                                       |
 | -------------------------------------------------- | ----------------------------------------- |
-| Update one specific Feature Spec after small change | `$spec` directly                  |
-| Add/sync Section 8 TCs                             | `$spec [mode=tests]` directly                      |
-| Regenerate a derived bucket index / ERD            | `$spec-index` directly                    |
-| Understand one specific feature                    | `$investigate`                            |
-| Write integration tests from existing Section 8    | `$integration-test`                       |
+| Update one specific Feature Spec after small change | `/spec` directly                  |
+| Add/sync Section 8 TCs                             | `/spec [mode=tests]` directly                      |
+| Regenerate a derived bucket index / ERD            | `/spec-index` directly                    |
+| Understand one specific feature                    | `/investigate`                            |
+| Write integration tests from existing Section 8    | `/integration-test`                       |
 
 ---
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
+**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $scout -> $plan -> $plan-review -> $plan-validate -> $spec -> $spec [mode=tests] -> $review-artifact --type=spec-tests -> $review-artifact -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** /scout -> /plan -> /plan-review -> /plan-validate -> /spec -> /spec [mode=tests] -> /review-artifact --type=spec-tests -> /review-artifact -> /docs-update -> /workflow-end -> /watzup
 
-> **[BLOCKING]** Invoke skill invocation for EACH step — NEVER batch-complete, NEVER mark done without skill invocation.
-> **[BLOCKING]** Confirm mode via a direct user question BEFORE any action — NEVER skip Step 0.
+> **[BLOCKING]** Invoke `Skill` tool for EACH step — NEVER batch-complete, NEVER mark done without skill invocation.
+> **[BLOCKING]** Confirm mode via `AskUserQuestion` BEFORE any action — NEVER skip Step 0.
 > **[BLOCKING]** Spawn sub-agents for 4+ capabilities in ONE message — NEVER sequential spawning.
-> **[BLOCKING — Context Compaction / Session Resume]** At any session start or after context compaction: (1) the current task list FIRST — resume existing, NEVER create duplicates; (2) re-glob `docs/specs/{Bucket}/` to see which capabilities already have a Feature Spec — skip those; (3) NEVER re-run `$scout` or `$plan` in a resumed session.
+> **[BLOCKING — Context Compaction / Session Resume]** At any session start or after context compaction: (1) `TaskList` FIRST — resume existing, NEVER create duplicates; (2) re-glob `docs/specs/{Bucket}/` to see which capabilities already have a Feature Spec — skip those; (3) NEVER re-run `/scout` or `/plan` in a resumed session.
 > **[BLOCKING]** Read `docs/project-reference/spec-principles.md` before running any author/update/audit step — it is the shared spec quality baseline (tech-agnostic rule + banned-token list).
 
-> **Goal Contract propagation (workflow-owned):** At workflow start, resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from the spec request). Map each spec/test/code cycle output (Feature Specs authored, TCs written, audit findings fixed) to the saved success criteria and append the evidence to the goal file's Iteration Log per cycle. Before `$workflow-end`, emit the Goal Satisfaction matrix (PASS/FAIL/BLOCKED); completion requires every required criterion PASS or BLOCKED with a user-facing escalation.
+> **Goal Contract propagation (workflow-owned):** At workflow start, resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from the spec request). Map each spec/test/code cycle output (Feature Specs authored, TCs written, audit findings fixed) to the saved success criteria and append the evidence to the goal file's Iteration Log per cycle. Before `/workflow-end`, emit the Goal Satisfaction matrix (PASS/FAIL/BLOCKED); completion requires every required criterion PASS or BLOCKED with a user-facing escalation.
 
 <!-- SYNC:nested-task-creation -->
 
 > **Nested Task Expansion Contract** — For workflow-step invocation, the `[Workflow] ...` row is only a parent container; the child skill still creates visible phase tasks.
 >
-> 1. Call the current task list first. If a matching active parent workflow row exists, set `nested=true` and record `parentTaskId`; otherwise run standalone.
+> 1. Call `TaskList` first. If a matching active parent workflow row exists, set `nested=true` and record `parentTaskId`; otherwise run standalone.
 > 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] $skill-name — phase`.
 > 3. When nested, link the parent with `TaskUpdate(parentTaskId, addBlockedBy: [childIds])`.
 > 4. Orchestrators must pre-expand a child skill's phase list and link the workflow row before invoking that child skill or sub-agent.
 > 5. Mark exactly one child `in_progress` before work and `completed` immediately after evidence is written.
 > 6. Complete the parent only after all child tasks are completed or explicitly cancelled with reason.
 >
-> **Blocked until:** the current task list done, child phases created, parent linked when nested, first child marked `in_progress`.
+> **Blocked until:** `TaskList` done, child phases created, parent linked when nested, first child marked `in_progress`.
 
 <!-- /SYNC:nested-task-creation -->
 
@@ -530,8 +496,8 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Ensure the Feature Spec, implementation, tests, and project docs stay synchronized through a governed spec-driven workflow.
-- **[BLOCKING]** Confirm mode via a direct user question BEFORE any action — NEVER skip Step 0
-- **[BLOCKING]** Invoke skill invocation for EACH step — NEVER batch-complete or mark done without invocation
+- **[BLOCKING]** Confirm mode via `AskUserQuestion` BEFORE any action — NEVER skip Step 0
+- **[BLOCKING]** Invoke `Skill` tool for EACH step — NEVER batch-complete or mark done without invocation
 - **[BLOCKING]** Spawn sub-agents for 4+ capabilities in ONE message — NEVER sequential spawning
 - **[BLOCKING]** ONE canonical artifact — the Feature Spec at `docs/specs/{Bucket}/README.{Feature}.md`; the §5 Mermaid ERD is authored INSIDE it (no separate ERD file, no A-E tree)
 - **[BLOCKING]** Scout holistically FIRST — capability registry MUST exist before plan creation; NEVER re-run scout or plan in a resumed session
@@ -539,9 +505,9 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 - **[BLOCKING]** Per-section authoring: write each section immediately — NEVER accumulate across sections
 - **[REQUIRED]** §1-7 STRICTLY tech-free (no framework names, no language constructs, no class names in prose); identifiers live only in §8 evidence carriers, `[Source: ns/service/id]`, and ` ```mermaid ``` ` blocks — mark `[UNVERIFIED]` not blank
 - **[REQUIRED]** Each sub-agent prompt MUST include: capability name, output path, tech-agnostic contract, SYNC protocols (critical-thinking, evidence-based, incremental-persistence, cross-scope boundary)
-- **[BLOCKING]** Context compaction / session resume → the current task list first, re-glob existing Feature Specs, skip done capabilities — NEVER re-run scout or plan
+- **[BLOCKING]** Context compaction / session resume → `TaskList` first, re-glob existing Feature Specs, skip done capabilities — NEVER re-run scout or plan
 - **[BLOCKING]** review-artifact: PASS = zero `[UNVERIFIED]` without exclusion reason + zero tech terms in §1-7; gap found → validate findings → fix validated gaps → restart the full review-artifact pass from the first check
-- **[BLOCKING]** Verify the current task list count ≥ capability_count before any authoring begins — this is the plan completeness gate
+- **[BLOCKING]** Verify TaskList count ≥ capability_count before any authoring begins — this is the plan completeness gate
 - **[REQUIRED]** Apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
 - **[REQUIRED]** Apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
 
@@ -554,39 +520,3 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 | "Existing reminders enough" | Echo Goal in Closing Reminders — bottom anchor prevents drift. |
 | "Skip evidence for prompt edits" | Cite changed file evidence and verify no stale protocol text remains. |
 | "Re-extract the A-E engineering bundle" | Not part of the spec model. ONE Feature Spec; the ERD is §5. `spec-index` only regenerates a derived index. |
-
-<!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
-## Hookless Prompt Protocol Mirror (Auto-Synced)
-
-Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
-
-## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
-
-**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. Any supported AI tool may execute when this shared context and local docs are available.
-
-1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
-2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
-3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
-4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
-5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
-6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
-**[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
-**Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
-**AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
-**Goal-driven execution:** Define success criteria first, loop until verified, and stop only when observable checks pass.
-**Tests verify intent:** Tests must protect business rules/invariants and fail when the protected intent breaks, not only mirror current behavior.
-## [LESSON-LEARNED-REMINDER] [BLOCKING] Task Planning & Continuous Improvement — MANDATORY. Do not skip.
-
-Break work into small tasks (task tracking) before starting. Add final task: "Analyze AI mistakes & lessons learned".
-
-**Extract lessons — ROOT CAUSE ONLY, not symptom fixes:**
-1. Name the FAILURE MODE (reasoning/assumption failure), not symptom — "assumed API existed without reading source" not "used wrong enum value".
-2. Generality test: does this failure mode apply to ≥3 contexts/codebases? If not, abstract one level up.
-3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
-4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
-5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/`$lint` catch this?" — Yes → improve review skill instead.
-7. BOTH gates pass → ask user to run `$learn`.
-**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
-
-<!-- CODEX:SYNC-PROMPT-PROTOCOLS:END -->

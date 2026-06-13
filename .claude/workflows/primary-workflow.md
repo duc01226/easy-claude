@@ -119,7 +119,7 @@ All workflows are defined in `.claude/workflows.json` — the canonical catalog 
 
 | Workflow            | Purpose                                                                                                                |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| **spec-driven-dev** | Author/maintain the canonical tech-free 8-section Feature Spec — initial generation, sync after changes, health audits |
+| **build-specs**     | Author/maintain the canonical tech-free 8-section Feature Spec — initial generation, sync after changes, health audits |
 | **spec-sync**       | Update test specs and feature docs after code changes, bug fixes, or PR reviews                                        |
 
 ### Test & Data Workflows

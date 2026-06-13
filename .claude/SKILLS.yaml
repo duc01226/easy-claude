@@ -1654,8 +1654,8 @@ skills:
       deprecated_since: null
       removal_after: null
       last_reviewed: null
-    - name: workflow-spec-driven-dev
-      path: workflow-spec-driven-dev/SKILL.md
+    - name: workflow-build-specs
+      path: workflow-build-specs/SKILL.md
       description: '[Workflow] Use when activating spec-driven development to keep
         the single canonical Feature Spec, implementation, and tests synchronized.'
       category: other

@@ -175,8 +175,8 @@
     "spec-index": {
       "claude": "/spec-index"
     },
-    "spec-driven-dev": {
-      "claude": "/workflow-spec-driven-dev"
+    "build-specs": {
+      "claude": "/workflow-build-specs"
     },
     "spec-to-pbi": {
       "claude": "/workflow-spec-to-pbi"
@@ -184,8 +184,8 @@
     "workflow-spec-to-pbi": {
       "claude": "/workflow-spec-to-pbi"
     },
-    "workflow-spec-driven-dev": {
-      "claude": "/workflow-spec-driven-dev"
+    "workflow-build-specs": {
+      "claude": "/workflow-build-specs"
     },
     "sre-review": {
       "claude": "/sre-review"
@@ -649,11 +649,11 @@
       "whenNotToUse": "PR reviews, codebase reviews, branch comparisons",
       "whenToUse": "User wants to review current uncommitted, staged, or unstaged changes before committing"
     },
-    "workflow-spec-driven-dev": {
+    "workflow-build-specs": {
       "description": "Unified spec-driven development — authors and maintains ONE canonical artifact per capability: the tech-free 8-section Feature Spec at docs/specs/{Bucket}/README.{Feature}.md (code is the technical source of truth; derived bucket INDEX/ERD are regenerable aids). Modes: init-full (zero → Feature Specs), update (incremental sync from code changes), audit (staleness check).",
-      "name": "Spec-Driven Development",
+      "name": "Build Feature Specs",
       "preActions": {
-        "injectContext": "SPEC-DRIVEN-DEV PROTOCOL:\nModes: init-full | update | audit.\nStep 0: auto-detect mode, map changed services → App Bucket, confirm capability name(s).\nScale gate: 4+ capabilities = MUST spawn one spec sub-agent per capability in ONE message.\nONE canonical artifact: docs/specs/{Bucket}/README.{Feature}.md (tech-free 8-section Feature Spec; §5 holds the Mermaid ERD INLINE). No separate A-E engineering tree — code is the technical source of truth. Derived bucket INDEX.md/ERD are optional regenerable aids (spec-index mode=index).\nUpdate mode: git diff → impact map → spec [mode=update] (§1-7) → spec [mode=tests] (§8) → review-artifact --type=spec-tests → spec [mode=sync] (§8 ↔ test code) → optional spec-index index refresh.\nNew PBI/requirement update mode: run dor-gate when a new/changed PBI is being made implementation-ready; run pbi-mockup only for UI/user-journey changes.\nAudit mode: compare Feature Spec git-history timestamps vs source-code git log → staleness reports.\nSee .claude/skills/workflow-spec-driven-dev/SKILL.md for full protocol.\nMANDATORY SPEC-DRIVEN SYNC GATES:\n- Three-way sync contract (Feature Spec §1-7 ↔ §8 TCs ↔ test code, including the STATE MACHINE DATA ASSERT mandate) is canonical in docs/project-reference/spec-system-reference.md → Three-Way Sync Triad — follow it exactly.\n- Run docs-update as a near-final sync before workflow-end; watzup runs after workflow-end for every mode to keep Feature Specs and derived indexes aligned.\nUNIVERSAL RULES:\n- Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.\n- Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks."
+        "injectContext": "SPEC-DRIVEN-DEV PROTOCOL:\nModes: init-full | update | audit.\nStep 0: auto-detect mode, map changed services → App Bucket, confirm capability name(s).\nScale gate: 4+ capabilities = MUST spawn one spec sub-agent per capability in ONE message.\nONE canonical artifact: docs/specs/{Bucket}/README.{Feature}.md (tech-free 8-section Feature Spec; §5 holds the Mermaid ERD INLINE). No separate A-E engineering tree — code is the technical source of truth. Derived bucket INDEX.md/ERD are optional regenerable aids (spec-index mode=index).\nUpdate mode: git diff → impact map → spec [mode=update] (§1-7) → spec [mode=tests] (§8) → review-artifact --type=spec-tests → spec [mode=sync] (§8 ↔ test code) → optional spec-index index refresh.\nNew PBI/requirement update mode: run dor-gate when a new/changed PBI is being made implementation-ready; run pbi-mockup only for UI/user-journey changes.\nAudit mode: compare Feature Spec git-history timestamps vs source-code git log → staleness reports.\nSee .claude/skills/workflow-build-specs/SKILL.md for full protocol.\nMANDATORY SPEC-DRIVEN SYNC GATES:\n- Three-way sync contract (Feature Spec §1-7 ↔ §8 TCs ↔ test code, including the STATE MACHINE DATA ASSERT mandate) is canonical in docs/project-reference/spec-system-reference.md → Three-Way Sync Triad — follow it exactly.\n- Run docs-update as a near-final sync before workflow-end; watzup runs after workflow-end for every mode to keep Feature Specs and derived indexes aligned.\nUNIVERSAL RULES:\n- Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.\n- Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks."
       },
       "sequence": [
         "scout",
@@ -700,7 +700,7 @@
         "workflow-end",
         "watzup"
       ],
-      "whenNotToUse": "Raw product vision without any Feature Spec (use workflow-product-discovery), one informal idea (use workflow-idea-to-pbi), implementation work after PBIs are ready (use workflow-feature or workflow-big-feature), spec generation/update only (use workflow-spec-driven-dev).",
+      "whenNotToUse": "Raw product vision without any Feature Spec (use workflow-product-discovery), one informal idea (use workflow-idea-to-pbi), implementation work after PBIs are ready (use workflow-feature or workflow-big-feature), spec generation/update only (use workflow-build-specs).",
       "whenToUse": "User wants to create all PBIs from an existing Feature Spec, convert a large Feature Spec into a complete prioritized backlog, generate dependent PBIs from docs/specs, split a very big Feature Spec into sprint-ready PBIs, or produce a ranked implementation order from a bucket of Feature Specs."
     },
     "workflow-spec-sync": {

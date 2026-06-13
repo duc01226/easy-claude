@@ -10,7 +10,7 @@ const SCRIPT_LINES = [
 const GROUPS = [
     { label: 'Core Development', count: 7, color: C.blue, examples: 'workflow-feature · workflow-bugfix · workflow-refactor · workflow-big-feature · workflow-review-changes' },
     { label: 'PBI & Discovery', count: 4, color: C.amber, examples: 'workflow-idea-to-pbi · workflow-product-discovery · workflow-research · workflow-spec-to-pbi' },
-    { label: 'Spec-Driven', count: 2, color: C.purple, examples: 'workflow-spec-driven-dev · workflow-spec-sync' },
+    { label: 'Spec-Driven', count: 2, color: C.purple, examples: 'workflow-build-specs · workflow-spec-sync' },
     { label: 'Test & Data', count: 3, color: C.green, examples: 'workflow-e2e · workflow-write-integration-test · workflow-seed-test-data' },
     { label: 'Design & Visualization', count: 1, color: C.cyan, examples: 'workflow-visualize' }
 ];

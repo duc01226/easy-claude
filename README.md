@@ -82,7 +82,7 @@ cp -r .agents  /path/to/your-project/.agents    # Codex skill mirror generated f
 | --------------------------------- | ------------------------------------------------------------------------------------- |
 | `/project-config`                 | `docs/project-config.json` — tech stack, modules, directory structure, build commands |
 | `/scan-all`                       | `docs/project-reference/` docs that hooks auto-inject                                 |
-| `/workflow-spec-driven-dev`       | canonical Feature Specs under `docs/specs/` (seed or audit)                           |
+| `/workflow-build-specs`       | canonical Feature Specs under `docs/specs/` (seed or audit)                           |
 | `/claude-md-init`                 | `CLAUDE.md` (generated, or smart-merged to preserve your content)                     |
 | `/review-changes` → `/why-review` | review gates over the generated setup                                                 |
 | background `/graph-build`         | the structural code graph (`.code-graph/graph.db`)                                    |
@@ -186,7 +186,7 @@ End-to-end process orchestration with step enforcement. The table below shows th
 | Start a brand-new project from scratch       | `workflow-greenfield-init`        |
 | Turn a raw vision into a ranked backlog      | `workflow-product-discovery`      |
 | Take one idea to a groomed PBI               | `workflow-idea-to-pbi`            |
-| Keep specs, tests, code & docs aligned       | `workflow-spec-driven-dev`        |
+| Keep specs, tests, code & docs aligned       | `workflow-build-specs`        |
 | Add or update integration tests              | `workflow-write-integration-test` |
 | Generate/update E2E (Playwright) tests       | `workflow-e2e`                    |
 | Research a topic into a cited report         | `workflow-research`               |

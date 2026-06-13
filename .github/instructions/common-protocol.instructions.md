@@ -54,6 +54,7 @@ Workflow progression is **model-driven** — your responsibility, not a tool/hoo
 | --------------------- | ----------- | ------------- |
 | implement a large, complex, or ambiguous feature that needs research | `workflow-big-feature` | **Big Feature (Research + Implement)** |
 | a bug, error, crash | `workflow-bugfix` | **Bug Fix** |
+| initial feature spec generation from zero, maintaining spec sync after code changes, quarterly spec health audits | `workflow-build-specs` | **Build Feature Specs** |
 | create or update business feature documentation | `workflow-feature-spec` | **Business Feature Documentation** |
 | restructure, reorganize, clean up | `workflow-refactor` | **Code Refactoring** |
 | generate, update, or maintain e2e/playwright tests from code/spec | `workflow-e2e` | **E2E Testing** |
@@ -66,7 +67,6 @@ Workflow progression is **model-driven** — your responsibility, not a tool/hoo
 | seed test data, implement data seeders, realistic development environment data | `workflow-seed-test-data` | **Seed Test Data** |
 | fixing a bug update test specs, code changes update test specs, pr review update test specs | `workflow-spec-sync` | **Spec Sync (Post-Change)** |
 | create all pbis from an existing, convert a large feature spec into, dependent pbis from docs/specs | `workflow-spec-to-pbi` | **Spec to PBI Backlog** |
-| initial feature spec generation from zero, maintaining spec sync after code changes, quarterly spec health audits | `workflow-spec-driven-dev` | **Spec-Driven Development** |
 | visualize, diagram, draw | `workflow-visualize` | **Visual Diagram** |
 | write integration tests for a specific, add test coverage to an untested, update integration tests after code changes | `workflow-write-integration-test` | **Write Integration Tests** |
 
@@ -81,6 +81,11 @@ Workflow progression is **model-driven** — your responsibility, not a tool/hoo
   Use: User reports a bug, error, crash, failure, regression, stale/incorrect final output, or something not working; wants to fix/debug/troubleshoot an issue with end-to-start trace
   Not for: New feature implementation, code improvement/refactoring, investigation-only (no fix), documentation updates
   Steps: scout → investigate → debug-investigate → spec [mode=amend] → plan → plan-review → plan-validate → why-review → spec [mode=tests] → why-review → review-artifact --type=spec-tests → integration-test → fix → prove-fix → integration-test → integration-test-review → integration-test-verify → spec [mode=sync] → workflow-review-changes → changelog → test → docs-update → workflow-end → watzup
+
+**workflow-build-specs** — Build Feature Specs
+  Use: Initial Feature Spec generation from zero docs, maintaining spec sync after code changes, quarterly spec health audits, before tech migrations, after major features land — authors + three-way-syncs the canonical Feature Spec. Use spec-index instead when only regenerating derived indexes/ERDs.
+  Not for: Understanding one specific feature (use /investigate skill), authoring/updating a single Feature Spec (use spec directly), regenerating only the derived bucket index/ERD (use spec-index directly)
+  Steps: scout → plan → plan-review → plan-validate → spec → spec [mode=tests] → review-artifact --type=spec-tests → review-artifact → docs-update → workflow-end → watzup
 
 **workflow-e2e** — E2E Testing
   Use: User wants to generate, update, or maintain E2E/Playwright tests from code/spec changes (--source=changes), a Chrome DevTools recording (--source=recording), or for UI screenshot baselines (--source=update-ui)
@@ -133,11 +138,6 @@ Workflow progression is **model-driven** — your responsibility, not a tool/hoo
   Not for: Writing integration tests (use workflow-write-integration-test), production data migration (use /db-migrate skill), seeding reference/config data without domain commands
   Steps: scout → investigate → seed-test-data → review-changes → code-simplifier → docs-update → workflow-end → watzup
 
-**workflow-spec-driven-dev** — Spec-Driven Development
-  Use: Initial Feature Spec generation from zero docs, maintaining spec sync after code changes, quarterly spec health audits, before tech migrations, after major features land — authors + three-way-syncs the canonical Feature Spec. Use spec-index instead when only regenerating derived indexes/ERDs.
-  Not for: Understanding one specific feature (use /investigate skill), authoring/updating a single Feature Spec (use spec directly), regenerating only the derived bucket index/ERD (use spec-index directly)
-  Steps: scout → plan → plan-review → plan-validate → spec → spec [mode=tests] → review-artifact --type=spec-tests → review-artifact → docs-update → workflow-end → watzup
-
 **workflow-spec-sync** — Spec Sync (Post-Change)
   Use: After fixing a bug update test specs, after code changes update test specs, after PR review update test specs, sync test specs after changes, update test documentation after implementation
   Not for: New workflow-feature implementation (use workflow-feature), no code changes yet, idea refinement
@@ -145,7 +145,7 @@ Workflow progression is **model-driven** — your responsibility, not a tool/hoo
 
 **workflow-spec-to-pbi** — Spec to PBI Backlog
   Use: User wants to create all PBIs from an existing Feature Spec, convert a large Feature Spec into a complete prioritized backlog, generate dependent PBIs from docs/specs, split a very big Feature Spec into sprint-ready PBIs, or produce a ranked implementation order from a bucket of Feature Specs.
-  Not for: Raw product vision without any Feature Spec (use workflow-product-discovery), one informal idea (use workflow-idea-to-pbi), implementation work after PBIs are ready (use workflow-feature or workflow-big-feature), spec generation/update only (use workflow-spec-driven-dev).
+  Not for: Raw product vision without any Feature Spec (use workflow-product-discovery), one informal idea (use workflow-idea-to-pbi), implementation work after PBIs are ready (use workflow-feature or workflow-big-feature), spec generation/update only (use workflow-build-specs).
   Steps: scout → spec-index → domain-analysis → why-review → plan → plan-review → plan-validate → why-review → refine → why-review → review-artifact --type=pbi → story → why-review → review-artifact --type=story → pbi-challenge → dor-gate → pbi-mockup → prioritize → docs-update → workflow-end → watzup
 
 **workflow-visualize** — Visual Diagram

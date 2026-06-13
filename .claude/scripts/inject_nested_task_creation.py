@@ -61,7 +61,7 @@ SKILL_NAMES = [
     "workflow-product-discovery",
     "workflow-refactor", "workflow-research",
     "workflow-review-changes",
-    "workflow-seed-test-data", "workflow-spec-driven-dev", "workflow-spec-to-pbi",
+    "workflow-seed-test-data", "workflow-build-specs", "workflow-spec-to-pbi",
     "workflow-spec-sync",
     "workflow-visualize",
     "workflow-write-integration-test",

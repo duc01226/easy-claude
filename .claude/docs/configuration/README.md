@@ -129,7 +129,7 @@ The `codeReview` section configures automatic injection of project-specific revi
 
 **Schema:** Each workflow entry supports `description`, `name`, `parallelGroups`, `preActions`, `sequence`, `stepMeta`, `whenNotToUse`, `whenToUse`. There are NO `priority` or `triggers` properties — detection is semantic: the model matches the prompt against each workflow's `whenToUse`/`whenNotToUse` descriptions and auto-selects the best fit (works in any prompt language).
 
-**Live catalog (17 workflows):** `workflow-big-feature`, `workflow-bugfix`, `workflow-e2e`, `workflow-feature`, `workflow-feature-spec`, `workflow-greenfield-init`, `workflow-idea-to-pbi`, `workflow-product-discovery`, `workflow-refactor`, `workflow-research`, `workflow-review-changes`, `workflow-spec-driven-dev`, `workflow-spec-to-pbi`, `workflow-spec-sync`, `workflow-visualize`, `workflow-seed-test-data`, `workflow-write-integration-test`.
+**Live catalog (17 workflows):** `workflow-big-feature`, `workflow-bugfix`, `workflow-e2e`, `workflow-feature`, `workflow-feature-spec`, `workflow-greenfield-init`, `workflow-idea-to-pbi`, `workflow-product-discovery`, `workflow-refactor`, `workflow-research`, `workflow-review-changes`, `workflow-build-specs`, `workflow-spec-to-pbi`, `workflow-spec-sync`, `workflow-visualize`, `workflow-seed-test-data`, `workflow-write-integration-test`.
 
 | Workflow         | Sequence (abridged, from `workflows.json`)                                                        | whenToUse (abridged)                              |
 | ---------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
