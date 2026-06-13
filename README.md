@@ -30,10 +30,10 @@ Three core execution layers solve different failure modes. Specialized agents pl
 ├──────────────────┤  ├──────────────────┤  ├──────────────────┤
 │ Node.js scripts  │  │ Markdown prompts │  │ JSON sequences   │
 │ that run on      │  │ with YAML front  │  │ of skill steps   │
-│ lifecycle events │  │ matter           │  │ with user confirm│
+│ lifecycle events │  │ matter           │  │ with step gates  │
 │                  │  │                  │  │                  │
 │ Block/allow/     │  │ Define AI        │  │ Routed via       │
-│ inject context   │  │ behavior &       │  │ keyword detect   │
+│ inject context   │  │ behavior &       │  │ complexity+risk  │
 │ at every tool    │  │ quality gates    │  │ & todo tracking  │
 │ call             │  │                  │  │                  │
 ├──────────────────┤  ├──────────────────┤  ├──────────────────┤
@@ -141,14 +141,14 @@ npm run codex:sync                                          # same via package.j
 
 Runtime Node.js scripts that fire on Claude Code lifecycle events.
 
-| Category               | Hooks                                                                                                           | Purpose                                                                 |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| **Safety**             | `path-boundary-block`, `privacy-block`, `scout-block`                                                           | Prevent out-of-scope access, block secrets, limit broad searches        |
-| **Quality**            | `edit-enforcement`, `skill-enforcement`                                                                         | Force task tracking, enforce skill usage                                |
-| **Context Injection**  | `pretooluse-ctx-*` (9 dispatchers) + `prompt-context-assembler` — builders in `pretooluse-context-builders.cjs` | Auto-inject relevant patterns when editing specific file types          |
-| **Session Management** | `session-init`, `session-end`, `session-resume`, `post-compact-recovery`                                        | Initialize state, persist across compactions, recover after memory loss |
-| **Workflow**           | `workflow-router` (3 files), `workflow-step-tracker`, `todo-tracker`                                            | Detect intent, route to workflows, track step progress                  |
-| **Freshness Gates**    | `graph-build` gate, reference-docs staleness gate                                                               | Block investigations when code graph or reference docs are stale        |
+| Category               | Hooks                                                                                                               | Purpose                                                                 |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| **Safety**             | `path-boundary-block`, `privacy-block`, `scout-block`                                                               | Prevent out-of-scope access, block secrets, limit broad searches        |
+| **Quality**            | `edit-enforcement`, `skill-enforcement`                                                                             | Force task tracking, enforce skill usage                                |
+| **Context Injection**  | `pretooluse-ctx-*` (9 dispatchers) + `prompt-context-assembler` — builders in `lib/pretooluse-context-builders.cjs` | Auto-inject relevant patterns when editing specific file types          |
+| **Session Management** | `session-init`, `session-end`, `session-resume`, `post-compact-recovery`                                            | Initialize state, persist across compactions, recover after memory loss |
+| **Workflow**           | `workflow-router` (3 files), `workflow-step-tracker`, `todo-tracker`                                                | Detect intent, route to workflows, track step progress                  |
+| **Freshness Gates**    | `graph-build` gate, reference-docs staleness gate                                                                   | Block investigations when code graph or reference docs are stale        |
 
 **Context re-injection:** The framework re-injects CLAUDE.md rules, project config, and project-reference patterns at every `UserPromptSubmit` via `prompt-context-assembler` (5 files) and the `pretooluse-ctx-mindset` dispatcher. This stateless-per-turn design prevents context drift over long sessions. `lib/dedup-constants.cjs` ensures each injection fires exactly once per session.
 
@@ -182,7 +182,7 @@ End-to-end process orchestration with step enforcement.
 | `workflow-big-feature`            | Idea, research, domain/tech analysis, stories, specs, implementation    | Large or ambiguous feature needing research       |
 | `workflow-greenfield-init`        | Product inception through scaffold, implementation, tests, docs         | New project from scratch                          |
 | `workflow-product-discovery`      | Brainstorm, research, PBIs, stories, DoR, mockups, ranked backlog       | Turning raw vision into implementation-ready work |
-| `workflow-spec-driven-dev`        | Engineering specs, feature docs, TDD specs, implementation sync         | Keeping specs, tests, code, and docs aligned      |
+| `workflow-spec-driven-dev`        | Author + three-way-sync canonical Feature Specs and TDD test specs      | Keeping specs, tests, code, and docs aligned      |
 | `workflow-write-integration-test` | Domain investigation, test specs, integration test code, review, verify | Adding or updating integration tests              |
 | `workflow-refactor`               | Search-first restructuring with plan, implementation, review, tests     | Code improvement without behavior drift           |
 
