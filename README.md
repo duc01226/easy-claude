@@ -4,7 +4,7 @@
 
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **66 top-level hook files**, **156 skills**, **17 workflows**, and **29 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`, with Copilot instruction generation available through sync skills and scripts.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **54 top-level hook files**, **156 skills**, **17 workflows**, and **29 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`, with Copilot instruction generation available through sync skills and scripts.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -62,37 +62,34 @@ Three core execution layers solve different failure modes. Specialized agents pl
 cp -r .claude/ /path/to/your-project/.claude/
 ```
 
-**2. Initialize project configuration:**
+**2. Initialize project context (one command):**
 
 ```
-/project-config
+/project-init
 ```
 
-This scans your project and populates `docs/project-config.json` with tech stack, modules, directory structure, and build commands.
+`/project-init` is the canonical setup coordinator. It is idempotent and orchestrates the whole bootstrap so you don't have to run the lower-level skills by hand:
 
-**3. Scan project patterns (generates reference docs that hooks auto-inject):**
+- `/project-config` — scans your project and populates `docs/project-config.json` (tech stack, modules, directory structure, build commands)
+- `/scan-all` — generates the `docs/project-reference/` docs that hooks auto-inject
+- `/workflow-spec-driven-dev` — seeds/audits the canonical Feature Specs under `docs/specs/`
+- `/claude-md-init` — generates or smart-merges `CLAUDE.md` (preserving your project-specific content)
+- `/review-changes` → `/why-review` — reviews the generated setup
+- a background `/graph-build` — builds the structural code graph
+
+Codex/Copilot mirrors (`AGENTS.md`, `.agents/`, `.codex/`) are surfaced as a follow-up — run `/sync-codex` when prompted.
+
+**3. Refresh reference docs later (as the codebase evolves):**
 
 ```
-/scan-project-structure
-/scan-backend-patterns
-/scan-frontend-patterns
-/scan-code-review-rules
+/scan-all                          # refresh every reference doc
+/scan --target=backend-patterns    # refresh one (targets: project-structure | backend-patterns |
+                                   #   frontend-patterns | scss-styling | design-system | code-review-rules |
+                                   #   domain-entities | feature-spec | docs-index | e2e-tests | integration-tests)
+/scan-codebase-health              # detect unused exports, doc count-drift, orphan files
 ```
 
-Optional scans (run if applicable):
-
-```
-/scan-design-system
-/scan-domain-entities
-/scan-integration-tests
-/scan-e2e-tests
-/scan-scss-styling
-/scan-feature-docs
-```
-
-**4. Customize `CLAUDE.md`** at your project root with project-specific rules, architecture, and commands.
-
-**5. Start working:**
+**4. Start working:**
 
 ```
 /cook    # Implement features step-by-step
@@ -103,7 +100,7 @@ Optional scans (run if applicable):
 
 ## What's Inside
 
-### Hooks (66 top-level files, 31 lib modules)
+### Hooks (54 top-level files, 33 lib modules)
 
 Runtime Node.js scripts that fire on Claude Code lifecycle events.
 
@@ -116,26 +113,26 @@ Runtime Node.js scripts that fire on Claude Code lifecycle events.
 | **Workflow**           | `workflow-router` (3 files), `workflow-step-tracker`, `todo-tracker`                                            | Detect intent, route to workflows, track step progress                  |
 | **Freshness Gates**    | `graph-build` gate, reference-docs staleness gate                                                               | Block investigations when code graph or reference docs are stale        |
 
-**Context re-injection:** The framework re-injects CLAUDE.md rules, project config, and project-reference patterns at every `UserPromptSubmit` via `mindset-injector` and `prompt-context-assembler` (6 part-files). This stateless-per-turn design prevents context drift over long sessions. `dedup-constants.cjs` ensures each injection fires exactly once per session.
+**Context re-injection:** The framework re-injects CLAUDE.md rules, project config, and project-reference patterns at every `UserPromptSubmit` via `prompt-context-assembler` (5 files) and the `pretooluse-ctx-mindset` dispatcher. This stateless-per-turn design prevents context drift over long sessions. `lib/dedup-constants.cjs` ensures each injection fires exactly once per session.
 
-**Hook part-file architecture:** Large hooks are split into chained part-files (`-p2`, `-p3`) for maintainability. The harness chains them at runtime. Affected: `prompt-context-assembler` (6 files), `workflow-router` (3 files).
+**Hook part-file architecture:** Large hooks are split into chained part-files for maintainability. The harness chains them at runtime. Affected: `prompt-context-assembler` (5 files: base + `-claude`, `-closers`, `-docs`, `-project-config`), `workflow-router` (3 files: base + `-p2`, `-p3`).
 
-### Skills (160 definitions)
+### Skills (156 definitions)
 
 Markdown-based prompts with YAML frontmatter that guide AI behavior.
 
-| Category           | Examples                                                                                                       | What They Do                                            |
-| ------------------ | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| **Planning**       | `/plan`, `/scout`, `/investigate`                                                                              | Research, plan, investigate before coding               |
-| **Implementation** | `/cook`, `/code`, `/fix`, `/refactor`                                                                          | Write code with quality gates                           |
-| **Testing**        | `/test`, `/integration-test`, `/integration-test-review`, `/integration-test-verify`, `/e2e-test`, `/tdd-spec` | Test-first, test-after, and spec-traceability workflows |
-| **Review**         | `/code-review`, `/review-changes`, `/security`                                                                 | Code quality, security audits                           |
-| **Documentation**  | `/docs-update`, `/changelog`, `/feature-docs`                                                                  | Auto-generate and maintain docs                         |
-| **Research**       | `/web-research`, `/deep-research`, `/docs-seeker`                                                              | Web research, library docs fetching                     |
-| **Design**         | `/design-spec`, `/interface-design`, `/pbi-mockup`, `/excalidraw-diagram`                                      | UI/UX specs, wireframes, PBI visuals, diagrams          |
-| **DevOps**         | `/devops`, `/fix --target=ci`, `/sre-review`                                                                   | Infrastructure, CI/CD, reliability                      |
-| **Scanning**       | `/scan-project-structure`, `/scan-codebase-health`, `/scan-docs-index`                                         | Generate reference docs for hooks to auto-inject        |
-| **Documents**      | `/markdown-to-pdf`, `/markdown-to-docx`, `/pdf-to-markdown`                                                    | Document format conversion                              |
+| Category           | Examples                                                                                                   | What They Do                                            |
+| ------------------ | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| **Planning**       | `/plan`, `/scout`, `/investigate`                                                                          | Research, plan, investigate before coding               |
+| **Implementation** | `/cook`, `/code`, `/fix`, `/refactoring`                                                                   | Write code with quality gates                           |
+| **Testing**        | `/test`, `/integration-test`, `/integration-test-review`, `/integration-test-verify`, `/e2e-test`, `/spec` | Test-first, test-after, and spec-traceability workflows |
+| **Review**         | `/code-review`, `/review-changes`, `/security-review`                                                      | Code quality, security audits                           |
+| **Documentation**  | `/docs-update`, `/changelog`, `/spec`                                                                      | Auto-generate and maintain docs                         |
+| **Research**       | `/web-research`, `/deep-research`, `/docs-seeker`                                                          | Web research, library docs fetching                     |
+| **Design**         | `/design-spec`, `/interface-design`, `/pbi-mockup`, `/excalidraw-diagram`                                  | UI/UX specs, wireframes, PBI visuals, diagrams          |
+| **DevOps**         | `/devops`, `/fix --target=ci`, `/sre-review`                                                               | Infrastructure, CI/CD, reliability                      |
+| **Scanning**       | `/scan-all`, `/scan --target=<key>`, `/scan-codebase-health`                                               | Generate reference docs for hooks to auto-inject        |
+| **Documents**      | `/markdown-to-pdf`, `/markdown-to-docx`, `/pdf-to-markdown`                                                | Document format conversion                              |
 
 ### Workflows (17 definitions)
 
@@ -176,12 +173,12 @@ easy-claude/
 ├── .codex/                   # Codex agents, hooks, and context parity files
 ├── .claude/                  # <-- The framework template (copy this to your project)
 │   ├── agents/               # 29 specialized agent definitions
-│   ├── hooks/                # 66 top-level hook files + lib/ utilities
+│   ├── hooks/                # 54 top-level hook files + lib/ utilities
 │   │   ├── lib/              # Shared hook libraries
 │   │   ├── notifications/    # Multi-channel notification system
 │   │   ├── scout-block/      # Broad search prevention
 │   │   └── tests/            # Hook test suites
-│   ├── skills/               # 166 skill definitions
+│   ├── skills/               # 156 skill definitions
 │   │   ├── <skill>/          # Each skill directory contains:
 │   │   │   ├── SKILL.md      # Entry point (prompt + frontmatter)
 │   │   │   ├── scripts/      # Optional automation scripts
@@ -197,7 +194,7 @@ easy-claude/
 │   └── workflows.json        # Workflow catalog definitions
 ├── docs/
 │   ├── project-config.json   # Project-specific config (generated)
-│   └── project-reference/    # Reference docs (generated by /scan-*)
+│   └── project-reference/    # Reference docs (generated by /scan-all)
 ├── AGENTS.md                 # Codex-facing project instructions
 ├── CLAUDE.md                 # Project instructions for Claude
 ├── package.json              # Root tooling scripts for Codex compatibility
@@ -213,7 +210,7 @@ The entire framework is **project-agnostic**. All project-specific knowledge liv
 ```
 ┌─────────────────────────────────────┐
 │     Generic Framework (reusable)    │
-│ 66 Hook Files + 160 Skills + 21 Flows │
+│ 54 Hook Files + 156 Skills + 17 Flows │
 └──────────────┬──────────────────────┘
                │
         ┌──────┴──────┐
@@ -240,20 +237,21 @@ Hooks fire on 9 Claude Code events:
 | `PreToolUse`       | Before tool execution     | `privacy-block.cjs` — block secrets access                     |
 | `PostToolUse`      | After tool execution      | `tool-output-swap.cjs` — compress large outputs                |
 | `PreCompact`       | Before context compaction | `write-compact-marker.cjs` — save state                        |
-| `SubagentStart`    | Subagent init             | `subagent-init-*.cjs` (8 hooks) — inject agent context (paged) |
+| `SubagentStart`    | Subagent init             | `subagent-init-*.cjs` (3 hooks) — inject agent context (paged) |
 | `Notification`     | Desktop notify event      | `notify-waiting.js` — send system notification                 |
 | `Stop`             | Response complete         | `notify-waiting.js` — desktop notification                     |
 
 ### Workflow Detection
 
-The workflow router automatically matches user intent to the right workflow:
+The workflow router (the `WORKFLOW-GATE`) automatically classifies each prompt by complexity and risk, then matches it to the right route:
 
-- "implement X" → `feature` workflow
-- "fix this bug" → `bugfix` workflow
-- "refactor Y" → `refactor` workflow
-- "investigate how Z works" → `investigation` workflow
+- "implement a well-defined feature" → `workflow-feature`
+- "fix this bug" → `workflow-bugfix`
+- "refactor Y without changing behavior" → `workflow-refactor`
+- "build a large/ambiguous feature needing research" → `workflow-big-feature`
+- a trivial, low-risk one-off → direct execution (no workflow)
 
-Always asks for confirmation before activating. Prefix with `quick:` to skip confirmation and activate immediately.
+The gate **auto-selects** the route — it does not ask you to choose between direct/skill/workflow paths. A standard workflow is activated via `/start-workflow <id>`, which loads the workflow's canonical step sequence and builds the task list 1:1. An explicit `/skill` or `/workflow` in your prompt is always honored as-is.
 
 ## Design Principles
 
@@ -271,15 +269,15 @@ Seven principles that make this framework work reliably across any project:
 
 ## What's Project-Agnostic vs Project-Specific
 
-| Component                  | Agnostic? | Notes                                       |
-| -------------------------- | --------- | ------------------------------------------- |
-| Skills (`.claude/skills/`) | Yes       | Behavioral patterns, not code patterns      |
-| Agents (`.claude/agents/`) | Yes       | Role definitions, not project logic         |
-| Hooks (`.claude/hooks/`)   | Yes       | Context injection reads from config         |
-| Workflows                  | Yes       | Process definitions, not implementation     |
-| `CLAUDE.md`                | **No**    | Must customize per project                  |
-| `docs/project-config.json` | **No**    | Generated per project via `/project-config` |
-| `docs/project-reference/`  | **No**    | Generated per project via `/scan-*` skills  |
+| Component                  | Agnostic? | Notes                                                                |
+| -------------------------- | --------- | -------------------------------------------------------------------- |
+| Skills (`.claude/skills/`) | Yes       | Behavioral patterns, not code patterns                               |
+| Agents (`.claude/agents/`) | Yes       | Role definitions, not project logic                                  |
+| Hooks (`.claude/hooks/`)   | Yes       | Context injection reads from config                                  |
+| Workflows                  | Yes       | Process definitions, not implementation                              |
+| `CLAUDE.md`                | **No**    | Generated/merged per project via `/project-init` (`/claude-md-init`) |
+| `docs/project-config.json` | **No**    | Generated per project via `/project-init` (`/project-config`)        |
+| `docs/project-reference/`  | **No**    | Generated per project via `/project-init` (`/scan-all`)              |
 
 ## Optional Dependencies
 
