@@ -9,7 +9,7 @@
 | **New to Claude Code?**      | [quick-start.md](./quick-start.md) - 5-minute onboarding                                        |
 | **Need a skill?**            | [skills/README.md](./skills/README.md) - 155 skills catalog                                     |
 | **Building a feature?**      | [skills/README.md](./skills/README.md) + `docs/project-reference/` patterns                     |
-| **Understanding hooks?**     | [hooks/README.md](./hooks/README.md) - 54 top-level hook files deep-dive                        |
+| **Understanding hooks?**     | [hooks/README.md](./hooks/README.md) - 52 top-level hook files deep-dive                        |
 | **Understanding workflows?** | `CLAUDE.md` workflow catalog (project root) - 17 workflows                                      |
 | **Configuring Claude?**      | [configuration/README.md](./configuration/README.md)                                            |
 | **Team collaboration?**      | [team-collaboration-guide.md](./team-collaboration-guide.md) - PO, BA, QA, QC, UX, PM workflows |
@@ -27,7 +27,7 @@
 |   |-- README.md             Skills overview + full catalog
 |   +-- (patterns)           → docs/project-reference/
 |
-|-- hooks/                    54 top-level hook files, 33 lib modules
+|-- hooks/                    52 top-level hook files, 33 lib modules
 |   |-- README.md             Hooks overview, lessons system, session lifecycle
 |   +-- extending-hooks.md    How to create custom hooks
 |
@@ -144,7 +144,7 @@
 | Category               | Count |
 | ---------------------- | ----- |
 | Skills                 | 155   |
-| Hook files (top-level) | 54    |
+| Hook files (top-level) | 52    |
 | Lib Modules            | 33    |
 | Hook Events            | 9     |
 | Agents                 | 29    |

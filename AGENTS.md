@@ -281,7 +281,7 @@ These skills auto-activate before file edits in their path patterns:
 | Kind        | Count                                       |
 | ----------- | ------------------------------------------- |
 | Skills      | <!-- COUNT:skills -->155<!-- /COUNT -->     |
-| Hooks       | <!-- COUNT:hooks -->54<!-- /COUNT -->       |
+| Hooks       | <!-- COUNT:hooks -->52<!-- /COUNT -->       |
 | Agents      | <!-- COUNT:agents -->29<!-- /COUNT -->      |
 | Workflows   | <!-- COUNT:workflows -->17<!-- /COUNT -->   |
 | Shared      | <!-- COUNT:shared -->6<!-- /COUNT -->       |

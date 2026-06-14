@@ -4,7 +4,7 @@
 
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **54 top-level hook files**, **156 skills**, **17 workflows**, and **29 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`, with Copilot instruction generation available through sync skills and scripts.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **52 top-level hook files**, **156 skills**, **17 workflows**, and **29 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`, with Copilot instruction generation available through sync skills and scripts.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -137,7 +137,7 @@ npm run codex:sync                                          # same via package.j
 
 ## What's Inside
 
-### Hooks (54 top-level files, 33 lib modules)
+### Hooks (52 top-level files, 33 lib modules)
 
 Runtime Node.js scripts that fire on Claude Code lifecycle events.
 
@@ -161,13 +161,13 @@ Markdown-based prompts with YAML frontmatter that guide AI behavior.
 | Category           | Examples                                                                                                   | What They Do                                            |
 | ------------------ | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
 | **Planning**       | `/plan`, `/scout`, `/investigate`                                                                          | Research, plan, investigate before coding               |
-| **Implementation** | `/feature-implement`, `/plan-execute`, `/fix`, `/refactoring`                                                                   | Write code with quality gates                           |
+| **Implementation** | `/feature-implement`, `/plan-execute`, `/fix`, `/refactoring`                                              | Write code with quality gates                           |
 | **Testing**        | `/test`, `/integration-test`, `/integration-test-review`, `/integration-test-verify`, `/e2e-test`, `/spec` | Test-first, test-after, and spec-traceability workflows |
 | **Review**         | `/code-review`, `/review-changes`, `/security-review`                                                      | Code quality, security audits                           |
 | **Documentation**  | `/docs-update`, `/changelog`, `/spec`                                                                      | Auto-generate and maintain docs                         |
 | **Research**       | `/web-research`, `/deep-research`, `/docs-seeker`                                                          | Web research, library docs fetching                     |
 | **Design**         | `/design-spec`, `/interface-design`, `/pbi-mockup`, `/excalidraw-diagram`                                  | UI/UX specs, wireframes, PBI visuals, diagrams          |
-| **DevOps**         | `/devops`, `/fix --target=ci`, `/production-readiness-review`                                                               | Infrastructure, CI/CD, reliability                      |
+| **DevOps**         | `/devops`, `/fix --target=ci`, `/production-readiness-review`                                              | Infrastructure, CI/CD, reliability                      |
 | **Scanning**       | `/scan-all`, `/scan --target=<key>`, `/scan-codebase-health`                                               | Generate reference docs for hooks to auto-inject        |
 | **Documents**      | `/markdown-to-pdf`, `/markdown-to-docx`, `/pdf-to-markdown`                                                | Document format conversion                              |
 
@@ -198,21 +198,21 @@ End-to-end process orchestration with step enforcement. The table below shows th
 
 Reviews are first-class skills you can run standalone, and several are chained automatically inside `workflow-review-changes` — the recommended gate before any commit. That workflow runs, in order: `/review-changes` → `/why-review` → `/review-architecture` → `/review-domain-entities` → `/performance-review` → `/integration-test-review` → `/security-review` → `/code-simplifier`, then re-reviews until clean.
 
-| Review skill               | Catches                                                                  |
-| -------------------------- | ------------------------------------------------------------------------ |
-| `/review-changes`          | General correctness/quality on staged, unstaged, or branch-diff changes  |
-| `/code-review`             | Targeted code-quality review and completion-claim verification           |
-| `/why-review`              | Weak rationale / unjustified changes in plans, diffs, PBIs, specs        |
-| `/review-architecture`     | Layering, messaging, service-boundary, CQRS, repo violations             |
-| `/review-domain-entities`  | DDD design quality of entities and value objects                         |
-| `/performance-review`      | N+1 queries, indexing, API latency, memory, render bottlenecks           |
-| `/security-review`         | OWASP Top 10, secrets exposure, dependency/supply-chain risk             |
-| `/integration-test-review` | Assertion quality, bug protection, repeatability, test↔spec traceability |
-| `/production-readiness-review`              | Production readiness of service-layer and API changes                    |
-| `/review-ui`               | Overflow, responsive layout, z-index, SCSS/BEM quality                   |
-| `/plan-review`             | Plan validity, correctness, and best-practice gaps (recursive)           |
-| `/review-artifact`         | PBI / story / test-spec / design artifact quality before handoff         |
-| `/quality-gate`            | Run the consolidated quality-gate checklist                              |
+| Review skill                   | Catches                                                                  |
+| ------------------------------ | ------------------------------------------------------------------------ |
+| `/review-changes`              | General correctness/quality on staged, unstaged, or branch-diff changes  |
+| `/code-review`                 | Targeted code-quality review and completion-claim verification           |
+| `/why-review`                  | Weak rationale / unjustified changes in plans, diffs, PBIs, specs        |
+| `/review-architecture`         | Layering, messaging, service-boundary, CQRS, repo violations             |
+| `/review-domain-entities`      | DDD design quality of entities and value objects                         |
+| `/performance-review`          | N+1 queries, indexing, API latency, memory, render bottlenecks           |
+| `/security-review`             | OWASP Top 10, secrets exposure, dependency/supply-chain risk             |
+| `/integration-test-review`     | Assertion quality, bug protection, repeatability, test↔spec traceability |
+| `/production-readiness-review` | Production readiness of service-layer and API changes                    |
+| `/review-ui`                   | Overflow, responsive layout, z-index, SCSS/BEM quality                   |
+| `/plan-review`                 | Plan validity, correctness, and best-practice gaps (recursive)           |
+| `/review-artifact`             | PBI / story / test-spec / design artifact quality before handoff         |
+| `/quality-gate`                | Run the consolidated quality-gate checklist                              |
 
 ### Agents (29 specialists)
 
@@ -238,7 +238,7 @@ easy-claude/
 ├── .codex/                   # Codex agents, hooks, and context parity files
 ├── .claude/                  # <-- The framework template (copy this to your project)
 │   ├── agents/               # 29 specialized agent definitions
-│   ├── hooks/                # 54 top-level hook files + lib/ utilities
+│   ├── hooks/                # 52 top-level hook files + lib/ utilities
 │   │   ├── lib/              # Shared hook libraries
 │   │   ├── notifications/    # Multi-channel notification system
 │   │   ├── scout-block/      # Broad search prevention
@@ -275,7 +275,7 @@ The entire framework is **project-agnostic**. All project-specific knowledge liv
 ```
 ┌─────────────────────────────────────┐
 │     Generic Framework (reusable)    │
-│ 54 Hook Files + 156 Skills + 17 Flows │
+│ 52 Hook Files + 156 Skills + 17 Flows │
 └──────────────┬──────────────────────┘
                │
         ┌──────┴──────┐

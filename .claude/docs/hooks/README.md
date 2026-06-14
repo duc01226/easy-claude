@@ -1,6 +1,6 @@
 # Hooks Reference
 
-> 54 top-level hook files + 33 lib modules for context-aware AI behavior (some hooks register on multiple events)
+> 52 top-level hook files + 33 lib modules for context-aware AI behavior (some hooks register on multiple events)
 
 ## Overview
 
@@ -21,10 +21,10 @@ SessionStart hooks → UserPromptSubmit hooks → PreToolUse hooks → [Tool run
 | `SessionStart`     | Session begins/resumes       | 9     | Verify install, init state, recover from compaction, resume context, load docs                   |
 | `SessionEnd`       | Session ends                 | 2     | Save state, cleanup temp/swap files, notifications                                               |
 | `UserPromptSubmit` | Before processing user input | 11    | Route workflows (3 split hooks), gate init, assemble prompt context (6 split hooks)              |
-| `PreToolUse`       | Before tool execution        | 30    | Block sensitive ops, inject context, enforce plans/todos, warn on doc⇄code drift                 |
+| `PreToolUse`       | Before tool execution        | 24    | Block sensitive ops, inject context, enforce plans/todos, warn on doc⇄code drift                 |
 | `PostToolUse`      | After tool completes         | 8     | Externalize outputs, format code, track events                                                   |
 | `PreCompact`       | Before context compaction    | 1     | Write compaction marker; capture git status snapshot for post-compact re-verify warning          |
-| `SubagentStart`    | Subagent spawning            | 8     | Inject project context as 8 lightweight guidance pointers (read-on-demand — no full doc content) |
+| `SubagentStart`    | Subagent spawning            | 3     | Inject project context via 3 dispatchers running 8 lightweight builder pointers (read-on-demand — no full doc content) |
 | `Notification`     | Idle/waiting events          | 1     | System notifications                                                                             |
 | `Stop`             | Response complete            | 1     | System notifications                                                                             |
 

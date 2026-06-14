@@ -11,7 +11,7 @@
 
 | Component      | Count                                                                                         | Location                      | Format                                                                             |
 | -------------- | --------------------------------------------------------------------------------------------- | ----------------------------- | ---------------------------------------------------------------------------------- |
-| Hooks          | <!-- COUNT:hooks -->54<!-- /COUNT -->                                                         | `.claude/hooks/*.cjs`         | Top-level CommonJS Node.js hook scripts counted by ADR-0002                        |
+| Hooks          | <!-- COUNT:hooks -->52<!-- /COUNT -->                                                         | `.claude/hooks/*.cjs`         | Top-level CommonJS Node.js hook scripts counted by ADR-0002                        |
 | Hook Libraries | <!-- COUNT:lib-modules -->33<!-- /COUNT -->                                                   | `.claude/hooks/lib/*.cjs`     | CommonJS utility modules                                                           |
 | Skills         | <!-- COUNT:skills -->155<!-- /COUNT -->                                                       | `.claude/skills/*/SKILL.md`   | Markdown + YAML frontmatter                                                        |
 | Agents         | <!-- COUNT:agents -->29<!-- /COUNT -->                                                        | `.claude/agents/*.md`         | Markdown definitions                                                               |
@@ -87,7 +87,7 @@ easy-claude/
 │   │   ├── hooks/                    # Hook documentation
 │   │   ├── skills/                   # Skill documentation
 │   │   └── team-artifacts/           # Templates for PBIs, stories, specs
-│   ├── hooks/                        # 65 top-level .cjs runtime hook files (+ notify-waiting.js)
+│   ├── hooks/                        # 52 top-level .cjs runtime hook files (+ notify-waiting.js)
 │   │   ├── config/                   # Hook configuration
 │   │   │   └── swap-config.json
 │   │   ├── docs/                     # Hook documentation
@@ -171,7 +171,7 @@ easy-claude/
 │   │   ├── session-init.cjs
 │   │   ├── session-resume.cjs
 │   │   ├── skill-enforcement.cjs
-│   │   ├── subagent-init-*.cjs (8 hooks)    # identity, patterns, dev-rules, code-review-rules, lessons, ai-mistakes, context-guard, todos
+│   │   ├── subagent-init-*.cjs (3 dispatchers, 8 builders)  # identity, patterns, dev-rules, code-review-rules, lessons, ai-mistakes, context-guard, todos
 │   │   ├── todo-tracker.cjs
 │   │   ├── tool-output-swap.cjs
 │   │   ├── windows-command-detector.cjs
@@ -273,7 +273,7 @@ easy-claude/
 
 | Code | Module         | Location                       | Description                                                                                                                 |
 | ---- | -------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
-| HK   | Hooks          | `.claude/hooks/`               | <!-- COUNT:hooks -->54<!-- /COUNT --> top-level `.cjs` runtime enforcement & context injection hook files                   |
+| HK   | Hooks          | `.claude/hooks/`               | <!-- COUNT:hooks -->52<!-- /COUNT --> top-level `.cjs` runtime enforcement & context injection hook files                   |
 | HL   | Hook Libraries | `.claude/hooks/lib/`           | <!-- COUNT:lib-modules -->33<!-- /COUNT --> shared utility modules for hooks                                                |
 | SK   | Skills         | `.claude/skills/`              | <!-- COUNT:skills -->155<!-- /COUNT --> task automation skill definitions                                                   |
 | AG   | Agents         | `.claude/agents/`              | <!-- COUNT:agents -->29<!-- /COUNT --> specialized subagent role definitions                                                |
@@ -286,7 +286,7 @@ easy-claude/
 | SB   | Scout Block    | `.claude/hooks/scout-block/`   | Broad search prevention subsystem (4 modules)                                                                               |
 | HT   | Hook Tests     | `.claude/hooks/tests/`         | 16 test suites + 13 standalone tests; 14 `test-*` files including primary runner                                            |
 
-## Hooks (<!-- COUNT:hooks -->54<!-- /COUNT --> top-level `.cjs` files)
+## Hooks (<!-- COUNT:hooks -->52<!-- /COUNT --> top-level `.cjs` files)
 
 ### Safety Hooks
 
@@ -400,7 +400,7 @@ easy-claude/
 | `planner`                  | Implementation planning, trade-off analysis  |
 | `product-owner`            | Value-driven decisions, backlog management   |
 | `project-manager`          | Progress tracking, status consolidation      |
-| `quality-gate-review`            | Quality gates, compliance verification       |
+| `quality-gate-review`      | Quality gates, compliance verification       |
 | `researcher`               | Technology research, best practices          |
 | `scout`                    | File location across large codebases         |
 | `scout-external`           | File location via external tools             |
