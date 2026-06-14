@@ -65,7 +65,7 @@
 | Create user story        | `/story`                   | `business-analyst`        |
 | Prioritize backlog       | `/prioritize`              | `product-owner`           |
 | Create test cases        | `/spec [mode=tests]`       | `spec [mode=tests]`       |
-| Quality checkpoint       | `/quality-gate`            | `quality-gate`            |
+| Quality checkpoint       | `/quality-gate-review`           | `quality-gate-review`           |
 | Create design spec       | `/design-spec`             | `design-spec`             |
 | Analyze blast radius     | `/graph-blast-radius`      | `graph-blast-radius`      |
 | Build code graph         | `/graph-build`             | `graph-build`             |

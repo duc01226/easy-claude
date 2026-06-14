@@ -1,5 +1,5 @@
 ---
-name: sre-review
+name: production-readiness-review
 version: 1.4.0
 description: '[Code Quality] Use when reviewing service-layer and API changes for production readiness.'
 ---
@@ -54,7 +54,7 @@ $ARGUMENTS
 
 Score each criterion 0-2: **0** = not addressed, **1** = partially, **2** = fully.
 
-> **MANDATORY when batched (≥10 files, `SYNC:systematic-review-batching` active):** the 12 criteria are scored **holistically across the FULL cross-batch scope**, NOT by merging or averaging per-batch scores. Several criteria are inherently cross-file — e.g. "all query filter fields have indexes" can have the query in one batch and the migration in another; a per-batch score sees only its ≤8 files and would false-flag a `0` when the satisfying file lives in a different batch. The synthesis/reduce tier MUST therefore **RE-SCORE each of the 12 criteria from the combined cross-batch evidence** (batch agents surface evidence per criterion; the reducer assigns the score). If holistic re-score is infeasible for a given run, do NOT batch sre-review — fall back to whole-scope serial scoring.
+> **MANDATORY when batched (≥10 files, `SYNC:systematic-review-batching` active):** the 12 criteria are scored **holistically across the FULL cross-batch scope**, NOT by merging or averaging per-batch scores. Several criteria are inherently cross-file — e.g. "all query filter fields have indexes" can have the query in one batch and the migration in another; a per-batch score sees only its ≤8 files and would false-flag a `0` when the satisfying file lives in a different batch. The synthesis/reduce tier MUST therefore **RE-SCORE each of the 12 criteria from the combined cross-batch evidence** (batch agents surface evidence per criterion; the reducer assigns the score). If holistic re-score is infeasible for a given run, do NOT batch production-readiness-review — fall back to whole-scope serial scoring.
 
 ### Observability (max 8)
 
@@ -205,8 +205,8 @@ When a review pass finds issues, validate findings before any fix. Do not spawn 
 
 > **MANDATORY — NO EXCEPTIONS:** If NOT already in workflow, use `AskUserQuestion` to ask user:
 >
-> 1. **Activate `workflow-feature` workflow** (Recommended) — scout → investigate → plan → feature-implement → review → sre-review → test → docs
-> 2. **Execute `/sre-review` directly** — run standalone
+> 1. **Activate `workflow-feature` workflow** (Recommended) — scout → investigate → plan → feature-implement → review → production-readiness-review → test → docs
+> 2. **Execute `/production-readiness-review` directly** — run standalone
 
 ---
 
@@ -652,7 +652,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 >
 > **Score-based skills** map their numeric scale onto these tiers — do not invent a parallel vocabulary:
 >
-> - **0-2 criterion scoring** (e.g. sre-review): `0` = CRITICAL/HIGH (criterion unmet, blocks production readiness), `1` = MEDIUM (partial, should fix), `2` = pass (no finding).
+> - **0-2 criterion scoring** (e.g. production-readiness-review): `0` = CRITICAL/HIGH (criterion unmet, blocks production readiness), `1` = MEDIUM (partial, should fix), `2` = pass (no finding).
 > - **Two-axis scoring** (e.g. performance-review, impact × likelihood): map the resulting cell to the nearest tier — high-impact + high-likelihood → CRITICAL/HIGH; low-impact OR low-likelihood → MEDIUM/LOW.
 >
 > A finding's tier drives the gate: CRITICAL/HIGH must be resolved or explicitly accepted by the owner before PASS; MEDIUM/LOW may ship with a tracked follow-up.

@@ -372,7 +372,7 @@ The skill auto-derives categories from file paths. For repositories without `.cl
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, use a direct user question to ask the user:
 >
 > 1. **Execute `$release-doc` directly (Recommended)** — Standalone analysis and doc generation
-> 2. **Run `$sre-review` + `$quality-gate` first** — Pre-release quality gate, then release doc
+> 2. **Run `$production-readiness-review` + `$quality-gate` first** — Pre-release quality gate, then release doc
 
 ---
 

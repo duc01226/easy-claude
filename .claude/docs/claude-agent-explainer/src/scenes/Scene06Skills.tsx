@@ -9,7 +9,7 @@ const SCRIPT_LINES = [
 ];
 
 const CATEGORIES = [
-    { label: 'Quality & Verification', skills: 'code-review · prove-fix · quality-gate · sre-review', color: C.green },
+    { label: 'Quality & Verification', skills: 'code-review · prove-fix · quality-gate-review · production-readiness-review', color: C.green },
     { label: 'Planning & Research', skills: 'plan · investigate · scout · research', color: C.blue },
     { label: 'Implementation', skills: 'feature-implement · fix · refactoring', color: C.purple },
     { label: 'Testing & TDD', skills: 'spec [mode=tests] · integration-test · e2e-test · test', color: C.amber },

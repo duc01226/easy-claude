@@ -788,7 +788,7 @@ Source: `.claude/skills/shared/sync-inline-versions.md`
 > | Feedforward | Computational | `.editorconfig`, strict compiler flags, enforced module boundaries            | Always-on        |
 > | Feedforward | Inferential   | `CLAUDE.md` conventions, skill prompts, architecture notes, pattern catalogs  | Always-on        |
 > | Feedback    | Computational | Linters, type checks, pre-commit hooks, ArchUnit/arch-fitness tests, CI gates | Pre-commit → CI  |
-> | Feedback    | Inferential   | `$code-review` skill, `$sre-review`, `$security-review`, LLM-as-judge passes         | Post-commit → CI |
+> | Feedback    | Inferential   | `$code-review` skill, `$production-readiness-review`, `$security-review`, LLM-as-judge passes         | Post-commit → CI |
 >
 > **Three harness types:**
 >
@@ -1377,7 +1377,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 >
 > **Score-based skills** map their numeric scale onto these tiers — do not invent a parallel vocabulary:
 >
-> - **0-2 criterion scoring** (e.g. sre-review): `0` = CRITICAL/HIGH (criterion unmet, blocks production readiness), `1` = MEDIUM (partial, should fix), `2` = pass (no finding).
+> - **0-2 criterion scoring** (e.g. production-readiness-review): `0` = CRITICAL/HIGH (criterion unmet, blocks production readiness), `1` = MEDIUM (partial, should fix), `2` = pass (no finding).
 > - **Two-axis scoring** (e.g. performance-review, impact × likelihood): map the resulting cell to the nearest tier — high-impact + high-likelihood → CRITICAL/HIGH; low-impact OR low-likelihood → MEDIUM/LOW.
 >
 > A finding's tier drives the gate: CRITICAL/HIGH must be resolved or explicitly accepted by the owner before PASS; MEDIUM/LOW may ship with a tracked follow-up.
@@ -2029,7 +2029,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > | Feedforward | Computational | `.editorconfig`, strict compiler flags, enforced module boundaries            | Always-on        |
 > | Feedforward | Inferential   | `CLAUDE.md` conventions, skill prompts, architecture notes, pattern catalogs  | Always-on        |
 > | Feedback    | Computational | Linters, type checks, pre-commit hooks, ArchUnit/arch-fitness tests, CI gates | Pre-commit → CI  |
-> | Feedback    | Inferential   | `$code-review` skill, `$sre-review`, `$security-review`, LLM-as-judge passes         | Post-commit → CI |
+> | Feedback    | Inferential   | `$code-review` skill, `$production-readiness-review`, `$security-review`, LLM-as-judge passes         | Post-commit → CI |
 >
 > **Three harness types:**
 >
@@ -2618,7 +2618,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 >
 > **Score-based skills** map their numeric scale onto these tiers — do not invent a parallel vocabulary:
 >
-> - **0-2 criterion scoring** (e.g. sre-review): `0` = CRITICAL/HIGH (criterion unmet, blocks production readiness), `1` = MEDIUM (partial, should fix), `2` = pass (no finding).
+> - **0-2 criterion scoring** (e.g. production-readiness-review): `0` = CRITICAL/HIGH (criterion unmet, blocks production readiness), `1` = MEDIUM (partial, should fix), `2` = pass (no finding).
 > - **Two-axis scoring** (e.g. performance-review, impact × likelihood): map the resulting cell to the nearest tier — high-impact + high-likelihood → CRITICAL/HIGH; low-impact OR low-likelihood → MEDIUM/LOW.
 >
 > A finding's tier drives the gate: CRITICAL/HIGH must be resolved or explicitly accepted by the owner before PASS; MEDIUM/LOW may ship with a tracked follow-up.
@@ -3057,7 +3057,7 @@ Workflow source: `.claude/workflows.json` (17 workflows).
 ### workflow-big-feature — Big Feature (Research + Implement)
 - Description: Research-driven feature development for large, complex, or ambiguous features in an existing project — includes idea refinement, market research, business evaluation, domain analysis, tech stack research, and full implementation
 - When To Use: User wants to implement a large, complex, or ambiguous feature that needs research, market analysis, business evaluation, domain modeling, or tech stack analysis before implementation. Big new module, major enhancement, cross-cutting capability, or feature where scope is unclear
-- Sequence: `idea -> web-research -> deep-research -> business-evaluation -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> why-review -> plan -> plan-review -> refine -> why-review -> review-artifact --type=pbi -> story -> why-review -> review-artifact --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> spec -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> plan -> plan-review -> scaffold -> plan-validate -> why-review -> plan-execute -> review-domain-entities -> integration-test -> integration-test-review -> integration-test-verify -> spec [mode=sync] -> workflow-review-changes -> sre-review -> security-review -> changelog -> test -> docs-update -> workflow-end -> watzup`
+- Sequence: `idea -> web-research -> deep-research -> business-evaluation -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> why-review -> plan -> plan-review -> refine -> why-review -> review-artifact --type=pbi -> story -> why-review -> review-artifact --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> spec -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> plan -> plan-review -> scaffold -> plan-validate -> why-review -> plan-execute -> review-domain-entities -> integration-test -> integration-test-review -> integration-test-verify -> spec [mode=sync] -> workflow-review-changes -> production-readiness-review -> security-review -> changelog -> test -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -3091,7 +3091,7 @@ After workflow activation, auto-select the applicable steps and skip irrelevant 
 - [x] Domain Entity Review (review-domain-entities) — CONDITIONAL: skip if no domain entity files changed
 - [x] Integration Tests (integration-test)
 - [x] Review Changes (workflow-review-changes) — consolidated review + fix loop
-- [x] SRE Review (sre-review)
+- [x] SRE Review (production-readiness-review)
 - [x] Changelog (changelog)
 - [x] Tests (test)
 - [x] Documentation (docs-update)
@@ -3227,7 +3227,7 @@ UNIVERSAL RULES:
 ### workflow-feature — Feature Implementation
 - Description: Full feature development workflow with search-first approach, planning, implementation, testing, and documentation
 - When To Use: User wants to implement a well-defined feature, add a component, build a capability, develop a module, implement/execute an existing plan, create a new API endpoint, or design an API contract, TDD/test-first development, spec-driven feature implementation with test specs written before code
-- Sequence: `scout -> investigate -> domain-analysis -> why-review -> spec -> plan -> plan-review -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> plan -> plan-review -> plan-execute -> review-domain-entities -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> spec [mode=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> sre-review -> security-review -> changelog -> test -> docs-update -> workflow-end -> watzup`
+- Sequence: `scout -> investigate -> domain-analysis -> why-review -> spec -> plan -> plan-review -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> plan -> plan-review -> plan-execute -> review-domain-entities -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> spec [mode=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> production-readiness-review -> security-review -> changelog -> test -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -3247,7 +3247,7 @@ FEATURE IMPLEMENTATION PROTOCOL:
 9. Update test specs to catch implementation gaps with $spec [mode=tests]. Review with $review-artifact --type=spec-tests. Sync §8 TCs ↔ integration test code with $spec [mode=sync].
 10. Generate/update integration tests with $integration-test — creates actual test files from TC specifications — then verify with $integration-test-review and $integration-test-verify.
 11. Review the full change set with $workflow-review-changes (simplification, code quality, UI, architecture, and patterns compliance).
-12. SRE review for production readiness with $sre-review; security review with $security-review.
+12. SRE review for production readiness with $production-readiness-review; security review with $security-review.
 13. Update changelog with feature entry
 14. Run tests to verify no regressions
 15. Update documentation if feature impacts business docs
@@ -3301,7 +3301,7 @@ UNIVERSAL RULES:
 ### workflow-greenfield-init — Greenfield Project Init
 - Description: Full waterfall project inception from idea through implementation with integration testing
 - When To Use: User wants to start a new project from scratch, init a greenfield project, plan a new application, research and plan before coding, bootstrap a new codebase, build something new
-- Sequence: `idea -> web-research -> deep-research -> business-evaluation -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> why-review -> plan -> plan-review -> security-review -> performance-review -> plan-review -> refine -> why-review -> review-artifact --type=pbi -> story -> why-review -> review-artifact --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> plan -> plan-review -> scaffold -> linter-setup -> harness-setup -> why-review -> plan-execute -> review-domain-entities -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> plan -> plan-review -> integration-test -> integration-test-review -> integration-test-verify -> test -> workflow-review-changes -> sre-review -> security-review -> changelog -> test -> docs-update -> workflow-end -> watzup`
+- Sequence: `idea -> web-research -> deep-research -> business-evaluation -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> why-review -> plan -> plan-review -> security-review -> performance-review -> plan-review -> refine -> why-review -> review-artifact --type=pbi -> story -> why-review -> review-artifact --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> plan -> plan-review -> scaffold -> linter-setup -> harness-setup -> why-review -> plan-execute -> review-domain-entities -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> plan -> plan-review -> integration-test -> integration-test-review -> integration-test-verify -> test -> workflow-review-changes -> production-readiness-review -> security-review -> changelog -> test -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -3366,7 +3366,7 @@ After scaffolding, the workflow continues with full implementation and integrati
 7. $integration-test generates integration tests from specs
 8. $test runs all tests to verify TCs pass
 9. $workflow-review-changes for quality (use the canonical review-changes workflow sequence from .claude/workflows.json: review-changes, why-review findings validation, parallel review batch, code-simplifier, verification, plan/plan-review/why-review/plan-execute, and full re-review restart)
-10. $sre-review + $security-review for production readiness
+10. $production-readiness-review + $security-review for production readiness
 11. $changelog + final $test + $docs-update + $watzup to close
 This ensures greenfield projects ship with integration test coverage from day one.
 UNIVERSAL RULES:
@@ -3566,7 +3566,7 @@ UNIVERSAL RULES:
 ### workflow-refactor — Code Refactoring
 - Description: Code improvement and restructuring workflow with search-first approach
 - When To Use: User wants to restructure, reorganize, clean up, or improve existing code without changing behavior; technical debt
-- Sequence: `scout -> investigate -> plan -> plan-review -> plan-validate -> why-review -> plan-execute -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> spec [mode=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> sre-review -> changelog -> test -> docs-update -> workflow-end -> watzup`
+- Sequence: `scout -> investigate -> plan -> plan-review -> plan-validate -> why-review -> plan-execute -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> spec [mode=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> production-readiness-review -> changelog -> test -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -3876,6 +3876,7 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `plan-review` | [Planning] Use when you need to auto-review a plan for validity, correctness, and best practices — recursive: review, validate findings with why-review, fix validated findings, full re-review until no findings. |
 | `plan-validate` | [Planning] Use when you need to validate a plan with critical questions interview. |
 | `prioritize` | [Project Management] Use when you need to prioritize backlog items using RICE, MoSCoW, or Value-Effort frameworks. |
+| `production-readiness-review` | [Code Quality] Use when reviewing service-layer and API changes for production readiness. |
 | `prove-fix` | [Code Quality] Use when you need to prove fix correctness with code proof traces, confidence scoring, and stack-trace-style evidence chains. |
 | `refine` | [Project Management] Use when converting ideas to PBIs, validating problem hypotheses, adding acceptance criteria, or refining requirements. |
 | `review-architecture` | [Code Quality] Use when reviewing architecture compliance for layers, messaging, service boundaries, CQRS, repos, and entity events. |
@@ -3889,7 +3890,6 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `seed-test-data` | [Dev Data] Use when you need to implement or enhance test data seeders that simulate QC happy-path scenarios via application-layer commands. |
 | `spec` | [Documentation] Use to author, audit, amend, or test-spec a business Feature Spec. The single spec skill — modes draft\|init\|update\|audit\|amend create/maintain the tech-free 8-section Feature Spec; draft authors a provisional spec from an idea/requirement (no code yet, Evidence: TBD); tests generates Section 8 TC-{FEATURE}-{NNN} test specifications; sync reconciles §8 TCs ↔ integration test code. Per-mode procedure lives in references/{author,tests,sync}.md. |
 | `spec-index` | [General] Use when you need to (re)generate a DERIVED navigation index, cross-capability ERD, or reimplementation guide assembled FROM the canonical Feature Specs under docs/specs/**. Never extracts a separate A-E engineering tree. |
-| `sre-review` | [Code Quality] Use when reviewing service-layer and API changes for production readiness. |
 | `story` | [Project Management] Use when creating user stories from PBIs, slicing features, or breaking down requirements. |
 | `tech-stack-research` | [Architecture] Use when you need to research, analyze, and compare tech stack options as a solution architect. |
 | `test` | [Testing] Use when you need to run tests locally and analyze the summary report. |

@@ -116,7 +116,7 @@ See `docs/project-reference/frontend-patterns-reference.md` for project-specific
 | `code-review`       | review, feedback, PR review                             | Code review                                          |
 | `scout`             | find files, locate, search codebase                     | Fast codebase file discovery                         |
 | `why-review`        | why, design rationale, plan validation, alternatives    | Validate design rationale in plan files              |
-| `sre-review`        | sre, production, observability, reliability, ops review | Production readiness scoring for service/API changes |
+| `production-readiness-review`        | sre, production, observability, reliability, ops review | Production readiness scoring for service/API changes |
 
 ---
 
@@ -285,7 +285,7 @@ Skills are often activated alongside commands:
 | `/story`        | `story`, `business-analyst`      |
 | `/design-spec`  | `design-spec`                    |
 | `/spec [mode=tests]` | `spec [mode=tests]`         |
-| `/quality-gate` | `quality-gate`                   |
+| `/quality-gate-review` | `quality-gate-review`                 |
 | `/dependency`   | `dependency`, `project-manager`  |
 | `/prioritize`   | `prioritize`, `product-owner`    |
 

@@ -390,7 +390,7 @@ Run ALL verification checklists from the production readiness protocol:
 > | Feedforward | Computational | `.editorconfig`, strict compiler flags, enforced module boundaries            | Always-on        |
 > | Feedforward | Inferential   | `CLAUDE.md` conventions, skill prompts, architecture notes, pattern catalogs  | Always-on        |
 > | Feedback    | Computational | Linters, type checks, pre-commit hooks, ArchUnit/arch-fitness tests, CI gates | Pre-commit → CI  |
-> | Feedback    | Inferential   | `$code-review` skill, `$sre-review`, `$security-review`, LLM-as-judge passes         | Post-commit → CI |
+> | Feedback    | Inferential   | `$code-review` skill, `$production-readiness-review`, `$security-review`, LLM-as-judge passes         | Post-commit → CI |
 >
 > **Three harness types:**
 >

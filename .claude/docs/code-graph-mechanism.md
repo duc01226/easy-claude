@@ -243,7 +243,7 @@ Claude sees:
 | `/review-changes` invoked    | `pretooluse-ctx-graph.cjs (buildGraphContext)` | Same as above                                                       |
 | `/scout` invoked             | `pretooluse-ctx-graph.cjs (buildGraphContext)` | Structural overview for exploration                                 |
 | `/debug-investigate` invoked | `pretooluse-ctx-graph.cjs (buildGraphContext)` | Dependency context for tracing                                      |
-| `/sre-review` invoked        | `pretooluse-ctx-graph.cjs (buildGraphContext)` | Impact assessment for prod readiness                                |
+| `/production-readiness-review` invoked        | `pretooluse-ctx-graph.cjs (buildGraphContext)` | Impact assessment for prod readiness                                |
 | `/investigate` invoked       | (in-skill RECOMMENDED)       | Callers, imports, tests, inheritance queries for target             |
 | `/graph-query` invoked       | (standalone skill)           | Natural language graph queries, 8 patterns                          |
 | `/graph-build --scope=sync`  | (standalone skill)           | Git-aware sync: diff last_synced_commit vs HEAD, re-parse changed   |
@@ -459,7 +459,7 @@ The BFS trace algorithm (`tools.py:trace_connections`) follows both structural e
 | `graph-export`       | Export graph to JSON (`--format=json`) or single-file Mermaid diagram (`--format=mermaid`)                                                                                                         |
 
 **Skills with graph integration** (RECOMMENDED if graph.db exists):
-scout, debug, code-review, review-changes, sre-review, investigate
+scout, debug, code-review, review-changes, production-readiness-review, investigate
 
 ## Example Workflow: Bug Fix with Graph
 
@@ -579,10 +579,10 @@ sequenceDiagram
 
 | Workflow          | Steps Where Graph Activates                                             | What Graph Provides                                                |
 | ----------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| **feature**       | /scout, /feature-implement (auto-update), /code-review, /review-changes, /sre-review | Structural overview, incremental tracking, blast radius for review |
+| **feature**       | /scout, /feature-implement (auto-update), /code-review, /review-changes, /production-readiness-review | Structural overview, incremental tracking, blast radius for review |
 | **bugfix**        | /scout, /debug-investigate, /fix (auto-update), /code-review            | Dependency tracing for root cause, impact assessment of fix        |
-| **refactor**      | /scout, /plan-execute (auto-update), /code-review, /sre-review                  | Ensures refactoring doesn't break callers/dependents               |
-| **hotfix**        | /scout, /fix (auto-update), /review-changes, /sre-review                | Fast blast radius to verify minimal production impact              |
+| **refactor**      | /scout, /plan-execute (auto-update), /code-review, /production-readiness-review                  | Ensures refactoring doesn't break callers/dependents               |
+| **hotfix**        | /scout, /fix (auto-update), /review-changes, /production-readiness-review                | Fast blast radius to verify minimal production impact              |
 | **investigation** | /scout, /investigate                                          | Structural map for understanding code relationships                |
 
 ### Graph-Powered Skills
@@ -597,7 +597,7 @@ sequenceDiagram
 | `/code-review`        | Auto-receives blast radius context when graph exists                                            |
 | `/scout`              | Auto-receives structural overview when graph exists                                             |
 | `/debug-investigate`  | Auto-receives dependency context for tracing                                                    |
-| `/sre-review`         | Auto-receives impact assessment for prod readiness                                              |
+| `/production-readiness-review`         | Auto-receives impact assessment for prod readiness                                              |
 
 ## Real-World Use Cases (Angular + .NET Microservices)
 

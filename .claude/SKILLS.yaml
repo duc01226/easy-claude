@@ -4,8 +4,8 @@ metadata:
   last_updated: '2026-06-14'
   total_skills: 155
   total_by_status:
-    active: 155
-    deprecated: 0
+    active: 154
+    deprecated: 1
     experimental: 0
 categories:
   ai-ml: AI & Machine Learning
@@ -922,6 +922,17 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
+    - name: production-readiness-review
+      path: production-readiness-review/SKILL.md
+      description: '[Code Quality] Use when reviewing service-layer and API changes
+        for production readiness.'
+      category: other
+      has_scripts: false
+      has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
     - name: project-config
       path: project-config/SKILL.md
       description: '[Utilities] Use when you need to scan workspace and update docs/project-config
@@ -982,21 +993,11 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: qc-specialist
-      path: qc-specialist/SKILL.md
+    - name: quality-gate-review
+      path: quality-gate-review/SKILL.md
       description: '[Project Management] Use when you need to enforce quality gates,
         verify compliance with standards, track quality metrics, and generate audit
         trails.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: quality-gate
-      path: quality-gate/SKILL.md
-      description: '[Code Quality] Use when you need to run quality gate checklist.'
       category: other
       has_scripts: false
       has_references: false
@@ -1231,17 +1232,6 @@ skills:
         index, cross-capability ERD, or reimplementation guide assembled FROM the
         canonical Feature Specs under docs/specs/**. Never extracts a separate A-E
         engineering tree.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: sre-review
-      path: sre-review/SKILL.md
-      description: '[Code Quality] Use when reviewing service-layer and API changes
-        for production readiness.'
       category: other
       has_scripts: false
       has_references: false
@@ -1812,5 +1802,16 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-  deprecated: {}
+  deprecated:
+    other:
+    - name: quality-gate
+      path: quality-gate/SKILL.md
+      description: '[Code Quality] Use when you need to run quality gate checklist.'
+      category: other
+      has_scripts: false
+      has_references: false
+      status: deprecated
+      deprecated_by: quality-gate-review
+      deprecated_since: '2026-06-14'
+      removal_after: '2026-09-12'
   experimental: {}

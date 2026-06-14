@@ -969,6 +969,17 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
+  description: '[Code Quality] Use when reviewing service-layer and API changes for
+    production readiness.'
+  has_references: false
+  has_scripts: false
+  name: production-readiness-review
+  path: production-readiness-review/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
   description: '[Utilities] Use when you need to scan workspace and update docs/project-config
     JSON to match current project structure.'
   has_references: false
@@ -1026,24 +1037,24 @@
   removal_after: null
   status: active
 - category: other
+  deprecated_by: quality-gate-review
+  deprecated_since: '2026-06-14'
+  description: '[Code Quality] Use when you need to run quality gate checklist.'
+  has_references: false
+  has_scripts: false
+  name: quality-gate
+  path: quality-gate/SKILL.md
+  removal_after: '2026-09-12'
+  status: deprecated
+- category: other
   deprecated_by: null
   deprecated_since: null
   description: '[Project Management] Use when you need to enforce quality gates, verify
     compliance with standards, track quality metrics, and generate audit trails.'
   has_references: false
   has_scripts: false
-  name: qc-specialist
-  path: qc-specialist/SKILL.md
-  removal_after: null
-  status: active
-- category: other
-  deprecated_by: null
-  deprecated_since: null
-  description: '[Code Quality] Use when you need to run quality gate checklist.'
-  has_references: false
-  has_scripts: false
-  name: quality-gate
-  path: quality-gate/SKILL.md
+  name: quality-gate-review
+  path: quality-gate-review/SKILL.md
   removal_after: null
   status: active
 - category: other
@@ -1322,17 +1333,6 @@
   has_scripts: false
   name: spec-index
   path: spec-index/SKILL.md
-  removal_after: null
-  status: active
-- category: other
-  deprecated_by: null
-  deprecated_since: null
-  description: '[Code Quality] Use when reviewing service-layer and API changes for
-    production readiness.'
-  has_references: false
-  has_scripts: false
-  name: sre-review
-  path: sre-review/SKILL.md
   removal_after: null
   status: active
 - category: other

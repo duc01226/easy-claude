@@ -400,7 +400,7 @@ easy-claude/
 | `planner`                  | Implementation planning, trade-off analysis  |
 | `product-owner`            | Value-driven decisions, backlog management   |
 | `project-manager`          | Progress tracking, status consolidation      |
-| `qc-specialist`            | Quality gates, compliance verification       |
+| `quality-gate-review`            | Quality gates, compliance verification       |
 | `researcher`               | Technology research, best practices          |
 | `scout`                    | File location across large codebases         |
 | `scout-external`           | File location via external tools             |

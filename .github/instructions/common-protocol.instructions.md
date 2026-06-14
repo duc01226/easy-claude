@@ -74,7 +74,7 @@ Workflow progression is **model-driven** — your responsibility, not a tool/hoo
 
 **workflow-big-feature** — Big Feature (Research + Implement)
   Use: User wants to implement a large, complex, or ambiguous feature that needs research, market analysis, business evaluation, domain modeling, or tech stack analysis before implementation. Big new module, major enhancement, cross-cutting capability, or feature where scope is unclear
-  Steps: idea → web-research → deep-research → business-evaluation → domain-analysis → why-review → tech-stack-research → architecture-design → why-review → plan → plan-review → refine → why-review → review-artifact --type=pbi → story → why-review → review-artifact --type=story → pbi-challenge → dor-gate → pbi-mockup → spec → spec [mode=tests] → why-review → review-artifact --type=spec-tests → plan → plan-review → scaffold → plan-validate → why-review → plan-execute → review-domain-entities → integration-test → integration-test-review → integration-test-verify → spec [mode=sync] → workflow-review-changes → sre-review → security-review → changelog → test → docs-update → workflow-end → watzup
+  Steps: idea → web-research → deep-research → business-evaluation → domain-analysis → why-review → tech-stack-research → architecture-design → why-review → plan → plan-review → refine → why-review → review-artifact --type=pbi → story → why-review → review-artifact --type=story → pbi-challenge → dor-gate → pbi-mockup → spec → spec [mode=tests] → why-review → review-artifact --type=spec-tests → plan → plan-review → scaffold → plan-validate → why-review → plan-execute → review-domain-entities → integration-test → integration-test-review → integration-test-verify → spec [mode=sync] → workflow-review-changes → production-readiness-review → security-review → changelog → test → docs-update → workflow-end → watzup
 
 **workflow-bugfix** — Bug Fix
   Use: User reports a bug, error, crash, failure, regression, stale/incorrect final output, or something not working; wants to fix/debug/troubleshoot an issue with end-to-start trace
@@ -90,7 +90,7 @@ Workflow progression is **model-driven** — your responsibility, not a tool/hoo
 
 **workflow-feature** — Feature Implementation
   Use: User wants to implement a well-defined feature, add a component, build a capability, develop a module, implement/execute an existing plan, create a new API endpoint, or design an API contract, TDD/test-first development, spec-driven feature implementation with test specs written before code
-  Steps: scout → investigate → domain-analysis → why-review → spec → plan → plan-review → plan-validate → why-review → spec [mode=tests] → why-review → review-artifact --type=spec-tests → plan → plan-review → plan-execute → review-domain-entities → spec [mode=tests] → why-review → review-artifact --type=spec-tests → spec [mode=sync] → integration-test → integration-test-review → integration-test-verify → workflow-review-changes → sre-review → security-review → changelog → test → docs-update → workflow-end → watzup
+  Steps: scout → investigate → domain-analysis → why-review → spec → plan → plan-review → plan-validate → why-review → spec [mode=tests] → why-review → review-artifact --type=spec-tests → plan → plan-review → plan-execute → review-domain-entities → spec [mode=tests] → why-review → review-artifact --type=spec-tests → spec [mode=sync] → integration-test → integration-test-review → integration-test-verify → workflow-review-changes → production-readiness-review → security-review → changelog → test → docs-update → workflow-end → watzup
 
 **workflow-feature-spec** — Business Feature Documentation
   Use: User wants to create or update business feature documentation under the fixed docs/specs Feature Spec root
@@ -98,7 +98,7 @@ Workflow progression is **model-driven** — your responsibility, not a tool/hoo
 
 **workflow-greenfield-init** — Greenfield Project Init
   Use: User wants to start a new project from scratch, init a greenfield project, plan a new application, research and plan before coding, bootstrap a new codebase, build something new
-  Steps: idea → web-research → deep-research → business-evaluation → domain-analysis → why-review → tech-stack-research → architecture-design → why-review → plan → plan-review → security-review → performance-review → plan-review → refine → why-review → review-artifact --type=pbi → story → why-review → review-artifact --type=story → pbi-challenge → dor-gate → pbi-mockup → plan-validate → why-review → spec [mode=tests] → why-review → review-artifact --type=spec-tests → plan → plan-review → scaffold → linter-setup → harness-setup → why-review → plan-execute → review-domain-entities → spec [mode=tests] → why-review → review-artifact --type=spec-tests → plan → plan-review → integration-test → integration-test-review → integration-test-verify → test → workflow-review-changes → sre-review → security-review → changelog → test → docs-update → workflow-end → watzup
+  Steps: idea → web-research → deep-research → business-evaluation → domain-analysis → why-review → tech-stack-research → architecture-design → why-review → plan → plan-review → security-review → performance-review → plan-review → refine → why-review → review-artifact --type=pbi → story → why-review → review-artifact --type=story → pbi-challenge → dor-gate → pbi-mockup → plan-validate → why-review → spec [mode=tests] → why-review → review-artifact --type=spec-tests → plan → plan-review → scaffold → linter-setup → harness-setup → why-review → plan-execute → review-domain-entities → spec [mode=tests] → why-review → review-artifact --type=spec-tests → plan → plan-review → integration-test → integration-test-review → integration-test-verify → test → workflow-review-changes → production-readiness-review → security-review → changelog → test → docs-update → workflow-end → watzup
 
 **workflow-idea-to-pbi** — Idea to PBI
   Use: PO/BA wants a grooming-ready PBI backlog from an idea. SINGLE-PBI DEEP: a raw idea — or a handed-off artifact/ticket/brief — through to ONE grooming-ready PBI with user stories, TDD test specifications, Dev BA PIC challenge, DoR validation, wireframes, and prioritization. MULTI-OPPORTUNITY DISCOVERY: a raw product vision/problem statement → structured brainstorm → RICE opportunity map → user multi-select → multiple PBIs (light per-opportunity loop) → cross-PBI ranked backlog. For idea → ONE provisional Feature Spec only (no backlog), use workflow-idea-to-spec
@@ -110,7 +110,7 @@ Workflow progression is **model-driven** — your responsibility, not a tool/hoo
 
 **workflow-refactor** — Code Refactoring
   Use: User wants to restructure, reorganize, clean up, or improve existing code without changing behavior; technical debt
-  Steps: scout → investigate → plan → plan-review → plan-validate → why-review → plan-execute → spec [mode=tests] → why-review → review-artifact --type=spec-tests → spec [mode=sync] → integration-test → integration-test-review → integration-test-verify → workflow-review-changes → sre-review → changelog → test → docs-update → workflow-end → watzup
+  Steps: scout → investigate → plan → plan-review → plan-validate → why-review → plan-execute → spec [mode=tests] → why-review → review-artifact --type=spec-tests → spec [mode=sync] → integration-test → integration-test-review → integration-test-verify → workflow-review-changes → production-readiness-review → changelog → test → docs-update → workflow-end → watzup
 
 **workflow-research** — Research & Synthesis
   Use: User wants to research a topic from web sources and synthesize the findings into a deliverable — a cited knowledge report, a business/market viability evaluation, a marketing strategy, or structured course material
@@ -195,6 +195,7 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `plan-review` | [Planning] Use when you need to auto-review a plan for validity, correctness, and best practices — recursive: review, validate findings with why-review, fix validated findings, full re-review until no findings. |
 | `plan-validate` | [Planning] Use when you need to validate a plan with critical questions interview. |
 | `prioritize` | [Project Management] Use when you need to prioritize backlog items using RICE, MoSCoW, or Value-Effort frameworks. |
+| `production-readiness-review` | [Code Quality] Use when reviewing service-layer and API changes for production readiness. |
 | `prove-fix` | [Code Quality] Use when you need to prove fix correctness with code proof traces, confidence scoring, and stack-trace-style evidence chains. |
 | `refine` | [Project Management] Use when converting ideas to PBIs, validating problem hypotheses, adding acceptance criteria, or refining requirements. |
 | `review-architecture` | [Code Quality] Use when reviewing architecture compliance for layers, messaging, service boundaries, CQRS, repos, and entity events. |
@@ -208,7 +209,6 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `seed-test-data` | [Dev Data] Use when you need to implement or enhance test data seeders that simulate QC happy-path scenarios via application-layer commands. |
 | `spec` | [Documentation] Use to author, audit, amend, or test-spec a business Feature Spec. The single spec skill — modes draft\|init\|update\|audit\|amend create/maintain the tech-free 8-section Feature Spec; draft authors a provisional spec from an idea/requirement (no code yet, Evidence: TBD); tests generates Section 8 TC-{FEATURE}-{NNN} test specifications; sync reconciles §8 TCs ↔ integration test code. Per-mode procedure lives in references/{author,tests,sync}.md. |
 | `spec-index` | [General] Use when you need to (re)generate a DERIVED navigation index, cross-capability ERD, or reimplementation guide assembled FROM the canonical Feature Specs under docs/specs/**. Never extracts a separate A-E engineering tree. |
-| `sre-review` | [Code Quality] Use when reviewing service-layer and API changes for production readiness. |
 | `story` | [Project Management] Use when creating user stories from PBIs, slicing features, or breaking down requirements. |
 | `tech-stack-research` | [Architecture] Use when you need to research, analyze, and compare tech stack options as a solution architect. |
 | `test` | [Testing] Use when you need to run tests locally and analyze the summary report. |

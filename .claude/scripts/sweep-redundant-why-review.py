@@ -46,7 +46,7 @@ REVIEW_SKILLS = {
     "review-architecture", "review-ui", "review-domain-entities",
     "review-artifact", "review-post-task", "plan-review",
     "knowledge-review", "integration-test-review",
-    "code-review", "sre-review", "security-review", "performance",
+    "code-review", "production-readiness-review", "security-review", "performance",
 }
 
 

@@ -2,6 +2,10 @@
 name: quality-gate
 version: 1.0.0
 description: '[Code Quality] Use when you need to run quality gate checklist.'
+status: deprecated
+deprecated_by: quality-gate-review
+deprecated_since: '2026-06-14'
+removal_after: '2026-09-12'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->

@@ -487,11 +487,11 @@ mindmap
     Quality & Verification
       code-review
       prove-fix
-      quality-gate
+      quality-gate-review
       review-changes
       review-post-task
       code-simplifier
-      sre-review
+      production-readiness-review
       review-artifact --type=pbi
       review-artifact --type=story
       review-artifact --type=spec-tests
@@ -839,7 +839,7 @@ WORKFLOW CATALOG
 > tdd-feature → `feature` (spec-driven with tests by default) · test-to-integration / test-verify → `write-integration-test` ·
 > pbi-to-tests → `/spec [mode=tests]` · quality-audit → `review-changes` · security-audit → `/security-review` ·
 > performance → `/performance-review` · investigation → `/investigate` · migration → `/db-migrate` ·
-> package-upgrade → `/package-upgrade` skill · release-prep → `/sre-review` + `/quality-gate` ·
+> package-upgrade → `/package-upgrade` skill · release-prep → `/production-readiness-review` + `/quality-gate-review` ·
 > batch-operation / verification / deployment → direct execution with `/plan` + `/review-changes`.
 >
 > Removed in the 2026-06-13 prune: full-feature-lifecycle → `workflow-idea-to-pbi` (now idea→spec→pbi) then `workflow-feature` ·
@@ -1450,17 +1450,17 @@ The framework supports AI-assisted development across **every phase** of the sof
 │─────────────────────│────────────────────────│────────────────────│
 │  7. CODE REVIEW     │ /code-review           │ Automated quality  │
 │                     │ /review-changes        │ checks, pattern    │
-│                     │ /prove-fix, /sre-review│ compliance, proofs │
+│                     │ /prove-fix, /production-readiness-review│ compliance, proofs │
 │─────────────────────│────────────────────────│────────────────────│
 │  8. DOCUMENTATION   │ /docs-update           │ Auto-detect stale  │
 │                     │ /spec                  │ docs, generate     │
 │                     │ /changelog             │ changelogs, sync   │
 │─────────────────────│────────────────────────│────────────────────│
-│  9. SIGN-OFF        │ /quality-gate          │ Quality gates,     │
+│  9. SIGN-OFF        │ /quality-gate-review         │ Quality gates,     │
 │                     │ /review-artifact       │ artifact review    │
 │─────────────────────│────────────────────────│────────────────────│
 │  10. OPERATIONS     │ /devops                │ Infrastructure     │
-│                     │ /sre-review            │ automation and     │
+│                     │ /production-readiness-review            │ automation and     │
 │                     │                        │ readiness checks   │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -1584,7 +1584,7 @@ feature:
   spec [mode=tests] → why-review → review-artifact --type=spec-tests → plan → plan-review →
   feature-implement → review-domain-entities → spec [mode=tests] → why-review → review-artifact --type=spec-tests →
   spec [mode=sync] → integration-test → integration-test-review →
-  integration-test-verify → workflow-review-changes → sre-review →
+  integration-test-verify → workflow-review-changes → production-readiness-review →
   security-review → changelog → test → docs-update → workflow-end → watzup
 ```
 
@@ -2230,7 +2230,7 @@ greenfield-init: FULL WATERFALL INCEPTION → IMPLEMENTATION → INTEGRATION TES
     ├── /code-simplifier ───── Simplify code for readability
     ├── /review-changes ────── Review all uncommitted changes
     ├── /code-review ───────── Code quality, patterns compliance
-    ├── /sre-review ────────── Production readiness
+    ├── /production-readiness-review ────────── Production readiness
     ├── /security-review ──────────── Security review
     ├── /performance-review ───────── Performance review
     ├── /changelog ─────────── Update changelog
@@ -2348,7 +2348,7 @@ big-feature: RESEARCH-DRIVEN FEATURE DEVELOPMENT
 │   └── /code-review ──────── Quality audit
 │
 └── QUALITY & WRAP PHASE (8 steps)
-    ├── /sre-review ────────── Production readiness
+    ├── /production-readiness-review ────────── Production readiness
     ├── /security-review ──────────── Security review
     ├── /performance-review ───────── Performance review
     ├── /changelog ─────────── Changelog entry
@@ -2477,7 +2477,7 @@ This section maps **established prompt engineering techniques** to specific fram
 │  EFFECT: Each workflow step activates a different expert          │
 │  persona. The AI doesn't just generate code — it thinks          │
 │  like a Security Architect during /security-review, switches to         │
-│  SRE mindset during /sre-review, and becomes a Domain Expert     │
+│  SRE mindset during /production-readiness-review, and becomes a Domain Expert     │
 │  during /domain-analysis.                                        │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -2648,7 +2648,7 @@ This section maps **established prompt engineering techniques** to specific fram
 │  • /code-simplifier: "Is this the simplest correct solution?"   │
 │  • /review-changes: "Does this follow project conventions?"     │
 │  • /code-review: "Does this meet quality standards?"            │
-│  • /sre-review: "Is this production-ready?"                     │
+│  • /production-readiness-review: "Is this production-ready?"                     │
 │  • /security-review: "Are there vulnerabilities?"                      │
 │                                                                   │
 │  EFFECT: Single-pass generation catches ~70% of issues.          │
@@ -2961,7 +2961,7 @@ graph TB
     end
 
     subgraph "Hook 3: pretooluse-ctx-graph.cjs (buildGraphContext)"
-        SKILL["PreToolUse(Skill)<br/>/code-review, /scout,<br/>/debug-investigate, /sre-review"] --> BR["Run graph-blast-radius"]
+        SKILL["PreToolUse(Skill)<br/>/code-review, /scout,<br/>/debug-investigate, /production-readiness-review"] --> BR["Run graph-blast-radius"]
         BR --> INJ["Inject into context:<br/>Risk level, impacted files,<br/>untested functions"]
     end
 
@@ -3021,7 +3021,7 @@ sequenceDiagram
 | **Sync**    | `/graph-build --scope=sync` | Sync graph with git state after pull/checkout                                            |
 | **Batch**   | `/graph-query batch`        | Multi-file deduplicated query                                                            |
 
-Skills that **automatically receive graph context** when graph.db exists: `/code-review`, `/review-changes`, `/review-architecture`, `/scout`, `/debug-investigate`, `/sre-review`, `/investigate`, `/fix`, `/refactoring`, `/security-review`, `/performance-review`, `/code-simplifier`, `/prove-fix`.
+Skills that **automatically receive graph context** when graph.db exists: `/code-review`, `/review-changes`, `/review-architecture`, `/scout`, `/debug-investigate`, `/production-readiness-review`, `/investigate`, `/fix`, `/refactoring`, `/security-review`, `/performance-review`, `/code-simplifier`, `/prove-fix`.
 
 #### Auto-Maintenance
 

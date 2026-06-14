@@ -34,7 +34,7 @@ SKILL_NAMES = [
     "review-changes",
     "review-domain-entities",
     "review-post-task",
-    "sre-review",
+    "production-readiness-review",
     "why-review",
     "workflow-review-changes",
     # Cook family

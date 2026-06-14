@@ -140,7 +140,7 @@ function buildCodeReviewRules(payload, preloadedLines) {
 
 const DEV_REVIEW_SKILLS = new Set([
     'code-review', 'review-changes', 'review-post-task', 'review-architecture',
-    'code-simplifier', 'sre-review', 'why-review', 'workflow-review-changes',
+    'code-simplifier', 'production-readiness-review', 'why-review', 'workflow-review-changes',
     'simplify', 'knowledge-review', 'plan-review'
 ]);
 const DEV_CODING_SKILLS = new Set(['cook', 'code', 'fix', 'feature-implement', 'plan-execute']);
@@ -819,10 +819,10 @@ const ART_COMMAND_PATH_MAPPINGS = {
     'story': 'team-artifacts/pbis/stories/',
     'spec [mode=tests]': getSpecDocsPath(),
     'design-spec': 'team-artifacts/design-specs/',
-    'quality-gate': 'team-artifacts/qc-reports/'
+    'quality-gate-review': 'team-artifacts/qc-reports/'
 };
-const ART_TYPE_MAPPING = { 'idea': 'idea', 'refine': 'pbi', 'story': 'story', 'spec [mode=tests]': 'testspec', 'design-spec': 'designspec', 'quality-gate': 'gate' };
-const ART_ROLE_MAPPING = { 'idea': 'po', 'refine': 'ba', 'story': 'ba', 'spec [mode=tests]': 'qa', 'design-spec': 'ux', 'quality-gate': 'qc' };
+const ART_TYPE_MAPPING = { 'idea': 'idea', 'refine': 'pbi', 'story': 'story', 'spec [mode=tests]': 'testspec', 'design-spec': 'designspec', 'quality-gate-review': 'gate' };
+const ART_ROLE_MAPPING = { 'idea': 'po', 'refine': 'ba', 'story': 'ba', 'spec [mode=tests]': 'qa', 'design-spec': 'ux', 'quality-gate-review': 'qc' };
 function artExtractSlug(input) {
     return input.toLowerCase().replace(/\.md$/, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50) || 'unnamed';
 }
@@ -869,7 +869,7 @@ function buildArtifactPath(payload /*, preloadedLines */) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const GRAPH_SKILLS = new Set([
-    'code-review', 'review-changes', 'review-architecture', 'sre-review',
+    'code-review', 'review-changes', 'review-architecture', 'production-readiness-review',
     'graph-blast-radius', 'scout', 'debug', 'fix', 'code-simplifier',
     'refactoring', 'prove-fix', 'security-review', 'performance-review'
 ]);

@@ -1,5 +1,5 @@
 ---
-name: qc-specialist
+name: quality-gate-review
 description: >-
     Use this agent when running quality gates, verifying compliance with
     standards, creating audit trails, tracking quality metrics, or

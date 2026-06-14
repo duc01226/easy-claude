@@ -1,7 +1,7 @@
-name = "qc-specialist"
+name = "quality-gate-review"
 description = "Use this agent when running quality gates, verifying compliance with standards, creating audit trails, tracking quality metrics, or generating review checklists."
 developer_instructions = """
-Source: .claude/agents/qc-specialist.md
+Source: .claude/agents/quality-gate-review.md
 
 > Codex compatibility note:
 > - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.

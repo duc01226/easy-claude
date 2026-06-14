@@ -170,7 +170,7 @@ Configure which AI review skills fire at each lifecycle stage. Present to user v
 
 **Pre-release (mandatory gates):**
 
-- `$sre-review` — reliability and operational readiness
+- `$production-readiness-review` — reliability and operational readiness
 - `$security-review` — security review before production release
 
 **Recurring drift detection:**
@@ -245,7 +245,7 @@ Stack: {detected stack from Phase A}
 | Pre-implementation  | $why-review             | Design rationale gaps          |
 | Pre-commit          | $code-review            | Convention drift, logic errors |
 | Post-implementation | $review-domain-entities | Domain model quality           |
-| Pre-release         | $sre-review             | Operational readiness          |
+| Pre-release         | $production-readiness-review             | Operational readiness          |
 | Pre-release         | $security-review               | Security vulnerabilities       |
 
 ## Open Gaps
@@ -307,7 +307,7 @@ a direct user question:
 > | Feedforward | Computational | `.editorconfig`, strict compiler flags, enforced module boundaries            | Always-on        |
 > | Feedforward | Inferential   | `CLAUDE.md` conventions, skill prompts, architecture notes, pattern catalogs  | Always-on        |
 > | Feedback    | Computational | Linters, type checks, pre-commit hooks, ArchUnit/arch-fitness tests, CI gates | Pre-commit → CI  |
-> | Feedback    | Inferential   | `$code-review` skill, `$sre-review`, `$security-review`, LLM-as-judge passes         | Post-commit → CI |
+> | Feedback    | Inferential   | `$code-review` skill, `$production-readiness-review`, `$security-review`, LLM-as-judge passes         | Post-commit → CI |
 >
 > **Three harness types:**
 >

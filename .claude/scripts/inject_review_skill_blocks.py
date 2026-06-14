@@ -37,12 +37,12 @@ SKILLS_DIR = PROJECT_ROOT / ".claude" / "skills"
 BATCHING = [
     "review-changes", "code-review", "review-architecture", "review-domain-entities",
     "review-ui", "review-post-task", "integration-test-review", "security-review",
-    "performance-review", "sre-review",
+    "performance-review", "production-readiness-review",
 ]
 SEVERITY = [
     "code-review", "review-changes", "review-post-task", "review-architecture",
     "review-domain-entities", "review-ui", "integration-test-review", "security-review",
-    "performance-review", "sre-review", "knowledge-review", "review-artifact",
+    "performance-review", "production-readiness-review", "knowledge-review", "review-artifact",
     "plan-review", "why-review", "code-simplifier",
 ]
 CATEGORY = list(BATCHING)  # co-paired with batching

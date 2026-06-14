@@ -301,7 +301,7 @@ Analyze skills catalog and activate other needed skills during the process.
 >
 > **AFTER that floor is met,** MUST ATTENTION use `AskUserQuestion` to offer what lies BEYOND the minimum (user decides):
 
-- **"Proceed with full workflow (Recommended)"** — Hand off to the best-fit workflow (e.g. `workflow-bugfix`) from here to add the remaining gates the minimum spine omits — `plan-validate`, `integration-test` authoring/review/verify, `sre-review`, `security-review`, `changelog`, `docs-update`.
+- **"Proceed with full workflow (Recommended)"** — Hand off to the best-fit workflow (e.g. `workflow-bugfix`) from here to add the remaining gates the minimum spine omits — `plan-validate`, `integration-test` authoring/review/verify, `production-readiness-review`, `security-review`, `changelog`, `docs-update`.
 - **"/test"** — Run the full test suite to verify the fix in context.
 - **"Commit & push"** — Hand the proven, reviewed change to the `git-manager` subagent.
 - **"Stop here"** — Minimum contract satisfied; user takes it from here.

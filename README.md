@@ -167,7 +167,7 @@ Markdown-based prompts with YAML frontmatter that guide AI behavior.
 | **Documentation**  | `/docs-update`, `/changelog`, `/spec`                                                                      | Auto-generate and maintain docs                         |
 | **Research**       | `/web-research`, `/deep-research`, `/docs-seeker`                                                          | Web research, library docs fetching                     |
 | **Design**         | `/design-spec`, `/interface-design`, `/pbi-mockup`, `/excalidraw-diagram`                                  | UI/UX specs, wireframes, PBI visuals, diagrams          |
-| **DevOps**         | `/devops`, `/fix --target=ci`, `/sre-review`                                                               | Infrastructure, CI/CD, reliability                      |
+| **DevOps**         | `/devops`, `/fix --target=ci`, `/production-readiness-review`                                                               | Infrastructure, CI/CD, reliability                      |
 | **Scanning**       | `/scan-all`, `/scan --target=<key>`, `/scan-codebase-health`                                               | Generate reference docs for hooks to auto-inject        |
 | **Documents**      | `/markdown-to-pdf`, `/markdown-to-docx`, `/pdf-to-markdown`                                                | Document format conversion                              |
 
@@ -208,7 +208,7 @@ Reviews are first-class skills you can run standalone, and several are chained a
 | `/performance-review`      | N+1 queries, indexing, API latency, memory, render bottlenecks           |
 | `/security-review`         | OWASP Top 10, secrets exposure, dependency/supply-chain risk             |
 | `/integration-test-review` | Assertion quality, bug protection, repeatability, test↔spec traceability |
-| `/sre-review`              | Production readiness of service-layer and API changes                    |
+| `/production-readiness-review`              | Production readiness of service-layer and API changes                    |
 | `/review-ui`               | Overflow, responsive layout, z-index, SCSS/BEM quality                   |
 | `/plan-review`             | Plan validity, correctness, and best-practice gaps (recursive)           |
 | `/review-artifact`         | PBI / story / test-spec / design artifact quality before handoff         |

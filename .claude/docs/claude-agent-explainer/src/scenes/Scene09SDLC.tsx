@@ -16,9 +16,9 @@ const PHASES = [
     { num: '4', label: 'Planning', skills: 'plan · plan-review · plan-validate · why-review', color: C.purple, icon: '📐' },
     { num: '5', label: 'Implementation', skills: 'feature-implement · fix · refactoring · feature workflow', color: C.green, icon: '⚙️' },
     { num: '6', label: 'Testing', skills: 'integration-test → review → verify · test · webapp-testing', color: C.green, icon: '✅' },
-    { num: '7', label: 'Code Review', skills: 'code-review · review-changes · prove-fix · sre-review', color: C.amber, icon: '🔍' },
+    { num: '7', label: 'Code Review', skills: 'code-review · review-changes · prove-fix · production-readiness-review', color: C.amber, icon: '🔍' },
     { num: '8', label: 'Documentation', skills: 'docs-update · spec · changelog · release-notes', color: C.amber, icon: '📝' },
-    { num: '9', label: 'Handoff & Ops', skills: 'quality-gate · deployment · devops', color: C.red, icon: '🚀' }
+    { num: '9', label: 'Handoff & Ops', skills: 'quality-gate-review · deployment · devops', color: C.red, icon: '🚀' }
 ];
 
 export const Scene09SDLC: React.FC = () => {

@@ -131,7 +131,7 @@ Hooks automatically inject relevant project knowledge (backend patterns, fronten
 
 3. **Run quality gate**
     ```
-    /quality-gate pre-qa
+    /quality-gate-review pre-qa
     ```
 
 **Workflow trigger:** Say "test cases from PBI" → runs `/spec [mode=tests]` directly (the former pbi-to-tests workflow was merged into the `spec` skill); for full test authoring with generated test code, use the **write-integration-test** workflow
@@ -164,9 +164,9 @@ Hooks automatically inject relevant project knowledge (backend patterns, fronten
 1. **Run quality gate**
 
     ```
-    /quality-gate pre-dev {artifact-path}
-    /quality-gate pre-qa {artifact-path}
-    /quality-gate pre-release
+    /quality-gate-review pre-dev {artifact-path}
+    /quality-gate-review pre-qa {artifact-path}
+    /quality-gate-review pre-release
     ```
 
 2. **Review artifact quality**
@@ -174,7 +174,7 @@ Hooks automatically inject relevant project knowledge (backend patterns, fronten
     /review-artifact {artifact-path}
     ```
 
-**Workflow trigger:** Say "quality check" → run `/quality-gate` directly
+**Workflow trigger:** Say "quality check" → run `/quality-gate-review` directly
 
 ---
 
@@ -219,7 +219,7 @@ Hooks automatically inject relevant project knowledge (backend patterns, fronten
 | `/spec [mode=tests]` | Generate test specs (TC-{FEATURE}-{NNN}) | `/spec [mode=tests] {feature-doc}` |
 | `/integration-test` | Generate integration tests from specs    | `/integration-test`         |
 | `/e2e-test`         | Generate E2E tests                       | `/e2e-test`                 |
-| `/quality-gate`     | Run quality checklist                    | `/quality-gate pre-dev`     |
+| `/quality-gate-review`     | Run quality checklist                    | `/quality-gate-review pre-dev`     |
 | `/test`             | Run and analyze tests                    | `/test`                     |
 
 ### Design & Frontend
@@ -265,16 +265,16 @@ BA:             /refine ──→ [PBI with AC] ──→ /story ──→ [user
 
 ---
 
-### Workflow 2: PBI to Tests (`/spec [mode=tests]` + `/quality-gate`)
+### Workflow 2: PBI to Tests (`/spec [mode=tests]` + `/quality-gate-review`)
 
 **Trigger:** "test cases from PBI", "qa this"
 **Roles:** QA Engineer, QC Specialist
-**IMPORTANT MANDATORY Steps:** `/spec [mode=tests]` → `/quality-gate` (skill chain — for generated test code, use the **write-integration-test** workflow)
+**IMPORTANT MANDATORY Steps:** `/spec [mode=tests]` → `/quality-gate-review` (skill chain — for generated test code, use the **write-integration-test** workflow)
 
 ```
 QA:  [PBI] ──→ /spec [mode=tests] → [test spec with TC-{FEATURE}-{NNN}]
                                         │
-QC:                              /quality-gate ──→ [PASS/FAIL report]
+QC:                              /quality-gate-review ──→ [PASS/FAIL report]
 ```
 
 **Quality gate criteria (pre-QA):**
@@ -437,7 +437,7 @@ Each case includes an Evidence field using `[Source: namespace/service/id]` abst
 **Jordan (QC):**
 
 ```
-/quality-gate pre-dev {pbi-file}
+/quality-gate-review pre-dev {pbi-file}
 ```
 
 | Criterion                              | Status |
@@ -467,7 +467,7 @@ TESTING & QUALITY
   /spec [mode=tests] {source}  Generate test specs (TC-{FEATURE}-{NNN})
   /integration-test          Generate integration tests
   /e2e-test                  Generate E2E tests
-  /quality-gate {type}       Run quality checklist (pre-dev|pre-qa|pre-release)
+  /quality-gate-review {type}       Run quality checklist (pre-dev|pre-qa|pre-release)
   /test                      Run and analyze tests
 
 DESIGN
@@ -490,7 +490,7 @@ PLANNING
 | PO   | `/idea`, `/prioritize`                      | idea-to-pbi            |
 | BA   | `/refine`, `/story`                         | idea-to-pbi            |
 | QA   | `/spec [mode=tests]`, `/integration-test`, `/test` | write-integration-test |
-| QC   | `/quality-gate`, `/review-artifact`         | —                      |
+| QC   | `/quality-gate-review`, `/review-artifact`         | —                      |
 | UX   | `/design-spec`, `/frontend-design`          | —                      |
 | PM   | `/project-manager`, `/dependency`           | —                      |
 
@@ -499,7 +499,7 @@ PLANNING
 | Say This                       | Activates              | Sequence                               |
 | ------------------------------ | ---------------------- | -------------------------------------- |
 | "new idea" / "feature request" | idea-to-pbi            | /idea → /refine → /story → /prioritize |
-| "test this PBI" / "test cases" | `/spec [mode=tests]` (skill) | /spec [mode=tests] → /quality-gate     |
+| "test this PBI" / "test cases" | `/spec [mode=tests]` (skill) | /spec [mode=tests] → /quality-gate-review     |
 | "design spec for"              | `/design-spec`         | /design-spec → /interface-design       |
 | "TDD" / "test-first"           | feature                | /plan → /spec [mode=tests] → /feature-implement → /test |
 
@@ -514,7 +514,7 @@ PLANNING
 **Sprint prep:**
 
 ```
-/prioritize rice → /quality-gate pre-dev
+/prioritize rice → /quality-gate-review pre-dev
 ```
 
 **End of day:**
@@ -526,7 +526,7 @@ PLANNING
 **Before demo:**
 
 ```
-/quality-gate pre-release
+/quality-gate-review pre-release
 ```
 
 ---
@@ -577,7 +577,7 @@ PLANNING
 **Fix:**
 
 1. Ensure the sending role's artifacts (idea, PBI, story, design spec, test spec) are complete and saved before the next role picks up
-2. Run `/quality-gate` to verify artifact completeness before the transition
+2. Run `/quality-gate-review` to verify artifact completeness before the transition
 3. Use `/review-artifact` to validate quality of the upstream artifact
 
 ---

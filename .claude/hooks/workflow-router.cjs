@@ -133,7 +133,7 @@ function getStepDescription(step) {
         debug: 'Investigate and diagnose',
         'review-changes': 'Review uncommitted changes',
         'review-post-task': 'Post-task code review',
-        'sre-review': 'Production readiness review',
+        'production-readiness-review': 'Production readiness review',
         'docs-update': 'Update documentation',
         watzup: 'Summarize changes',
         scout: 'Explore codebase',
@@ -143,7 +143,7 @@ function getStepDescription(step) {
         story: 'Break into user stories',
         prioritize: 'Prioritize backlog items',
         dependency: 'Analyze dependencies',
-        'quality-gate': 'Run quality gate checklist',
+        'quality-gate-review': 'Enforce quality gate checklist',
         'design-spec': 'Create design specification',
         'review-artifact': 'Review artifact quality before handoff',
         'workflow-end': 'End workflow and clear state'

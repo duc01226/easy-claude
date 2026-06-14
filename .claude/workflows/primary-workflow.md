@@ -12,7 +12,7 @@
 4. **Implement** — `/feature-implement` or `/plan-execute`, compile-check after every file change
 5. **Verify** — `/prove-fix`, `/test`, `/integration-test`, `/spec [mode=sync]`
 6. **Quality** — `/workflow-review-changes` (canonical review-changes workflow: review-changes → why-review → parallel reviewers → code-simplifier → verification → plan/plan-execute/restart)
-7. **Ship** — `/sre-review`, `/security-review`, `/changelog`, `/docs-update`, `/watzup`, `/workflow-end`
+7. **Ship** — `/production-readiness-review`, `/security-review`, `/changelog`, `/docs-update`, `/watzup`, `/workflow-end`
 
 **Key Rules:**
 
@@ -74,7 +74,7 @@
 
 ## Phase 6: Ship
 
-- Use `/sre-review` for production readiness (service-layer/API changes)
+- Use `/production-readiness-review` for production readiness (service-layer/API changes)
 - Use `/security-review` for security review
 - Use `/changelog` to update changelog entries
 - Use `/docs-update` to update documentation if needed
