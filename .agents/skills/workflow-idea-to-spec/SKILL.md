@@ -1,6 +1,6 @@
 ---
-name: workflow-product-discovery
-description: '[Workflow] Use when activating the Product Discovery workflow for turning raw opportunities into ranked PBIs.'
+name: workflow-idea-to-spec
+description: '[Workflow] Use when activating the Idea-to-Spec workflow — turn a raw idea/vision/problem into ONE canonical (provisional) Feature Spec. STOPS at the reviewed spec; chain workflow-spec-to-pbi for a backlog. For code→spec use workflow-code-to-spec.'
 disable-model-invocation: true
 ---
 
@@ -40,15 +40,17 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 Do not read all docs blindly. Start from `docs-index-reference.md`, then open only relevant files for the task.
 <!-- CODEX:PROJECT-REFERENCE-LOADING:END -->
 
+> **Renamed:** formerly `workflow-product-discovery` — now `$workflow-idea-to-spec`. The old name no longer resolves as a slash command.
+
 ## Quick Summary
 
-**Goal:** [Workflow] Trigger the Product Discovery workflow to convert raw opportunities — a raw vision or problem → structured brainstorm → prioritized opportunity map → N PBIs with stories, challenge review, DoR gate, and HTML mock-ups → cross-PBI ranked backlog — into reviewed, prioritized PBIs ready for sprint planning.
+**Goal:** [Workflow] Trigger the spec-driven Idea-to-Spec workflow to convert a raw idea — a raw vision or problem → structured brainstorm framing → canonical, provisional Feature Spec (the tech-free 8-section spec + §8 test specs at `docs/specs/{Bucket}/README.{Feature}.md`, `Evidence: TBD` until code lands) → reviewed and docs-synced. This workflow **STOPS at the reviewed Feature Spec** — it does NOT produce a PBI backlog. For a backlog, chain `workflow-spec-to-pbi` afterward; for idea → full backlog in one pass use `workflow-idea-to-pbi`; for code→spec (implementation already exists) use `workflow-code-to-spec`.
 
 **Workflow:**
 
-1. **Detect** — classify request scope and target artifacts.
-2. **Execute** — apply required steps with evidence-backed actions.
-3. **Verify** — confirm constraints, output quality, and completion evidence.
+1. **Frame** — brainstorm the idea, analyze domain, validate the problem framing (why-review).
+2. **Author** — capture the idea, then author the canonical provisional Feature Spec (`spec [mode=draft]`) + §8 test specs (`spec [mode=tests]`).
+3. **Review & Sync** — review the test specs and the Feature Spec, validate rationale (why-review), sync docs.
 
 **Key Rules:**
 
@@ -56,144 +58,97 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - MUST ATTENTION keep task tracking updated as each step starts/completes.
 - MUST ATTENTION define success criteria before execution and loop until observable verification passes.
 - MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
-- NEVER skip mandatory workflow or skill gates.
+- MUST ATTENTION author the spec via `spec [mode=draft]` — idea-sourced, no code yet → §8 `Evidence: TBD`, `Status: Planned`, frontmatter `provisional: true`.
+- NEVER decompose into PBIs/stories/backlog here — that is `workflow-spec-to-pbi`'s job. NEVER skip the Feature Spec authoring core.
 
 ## When to Use
 
-- PO/BA has a raw product vision, big problem statement, or "we need to build X" starting point
-- Team needs to go from zero to a grooming-ready backlog for sprint planning
-- Strategic product initiative needs to be broken down into implementable PBIs
-- Existing product needs a discovery sprint to generate new feature opportunities
+- PO/BA has a raw product vision, problem statement, or "we need to build X" starting point and wants a canonical Feature Spec
+- Team wants to capture intended behavior as a tech-free spec BEFORE any code exists (spec-first / TDD-first)
+- A single idea or capability needs a reviewed, AI-implementable Feature Spec as the source of truth for later implementation
 
 ## When NOT to Use
 
-- Single well-defined feature → use `workflow-feature` or `workflow-idea-to-pbi`
+- Implementation already exists and you want a spec FROM code → use `workflow-code-to-spec`
+- You want a full grooming-ready PBI backlog from the idea in one pass → use `workflow-idea-to-pbi`
+- You already have a Feature Spec and want PBIs from it → use `workflow-spec-to-pbi`
 - Implementation work (code writing) → use `workflow-feature` or `workflow-big-feature`
 - Bug fixes → use `workflow-bugfix`
-- Research only, no PBI output needed → use `investigation` or `deep-research`
 
 ## Key Mechanics
 
-### 0. Task Decomposition Gate (MANDATORY — Runs After Brainstorm, Before First $idea)
+### 1. Brainstorm → Converge on the Capability to Spec
 
-After the opportunity map is produced and the user selects which opportunities to develop, **STOP and call task tracking** for every upcoming unit of work before processing any opportunity:
-
-**Formula:** N opportunities × 8 steps = N×8 tasks. For 5 opportunities: 40 tasks.
-
-**Per-opportunity task set:**
-
-```
-Task tracking: "Opportunity {#}: Idea capture — {opportunity-slug}"
-Task tracking: "Opportunity {#}: PBI refinement — {opportunity-slug}"
-Task tracking: "Opportunity {#}: PBI review — {opportunity-slug}"
-Task tracking: "Opportunity {#}: User stories — {opportunity-slug}"
-Task tracking: "Opportunity {#}: Story review — {opportunity-slug}"
-Task tracking: "Opportunity {#}: Challenge review — {opportunity-slug}"
-Task tracking: "Opportunity {#}: DoR gate — {opportunity-slug}"
-Task tracking: "Opportunity {#}: HTML mock-up — {opportunity-slug}" [skip if backend-only]
-```
-
-**Plus:** `Task tracking: "Cross-PBI prioritization (final step)"` — one task at the end.
-
-**Context Window Management:**
-
-- Write each artifact immediately after completing its task — never batch
-- For 6+ opportunities, use sub-agent parallel processing:
-    - Spawn one sub-agent per opportunity with its task list and brainstorm context
-    - Each sub-agent runs idea → mockup and writes artifacts to `team-artifacts/pbis/`
-    - Main context runs `$prioritize` across all completed PBIs at the end
-- After every 3 opportunities completed, update the session summary table
-
-### 1. Brainstorm → Opportunity Map
-
-The `$brainstorm` step is the engine. It uses the Double Diamond process:
+The `$brainstorm` step frames the idea using the Double Diamond process:
 
 - **Problem framing:** POV statement, 5 Whys / Fishbone, JTBD job stories, HMW questions
 - **Opportunity framing:** Opportunity Solution Tree (enhancement) OR Lean Canvas (new product)
-- **Ideation:** SCAMPER, Crazy 8s, Impact Mapping — target 25–40 raw ideas
-- **Convergence:** RICE scoring, Kano classification, 2×2 Effort/Impact, MoSCoW
+- **Ideation:** SCAMPER, Crazy 8s, Impact Mapping
+- **Convergence:** pick the single feature/capability to author as a Feature Spec
 
-Output: A scored opportunity map with 3–8 ranked items.
-AI presents the map and asks: **"Which opportunities should we develop into PBIs?"** (multi-select).
+Output: the converged capability (or a short list if multiple distinct capabilities emerge).
+AI presents the framing and confirms scope: **"Which capability should we author as a Feature Spec?"** If multiple distinct capabilities are in scope, confirm with the user and author one Feature Spec per capability (sub-agent per capability for 4+ — see Scale awareness).
 
-### 2. Why-Review Gate (After domain-analysis, Before per-opportunity loop)
+### 2. Why-Review Gate (After domain-analysis, Before spec authoring)
 
-Before committing to the per-PBI loop, validate the opportunity map rationale with `$why-review`:
+Before authoring the spec, validate the idea framing with `$why-review`:
 
 **Challenge prompts:**
 
-- Are the top-ranked opportunities truly the right problems to solve? What was deprioritized and why?
-- Are RICE scores well-founded or speculative? Challenge Reach and Impact estimates independently.
-- Pre-mortem: if these opportunities are built and miss in 6 months, what was the root cause?
-- Are there systemic alternatives (infrastructure change, process change) that make these opportunities unnecessary?
+- Is this truly the right problem to solve? What was deprioritized and why?
+- Pre-mortem: if this is built and misses in 6 months, what was the root cause?
+- Are there systemic alternatives (infrastructure change, process change) that make this unnecessary?
 
-| Result                          | Action                                              |
-| ------------------------------- | --------------------------------------------------- |
-| PASS                            | Proceed to per-opportunity loop                     |
-| WARN                            | Document risk, acknowledge with user, proceed       |
-| FAIL on high-ranked opportunity | Remove from selection or revisit brainstorm framing |
+| Result | Action                                          |
+| ------ | ----------------------------------------------- |
+| PASS   | Proceed to spec authoring                       |
+| WARN   | Document risk, acknowledge with user, proceed   |
+| FAIL   | Revisit brainstorm framing before authoring     |
 
-### 3. Multi-Opportunity Loop
+### 3. Spec Authoring Flow (core mechanic — idea → provisional Feature Spec)
 
-For **each selected opportunity**, the following steps run in sequence:
+These steps run in sequence. **Spec-driven order: idea → draft Feature Spec → test specs → review.**
 
 | Step             | Purpose                                                                     | Output                                          |
 | ---------------- | --------------------------------------------------------------------------- | ----------------------------------------------- |
-| `$idea`          | Capture as structured artifact                                              | `team-artifacts/ideas/{date}-po-idea-{slug}.md` |
-| `$refine`        | PBI with hypothesis, AC (GIVEN/WHEN/THEN), RICE                             | `team-artifacts/pbis/{date}-pbi-{slug}.md`      |
-| `$review-artifact --type=pbi` | BA quality check on PBI                                                     | Reviewed PBI                                    |
-| `$story`         | User stories per PBI                                                        | Stories in PBI artifact                         |
-| `$review-artifact --type=story`  | Story quality and completeness check                                        | Reviewed stories                                |
-| `$pbi-challenge` | Dev BA PIC review — challenge prompts, AC quality, feasibility              | Challenge log                                   |
-| `$dor-gate`      | INVEST check — PASS/WARN/FAIL                                               | DoR result                                      |
-| `$pbi-mockup`    | HTML mock-up based on project reference design docs (skip for backend-only) | HTML mock-up file beside PBI artifact           |
+| `$idea`          | Capture the converged idea as a structured artifact                         | `team-artifacts/ideas/{date}-po-idea-{slug}.md` |
+| `$spec [mode=draft]` | Author the canonical tech-free 8-section Feature Spec §1-7 FROM the idea text (no code grep; `provisional: true` marker) | `docs/specs/{Bucket}/README.{Feature}.md`       |
+| `$spec [mode=tests]` | Author §8 TC-{FEATURE}-{NNN} behavioral test cases (`Evidence: TBD`, `Status: Planned` — before any code) | Feature Spec §8 Test Specifications             |
+| `$review-artifact --type=spec-tests` | Test-spec quality check                                      | Reviewed §8 TCs                                 |
+| `$review-artifact` | Feature Spec quality check                                                 | Reviewed Feature Spec                           |
+| `$why-review`    | Validate the authored spec's rationale and completeness                     | Why-Review checklist                            |
+| `$docs-update`   | Sync the Feature Spec (§8) and derived bucket indexes                        | Docs-update report                              |
 
-**Track progress:** After each opportunity loop, AI updates a session summary table in the plan dir.
+**Provisional output:** because no code exists yet, the spec is provisional — §8 TCs carry `Evidence: TBD` and `Status: Planned`, and frontmatter carries `provisional: true`. The first `workflow-code-to-spec` / `spec [mode=update]` run against real code upgrades `TBD` → real `[Source:]` anchors and clears the provisional flag.
 
-### 5. Cross-PBI Prioritize
-
-After all loops complete, `$prioritize` aggregates all PBIs:
-
-- Cross-PBI RICE ranking
-- Dependency graph (which PBIs must come before others)
-- Release scope (Must-Have / Should-Have / Could-Have)
-- Output: `team-artifacts/backlog/product-discovery-{date}-backlog.md`
-
-### 6. Handoff
+### 4. Handoff
 
 At `$workflow-end`, AI presents:
 
-- Session summary: N PBIs created, X passed DoR, Y need rework
-- Ranked backlog with RICE scores
-- Recommended next step: `$workflow-feature` (implement a delivery-ready PBI) or `/big-feature` (single large PBI needs deep research + implementation)
-- Blocked PBIs: list DoR failures with specific blocking items
+- Session summary: M Feature Specs authored (provisional), §8 TC counts, open questions (confidence < 80%)
+- Feature Specs authored: `docs/specs/{Bucket}/README.{Feature}.md` paths
+- Provisional note: these specs carry `Evidence: TBD` + `provisional: true` until code lands — reconcile via `workflow-code-to-spec` / `spec [mode=update]` once implemented
+- Recommended next workflow: `$start-workflow workflow-spec-to-pbi` (decompose the Feature Spec(s) into a grooming-ready PBI backlog) OR `$start-workflow workflow-feature` (implement directly from the spec)
 
 ## Conditional Skip Rules
 
-| Step                    | Skip When                                                                   |
-| ----------------------- | --------------------------------------------------------------------------- |
-| `$web-research`         | Internal tool, well-understood domain, user says "skip market research"     |
-| `$domain-analysis`      | No new domain entities or aggregates involved                               |
-| `$why-review`           | User has already validated opportunity rationale; no alternatives available |
-| `$pbi-mockup` (per PBI) | PBI is backend-only — no UI changes                                         |
+| Step                  | Skip When                                                                   |
+| --------------------- | --------------------------------------------------------------------------- |
+| `$domain-analysis`    | No new domain entities or aggregates involved                               |
+| `$why-review` (gate)  | User has already validated the idea rationale; no alternatives available    |
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $brainstorm -> $web-research -> $domain-analysis -> $why-review -> $idea -> $refine -> $why-review -> $review-artifact --type=pbi -> $story -> $why-review -> $review-artifact --type=story -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $review-changes -> $prioritize -> $workflow-end -> $watzup
-
-**IMPORTANT MANDATORY Steps:** $brainstorm -> $web-research -> $domain-analysis -> $why-review -> $idea -> $refine -> $why-review -> $review-artifact --type=pbi -> $story -> $why-review -> $review-artifact --type=story -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $review-changes -> $prioritize -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $brainstorm -> $domain-analysis -> $why-review -> $idea -> $spec [mode=draft] -> $spec [mode=tests] -> $review-artifact --type=spec-tests -> $review-artifact -> $why-review -> $docs-update -> $workflow-end -> $watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its skill invocation — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
-Activate the `workflow-product-discovery` workflow. Run `$start-workflow workflow-product-discovery` with the user's prompt as context.
+Activate the `workflow-idea-to-spec` workflow. Run `$start-workflow workflow-idea-to-spec` with the user's prompt as context.
 
 **Steps:**
-$brainstorm → $web-research → $domain-analysis → $why-review
-→ **[TASK DECOMPOSITION GATE]** Create task tracking for every opportunity × step BEFORE looping
-→ [**loop per opportunity**] $idea → $refine → $review-artifact --type=pbi → $story → $review-artifact --type=story → $pbi-challenge → $dor-gate → $pbi-mockup
-→ $review-changes → $prioritize → $workflow-end → $watzup
+$brainstorm → $domain-analysis → $why-review → $idea → $spec [mode=draft] → $spec [mode=tests] → $review-artifact --type=spec-tests → $review-artifact → $why-review → $docs-update → $workflow-end → $watzup
 
-> **Scale awareness:** This workflow can generate 8 opportunities × 8 steps = 64 artifact units plus a ranked backlog. Use the Task Decomposition Gate and incremental-write patterns to prevent context overrun. For 6+ opportunities, use sub-agent parallel processing (one sub-agent per opportunity, main context assembles at $prioritize).
+> **Scale awareness:** When the brainstorm converges on multiple distinct capabilities, this workflow authors one Feature Spec per capability. For 4+ capabilities, spawn one `spec` sub-agent per capability in ONE message (each gets the framing context + output path); the main context assembles and reviews. Use incremental-write patterns to prevent context overrun.
 
 <!-- SYNC:ai-mistake-prevention -->
 
@@ -277,6 +232,8 @@ $brainstorm → $web-research → $domain-analysis → $why-review
 >
 > Main agent reads `Full report` file ONLY when: (a) resolving a specific blocker, or (b) building a fix plan.
 > Sub-agent writes full report incrementally (per SYNC:incremental-persistence) — not held in memory.
+>
+> **Context budget** — the return payload is a SUMMARY, not a transcript: ≤10 finding bullets, no raw file contents / full diffs / verbatim logs inline, no re-pasted source. Everything beyond the summary lives in the `Full report` on disk. A sub-agent that would exceed the summary shape MUST write the detail to its report and return only the pointer — the orchestrator's context is the scarce resource the whole map-reduce protects.
 
 <!-- /SYNC:subagent-return-contract -->
 
@@ -301,14 +258,15 @@ $brainstorm → $web-research → $domain-analysis → $why-review
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Ensure product discovery converts raw opportunities into reviewed, prioritized PBIs ready for sprint planning.
-- **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting — one task per opportunity × step
-- **MANDATORY IMPORTANT MUST ATTENTION** brainstorm output MUST produce a scored opportunity map before any $idea step
-- **MANDATORY IMPORTANT MUST ATTENTION** why-review runs after domain-analysis — FAIL removes opportunity from selection, WARN requires user acknowledgment
-- **MANDATORY IMPORTANT MUST ATTENTION** repeat idea→pbi chain for EACH selected opportunity — not just once
-- **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via a direct user question — never auto-select opportunities
-- **MANDATORY IMPORTANT MUST ATTENTION** $prioritize runs ONCE at the end across ALL PBIs, not per-opportunity
-- **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify all PBIs and backlog artifact
+**IMPORTANT MUST ATTENTION Goal:** Ensure spec-driven idea-to-spec converts a raw idea into ONE canonical, provisional Feature Spec — reviewed and docs-synced, ready to hand off for backlog decomposition or implementation.
+- **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting — one task per workflow step (per capability when multiple capabilities are in scope)
+- **MANDATORY IMPORTANT MUST ATTENTION** brainstorm converges on the capability to spec BEFORE the `$idea` step
+- **MANDATORY IMPORTANT MUST ATTENTION** SPEC-DRIVEN ORDER — author the Feature Spec (`$spec [mode=draft]` → `$spec [mode=tests]`) and review it; this workflow STOPS at the reviewed spec
+- **MANDATORY IMPORTANT MUST ATTENTION** PROVISIONAL OUTPUT — §8 carries `Evidence: TBD` / `Status: Planned` and frontmatter `provisional: true`; reconcile against code later via `workflow-code-to-spec`
+- **MANDATORY IMPORTANT MUST ATTENTION** NEVER decompose into PBIs/stories/backlog here — chain `workflow-spec-to-pbi` for a backlog
+- **MANDATORY IMPORTANT MUST ATTENTION** why-review runs after domain-analysis — FAIL revisits framing, WARN requires user acknowledgment
+- **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via a direct user question — never auto-select scope
+- **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify the authored Feature Spec(s)
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
 
@@ -320,6 +278,7 @@ $brainstorm → $web-research → $domain-analysis → $why-review
 | "Purpose obvious" | Anchor it anyway — primacy/recency keeps outcome active through long prompts. |
 | "Existing reminders enough" | Echo Goal in Closing Reminders — bottom anchor prevents drift. |
 | "Skip evidence for prompt edits" | Cite changed file evidence and verify no stale protocol text remains. |
+| "Decompose into PBIs while I'm here" | Out of scope — this workflow STOPS at the spec. Chain workflow-spec-to-pbi. |
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Hookless Prompt Protocol Mirror (Auto-Synced)

@@ -196,7 +196,7 @@ After validation:
 
 **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing, use `AskUserQuestion` to present:
 
-- **"/cook (Recommended)"** — Begin implementation with validated plan
+- **"/feature-implement (Recommended)"** — Begin implementation with validated plan
 - **"/refine"** — If plan needs PBI refinement first
 - **"Skip, continue manually"** — User decides
 

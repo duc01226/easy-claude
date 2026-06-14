@@ -416,7 +416,7 @@ claude /plan "implement user authentication"
 claude checkpoint create "before auth implementation"
 
 # 3. Implement
-claude /cook "implement user authentication"
+claude /feature-implement "implement user authentication"
 
 # 4. Test
 claude /test

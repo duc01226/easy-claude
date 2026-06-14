@@ -23,7 +23,7 @@ disable-model-invocation: true
 - MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
 - NEVER skip mandatory workflow or skill gates.
 
-**IMPORTANT MANDATORY Steps:** /scout -> /feature-investigation -> /seed-test-data -> /review-changes -> /code-simplifier -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /seed-test-data -> /review-changes -> /code-simplifier -> /docs-update -> /workflow-end -> /watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
@@ -31,7 +31,7 @@ disable-model-invocation: true
 
 Activate the `workflow-seed-test-data` workflow. Run `/start-workflow workflow-seed-test-data` with the user's prompt as context.
 
-**Steps:** /scout → /feature-investigation → /seed-test-data → /review-changes → /code-simplifier → /docs-update → /workflow-end → /watzup
+**Steps:** /scout → /investigate → /seed-test-data → /review-changes → /code-simplifier → /docs-update → /workflow-end → /watzup
 
 > **[STEP PURPOSES]** Every step has a distinct purpose — NEVER deduplicate or batch:
 >
@@ -45,7 +45,7 @@ Activate the `workflow-seed-test-data` workflow. Run `/start-workflow workflow-s
 
 ---
 
-**IMPORTANT MANDATORY Steps:** /scout -> /feature-investigation -> /seed-test-data -> /review-changes -> /code-simplifier -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /seed-test-data -> /review-changes -> /code-simplifier -> /docs-update -> /workflow-end -> /watzup
 
 <!-- SYNC:ai-mistake-prevention -->
 
@@ -129,6 +129,8 @@ Activate the `workflow-seed-test-data` workflow. Run `/start-workflow workflow-s
 >
 > Main agent reads `Full report` file ONLY when: (a) resolving a specific blocker, or (b) building a fix plan.
 > Sub-agent writes full report incrementally (per SYNC:incremental-persistence) — not held in memory.
+>
+> **Context budget** — the return payload is a SUMMARY, not a transcript: ≤10 finding bullets, no raw file contents / full diffs / verbatim logs inline, no re-pasted source. Everything beyond the summary lives in the `Full report` on disk. A sub-agent that would exceed the summary shape MUST write the detail to its report and return only the pointer — the orchestrator's context is the scarce resource the whole map-reduce protects.
 
 <!-- /SYNC:subagent-return-contract -->
 

@@ -131,14 +131,14 @@ Apply before any rule/checklist below; if downstream rule raises change cost, th
 
 ### Anti-Bias Gate (MANDATORY before finalizing verdict)
 
-Complete ALL checks before writing the final verdict:
+Complete ALL checks before writing the final verdict (MUST ATTENTION):
 
-- MUST ATTENTION steel-man at least one rejected alternative (argue FOR it)
-- MUST ATTENTION identify at least 1 alternative NOT in the plan
-- MUST ATTENTION list 2-3 arguments AGAINST the chosen approach
-- MUST ATTENTION surface 2-3 hidden assumptions with stress tests
-- MUST ATTENTION run the pre-mortem (one concrete failure scenario)
-- MUST ATTENTION check pros/cons symmetry
+- steel-man at least one rejected alternative (argue FOR it)
+- identify at least 1 alternative NOT in the plan
+- list 2-3 arguments AGAINST the chosen approach
+- surface 2-3 hidden assumptions with stress tests
+- run the pre-mortem (one concrete failure scenario)
+- check pros/cons symmetry
 
 Any check incomplete → adversarial review NOT complete. Go back.
 
@@ -296,7 +296,7 @@ For code-change reviews, use Code-Change Review Path instead of forcing plan che
 
 ### Recommendation
 
-{Proceed to $cook | Add missing sections first | Add adversarial analysis to plan/PBI | Fix code findings | Update docs/specs | Continue manually}
+{Proceed to $feature-implement | Add missing sections first | Add adversarial analysis to plan/PBI | Fix code findings | Update docs/specs | Continue manually}
 ```
 
 ## Round 2: Adversarial Re-Review (MANDATORY)
@@ -376,10 +376,10 @@ Return verdict path + status. **Caller owns reconciliation and bounded re-do; ro
 
 > **EXEMPT in `validate-findings` mode:** terminal mode returns verdict; skip `## Next Steps`, a direct user question, council gate.
 
-**MANDATORY IMPORTANT MUST ATTENTION — FULL MODE:** after review, use a direct user question; user owns next step.
+**MANDATORY — FULL MODE:** after review, use a direct user question; user owns next step.
 
-- **"$cook (Recommended)"** — Begin implementation after design rationale is validated
-- **"$code"** — If implementing a simpler change
+- **"$feature-implement (Recommended)"** — Begin implementation after design rationale is validated
+- **"$plan-execute"** — If implementing a simpler change
 - **"Skip, continue manually"** — user decides
 
 ### Additionally — conditional $llm-council escalation
@@ -399,8 +399,8 @@ If suppressed or no-fire, do NOT mention `$llm-council`. If gate fires, ask a **
 > **[IMPORTANT]** Use task tracking before work, including file-read tasks; simple tasks need documented skip decision.
 > **Critical Purpose:** Ensure quality: no flaws, bugs, missing updates, or stale content. Verify code AND documentation.
 > **External Memory:** Long reviews write intermediate + final results to `plans/reports/`.
-> **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION every claim/finding/recommendation requires `file:line` proof or trace with confidence (>80% act, <80% verify).
-> **OOP & DRY Enforcement:** MANDATORY IMPORTANT MUST ATTENTION flag 3+ duplicated patterns for extraction; same-group/suffix classes (`*Entity`, `*Dto`, `*Service`) should share a base when it lowers future change cost.
+> **Evidence Gate:** MANDATORY every claim/finding/recommendation requires `file:line` proof or trace with confidence (>80% act, <80% verify).
+> **OOP & DRY Enforcement:** MANDATORY flag 3+ duplicated patterns for extraction; same-group/suffix classes (`*Entity`, `*Dto`, `*Service`) should share a base when it lowers future change cost.
 
 <!-- SYNC:end-to-start-debugger-trace -->
 
@@ -549,7 +549,7 @@ If suppressed or no-fire, do NOT mention `$llm-council`. If gate fires, ask a **
 > **Decision after Round 1:**
 >
 > - **No issues found (PASS, zero findings)** → review ENDS. Do NOT spawn a fresh sub-agent for confirmation.
-> - **Issues found (FAIL, or any non-zero findings)** → run the active review skill's findings-validation gate first; for review skills the default gate is `$why-review --validate-findings <report-path>`, fix only validated findings, then restart the full review protocol from the beginning with a fresh task breakdown.
+> - **Issues found (FAIL, or any non-zero findings)** → run the active review skill's findings-validation gate first; for review skills the default gate is `$why-review --validate-findings <report-path>`. Fix only validated findings, then restart the full review protocol from the beginning with a fresh task breakdown.
 >
 > **Fresh full re-review after every fix cycle:** Re-run the whole review protocol over the current full target. When sub-agents are part of that protocol, spawn NEW `spawn_agent` calls — never reuse prior agents. Reviewers re-read ALL files from scratch with ZERO memory of prior rounds. See `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. Each fresh full review must catch:
 >
@@ -581,7 +581,7 @@ If suppressed or no-fire, do NOT mention `$llm-council`. If gate fires, ask a **
 
 > **Fresh Context Re-Review** — Eliminate orchestrator confirmation bias after fixes by restarting the full review with isolated sub-agents where applicable.
 >
-> **Why:** The main agent knows what it (or `$cook`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
+> **Why:** The main agent knows what it (or `$feature-implement`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
 >
 > **When:** ONLY after a validated-finding fix cycle. A review round that finds zero issues ENDS the loop — do NOT spawn a confirmation sub-agent. A review round that finds issues triggers: validate findings → fix → full review restart from the first phase.
 >
@@ -773,6 +773,26 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:graph-impact-analysis -->
 
+<!-- SYNC:severity-rubric -->
+
+> **Severity Rubric** — Classify every finding by consequence, not by how easy it is to fix. One scale across all reviews so a "High" means the same thing everywhere.
+>
+> | Severity | Action | Definition |
+> | --- | --- | --- |
+> | CRITICAL | Block merge | Silent runtime failure, data corruption, validation bypass, security hole |
+> | HIGH | Must fix | Incorrect behavior, invariant gap, architectural violation |
+> | MEDIUM | Should fix | Design debt, maintainability, likely future bug |
+> | LOW | Nice to fix | Convention, documentation, minor clarity |
+>
+> **Score-based skills** map their numeric scale onto these tiers — do not invent a parallel vocabulary:
+>
+> - **0-2 criterion scoring** (e.g. sre-review): `0` = CRITICAL/HIGH (criterion unmet, blocks production readiness), `1` = MEDIUM (partial, should fix), `2` = pass (no finding).
+> - **Two-axis scoring** (e.g. performance-review, impact × likelihood): map the resulting cell to the nearest tier — high-impact + high-likelihood → CRITICAL/HIGH; low-impact OR low-likelihood → MEDIUM/LOW.
+>
+> A finding's tier drives the gate: CRITICAL/HIGH must be resolved or explicitly accepted by the owner before PASS; MEDIUM/LOW may ship with a tracked follow-up.
+
+<!-- /SYNC:severity-rubric -->
+
 <!-- SYNC:task-tracking-external-report:reminder -->
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
@@ -819,19 +839,26 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 
+<!-- SYNC:severity-rubric:reminder -->
+
+- **MANDATORY** Classify findings Critical/High/Medium/Low by consequence; Critical/High block PASS until fixed or owner-accepted.
+- **MANDATORY** Score-based skills (sre 0-2, perf two-axis) map onto the same four tiers — no parallel severity vocabulary.
+
+<!-- /SYNC:severity-rubric:reminder -->
+
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Ensure decisions, findings, and plans survive adversarial rationale review before downstream work proceeds.
-**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting.
-**MANDATORY IMPORTANT MUST ATTENTION** resolve the user's requested review target BEFORE reviewing: plan/PBI rationale, code changes, docs/spec/report, findings, or another artifact. Commit/PR/diff input defaults to code-change review; "no active plan" applies ONLY to unresolved plan-rationale requests.
-**MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via a direct user question — why: review gate needs user-owned next step, not AI auto-proceed.
-**MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.
-**MANDATORY IMPORTANT MUST ATTENTION** in full mode, create the **Findings Validation Gate** closing task at skill START (see Task Bootstrap); whenever findings exist, run it before completing — re-invoke `$why-review --validate-findings` (TERMINAL mode, SAME session) to verify every finding is correct, proof-backed, reasonable, best-practice; RE-DO it ONLY if it surfaces finding issues or enhancement opportunities (max 2 re-dos, then escalate via a direct user question). `validate-findings` mode is terminal — it NEVER re-invokes why-review.
-**MANDATORY IMPORTANT MUST ATTENTION** read reference docs chosen by Project Reference Docs Gate; always include `docs/project-reference/lessons.md`.
+**MANDATORY Goal:** Ensure decisions, findings, and plans survive adversarial rationale review before downstream work proceeds.
+**MANDATORY** break work into small todo tasks using task tracking BEFORE starting.
+**MANDATORY** resolve the user's requested review target BEFORE reviewing: plan/PBI rationale, code changes, docs/spec/report, findings, or another artifact. Commit/PR/diff input defaults to code-change review; "no active plan" applies ONLY to unresolved plan-rationale requests.
+**MANDATORY** validate decisions with user via a direct user question — why: review gate needs user-owned next step, not AI auto-proceed.
+**MANDATORY** add a final review todo task to verify work quality.
+**MANDATORY** in full mode, create the **Findings Validation Gate** closing task at skill START (see Task Bootstrap); whenever findings exist, run it before completing — re-invoke `$why-review --validate-findings` (TERMINAL mode, SAME session) to verify every finding is correct, proof-backed, reasonable, best-practice; RE-DO it ONLY if it surfaces finding issues or enhancement opportunities (max 2 re-dos, then escalate via a direct user question). `validate-findings` mode is terminal — it NEVER re-invokes why-review.
+**MANDATORY** read reference docs chosen by Project Reference Docs Gate; always include `docs/project-reference/lessons.md`.
 
-- **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% do NOT recommend.
-- **MANDATORY IMPORTANT MUST ATTENTION** execute the review loop: review → validate findings → fix validated findings → full re-review. A complete review pass with zero findings ENDS the review.
-- **MANDATORY IMPORTANT MUST ATTENTION** run graph blast-radius on changed files to find potentially stale consumers/handlers (when graph.db exists).
+- **MANDATORY** cite `file:line` evidence for every claim. Confidence >80% to act, <60% do NOT recommend.
+- **MANDATORY** execute the review loop: review → validate findings → fix validated findings → full re-review. A complete review pass with zero findings ENDS the review.
+- **MANDATORY** run graph blast-radius on changed files to find potentially stale consumers/handlers (when graph.db exists).
 <!-- SYNC:critical-thinking-mindset:reminder -->
 - **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
 <!-- /SYNC:critical-thinking-mindset:reminder -->

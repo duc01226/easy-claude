@@ -42,7 +42,7 @@ function wasCatalogP3RecentlyInjected(transcriptPath) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function buildCatalogPart3(config) {
-    const { workflows, commandMapping } = config;
+    const { workflows } = config;
 
     const allEntries = Object.entries(workflows)
         .filter(([, wf]) => wf.whenToUse)
@@ -56,9 +56,9 @@ function buildCatalogPart3(config) {
     lines.push('');
 
     for (const [id, wf] of lastThird) {
-        const sequence = wf.sequence.map(step => commandMapping[step]?.claude || `/${step}`).join(' \u2192 ');
+        const sequence = wf.sequence.map(step => `/${step}`).join(' \u2192 ');
         lines.push(`**${id}** \u2014 ${wf.name}`);
-        lines.push(`  Use: ${wf.whenToUse} | Not for: ${wf.whenNotToUse || 'N/A'} | Steps: ${sequence}`);
+        lines.push(`  Use: ${wf.whenToUse} | Steps: ${sequence}`);
     }
 
     lines.push('');

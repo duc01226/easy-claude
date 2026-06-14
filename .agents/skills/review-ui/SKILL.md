@@ -85,7 +85,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - Write findings to `plans/reports/ui-review-{date}-{slug}.md`
 - BLOCKED = must fix before merge | WARN = review and decide | PASS = compliant
 - Every violation needs `file:line` proof + grep 3+ counterexamples before flagging
-- Review is read-only until `$why-review --validate-findings` confirms findings; fixes may happen only in the validated fix loop or downstream plan/cook, and every fix restarts a full UI review from Phase 0 with brand-new tasks.
+- Review is read-only until `$why-review --validate-findings` confirms findings; fixes may happen only in the validated fix loop or downstream plan/feature-implement, and every fix restarts a full UI review from Phase 0 with brand-new tasks.
 
 ## Your Mission
 
@@ -125,14 +125,14 @@ Skeptical. Every claim needs traced proof, confidence >80%.
 - Before flagging a pattern violation: grep 3+ existing examples — codebase convention wins
 - Question: "Is this actually a violation, or an established exception (icon dimensions, fixed brand assets, genuinely fixed UI)?"
 
-## Phase 0: Load UI Rules (MANDATORY FIRST)
+## Phase 0: Load UI Rules (MANDATORY FIRST) (MUST ATTENTION)
 
 > **MUST ATTENTION:** Read project UI docs BEFORE reviewing. Rules come from docs, not general knowledge.
 
-- MUST ATTENTION read the project styling rules doc — extract BEM convention, mixin names, variable names, responsive breakpoint mixins, nesting limits
-- MUST ATTENTION read the project design-system/token doc — extract design tokens and the **Z-Index & Layering** section
-- MUST ATTENTION read the project frontend architecture/patterns doc — extract base component classes, store/effect patterns, API service base, lifecycle teardown pattern
-- MUST ATTENTION read the project code-review rules doc — extract frontend anti-patterns and review rules directly
+- read the project styling rules doc — extract BEM convention, mixin names, variable names, responsive breakpoint mixins, nesting limits
+- read the project design-system/token doc — extract design tokens and the **Z-Index & Layering** section
+- read the project frontend architecture/patterns doc — extract base component classes, store/effect patterns, API service base, lifecycle teardown pattern
+- read the project code-review rules doc — extract frontend anti-patterns and review rules directly
 
 > **CROSS-SYSTEM WARNING (carry through every category):** Do NOT mix token systems with incompatible root-size, namespace, or layer assumptions in one file. When flagging a fix, recommend whichever token system the file already imports/uses; never introduce another system unless the project docs explicitly require migration.
 
@@ -394,7 +394,7 @@ Update report with final sections:
 **Protocol:**
 
 1. Create a fresh fix-cycle task list before editing. Do not reuse the review tasks.
-2. Fix only findings that survived `$why-review --validate-findings`; route broader or cross-cutting fixes through the parent `$plan` + `$cook` flow when this skill is running inside a workflow.
+2. Fix only findings that survived `$why-review --validate-findings`; route broader or cross-cutting fixes through the parent `$plan` + `$feature-implement` flow when this skill is running inside a workflow.
 3. Run targeted verification for the fixed UI files and any affected consumers.
 4. Re-invoke `$review-ui` from Phase 0 over the full current UI scope, not only the fixed files.
 5. The re-run MUST create brand-new review tasks, reload the UI docs, determine scope again, rerun blast radius where applicable, and review every changed UI file from the start.
@@ -412,7 +412,7 @@ Update report with final sections:
 
 ## Workflow Recommendation
 
-> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If NOT already in a workflow, MUST use a direct user question to ask user. Do NOT judge task complexity or decide "simple enough to skip" — user decides, not you:
+> **MANDATORY — NO EXCEPTIONS:** If NOT already in a workflow, MUST use a direct user question to ask user. Do NOT judge task complexity or decide "simple enough to skip" — user decides, not you:
 >
 > 1. **Activate `workflow-review-changes` workflow** (Recommended) — run the canonical workflow from `.claude/workflows.json`; it sequences UI review through `$review-changes`, findings validation, parallel reviewers, `code-simplifier` self-review, fix-plan cycle, full re-review restart, docs, and handoff.
 > 2. **Execute `$review-ui` directly** — run this skill standalone
@@ -421,7 +421,7 @@ Update report with final sections:
 
 ## Next Steps
 
-**MANDATORY MUST ATTENTION — NO EXCEPTIONS:** After completing, use a direct user question to present:
+**MANDATORY — NO EXCEPTIONS:** After completing, use a direct user question to present:
 
 - **"$code-simplifier" (Recommended)** — Simplify and refine the styling/component code
 - **"$web-design-guidelines"** — Generic accessibility / UX checklist for a11y depth
@@ -443,7 +443,7 @@ Before reporting ANY work done:
 
 > **Fresh Context Re-Review** — Eliminate orchestrator confirmation bias after fixes by restarting the full review with isolated sub-agents where applicable.
 >
-> **Why:** The main agent knows what it (or `$cook`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
+> **Why:** The main agent knows what it (or `$feature-implement`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
 >
 > **When:** ONLY after a validated-finding fix cycle, or when the user/workflow explicitly requests an independent high-risk UI synthesis pass. A review pass that finds issues triggers validation first; it does NOT trigger a fresh-context pass over the same findings before validation/fix.
 >
@@ -630,7 +630,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 > **External Memory:** Complex/lengthy work → write findings to `plans/reports/`. Prevents context loss, serves as deliverable.
 
-> **Evidence Gate:** MANDATORY MUST ATTENTION — every finding requires `file:line` proof + confidence percentage (>80% act, <80% verify first).
+> **Evidence Gate:** MANDATORY — every finding requires `file:line` proof + confidence percentage (>80% act, <80% verify first).
 
 <!-- OVERRIDE-NOTE:fresh-context-review -->
 
@@ -702,14 +702,33 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:subagent-return-contract -->
 
-> **Sub-Agent Return Contract** — Every sub-agent this skill spawns MUST return a structured, evidence-backed result the main agent can consume without re-deriving it.
+> **Sub-Agent Return Contract** — When this skill spawns a sub-agent, the sub-agent MUST return ONLY this structure. Main agent reads only this summary — NEVER requests full sub-agent output inline.
 >
-> 1. **Report-first.** The sub-agent's FIRST deliverable is its report file at `plans/reports/{review-type}-round{N}-{date}.md`. Append findings per-file/section — NEVER batch all findings into one final write (long agents hit cutoffs before the final write and lose everything).
-> 2. **Structured return.** The sub-agent's final message returns: report path + Status (PASS/FAIL) + issue counts by severity. The main agent reads the report; it does NOT trust an unwritten summary.
-> 3. **Evidence-only.** Every returned finding carries `file:line` proof. Speculation is forbidden — a finding without evidence is dropped.
-> 4. **No filtering by main agent.** The main agent integrates the sub-agent report verbatim into its own report; it MUST NOT reinterpret, downgrade, or omit findings (the Why-Review gate is the only sanctioned re-evaluation path).
+> ```markdown
+> ## Sub-Agent Result: [skill-name]
 >
-> **Blocked until:** report path returned, status declared, severity counts stated, findings carry `file:line`.
+> Status: ✅ PASS | ⚠️ PARTIAL | ❌ FAIL
+> Confidence: [0-100]%
+>
+> ### Findings (Critical/High only — max 10 bullets)
+>
+> - [severity] [file:line] [finding]
+>
+> ### Actions Taken
+>
+> - [file changed] [what changed]
+>
+> ### Blockers (if any)
+>
+> - [blocker description]
+>
+> Full report: plans/reports/[skill-name]-[date]-[slug].md
+> ```
+>
+> Main agent reads `Full report` file ONLY when: (a) resolving a specific blocker, or (b) building a fix plan.
+> Sub-agent writes full report incrementally (per SYNC:incremental-persistence) — not held in memory.
+>
+> **Context budget** — the return payload is a SUMMARY, not a transcript: ≤10 finding bullets, no raw file contents / full diffs / verbatim logs inline, no re-pasted source. Everything beyond the summary lives in the `Full report` on disk. A sub-agent that would exceed the summary shape MUST write the detail to its report and return only the pointer — the orchestrator's context is the scarce resource the whole map-reduce protects.
 
 <!-- /SYNC:subagent-return-contract -->
 
@@ -781,65 +800,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:design-patterns-quality -->
 
-<!-- SYNC:complexity-prevention -->
-
-> **Complexity Prevention (Ousterhout)** — MANDATORY. Measure code by cost of change: one business change should map to one code change. Flag ALL of the following in review:
->
-> 1. **Change amplification** — small business change forces edits in >3 places → structural flaw. Count edit sites for a plausible future change (add variant, add field, add authorization). >3 = reject.
-> 2. **Cognitive load** — reader must hold too much context to safely modify. Flag deep inheritance, long parameter lists, boolean traps, implicit ordering dependencies.
-> 3. **Cross-cutting duplication at entry points** — logging, error handling, validation, auth, transactions reimplemented per controller/handler/route. Lift to middleware / interceptor / filter / decorator / aspect.
-> 4. **Leaked implementation technology** — repos returning `IQueryable`/`QuerySet`/`Criteria`/raw cursors/ORM entities to callers. Return finished results + intent-revealing methods (`GetActiveVipUsers()` not `Query()`).
-> 5. **Type-switch scattering** — `switch`/`if`-chains on enum/discriminator in >1 place. New variant = new file, not N edits. One factory/registry switch at the boundary OK; scattered switches = reject.
-> 6. **Anemic models** — domain objects with only getters/setters, logic floats in services. Move invariants/behavior onto the object (`order.Checkout()`, not `order.Status = ...`).
-> 7. **Primitive obsession** — raw `string`/`int`/`decimal` for account numbers, emails, money, percentages, date ranges, with re-validation at every entry. Wrap in value objects / records / structs that validate once at construction.
-> 8. **Inline cross-cutting concerns** — authorization/tenant isolation/audit/sanitization hand-written at top of every handler. Flag intent with declarative markers (`@RequirePermission("Order.Delete")`), enforce once centrally.
-> 9. **Shallow modules** — tiny class, big interface (many public methods, many flags, many ctor params) wrapping little logic. A module is deep when a small interface hides a lot of implementation. If interface ≈ implementation cost to learn → inline.
-> 10. **Missing base class for repeated component/handler lifecycle** — 3+ forms/CRUD handlers/list views reimplementing loading/dirty/submit/pagination → extract to base class / hook / composable / mixin / trait.
-> 11. **Premature vs delayed abstraction** — rule-of-three. First occurrence: write it. Second: notice duplication. Third: extract. Don't build generic frameworks before real variation; don't copy-paste for the 4th time.
-> 12. **Embedded utility logic not extracted to helpers** — inline paging loops (`while (hasMore) { skip += take; ... }`), ad-hoc datetime math, string parsing/formatting, collection partitioning, retry/backoff loops, URL/query-string building. If the algorithm is non-trivial AND stack-generic (not business-specific), extract to `util`/`helper`/`extensions` and let consumers call one line. Inline duplicates → duplicated bug surface.
-> 13. **Logic in wrong (higher) layer — downshift to callee** — business/derivation logic written in the caller when the callee owns the data. Defaults: Controller code that should be App Service. App Service code that should be Domain Service or Entity. Component code that should be ViewModel/Store/Service. Caller reaching into callee's data shape to compute something → move the computation behind an intent-revealing method on the callee. Lowest responsible layer wins (Entity > Domain Service > App Service > Controller · Model/VM > Store > Component). Higher-layer placement = duplicated logic when a sibling caller needs the same thing.
-> 14. **Owner owns the rule — extract on first write** — if a caller inlines logic that derives, normalizes, validates, or computes from another type's data, MOVE it to the owning type. Single use is sufficient — the trigger is wrong responsibility, not duplication. Sibling callers always arrive; inline copies drift silently with no compile error and no name to grep. **Common offenders:** _Backend_ — inlined rules in application-layer handlers / commands / queries / services / controllers that belong on the domain entity / value object / domain service. _Frontend_ — inlined derivations / formatting / validation in components that belong on the model / store / view-model / API service. **Fix:** name the rule once as a method (static or instance) on the owning type; callers invoke by name. Future variant → SECOND named method on the owner, never an inline near-duplicate. **Right responsibility first; reuse is the consequence.**
->
-> **Extraction target — where the named rule lives:**
->
-> | Shape of the rule                             | Goes to                       |
-> | --------------------------------------------- | ----------------------------- |
-> | Pure function over an entity's own data       | static method on the entity   |
-> | Behavior that mutates / guards entity state   | instance method on the entity |
-> | Always-true invariant on a primitive value    | value object constructor      |
-> | Needs DI (repo / settings / clock)            | helper class registered in DI |
-> | Domain-agnostic algorithm reused across types | util / extension method       |
-> | Pure shape / projection conversion            | DTO mapping                   |
->
-> **Pre-commit edit-site test (reject if answer is "many"):**
->
-> | Change Scenario                                 | Should touch              |
-> | ----------------------------------------------- | ------------------------- |
-> | Add new variant (customer type, payment method) | 1 new file                |
-> | Change HTTP error response format               | 1 middleware/filter       |
-> | Add timestamp field to every persisted entity   | 1 base entity/interceptor |
-> | Add authorization to a new endpoint             | 1 declarative marker      |
-> | Swap database/ORM                               | Data layer only           |
-> | Change business calculation rule                | 1 method on owning entity |
-> | Add loading indicator pattern to forms          | 1 base component/hook     |
-> | Add validation rule to a domain primitive       | 1 value-object ctor       |
-> | Change paging/retry/datetime algorithm          | 1 helper/util function    |
-> | Change a derivation of entity data              | 1 method on the entity    |
->
-> **Operating heuristics:**
->
-> - Write the call site first.
-> - Count edit sites for plausible future change.
-> - Prefer removing code over adding it.
-> - Surface assumptions at boundaries, hide details inside.
-> - **Pre-reuse scan** — before writing a non-trivial block, grep for similar algorithms (`while.*skip`, `DateTime.*Add`, `split`/`join` chains, paging loops, retry loops). Match existing helper → call it. None exists but pattern is stack-generic → extract to util before second caller appears.
-> - **Layer placement test** — ask "if a sibling caller needed this tomorrow, would they re-derive it?" If yes, the logic is in the wrong layer. Move it down.
-> - **Open-case-for-future-reuse** — if reviewer spots a block that is likely to appear in another feature (domain-agnostic algorithm, shared lifecycle, recurring derivation), do NOT rationalize with pure YAGNI. Either extract now (if cheap) or create a tracked TODO with the exact extraction target so the second caller does not duplicate silently. Silent duplication is the default failure mode.
-> - When in doubt ask: "What would need to change if the requirement shifts?"
->
-> **The measure of good code is the cost of change.** Not shortest. Not cleverest. Not most abstracted. Cheapest to safely modify having read a small local portion.
-
-<!-- /SYNC:complexity-prevention -->
+> **Complexity Prevention (UI-scoped)** — measure code by cost of change: one UI change should map to one code change. The full backend-OOP treatise (anemic models, primitive obsession, value objects, repo leakage) does not apply to UI review and is intentionally not carried here. UI-relevant essence: (1) **extract repeated component lifecycle** — 3+ forms/list views reimplementing loading/dirty/submit/pagination → base component / hook / composable / mixin; (2) **keep derivations, formatting, and validation off the template** — move them onto the model / store / view-model / API service, not inline in the component. For deeper OOP/DRY structural review of any backend the UI calls, defer to `$review-changes` / `$review-architecture`.
 
 <!-- SYNC:double-round-trip-review -->
 
@@ -850,7 +811,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > **Decision after Round 1:**
 >
 > - **No issues found (PASS, zero findings)** → review ENDS. Do NOT spawn a fresh sub-agent for confirmation.
-> - **Issues found (FAIL, or any non-zero findings)** → run the active review skill's findings-validation gate first; for review skills the default gate is `$why-review --validate-findings <report-path>`, fix only validated findings, then restart the full review protocol from the beginning with a fresh task breakdown.
+> - **Issues found (FAIL, or any non-zero findings)** → run the active review skill's findings-validation gate first; for review skills the default gate is `$why-review --validate-findings <report-path>`. Fix only validated findings, then restart the full review protocol from the beginning with a fresh task breakdown.
 >
 > **Fresh full re-review after every fix cycle:** Re-run the whole review protocol over the current full target. When sub-agents are part of that protocol, spawn NEW `spawn_agent` calls — never reuse prior agents. Reviewers re-read ALL files from scratch with ZERO memory of prior rounds. See `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. Each fresh full review must catch:
 >
@@ -918,6 +879,109 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
+<!-- SYNC:systematic-review-batching -->
+
+> **Systematic Review Batching (map-reduce)** — When a changeset is large, do NOT review files one-by-one. Partition into size-capped batches, fire one specialized sub-agent per batch in parallel, then reduce. This bounds EVERY context — each batch agent AND the orchestrator — so coverage stays complete as file count grows.
+>
+> **Trigger ladder (one ordered escalation — not competing thresholds):**
+>
+> 1. **< 10 changed files** → sequential per-file review (default; no batching).
+> 2. **≥ 10 changed files** → switch to systematic parallel mode. Announce: `"Detected {N} changed files. Switching to systematic parallel review protocol."` Then: categorize → size-capped batches → flat consolidation.
+> 3. **categories > 6 OR files > 40** → additionally insert the hierarchical synthesis tier (below). Everything from rung 2 still applies.
+>
+> **Step 1 — Categorize.** Group changed files into logical categories derived from the project's actual structure (not forced). Category is the *concern axis*; orient with these examples, derive what fits the repository:
+>
+> | Category Type | Example Groupings |
+> | --- | --- |
+> | Agent/Tooling | AI scripts, hooks, skill definitions, workflow configs, linting rules |
+> | Root config/docs | Root README, project config, CI/CD pipeline configs |
+> | Reference docs | Architecture docs, patterns references, setup guides |
+> | Feature/domain docs | Business feature documentation, spec files, ADRs |
+> | Backend logic | Service/handler/controller source (infer from project structure) |
+> | Frontend logic | UI component/state/API source (infer from project structure) |
+> | Data/Schema | Migrations, schema files, seed data |
+> | Tests | Unit, integration, E2E test files |
+> | Infrastructure | Docker, k8s, CI/CD, cloud manifests |
+>
+> **Step 2 — Size-capped batches.** One sub-agent per batch of **≤8 files OR ≤2000 diff-lines**, whichever hits first. Category stays the concern axis, but any category exceeding a cap splits into multiple size-capped batches (30 backend files → 4 batches). Size caps — not category caps — make "many files" safe: a category cap alone lets one giant category blow a single agent's context.
+>
+> **Step 2a — Sub-agent type per batch** (match the batch's dominant concern):
+>
+> - Code logic (any stack) → `code-reviewer`
+> - Security-sensitive changes → `security-auditor`
+> - Performance-critical paths → `performance-optimizer`
+> - Docs, plans, specs, configs, infra → `general-purpose`
+>
+> Each batch sub-agent receives: its full file list; `SYNC:category-review-thinking` as its primary thinking model — derive each category's concerns from first principles, NOT a fixed checklist (if the consuming skill does not carry that block, apply category-first thinking directly); project reference docs relevant to its concern (discover via `*patterns*`, `*conventions*`, `*style-guide*`); cross-reference verification instructions (counts, tables, links). All batch agents run in parallel and write findings to `plans/reports/` (per `SYNC:task-tracking-external-report`); reducers read from disk, never from memory.
+>
+> **Step 3 — Reduce.**
+>
+> - **Flat reduction (rung 2, ≤6 categories AND ≤40 files):** the orchestrator collects each batch report, cross-references counts/tables/contracts ACROSS batches, detects gaps visible only across categories (feature in code but missing from docs; new API endpoint with no client call), and consolidates into one categorized holistic report.
+> - **Hierarchical reduction (rung 3, > 6 categories OR > 40 files):** insert a mid-tier — each concern gets ONE synthesizer agent that reads only its own batch reports and emits a single concern-synthesis. The orchestrator reads the **concern-syntheses (~5)**, never the raw batch reports — keeping the reducer's context O(#concerns), not O(#files).
+>   - **Cross-concern interaction pass (mandatory at rung 3 — closes the synthesis-tier blind spot):** concern-siloed synthesis can drop an interaction spanning two concerns AND two batches (tainted source in data-layer/batch 7 → sink in api/batch 3). So: (a) each concern-synthesizer MUST emit an explicit **"cross-concern interaction candidates"** list — entities/symbols/contracts it touched that plausibly bind to another concern (shared DTOs, event names, table/collection names, exported symbols); (b) the orchestrator MUST run the Step-3 cross-reference/gap step **over those candidate lists across all concern-syntheses**, not only within a batch, before concluding. Without this pass the tier trades completeness for context-bounding on exactly the large diffs it targets.
+>
+> **Step 4 — Holistic assessment.** With all findings combined, judge: overall coherence as a unified intent; cross-category sync (docs match code? contracts match callers?); risk areas where categories interact; missing doc/spec updates for changed artifacts.
+>
+> **No silent truncation.** If any cap forces sampling or a batch is dropped for budget, ANNOUNCE the dropped/sampled scope explicitly — bounded coverage must never read as complete coverage.
+
+<!-- /SYNC:systematic-review-batching -->
+
+<!-- SYNC:severity-rubric -->
+
+> **Severity Rubric** — Classify every finding by consequence, not by how easy it is to fix. One scale across all reviews so a "High" means the same thing everywhere.
+>
+> | Severity | Action | Definition |
+> | --- | --- | --- |
+> | CRITICAL | Block merge | Silent runtime failure, data corruption, validation bypass, security hole |
+> | HIGH | Must fix | Incorrect behavior, invariant gap, architectural violation |
+> | MEDIUM | Should fix | Design debt, maintainability, likely future bug |
+> | LOW | Nice to fix | Convention, documentation, minor clarity |
+>
+> **Score-based skills** map their numeric scale onto these tiers — do not invent a parallel vocabulary:
+>
+> - **0-2 criterion scoring** (e.g. sre-review): `0` = CRITICAL/HIGH (criterion unmet, blocks production readiness), `1` = MEDIUM (partial, should fix), `2` = pass (no finding).
+> - **Two-axis scoring** (e.g. performance-review, impact × likelihood): map the resulting cell to the nearest tier — high-impact + high-likelihood → CRITICAL/HIGH; low-impact OR low-likelihood → MEDIUM/LOW.
+>
+> A finding's tier drives the gate: CRITICAL/HIGH must be resolved or explicitly accepted by the owner before PASS; MEDIUM/LOW may ship with a tracked follow-up.
+
+<!-- /SYNC:severity-rubric -->
+
+<!-- SYNC:category-review-thinking -->
+
+> **Category Review Thinking** — A thinking framework for reviewing any category of changed files. NOT a fixed checklist — derive concerns from domain knowledge; the examples are starting points only. Your knowledge of the category exceeds any list here — trust it.
+>
+> **Step 1 — Understand the category's role.** What is this category responsible for in the overall system? What invariants must it uphold? What are its consumer contracts (who depends on it, what do they expect)?
+>
+> **Step 2 — Read project conventions for this category.** Search for reference docs, style guides, ADRs, or READMEs specific to this area. Grep 3+ existing similar files — extract naming conventions, structural patterns, shared base classes. If no docs exist, derive conventions empirically from existing code.
+>
+> **Step 3 — Derive concerns from first principles.** Apply all that are relevant; expand beyond this list based on the actual category:
+>
+> - **Correctness:** Does the logic match the intent? Trace happy path AND error path.
+> - **Boundary contracts:** Are interfaces/APIs/events/protocols honored? No implicit coupling introduced?
+> - **Project conventions:** Does new code follow the patterns found in Step 2? Evidence-confirmed, not assumed.
+> - **Security:** Auth enforced at every entry point? Input validated at boundaries? No secrets in the diff?
+> - **Performance:** Unbounded operations? N+1 patterns? Blocking calls in async context? Unindexed queries?
+> - **Maintainability:** DRY? Single responsibility? Complexity within reason? Names reveal intent?
+> - **Test coverage:** Are the changed paths covered by tests? Are existing tests still valid after the change?
+> - **Documentation:** Do related docs, specs, or READMEs reflect the changes?
+>
+> **Step 4 — Create sub-tasks and execute.** For each identified concern: create a task tracking sub-task, work through it with `file:line` evidence, mark done. No findings without proof.
+>
+> **Illustrative concern examples by category type** (not exhaustive — trust your knowledge beyond this):
+>
+> - _Server-side logic:_ handler/service structure conventions, validation layer placement, side-effect isolation, cross-service boundary enforcement, data-access layer separation, error propagation strategy
+> - _Client-side logic:_ component lifecycle management, resource cleanup (subscriptions, listeners, timers), state management patterns, API integration layer separation, reactive stream composition
+> - _Data/Schema:_ migration reversibility (rollback script), lock impact on table volume, backfill idempotency, index coverage for query patterns, deployment ordering
+> - _Configuration:_ present in ALL environments? No secrets in diff? App fails fast if config missing (not silently null)? Documented in setup guide?
+> - _Infrastructure:_ dev/prod parity? No hardcoded dev values (localhost, debug flags)? Pinned image/dependency versions? CI/CD secret requirements documented?
+> - _Styles/Assets:_ follows project naming conventions? Uses design variables/tokens (no hardcoded magic values)? Correct scope (no global side effects from component styles)?
+> - _Documentation:_ accurate? Links valid? Examples still match current code/behavior? Covers new scenarios?
+> - _Tests:_ assertions verify specific outcomes (not just "no exception")? Idempotent (repeatable N times)? Covers edge cases, not just happy path?
+> - _Security artifacts:_ all code paths reach the gate? Negative tests exist (unauthorized denied)? Both enforcement AND display control updated?
+> - _Build/Tooling:_ rule changes apply consistently? No exceptions that silently swallow violations? Impact on CI runtime documented?
+
+<!-- /SYNC:category-review-thinking -->
+
 <!-- SYNC:evidence-based-reasoning:reminder -->
 
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% = do NOT recommend.
@@ -929,12 +993,6 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **IMPORTANT MUST ATTENTION** check DRY via OOP, right responsibility layer, SOLID. Grep for dangling refs after moves.
 
 <!-- /SYNC:design-patterns-quality:reminder -->
-
-<!-- SYNC:complexity-prevention:reminder -->
-
-**IMPORTANT MUST ATTENTION** apply complexity prevention — one business change = one code change. Flag change amplification (>3 edit sites for future change), scattered type-switches, anemic models, primitive obsession, leaked technology through abstractions, shallow modules, un-extracted utility logic (paging/datetime/string/retry → helpers), and logic in the wrong higher layer (downshift to callee/entity/VM). Don't rationalize silent duplication with pure YAGNI.
-
-<!-- /SYNC:complexity-prevention:reminder -->
 
 <!-- SYNC:graph-assisted-investigation:reminder -->
 
@@ -1010,6 +1068,27 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
+
+<!-- SYNC:systematic-review-batching:reminder -->
+
+- **MANDATORY** Large changeset → batch by size cap (≤8 files OR ≤2000 diff-lines), one parallel sub-agent per batch; never review many files one-by-one.
+- **MANDATORY** > 6 categories OR > 40 files → add the hierarchical synthesis tier; each concern-synthesizer emits cross-concern interaction candidates and the orchestrator runs the cross-concern pass before concluding.
+
+<!-- /SYNC:systematic-review-batching:reminder -->
+
+<!-- SYNC:severity-rubric:reminder -->
+
+- **MANDATORY** Classify findings Critical/High/Medium/Low by consequence; Critical/High block PASS until fixed or owner-accepted.
+- **MANDATORY** Score-based skills (sre 0-2, perf two-axis) map onto the same four tiers — no parallel severity vocabulary.
+
+<!-- /SYNC:severity-rubric:reminder -->
+
+<!-- SYNC:category-review-thinking:reminder -->
+
+- **MANDATORY** Derive review categories from file language + directory semantics + change nature; create a sub-task per category.
+- **MANDATORY** Derive each category's concerns from first principles with `file:line` evidence — never a fixed checklist.
+
+<!-- /SYNC:category-review-thinking:reminder -->
 
 ## Closing Reminders
 

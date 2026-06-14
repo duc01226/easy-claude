@@ -9,9 +9,9 @@
 1. **Discover** — Scout files, investigate patterns, run graph traces
 2. **Plan** — `/plan` + `/plan-review` + `/plan-validate`, save in `./plans/`
 3. **Design Review** — `/why-review` (rationale), `/spec [mode=tests]` + `/review-artifact --type=spec-tests` (test specs)
-4. **Implement** — `/cook` or `/code`, compile-check after every file change
+4. **Implement** — `/feature-implement` or `/plan-execute`, compile-check after every file change
 5. **Verify** — `/prove-fix`, `/test`, `/integration-test`, `/spec [mode=sync]`
-6. **Quality** — `/workflow-review-changes` (canonical review-changes workflow: review-changes → why-review → parallel reviewers → code-simplifier → verification → plan/cook/restart)
+6. **Quality** — `/workflow-review-changes` (canonical review-changes workflow: review-changes → why-review → parallel reviewers → code-simplifier → verification → plan/plan-execute/restart)
 7. **Ship** — `/sre-review`, `/security-review`, `/changelog`, `/docs-update`, `/watzup`, `/workflow-end`
 
 **Key Rules:**
@@ -50,7 +50,7 @@
 
 ## Phase 3: Implementation
 
-- Use `/cook` or `/code` skill to implement the plan
+- Use `/feature-implement` or `/plan-execute` skill to implement the plan
 - Write clean, readable, maintainable code
 - Follow established architectural patterns (CQRS, project store, BEM)
 - Handle edge cases and error scenarios
@@ -67,7 +67,7 @@
 
 ## Phase 5: Quality
 
-- Use `/workflow-review-changes` for the canonical review-changes workflow (review-changes → why-review → parallel reviewers → code-simplifier → verification → plan/cook/restart), then continue until clean
+- Use `/workflow-review-changes` for the canonical review-changes workflow (review-changes → why-review → parallel reviewers → code-simplifier → verification → plan/plan-execute/restart), then continue until clean
 - Alternatively use individual skills: `/code-simplifier`, `/code-review`, `/review-architecture`, `/performance-review`
 - Follow coding standards and conventions
 - Optimize for performance and maintainability

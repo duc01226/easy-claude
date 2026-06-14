@@ -84,8 +84,8 @@ TARGETS: list[tuple[str, list[str]]] = [
     ("e2e-test", [r"^## Core Principles"]),
     ("test", [r"^## Workflow Recommendation"]),
     # --- Implementation / quality ---
-    ("code", [r"^## Critical Enforcement Rules"]),
-    ("cook", [r"^## Default Mode Policy"]),
+    ("plan-execute", [r"^## Critical Enforcement Rules"]),
+    ("feature-implement", [r"^## Default Mode Policy"]),
     ("plan", [r"^## Default Mode Policy"]),
     ("plan-validate", [r"^## Phase 0: Detect Plan Type"]),
 ]

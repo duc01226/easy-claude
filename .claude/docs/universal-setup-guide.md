@@ -89,7 +89,7 @@ After generation, review and customize AI-filled sections such as project descri
 
 The framework is ready. Use workflows:
 
-- `/cook` — Implement features step-by-step
+- `/feature-implement` — Implement features step-by-step
 - `/fix` — Debug and fix issues
 - `/plan` — Create implementation plans
 - `/code-review` — Review code changes

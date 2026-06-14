@@ -1,9 +1,8 @@
 ---
 name: spec
 version: 5.0.0
-last_reviewed: 2026-06-12
-description: '[Documentation] Use to author, audit, amend, or test-spec a business Feature Spec. The single spec skill — modes init|update|audit|amend create/maintain the tech-free 8-section Feature Spec; tests generates Section 8 TC-{FEATURE}-{NNN} test specifications; sync reconciles §8 TCs ↔ integration test code. Per-mode procedure lives in references/{author,tests,sync}.md.'
-triggers: 'feature spec, feature documentation, create feature doc, update feature doc, business feature documentation, audit feature spec, amend feature spec, tdd spec, tdd test, test driven, write test specs, create test cases, update test specs, test specifications for feature, test spec for feature, sync test specs, generate test specs from code, update test specs after changes, test specs from PR, test specs from pull request, code to test specs, sync tests, reconcile tests with code, sync test specs to integration tests'
+description: '[Documentation] Use to author, audit, amend, or test-spec a business Feature Spec. The single spec skill — modes draft|init|update|audit|amend create/maintain the tech-free 8-section Feature Spec; draft authors a provisional spec from an idea/requirement (no code yet, Evidence: TBD); tests generates Section 8 TC-{FEATURE}-{NNN} test specifications; sync reconciles §8 TCs ↔ integration test code. Per-mode procedure lives in references/{author,tests,sync}.md.'
+triggers: 'feature spec, feature documentation, create feature doc, update feature doc, business feature documentation, audit feature spec, amend feature spec, spec from idea, generate spec from requirements, draft feature spec from prompt, idea to spec, requirements to spec, tdd spec, tdd test, test driven, write test specs, create test cases, update test specs, test specifications for feature, test spec for feature, sync test specs, generate test specs from code, update test specs after changes, test specs from PR, test specs from pull request, code to test specs, sync tests, reconcile tests with code, sync test specs to integration tests'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -29,6 +28,7 @@ triggers: 'feature spec, feature documentation, create feature doc, update featu
 
 | Mode     | Use when…                                                          | Body            |
 | -------- | ------------------------------------------------------------------ | --------------- |
+| `draft`  | Author a provisional spec from an idea/requirement/prompt — **no code yet** (TDD-first, §8 `Evidence: TBD`, provisional marker) | `references/author.md` |
 | `init`   | No `docs/specs/{Bucket}/` exists — author a full 8-section spec from source | `references/author.md` |
 | `update` | Docs exist + code changed — section-impact-mapped updates          | `references/author.md` |
 | `audit`  | `--audit` flag or user asks — staleness report per section (never mutates docs) | `references/author.md` |
@@ -38,7 +38,7 @@ triggers: 'feature spec, feature documentation, create feature doc, update featu
 
 **Mode resolution (do this before any work):**
 
-1. Parse the mode from the invocation: explicit `[mode=<x>]` arg wins; else infer from request + repo state (no `docs/specs/{Bucket}/` → `init`; docs exist + diff → `update`; "audit/stale" → `audit`; bugfix caller → `amend`; "write/update test specs", "TCs" → `tests`; "sync tests", "reconcile §8 with tests" → `sync`).
+1. Parse the mode from the invocation: explicit `[mode=<x>]` arg wins; else infer from request + repo state ("from idea/requirements/prompt", "draft spec", "no code yet" → `draft`; no `docs/specs/{Bucket}/` AND code exists to source from → `init`; docs exist + diff → `update`; "audit/stale" → `audit`; bugfix caller → `amend`; "write/update test specs", "TCs" → `tests`; "sync tests", "reconcile §8 with tests" → `sync`). **`draft` vs `init`:** both author a new spec, but `draft` sources from idea/requirement text (no code → `Evidence: TBD`, provisional) while `init` sources from existing code (real `[Source:]` evidence). "No docs" alone does NOT imply `init` — check whether code exists to source from. `draft` never auto-overwrites existing §8 TCs.
 2. If ambiguous, present the detected mode via `AskUserQuestion` before proceeding — NEVER auto-start a mutating mode.
 3. **Read the matching `references/` body** — it is the single source of truth for that mode's procedure, gates, and output contract. Do not run a mode from memory.
 
@@ -46,7 +46,8 @@ triggers: 'feature spec, feature documentation, create feature doc, update featu
 
 - **[BLOCKING]** Read `docs/project-reference/spec-principles.md` — spec quality standards, AI-implementability criteria, tech-agnostic rules (§3 surface scope + §3.2 banned prose-token list).
 - **[BLOCKING]** EVERY test case MUST carry verifiable code evidence as a `[Source: namespace/service/id]` abstract anchor in its Section 8 hidden carrier — physical `file:line` lives only in the provenance sidecar.
-- **[BLOCKING]** Section 8 is the **canonical TC registry** — §8 TCs are the source of truth; integration test code implements them. The `tests` mode owns generation; `sync` mode reconciles drift; the author modes populate §8 only during INIT and MUST NOT overwrite existing TCs during UPDATE.
+  > **Exception (`mode=draft`):** an idea-sourced spec has no code yet — its §8 TCs carry `Evidence: TBD` (reference-only) and the spec is flagged provisional (`provisional: true` frontmatter + a "DRAFT — unverified until code lands" header banner). The first `update`/`init` run against real code MUST upgrade every `TBD` to a real `[Source:]` anchor and clear the provisional flag. This mirrors existing TDD-first handling — it relaxes evidence ONLY for draft, never for code-sourced modes.
+- **[BLOCKING]** Section 8 is the **canonical TC registry** — §8 TCs are the source of truth; integration test code implements them. The `tests` mode owns generation; `sync` mode reconciles drift; the author modes (`draft`/`init`) populate §8 at authoring time (`draft` with `Evidence: TBD`, `init` with real `[Source:]`) and MUST NOT overwrite existing TCs during UPDATE.
 - Authored docs MUST match the master template's **8 tech-free sections** (Overview, Glossary, User Stories & AC, Business Rules, Domain Model, Process Flows, Permissions & Roles, Test Specifications) + YAML frontmatter — zero technical terms in prose, size caps enforced.
 - **[BLOCKING] Canonical TC format authority:** `.claude/skills/shared/tc-format.md` (GWT template, Evidence carrier, decade-numbering, Preservation Tests). **M1-M6 mandates:** `.claude/skills/shared/sdd-artifact-contract.md` — any violation FAILS the artifact.
 
@@ -68,7 +69,7 @@ This skill owns the **canonical** Feature Spec (§1-8) and its §8 TC registry. 
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use `AskUserQuestion` to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
 >
-> 1. **Activate `workflow-feature` workflow** (Recommended) — spec-driven with tests by default: scout → investigate → domain-analysis → why-review → spec → plan → plan-review → plan-validate → why-review → spec [mode=tests] → why-review → review-artifact --type=spec-tests → plan → plan-review → cook → review-domain-entities → spec [mode=tests] → why-review → review-artifact --type=spec-tests → spec [mode=sync] → integration-test → integration-test-review → integration-test-verify → workflow-review-changes → sre-review → security-review → changelog → test → docs-update → workflow-end → watzup
+> 1. **Activate `workflow-feature` workflow** (Recommended) — spec-driven with tests by default: scout → investigate → domain-analysis → why-review → spec → plan → plan-review → plan-validate → why-review → spec [mode=tests] → why-review → review-artifact --type=spec-tests → plan → plan-review → feature-implement → review-domain-entities → spec [mode=tests] → why-review → review-artifact --type=spec-tests → spec [mode=sync] → integration-test → integration-test-review → integration-test-verify → workflow-review-changes → sre-review → security-review → changelog → test → docs-update → workflow-end → watzup
 > 2. **Execute `/spec` directly** — run this skill standalone in the resolved mode
 
 ---
@@ -178,7 +179,7 @@ This skill owns the **canonical** Feature Spec (§1-8) and its §8 TC registry. 
 ## Closing Reminders
 
 - **IMPORTANT MUST ATTENTION Goal:** Produce a tech-free, AI-implementable Feature Spec whose Section 8 TC registry stays the single source of truth, traceable to integration test code — so any team can rebuild the feature on any stack from the spec alone
-- **IMPORTANT MUST ATTENTION [BLOCKING]** Resolve the mode FIRST and read its `references/` body — never run `init`/`update`/`audit`/`amend`/`tests`/`sync` from memory
+- **IMPORTANT MUST ATTENTION [BLOCKING]** Resolve the mode FIRST and read its `references/` body — never run `draft`/`init`/`update`/`audit`/`amend`/`tests`/`sync` from memory
 - **IMPORTANT MUST ATTENTION [BLOCKING]** Break work into small `TaskCreate` tasks BEFORE starting — do NOT write a single line of output without a task list
 - **IMPORTANT MUST ATTENTION [BLOCKING]** EVERY test case MUST carry verifiable code evidence as a `[Source: namespace/service/id]` abstract anchor in its Section 8 hidden carrier — physical `file:line` → provenance sidecar only
 - **IMPORTANT MUST ATTENTION [BLOCKING]** Section 8 is the canonical TC registry — existing TCs MUST NOT be overwritten during `update`; `tests` mode owns generation, `sync` mode reconciles drift

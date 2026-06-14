@@ -365,11 +365,11 @@ The `buildCodeReviewRules` builder (dispatched by `pretooluse-ctx-crr.cjs`) auto
 
 ## Testing
 
-Current primary hook test status: `test-all-hooks.cjs` passes with 362 tests, 0 failures (live run 2026-06-13). The suite runner also exposes 16 discoverable suites, including `count-drift`.
+Current primary hook test status: `test-all-hooks.cjs` passes with 375 tests, 0 failures (live run 2026-06-14). The suite runner also exposes 16 discoverable suites, including `count-drift`.
 
 | Test Surface          | Count | File/Location                            |
 | --------------------- | ----- | ---------------------------------------- |
-| Primary hook runner   | 362   | `tests/test-all-hooks.cjs`               |
+| Primary hook runner   | 375   | `tests/test-all-hooks.cjs`               |
 | Discoverable suites   | 16    | `tests/suites/*.test.cjs`                |
 | Standalone test files | 13    | `tests/test-*.cjs/.js` excluding runner  |
 | Scout-block tests     | 7     | `scout-block/tests/test-*.js`            |

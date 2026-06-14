@@ -94,7 +94,6 @@ test('TC-WFPROTO-006: common protocol instructions are reproducible from workflo
     assert.equal(tracked, generated, 'tracked common protocol file must match generator output');
 
     const workflow = workflowConfig.workflows['workflow-review-changes'];
-    const commandMapping = workflowConfig.commandMapping || {};
     const arrow = '\u2192';
     // Reproduce the generator's barrier-aware rendering (parallelGroups collapse to one token)
     // via its own exported renderer \u2014 single source of truth, no re-flattening drift.
@@ -103,7 +102,7 @@ test('TC-WFPROTO-006: common protocol instructions are reproducible from workflo
         workflow.sequence,
         parallelGroups,
         ` ${arrow} `,
-        step => commandMapping[step]?.copilot || step
+        step => step
     );
     const sectionStart = tracked.indexOf('**workflow-review-changes**');
     assert.notEqual(sectionStart, -1, 'generated workflow catalog must include workflow-review-changes');

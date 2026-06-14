@@ -294,7 +294,7 @@ See `references/keep-a-changelog-format.md` for format specification.
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use a direct user question to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
 >
-> 1. **Activate `workflow-feature` workflow** (Recommended) — scout → investigate → plan → cook → review → changelog
+> 1. **Activate `workflow-feature` workflow** (Recommended) — scout → investigate → plan → feature-implement → review → changelog
 > 2. **Execute `$changelog` directly** — run this skill standalone
 
 ---

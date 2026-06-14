@@ -70,7 +70,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 10. **Phase 4: Finalize** — Generate critical issues, recommendations, suggested commit message
 11. **Phase 5: Docs Triage** — Record stale-doc findings for validation/fix loop
 12. **Phase 6: Why-Review Findings Validation (standalone-only; REQUIRED before any standalone fix)** — Invoke `$why-review --validate-findings` to verify every finding is correct, proof-backed, reasonable, and best-practice before fixing. When this skill is step 1 inside `$workflow-review-changes`, stop after the report; parent step 2 owns findings validation.
-13. **Phase 7: Recursive Fix + Full Re-Review Loop (standalone-only)** — If validated findings remain in standalone mode, auto-fix them, then re-invoke `$review-changes` from Phase 0 with a fresh task breakdown over the full current diff; repeat until an entire review pass has zero findings. When inside `$workflow-review-changes`, parent steps 10-15 own plan/cook/restart.
+13. **Phase 7: Recursive Fix + Full Re-Review Loop (standalone-only)** — If validated findings remain in standalone mode, auto-fix them, then re-invoke `$review-changes` from Phase 0 with a fresh task breakdown over the full current diff; repeat until an entire review pass has zero findings. When inside `$workflow-review-changes`, parent steps 10-15 own plan/feature-implement/restart.
 14. **Phase 8: Mandatory Final Docs-Update Gate (MANDATORY — runs once the review/fix loop converges clean)** — After the review reaches zero findings and all fixes are applied, ALWAYS invoke `$docs-update` over the full changeset as the terminal step so no stale docs survive. This is unconditional (not gated on a flagged finding) — `$docs-update` independently detects impacted docs the review may not have surfaced. When inside `$workflow-review-changes`, the parent workflow's `$docs-update` step owns this; do not run it locally.
 
 **Key Rules:**
@@ -89,7 +89,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - Every fix cycle invalidates the prior review result; restart `$review-changes` from Phase 0 and review the full updated diff, including the fixes
 - Continue review → validate findings → fix → full re-review until a complete review pass returns zero findings; do not add a fresh-context pass just because findings exist or a fix cycle restarted the review
 
-> **MANDATORY IMPORTANT MUST ATTENTION** Plan ToDo Task to discover and READ project-specific reference docs:
+> **MANDATORY** Plan ToDo Task to discover and READ project-specific reference docs:
 >
 > 1. Search for code standards docs: `*code-review*`, `*patterns*`, `*conventions*`, `*style-guide*` — read any found
 > 2. Search for architecture docs: `*architecture*`, `*adr-*`, `README.md` at service/module roots
@@ -102,9 +102,9 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 > **External Memory:** For complex or lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report file in `plans/reports/` — prevents context loss and serves as deliverable.
 
-> **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION — every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% must verify first).
+> **Evidence Gate:** MANDATORY — every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% must verify first).
 
-> **OOP & DRY Enforcement:** MANDATORY IMPORTANT MUST ATTENTION — flag duplicated patterns that should be extracted to a base class, generic, or helper. Classes in the same group or suffix MUST ATTENTION inherit a common base (even if empty now — enables future shared logic and child overrides). Verify project has code linting/analyzer configured for the stack.
+> **OOP & DRY Enforcement:** MANDATORY — flag duplicated patterns that should be extracted to a base class, generic, or helper. Classes in the same group or suffix MUST ATTENTION inherit a common base (even if empty now — enables future shared logic and child overrides). Verify project has code linting/analyzer configured for the stack.
 
 # Code Review: Current Or Branch Diff
 
@@ -213,9 +213,9 @@ Update todo status as each phase completes.
 
 > **IMPORTANT MANDATORY MUST ATTENTION:** FIRST action before ANY other review work.
 
-- MUST ATTENTION Call `$graph-blast-radius` skill
-- MUST ATTENTION Record in report: changed files count, impacted files count, untested changes, risk level
-- MUST ATTENTION Use blast radius output to prioritize which files to review most carefully in Phase 2
+- Call `$graph-blast-radius` skill
+- Record in report: changed files count, impacted files count, untested changes, risk level
+- Use blast radius output to prioritize which files to review most carefully in Phase 2
 - If `.code-graph/graph.db` does not exist, note "Graph not available — skipping blast radius" and proceed to Phase 0.3
 
 **Phase 0.3: Change Type Detection + Risk Tasks (MANDATORY)**
@@ -386,20 +386,20 @@ Check `## Plan Context` in injected context:
 
 1. Read `{plan-path}/plan.md` — get phase list and scope
 2. Read relevant phase files — extract files to modify, test specifications, success criteria
-3. Verify:
-    - MUST ATTENTION verify **Scope match** — changed files listed in plan phases (warn on unplanned files)
-    - MUST ATTENTION verify **Test evidence** — tests mapped to completed phases have evidence (file:line), not "TBD"
-    - MUST ATTENTION verify **Success criteria met** — phase success criteria satisfied by changes
-    - MUST ATTENTION verify **Test intent traceability** — mapped tests name the business rule/invariant they protect, not just current behavior
+3. Verify (**MUST ATTENTION** — all four):
+    - **Scope match** — changed files listed in plan phases (warn on unplanned files)
+    - **Test evidence** — tests mapped to completed phases have evidence (file:line), not "TBD"
+    - **Success criteria met** — phase success criteria satisfied by changes
+    - **Test intent traceability** — mapped tests name the business rule/invariant they protect, not just current behavior
 4. Add "Plan Compliance" section to review report
 
-**Phase 1: Get Changes and Create Report File**
+**Phase 1: Get Changes and Create Report File (MUST ATTENTION)**
 
-- MUST ATTENTION Identify diff source: current working tree, staged changes, branch comparison, or commit range
-- MUST ATTENTION Run `git status` for current changes, or `git diff --name-only <base>...<head>` for branch comparisons
-- MUST ATTENTION Run `git diff` or `git diff <base>...<head>` to see actual changes
-- MUST ATTENTION Create `plans/reports/code-review-{date}-{slug}.md`
-- MUST ATTENTION Initialize with Scope, Files to Review, Blast Radius Summary sections
+- Identify diff source: current working tree, staged changes, branch comparison, or commit range
+- Run `git status` for current changes, or `git diff --name-only <base>...<head>` for branch comparisons
+- Run `git diff` or `git diff <base>...<head>` to see actual changes
+- Create `plans/reports/code-review-{date}-{slug}.md`
+- Initialize with Scope, Files to Review, Blast Radius Summary sections
 
 **Phase 2: File-by-File Review (Build Report Incrementally)**
 
@@ -539,7 +539,7 @@ For each changed file, identify related documentation:
 
 **Pipeline integration:** Phase 3.5 findings are ordinary findings — they consolidate in Phase 4, are validated in Phase 6 (`$why-review --validate-findings` filters false-positive or change-cost-raising simplifications), and only validated ones are fixed in Phase 7. NEVER let `$code-simplifier` mutate the working tree before Phase 6 validates its suggestions.
 
-**Parent workflow boundary:** When this skill is invoked as step 1 inside `$workflow-review-changes`, still run Phase 3.5 (it is a review dimension, producing findings for the report) but do NOT fix here — the parent workflow's `$code-simplifier` self-review and `$cook` fix cycle own application. Record the findings and hand the report to parent step 2.
+**Parent workflow boundary:** When this skill is invoked as step 1 inside `$workflow-review-changes`, still run Phase 3.5 (it is a review dimension, producing findings for the report) but do NOT fix here — the parent workflow's `$code-simplifier` self-review and `$feature-implement` fix cycle own application. Record the findings and hand the report to parent step 2.
 
 **Phase 3.7: Integration-Test-Review Coverage Gate (MANDATORY when behavior-bearing code changed)**
 
@@ -563,16 +563,16 @@ For each changed file, identify related documentation:
 
 **Phase 4: Generate Final Review Result**
 
-Update report with final sections:
+Update report with final sections (**MUST ATTENTION** — include every section below):
 
-- MUST ATTENTION Overall Assessment (big picture summary)
-- MUST ATTENTION Critical Issues (must fix before merge)
-- MUST ATTENTION High Priority (should fix)
-- MUST ATTENTION Architecture Recommendations
-- MUST ATTENTION Documentation Staleness (list stale docs with what changed, or "No doc updates needed")
-- MUST ATTENTION Spec Drift Adjudication (per behavior-changing file: CODE-WRONG / SPEC-STALE / AMBIGUOUS / `Spec in sync`, with the routed fix; or "No behavior change — N/A")
-- MUST ATTENTION Positive Observations
-- MUST ATTENTION Suggested commit message (based on changes)
+- Overall Assessment (big picture summary)
+- Critical Issues (must fix before merge)
+- High Priority (should fix)
+- Architecture Recommendations
+- Documentation Staleness (list stale docs with what changed, or "No doc updates needed")
+- Spec Drift Adjudication (per behavior-changing file: CODE-WRONG / SPEC-STALE / AMBIGUOUS / `Spec in sync`, with the routed fix; or "No behavior change — N/A")
+- Positive Observations
+- Suggested commit message (based on changes)
 
 ## Phase 5: Docs-Update Triage (CONDITIONAL)
 
@@ -597,94 +597,94 @@ Before approving, verify artifacts are **easy to read, maintain, understand**:
 
 ## Review Checklist
 
-### 1. Architecture Compliance
+### 1. Architecture Compliance (MUST ATTENTION)
 
-- MUST ATTENTION Follows project's layer/module boundaries (read `docs/project-config.json` or equivalent)
-- MUST ATTENTION No cross-module/service direct data access where boundaries exist
-- MUST ATTENTION Logic placed in lowest responsible layer (not in orchestrators/top-layer classes)
+- Follows project's layer/module boundaries (read `docs/project-config.json` or equivalent)
+- No cross-module/service direct data access where boundaries exist
+- Logic placed in lowest responsible layer (not in orchestrators/top-layer classes)
 
-### 2. Code Quality & Clean Code
+### 2. Code Quality & Clean Code (MUST ATTENTION)
 
-- MUST ATTENTION Single Responsibility Principle — each function/class does ONE thing
-- MUST ATTENTION No code duplication (DRY) — grep for similar code, extract if 3+ occurrences
-- MUST ATTENTION Appropriate error handling following project patterns
-- MUST ATTENTION No magic numbers/strings (extract to named constants)
-- MUST ATTENTION Type annotations on all functions (where language requires)
-- MUST ATTENTION Early returns/guard clauses used
-- MUST ATTENTION YAGNI — no speculative features, unused parameters, premature abstractions
-- MUST ATTENTION KISS — simplest solution meeting requirement
-- MUST ATTENTION Follows existing codebase conventions (verify with grep for 3+ examples)
+- Single Responsibility Principle — each function/class does ONE thing
+- No code duplication (DRY) — grep for similar code, extract if 3+ occurrences
+- Appropriate error handling following project patterns
+- No magic numbers/strings (extract to named constants)
+- Type annotations on all functions (where language requires)
+- Early returns/guard clauses used
+- YAGNI — no speculative features, unused parameters, premature abstractions
+- KISS — simplest solution meeting requirement
+- Follows existing codebase conventions (verify with grep for 3+ examples)
 
-### 2.5. Naming Conventions
+### 2.5. Naming Conventions (MUST ATTENTION)
 
-- MUST ATTENTION Names reveal intent (WHAT not HOW)
-- MUST ATTENTION Specific names, not generic (`orderRecords` not `data`)
-- MUST ATTENTION Booleans: prefix with state-indicating verb (`isActive`, `hasPermission`, `canEdit`)
-- MUST ATTENTION No cryptic abbreviations
+- Names reveal intent (WHAT not HOW)
+- Specific names, not generic (`orderRecords` not `data`)
+- Booleans: prefix with state-indicating verb (`isActive`, `hasPermission`, `canEdit`)
+- No cryptic abbreviations
 
-### 3. Project-Specific Patterns
+### 3. Project-Specific Patterns (MUST ATTENTION)
 
-- MUST ATTENTION Read project's patterns/conventions reference docs BEFORE flagging violations
-- MUST ATTENTION Verify 3+ existing examples before concluding a pattern is a violation
-- MUST ATTENTION Flag deviation from project patterns with evidence (`file:line` showing existing pattern)
+- Read project's patterns/conventions reference docs BEFORE flagging violations
+- Verify 3+ existing examples before concluding a pattern is a violation
+- Flag deviation from project patterns with evidence (`file:line` showing existing pattern)
 
-### 4. Security
+### 4. Security (MUST ATTENTION)
 
-- MUST ATTENTION No hardcoded credentials, tokens, or secrets
-- MUST ATTENTION Proper authorization checks at all entry points
-- MUST ATTENTION Input validation at system boundaries (user input, external APIs, message payloads)
-- MUST ATTENTION No injection risks (SQL, command, template, etc.)
+- No hardcoded credentials, tokens, or secrets
+- Proper authorization checks at all entry points
+- Input validation at system boundaries (user input, external APIs, message payloads)
+- No injection risks (SQL, command, template, etc.)
 
-### 5. Performance
+### 5. Performance (MUST ATTENTION)
 
-- MUST ATTENTION No O(n²) complexity where O(n) or O(1) is possible (use lookup structures)
-- MUST ATTENTION No N+1 query patterns (batch load related data before iterating)
-- MUST ATTENTION Pagination for all list queries (never fetch unbounded result sets)
-- MUST ATTENTION Parallel operations where independent (not forced sequential)
-- MUST ATTENTION Async/await used correctly (no blocking in async context)
-- MUST ATTENTION Query patterns have appropriate indexes
+- No O(n²) complexity where O(n) or O(1) is possible (use lookup structures)
+- No N+1 query patterns (batch load related data before iterating)
+- Pagination for all list queries (never fetch unbounded result sets)
+- Parallel operations where independent (not forced sequential)
+- Async/await used correctly (no blocking in async context)
+- Query patterns have appropriate indexes
 
-### 6. Common Issues
+### 6. Common Issues (MUST ATTENTION)
 
-- MUST ATTENTION Unused imports or variables
-- MUST ATTENTION Debug/logging statements left in that should not be in production
-- MUST ATTENTION Hardcoded values that should be configuration
-- MUST ATTENTION Missing async/await or promise handling
-- MUST ATTENTION Incorrect or absent exception handling
-- MUST ATTENTION Missing validation at boundaries
+- Unused imports or variables
+- Debug/logging statements left in that should not be in production
+- Hardcoded values that should be configuration
+- Missing async/await or promise handling
+- Incorrect or absent exception handling
+- Missing validation at boundaries
 
-### 6.5 Bugfix Debugger Trace Gate
+### 6.5 Bugfix Debugger Trace Gate (MUST ATTENTION)
 
 For bugfix, failed-verification, stale/incorrect final output, regression, or behavior-changing fixes, FAIL review if any required proof is missing:
 
-- MUST ATTENTION `Debugger Trace: End -> Start` names the observed final state and final reader/query/renderer/assertion
-- MUST ATTENTION backward hops are evidenced from reader -> storage/projection/cache -> writer -> consumer/handler/job -> producer/origin
-- MUST ATTENTION all feeder paths that can write the final state are enumerated or explicitly marked unknown
-- MUST ATTENTION hypothesis matrix classifies root causes as primary, contributing, ruled out, latent, or unknown
-- MUST ATTENTION owning fix layer is justified as the lowest shared owner, not the symptom site by default
-- MUST ATTENTION forward convergence proof and regression test/proof mapping show why the final symptom cannot persist
+- `Debugger Trace: End -> Start` names the observed final state and final reader/query/renderer/assertion
+- backward hops are evidenced from reader -> storage/projection/cache -> writer -> consumer/handler/job -> producer/origin
+- all feeder paths that can write the final state are enumerated or explicitly marked unknown
+- hypothesis matrix classifies root causes as primary, contributing, ruled out, latent, or unknown
+- owning fix layer is justified as the lowest shared owner, not the symptom site by default
+- forward convergence proof and regression test/proof mapping show why the final symptom cannot persist
 
-### 7. Documentation Staleness
+### 7. Documentation Staleness (MUST ATTENTION)
 
-- MUST ATTENTION For each changed file: identify related docs (feature docs, architecture references, READMEs)
-- MUST ATTENTION Changed logic → verify relevant feature/module docs still accurate
-- MUST ATTENTION Changed tooling (scripts, configs, CI) → verify setup/getting-started docs still accurate
-- MUST ATTENTION New feature/component added → flag if corresponding doc missing
-- MUST ATTENTION Test specs reflect current behavior after changes
-- MUST ATTENTION API changes reflected in relevant API docs or specs
-- MUST ATTENTION **Spec-drift adjudication** (`SYNC:spec-drift-adjudication`): for every behavior-changing file, decide whether a divergence from the canonical Feature Spec is CODE-WRONG (change is the defect — BLOCKING, fix code/test), SPEC-STALE (change is intended — update spec via `$spec [update]` first), or AMBIGUOUS (intended behavior unclear — a direct user question before editing either side). Do not flag a divergence as a one-directional "stale doc" without naming which side is canonical. Unadjudicated behavior-vs-spec divergence is a FAIL.
+- For each changed file: identify related docs (feature docs, architecture references, READMEs)
+- Changed logic → verify relevant feature/module docs still accurate
+- Changed tooling (scripts, configs, CI) → verify setup/getting-started docs still accurate
+- New feature/component added → flag if corresponding doc missing
+- Test specs reflect current behavior after changes
+- API changes reflected in relevant API docs or specs
+- **Spec-drift adjudication** (`SYNC:spec-drift-adjudication`): for every behavior-changing file, decide whether a divergence from the canonical Feature Spec is CODE-WRONG (change is the defect — BLOCKING, fix code/test), SPEC-STALE (change is intended — update spec via `$spec [update]` first), or AMBIGUOUS (intended behavior unclear — a direct user question before editing either side). Do not flag a divergence as a one-directional "stale doc" without naming which side is canonical. Unadjudicated behavior-vs-spec divergence is a FAIL.
 
-### 8. M1-M6 Compliance Gate — Code-to-Spec Drift (BLOCKING)
+### 8. M1-M6 Compliance Gate — Code-to-Spec Drift (BLOCKING, MUST ATTENTION)
 
 > **Contract:** See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6)". This review enforces M6 for any spec/feature-doc/PBI/story/test-spec touched by — or supposed to be synced by — this change. Frame each check as: **did this change introduce M1/M2 prose leakage, break a logical-ID mapping (M3), or create AC/expected-result ambiguity (M4)?** A FAIL must name the violated mandate ID and cite the changed file + line. Passing an introduced M1-M5 violation makes this review itself defective.
 >
 > Carriers are EXEMPT from M1/M2 — source identifiers stay CORRECT inside `[Source: ...]`, `**Evidence**`, `**IntegrationTest**` fields, YAML frontmatter, and ` ```mermaid ``` ` blocks. Only flag leakage in spec/doc narrative prose. Banned prose token list: `docs/project-reference/spec-principles.md` §3.2. Scope this gate to changed artifact files (`docs/specs/**`, PBI/story/test-spec files in the diff); SKIP with a one-line note when the diff touches no such artifact.
 
-- MUST ATTENTION **M1 — No introduced tech leakage in prose.** FAIL if the diff adds a framework/product, language-native type, or product/design-pattern class name to spec/doc narrative prose, headings, or AC text (banned list in `spec-principles.md` §3.2). Cite the changed file + line + token.
-- MUST ATTENTION **M2 — No introduced source code in prose.** FAIL if the diff expresses a requirement as a class/method/file-path/namespace used as a noun instead of a business operation. Source identifiers belong only in evidence carriers. Cite the changed line.
-- MUST ATTENTION **M3 — Logical-ID mapping preserved.** FAIL if the change adds a requirement/rule/TC without a logical ID (`FR-/BR-/OP-/TC-`), strips a logical ID, demotes it below the `[Source:]` evidence, writes physical code coordinates or repository-root paths instead of a stack-portable abstract anchor (`[Source: namespace/service/id]`), OR drops the `[Source:]` abstract-anchor evidence (evidence is REQUIRED and KEPT — SECONDARY to the logical ID; a code move alone does NOT change the anchor — physical coords live only in the provenance sidecar).
-- MUST ATTENTION **M4 — No introduced AC ambiguity.** FAIL if the change leaves an AC/expected-result vague ("handle appropriately", "process normally", "as needed"), implementable two different ways while both claim conformance, or with no observable completion state / named error condition.
-- MUST ATTENTION **M5 — Spec stays rebuildable.** FAIL if the change makes the spec/doc depend on reading the new code to be understood (a zero-codebase-knowledge team could no longer re-implement on a different stack from the artifact alone). Cite the file + missing detail.
+- **M1 — No introduced tech leakage in prose.** FAIL if the diff adds a framework/product, language-native type, or product/design-pattern class name to spec/doc narrative prose, headings, or AC text (banned list in `spec-principles.md` §3.2). Cite the changed file + line + token.
+- **M2 — No introduced source code in prose.** FAIL if the diff expresses a requirement as a class/method/file-path/namespace used as a noun instead of a business operation. Source identifiers belong only in evidence carriers. Cite the changed line.
+- **M3 — Logical-ID mapping preserved.** FAIL if the change adds a requirement/rule/TC without a logical ID (`FR-/BR-/OP-/TC-`), strips a logical ID, demotes it below the `[Source:]` evidence, writes physical code coordinates or repository-root paths instead of a stack-portable abstract anchor (`[Source: namespace/service/id]`), OR drops the `[Source:]` abstract-anchor evidence (evidence is REQUIRED and KEPT — SECONDARY to the logical ID; a code move alone does NOT change the anchor — physical coords live only in the provenance sidecar).
+- **M4 — No introduced AC ambiguity.** FAIL if the change leaves an AC/expected-result vague ("handle appropriately", "process normally", "as needed"), implementable two different ways while both claim conformance, or with no observable completion state / named error condition.
+- **M5 — Spec stays rebuildable.** FAIL if the change makes the spec/doc depend on reading the new code to be understood (a zero-codebase-knowledge team could no longer re-implement on a different stack from the artifact alone). Cite the file + missing detail.
 
 If ANY item fails → the verdict is FAIL; list each violated mandate ID with its changed-file/line citation in the Critical Issues or High Priority section.
 
@@ -750,79 +750,13 @@ type(scope): description
 
 ## Systematic Review Protocol (for 10+ changed files)
 
-> **NON-NEGOTIABLE: When changeset is large (10+ files), MUST ATTENTION use this systematic protocol instead of reviewing files one-by-one sequentially.**
->
-> **Principle:** Review carefully and systematically — break into groups, fire multiple specialized agents to review in parallel. Ensure no flaws, no bugs, no stale info, and best practices in every aspect.
-
-### Auto-Activation
-
-In Phase 0, after running `git status`, count changed files. If **10 or more files** changed:
-
-1. **STOP** sequential Phase 1-3 approach
-2. **SWITCH** to Systematic Review Protocol automatically
-3. **ANNOUNCE** to user: `"Detected {N} changed files. Switching to systematic parallel review protocol."`
-
-### Step 1: Categorize Changes
-
-Group all changed files into logical categories derived from the project's actual structure (see Phase 0.7). Example groupings to orient thinking (derive what fits the project):
-
-| Category Type           | Example Groupings                                                     |
-| ----------------------- | --------------------------------------------------------------------- |
-| **Agent/Tooling**       | AI scripts, hooks, skill definitions, workflow configs, linting rules |
-| **Root config/docs**    | Root README, project config, CI/CD pipeline configs                   |
-| **Reference docs**      | Architecture docs, patterns references, setup guides                  |
-| **Feature/domain docs** | Business feature documentation, spec files, ADRs                      |
-| **Backend logic**       | Service/handler/controller source (infer from project structure)      |
-| **Frontend logic**      | UI component/state/API source (infer from project structure)          |
-| **Data/Schema**         | Migrations, schema files, seed data                                   |
-| **Tests**               | Unit, integration, E2E test files                                     |
-| **Infrastructure**      | Docker, k8s, CI/CD, cloud manifests                                   |
-
-Derive the actual groupings from what the current repository contains — do not force files into categories that don't fit.
-
-### Step 2: Fire Parallel Specialized Sub-Agents
-
-Launch one sub-agent per category via `spawn_agent` tool with `run_in_background: true`.
-
-**Sub-agent type selection per category:**
-
-- Code logic (any stack) → `code-reviewer`
-- Security-sensitive changes → `security-auditor`
-- Performance-critical paths → `performance-optimizer`
-- Docs, plans, specs, configs, infra → `general-purpose`
-
-Each sub-agent receives:
-
-- Full list of files in its category
-- The `SYNC:category-review-thinking` framework as its primary thinking model
-- Project reference docs relevant to its category (discovered by searching `*patterns*`, `*conventions*`, `*style-guide*`)
-- Cross-reference verification instructions (counts, tables, links where applicable)
-
-**All sub-agents run in parallel** to maximize speed and coverage.
-
-### Step 3: Synchronize & Cross-Reference
-
-After all sub-agents complete:
-
-1. **Collect findings** from each agent's report
-2. **Cross-reference** — verify counts, tables, references consistent ACROSS categories
-3. **Detect gaps** — issues only visible when looking across categories (e.g., new feature added in code but missing from docs; new API endpoint with no client call)
-4. **Consolidate** into single holistic report with categorized findings
-
-### Step 4: Holistic Big-Picture Assessment
-
-With all category findings combined, assess:
-
-- Overall coherence of changes as a unified intent
-- Cross-category synchronization (do docs match code? do contracts match callers?)
-- Risk areas where categories interact
-- Missing documentation updates for changed artifacts
+> When Phase 1 finds 10+ changed files, apply the **Systematic Review Batching** protocol (map-reduce: size-capped batches + hierarchical synthesis) defined below.
 
 ---
 
 ## Workflow Recommendation
 
-> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If NOT already in a workflow, MUST use a direct user question to ask user. Do NOT judge task complexity or decide "simple enough to skip" — user decides, not you:
+> **MANDATORY — NO EXCEPTIONS:** If NOT already in a workflow, MUST use a direct user question to ask user. Do NOT judge task complexity or decide "simple enough to skip" — user decides, not you:
 >
 > 1. **Activate `workflow-review-changes` workflow** (Recommended) — run the canonical workflow from `.claude/workflows.json`; it sequences this skill, findings validation, parallel reviewers, `code-simplifier` self-review, fix-plan cycle, full re-review restart, docs, and handoff.
 > 2. **Execute `$review-changes` directly** — run this skill standalone
@@ -881,7 +815,7 @@ If `architectureRules` not present in project-config.json, skip silently.
 
 **Trigger:** Phase 6 returns CLEAN and the validated report still contains one or more findings, weaknesses, stale-doc items, missing-test items, or required improvements.
 
-**Parent workflow boundary:** When this skill is invoked as step 1 inside `$workflow-review-changes`, do NOT auto-fix or re-invoke `$review-changes` from here. Parent workflow steps 10-15 own `$plan`, `$plan-review`, `$plan-validate`, `$why-review`, `$cook`, and the full restart gate.
+**Parent workflow boundary:** When this skill is invoked as step 1 inside `$workflow-review-changes`, do NOT auto-fix or re-invoke `$review-changes` from here. Parent workflow steps 10-15 own `$plan`, `$plan-review`, `$plan-validate`, `$why-review`, `$feature-implement`, and the full restart gate.
 
 **Protocol:**
 
@@ -918,7 +852,7 @@ If `architectureRules` not present in project-config.json, skip silently.
 
 **Trigger:** The review has converged — one full `$review-changes` pass produced zero findings and all validated fixes are applied. This gate ALWAYS runs in standalone mode; it is NOT gated on a flagged staleness finding.
 
-**Parent workflow boundary:** When this skill is invoked as step 1 inside `$workflow-review-changes`, do NOT run Phase 8 locally — the parent workflow's own `$docs-update` step (after `$cook` and the restart gate) owns the final docs sync. Record `Phase 8 deferred to parent workflow $docs-update step.`
+**Parent workflow boundary:** When this skill is invoked as step 1 inside `$workflow-review-changes`, do NOT run Phase 8 locally — the parent workflow's own `$docs-update` step (after `$feature-implement` and the restart gate) owns the final docs sync. Record `Phase 8 deferred to parent workflow $docs-update step.`
 
 **Protocol:**
 
@@ -930,13 +864,13 @@ If `architectureRules` not present in project-config.json, skip silently.
 
 **Termination guarantee:** Phase 8 doc edits are docs-only and do NOT re-trigger the full Phase 0 code-review loop (no code behavior changed). They ARE subject to the M1-M6 spec-drift check (Review Checklist §8) and a final read-back. This keeps the skill terminating instead of looping review↔docs forever.
 
-> **MANDATORY IMPORTANT MUST ATTENTION:** Never declare the review complete or hand off until Phase 8 has run (or been explicitly deferred to the parent workflow). A passing review with skipped docs-update is an INCOMPLETE review.
+> **MANDATORY:** Never declare the review complete or hand off until Phase 8 has run (or been explicitly deferred to the parent workflow). A passing review with skipped docs-update is an INCOMPLETE review.
 
 ---
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, MUST use a direct user question to present options. Do NOT skip because task seems "simple" or "obvious" — user decides:
+**MANDATORY — NO EXCEPTIONS** after completing this skill, MUST use a direct user question to present options. Do NOT skip because task seems "simple" or "obvious" — user decides:
 
 - **"$code-review (Recommended)"** — Deeper code quality review
 - **"$watzup"** — Wrap up session and review all changes
@@ -1023,6 +957,53 @@ review-changes (you are here)
 > 3. **MUST ATTENTION task tracking ALL phases** before starting; missing tests MUST surface via a direct user question — NOT silently logged
 
 > **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. Prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
+
+<!-- SYNC:systematic-review-batching -->
+
+> **Systematic Review Batching (map-reduce)** — When a changeset is large, do NOT review files one-by-one. Partition into size-capped batches, fire one specialized sub-agent per batch in parallel, then reduce. This bounds EVERY context — each batch agent AND the orchestrator — so coverage stays complete as file count grows.
+>
+> **Trigger ladder (one ordered escalation — not competing thresholds):**
+>
+> 1. **< 10 changed files** → sequential per-file review (default; no batching).
+> 2. **≥ 10 changed files** → switch to systematic parallel mode. Announce: `"Detected {N} changed files. Switching to systematic parallel review protocol."` Then: categorize → size-capped batches → flat consolidation.
+> 3. **categories > 6 OR files > 40** → additionally insert the hierarchical synthesis tier (below). Everything from rung 2 still applies.
+>
+> **Step 1 — Categorize.** Group changed files into logical categories derived from the project's actual structure (not forced). Category is the *concern axis*; orient with these examples, derive what fits the repository:
+>
+> | Category Type | Example Groupings |
+> | --- | --- |
+> | Agent/Tooling | AI scripts, hooks, skill definitions, workflow configs, linting rules |
+> | Root config/docs | Root README, project config, CI/CD pipeline configs |
+> | Reference docs | Architecture docs, patterns references, setup guides |
+> | Feature/domain docs | Business feature documentation, spec files, ADRs |
+> | Backend logic | Service/handler/controller source (infer from project structure) |
+> | Frontend logic | UI component/state/API source (infer from project structure) |
+> | Data/Schema | Migrations, schema files, seed data |
+> | Tests | Unit, integration, E2E test files |
+> | Infrastructure | Docker, k8s, CI/CD, cloud manifests |
+>
+> **Step 2 — Size-capped batches.** One sub-agent per batch of **≤8 files OR ≤2000 diff-lines**, whichever hits first. Category stays the concern axis, but any category exceeding a cap splits into multiple size-capped batches (30 backend files → 4 batches). Size caps — not category caps — make "many files" safe: a category cap alone lets one giant category blow a single agent's context.
+>
+> **Step 2a — Sub-agent type per batch** (match the batch's dominant concern):
+>
+> - Code logic (any stack) → `code-reviewer`
+> - Security-sensitive changes → `security-auditor`
+> - Performance-critical paths → `performance-optimizer`
+> - Docs, plans, specs, configs, infra → `general-purpose`
+>
+> Each batch sub-agent receives: its full file list; `SYNC:category-review-thinking` as its primary thinking model — derive each category's concerns from first principles, NOT a fixed checklist (if the consuming skill does not carry that block, apply category-first thinking directly); project reference docs relevant to its concern (discover via `*patterns*`, `*conventions*`, `*style-guide*`); cross-reference verification instructions (counts, tables, links). All batch agents run in parallel and write findings to `plans/reports/` (per `SYNC:task-tracking-external-report`); reducers read from disk, never from memory.
+>
+> **Step 3 — Reduce.**
+>
+> - **Flat reduction (rung 2, ≤6 categories AND ≤40 files):** the orchestrator collects each batch report, cross-references counts/tables/contracts ACROSS batches, detects gaps visible only across categories (feature in code but missing from docs; new API endpoint with no client call), and consolidates into one categorized holistic report.
+> - **Hierarchical reduction (rung 3, > 6 categories OR > 40 files):** insert a mid-tier — each concern gets ONE synthesizer agent that reads only its own batch reports and emits a single concern-synthesis. The orchestrator reads the **concern-syntheses (~5)**, never the raw batch reports — keeping the reducer's context O(#concerns), not O(#files).
+>   - **Cross-concern interaction pass (mandatory at rung 3 — closes the synthesis-tier blind spot):** concern-siloed synthesis can drop an interaction spanning two concerns AND two batches (tainted source in data-layer/batch 7 → sink in api/batch 3). So: (a) each concern-synthesizer MUST emit an explicit **"cross-concern interaction candidates"** list — entities/symbols/contracts it touched that plausibly bind to another concern (shared DTOs, event names, table/collection names, exported symbols); (b) the orchestrator MUST run the Step-3 cross-reference/gap step **over those candidate lists across all concern-syntheses**, not only within a batch, before concluding. Without this pass the tier trades completeness for context-bounding on exactly the large diffs it targets.
+>
+> **Step 4 — Holistic assessment.** With all findings combined, judge: overall coherence as a unified intent; cross-category sync (docs match code? contracts match callers?); risk areas where categories interact; missing doc/spec updates for changed artifacts.
+>
+> **No silent truncation.** If any cap forces sampling or a batch is dropped for budget, ANNOUNCE the dropped/sampled scope explicitly — bounded coverage must never read as complete coverage.
+
+<!-- /SYNC:systematic-review-batching -->
 
 <!-- SYNC:end-to-start-debugger-trace -->
 
@@ -1178,7 +1159,7 @@ review-changes (you are here)
 > **Decision after Round 1:**
 >
 > - **No issues found (PASS, zero findings)** → review ENDS. Do NOT spawn a fresh sub-agent for confirmation.
-> - **Issues found (FAIL, or any non-zero findings)** → run the active review skill's findings-validation gate first; for review skills the default gate is `$why-review --validate-findings <report-path>`, fix only validated findings, then restart the full review protocol from the beginning with a fresh task breakdown.
+> - **Issues found (FAIL, or any non-zero findings)** → run the active review skill's findings-validation gate first; for review skills the default gate is `$why-review --validate-findings <report-path>`. Fix only validated findings, then restart the full review protocol from the beginning with a fresh task breakdown.
 >
 > **Fresh full re-review after every fix cycle:** Re-run the whole review protocol over the current full target. When sub-agents are part of that protocol, spawn NEW `spawn_agent` calls — never reuse prior agents. Reviewers re-read ALL files from scratch with ZERO memory of prior rounds. See `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. Each fresh full review must catch:
 >
@@ -1210,7 +1191,7 @@ review-changes (you are here)
 
 > **Fresh Context Re-Review** — Eliminate orchestrator confirmation bias after fixes by restarting the full review with isolated sub-agents where applicable.
 >
-> **Why:** The main agent knows what it (or `$cook`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
+> **Why:** The main agent knows what it (or `$feature-implement`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
 >
 > **When:** ONLY after a validated-finding fix cycle. A review round that finds zero issues ENDS the loop — do NOT spawn a confirmation sub-agent. A review round that finds issues triggers: validate findings → fix → full review restart from the first phase.
 >
@@ -1415,12 +1396,12 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 > **Bug Detection** — MUST ATTENTION check categories 1-4 for EVERY review. Never skip.
 >
-> 1. **Null Safety:** Can params/returns be null/undefined? Are they guarded? `.find()`/`.get()` returns checked before use?
+> 1. **Null Safety:** Can params/returns be null? Are they guarded? Optional chaining gaps? `.find()` returns checked?
 > 2. **Boundary Conditions:** Off-by-one (`<` vs `<=`)? Empty collections handled? Zero/negative values? Max limits?
-> 3. **Error Handling:** Try-catch scope correct? Silent swallowed exceptions? Error types specific? Cleanup in finally/defer?
-> 4. **Resource Management:** Connections/streams closed? Long-lived resources released? Memory bounded?
-> 5. **Concurrency (if async):** Missing await/promise handling? Race conditions on shared state? Retry storms?
-> 6. **Language/Runtime-Specific:** Apply known failure modes for the configured language/runtime and discovered codebase conventions.
+> 3. **Error Handling:** Try-catch scope correct? Silent swallowed exceptions? Error types specific? Cleanup in finally?
+> 4. **Resource Management:** Connections/streams closed? Subscriptions unsubscribed on destroy? Timers cleared? Memory bounded?
+> 5. **Concurrency (if async):** Missing `await`? Race conditions on shared state? Stale closures? Retry storms?
+> 6. **Stack-Specific:** Check the configured language/runtime pitfalls and framework-specific failure modes discovered from local code.
 >
 > **Classify:** CRITICAL (crash/corrupt) → FAIL | HIGH (incorrect behavior) → FAIL | MEDIUM (edge case) → WARN | LOW (defensive) → INFO
 
@@ -1473,53 +1454,40 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:category-review-thinking -->
 
-> **Category Review Thinking** — A thinking framework for reviewing any category of changed files.
-> This is NOT a fixed checklist. Derive concerns from domain knowledge — the examples are starting points only.
-> Your knowledge of the category exceeds any list here. Trust it.
-
-**Step 1: Understand the category's role**
-
-- What is this category's responsibility in the overall system?
-- What invariants must it uphold?
-- What are its consumer contracts (who depends on it, what do they expect)?
-
-**Step 2: Read project conventions for this category**
-
-- Search for reference docs, style guides, ADRs, or READMEs specific to this area
-- Grep 3+ existing similar files — extract naming conventions, structural patterns, shared base classes
-- If no docs exist, derive conventions empirically from existing code
-
-**Step 3: Derive concerns from first principles**
-
-Apply all that are relevant — expand beyond this list based on the actual category:
-
-- **Correctness:** Does the logic match the intent? Trace happy path AND error path.
-- **Boundary contracts:** Are interfaces/APIs/events/protocols honored? No implicit coupling introduced?
-- **Project conventions:** Does new code follow patterns found in Step 2? Evidence-confirmed, not assumed.
-- **Security:** Auth enforced at every entry point? Input validated at boundaries? No secrets in diff?
-- **Performance:** Unbounded operations? N+1 patterns? Blocking calls in async context? Unindexed queries?
-- **Maintainability:** DRY? Single responsibility? Complexity within reason? Names reveal intent?
-- **Test coverage:** Are the changed paths covered by tests? Are existing tests still valid after the change?
-- **Documentation:** Do related docs, specs, or READMEs reflect the changes?
-
-**Step 4: Create sub-tasks and execute**
-
-For each identified concern: create a task tracking sub-task, work through it with `file:line` evidence, mark done.
-
+> **Category Review Thinking** — A thinking framework for reviewing any category of changed files. NOT a fixed checklist — derive concerns from domain knowledge; the examples are starting points only. Your knowledge of the category exceeds any list here — trust it.
+>
+> **Step 1 — Understand the category's role.** What is this category responsible for in the overall system? What invariants must it uphold? What are its consumer contracts (who depends on it, what do they expect)?
+>
+> **Step 2 — Read project conventions for this category.** Search for reference docs, style guides, ADRs, or READMEs specific to this area. Grep 3+ existing similar files — extract naming conventions, structural patterns, shared base classes. If no docs exist, derive conventions empirically from existing code.
+>
+> **Step 3 — Derive concerns from first principles.** Apply all that are relevant; expand beyond this list based on the actual category:
+>
+> - **Correctness:** Does the logic match the intent? Trace happy path AND error path.
+> - **Boundary contracts:** Are interfaces/APIs/events/protocols honored? No implicit coupling introduced?
+> - **Project conventions:** Does new code follow the patterns found in Step 2? Evidence-confirmed, not assumed.
+> - **Security:** Auth enforced at every entry point? Input validated at boundaries? No secrets in the diff?
+> - **Performance:** Unbounded operations? N+1 patterns? Blocking calls in async context? Unindexed queries?
+> - **Maintainability:** DRY? Single responsibility? Complexity within reason? Names reveal intent?
+> - **Test coverage:** Are the changed paths covered by tests? Are existing tests still valid after the change?
+> - **Documentation:** Do related docs, specs, or READMEs reflect the changes?
+>
+> **Step 4 — Create sub-tasks and execute.** For each identified concern: create a task tracking sub-task, work through it with `file:line` evidence, mark done. No findings without proof.
+>
 > **Illustrative concern examples by category type** (not exhaustive — trust your knowledge beyond this):
 >
-> - _Server-side logic:_ Handler/service structure conventions, validation layer placement, side effect isolation, cross-service boundary enforcement, data access layer separation, error propagation strategy
-> - _Client-side logic:_ Component lifecycle management, resource cleanup (subscriptions, listeners, timers), state management patterns, API integration layer separation, reactive stream composition
-> - _Data/Schema:_ Migration reversibility (rollback script), lock impact on table volume, backfill idempotency, index coverage for query patterns, deployment ordering
-> - _Configuration:_ Present in ALL environments? No secrets in diff? App fails fast if config missing (not silently null)? Documented in setup guide?
-> - _Infrastructure:_ Dev/prod parity? No hardcoded dev values (localhost, debug flags)? Pinned image/dependency versions? CI/CD secret requirements documented?
-> - _Styles/Assets:_ Follows project naming conventions? Uses design variables/tokens (no hardcoded magic values)? Correct scope (no global side effects from component styles)?
-> - _Documentation:_ Accurate? Links valid? Examples still match current code/behavior? Covers new scenarios?
-> - _Tests:_ Assertions verify specific outcomes (not just "no exception")? Idempotent (repeatable N times)? Covers edge cases, not just happy path?
-> - _Security artifacts:_ All code paths reach the gate? Negative tests exist (unauthorized denied)? Both enforcement AND display control updated?
-> - _Build/Tooling:_ Rule changes apply consistently? No exceptions that silently swallow violations? Impact on CI runtime documented?
+> - _Server-side logic:_ handler/service structure conventions, validation layer placement, side-effect isolation, cross-service boundary enforcement, data-access layer separation, error propagation strategy
+> - _Client-side logic:_ component lifecycle management, resource cleanup (subscriptions, listeners, timers), state management patterns, API integration layer separation, reactive stream composition
+> - _Data/Schema:_ migration reversibility (rollback script), lock impact on table volume, backfill idempotency, index coverage for query patterns, deployment ordering
+> - _Configuration:_ present in ALL environments? No secrets in diff? App fails fast if config missing (not silently null)? Documented in setup guide?
+> - _Infrastructure:_ dev/prod parity? No hardcoded dev values (localhost, debug flags)? Pinned image/dependency versions? CI/CD secret requirements documented?
+> - _Styles/Assets:_ follows project naming conventions? Uses design variables/tokens (no hardcoded magic values)? Correct scope (no global side effects from component styles)?
+> - _Documentation:_ accurate? Links valid? Examples still match current code/behavior? Covers new scenarios?
+> - _Tests:_ assertions verify specific outcomes (not just "no exception")? Idempotent (repeatable N times)? Covers edge cases, not just happy path?
+> - _Security artifacts:_ all code paths reach the gate? Negative tests exist (unauthorized denied)? Both enforcement AND display control updated?
+> - _Build/Tooling:_ rule changes apply consistently? No exceptions that silently swallow violations? Impact on CI runtime documented?
 
 <!-- /SYNC:category-review-thinking -->
+
 
 <!-- SYNC:graph-assisted-investigation -->
 
@@ -1596,7 +1564,7 @@ For each identified concern: create a task tracking sub-task, work through it wi
 > 1. **Detect** — compare the change against the spec's documented intent. No divergence → record `Spec in sync` and move on.
 > 2. **Classify** the divergence:
 >    - **CODE-WRONG** — the spec correctly states intended behavior and the change violates it → BLOCKING finding; fix the code/test against intended behavior (write/adjust a regression TC first).
->    - **SPEC-STALE** — the change is the new intended behavior and the spec now documents the old/wrong behavior → update the spec FIRST via `$spec [update]`, then sync `$spec [mode=tests] [update]` + `[mode=sync]`.
+>    - **SPEC-STALE** — the change is the new intended behavior and the spec now documents the old/wrong behavior → update the spec FIRST via `$spec [mode=update]`, then sync `$spec [mode=tests]` + `$spec [mode=sync]`.
 >    - **AMBIGUOUS** — intended behavior is unclear → a direct user question (or the canonical spec owner) before editing either side.
 > 3. **Never normalize drift just because code/tests are green** — green can encode the drift itself. Reconcile to canonical intent, never to whichever side currently passes.
 >
@@ -1621,6 +1589,26 @@ For each identified concern: create a task tracking sub-task, work through it wi
 > **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
 
 <!-- /SYNC:ai-mistake-prevention -->
+
+<!-- SYNC:severity-rubric -->
+
+> **Severity Rubric** — Classify every finding by consequence, not by how easy it is to fix. One scale across all reviews so a "High" means the same thing everywhere.
+>
+> | Severity | Action | Definition |
+> | --- | --- | --- |
+> | CRITICAL | Block merge | Silent runtime failure, data corruption, validation bypass, security hole |
+> | HIGH | Must fix | Incorrect behavior, invariant gap, architectural violation |
+> | MEDIUM | Should fix | Design debt, maintainability, likely future bug |
+> | LOW | Nice to fix | Convention, documentation, minor clarity |
+>
+> **Score-based skills** map their numeric scale onto these tiers — do not invent a parallel vocabulary:
+>
+> - **0-2 criterion scoring** (e.g. sre-review): `0` = CRITICAL/HIGH (criterion unmet, blocks production readiness), `1` = MEDIUM (partial, should fix), `2` = pass (no finding).
+> - **Two-axis scoring** (e.g. performance-review, impact × likelihood): map the resulting cell to the nearest tier — high-impact + high-likelihood → CRITICAL/HIGH; low-impact OR low-likelihood → MEDIUM/LOW.
+>
+> A finding's tier drives the gate: CRITICAL/HIGH must be resolved or explicitly accepted by the owner before PASS; MEDIUM/LOW may ship with a tracked follow-up.
+
+<!-- /SYNC:severity-rubric -->
 
 <!-- SYNC:understand-code-first:reminder -->
 
@@ -1729,6 +1717,27 @@ For each identified concern: create a task tracking sub-task, work through it wi
 
 <!-- /SYNC:goal-contract-satisfaction-loop:reminder -->
 
+<!-- SYNC:systematic-review-batching:reminder -->
+
+- **MANDATORY** Large changeset → batch by size cap (≤8 files OR ≤2000 diff-lines), one parallel sub-agent per batch; never review many files one-by-one.
+- **MANDATORY** > 6 categories OR > 40 files → add the hierarchical synthesis tier; each concern-synthesizer emits cross-concern interaction candidates and the orchestrator runs the cross-concern pass before concluding.
+
+<!-- /SYNC:systematic-review-batching:reminder -->
+
+<!-- SYNC:severity-rubric:reminder -->
+
+- **MANDATORY** Classify findings Critical/High/Medium/Low by consequence; Critical/High block PASS until fixed or owner-accepted.
+- **MANDATORY** Score-based skills (sre 0-2, perf two-axis) map onto the same four tiers — no parallel severity vocabulary.
+
+<!-- /SYNC:severity-rubric:reminder -->
+
+<!-- SYNC:category-review-thinking:reminder -->
+
+- **MANDATORY** Derive review categories from file language + directory semantics + change nature; create a sub-task per category.
+- **MANDATORY** Derive each category's concerns from first principles with `file:line` evidence — never a fixed checklist.
+
+<!-- /SYNC:category-review-thinking:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Ensure every reviewed change is defect-free, evidence-backed, convention-aligned, and synchronized with required tests/docs before handoff; when code files changed, also prove the code stays easy to change.
@@ -1736,26 +1745,26 @@ For each identified concern: create a task tracking sub-task, work through it wi
 > **[CRITICAL — TOP 3 RULES REPEATED]**
 >
 > 1. **MUST ATTENTION Phase 0 graph blast-radius FIRST** — NEVER skip; informs entire review priority order
-> 2. **MUST ATTENTION findings follow the active ownership boundary.** Standalone mode runs Phase 6 validate → Phase 7 fix → full `$review-changes` restart; inside `$workflow-review-changes`, stop after the report and hand findings to parent step 2, then parent steps 10-15 own plan/cook/restart.
+> 2. **MUST ATTENTION findings follow the active ownership boundary.** Standalone mode runs Phase 6 validate → Phase 7 fix → full `$review-changes` restart; inside `$workflow-review-changes`, stop after the report and hand findings to parent step 2, then parent steps 10-15 own plan/feature-implement/restart.
 > 3. **MUST ATTENTION task tracking ALL phases** before starting; missing tests MUST surface via a direct user question
 
-- **MANDATORY IMPORTANT MUST ATTENTION** Nested Task Expansion Contract — when invoked inside a workflow, STILL expand internal phases via task tracking with `[N.M] $review-changes — phase` prefix and `TaskUpdate(parentTaskId, addBlockedBy: [childIds])` linkage. Workflow row is container, not substitute.
-- **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting
-- **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via a direct user question — NEVER auto-decide
-- **MANDATORY IMPORTANT MUST ATTENTION** add final review todo task to verify work quality
-- **MANDATORY IMPORTANT MUST ATTENTION** discover and READ project-specific reference docs before starting
-- **MANDATORY IMPORTANT MUST ATTENTION** Phase 0 graph blast-radius is FIRST step — NEVER skip it
-- **MANDATORY IMPORTANT MUST ATTENTION** any finding must be validated before fix; standalone mode invokes `$why-review --validate-findings`, while `$workflow-review-changes` parent mode stops after the report and delegates validation to parent step 2
-- **MANDATORY IMPORTANT MUST ATTENTION** after fixing validated findings in standalone mode, recursively invoke `$review-changes` again from Phase 0 with a brand-new task breakdown and review the full current diff, not only the fixed files; in parent mode, parent steps 10-15 own the fix plan, cook, and full restart
-- **MANDATORY IMPORTANT MUST ATTENTION** continue validate → fix → full restart until one complete review invocation has zero findings; standalone mode executes that loop locally, parent mode reports findings to `$workflow-review-changes` for the loop
-- **MANDATORY IMPORTANT MUST ATTENTION** documentation staleness check is REQUIRED in every review — flag stale docs even if not auto-fixing
-- **MANDATORY IMPORTANT MUST ATTENTION** run the **Phase 8 final `$docs-update` gate** once the review/fix loop converges to zero findings — ALWAYS, unconditional, never skipped on a clean verdict (deferred only inside `$workflow-review-changes` to the parent's docs-update step) — why: a passing code review still leaves docs stale until docs-update reconciles every impacted doc against the actual changes; a clean review with skipped docs-update is INCOMPLETE
-- **MANDATORY IMPORTANT MUST ATTENTION** run the **Phase 3.5 Code-Simplifier Optimization gate** whenever the diff includes code files — invoke `$code-simplifier` (report mode) over the changed code files, record its clarity/consistency/maintainability findings in the report, and route them through Phase 6 validation → Phase 7 fix; skip ONLY for docs-only diffs (record the skip reason) — why: correctness review proves it works, the simplifier gate proves it stays cheap to change, and the step is silently dropped without an anchored reminder
-- **MANDATORY IMPORTANT MUST ATTENTION** run the **Phase 3.7 Integration-Test-Review Coverage Gate** whenever the diff includes behavior-bearing code — invoke `$integration-test-review` over the FULL change set (production code AND tests); its Gate 7 must map every behavior change to a covering test (integration-first; unit fallback justified) and a spec TC, and every GAP/SPEC-GAP becomes a finding for Phase 6 validation → Phase 7 fix (GAP fix = write the missing test); skip ONLY for docs-only diffs with recorded reason, and defer to the parent's dedicated `$integration-test-review` step inside `$workflow-review-changes` — why: a correct-looking change with no covering test or stale spec ships unprotected behavior; the pairing check alone proves file names, not coverage
-- **MANDATORY IMPORTANT MUST ATTENTION** missing tests for changed business logic MUST surface to user via a direct user question — NOT silently logged
-- **MANDATORY IMPORTANT MUST ATTENTION** run the **Phase 6 Why-Review Findings Validation Gate** whenever findings exist in standalone mode — invoke `$why-review --validate-findings` (terminal mode, same session) to verify every finding is correct, proof-backed, reasonable, and best-practice; RE-DO it ONLY if it surfaces finding issues or enhancement opportunities (max 2 re-dos, then escalate via a direct user question); then Phase 7 fixes validated findings and restarts this skill. Inside `$workflow-review-changes`, do not run Phase 6/7 locally; parent step 2 and steps 10-15 own those gates.
-- **MANDATORY IMPORTANT MUST ATTENTION** follow declared step order; NEVER skip, reorder, or merge steps without explicit user approval
-- **MANDATORY IMPORTANT MUST ATTENTION** every skipped step includes explicit reason; every completed step includes concise evidence
+- **MANDATORY** Nested Task Expansion Contract — when invoked inside a workflow, STILL expand internal phases via task tracking with `[N.M] $review-changes — phase` prefix and `TaskUpdate(parentTaskId, addBlockedBy: [childIds])` linkage. Workflow row is container, not substitute.
+- **MANDATORY** break work into small todo tasks using task tracking BEFORE starting
+- **MANDATORY** validate decisions with user via a direct user question — NEVER auto-decide
+- **MANDATORY** add final review todo task to verify work quality
+- **MANDATORY** discover and READ project-specific reference docs before starting
+- **MANDATORY** Phase 0 graph blast-radius is FIRST step — NEVER skip it
+- **MANDATORY** any finding must be validated before fix; standalone mode invokes `$why-review --validate-findings`, while `$workflow-review-changes` parent mode stops after the report and delegates validation to parent step 2
+- **MANDATORY** after fixing validated findings in standalone mode, recursively invoke `$review-changes` again from Phase 0 with a brand-new task breakdown and review the full current diff, not only the fixed files; in parent mode, parent steps 10-15 own the fix plan, feature-implement, and full restart
+- **MANDATORY** continue validate → fix → full restart until one complete review invocation has zero findings; standalone mode executes that loop locally, parent mode reports findings to `$workflow-review-changes` for the loop
+- **MANDATORY** documentation staleness check is REQUIRED in every review — flag stale docs even if not auto-fixing
+- **MANDATORY** run the **Phase 8 final `$docs-update` gate** once the review/fix loop converges to zero findings — ALWAYS, unconditional, never skipped on a clean verdict (deferred only inside `$workflow-review-changes` to the parent's docs-update step) — why: a passing code review still leaves docs stale until docs-update reconciles every impacted doc against the actual changes; a clean review with skipped docs-update is INCOMPLETE
+- **MANDATORY** run the **Phase 3.5 Code-Simplifier Optimization gate** whenever the diff includes code files — invoke `$code-simplifier` (report mode) over the changed code files, record its clarity/consistency/maintainability findings in the report, and route them through Phase 6 validation → Phase 7 fix; skip ONLY for docs-only diffs (record the skip reason) — why: correctness review proves it works, the simplifier gate proves it stays cheap to change, and the step is silently dropped without an anchored reminder
+- **MANDATORY** run the **Phase 3.7 Integration-Test-Review Coverage Gate** whenever the diff includes behavior-bearing code — invoke `$integration-test-review` over the FULL change set (production code AND tests); its Gate 7 must map every behavior change to a covering test (integration-first; unit fallback justified) and a spec TC, and every GAP/SPEC-GAP becomes a finding for Phase 6 validation → Phase 7 fix (GAP fix = write the missing test); skip ONLY for docs-only diffs with recorded reason, and defer to the parent's dedicated `$integration-test-review` step inside `$workflow-review-changes` — why: a correct-looking change with no covering test or stale spec ships unprotected behavior; the pairing check alone proves file names, not coverage
+- **MANDATORY** missing tests for changed business logic MUST surface to user via a direct user question — NOT silently logged
+- **MANDATORY** run the **Phase 6 Why-Review Findings Validation Gate** whenever findings exist in standalone mode — invoke `$why-review --validate-findings` (terminal mode, same session) to verify every finding is correct, proof-backed, reasonable, and best-practice; RE-DO it ONLY if it surfaces finding issues or enhancement opportunities (max 2 re-dos, then escalate via a direct user question); then Phase 7 fixes validated findings and restarts this skill. Inside `$workflow-review-changes`, do not run Phase 6/7 locally; parent step 2 and steps 10-15 own those gates.
+- **MANDATORY** follow declared step order; NEVER skip, reorder, or merge steps without explicit user approval
+- **MANDATORY** every skipped step includes explicit reason; every completed step includes concise evidence
 
 **Anti-Rationalization:**
 

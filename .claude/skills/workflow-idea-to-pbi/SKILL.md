@@ -1,13 +1,22 @@
 ---
 name: workflow-idea-to-pbi
-version: 2.1.0
-description: '[Workflow] Use when activating the Idea to PBI workflow for turning ideas into prioritized PBIs and stories.'
+version: 2.2.0
+description: '[Workflow] Use when activating the Idea to PBI workflow for turning an idea — or a raw product vision/problem — into prioritized PBIs and stories (single-PBI deep mode, or multi-opportunity discovery mode).'
 disable-model-invocation: true
 ---
 
 ## Quick Summary
 
-**Goal:** [Workflow] Trigger Idea to PBI workflow — capture or review idea/artifact, refine, generate TDD test specs from the idea, model the domain, plan, derive the PBI and stories, challenge review, DoR gate, mockup, prioritize (idea → specs → from specs to PBI).
+**Goal:** [Workflow] Trigger Idea to PBI workflow in one of two modes. **SINGLE-PBI DEEP** — capture or review idea/artifact, refine, generate TDD test specs from the idea, model the domain, plan, derive the PBI and stories, challenge review, DoR gate, mockup, prioritize (idea → specs → from specs to PBI). **MULTI-OPPORTUNITY DISCOVERY** — a raw product vision/problem → brainstorm → RICE opportunity map → user multi-select → a light per-opportunity PBI loop → cross-PBI ranked backlog.
+
+**Mode Detection Gate (FIRST — pick the track before any step, then declare it):**
+
+| Input | Mode | Track |
+| --- | --- | --- |
+| ONE concrete idea / ticket / brief | **Single-PBI Deep** | full track incl. `spec [mode=tests]` + `plan`/`plan-review`/`plan-validate` → 1 deeply-groomed PBI. SKIP `brainstorm`/`web-research`. |
+| Raw product vision / problem spanning multiple opportunities | **Multi-Opportunity Discovery** | `brainstorm` → RICE map → multi-select → light per-opportunity loop → cross-PBI `prioritize`. `spec [mode=tests]` + `plan` cycle are **deep-mode only — never per opportunity**; `domain-analysis` runs once up front. |
+
+When the input is ambiguous, ask via `AskUserQuestion` before step 1.
 
 **Workflow:**
 
@@ -29,14 +38,21 @@ disable-model-invocation: true
 
 ## When to Use
 
+**Single-PBI Deep mode:**
+
 - PO or BA has a raw idea and needs to shape it into a grooming-ready PBI
 - PO is handing off an existing ticket, PRD, or brief to the BA team for refinement
 - Single-PBI refinement with stories, test specifications, challenge review, and DoR validation
 - Feature needs a structured PBI before entering a sprint
 
+**Multi-Opportunity Discovery mode:**
+
+- PO/BA has a raw product vision or problem statement that spans several opportunities, and needs a prioritized backlog of multiple PBIs out of it in one pass
+- A discovery sprint is needed: structured brainstorm → RICE opportunity map → multi-select → N PBIs → cross-PBI ranking (no implementation)
+
 ## When NOT to Use
 
-- Multiple opportunities from a discovery sprint → use `workflow-product-discovery`
+- Just want a (provisional) Feature Spec from an idea, no backlog → use `workflow-idea-to-spec`
 - Already have canonical Feature Specs and only need the backlog → use `workflow-spec-to-pbi` (spec-first entry)
 - Implementation-only (PBI already exists and is DoR-ready) → use `workflow-feature` or `workflow-big-feature`
 - Bug fixes → use `workflow-bugfix`
@@ -48,38 +64,55 @@ disable-model-invocation: true
 After confirming the workflow, present the full step list and let the user deselect irrelevant steps:
 
 ```
-- [x] Idea capture (idea)
+- [x] Brainstorm (brainstorm)                      — DISCOVERY MODE ONLY; RICE opportunity map
+- [ ] Market research (web-research)               — DISCOVERY MODE, CONDITIONAL
+- [x] Idea capture (idea)                          — REPEATS per opportunity in discovery mode
 - [ ] Review existing artifact (review-artifact)   — CONDITIONAL
 - [ ] PO → BA handoff (handoff)                    — CONDITIONAL
-- [x] Refine to PBI (refine)
+- [x] Refine to PBI (refine)                        — REPEATS per opportunity in discovery mode
 - [x] Refinement rationale review (why-review)
-- [x] Test specifications (spec [mode=tests])       — idea → specs
-- [x] Test-spec rationale review (why-review)
-- [x] Test specification review (review-artifact --type=spec-tests)
-- [ ] Domain analysis (domain-analysis)            — CONDITIONAL
+- [x] Test specifications (spec [mode=tests])       — DEEP MODE ONLY; idea → specs
+- [x] Test-spec rationale review (why-review)       — deep mode
+- [x] Test specification review (review-artifact --type=spec-tests)  — deep mode
+- [ ] Domain analysis (domain-analysis)            — CONDITIONAL; discovery mode runs it ONCE up front
 - [x] Domain rationale review (why-review)
-- [x] Implementation plan (plan)
-- [x] Plan review (plan-review)
-- [x] Plan validation (plan-validate)
-- [x] Plan rationale review (why-review)
-- [x] PBI review (review-artifact --type=pbi)       — from specs to PBI
-- [x] User stories (story)
+- [x] Implementation plan (plan)                    — DEEP MODE ONLY
+- [x] Plan review (plan-review)                     — deep mode
+- [x] Plan validation (plan-validate)               — deep mode
+- [x] Plan rationale review (why-review)            — deep mode
+- [x] PBI review (review-artifact --type=pbi)       — from specs to PBI; REPEATS per opportunity
+- [x] User stories (story)                          — REPEATS per opportunity
 - [x] Story rationale review (why-review)
-- [x] Story review (review-artifact --type=story)
-- [x] Dev BA PIC challenge (pbi-challenge)
-- [x] Definition of Ready gate (dor-gate)
-- [x] PBI HTML mock-up (pbi-mockup)                — CONDITIONAL
-- [x] Backlog prioritization (prioritize)
+- [x] Story review (review-artifact --type=story)   — REPEATS per opportunity
+- [x] Dev BA PIC challenge (pbi-challenge)          — REPEATS per opportunity
+- [x] Definition of Ready gate (dor-gate)           — REPEATS per opportunity
+- [x] PBI HTML mock-up (pbi-mockup)                — CONDITIONAL; REPEATS per opportunity
+- [x] Backlog prioritization (prioritize)           — cross-PBI in discovery mode
 - [x] Documentation synchronization (docs-update)
 ```
 
-Mark skipped steps as completed immediately.
+Mark skipped steps as completed immediately. In single-PBI deep mode, deselect `brainstorm`/`web-research`. In discovery mode, deselect `spec [mode=tests]`, `review-artifact --type=spec-tests`, and the `plan`/`plan-review`/`plan-validate` cycle (deep-mode-only); run `domain-analysis` once up front.
+
+### 1a. Multi-Opportunity Discovery Loop (Discovery Mode core mechanic)
+
+Activated only when the input is a raw product vision/problem spanning multiple opportunities (folded in from the former product-discovery workflow).
+
+1. **Brainstorm → opportunity map.** Run `/brainstorm` with Double Diamond (problem framing → opportunity framing → ideation → convergence). Output a **RICE-scored opportunity map** of 3–8 items to `plans/{plan-dir}/brainstorm-opportunity-map.md`.
+2. **Multi-select.** Present the map via `AskUserQuestion` (`multiSelect: true`): "Which opportunities should we develop into PBIs?"
+3. **Opportunity-map why-review gate** (before the loop): challenge whether the top-ranked opportunities are the right problems, whether RICE Reach/Impact are founded or speculative, run a pre-mortem, and name systemic alternatives. FAIL on a high-ranked opportunity → drop it or revisit framing; WARN → document and proceed with user acknowledgment.
+4. **Task decomposition gate.** Call `TaskCreate` for EVERY task (N opportunities × 8 loop steps = N×8 minimum) BEFORE processing any opportunity — never start the loop without a complete task list.
+5. **Per-opportunity light loop** (for EACH selected opportunity — NO `spec [mode=tests]`, NO `plan`/`plan-review`/`plan-validate`; `domain-analysis` already ran once up front):
+   `/idea` → `/refine` → `/review-artifact --type=pbi` → `/story` → `/review-artifact --type=story` → `/pbi-challenge` → `/dor-gate` → `/pbi-mockup` (skip for backend-only PBIs).
+6. **Scale management.** For 6+ selected opportunities, spawn one sub-agent per opportunity (each gets brainstorm context + its task list); the main context runs `/prioritize` at the end. Update a session summary table after every 3 opportunities.
+7. **Cross-PBI prioritize.** After ALL opportunities are processed, run `/prioritize` across all session PBIs (cross-PBI RICE + dependency graph) → sprint-ready ranked backlog, flagging Must/Should/Could-Have.
 
 ### 2. TaskCreate Before Starting
 
 **MANDATORY IMPORTANT MUST ATTENTION** — Call `TaskCreate` for every step before beginning any work:
 
 ```
+TaskCreate: "Brainstorm → RICE opportunity map" [discovery mode]
+TaskCreate: "Market research (web-research)" [discovery mode, conditional]
 TaskCreate: "Idea capture"
 TaskCreate: "Refine to PBI"
 TaskCreate: "Refinement rationale review (why-review after refine)"
@@ -180,8 +213,12 @@ Write output IMMEDIATELY after each step — never batch across steps.
 
 | Step               | Skip When                             |
 | ------------------ | ------------------------------------- |
+| `/brainstorm`      | Single-PBI deep mode (one concrete idea/ticket) |
+| `/web-research`    | Single-PBI deep mode, internal tool, or well-understood domain |
 | `/review-artifact` | No existing artifact — raw idea input |
-| `/domain-analysis` | Idea introduces no new/changed domain entities |
+| `/spec [mode=tests]`, `/review-artifact --type=spec-tests` | Discovery mode (deep-mode only — never per opportunity) |
+| `/domain-analysis` | Idea introduces no new/changed domain entities; in discovery mode run ONCE up front |
+| `/plan`, `/plan-review`, `/plan-validate` | Discovery mode (deep-mode only — never per opportunity) |
 | `/pbi-mockup`      | Backend-only PBI — no UI changes      |
 
 ---
@@ -199,21 +236,23 @@ Purpose:
 
 ---
 
-**IMPORTANT MANDATORY Steps:** /idea -> /review-artifact -> /refine -> /why-review -> /spec [mode=tests] -> /why-review -> /review-artifact --type=spec-tests -> /domain-analysis -> /why-review -> /plan -> /plan-review -> /plan-validate -> /why-review -> /review-artifact --type=pbi -> /story -> /why-review -> /review-artifact --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /prioritize -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /brainstorm -> /web-research -> /idea -> /review-artifact -> /refine -> /why-review -> /spec [mode=tests] -> /why-review -> /review-artifact --type=spec-tests -> /domain-analysis -> /why-review -> /plan -> /plan-review -> /plan-validate -> /why-review -> /review-artifact --type=pbi -> /story -> /why-review -> /review-artifact --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /prioritize -> /docs-update -> /workflow-end -> /watzup
 
-**IMPORTANT MANDATORY Steps:** /idea -> /review-artifact -> /refine -> /why-review -> /spec [mode=tests] -> /why-review -> /review-artifact --type=spec-tests -> /domain-analysis -> /why-review -> /plan -> /plan-review -> /plan-validate -> /why-review -> /review-artifact --type=pbi -> /story -> /why-review -> /review-artifact --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /prioritize -> /docs-update -> /workflow-end -> /watzup
+> **Mode gating of the canonical sequence above** — **Single-PBI deep mode:** skip /brainstorm + /web-research; run the full deep track (one PBI). **Discovery mode:** run /brainstorm + /web-research, skip /spec [mode=tests], /review-artifact --type=spec-tests, /plan, /plan-review, /plan-validate; loop /idea→/refine→/review-artifact --type=pbi→/story→/review-artifact --type=story→/pbi-challenge→/dor-gate→/pbi-mockup per selected opportunity, then /prioritize cross-PBI.
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
 Activate the `workflow-idea-to-pbi` workflow. Run `/start-workflow workflow-idea-to-pbi` with the user's prompt as context.
 
 **Steps:**
-/idea → /review-artifact (conditional) → /refine → /why-review → /spec [mode=tests] → /why-review → /review-artifact --type=spec-tests → /domain-analysis (conditional) → /why-review → /plan → /plan-review → /plan-validate → /why-review → /review-artifact --type=pbi → /story → /why-review → /review-artifact --type=story → /pbi-challenge → /dor-gate → /pbi-mockup → /prioritize → /docs-update → /workflow-end → /watzup
+/brainstorm → /web-research → /idea → /review-artifact → /refine → /why-review → /spec [mode=tests] → /why-review → /review-artifact --type=spec-tests → /domain-analysis → /why-review → /plan → /plan-review → /plan-validate → /why-review → /review-artifact --type=pbi → /story → /why-review → /review-artifact --type=story → /pbi-challenge → /dor-gate → /pbi-mockup → /prioritize → /docs-update → /workflow-end → /watzup
 
-> **Conditional steps:**
+> **Conditional / mode-gated steps:**
 >
+> - `/brainstorm`, `/web-research` — DISCOVERY MODE only; skip in single-PBI deep mode
+> - `/spec [mode=tests]`, `/review-artifact --type=spec-tests`, `/plan`, `/plan-review`, `/plan-validate` — DEEP MODE only; never run per opportunity in discovery mode
 > - `/review-artifact` — skip if no existing artifact/ticket/PRD; proceed straight to `/refine`
-> - `/domain-analysis` — skip if the idea introduces no new/changed domain entities
+> - `/domain-analysis` — skip if the idea introduces no new/changed domain entities; in discovery mode run once up front
 > - `/pbi-mockup` — skip if PBI is backend-only (no UI changes)
 
 ---
@@ -300,6 +339,8 @@ Activate the `workflow-idea-to-pbi` workflow. Run `/start-workflow workflow-idea
 >
 > Main agent reads `Full report` file ONLY when: (a) resolving a specific blocker, or (b) building a fix plan.
 > Sub-agent writes full report incrementally (per SYNC:incremental-persistence) — not held in memory.
+>
+> **Context budget** — the return payload is a SUMMARY, not a transcript: ≤10 finding bullets, no raw file contents / full diffs / verbatim logs inline, no re-pasted source. Everything beyond the summary lives in the `Full report` on disk. A sub-agent that would exceed the summary shape MUST write the detail to its report and return only the pointer — the orchestrator's context is the scarce resource the whole map-reduce protects.
 
 <!-- /SYNC:subagent-return-contract -->
 

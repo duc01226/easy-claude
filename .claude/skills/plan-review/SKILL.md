@@ -116,17 +116,17 @@ Before writing any verdict, generate at least 2 sentences arguing the OPPOSITE c
 
 ### Anti-Bias Gate (MANDATORY before finalizing verdict)
 
-Complete ALL checks before writing the final verdict:
+Complete ALL checks before writing the final verdict (MUST ATTENTION):
 
-- MUST ATTENTION run Implementation Reality Check on the highest-risk phase
-- MUST ATTENTION identify 3 implicit assumptions and stress-test them
-- MUST ATTENTION check effort estimates against codebase complexity
-- MUST ATTENTION run pre-mortem (one concrete production failure scenario)
-- MUST ATTENTION scan for scope creep (tasks not required for stated feature)
-- MUST ATTENTION verify dependency blindspots are addressed
-- MUST ATTENTION steel-man at least one rejected design alternative (argue FOR it)
-- MUST ATTENTION name at least 1 viable alternative the plan does not mention
-- MUST ATTENTION check pros/cons symmetry on the plan's primary design decision
+- run Implementation Reality Check on the highest-risk phase
+- identify 3 implicit assumptions and stress-test them
+- check effort estimates against codebase complexity
+- run pre-mortem (one concrete production failure scenario)
+- scan for scope creep (tasks not required for stated feature)
+- verify dependency blindspots are addressed
+- steel-man at least one rejected design alternative (argue FOR it)
+- name at least 1 viable alternative the plan does not mention
+- check pros/cons symmetry on the plan's primary design decision
 
 If any check is incomplete → you have NOT completed the adversarial review. Go back.
 
@@ -511,24 +511,24 @@ After the sub-agent returns:
 
 ## Skill Interconnection (Standalone: MUST ATTENTION ask user via `AskUserQuestion`. Skip if inside workflow.)
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use `AskUserQuestion` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
+**MANDATORY — NO EXCEPTIONS** after completing this skill, you MUST use `AskUserQuestion` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
 
 - **"Proceed with full workflow (Recommended)"** — I'll detect the best workflow to continue from here (plan reviewed). This ensures validation, implementation, testing, and docs steps aren't skipped.
 - **"/plan-validate"** — Interview user to confirm plan assumptions
-- **"/cook" or "/code"** — If plan is approved and ready for implementation
+- **"/feature-implement" or "/plan-execute"** — If plan is approved and ready for implementation
 - **"Skip, continue manually"** — user decides
 
 > **[BLOCKING]** This is a validation gate. MUST ATTENTION use `AskUserQuestion` to present review findings and get user confirmation. Completing without asking at least one question is a violation.
 
-> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
+> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI must ask user whether to skip.
 
 > **Critical Purpose:** Ensure quality — no flaws, no bugs, no missing updates, no stale content. Verify both code AND documentation.
 
 > **External Memory:** For complex or lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report file in `plans/reports/` — prevents context loss and serves as deliverable.
 
-> **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION — every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% must verify first).
+> **Evidence Gate:** MANDATORY — every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% must verify first).
 
-> **OOP & DRY Enforcement:** MANDATORY IMPORTANT MUST ATTENTION — flag duplicated patterns that should be extracted to a base class, generic, or helper. Classes in the same group (same suffix, same lifecycle, same purpose) MUST ATTENTION share a common base (even if empty now — enables future shared logic and child overrides). Verify project has code linting/analyzer configured for the stack.
+> **OOP & DRY Enforcement:** MANDATORY — flag duplicated patterns that should be extracted to a base class, generic, or helper. Classes in the same group (same suffix, same lifecycle, same purpose) must share a common base (even if empty now — enables future shared logic and child overrides). Verify project has code linting/analyzer configured for the stack.
 
 <!-- SYNC:behavioral-delta-matrix -->
 
@@ -587,7 +587,7 @@ After the sub-agent returns:
 
 > **Fresh Context Re-Review** — Eliminate orchestrator confirmation bias after fixes by restarting the full review with isolated sub-agents where applicable.
 >
-> **Why:** The main agent knows what it (or `/cook`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
+> **Why:** The main agent knows what it (or `/feature-implement`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
 >
 > **When:** ONLY after a validated-finding fix cycle. A review round that finds zero issues ENDS the loop — do NOT spawn a confirmation sub-agent. A review round that finds issues triggers: validate findings → fix → full review restart from the first phase.
 >
@@ -707,7 +707,7 @@ After the sub-agent returns:
 > **Decision after Round 1:**
 >
 > - **No issues found (PASS, zero findings)** → review ENDS. Do NOT spawn a fresh sub-agent for confirmation.
-> - **Issues found (FAIL, or any non-zero findings)** → run the active review skill's findings-validation gate first; for review skills the default gate is `/why-review --validate-findings <report-path>`, fix only validated findings, then restart the full review protocol from the beginning with a fresh task breakdown.
+> - **Issues found (FAIL, or any non-zero findings)** → run the active review skill's findings-validation gate first; for review skills the default gate is `/why-review --validate-findings <report-path>`. Fix only validated findings, then restart the full review protocol from the beginning with a fresh task breakdown.
 >
 > **Fresh full re-review after every fix cycle:** Re-run the whole review protocol over the current full target. When sub-agents are part of that protocol, spawn NEW `Agent` calls — never reuse prior agents. Reviewers re-read ALL files from scratch with ZERO memory of prior rounds. See `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. Each fresh full review must catch:
 >
@@ -917,6 +917,26 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
+<!-- SYNC:severity-rubric -->
+
+> **Severity Rubric** — Classify every finding by consequence, not by how easy it is to fix. One scale across all reviews so a "High" means the same thing everywhere.
+>
+> | Severity | Action | Definition |
+> | --- | --- | --- |
+> | CRITICAL | Block merge | Silent runtime failure, data corruption, validation bypass, security hole |
+> | HIGH | Must fix | Incorrect behavior, invariant gap, architectural violation |
+> | MEDIUM | Should fix | Design debt, maintainability, likely future bug |
+> | LOW | Nice to fix | Convention, documentation, minor clarity |
+>
+> **Score-based skills** map their numeric scale onto these tiers — do not invent a parallel vocabulary:
+>
+> - **0-2 criterion scoring** (e.g. sre-review): `0` = CRITICAL/HIGH (criterion unmet, blocks production readiness), `1` = MEDIUM (partial, should fix), `2` = pass (no finding).
+> - **Two-axis scoring** (e.g. performance-review, impact × likelihood): map the resulting cell to the nearest tier — high-impact + high-likelihood → CRITICAL/HIGH; low-impact OR low-likelihood → MEDIUM/LOW.
+>
+> A finding's tier drives the gate: CRITICAL/HIGH must be resolved or explicitly accepted by the owner before PASS; MEDIUM/LOW may ship with a tracked follow-up.
+
+<!-- /SYNC:severity-rubric -->
+
 <!-- SYNC:understand-code-first:reminder -->
 
 **IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE any modification. Run graph trace when graph.db exists.
@@ -996,6 +1016,13 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
+
+<!-- SYNC:severity-rubric:reminder -->
+
+- **MANDATORY** Classify findings Critical/High/Medium/Low by consequence; Critical/High block PASS until fixed or owner-accepted.
+- **MANDATORY** Score-based skills (sre 0-2, perf two-axis) map onto the same four tiers — no parallel severity vocabulary.
+
+<!-- /SYNC:severity-rubric:reminder -->
 
 ## Closing Reminders
 

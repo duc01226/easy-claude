@@ -1403,6 +1403,34 @@ async function testWorkflowRouter() {
     }
 }
 
+// Identity invariant: step-id == skill-name == /command. Covers the two
+// functions that implement the overhaul's commandMapping->identity collapse.
+async function testMapSkillToStepId() {
+    logSection('Unit: workflow-state.cjs mapSkillToStepId');
+    const { mapSkillToStepId } = require('../lib/workflow-state.cjs');
+
+    logResult('[TC-IDENTITY-001] bare name maps to itself', mapSkillToStepId('plan') === 'plan');
+    logResult('[TC-IDENTITY-002] leading slash stripped', mapSkillToStepId('/plan') === 'plan');
+    logResult('[TC-IDENTITY-003] uppercase normalized', mapSkillToStepId('Review-Changes') === 'review-changes');
+    logResult('[TC-IDENTITY-004] trailing whitespace trimmed', mapSkillToStepId('plan-review ') === 'plan-review');
+    logResult('[TC-IDENTITY-004b] leading space before slash is NOT stripped (replace runs before trim)', mapSkillToStepId('  /plan ') === '/plan');
+    logResult('[TC-IDENTITY-005] multi-segment id preserved', mapSkillToStepId('/workflow-review-changes') === 'workflow-review-changes');
+    logResult('[TC-IDENTITY-006] null returns null (fallback)', mapSkillToStepId(null) === null);
+    logResult('[TC-IDENTITY-007] empty string returns null (fallback)', mapSkillToStepId('') === null);
+}
+
+async function testResolveCmd() {
+    logSection('Unit: workflow-step-tracker.cjs resolveCmd');
+    const { resolveCmd } = require('../workflow-step-tracker.cjs');
+
+    logResult('[TC-IDENTITY-010] step id renders as slash command', resolveCmd('plan') === '/plan');
+    logResult('[TC-IDENTITY-011] multi-segment id rendered verbatim', resolveCmd('workflow-review-changes') === '/workflow-review-changes');
+    logResult('[TC-IDENTITY-012] round-trips with mapSkillToStepId', (() => {
+        const { mapSkillToStepId } = require('../lib/workflow-state.cjs');
+        return resolveCmd(mapSkillToStepId('/Plan-Review')) === '/plan-review';
+    })());
+}
+
 async function testDevRulesReminder() {
     logSection('UserPromptSubmit: prompt-context-assembler.cjs');
 
@@ -2061,7 +2089,7 @@ async function testSkillEnforcement() {
     // Implementation skills without tasks - should block (exit 1)
     // Use isolated session IDs with no todo state to ensure blocking
     logSubsection('Implementation Skills (blocked without tasks)');
-    const implSkills = ['cook', 'code', 'implement', 'fix'];
+    const implSkills = ['cook', 'code', 'feature-implement', 'plan-execute', 'implement', 'fix'];
 
     for (const skill of implSkills) {
         const result = await runHook(
@@ -2669,6 +2697,8 @@ async function runAllTests() {
     if (!FILTER || 'user'.includes(FILTER) || 'prompt'.includes(FILTER) || 'init'.includes(FILTER)) {
         await testInitPromptGate();
         await testWorkflowRouter();
+        await testMapSkillToStepId();
+        await testResolveCmd();
         await testDevRulesReminder();
         await testLessonLearnedReminder();
     }

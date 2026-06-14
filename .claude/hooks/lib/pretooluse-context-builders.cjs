@@ -143,7 +143,7 @@ const DEV_REVIEW_SKILLS = new Set([
     'code-simplifier', 'sre-review', 'why-review', 'workflow-review-changes',
     'simplify', 'knowledge-review', 'plan-review'
 ]);
-const DEV_CODING_SKILLS = new Set(['cook', 'code', 'fix']);
+const DEV_CODING_SKILLS = new Set(['cook', 'code', 'fix', 'feature-implement', 'plan-execute']);
 
 function resolveDevRulesPath() {
     const localPath = path.join(PROJECT_DIR, '.claude', 'docs', 'development-rules.md');
@@ -190,14 +190,15 @@ function buildDevRules(payload, preloadedLines) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 const MINDSET_SKILLS = new Set([
-    'plan', 'plan-validate', 'cook', 'code', 'fix', 'feature', 'refactoring',
+    'plan', 'plan-validate', 'cook', 'code', 'feature-implement', 'plan-execute',
+    'fix', 'feature', 'refactoring',
     'refine', 'debug', 'debug-investigate', 'code-review', 'review-changes',
     'review-post-task', 'integration-test', 'integration-test-review', 'spec',
-    'scout', 'investigate', 'feature-investigation', 'prove-fix',
+    'scout', 'investigate', 'prove-fix',
     'security-review', 'performance-review'
 ]);
 const GRAPH_REQUIRED_SKILLS = new Set([
-    'scout', 'investigate', 'feature-investigation', 'debug', 'fix', 'prove-fix',
+    'scout', 'investigate', 'debug', 'fix', 'prove-fix',
     'code-review', 'review-changes', 'security-review', 'performance-review', 'plan'
 ]);
 

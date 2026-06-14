@@ -35,7 +35,7 @@
 
 Session-start reference derived from `.claude/workflows.json` — use it to pick a route on any prompt: run a standard workflow, compose a custom workflow from the step-skills, invoke a single skill, or execute directly.
 
-### Workflow Skills (53 composable steps)
+### Workflow Skills (52 composable steps)
 
 Distinct step-skills used across the workflows above — compose these into a custom workflow when no standard workflow fits.
 
@@ -45,9 +45,7 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `brainstorm` | [Content] Use when you need to brainstorm as a PO/BA — structured ideation for problem-solving, new product creation, or feature enhancement. |
 | `business-evaluation` | [Content] Use when you need to evaluate business idea viability: Business Model Canvas, financial projections, risk matrix, go-to-market, execution plan. |
 | `changelog` | [Documentation] Use when you need to generate or update changelog entries. |
-| `code` | [Implementation] Use when you need to start coding & testing an existing plan. Flags: --approval=off (auto/trust mode, no approval gate), --tests=off (skip the test step), --parallel (parallel phase execution via subagents). |
 | `code-simplifier` | [Code Quality] Use when you need to simplify and refine code for clarity, consistency, and maintainability while preserving all functionality. |
-| `cook` | [Implementation] Use when you need to implement a feature [step by step]. |
 | `debug-investigate` | [Fix & Debug] Use when investigating a bug''s root cause — reproduce the symptom, trace it end-to-start through the code, form and test hypotheses, and pinpoint the defect before any fix. |
 | `deep-research` | [Research] Use when deeply researching top sources from web-research. |
 | `docs-update` | [Documentation] Use when updating impacted documentation after code, spec, or test changes. |
@@ -69,6 +67,7 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `pbi-mockup` | [Project Management] Use when you need to generate an HTML mockup report from PBI and story artifacts. |
 | `performance-review` | [Debugging] Use when analyzing or optimizing performance bottlenecks: database queries, N+1 fan-out, indexing, API latency, memory, concurrency, frontend rendering, caching, and distributed paths. |
 | `plan` | [Planning] Use when you need intelligent plan creation with prompt enhancement. Flag: --mode={ci\|cro} (default none — standard planning); --mode=ci plans a fix from a GitHub Actions CI run/log, --mode=cro plans conversion-rate optimization (25-item CRO framework). |
+| `plan-execute` | [Implementation] Use when you need to start coding & testing an existing plan. Flags: --approval=off (auto/trust mode, no approval gate), --tests=off (skip the test step), --parallel (parallel phase execution via subagents). |
 | `plan-review` | [Planning] Use when you need to auto-review a plan for validity, correctness, and best practices — recursive: review, validate findings with why-review, fix validated findings, full re-review until no findings. |
 | `plan-validate` | [Planning] Use when you need to validate a plan with critical questions interview. |
 | `prioritize` | [Project Management] Use when you need to prioritize backlog items using RICE, MoSCoW, or Value-Effort frameworks. |
@@ -83,7 +82,7 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `scout` | [Investigation] Use when quickly locating relevant files and affected areas across a large codebase. |
 | `security-review` | [Code Quality] Use when you need to perform a security review or audit on any scope — application code (OWASP Top 10 2025), secrets exposure, dependency/supply-chain malware, third-party repository vetting before install, infrastructure/config, CI/CD pipeline, AI-agent risks, and host/VPS compromise detection. |
 | `seed-test-data` | [Dev Data] Use when you need to implement or enhance test data seeders that simulate QC happy-path scenarios via application-layer commands. |
-| `spec` | [Documentation] Use to author, audit, amend, or test-spec a business Feature Spec. The single spec skill — modes init\|update\|audit\|amend create/maintain the tech-free 8-section Feature Spec; tests generates Section 8 TC-{FEATURE}-{NNN} test specifications; sync reconciles §8 TCs ↔ integration test code. Per-mode procedure lives in references/{author,tests,sync}.md. |
+| `spec` | [Documentation] Use to author, audit, amend, or test-spec a business Feature Spec. The single spec skill — modes draft\|init\|update\|audit\|amend create/maintain the tech-free 8-section Feature Spec; draft authors a provisional spec from an idea/requirement (no code yet, Evidence: TBD); tests generates Section 8 TC-{FEATURE}-{NNN} test specifications; sync reconciles §8 TCs ↔ integration test code. Per-mode procedure lives in references/{author,tests,sync}.md. |
 | `spec-index` | [General] Use when you need to (re)generate a DERIVED navigation index, cross-capability ERD, or reimplementation guide assembled FROM the canonical Feature Specs under docs/specs/**. Never extracts a separate A-E engineering tree. |
 | `sre-review` | [Code Quality] Use when reviewing service-layer and API changes for production readiness. |
 | `story` | [Project Management] Use when creating user stories from PBIs, slicing features, or breaking down requirements. |
@@ -187,7 +186,7 @@ Before writing code, you MUST grep/glob for 3+ similar examples and follow the l
 
 ## First Action Decision (before any tool call)
 
-1. Explicit slash command (e.g. `/plan`, `/cook`) → execute it.
+1. Explicit slash command (e.g. `/plan`, `/feature-implement`) → execute it.
 2. Workflow Catalog has a matching workflow → ask via `AskUserQuestion` whether to activate the workflow or run the underlying skill directly.
 3. No matching workflow AND prompt would modify files → MUST invoke `/plan <prompt>` first.
 4. No matching workflow AND prompt is read-only/conversational → answer directly.
@@ -338,7 +337,7 @@ These skills auto-activate before file edits in their path patterns:
 
 | Kind        | Count                                       |
 | ----------- | ------------------------------------------- |
-| Skills      | <!-- COUNT:skills -->156<!-- /COUNT -->     |
+| Skills      | <!-- COUNT:skills -->155<!-- /COUNT -->     |
 | Hooks       | <!-- COUNT:hooks -->54<!-- /COUNT -->       |
 | Agents      | <!-- COUNT:agents -->29<!-- /COUNT -->      |
 | Workflows   | <!-- COUNT:workflows -->17<!-- /COUNT -->   |

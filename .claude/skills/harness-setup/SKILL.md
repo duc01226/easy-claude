@@ -228,7 +228,7 @@ Present inventory to user for review via `AskUserQuestion`.
 
 `AskUserQuestion`:
 
-- **"/cook (Recommended)"** — Begin implementing the project plan with full harness in place
+- **"/feature-implement (Recommended)"** — Begin implementing the project plan with full harness in place
 - **"/why-review"** — Review harness design rationale before proceeding
 - **"Skip"** — Proceed manually without workflow guidance
 

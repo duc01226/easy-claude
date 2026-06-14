@@ -169,10 +169,21 @@ Search for these intent categories with the configured source roots and discover
 - Query/filter expressions placed in handlers/services when the entity, repository extension, specification, or equivalent local pattern owns them.
 - Entity classes missing identity markers required by the configured persistence framework.
 - Domain models performing direct persistence, network, or infrastructure work.
+
+Representative searches — substitute the markers and source roots discovered from `docs/project-config.json` / project-reference docs (never hardcode the examples):
+
+```bash
+# Validation methods that hide or bypass the base/domain validation path
+rg "{configured-validation-markers}" {configured-domain-source-roots} | head -20
+
+# Persistence/query-filter expressions or infrastructure work leaked into domain models
 rg "{configured-persistence-or-query-markers}" {configured-domain-source-roots} | head -20
 
-# HIGH: business conditions leaked above the owning domain layer
+# Business conditions / entity mutation leaked above the owning domain layer
 rg "{configured-business-condition-patterns}" {configured-application-source-roots} | head -20
+
+# Entity classes missing the identity markers required by the configured persistence framework
+rg "{configured-identity-markers}" {configured-domain-source-roots} | head -20
 ```
 
 Write ALL grep results to report IMMEDIATELY.
@@ -194,72 +205,72 @@ For EACH entity/VO file: read file → append findings to report IMMEDIATELY. NE
 
 ### Per-File Review Checklist
 
-#### A. Entity vs Value Object Classification
+#### A. Entity vs Value Object Classification (MUST ATTENTION)
 
 > Entity = unique identity persisting across time. VO = defined by attributes, immutable, interchangeable when equal. NEVER swap roles.
 
-- MUST ATTENTION verify: does class need unique persistent identity? No → suspect VO misclassification.
-- MUST ATTENTION flag: "snapshot at point in time" (contact at referral, price at purchase, measurement at check-in) → MUST be VO, NEVER entity.
+- verify: does class need unique persistent identity? No → suspect VO misclassification.
+- flag: "snapshot at point in time" (contact at referral, price at purchase, measurement at check-in) → MUST be VO, NEVER entity.
 - CRITICAL if VO has primary key or repository → VO masquerading as entity.
 - MEDIUM if entity has 3+ scalar fields always moving together → data clump → VO candidate.
 - MEDIUM if entity is effectively stateless (no state changes after creation) → suspect VO.
 
-#### B. Base Class Compliance
+#### B. Base Class Compliance (MUST ATTENTION)
 
 > NEVER assume base class — ALWAYS use discovered values from Phase 0. Project docs override generic rules.
 
-- MUST ATTENTION verify aggregate root extends project's root entity base (from Phase 0 discovery).
+- verify aggregate root extends project's root entity base (from Phase 0 discovery).
 - NEVER use root entity base for non-root child entities — child entities MUST NOT have their own repository.
-- MUST ATTENTION verify VOs extend project's VO base class — NEVER plain POCO/POJO in domain.
-- MUST ATTENTION verify audited entities extend audited base where audit trail required.
-- MUST ATTENTION cross-check each entity's base class against service/module-specific requirements from reference docs.
+- verify VOs extend project's VO base class — NEVER plain POCO/POJO in domain.
+- verify audited entities extend audited base where audit trail required.
+- cross-check each entity's base class against service/module-specific requirements from reference docs.
 
-#### C. Value Object Immutability and Equality
+#### C. Value Object Immutability and Equality (MUST ATTENTION)
 
 > Mutable VOs are a design contradiction — they imply identity through mutation, which entities have, not VOs.
 
 - NEVER allow mutable public state on value objects. Use the immutability mechanism idiomatic to the configured language/runtime.
 - Parameterless/default constructor allowed when required for framework deserialization.
-- MUST ATTENTION verify equality based on structural value — NEVER reference equality. Use the equality mechanism idiomatic to the configured language/runtime or the repository's documented value-object base pattern.
-- MUST ATTENTION verify `validate()` overridden when VO has constraints (format, range, required).
-- MUST ATTENTION verify factory method exists for non-trivial construction: `Create()`, `New()`, `Of()`, `From*()`.
+- verify equality based on structural value — NEVER reference equality. Use the equality mechanism idiomatic to the configured language/runtime or the repository's documented value-object base pattern.
+- verify `validate()` overridden when VO has constraints (format, range, required).
+- verify factory method exists for non-trivial construction: `Create()`, `New()`, `Of()`, `From*()`.
 - NEVER put async operations, repository calls, or infrastructure dependencies inside VO.
 - Conversion/implicit operator defined when VO wraps single primitive.
 
-#### D. Encapsulation and Anemic Domain Model
+#### D. Encapsulation and Anemic Domain Model (MUST ATTENTION)
 
 > Anemic model = entity is data bag, all logic in handlers. Fix: move behavior to entity (lowest layer).
 
-- MUST ATTENTION verify entity has at least ONE domain method when it has business rules — NEVER pure property bag.
+- verify entity has at least ONE domain method when it has business rules — NEVER pure property bag.
 - NEVER allow direct property assignment for state transitions from outside entity — MUST use domain methods (`changeStatus()`, `approve()`, `assign()`).
-- MUST ATTENTION flag: same guard clause in 3+ handlers for same entity → extract to `ensureCan*()` on entity.
-- MUST ATTENTION flag: handler doing multi-field mutation (`entity.a=x; entity.b=y; entity.c=z`) without validation → domain method candidate.
-- MUST ATTENTION flag: business conditionals in application layer referencing single entity's state → move to entity guard.
+- flag: same guard clause in 3+ handlers for same entity → extract to `ensureCan*()` on entity.
+- flag: handler doing multi-field mutation (`entity.a=x; entity.b=y; entity.c=z`) without validation → domain method candidate.
+- flag: business conditionals in application layer referencing single entity's state → move to entity guard.
 - Entity behavior MUST be caller-agnostic — methods describe domain intent, NEVER reference who calls them.
 
 **Detection signal:** `entity.property = value` assignments (non-audit) in application layer = anemic model signal.
 
-#### E. Domain Invariants
+#### E. Domain Invariants (MUST ATTENTION)
 
 > Invariants enforced only in application layer = domain can reach invalid state via any other entry point.
 
-- MUST ATTENTION verify entity validates own invariants (via `validate()`, constructor guard, or factory) — NEVER handler-only enforcement.
-- MUST ATTENTION verify pre-operation guards as `ensureCan*()` / `validateCan*()` methods on entity.
+- verify entity validates own invariants (via `validate()`, constructor guard, or factory) — NEVER handler-only enforcement.
+- verify pre-operation guards as `ensureCan*()` / `validateCan*()` methods on entity.
 - NEVER throw raw language exceptions for domain violations — MUST use project's domain exception type (discovered Phase 0): `ArgumentException`, `IllegalArgumentException`, `Error`, `ValueError` all WRONG.
 - Invariants from creation MUST be enforced in factory method or constructor.
 - CRITICAL: `validate()` MUST NOT be hidden by same-name method without calling `super` → silent validation dead zone.
 
 **Detection signal:** Search for `validate()` override not calling `super.validate()` or framework base validation.
 
-#### F. Aggregate Design
+#### F. Aggregate Design (MUST ATTENTION)
 
 > Aggregate = consistency boundary. All invariants must flow through root. Cross-aggregate coupling = transaction trap.
 
 - NEVER give child entity its own repository — ONLY aggregate root has repository.
 - NEVER reference another aggregate by object — MUST use ID only (`string productId` NOT `Product product`).
 - NEVER expose mutable collection directly — aggregate root MUST use domain methods for collection mutations.
-- MUST ATTENTION verify composite-key entities implement project's composite ID pattern (discovered Phase 0).
-- MUST ATTENTION flag aggregates with >5 independent child entities with separate lifecycles → splitting candidate.
+- verify composite-key entities implement project's composite ID pattern (discovered Phase 0).
+- flag aggregates with >5 independent child entities with separate lifecycles → splitting candidate.
 - Deletion of aggregate root MUST validate pre-conditions on children (orphan prevention).
 
 #### G. Navigation / Relationship Properties
@@ -276,7 +287,7 @@ For EACH entity/VO file: read file → append findings to report IMMEDIATELY. NE
 
 > Entity raises events → handlers react. NEVER inline side effects in entity domain methods.
 
-- MUST ATTENTION verify meaningful state changes raise domain events — NEVER tracked only by polling DB.
+- verify meaningful state changes raise domain events — NEVER tracked only by polling DB.
 - Events MUST be raised INSIDE entity domain methods — NEVER from handlers/services.
 - Side effects MUST go to event handlers — NEVER inline in entity domain method.
 - Domain event naming: `{Entity}{Action}Event` or `{Entity}{PastTense}Event` (e.g., `OrderShippedEvent`).
@@ -286,7 +297,7 @@ For EACH entity/VO file: read file → append findings to report IMMEDIATELY. NE
 
 > Query logic belongs on entity (lowest layer) — duplication in repos/handlers = wrong layer.
 
-- MUST ATTENTION verify reusable filter expressions defined as static methods on entity (or companion class) — NEVER duplicated in repos/handlers.
+- verify reusable filter expressions defined as static methods on entity (or companion class) — NEVER duplicated in repos/handlers.
 - Expression naming: descriptive static method (e.g., `isActive()`, `filteredByDepartment()`).
 - NEVER duplicate expressions across multiple repository or handler files.
 - Query expressions MUST have corresponding database indexes (verify in migration/schema files).
@@ -315,7 +326,7 @@ For EACH entity/VO file: read file → append findings to report IMMEDIATELY. NE
 
 #### L. OOP Principles
 
-- MUST ATTENTION verify SRP: entity represents ONE domain concept — conflating two → flag for split.
+- verify SRP: entity represents ONE domain concept — conflating two → flag for split.
 - NEVER instantiate infrastructure inside entity (repositories, HTTP clients, loggers) — MUST receive as parameters.
 - New behaviors MUST go via new event handlers — NEVER by modifying entity conditionals (Open/Closed).
 - Capability traits added via focused interfaces — NEVER monolithic interface bundle (ISP).
@@ -531,7 +542,7 @@ Anemic Model:  entity has 0 domain methods + all logic in handlers → move logi
 
 > **NON-NEGOTIABLE:** 10+ entity files in scope → switch to parallel sub-agents automatically.
 
-1. MUST ATTENTION announce: `"Detected {N} entity files. Switching to parallel DDD review protocol."`
+1. announce: `"Detected {N} entity files. Switching to parallel DDD review protocol."`
 2. Group by module/aggregate/type
 3. Fire parallel `code-reviewer` sub-agents with `run_in_background: true` (one per group)
 4. Each sub-agent: Phase 2 checklist + discovered project-specific rules → write to `plans/reports/domain-entities-{group}-round1-{date}.md`
@@ -731,6 +742,14 @@ If no domain entity files match in changes mode → announce "No domain entity c
 >
 > **Pattern:** Grep finds files → `trace --direction both` reveals full system flow → Grep verifies details
 >
+> | Task                | Minimum Graph Action                         |
+> | ------------------- | -------------------------------------------- |
+> | Investigation/Scout | `trace --direction both` on 2-3 entry files  |
+> | Fix/Debug           | `callers_of` on buggy function + `tests_for` |
+> | Feature/Enhancement | `connections` on files to be modified        |
+> | Code Review         | `tests_for` on changed functions             |
+> | Blast Radius        | `trace --direction downstream`               |
+>
 > **CLI:** `python .claude/scripts/code_graph {command} --json`. Use `--node-mode file` first (10-30x less noise), then `--node-mode function` for detail.
 
 <!-- /SYNC:graph-assisted-investigation -->
@@ -744,7 +763,7 @@ If no domain entity files match in changes mode → announce "No domain entity c
 > **Decision after Round 1:**
 >
 > - **No issues found (PASS, zero findings)** → review ENDS. Do NOT spawn a fresh sub-agent for confirmation.
-> - **Issues found (FAIL, or any non-zero findings)** → run the active review skill's findings-validation gate first; for review skills the default gate is `$why-review --validate-findings <report-path>`, fix only validated findings, then restart the full review protocol from the beginning with a fresh task breakdown.
+> - **Issues found (FAIL, or any non-zero findings)** → run the active review skill's findings-validation gate first; for review skills the default gate is `$why-review --validate-findings <report-path>`. Fix only validated findings, then restart the full review protocol from the beginning with a fresh task breakdown.
 >
 > **Fresh full re-review after every fix cycle:** Re-run the whole review protocol over the current full target. When sub-agents are part of that protocol, spawn NEW `spawn_agent` calls — never reuse prior agents. Reviewers re-read ALL files from scratch with ZERO memory of prior rounds. See `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. Each fresh full review must catch:
 >
@@ -776,7 +795,7 @@ If no domain entity files match in changes mode → announce "No domain entity c
 
 > **Fresh Context Re-Review** — Eliminate orchestrator confirmation bias after fixes by restarting the full review with isolated sub-agents where applicable.
 >
-> **Why:** The main agent knows what it (or `$cook`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
+> **Why:** The main agent knows what it (or `$feature-implement`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
 >
 > **When:** ONLY after a validated-finding fix cycle. A review round that finds zero issues ENDS the loop — do NOT spawn a confirmation sub-agent. A review round that finds issues triggers: validate findings → fix → full review restart from the first phase.
 >
@@ -797,6 +816,109 @@ If no domain entity files match in changes mode → announce "No domain entity c
 > - Track iteration count and repeated blockers in conversation context (session-scoped, no persistent files)
 
 <!-- /SYNC:fresh-context-review -->
+
+<!-- SYNC:systematic-review-batching -->
+
+> **Systematic Review Batching (map-reduce)** — When a changeset is large, do NOT review files one-by-one. Partition into size-capped batches, fire one specialized sub-agent per batch in parallel, then reduce. This bounds EVERY context — each batch agent AND the orchestrator — so coverage stays complete as file count grows.
+>
+> **Trigger ladder (one ordered escalation — not competing thresholds):**
+>
+> 1. **< 10 changed files** → sequential per-file review (default; no batching).
+> 2. **≥ 10 changed files** → switch to systematic parallel mode. Announce: `"Detected {N} changed files. Switching to systematic parallel review protocol."` Then: categorize → size-capped batches → flat consolidation.
+> 3. **categories > 6 OR files > 40** → additionally insert the hierarchical synthesis tier (below). Everything from rung 2 still applies.
+>
+> **Step 1 — Categorize.** Group changed files into logical categories derived from the project's actual structure (not forced). Category is the *concern axis*; orient with these examples, derive what fits the repository:
+>
+> | Category Type | Example Groupings |
+> | --- | --- |
+> | Agent/Tooling | AI scripts, hooks, skill definitions, workflow configs, linting rules |
+> | Root config/docs | Root README, project config, CI/CD pipeline configs |
+> | Reference docs | Architecture docs, patterns references, setup guides |
+> | Feature/domain docs | Business feature documentation, spec files, ADRs |
+> | Backend logic | Service/handler/controller source (infer from project structure) |
+> | Frontend logic | UI component/state/API source (infer from project structure) |
+> | Data/Schema | Migrations, schema files, seed data |
+> | Tests | Unit, integration, E2E test files |
+> | Infrastructure | Docker, k8s, CI/CD, cloud manifests |
+>
+> **Step 2 — Size-capped batches.** One sub-agent per batch of **≤8 files OR ≤2000 diff-lines**, whichever hits first. Category stays the concern axis, but any category exceeding a cap splits into multiple size-capped batches (30 backend files → 4 batches). Size caps — not category caps — make "many files" safe: a category cap alone lets one giant category blow a single agent's context.
+>
+> **Step 2a — Sub-agent type per batch** (match the batch's dominant concern):
+>
+> - Code logic (any stack) → `code-reviewer`
+> - Security-sensitive changes → `security-auditor`
+> - Performance-critical paths → `performance-optimizer`
+> - Docs, plans, specs, configs, infra → `general-purpose`
+>
+> Each batch sub-agent receives: its full file list; `SYNC:category-review-thinking` as its primary thinking model — derive each category's concerns from first principles, NOT a fixed checklist (if the consuming skill does not carry that block, apply category-first thinking directly); project reference docs relevant to its concern (discover via `*patterns*`, `*conventions*`, `*style-guide*`); cross-reference verification instructions (counts, tables, links). All batch agents run in parallel and write findings to `plans/reports/` (per `SYNC:task-tracking-external-report`); reducers read from disk, never from memory.
+>
+> **Step 3 — Reduce.**
+>
+> - **Flat reduction (rung 2, ≤6 categories AND ≤40 files):** the orchestrator collects each batch report, cross-references counts/tables/contracts ACROSS batches, detects gaps visible only across categories (feature in code but missing from docs; new API endpoint with no client call), and consolidates into one categorized holistic report.
+> - **Hierarchical reduction (rung 3, > 6 categories OR > 40 files):** insert a mid-tier — each concern gets ONE synthesizer agent that reads only its own batch reports and emits a single concern-synthesis. The orchestrator reads the **concern-syntheses (~5)**, never the raw batch reports — keeping the reducer's context O(#concerns), not O(#files).
+>   - **Cross-concern interaction pass (mandatory at rung 3 — closes the synthesis-tier blind spot):** concern-siloed synthesis can drop an interaction spanning two concerns AND two batches (tainted source in data-layer/batch 7 → sink in api/batch 3). So: (a) each concern-synthesizer MUST emit an explicit **"cross-concern interaction candidates"** list — entities/symbols/contracts it touched that plausibly bind to another concern (shared DTOs, event names, table/collection names, exported symbols); (b) the orchestrator MUST run the Step-3 cross-reference/gap step **over those candidate lists across all concern-syntheses**, not only within a batch, before concluding. Without this pass the tier trades completeness for context-bounding on exactly the large diffs it targets.
+>
+> **Step 4 — Holistic assessment.** With all findings combined, judge: overall coherence as a unified intent; cross-category sync (docs match code? contracts match callers?); risk areas where categories interact; missing doc/spec updates for changed artifacts.
+>
+> **No silent truncation.** If any cap forces sampling or a batch is dropped for budget, ANNOUNCE the dropped/sampled scope explicitly — bounded coverage must never read as complete coverage.
+
+<!-- /SYNC:systematic-review-batching -->
+
+<!-- SYNC:severity-rubric -->
+
+> **Severity Rubric** — Classify every finding by consequence, not by how easy it is to fix. One scale across all reviews so a "High" means the same thing everywhere.
+>
+> | Severity | Action | Definition |
+> | --- | --- | --- |
+> | CRITICAL | Block merge | Silent runtime failure, data corruption, validation bypass, security hole |
+> | HIGH | Must fix | Incorrect behavior, invariant gap, architectural violation |
+> | MEDIUM | Should fix | Design debt, maintainability, likely future bug |
+> | LOW | Nice to fix | Convention, documentation, minor clarity |
+>
+> **Score-based skills** map their numeric scale onto these tiers — do not invent a parallel vocabulary:
+>
+> - **0-2 criterion scoring** (e.g. sre-review): `0` = CRITICAL/HIGH (criterion unmet, blocks production readiness), `1` = MEDIUM (partial, should fix), `2` = pass (no finding).
+> - **Two-axis scoring** (e.g. performance-review, impact × likelihood): map the resulting cell to the nearest tier — high-impact + high-likelihood → CRITICAL/HIGH; low-impact OR low-likelihood → MEDIUM/LOW.
+>
+> A finding's tier drives the gate: CRITICAL/HIGH must be resolved or explicitly accepted by the owner before PASS; MEDIUM/LOW may ship with a tracked follow-up.
+
+<!-- /SYNC:severity-rubric -->
+
+<!-- SYNC:category-review-thinking -->
+
+> **Category Review Thinking** — A thinking framework for reviewing any category of changed files. NOT a fixed checklist — derive concerns from domain knowledge; the examples are starting points only. Your knowledge of the category exceeds any list here — trust it.
+>
+> **Step 1 — Understand the category's role.** What is this category responsible for in the overall system? What invariants must it uphold? What are its consumer contracts (who depends on it, what do they expect)?
+>
+> **Step 2 — Read project conventions for this category.** Search for reference docs, style guides, ADRs, or READMEs specific to this area. Grep 3+ existing similar files — extract naming conventions, structural patterns, shared base classes. If no docs exist, derive conventions empirically from existing code.
+>
+> **Step 3 — Derive concerns from first principles.** Apply all that are relevant; expand beyond this list based on the actual category:
+>
+> - **Correctness:** Does the logic match the intent? Trace happy path AND error path.
+> - **Boundary contracts:** Are interfaces/APIs/events/protocols honored? No implicit coupling introduced?
+> - **Project conventions:** Does new code follow the patterns found in Step 2? Evidence-confirmed, not assumed.
+> - **Security:** Auth enforced at every entry point? Input validated at boundaries? No secrets in the diff?
+> - **Performance:** Unbounded operations? N+1 patterns? Blocking calls in async context? Unindexed queries?
+> - **Maintainability:** DRY? Single responsibility? Complexity within reason? Names reveal intent?
+> - **Test coverage:** Are the changed paths covered by tests? Are existing tests still valid after the change?
+> - **Documentation:** Do related docs, specs, or READMEs reflect the changes?
+>
+> **Step 4 — Create sub-tasks and execute.** For each identified concern: create a task tracking sub-task, work through it with `file:line` evidence, mark done. No findings without proof.
+>
+> **Illustrative concern examples by category type** (not exhaustive — trust your knowledge beyond this):
+>
+> - _Server-side logic:_ handler/service structure conventions, validation layer placement, side-effect isolation, cross-service boundary enforcement, data-access layer separation, error propagation strategy
+> - _Client-side logic:_ component lifecycle management, resource cleanup (subscriptions, listeners, timers), state management patterns, API integration layer separation, reactive stream composition
+> - _Data/Schema:_ migration reversibility (rollback script), lock impact on table volume, backfill idempotency, index coverage for query patterns, deployment ordering
+> - _Configuration:_ present in ALL environments? No secrets in diff? App fails fast if config missing (not silently null)? Documented in setup guide?
+> - _Infrastructure:_ dev/prod parity? No hardcoded dev values (localhost, debug flags)? Pinned image/dependency versions? CI/CD secret requirements documented?
+> - _Styles/Assets:_ follows project naming conventions? Uses design variables/tokens (no hardcoded magic values)? Correct scope (no global side effects from component styles)?
+> - _Documentation:_ accurate? Links valid? Examples still match current code/behavior? Covers new scenarios?
+> - _Tests:_ assertions verify specific outcomes (not just "no exception")? Idempotent (repeatable N times)? Covers edge cases, not just happy path?
+> - _Security artifacts:_ all code paths reach the gate? Negative tests exist (unauthorized denied)? Both enforcement AND display control updated?
+> - _Build/Tooling:_ rule changes apply consistently? No exceptions that silently swallow violations? Impact on CI runtime documented?
+
+<!-- /SYNC:category-review-thinking -->
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
@@ -854,6 +976,27 @@ If no domain entity files match in changes mode → announce "No domain entity c
 **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
+
+<!-- SYNC:systematic-review-batching:reminder -->
+
+- **MANDATORY** Large changeset → batch by size cap (≤8 files OR ≤2000 diff-lines), one parallel sub-agent per batch; never review many files one-by-one.
+- **MANDATORY** > 6 categories OR > 40 files → add the hierarchical synthesis tier; each concern-synthesizer emits cross-concern interaction candidates and the orchestrator runs the cross-concern pass before concluding.
+
+<!-- /SYNC:systematic-review-batching:reminder -->
+
+<!-- SYNC:severity-rubric:reminder -->
+
+- **MANDATORY** Classify findings Critical/High/Medium/Low by consequence; Critical/High block PASS until fixed or owner-accepted.
+- **MANDATORY** Score-based skills (sre 0-2, perf two-axis) map onto the same four tiers — no parallel severity vocabulary.
+
+<!-- /SYNC:severity-rubric:reminder -->
+
+<!-- SYNC:category-review-thinking:reminder -->
+
+- **MANDATORY** Derive review categories from file language + directory semantics + change nature; create a sub-task per category.
+- **MANDATORY** Derive each category's concerns from first principles with `file:line` evidence — never a fixed checklist.
+
+<!-- /SYNC:category-review-thinking:reminder -->
 
 ## Closing Reminders
 

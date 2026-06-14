@@ -89,6 +89,8 @@ $ARGUMENTS
 
 Score each criterion 0-2: **0** = not addressed, **1** = partially, **2** = fully.
 
+> **MANDATORY when batched (≥10 files, `SYNC:systematic-review-batching` active):** the 12 criteria are scored **holistically across the FULL cross-batch scope**, NOT by merging or averaging per-batch scores. Several criteria are inherently cross-file — e.g. "all query filter fields have indexes" can have the query in one batch and the migration in another; a per-batch score sees only its ≤8 files and would false-flag a `0` when the satisfying file lives in a different batch. The synthesis/reduce tier MUST therefore **RE-SCORE each of the 12 criteria from the combined cross-batch evidence** (batch agents surface evidence per criterion; the reducer assigns the score). If holistic re-score is infeasible for a given run, do NOT batch sre-review — fall back to whole-scope serial scoring.
+
 ### Observability (max 8)
 
 > **Think:** If this service errors at 3am, can on-call engineer diagnose root cause from logs alone — without reproducing?
@@ -126,10 +128,10 @@ Score each criterion 0-2: **0** = not addressed, **1** = partially, **2** = full
 
 > **Think:** At 10x current data volume, do these queries still complete in <1s?
 
-> **[IMPORTANT] Database Performance Protocol (MANDATORY):**
+> **Database Performance Protocol (MANDATORY):**
 >
-> 1. **Paging Required** — ALL list/collection queries MUST ATTENTION use pagination. NEVER load all records into memory. Verify: no unbounded `GetAll()`, `ToList()`, or `Find()` without `Skip/Take` or cursor-based paging.
-> 2. **Index Required** — ALL query filter fields, foreign keys, and sort columns MUST ATTENTION have database indexes configured. Verify: entity expressions match index field order, database collections have index management methods, migrations include indexes for WHERE/JOIN/ORDER BY columns.
+> 1. **Paging Required** — ALL list/collection queries use pagination. NEVER load all records into memory. Verify: no unbounded `GetAll()`, `ToList()`, or `Find()` without `Skip/Take` or cursor-based paging.
+> 2. **Index Required** — ALL query filter fields, foreign keys, and sort columns have database indexes configured. Verify: entity expressions match index field order, database collections have index management methods, migrations include indexes for WHERE/JOIN/ORDER BY columns.
 
 | #   | Criterion            | What to Check                                                                                                          |
 | --- | -------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -146,7 +148,7 @@ Score each criterion 0-2: **0** = not addressed, **1** = partially, **2** = full
 
 > Run `python .claude/scripts/code_graph connections <file> --json` on service boundary files for cross-service impact.
 
-## Structural Impact Analysis (RECOMMENDED if graph.db exists)
+## Structural Impact Analysis (MANDATORY when graph.db exists)
 
 - `python .claude/scripts/code_graph graph-blast-radius --json` → blast radius >20 nodes = high-risk deployment
 - `python .claude/scripts/code_graph query tests_for <function_name> --json` → verify test coverage on changed functions
@@ -236,16 +238,16 @@ When a review pass finds issues, validate findings before any fix. Do not spawn 
 
 ## Workflow Recommendation
 
-> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If NOT already in workflow, MUST ATTENTION use a direct user question to ask user:
+> **MANDATORY — NO EXCEPTIONS:** If NOT already in workflow, use a direct user question to ask user:
 >
-> 1. **Activate `workflow-feature` workflow** (Recommended) — scout → investigate → plan → cook → review → sre-review → test → docs
+> 1. **Activate `workflow-feature` workflow** (Recommended) — scout → investigate → plan → feature-implement → review → sre-review → test → docs
 > 2. **Execute `$sre-review` directly** — run standalone
 
 ---
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** — after completing, MUST ATTENTION use a direct user question:
+**MANDATORY — NO EXCEPTIONS** — after completing, use a direct user question:
 
 - **"$watzup (Recommended)"** — wrap up + check doc staleness
 - **"$test"** — run tests before wrapping up
@@ -253,7 +255,7 @@ When a review pass finds issues, validate findings before any fix. Do not spawn 
 
 ---
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting. For simple tasks, AI MUST ATTENTION ask user whether to skip.
+> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting. For simple tasks, AI MUST ask user whether to skip.
 
 - `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models) (read directly when relevant; do not rely on hook-injected conversation text)
 
@@ -261,7 +263,7 @@ When a review pass finds issues, validate findings before any fix. Do not spawn 
 
 > **External Memory:** Complex/lengthy work → write intermediate findings + final results to `plans/reports/` — prevents context loss, serves as deliverable.
 
-> **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION — every claim, finding, recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% verify first).
+> **Evidence Gate:** MANDATORY — every claim, finding, recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% verify first).
 
 <!-- SYNC:graph-assisted-investigation -->
 
@@ -310,6 +312,8 @@ When a review pass finds issues, validate findings before any fix. Do not spawn 
 >
 > Main agent reads `Full report` file ONLY when: (a) resolving a specific blocker, or (b) building a fix plan.
 > Sub-agent writes full report incrementally (per SYNC:incremental-persistence) — not held in memory.
+>
+> **Context budget** — the return payload is a SUMMARY, not a transcript: ≤10 finding bullets, no raw file contents / full diffs / verbatim logs inline, no re-pasted source. Everything beyond the summary lives in the `Full report` on disk. A sub-agent that would exceed the summary shape MUST write the detail to its report and return only the pointer — the orchestrator's context is the scarce resource the whole map-reduce protects.
 
 <!-- /SYNC:subagent-return-contract -->
 
@@ -387,7 +391,7 @@ When a review pass finds issues, validate findings before any fix. Do not spawn 
 > **Decision after Round 1:**
 >
 > - **No issues found (PASS, zero findings)** → review ENDS. Do NOT spawn a fresh sub-agent for confirmation.
-> - **Issues found (FAIL, or any non-zero findings)** → run the active review skill's findings-validation gate first; for review skills the default gate is `$why-review --validate-findings <report-path>`, fix only validated findings, then restart the full review protocol from the beginning with a fresh task breakdown.
+> - **Issues found (FAIL, or any non-zero findings)** → run the active review skill's findings-validation gate first; for review skills the default gate is `$why-review --validate-findings <report-path>`. Fix only validated findings, then restart the full review protocol from the beginning with a fresh task breakdown.
 >
 > **Fresh full re-review after every fix cycle:** Re-run the whole review protocol over the current full target. When sub-agents are part of that protocol, spawn NEW `spawn_agent` calls — never reuse prior agents. Reviewers re-read ALL files from scratch with ZERO memory of prior rounds. See `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. Each fresh full review must catch:
 >
@@ -419,7 +423,7 @@ When a review pass finds issues, validate findings before any fix. Do not spawn 
 
 > **Fresh Context Re-Review** — Eliminate orchestrator confirmation bias after fixes by restarting the full review with isolated sub-agents where applicable.
 >
-> **Why:** The main agent knows what it (or `$cook`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
+> **Why:** The main agent knows what it (or `$feature-implement`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
 >
 > **When:** ONLY after a validated-finding fix cycle. A review round that finds zero issues ENDS the loop — do NOT spawn a confirmation sub-agent. A review round that finds issues triggers: validate findings → fix → full review restart from the first phase.
 >
@@ -623,6 +627,109 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
+<!-- SYNC:systematic-review-batching -->
+
+> **Systematic Review Batching (map-reduce)** — When a changeset is large, do NOT review files one-by-one. Partition into size-capped batches, fire one specialized sub-agent per batch in parallel, then reduce. This bounds EVERY context — each batch agent AND the orchestrator — so coverage stays complete as file count grows.
+>
+> **Trigger ladder (one ordered escalation — not competing thresholds):**
+>
+> 1. **< 10 changed files** → sequential per-file review (default; no batching).
+> 2. **≥ 10 changed files** → switch to systematic parallel mode. Announce: `"Detected {N} changed files. Switching to systematic parallel review protocol."` Then: categorize → size-capped batches → flat consolidation.
+> 3. **categories > 6 OR files > 40** → additionally insert the hierarchical synthesis tier (below). Everything from rung 2 still applies.
+>
+> **Step 1 — Categorize.** Group changed files into logical categories derived from the project's actual structure (not forced). Category is the *concern axis*; orient with these examples, derive what fits the repository:
+>
+> | Category Type | Example Groupings |
+> | --- | --- |
+> | Agent/Tooling | AI scripts, hooks, skill definitions, workflow configs, linting rules |
+> | Root config/docs | Root README, project config, CI/CD pipeline configs |
+> | Reference docs | Architecture docs, patterns references, setup guides |
+> | Feature/domain docs | Business feature documentation, spec files, ADRs |
+> | Backend logic | Service/handler/controller source (infer from project structure) |
+> | Frontend logic | UI component/state/API source (infer from project structure) |
+> | Data/Schema | Migrations, schema files, seed data |
+> | Tests | Unit, integration, E2E test files |
+> | Infrastructure | Docker, k8s, CI/CD, cloud manifests |
+>
+> **Step 2 — Size-capped batches.** One sub-agent per batch of **≤8 files OR ≤2000 diff-lines**, whichever hits first. Category stays the concern axis, but any category exceeding a cap splits into multiple size-capped batches (30 backend files → 4 batches). Size caps — not category caps — make "many files" safe: a category cap alone lets one giant category blow a single agent's context.
+>
+> **Step 2a — Sub-agent type per batch** (match the batch's dominant concern):
+>
+> - Code logic (any stack) → `code-reviewer`
+> - Security-sensitive changes → `security-auditor`
+> - Performance-critical paths → `performance-optimizer`
+> - Docs, plans, specs, configs, infra → `general-purpose`
+>
+> Each batch sub-agent receives: its full file list; `SYNC:category-review-thinking` as its primary thinking model — derive each category's concerns from first principles, NOT a fixed checklist (if the consuming skill does not carry that block, apply category-first thinking directly); project reference docs relevant to its concern (discover via `*patterns*`, `*conventions*`, `*style-guide*`); cross-reference verification instructions (counts, tables, links). All batch agents run in parallel and write findings to `plans/reports/` (per `SYNC:task-tracking-external-report`); reducers read from disk, never from memory.
+>
+> **Step 3 — Reduce.**
+>
+> - **Flat reduction (rung 2, ≤6 categories AND ≤40 files):** the orchestrator collects each batch report, cross-references counts/tables/contracts ACROSS batches, detects gaps visible only across categories (feature in code but missing from docs; new API endpoint with no client call), and consolidates into one categorized holistic report.
+> - **Hierarchical reduction (rung 3, > 6 categories OR > 40 files):** insert a mid-tier — each concern gets ONE synthesizer agent that reads only its own batch reports and emits a single concern-synthesis. The orchestrator reads the **concern-syntheses (~5)**, never the raw batch reports — keeping the reducer's context O(#concerns), not O(#files).
+>   - **Cross-concern interaction pass (mandatory at rung 3 — closes the synthesis-tier blind spot):** concern-siloed synthesis can drop an interaction spanning two concerns AND two batches (tainted source in data-layer/batch 7 → sink in api/batch 3). So: (a) each concern-synthesizer MUST emit an explicit **"cross-concern interaction candidates"** list — entities/symbols/contracts it touched that plausibly bind to another concern (shared DTOs, event names, table/collection names, exported symbols); (b) the orchestrator MUST run the Step-3 cross-reference/gap step **over those candidate lists across all concern-syntheses**, not only within a batch, before concluding. Without this pass the tier trades completeness for context-bounding on exactly the large diffs it targets.
+>
+> **Step 4 — Holistic assessment.** With all findings combined, judge: overall coherence as a unified intent; cross-category sync (docs match code? contracts match callers?); risk areas where categories interact; missing doc/spec updates for changed artifacts.
+>
+> **No silent truncation.** If any cap forces sampling or a batch is dropped for budget, ANNOUNCE the dropped/sampled scope explicitly — bounded coverage must never read as complete coverage.
+
+<!-- /SYNC:systematic-review-batching -->
+
+<!-- SYNC:severity-rubric -->
+
+> **Severity Rubric** — Classify every finding by consequence, not by how easy it is to fix. One scale across all reviews so a "High" means the same thing everywhere.
+>
+> | Severity | Action | Definition |
+> | --- | --- | --- |
+> | CRITICAL | Block merge | Silent runtime failure, data corruption, validation bypass, security hole |
+> | HIGH | Must fix | Incorrect behavior, invariant gap, architectural violation |
+> | MEDIUM | Should fix | Design debt, maintainability, likely future bug |
+> | LOW | Nice to fix | Convention, documentation, minor clarity |
+>
+> **Score-based skills** map their numeric scale onto these tiers — do not invent a parallel vocabulary:
+>
+> - **0-2 criterion scoring** (e.g. sre-review): `0` = CRITICAL/HIGH (criterion unmet, blocks production readiness), `1` = MEDIUM (partial, should fix), `2` = pass (no finding).
+> - **Two-axis scoring** (e.g. performance-review, impact × likelihood): map the resulting cell to the nearest tier — high-impact + high-likelihood → CRITICAL/HIGH; low-impact OR low-likelihood → MEDIUM/LOW.
+>
+> A finding's tier drives the gate: CRITICAL/HIGH must be resolved or explicitly accepted by the owner before PASS; MEDIUM/LOW may ship with a tracked follow-up.
+
+<!-- /SYNC:severity-rubric -->
+
+<!-- SYNC:category-review-thinking -->
+
+> **Category Review Thinking** — A thinking framework for reviewing any category of changed files. NOT a fixed checklist — derive concerns from domain knowledge; the examples are starting points only. Your knowledge of the category exceeds any list here — trust it.
+>
+> **Step 1 — Understand the category's role.** What is this category responsible for in the overall system? What invariants must it uphold? What are its consumer contracts (who depends on it, what do they expect)?
+>
+> **Step 2 — Read project conventions for this category.** Search for reference docs, style guides, ADRs, or READMEs specific to this area. Grep 3+ existing similar files — extract naming conventions, structural patterns, shared base classes. If no docs exist, derive conventions empirically from existing code.
+>
+> **Step 3 — Derive concerns from first principles.** Apply all that are relevant; expand beyond this list based on the actual category:
+>
+> - **Correctness:** Does the logic match the intent? Trace happy path AND error path.
+> - **Boundary contracts:** Are interfaces/APIs/events/protocols honored? No implicit coupling introduced?
+> - **Project conventions:** Does new code follow the patterns found in Step 2? Evidence-confirmed, not assumed.
+> - **Security:** Auth enforced at every entry point? Input validated at boundaries? No secrets in the diff?
+> - **Performance:** Unbounded operations? N+1 patterns? Blocking calls in async context? Unindexed queries?
+> - **Maintainability:** DRY? Single responsibility? Complexity within reason? Names reveal intent?
+> - **Test coverage:** Are the changed paths covered by tests? Are existing tests still valid after the change?
+> - **Documentation:** Do related docs, specs, or READMEs reflect the changes?
+>
+> **Step 4 — Create sub-tasks and execute.** For each identified concern: create a task tracking sub-task, work through it with `file:line` evidence, mark done. No findings without proof.
+>
+> **Illustrative concern examples by category type** (not exhaustive — trust your knowledge beyond this):
+>
+> - _Server-side logic:_ handler/service structure conventions, validation layer placement, side-effect isolation, cross-service boundary enforcement, data-access layer separation, error propagation strategy
+> - _Client-side logic:_ component lifecycle management, resource cleanup (subscriptions, listeners, timers), state management patterns, API integration layer separation, reactive stream composition
+> - _Data/Schema:_ migration reversibility (rollback script), lock impact on table volume, backfill idempotency, index coverage for query patterns, deployment ordering
+> - _Configuration:_ present in ALL environments? No secrets in diff? App fails fast if config missing (not silently null)? Documented in setup guide?
+> - _Infrastructure:_ dev/prod parity? No hardcoded dev values (localhost, debug flags)? Pinned image/dependency versions? CI/CD secret requirements documented?
+> - _Styles/Assets:_ follows project naming conventions? Uses design variables/tokens (no hardcoded magic values)? Correct scope (no global side effects from component styles)?
+> - _Documentation:_ accurate? Links valid? Examples still match current code/behavior? Covers new scenarios?
+> - _Tests:_ assertions verify specific outcomes (not just "no exception")? Idempotent (repeatable N times)? Covers edge cases, not just happy path?
+> - _Security artifacts:_ all code paths reach the gate? Negative tests exist (unauthorized denied)? Both enforcement AND display control updated?
+> - _Build/Tooling:_ rule changes apply consistently? No exceptions that silently swallow violations? Impact on CI runtime documented?
+
+<!-- /SYNC:category-review-thinking -->
+
 <!-- SYNC:double-round-trip-review:reminder -->
 - **MANDATORY IMPORTANT MUST ATTENTION** execute the review loop: review → validate findings → fix validated findings → full re-review. A complete review pass with zero findings ENDS the review.
 <!-- /SYNC:double-round-trip-review:reminder -->
@@ -684,15 +791,39 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 
+<!-- SYNC:systematic-review-batching:reminder -->
+
+- **MANDATORY** Large changeset → batch by size cap (≤8 files OR ≤2000 diff-lines), one parallel sub-agent per batch; never review many files one-by-one.
+- **MANDATORY** > 6 categories OR > 40 files → add the hierarchical synthesis tier; each concern-synthesizer emits cross-concern interaction candidates and the orchestrator runs the cross-concern pass before concluding.
+
+<!-- /SYNC:systematic-review-batching:reminder -->
+
+<!-- SYNC:severity-rubric:reminder -->
+
+- **MANDATORY** Classify findings Critical/High/Medium/Low by consequence; Critical/High block PASS until fixed or owner-accepted.
+- **MANDATORY** Score-based skills (sre 0-2, perf two-axis) map onto the same four tiers — no parallel severity vocabulary.
+
+<!-- /SYNC:severity-rubric:reminder -->
+
+<!-- SYNC:category-review-thinking:reminder -->
+
+- **MANDATORY** Derive review categories from file language + directory semantics + change nature; create a sub-task per category.
+- **MANDATORY** Derive each category's concerns from first principles with `file:line` evidence — never a fixed checklist.
+
+<!-- /SYNC:category-review-thinking:reminder -->
+
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Ensure service/API changes are production-ready for observability, reliability, data integrity, and database performance.
-- **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks via task tracking BEFORE starting
-- **MANDATORY IMPORTANT MUST ATTENTION** validate findings before fixes; after validated fixes, rerun the full review before declaring PASS. A clean review pass ENDS the review.
-- **MANDATORY IMPORTANT MUST ATTENTION** every score requires `file:line` evidence — unprovable score = 0
-- **MANDATORY IMPORTANT MUST ATTENTION** ALL list queries MUST use pagination; ALL filter fields MUST have indexes
-- **MANDATORY IMPORTANT MUST ATTENTION** run at least ONE graph command on key files before concluding (when graph.db exists)
-- **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via a direct user question — never auto-decide
+**Goal:** Ensure service/API changes are production-ready for observability, reliability, data integrity, and database performance.
+
+The following are all MANDATORY:
+
+- **MANDATORY** break work into small todo tasks via task tracking BEFORE starting
+- validate findings before fixes; after validated fixes, rerun the full review before declaring PASS. A clean review pass ENDS the review.
+- every score requires `file:line` evidence — unprovable score = 0
+- ALL list queries MUST use pagination; ALL filter fields MUST have indexes
+- run at least ONE graph command on key files before concluding (when graph.db exists)
+- validate decisions with user via a direct user question — never auto-decide
 
 **Anti-Rationalization:**
 

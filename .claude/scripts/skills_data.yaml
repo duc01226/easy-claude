@@ -5,7 +5,6 @@
     frontend, deployment, monitoring, testing, and code quality.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: architecture-design
   path: architecture-design/SKILL.md
   removal_after: null
@@ -17,7 +16,6 @@
     questions.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: ask
   path: ask/SKILL.md
   removal_after: null
@@ -29,7 +27,6 @@
     ideation for problem-solving, new product creation, or feature enhancement.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: brainstorm
   path: brainstorm/SKILL.md
   removal_after: null
@@ -42,7 +39,6 @@
     or analyze what changed.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: branch-comparison
   path: branch-comparison/SKILL.md
   removal_after: null
@@ -54,7 +50,6 @@
     criteria, analyzing requirements, or mapping business processes.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: business-analyst
   path: business-analyst/SKILL.md
   removal_after: null
@@ -66,7 +61,6 @@
     Model Canvas, financial projections, risk matrix, go-to-market, execution plan.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: business-evaluation
   path: business-evaluation/SKILL.md
   removal_after: null
@@ -78,7 +72,6 @@
     entries.'
   has_references: true
   has_scripts: false
-  last_reviewed: null
   name: changelog
   path: changelog/SKILL.md
   removal_after: null
@@ -90,7 +83,6 @@
     file for recovery (user-facing alias for memory-management Part 1 CHECKPOINT_CREATE).'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: checkpoint
   path: checkpoint/SKILL.md
   removal_after: null
@@ -101,7 +93,6 @@
   description: '[Utilities] Use when you need claudeKit usage guide - just type naturally.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: ck-help
   path: ck-help/SKILL.md
   removal_after: null
@@ -113,7 +104,6 @@
     troubleshooting, and feature guidance.'
   has_references: true
   has_scripts: false
-  last_reviewed: null
   name: claude-code
   path: claude-code/SKILL.md
   removal_after: null
@@ -125,22 +115,8 @@
     CLAUDE markdown from project-config JSON and codebase scan results.'
   has_references: true
   has_scripts: true
-  last_reviewed: null
   name: claude-md-init
   path: claude-md-init/SKILL.md
-  removal_after: null
-  status: active
-- category: other
-  deprecated_by: null
-  deprecated_since: null
-  description: '[Implementation] Use when you need to start coding & testing an existing
-    plan. Flags: --approval=off (auto/trust mode, no approval gate), --tests=off (skip
-    the test step), --parallel (parallel phase execution via subagents).'
-  has_references: false
-  has_scripts: false
-  last_reviewed: null
-  name: code
-  path: code/SKILL.md
   removal_after: null
   status: active
 - category: utilities
@@ -150,7 +126,6 @@
     code-quality review, or verifying completion claims.'
   has_references: true
   has_scripts: false
-  last_reviewed: null
   name: code-review
   path: code-review/SKILL.md
   removal_after: null
@@ -162,7 +137,6 @@
     consistency, and maintainability while preserving all functionality.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: code-simplifier
   path: code-simplifier/SKILL.md
   removal_after: null
@@ -174,7 +148,6 @@
     explanations.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: coding-level
   path: coding-level/SKILL.md
   removal_after: null
@@ -187,7 +160,6 @@
     stages + commits + pushes to remote in one shot.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: commit
   path: commit/SKILL.md
   removal_after: null
@@ -199,7 +171,6 @@
     usage (user-facing alias for context-optimization Strategy #3 Compress).'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: compact
   path: compact/SKILL.md
   removal_after: null
@@ -211,7 +182,6 @@
     session.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: context
   path: context/SKILL.md
   removal_after: null
@@ -223,21 +193,8 @@
     sessions, or optimizing token usage.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: context-optimization
   path: context-optimization/SKILL.md
-  removal_after: null
-  status: active
-- category: other
-  deprecated_by: null
-  deprecated_since: null
-  description: '[Implementation] Use when you need to implement a feature [step by
-    step].'
-  has_references: false
-  has_scripts: false
-  last_reviewed: null
-  name: cook
-  path: cook/SKILL.md
   removal_after: null
   status: active
 - category: other
@@ -247,7 +204,6 @@
     materials, social media, landing pages, email campaigns, and product descriptions.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: copywriting
   path: copywriting/SKILL.md
   removal_after: null
@@ -260,7 +216,6 @@
     assessments.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: course-builder
   path: course-builder/SKILL.md
   removal_after: null
@@ -272,7 +227,6 @@
     custom agents (Claude Code custom agent files).'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: custom-agent
   path: custom-agent/SKILL.md
   removal_after: null
@@ -283,7 +237,6 @@
   description: '[DevOps] Use when you need to run or create database migrations.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: db-migrate
   path: db-migrate/SKILL.md
   removal_after: null
@@ -296,7 +249,6 @@
     and pinpoint the defect before any fix.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: debug-investigate
   path: debug-investigate/SKILL.md
   removal_after: null
@@ -307,7 +259,6 @@
   description: '[Research] Use when deeply researching top sources from web-research.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: deep-research
   path: deep-research/SKILL.md
   removal_after: null
@@ -319,7 +270,6 @@
     dependencies between modules, services, and work items.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: dependency
   path: dependency/SKILL.md
   removal_after: null
@@ -332,7 +282,6 @@
     (default fast).'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: design
   path: design/SKILL.md
   removal_after: null
@@ -345,7 +294,6 @@
     wireframes or UI sketches into structured specs.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: design-spec
   path: design-spec/SKILL.md
   removal_after: null
@@ -357,7 +305,6 @@
     Docker, or GCP (Compute Engine, GKE, Cloud Run).'
   has_references: true
   has_scripts: true
-  last_reviewed: null
   name: devops
   path: devops/SKILL.md
   removal_after: null
@@ -369,7 +316,6 @@
     docs via hook + scan skills.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: docs-init
   path: docs-init/SKILL.md
   removal_after: null
@@ -381,7 +327,6 @@
     frameworks, repositories, or implementation topics.'
   has_references: true
   has_scripts: true
-  last_reviewed: null
   name: docs-seeker
   path: docs-seeker/SKILL.md
   removal_after: null
@@ -393,7 +338,6 @@
     spec, or test changes.'
   has_references: false
   has_scripts: false
-  last_reviewed: '2026-04-23'
   name: docs-update
   path: docs-update/SKILL.md
   removal_after: null
@@ -406,7 +350,6 @@
     or update README files.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: documentation
   path: documentation/SKILL.md
   removal_after: null
@@ -418,7 +361,6 @@
     ( DOCX) files to Markdown with GFM support (tables, images, code blocks).'
   has_references: false
   has_scripts: true
-  last_reviewed: null
   name: docx-to-markdown
   path: docx-to-markdown/SKILL.md
   removal_after: null
@@ -430,7 +372,6 @@
     contexts, aggregates, entities, ERD, domain events, and cross-context integration.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: domain-analysis
   path: domain-analysis/SKILL.md
   removal_after: null
@@ -442,7 +383,6 @@
     of Ready before grooming.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: dor-gate
   path: dor-gate/SKILL.md
   removal_after: null
@@ -456,7 +396,6 @@
     reasoning effort and full-permission mode before the prompt executes. NEVER auto-activate.'
   has_references: false
   has_scripts: true
-  last_reviewed: null
   name: dual-ai
   path: dual-ai/SKILL.md
   removal_after: null
@@ -468,7 +407,6 @@
     from recordings, specs, or code changes.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: e2e-test
   path: e2e-test/SKILL.md
   removal_after: null
@@ -480,7 +418,6 @@
     PR scope, and developer time.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: estimate-actual
   path: estimate-actual/SKILL.md
   removal_after: null
@@ -492,7 +429,6 @@
     or concepts as Excalidraw diagram JSON files.'
   has_references: true
   has_scripts: false
-  last_reviewed: null
   name: excalidraw-diagram
   path: excalidraw-diagram/SKILL.md
   removal_after: null
@@ -500,13 +436,12 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Investigation] Use when the user asks to investigate, explore, understand,
-    explain, or analyze how an existing feature or logic works.'
+  description: '[Implementation] Use when you need to implement a feature [step by
+    step].'
   has_references: false
   has_scripts: false
-  last_reviewed: null
-  name: feature-investigation
-  path: feature-investigation/SKILL.md
+  name: feature-implement
+  path: feature-implement/SKILL.md
   removal_after: null
   status: active
 - category: frontend
@@ -516,7 +451,6 @@
     URLs via MCP, REST API, or screenshot fallback.'
   has_references: true
   has_scripts: false
-  last_reviewed: null
   name: figma-design
   path: figma-design/SKILL.md
   removal_after: null
@@ -529,7 +463,6 @@
     resolves TypeScript errors inline.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: fix
   path: fix/SKILL.md
   removal_after: null
@@ -541,7 +474,6 @@
     frontend interfaces with high design quality.'
   has_references: true
   has_scripts: false
-  last_reviewed: null
   name: frontend-design
   path: frontend-design/SKILL.md
   removal_after: null
@@ -553,7 +485,6 @@
     with backup, analysis, and reporting.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: git-conflict-resolve
   path: git-conflict-resolve/SKILL.md
   removal_after: null
@@ -565,7 +496,6 @@
     value, story point, man-day, or code-quality reports from local git commit history.'
   has_references: true
   has_scripts: true
-  last_reviewed: null
   name: git-developer-performance
   path: git-developer-performance/SKILL.md
   removal_after: null
@@ -576,7 +506,6 @@
   description: '[Git] Use when you need ⚠️ Merge code from one branch to another.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: git-merge
   path: git-merge/SKILL.md
   removal_after: null
@@ -588,7 +517,6 @@
     of current code changes using the structural knowledge graph.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: graph-blast-radius
   path: graph-blast-radius/SKILL.md
   removal_after: null
@@ -602,7 +530,6 @@
     changes, --scope=sync syncs committed git changes then updates the working tree.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: graph-build
   path: graph-build/SKILL.md
   removal_after: null
@@ -614,7 +541,6 @@
     API connections using the knowledge graph.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: graph-connect-api
   path: graph-connect-api/SKILL.md
   removal_after: null
@@ -628,7 +554,6 @@
     diagram.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: graph-export
   path: graph-export/SKILL.md
   removal_after: null
@@ -640,7 +565,6 @@
     and connections using the structural knowledge graph.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: graph-query
   path: graph-query/SKILL.md
   removal_after: null
@@ -652,7 +576,6 @@
     executes, understanding blast radius, or tracing frontend-to-backend flows.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: graph-trace
   path: graph-trace/SKILL.md
   removal_after: null
@@ -665,7 +588,6 @@
     plan.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: greenfield
   path: greenfield/SKILL.md
   removal_after: null
@@ -677,7 +599,6 @@
     guides and feedback sensors.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: harness-setup
   path: harness-setup/SKILL.md
   removal_after: null
@@ -689,7 +610,6 @@
     or concepts for future refinement.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: idea
   path: idea/SKILL.md
   removal_after: null
@@ -700,7 +620,6 @@
   description: '[Testing] Use when you need to generate or review integration tests.'
   has_references: true
   has_scripts: false
-  last_reviewed: null
   name: integration-test
   path: integration-test/SKILL.md
   removal_after: null
@@ -714,7 +633,6 @@
     with spec↔test↔code alignment.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: integration-test-review
   path: integration-test-review/SKILL.md
   removal_after: null
@@ -726,7 +644,6 @@
     writing and reviewing them.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: integration-test-verify
   path: integration-test-verify/SKILL.md
   removal_after: null
@@ -738,7 +655,6 @@
     admin panels, SaaS apps, tools.'
   has_references: true
   has_scripts: false
-  last_reviewed: null
   name: interface-design
   path: interface-design/SKILL.md
   removal_after: null
@@ -752,7 +668,6 @@
     for the standalone prompt-driven explainer.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: investigate
   path: investigate/SKILL.md
   removal_after: null
@@ -764,7 +679,6 @@
     decisions, blockers, lessons, or progress notes during work.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: journal
   path: journal/SKILL.md
   removal_after: null
@@ -776,7 +690,6 @@
     citation quality, confidence accuracy, and template compliance.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: knowledge-review
   path: knowledge-review/SKILL.md
   removal_after: null
@@ -788,7 +701,6 @@
     structured report using template.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: knowledge-synthesis
   path: knowledge-synthesis/SKILL.md
   removal_after: null
@@ -800,7 +712,6 @@
     across sessions.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: learn
   path: learn/SKILL.md
   removal_after: null
@@ -812,7 +723,6 @@
     backend or frontend.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: lint
   path: lint/SKILL.md
   removal_after: null
@@ -825,7 +735,6 @@
     hooks, and CI gates.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: linter-setup
   path: linter-setup/SKILL.md
   removal_after: null
@@ -837,7 +746,6 @@
     decisions with adversarial AI advisors.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: llm-council
   path: llm-council/SKILL.md
   removal_after: null
@@ -849,7 +757,6 @@
     files with calm, book-like reading experience.'
   has_references: false
   has_scripts: true
-  last_reviewed: null
   name: markdown-novel-viewer
   path: markdown-novel-viewer/SKILL.md
   removal_after: null
@@ -861,7 +768,6 @@
     to Microsoft Word ( DOCX) format with GFM support and math rendering.'
   has_references: false
   has_scripts: true
-  last_reviewed: null
   name: markdown-to-docx
   path: markdown-to-docx/SKILL.md
   removal_after: null
@@ -873,7 +779,6 @@
     to PDF with syntax highlighting and custom CSS support.'
   has_references: false
   has_scripts: true
-  last_reviewed: null
   name: markdown-to-pdf
   path: markdown-to-pdf/SKILL.md
   removal_after: null
@@ -885,7 +790,6 @@
     sizing (TAM/SAM/SOM), trends, SWOT, customer segments.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: market-analysis
   path: market-analysis/SKILL.md
   removal_after: null
@@ -897,7 +801,6 @@
     and learnings across sessions.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: memory-management
   path: memory-management/SKILL.md
   removal_after: null
@@ -910,7 +813,6 @@
     in package updates.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: package-upgrade
   path: package-upgrade/SKILL.md
   removal_after: null
@@ -922,7 +824,6 @@
     of PBI drafts.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: pbi-challenge
   path: pbi-challenge/SKILL.md
   removal_after: null
@@ -934,7 +835,6 @@
     report from PBI and story artifacts.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: pbi-mockup
   path: pbi-mockup/SKILL.md
   removal_after: null
@@ -946,7 +846,6 @@
     with support for native text PDFs and scanned documents (OCR).'
   has_references: false
   has_scripts: true
-  last_reviewed: null
   name: pdf-to-markdown
   path: pdf-to-markdown/SKILL.md
   removal_after: null
@@ -959,7 +858,6 @@
     rendering, caching, and distributed paths.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: performance-review
   path: performance-review/SKILL.md
   removal_after: null
@@ -973,7 +871,6 @@
     optimization (25-item CRO framework).'
   has_references: true
   has_scripts: false
-  last_reviewed: null
   name: plan
   path: plan/SKILL.md
   removal_after: null
@@ -986,9 +883,20 @@
     changes.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: plan-analysis
   path: plan-analysis/SKILL.md
+  removal_after: null
+  status: active
+- category: utilities
+  deprecated_by: null
+  deprecated_since: null
+  description: '[Implementation] Use when you need to start coding & testing an existing
+    plan. Flags: --approval=off (auto/trust mode, no approval gate), --tests=off (skip
+    the test step), --parallel (parallel phase execution via subagents).'
+  has_references: false
+  has_scripts: false
+  name: plan-execute
+  path: plan-execute/SKILL.md
   removal_after: null
   status: active
 - category: utilities
@@ -999,7 +907,6 @@
     validated findings, full re-review until no findings.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: plan-review
   path: plan-review/SKILL.md
   removal_after: null
@@ -1011,7 +918,6 @@
     interview.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: plan-validate
   path: plan-validate/SKILL.md
   removal_after: null
@@ -1022,7 +928,6 @@
   description: '[Git] Use when you need to create pull request with standard format.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: pr
   path: pr/SKILL.md
   removal_after: null
@@ -1034,7 +939,6 @@
     using RICE, MoSCoW, or Value-Effort frameworks.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: prioritize
   path: prioritize/SKILL.md
   removal_after: null
@@ -1046,7 +950,6 @@
     to complex, blocked, recurring, or uncertain decisions.'
   has_references: true
   has_scripts: false
-  last_reviewed: null
   name: problem-solving
   path: problem-solving/SKILL.md
   removal_after: null
@@ -1059,7 +962,6 @@
     communication.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: product-owner
   path: product-owner/SKILL.md
   removal_after: null
@@ -1071,7 +973,6 @@
     JSON to match current project structure.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: project-config
   path: project-config/SKILL.md
   removal_after: null
@@ -1085,7 +986,6 @@
     project-config, missing project docs, missing CLAUDE.md, missing AGENTS.md.'
   has_references: true
   has_scripts: false
-  last_reviewed: null
   name: project-init
   path: project-init/SKILL.md
   removal_after: null
@@ -1097,7 +997,6 @@
     reports, track dependencies, manage risk registers, and facilitate team sync meetings.'
   has_references: true
   has_scripts: false
-  last_reviewed: null
   name: project-manager
   path: project-manager/SKILL.md
   removal_after: null
@@ -1111,7 +1010,6 @@
     compressed text.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: prompt-enhance
   path: prompt-enhance/SKILL.md
   removal_after: null
@@ -1123,7 +1021,6 @@
     proof traces, confidence scoring, and stack-trace-style evidence chains.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: prove-fix
   path: prove-fix/SKILL.md
   removal_after: null
@@ -1135,7 +1032,6 @@
     compliance with standards, track quality metrics, and generate audit trails.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: qc-specialist
   path: qc-specialist/SKILL.md
   removal_after: null
@@ -1146,7 +1042,6 @@
   description: '[Code Quality] Use when you need to run quality gate checklist.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: quality-gate
   path: quality-gate/SKILL.md
   removal_after: null
@@ -1158,7 +1053,6 @@
     after session loss.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: recover
   path: recover/SKILL.md
   removal_after: null
@@ -1170,7 +1064,6 @@
     behavior using extract method, extract class, rename, move, and inline patterns.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: refactoring
   path: refactoring/SKILL.md
   removal_after: null
@@ -1182,7 +1075,6 @@
     problem hypotheses, adding acceptance criteria, or refining requirements.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: refine
   path: refine/SKILL.md
   removal_after: null
@@ -1194,7 +1086,6 @@
     release document from git history over a time range or custom prompt.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: release-doc
   path: release-doc/SKILL.md
   removal_after: null
@@ -1205,7 +1096,6 @@
   description: '[Git] Use when creating release notes from git history.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: release-notes
   path: release-notes/SKILL.md
   removal_after: null
@@ -1217,7 +1107,6 @@
     videos.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: remotion
   path: remotion/SKILL.md
   removal_after: null
@@ -1229,7 +1118,6 @@
     solutions that are scalable, secure, and maintainable.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: research
   path: research/SKILL.md
   removal_after: null
@@ -1241,7 +1129,6 @@
     messaging, service boundaries, CQRS, repos, and entity events.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: review-architecture
   path: review-architecture/SKILL.md
   removal_after: null
@@ -1253,7 +1140,6 @@
     user story, test spec, design spec) before handoff. Supports --type={pbi|story|spec-tests|design}.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: review-artifact
   path: review-artifact/SKILL.md
   removal_after: null
@@ -1265,7 +1151,6 @@
     diffs, or branch-to-branch diffs.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: review-changes
   path: review-changes/SKILL.md
   removal_after: null
@@ -1277,7 +1162,6 @@
     objects for DDD design quality.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: review-domain-entities
   path: review-domain-entities/SKILL.md
   removal_after: null
@@ -1288,7 +1172,6 @@
   description: '[Code Quality] Use when you need two-pass code review for task completion.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: review-post-task
   path: review-post-task/SKILL.md
   removal_after: null
@@ -1301,7 +1184,6 @@
     and SCSS/BEM styling quality.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: review-ui
   path: review-ui/SKILL.md
   removal_after: null
@@ -1313,7 +1195,6 @@
     before feature implementation.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: scaffold
   path: scaffold/SKILL.md
   removal_after: null
@@ -1330,7 +1211,6 @@
     that runs the 3 UI child scans in parallel instead of the 4-phase engine.'
   has_references: true
   has_scripts: false
-  last_reviewed: null
   name: scan
   path: scan/SKILL.md
   removal_after: null
@@ -1342,7 +1222,6 @@
     in parallel.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: scan-all
   path: scan-all/SKILL.md
   removal_after: null
@@ -1354,7 +1233,6 @@
     unused exports, doc count-drift, orphan files, stale config references.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: scan-codebase-health
   path: scan-codebase-health/SKILL.md
   removal_after: null
@@ -1366,7 +1244,6 @@
     areas across a large codebase.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: scout
   path: scout/SKILL.md
   removal_after: null
@@ -1380,7 +1257,6 @@
     CI/CD pipeline, AI-agent risks, and host/VPS compromise detection.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: security-review
   path: security-review/SKILL.md
   removal_after: null
@@ -1392,7 +1268,6 @@
     that simulate QC happy-path scenarios via application-layer commands.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: seed-test-data
   path: seed-test-data/SKILL.md
   removal_after: null
@@ -1405,7 +1280,6 @@
     verification.'
   has_references: true
   has_scripts: true
-  last_reviewed: null
   name: sequential-thinking
   path: sequential-thinking/SKILL.md
   removal_after: null
@@ -1419,7 +1293,6 @@
     add skill reference, add skill script, fix skill, validate skill, package skill.'
   has_references: true
   has_scripts: true
-  last_reviewed: null
   name: skill-creator
   path: skill-creator/SKILL.md
   removal_after: null
@@ -1428,13 +1301,13 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Documentation] Use to author, audit, amend, or test-spec a business
-    Feature Spec. The single spec skill — modes init|update|audit|amend create/maintain
-    the tech-free 8-section Feature Spec; tests generates Section 8 TC-{FEATURE}-{NNN}
+    Feature Spec. The single spec skill — modes draft|init|update|audit|amend create/maintain
+    the tech-free 8-section Feature Spec; draft authors a provisional spec from an
+    idea/requirement (no code yet, Evidence: TBD); tests generates Section 8 TC-{FEATURE}-{NNN}
     test specifications; sync reconciles §8 TCs ↔ integration test code. Per-mode
     procedure lives in references/{author,tests,sync}.md.'
   has_references: true
   has_scripts: false
-  last_reviewed: '2026-06-12'
   name: spec
   path: spec/SKILL.md
   removal_after: null
@@ -1447,7 +1320,6 @@
     Specs under docs/specs/**. Never extracts a separate A-E engineering tree.'
   has_references: false
   has_scripts: false
-  last_reviewed: '2026-06-10'
   name: spec-index
   path: spec-index/SKILL.md
   removal_after: null
@@ -1459,7 +1331,6 @@
     production readiness.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: sre-review
   path: sre-review/SKILL.md
   removal_after: null
@@ -1471,7 +1342,6 @@
     workflow state, or activating a workflow sequence.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: start-workflow
   path: start-workflow/SKILL.md
   removal_after: null
@@ -1483,7 +1353,6 @@
     features, or breaking down requirements.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: story
   path: story/SKILL.md
   removal_after: null
@@ -1495,7 +1364,6 @@
     channels, messaging, campaigns, budget, KPIs.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: strategy-builder
   path: strategy-builder/SKILL.md
   removal_after: null
@@ -1509,7 +1377,6 @@
     skills (/sync-to-copilot FIRST then /sync-codex) with both divergence oracles.'
   has_references: true
   has_scripts: false
-  last_reviewed: null
   name: sync-ai-dev-tools
   path: sync-ai-dev-tools/SKILL.md
   removal_after: null
@@ -1521,7 +1388,6 @@
     hooks → context → verify) standalone, no npm/package JSON needed.'
   has_references: false
   has_scripts: true
-  last_reviewed: null
   name: sync-codex
   path: sync-codex/SKILL.md
   removal_after: null
@@ -1533,7 +1399,6 @@
     need propagation across skills.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: sync-skills-shared-protocols
   path: sync-skills-shared-protocols/SKILL.md
   removal_after: null
@@ -1546,7 +1411,6 @@
     --fast (script-only workflow-catalog sync, no registry-curation pass).'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: sync-to-copilot
   path: sync-to-copilot/SKILL.md
   removal_after: null
@@ -1558,7 +1422,6 @@
     tech stack options as a solution architect.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: tech-stack-research
   path: tech-stack-research/SKILL.md
   removal_after: null
@@ -1570,7 +1433,6 @@
     report.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: test
   path: test/SKILL.md
   removal_after: null
@@ -1582,7 +1444,6 @@
     security, SEO) with visual reports.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: test-ui
   path: test-ui/SKILL.md
   removal_after: null
@@ -1594,7 +1455,6 @@
     or WebGPU examples.'
   has_references: true
   has_scripts: true
-  last_reviewed: null
   name: threejs
   path: threejs/SKILL.md
   removal_after: null
@@ -1606,7 +1466,6 @@
     curated UI styles, palettes, fonts, charts, and stacks.'
   has_references: false
   has_scripts: true
-  last_reviewed: null
   name: ui-ux-pro-max
   path: ui-ux-pro-max/SKILL.md
   removal_after: null
@@ -1623,7 +1482,6 @@
     blocks.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: understand
   path: understand/SKILL.md
   removal_after: null
@@ -1635,7 +1493,6 @@
     the work.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: watzup
   path: watzup/SKILL.md
   removal_after: null
@@ -1647,7 +1504,6 @@
     performance, and UX best practices.'
   has_references: true
   has_scripts: false
-  last_reviewed: null
   name: web-design-guidelines
   path: web-design-guidelines/SKILL.md
   removal_after: null
@@ -1659,7 +1515,6 @@
     and triage candidate sources on a topic to feed deeper investigation.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: web-research
   path: web-research/SKILL.md
   removal_after: null
@@ -1671,7 +1526,6 @@
     Python Playwright scripts.'
   has_references: false
   has_scripts: true
-  last_reviewed: null
   name: webapp-testing
   path: webapp-testing/SKILL.md
   removal_after: null
@@ -1683,7 +1537,6 @@
     plans, PBIs, commits, diffs, docs, specs, reports, or explicit artifacts.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: why-review
   path: why-review/SKILL.md
   removal_after: null
@@ -1695,7 +1548,6 @@
     or ambiguous research-driven feature work.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: workflow-big-feature
   path: workflow-big-feature/SKILL.md
   removal_after: null
@@ -1707,9 +1559,20 @@
     debugging with root cause investigation, fix, and verification.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: workflow-bugfix
   path: workflow-bugfix/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
+  description: '[Workflow] Use when activating code-to-spec development — author/maintain
+    the single canonical Feature Spec FROM existing code, keeping spec, implementation,
+    and tests synchronized. For idea→spec (no code yet) use workflow-idea-to-spec.'
+  has_references: false
+  has_scripts: false
+  name: workflow-code-to-spec
+  path: workflow-code-to-spec/SKILL.md
   removal_after: null
   status: active
 - category: other
@@ -1719,7 +1582,6 @@
     update, or maintain Playwright/E2E tests. Pick mode with --source={changes|recording|update-ui}.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: workflow-e2e
   path: workflow-e2e/SKILL.md
   removal_after: null
@@ -1730,7 +1592,6 @@
   description: '[Process] Use when you need to end the active workflow and clear state.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: workflow-end
   path: workflow-end/SKILL.md
   removal_after: null
@@ -1744,7 +1605,6 @@
     with test specs written before code.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: workflow-feature
   path: workflow-feature/SKILL.md
   removal_after: null
@@ -1756,7 +1616,6 @@
     workflow for 8-section tech-free feature docs.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: workflow-feature-spec
   path: workflow-feature-spec/SKILL.md
   removal_after: null
@@ -1769,7 +1628,6 @@
     testing.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: workflow-greenfield-init
   path: workflow-greenfield-init/SKILL.md
   removal_after: null
@@ -1778,10 +1636,10 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Workflow] Use when activating the Idea to PBI workflow for turning
-    ideas into prioritized PBIs and stories.'
+    an idea — or a raw product vision/problem — into prioritized PBIs and stories
+    (single-PBI deep mode, or multi-opportunity discovery mode).'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: workflow-idea-to-pbi
   path: workflow-idea-to-pbi/SKILL.md
   removal_after: null
@@ -1789,13 +1647,14 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Workflow] Use when activating the Product Discovery workflow for
-    turning raw opportunities into ranked PBIs.'
+  description: '[Workflow] Use when activating the Idea-to-Spec workflow — turn a
+    raw idea/vision/problem into ONE canonical (provisional) Feature Spec. STOPS at
+    the reviewed spec; chain workflow-spec-to-pbi for a backlog. For code→spec use
+    workflow-code-to-spec.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
-  name: workflow-product-discovery
-  path: workflow-product-discovery/SKILL.md
+  name: workflow-idea-to-spec
+  path: workflow-idea-to-spec/SKILL.md
   removal_after: null
   status: active
 - category: other
@@ -1805,7 +1664,6 @@
     and improve existing code without changing behavior.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: workflow-refactor
   path: workflow-refactor/SKILL.md
   removal_after: null
@@ -1818,7 +1676,6 @@
     (knowledge report, business evaluation, marketing strategy, or course material).'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: workflow-research
   path: workflow-research/SKILL.md
   removal_after: null
@@ -1830,7 +1687,6 @@
     for review, fix, and re-review recursively until all issues resolved.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: workflow-review-changes
   path: workflow-review-changes/SKILL.md
   removal_after: null
@@ -1842,21 +1698,8 @@
     QC happy-path seeders.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: workflow-seed-test-data
   path: workflow-seed-test-data/SKILL.md
-  removal_after: null
-  status: active
-- category: other
-  deprecated_by: null
-  deprecated_since: null
-  description: '[Workflow] Use when activating spec-driven development to keep the
-    single canonical Feature Spec, implementation, and tests synchronized.'
-  has_references: false
-  has_scripts: false
-  last_reviewed: '2026-06-10'
-  name: workflow-build-specs
-  path: workflow-build-specs/SKILL.md
   removal_after: null
   status: active
 - category: other
@@ -1867,7 +1710,6 @@
     or pr reviews.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: workflow-spec-sync
   path: workflow-spec-sync/SKILL.md
   removal_after: null
@@ -1880,7 +1722,6 @@
     PBIs and stories.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: workflow-spec-to-pbi
   path: workflow-spec-to-pbi/SKILL.md
   removal_after: null
@@ -1892,7 +1733,6 @@
     visual excalidraw diagrams from codebase investigation or web research.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: workflow-visualize
   path: workflow-visualize/SKILL.md
   removal_after: null
@@ -1906,7 +1746,6 @@
     verification).'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: workflow-write-integration-test
   path: workflow-write-integration-test/SKILL.md
   removal_after: null
@@ -1918,7 +1757,6 @@
     development.'
   has_references: false
   has_scripts: false
-  last_reviewed: null
   name: worktree
   path: worktree/SKILL.md
   removal_after: null

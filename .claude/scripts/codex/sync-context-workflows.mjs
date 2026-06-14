@@ -330,7 +330,6 @@ function buildWorkflowSection(workflowEntries) {
     const name = safeLine(workflow?.name) || workflowId;
     const description = safeLine(resolvePortabilityTokens(workflow?.description));
     const whenToUse = safeLine(workflow?.whenToUse);
-    const whenNotToUse = safeLine(workflow?.whenNotToUse);
     const sequence = Array.isArray(workflow?.sequence) ? workflow.sequence : [];
     const protocol = resolvePortabilityTokens(workflow?.preActions?.injectContext);
 
@@ -339,7 +338,6 @@ function buildWorkflowSection(workflowEntries) {
     lines.push(`### ${workflowId} — ${name}`);
     if (description) lines.push(`- Description: ${description}`);
     if (whenToUse) lines.push(`- When To Use: ${whenToUse}`);
-    if (whenNotToUse) lines.push(`- When Not To Use: ${whenNotToUse}`);
     lines.push(`- Sequence: ${sequence.length > 0 ? `\`${renderSequenceWithBarriers(sequence, parallelGroups, " -> ", (s) => s)}\`` : "_none_"}`);
     if (parallelGroups.length > 0) {
       lines.push(`- Parallel phase = all-return barrier: spawn ALL members together (one message); advance only after EVERY member returns (a skipped conditional member, marked \`*\`, counts as returned). A sub-agent completion advances the step identically to an inline call.`);

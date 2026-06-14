@@ -11,7 +11,7 @@ const SCRIPT_LINES = [
 const CATEGORIES = [
     { label: 'Quality & Verification', skills: 'code-review · prove-fix · quality-gate · sre-review', color: C.green },
     { label: 'Planning & Research', skills: 'plan · investigate · scout · research', color: C.blue },
-    { label: 'Implementation', skills: 'cook · fix · refactoring', color: C.purple },
+    { label: 'Implementation', skills: 'feature-implement · fix · refactoring', color: C.purple },
     { label: 'Testing & TDD', skills: 'spec [mode=tests] · integration-test · e2e-test · test', color: C.amber },
     { label: 'Requirements & Ideas', skills: 'idea · refine · story · business-evaluation', color: C.cyan },
     { label: 'Architecture', skills: 'security-review · domain-analysis · scaffold', color: C.red }

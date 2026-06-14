@@ -80,13 +80,13 @@ When the prompt doesn't cleanly match a single catalog workflow — or combining
 | No catalog workflow matches well             | "Review hook changes and update skill docs" — spans review + docs           |
 | Best-match has significant unnecessary steps | Quick investigate + fix, but `workflow-bugfix` includes full TDD + integration cycle |
 | Prompt combines 2+ workflow domains          | "Audit performance and write integration tests for the slow query"          |
-| User explicitly requests a step sequence     | "Just run scout, plan, and cook — nothing else"                             |
+| User explicitly requests a step sequence     | "Just run scout, plan, and feature-implement — nothing else"                             |
 
 **Do NOT propose** when a catalog workflow is a strong match (>80% of its steps are relevant). Catalog workflows encode validated best-practice sequences — prefer them.
 
 ### How to build
 
-1. **Valid steps only** — Use only keys from `commandMapping` in `workflows.json`. No invented step names.
+1. **Valid steps only** — Use only canonical step ids — those appearing in workflow `sequence` arrays in `workflows.json` (each maps to a real `.claude/skills/<step>/SKILL.md` and is invoked as `/<step>`). No invented step names.
 2. **Logical order** — Investigate → Plan → Implement → Test. Never reverse dependency order.
 3. **Minimal** — Include only steps the prompt needs. No "just in case" additions.
 4. **Name it** — Short descriptive name: "Quick Fix + Docs", "Audit + Test Coverage".
@@ -97,10 +97,10 @@ Show full step sequences for ALL options so the user compares scope:
 
 ```
 Option A — Activate "Bug Fix" workflow (Recommended)
-  Steps: $scout → $feature-investigation → $debug-investigate → $plan → $fix → $prove-fix → $test → ...
+  Steps: $scout → $investigate → $debug-investigate → $plan → $fix → $prove-fix → $test → ...
 
 Option B — Custom Pipeline: "Quick Fix + Docs"
-  Steps: $scout → $feature-investigation → $fix → $docs-update
+  Steps: $scout → $investigate → $fix → $docs-update
   Rationale: Prompt targets a known location — full TDD cycle is over-engineered here.
 
 ```
@@ -136,8 +136,8 @@ The workflow catalog is already injected as `## Workflow Catalog` in your contex
 3. Read the NEXT line: `  Use: ... | Steps: /step1 → /step2 → ...`
 4. Parse the `Steps:` value — these ARE the slash commands for task tracking
 
-**Example:** `Steps: $scout → $plan → $cook → $test → $workflow-end`
-→ Create 5 task tracking items for `$scout`, `$plan`, `$cook`, `$test`, `$workflow-end` in order.
+**Example:** `Steps: $scout → $plan → $feature-implement → $test → $workflow-end`
+→ Create 5 task tracking items for `$scout`, `$plan`, `$feature-implement`, `$test`, `$workflow-end` in order.
 
 ✅ Use Tier 1 for: all standard task tracking creation (no file reads needed)
 ⚠️ Use Tier 2 if: catalog not in context, OR you need `preActions.injectContext`
@@ -151,15 +151,14 @@ Grep: pattern='"<workflowId>":'  path='.claude/workflows.json'  context=35
 ```
 
 Returns only that workflow's entry (~35 lines vs full file).
-Parse: `sequence` array → step IDs → resolve via `commandMapping`.
+Parse: `sequence` array → step IDs → invoke each as `/<stepId>`.
 
 ### Tier 3: Minimal Read (last resort — avoid)
 
 Only if Tier 1 and Tier 2 both fail:
 
 ```
-Read '.claude/workflows.json' lines 1-15    ← commandMapping only
-Then Grep '"<workflowId>":' context=30
+Grep '"<workflowId>":' context=30    ← that workflow's entry only
 ```
 
 **NEVER** read the full file — it is large and wastes tokens.
@@ -178,7 +177,6 @@ FIRST action after activation: create EXACTLY one task tracking for EACH entry i
 
 ```
 {
-  "commandMapping": { <stepId>: { "claude": "/cmd" } },
   "settings":       { ... },
   "workflows":      { <workflowId>: WorkflowEntry }   ← OBJECT, keyed by ID
 }
@@ -189,8 +187,8 @@ FIRST action after activation: create EXACTLY one task tracking for EACH entry i
 ```
 workflow = workflows[workflowId]           // key lookup — NOT .find(), NOT [index]
 steps    = workflow.sequence               // array of step ID strings
-// resolve slash command:
-slashCmd = commandMapping[stepId].claude   // commandMapping["scout"].claude → "$scout"
+// resolve slash command — step id IS the command:
+slashCmd = "/" + stepId                     // "scout" → "$scout"
 ```
 
 **WorkflowEntry fields:**
@@ -199,7 +197,7 @@ slashCmd = commandMapping[stepId].claude   // commandMapping["scout"].claude →
 | ---------------------------- | -------- | --------------------------------------- |
 | `name`                       | string   | Display name                            |
 | `sequence`                   | string[] | Ordered step IDs — SOLE source of truth |
-| `whenToUse` / `whenNotToUse` | string   | Natural language intent matching        |
+| `whenToUse`                  | string   | Natural language intent matching        |
 | `preActions`                 | object   | Optional `injectContext` / `readFiles`  |
 
 **FORBIDDEN (common mistakes):**
@@ -217,7 +215,7 @@ Object.keys(workflows)   // list all IDs
 ### Task creation steps
 
 1. **Tier 1 first (no file read):** Search context for `## Workflow Catalog` → find `**{workflowId}**` → parse `Steps:` line → slash commands are ready to use
-2. **Tier 2 if needed:** `Grep .claude/workflows.json --pattern '"<workflowId>":'  --context 35` → parse `sequence` + `commandMapping`
+2. **Tier 2 if needed:** `Grep .claude/workflows.json --pattern '"<workflowId>":'  --context 35` → parse `sequence`, invoke each step as `/<stepId>`
 3. Create one task tracking per step IN ORDER
 
 > See **Workflow Lookup — Token-Efficient (3-Tier Strategy)** above for full lookup rules and fallback chain.
@@ -347,6 +345,8 @@ Some workflow steps ARE themselves full workflows. Running them inline causes th
 >
 > Main agent reads `Full report` file ONLY when: (a) resolving a specific blocker, or (b) building a fix plan.
 > Sub-agent writes full report incrementally (per SYNC:incremental-persistence) — not held in memory.
+>
+> **Context budget** — the return payload is a SUMMARY, not a transcript: ≤10 finding bullets, no raw file contents / full diffs / verbatim logs inline, no re-pasted source. Everything beyond the summary lives in the `Full report` on disk. A sub-agent that would exceed the summary shape MUST write the detail to its report and return only the pointer — the orchestrator's context is the scarce resource the whole map-reduce protects.
 
 <!-- /SYNC:subagent-return-contract -->
 
@@ -375,7 +375,7 @@ Some workflow steps ARE themselves full workflows. Running them inline causes th
 **MUST ATTENTION** `workflows` is an OBJECT — `workflows[workflowId]`, NEVER `.find()` / `[index]` / `.forEach()`
 **MUST ATTENTION** create ALL task tracking items for the full sequence BEFORE marking the first task `in_progress`
 **MUST ATTENTION** never mark a task `completed` without invoking its skill invocation — skip means comment + completed, not delete
-**MUST ATTENTION** custom pipeline steps must be valid `commandMapping` keys — never invent step names
+**MUST ATTENTION** custom pipeline steps must be canonical step ids (each maps to a real `.claude/skills/<step>/SKILL.md`) — never invent step names
 **MUST ATTENTION** use Tier 1 context parse FIRST — check `## Workflow Catalog` in context before any file read
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.

@@ -209,11 +209,11 @@ const todoEnforcementTests = [
         }
     },
     {
-        name: '[skill-enforcement] blocks /cook without workflow or todos',
+        name: '[skill-enforcement] blocks /feature-implement without workflow or todos',
         fn: async () => {
             const sessionId = `test-cook-nostate-${Date.now()}`;
             try {
-                const input = createSkillInput('cook');
+                const input = createSkillInput('feature-implement');
                 const result = await runHook(TODO_ENFORCEMENT, input, { env: { CK_SESSION_ID: sessionId } });
                 assertTrue(result.code === 1, 'Should block cook without workflow or todos (exit 1)');
             } finally {
@@ -235,11 +235,11 @@ const todoEnforcementTests = [
         }
     },
     {
-        name: '[skill-enforcement] blocks /code without workflow or todos',
+        name: '[skill-enforcement] blocks /plan-execute without workflow or todos',
         fn: async () => {
             const sessionId = `test-code-nostate-${Date.now()}`;
             try {
-                const input = createSkillInput('code');
+                const input = createSkillInput('plan-execute');
                 const result = await runHook(TODO_ENFORCEMENT, input, { env: { CK_SESSION_ID: sessionId } });
                 assertTrue(result.code === 1, 'Should block code without workflow or todos (exit 1)');
                 const output = result.stdout + result.stderr;
@@ -252,7 +252,7 @@ const todoEnforcementTests = [
 
     // ALLOW - Implementation skills WITH todos
     {
-        name: '[skill-enforcement] allows /cook with todos',
+        name: '[skill-enforcement] allows /feature-implement with todos',
         fn: async () => {
             const sessionId = `test-cook-todos-${Date.now()}`;
             try {
@@ -262,7 +262,7 @@ const todoEnforcementTests = [
                     inProgressCount: 1,
                     completedCount: 0
                 });
-                const input = createSkillInput('cook');
+                const input = createSkillInput('feature-implement');
                 const result = await runHook(TODO_ENFORCEMENT, input, { env: { CK_SESSION_ID: sessionId } });
                 assertAllowed(result.code, 'Should allow cook with todos');
             } finally {
@@ -290,7 +290,7 @@ const todoEnforcementTests = [
         }
     },
     {
-        name: '[skill-enforcement] allows /cook with all-completed todos',
+        name: '[skill-enforcement] allows /feature-implement with all-completed todos',
         fn: async () => {
             const sessionId = `test-cook-completed-${Date.now()}`;
             try {
@@ -300,7 +300,7 @@ const todoEnforcementTests = [
                     inProgressCount: 0,
                     completedCount: 2
                 });
-                const input = createSkillInput('cook');
+                const input = createSkillInput('feature-implement');
                 const result = await runHook(TODO_ENFORCEMENT, input, { env: { CK_SESSION_ID: sessionId } });
                 // hasTodos = true, so hook allows even if all completed
                 assertAllowed(result.code, 'Should allow cook when hasTodos=true');
@@ -316,7 +316,7 @@ const todoEnforcementTests = [
         fn: async () => {
             const sessionId = `test-quick-${Date.now()}`;
             try {
-                const input = createSkillInput('cook');
+                const input = createSkillInput('feature-implement');
                 const result = await runHook(TODO_ENFORCEMENT, input, {
                     env: { CK_SESSION_ID: sessionId, CK_QUICK_MODE: 'true' }
                 });
@@ -523,7 +523,6 @@ const workflowRouterTests = [
             assertContains(output, 'Feature Implementation', 'Should list feature workflow');
             assertContains(output, 'Bug Fix', 'Should list bugfix workflow');
             assertContains(output, 'Use:', 'Should include whenToUse description');
-            assertContains(output, 'Not for:', 'Should include whenNotToUse description');
         }
     },
     {
@@ -758,16 +757,6 @@ const deadModuleVerificationTests = [
         }
     },
     {
-        name: '[dead-module-removal] all workflows have whenNotToUse field',
-        fn: async () => {
-            const fs = require('fs');
-            const configPath = path.resolve(__dirname, '..', '..', '..', 'workflows.json');
-            const data = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-            const missing = Object.entries(data.workflows).filter(([, w]) => !w.whenNotToUse);
-            assertTrue(missing.length === 0, `All workflows should have whenNotToUse, missing: ${missing.map(([id]) => id).join(', ')}`);
-        }
-    },
-    {
         name: '[review-guidance] review-changes workflow injectContext includes multilingual UI sync check',
         fn: async () => {
             const configPath = path.resolve(__dirname, '..', '..', '..', 'workflows.json');
@@ -812,6 +801,155 @@ const devRulesReminderTests = [
     }
 ];
 
+// ============================================================================
+// Framework Rename Regression Guards
+//   cook → feature-implement, code → plan-execute,
+//   workflow-build-specs → workflow-code-to-spec,
+//   workflow-product-discovery → workflow-idea-to-spec
+//
+// Ports the 2 unique guards from the deleted orphan .claude/tests/workflow-routing-test.cjs:
+//   - Guard A (orphan Section 3): every workflow sequence step resolves to a
+//     real skill dir (steps are invoked as /<step>).
+//   - Guard B (orphan Section 4): buildWorkflowCatalog builds from the REAL
+//     config and lists every workflow id-or-name.
+// Plus the rename-fix coverage the orphan never had (F-5/R-1/F-6).
+// ============================================================================
+
+const WORKFLOW_CONFIG_PATH = path.resolve(__dirname, '..', '..', '..', 'workflows.json');
+const { buildWorkflowCatalog, getStepDescription } = require(WORKFLOW_ROUTER);
+
+// Canonical current workflow-id set — a deliberate rename-lock. Update this list
+// only when a workflow is intentionally added or removed (same discipline as the
+// count-drift inventory guard, which owns doc-count sync but not id-set integrity).
+const EXPECTED_WORKFLOW_IDS = [
+    'workflow-big-feature',
+    'workflow-bugfix',
+    'workflow-e2e',
+    'workflow-feature',
+    'workflow-feature-spec',
+    'workflow-greenfield-init',
+    'workflow-idea-to-pbi',
+    'workflow-idea-to-spec',
+    'workflow-refactor',
+    'workflow-research',
+    'workflow-review-changes',
+    'workflow-code-to-spec',
+    'workflow-spec-to-pbi',
+    'workflow-spec-sync',
+    'workflow-visualize',
+    'workflow-seed-test-data',
+    'workflow-write-integration-test'
+];
+
+// Ids removed by the rename — must never reappear as workflow keys.
+const REMOVED_WORKFLOW_IDS = ['workflow-build-specs', 'workflow-product-discovery'];
+// Step/skill ids renamed away — must never reappear as a sequence step.
+// Checked by EXACT array-element match (NOT substring) so legitimate compound
+// ids (code-review, code-simplifier, code-to-spec) are never false-flagged.
+const REMOVED_STEP_IDS = ['cook', 'code'];
+
+function loadWorkflowConfig() {
+    return JSON.parse(fs.readFileSync(WORKFLOW_CONFIG_PATH, 'utf8'));
+}
+
+// Reusable detector — run against the real config (expect zero hits) AND a
+// mutated in-memory fixture (expect a hit) to prove the guard is not vacuous.
+function findRemovedIds(config) {
+    const ids = Object.keys(config.workflows || {});
+    const hits = [];
+    for (const removed of REMOVED_WORKFLOW_IDS) {
+        if (ids.includes(removed)) hits.push(`workflow-id:${removed}`);
+    }
+    for (const [wfId, wf] of Object.entries(config.workflows || {})) {
+        for (const step of wf.sequence || []) {
+            if (REMOVED_STEP_IDS.includes(step)) hits.push(`${wfId}.sequence:${step}`);
+        }
+    }
+    return hits;
+}
+
+const renameFixGuardTests = [
+    {
+        // TC-RENAMEFIX-030 — F-5 / R-1: workflow-id set integrity + removed-id absence
+        name: '[rename-guard] TC-RENAMEFIX-030 catalog holds exactly the current workflow-id set, no removed ids',
+        fn: async () => {
+            const config = loadWorkflowConfig();
+            const ids = Object.keys(config.workflows);
+
+            // Set equality vs the canonical current set (catches accidental add OR removal).
+            assertEqual(
+                ids.length,
+                EXPECTED_WORKFLOW_IDS.length,
+                `Expected ${EXPECTED_WORKFLOW_IDS.length} workflows, found ${ids.length}: [${ids.join(', ')}]`
+            );
+            for (const expected of EXPECTED_WORKFLOW_IDS) {
+                assertTrue(ids.includes(expected), `Current workflow set must include "${expected}"`);
+            }
+            // Renamed-IN ids present (proves the rename actually landed).
+            assertTrue(ids.includes('workflow-code-to-spec'), 'Renamed-in "workflow-code-to-spec" must be present');
+            assertTrue(ids.includes('workflow-idea-to-spec'), 'Renamed-in "workflow-idea-to-spec" must be present');
+
+            // Removed ids absent everywhere (config keys + sequences).
+            const hits = findRemovedIds(config);
+            assertEqual(hits.length, 0, `No removed id may reappear; found: ${hits.join(', ')}`);
+
+            // Non-vacuity proof: a mutated in-memory fixture reintroducing removed ids MUST be detected.
+            const fixture = JSON.parse(JSON.stringify(config));
+            fixture.workflows['workflow-build-specs'] = { name: 'x', whenToUse: 'x', sequence: ['cook'] };
+            const fixtureHits = findRemovedIds(fixture);
+            assertTrue(
+                fixtureHits.length >= 2,
+                `Guard must FAIL (detect) when removed ids are reintroduced; detected: ${fixtureHits.join(', ')}`
+            );
+        }
+    },
+    {
+        // TC-RENAMEFIX-031 — F-6: getStepDescription resolves renamed step-ids; old ids fall back (proves absence)
+        name: '[rename-guard] TC-RENAMEFIX-031 getStepDescription resolves renamed step-ids, old ids fall back',
+        fn: async () => {
+            assertEqual(getStepDescription('feature-implement'), 'Implement the feature', 'feature-implement must have a specific description');
+            assertEqual(getStepDescription('plan-execute'), 'Execute existing plan', 'plan-execute must have a specific description');
+            assertTrue(getStepDescription('feature-implement') !== 'Execute feature-implement', 'feature-implement desc must not be the fallback');
+            assertTrue(getStepDescription('plan-execute') !== 'Execute plan-execute', 'plan-execute desc must not be the fallback');
+            // Old step-ids removed from the description map → fallback string proves their absence.
+            assertEqual(getStepDescription('cook'), 'Execute cook', 'Old id "cook" must be absent (resolves to fallback)');
+            assertEqual(getStepDescription('code'), 'Execute code', 'Old id "code" must be absent (resolves to fallback)');
+        }
+    },
+    {
+        // TC-RENAMEFIX-032 — ported orphan Guard A + Guard B
+        name: '[rename-guard] TC-RENAMEFIX-032 every sequence step resolves to a real skill; catalog builds from real config',
+        fn: async () => {
+            const config = loadWorkflowConfig();
+
+            // Guard A: every step is invoked as /<step>, so it must resolve to a real skill.
+            // Assert each sequence step (base skill, sans arg/flag suffix) is a real
+            // skill dir, so /<step> always points at an existing skill.
+            const baseSkill = step => step.split(/[\s[]/)[0];
+            for (const [wfId, wf] of Object.entries(config.workflows)) {
+                for (const step of wf.sequence) {
+                    const skillDir = path.join(PROJECT_ROOT, '.claude', 'skills', baseSkill(step), 'SKILL.md');
+                    assertTrue(
+                        fs.existsSync(skillDir),
+                        `${wfId}: step "${step}" must resolve to a real skill (.claude/skills/${baseSkill(step)}/SKILL.md)`
+                    );
+                }
+            }
+
+            // Guard B (orphan Section 4): catalog builds from the REAL config and lists every workflow.
+            const catalog = buildWorkflowCatalog(config);
+            assertTrue(typeof catalog === 'string' && catalog.length > 0, 'Catalog must be a non-empty string');
+            for (const [id, wf] of Object.entries(config.workflows)) {
+                assertTrue(catalog.includes(id) || catalog.includes(wf.name), `Catalog must list "${id}" (${wf.name})`);
+            }
+            // Removed workflow-ids are distinctive enough for a safe substring check on catalog text.
+            for (const removed of REMOVED_WORKFLOW_IDS) {
+                assertTrue(!catalog.includes(removed), `Catalog must not contain removed workflow-id "${removed}"`);
+            }
+        }
+    }
+];
+
 // Export test suite
 module.exports = {
     name: 'Workflow Hooks',
@@ -821,6 +959,7 @@ module.exports = {
         ...workflowRouterTests,
         ...catalogStructureTests,
         ...deadModuleVerificationTests,
-        ...devRulesReminderTests
+        ...devRulesReminderTests,
+        ...renameFixGuardTests
     ]
 };

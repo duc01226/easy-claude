@@ -263,7 +263,7 @@ Present inventory to user for review via a direct user question.
 
 a direct user question:
 
-- **"$cook (Recommended)"** — Begin implementing the project plan with full harness in place
+- **"$feature-implement (Recommended)"** — Begin implementing the project plan with full harness in place
 - **"$why-review"** — Review harness design rationale before proceeding
 - **"Skip"** — Proceed manually without workflow guidance
 

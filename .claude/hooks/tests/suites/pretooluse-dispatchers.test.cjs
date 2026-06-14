@@ -32,7 +32,7 @@ const fs = require('fs');
 const { spawnSync } = require('child_process');
 const { runHook, getHookPath, createPreToolUseInput } = require('../lib/hook-runner.cjs');
 const { assertEqual, assertTrue, assertContains, assertBlocked } = require('../lib/assertions.cjs');
-const { extractGoldenRules } = require('../../lib/pretooluse-context-builders.cjs');
+const { extractGoldenRules, buildMindset } = require('../../lib/pretooluse-context-builders.cjs');
 
 const REPO = path.resolve(__dirname, '..', '..', '..', '..');
 const HOOKS = path.join(REPO, '.claude', 'hooks');
@@ -518,7 +518,42 @@ const tc038 = [{
     }
 }];
 
+// ── TC-RENAMEFIX-002 — mindset injection survives the cook→feature-implement /
+// code→plan-execute rename (F-2/F-3 regression lock) ──────────────────────────
+// buildMindset gates on exact MINDSET_SKILLS membership (pretooluse-context-builders.cjs:192).
+// The rename never added the new ids, so /feature-implement & /plan-execute silently
+// injected NO mindset. These assert injection for the new names (fails loud if either
+// is dropped from MINDSET_SKILLS) and keep cook/code as additive-alias controls. The
+// stable marker is injectAiMistakePrevention's heading (emitted for any Skill in the
+// set; empty transcript → no dedup suppression). A skill outside the set must stay empty.
+const MINDSET_MARKER = 'Common AI Mistake Prevention';
+const mindsetSkill = (skill) => ({ tool_name: 'Skill', tool_input: { skill, args: '' }, transcript_path: '' });
+const tc039 = [
+    {
+        name: '[TC-RENAMEFIX-002] buildMindset injects for feature-implement (renamed from cook)',
+        fn: () => assertContains(buildMindset(mindsetSkill('feature-implement')), MINDSET_MARKER,
+            'feature-implement must be in MINDSET_SKILLS — dropping it silently kills mindset injection for /feature-implement')
+    },
+    {
+        name: '[TC-RENAMEFIX-002] buildMindset injects for plan-execute (renamed from code)',
+        fn: () => assertContains(buildMindset(mindsetSkill('plan-execute')), MINDSET_MARKER,
+            'plan-execute must be in MINDSET_SKILLS — dropping it silently kills mindset injection for /plan-execute')
+    },
+    {
+        name: '[TC-RENAMEFIX-002] buildMindset still injects for cook/code aliases (additive preservation)',
+        fn: () => {
+            assertContains(buildMindset(mindsetSkill('cook')), MINDSET_MARKER, 'cook alias must still inject mindset');
+            assertContains(buildMindset(mindsetSkill('code')), MINDSET_MARKER, 'code alias must still inject mindset');
+        }
+    },
+    {
+        name: '[TC-RENAMEFIX-002] buildMindset does NOT inject for a non-mindset skill (negative control)',
+        fn: () => assertEqual(buildMindset(mindsetSkill('changelog')).trim(), '',
+            'a skill outside MINDSET_SKILLS must inject nothing — proves the gate is membership-driven, not unconditional')
+    }
+];
+
 module.exports = {
     name: 'PreToolUse Context Dispatchers (Phase 04)',
-    tests: [...tc030, ...tc031, ...tc032, ...tc033, ...tc034, ...tc035, ...tc036, ...tc037, ...tc038]
+    tests: [...tc030, ...tc031, ...tc032, ...tc033, ...tc034, ...tc035, ...tc036, ...tc037, ...tc038, ...tc039]
 };

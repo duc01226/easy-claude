@@ -26,13 +26,13 @@ SKILL_NAMES = [
     "plan", "plan-analysis",
     "plan-review", "plan-validate",
     # Cook family
-    "cook",
+    "feature-implement",
     # Code family
-    "code",
+    "plan-execute",
     # Fix family (ci/issue/logs/test/ui folded into /fix --target=*)
     "fix",
     # Investigate / scout family
-    "investigate", "debug-investigate", "feature-investigation",
+    "investigate", "debug-investigate",
     "scout",
     # Refactor / migration / scaffold
     "refactoring", "db-migrate", "scaffold",

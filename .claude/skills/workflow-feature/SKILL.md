@@ -7,7 +7,7 @@ disable-model-invocation: true
 
 ## Quick Summary
 
-**Goal:** [Workflow] Trigger Feature Implementation workflow — implement a well-defined feature with investigation, planning, implementation, and review. This workflow is spec-driven with tests by default: test specs (`/spec [mode=tests]`) are written and reviewed BEFORE implementation (`/cook`), covering former TDD/test-first use cases.
+**Goal:** [Workflow] Trigger Feature Implementation workflow — implement a well-defined feature with investigation, planning, implementation, and review. This workflow is spec-driven with tests by default: test specs (`/spec [mode=tests]`) are written and reviewed BEFORE implementation (`/plan-execute`), covering former TDD/test-first use cases.
 
 **Workflow:**
 
@@ -49,7 +49,7 @@ This workflow has steps that appear multiple times. When creating tasks, use the
 
 ## Conditional UI Planning
 
-When a feature involves UI changes (detected during `/scout` or `/feature-investigation`):
+When a feature involves UI changes (detected during `/scout` or `/investigate`):
 
 - If image/wireframe/Figma URL is provided → route to `/design-spec --mode=wireframe` or `/figma-design` before `/plan`
 - If `/plan` detects frontend phases → ensure `ui-wireframe-protocol.md` sections are included in plan phases
@@ -65,13 +65,13 @@ Every step = `TaskUpdate in_progress` → `Skill` tool → complete skill → `T
 
 > **Existing-behavior trace gate:** If the feature modifies an existing final output, persisted state, API response, projection, or user-visible workflow, include an end-to-start trace of the existing path (final reader -> storage/projection -> writer -> producer/origin), feeder paths, invariants to preserve, and forward proof for the intended new behavior before implementation.
 
-> **Goal Contract propagation (workflow-owned):** At workflow start, resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from the feature request). Before `/cook`, verify the plan's feature success criteria map to the saved criteria. Pass the same goal file reference to every child step — child skills read the SAME saved goal, never a re-derived one from chat memory. Before `/workflow-end`, emit the final Goal Satisfaction matrix (PASS/FAIL/BLOCKED); workflow completion requires every required criterion PASS or BLOCKED with a user-facing escalation.
+> **Goal Contract propagation (workflow-owned):** At workflow start, resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from the feature request). Before `/plan-execute`, verify the plan's feature success criteria map to the saved criteria. Pass the same goal file reference to every child step — child skills read the SAME saved goal, never a re-derived one from chat memory. Before `/workflow-end`, emit the final Goal Satisfaction matrix (PASS/FAIL/BLOCKED); workflow completion requires every required criterion PASS or BLOCKED with a user-facing escalation.
 
-**IMPORTANT MANDATORY Steps:** /scout -> /feature-investigation -> /domain-analysis -> /why-review -> /spec -> /plan -> /plan-review -> /plan-validate -> /why-review -> /spec [mode=tests] -> /why-review -> /review-artifact --type=spec-tests -> /plan -> /plan-review -> /cook -> /review-domain-entities -> /spec [mode=tests] -> /why-review -> /review-artifact --type=spec-tests -> /spec [mode=sync] -> /integration-test -> /integration-test-review -> /integration-test-verify -> /workflow-review-changes -> /sre-review -> /security-review -> /changelog -> /test -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /domain-analysis -> /why-review -> /spec -> /plan -> /plan-review -> /plan-validate -> /why-review -> /spec [mode=tests] -> /why-review -> /review-artifact --type=spec-tests -> /plan -> /plan-review -> /plan-execute -> /review-domain-entities -> /spec [mode=tests] -> /why-review -> /review-artifact --type=spec-tests -> /spec [mode=sync] -> /integration-test -> /integration-test-review -> /integration-test-verify -> /workflow-review-changes -> /sre-review -> /security-review -> /changelog -> /test -> /docs-update -> /workflow-end -> /watzup
 
 ---
 
-**IMPORTANT MANDATORY Steps:** /scout -> /feature-investigation -> /domain-analysis -> /why-review -> /spec -> /plan -> /plan-review -> /plan-validate -> /why-review -> /spec [mode=tests] -> /why-review -> /review-artifact --type=spec-tests -> /plan -> /plan-review -> /cook -> /review-domain-entities -> /spec [mode=tests] -> /why-review -> /review-artifact --type=spec-tests -> /spec [mode=sync] -> /integration-test -> /integration-test-review -> /integration-test-verify -> /workflow-review-changes -> /sre-review -> /security-review -> /changelog -> /test -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /domain-analysis -> /why-review -> /spec -> /plan -> /plan-review -> /plan-validate -> /why-review -> /spec [mode=tests] -> /why-review -> /review-artifact --type=spec-tests -> /plan -> /plan-review -> /plan-execute -> /review-domain-entities -> /spec [mode=tests] -> /why-review -> /review-artifact --type=spec-tests -> /spec [mode=sync] -> /integration-test -> /integration-test-review -> /integration-test-verify -> /workflow-review-changes -> /sre-review -> /security-review -> /changelog -> /test -> /docs-update -> /workflow-end -> /watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
@@ -79,13 +79,13 @@ Activate the `workflow-feature` workflow. Run `/start-workflow workflow-feature`
 
 > **Spec check (before investigation):** If `docs/specs/` has a spec for the affected service/module, read the relevant ERD + business-rules + API-contracts files FIRST. Engineering specs provide domain context that reduces investigation time significantly. Command: `ls docs/specs/` to discover available app buckets or flat system folders; then probe `ls docs/specs/{app-bucket}/` or `ls docs/specs/{system-name}/` to find the specific service spec.
 
-**Steps:** /scout → /feature-investigation → /domain-analysis → /why-review → /spec → /plan → /plan-review → /plan-validate → /why-review → /spec [mode=tests] → /why-review → /review-artifact --type=spec-tests → /plan → /plan-review → /cook → /review-domain-entities → /spec [mode=tests] → /why-review → /review-artifact --type=spec-tests → /spec [mode=sync] → /integration-test → /integration-test-review → /integration-test-verify → /workflow-review-changes → /sre-review → /security-review → /changelog → /test → /docs-update → /workflow-end → /watzup
+**Steps:** /scout → /investigate → /domain-analysis → /why-review → /spec → /plan → /plan-review → /plan-validate → /why-review → /spec [mode=tests] → /why-review → /review-artifact --type=spec-tests → /plan → /plan-review → /plan-execute → /review-domain-entities → /spec [mode=tests] → /why-review → /review-artifact --type=spec-tests → /spec [mode=sync] → /integration-test → /integration-test-review → /integration-test-verify → /workflow-review-changes → /sre-review → /security-review → /changelog → /test → /docs-update → /workflow-end → /watzup
 
-> **[PERFORMANCE-SDD ROUTE]** If this feature is a performance enhancement (latency, throughput, memory, query speed, load behavior), run `/performance-review` and require SLA/benchmark evidence: target metric, baseline, measurement command, and acceptable regression budget. Run `/cook` even on the performance route — never skip it. If behavior can change, run `/test` and any relevant functional no-regression checks. Update docs/specs for changed SLA, performance constraints, or behavior boundaries. Use project-specific performance docs from `docs/project-config.json` / `docs/project-reference/` when available.
+> **[PERFORMANCE-SDD ROUTE]** If this feature is a performance enhancement (latency, throughput, memory, query speed, load behavior), run `/performance-review` and require SLA/benchmark evidence: target metric, baseline, measurement command, and acceptable regression budget. Run `/plan-execute` even on the performance route — never skip it. If behavior can change, run `/test` and any relevant functional no-regression checks. Update docs/specs for changed SLA, performance constraints, or behavior boundaries. Use project-specific performance docs from `docs/project-config.json` / `docs/project-reference/` when available.
 
 > **[AI-SDD CLOSURE]** Before `/workflow-end`, confirm changed behavior, unchanged behavior, TCs/tests, docs/specs, and generated mirror sync are either completed or explicitly skipped with evidence.
 >
-> **[AI-SDD CLOSURE — POST-IMPLEMENTATION SPEC RE-VERIFY (MANDATORY)]** The `/spec` authored at step 5 (before `/plan`) captured *intended* behavior. After `/cook`, re-verify Feature Spec **§1-7** (not only §8 TCs) against what was *actually built* and adjudicate every divergence per `shared/sdd-artifact-contract.md` → Drift Gates (`SYNC:spec-drift-adjudication`): **CODE-WRONG** → fix code/test against the spec; **SPEC-STALE** → run `/spec [update]` to record the new intended behavior, then `/spec [mode=tests] [update]` + `/spec [mode=sync]`; **AMBIGUOUS** → escalate to the spec owner. A feature that shipped behavior the spec does not describe leaves the spec stale and is NOT closure-ready. This re-verify is not optional cleanup — it is the "after implement, verify and create/update specs again" half of the SDD cycle.
+> **[AI-SDD CLOSURE — POST-IMPLEMENTATION SPEC RE-VERIFY (MANDATORY)]** The `/spec` authored at step 5 (before `/plan`) captured *intended* behavior. After `/plan-execute`, re-verify Feature Spec **§1-7** (not only §8 TCs) against what was *actually built* and adjudicate every divergence per `shared/sdd-artifact-contract.md` → Drift Gates (`SYNC:spec-drift-adjudication`): **CODE-WRONG** → fix code/test against the spec; **SPEC-STALE** → run `/spec [update]` to record the new intended behavior, then `/spec [mode=tests] [update]` + `/spec [mode=sync]`; **AMBIGUOUS** → escalate to the spec owner. A feature that shipped behavior the spec does not describe leaves the spec stale and is NOT closure-ready. This re-verify is not optional cleanup — it is the "after implement, verify and create/update specs again" half of the SDD cycle.
 
 <!-- SYNC:end-to-start-debugger-trace -->
 
@@ -186,6 +186,8 @@ Activate the `workflow-feature` workflow. Run `/start-workflow workflow-feature`
 >
 > Main agent reads `Full report` file ONLY when: (a) resolving a specific blocker, or (b) building a fix plan.
 > Sub-agent writes full report incrementally (per SYNC:incremental-persistence) — not held in memory.
+>
+> **Context budget** — the return payload is a SUMMARY, not a transcript: ≤10 finding bullets, no raw file contents / full diffs / verbatim logs inline, no re-pasted source. Everything beyond the summary lives in the `Full report` on disk. A sub-agent that would exceed the summary shape MUST write the detail to its report and return only the pointer — the orchestrator's context is the scarce resource the whole map-reduce protects.
 
 <!-- /SYNC:subagent-return-contract -->
 

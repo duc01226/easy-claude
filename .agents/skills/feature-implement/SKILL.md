@@ -1,5 +1,5 @@
 ---
-name: cook
+name: feature-implement
 description: '[Implementation] Use when you need to implement a feature [step by step].'
 ---
 
@@ -64,6 +64,24 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - Maximum thoroughness: research → plan → implement → review → test → docs
 - User approval required at plan stage
 - Break work into todo tasks; add final self-review task
+
+> **Renamed:** formerly `cook` — now `$feature-implement`. The old name no longer resolves as a slash command.
+
+> **feature-implement vs plan-execute:** `feature-implement` takes an idea/feature description and goes idea → research → **plan (created here)** → shipped. Use `$plan-execute` instead when a plan file already exists and you only need disciplined phase-by-phase execution + commit. feature-implement owns the front of the pipeline (research + planning); plan-execute owns the back (phase gates + auto-commit + `--parallel`/`--approval`/`--tests` flags).
+
+## Standalone Mode Pipeline (skip entirely if invoked inside a workflow)
+
+> **MANDATORY — standalone `$feature-implement` only.** When invoked OUTSIDE a workflow, wrap the core spine in this quality loop. Detect an active workflow via the current task list FIRST: if a parent `[Workflow]` row exists, SKIP this section — the surrounding workflow already sequences plan/review/why-review around this skill (e.g. `workflow-feature` wraps feature-implement with exactly these steps).
+>
+> Create these as task tracking tasks up front, in order, then execute them:
+>
+> 1. **`$spec` — spec-driven, BEFORE any plan or code.** Create or update the tech-free 8-section Feature Spec under `docs/specs/` so the plan and implementation satisfy an agreed contract, not chat memory. Decide the case from evidence: net-new capability with no code yet → `$spec [mode=draft]` (provisional, `Evidence: TBD`); enhancement to an already-documented feature → `$spec [mode=update]`; behavior/contract change to existing spec → `$spec [mode=amend]`; buggy/undocumented area that now warrants a spec → `$spec [mode=init]`. If a governing spec already exists and fully covers this change, record `Spec verified current — no change` with `file:line` evidence and proceed. **Skip ONLY in fast mode** (ALL Default Mode Policy trivial-task conditions met — no behavior/contract change); record the skip reason. Decide the case explicitly — skip only the authoring, never the decision.
+> 2. **`$plan`** — author the implementation plan from the spec. feature-implement's Comprehensive Planning phase (Step 2) satisfies this; emit a reviewable plan artifact under `plans/`. Map each plan phase's `## Test Specifications` to the spec's §8 `TC-{FEATURE}-{NNN}` IDs.
+> 3. **`$plan-review`** — recursively review/validate the plan; fix validated findings before implementing.
+> 4. **Proceed** — execute the core implementation spine (research already done → implement → test → review → docs).
+> 5. **`$spec [mode=sync]`** — *spec-driven closure.* Reconcile the spec's §8 `TC-{FEATURE}-{NNN}` ↔ integration tests and refresh `Evidence: TBD` markers to real `file:line` now that code exists. Run `$spec [mode=tests]` first if the implementation introduced behavior not yet captured as a test case. Skip only when step 1 was skipped (fast-mode trivial, no spec touched).
+> 6. **`$review-changes`** — review the diff before commit.
+> 7. **`$why-review`** — review rationale and change quality of the implementation.
 
 ## First Principle — Easy to Change
 

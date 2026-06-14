@@ -19,8 +19,8 @@ disable-model-invocation: true
 **Key Rules:**
 
 - Always show script output fully, then enhance — never replace or summarize it
-- `/plan` then `/code` is the correct flow; NEVER suggest `/plan` then `/cook`
-- `/cook` is standalone (has its own planning)
+- `/plan` then `/plan-execute` is the correct flow; NEVER suggest `/plan` then `/feature-implement`
+- `/feature-implement` is standalone (has its own planning)
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
@@ -78,7 +78,7 @@ Need help setting up a specific configuration?
 
 ### `@CK_OUTPUT_TYPE:category-guide`
 
-Workflow guides for command categories (fix, plan, cook, etc.).
+Workflow guides for command categories (fix, plan, feature-implement, etc.).
 
 **Presentation:**
 
@@ -136,9 +136,9 @@ Always show the script output fully, then enhance with your knowledge and contex
 
 ## Important: Correct Workflows
 
-- **`/plan` → `/code`**: Plan first, then execute the plan
-- **`/cook`**: Standalone - plans internally, no separate `/plan` needed
-- **NEVER** suggest `/plan` → `/cook` (cook has its own planning)
+- **`/plan` → `/plan-execute`**: Plan first, then execute the plan
+- **`/feature-implement`**: Standalone - plans internally, no separate `/plan` needed
+- **NEVER** suggest `/plan` → `/feature-implement` (feature-implement has its own planning)
 
 ---
 

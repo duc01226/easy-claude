@@ -143,6 +143,27 @@ const skillTriggerTests = [
         }
     },
     {
+        name: '[dev-rules] injects on coding skill (feature-implement)',
+        fn: () => {
+            const out = build(skillPayload('feature-implement'));
+            assertContains(out, 'Development Rules', 'Should inject on feature-implement skill (renamed from cook)');
+        }
+    },
+    {
+        name: '[dev-rules] injects on coding skill (plan-execute)',
+        fn: () => {
+            const out = build(skillPayload('plan-execute'));
+            assertContains(out, 'Development Rules', 'Should inject on plan-execute skill (renamed from code)');
+        }
+    },
+    {
+        name: '[dev-rules] injects on coding skill (code, alias)',
+        fn: () => {
+            const out = build(skillPayload('code'));
+            assertContains(out, 'Development Rules', 'Should inject on code alias (additive preservation)');
+        }
+    },
+    {
         name: '[dev-rules] injects on coding skill (fix)',
         fn: () => {
             const out = build(skillPayload('fix'));

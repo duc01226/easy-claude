@@ -13,27 +13,10 @@
     "frontendPatternsDoc": "docs/project-reference/frontend-patterns-reference.md",
     "codeReviewDoc": "docs/project-reference/code-review-rules.md",
     "integrationTestDoc": "docs/project-reference/integration-test-reference.md",
-    "searchPatternKeywords": [
-      "hook",
-      "skill",
-      "agent",
-      "workflow",
-      "context",
-      "injector",
-      "session"
-    ]
+    "searchPatternKeywords": ["hook", "skill", "agent", "workflow", "context", "injector", "session"]
   },
   "skillConventions": {
-    "conventionFields": [
-      "version",
-      "activation",
-      "triggers",
-      "execution-mode",
-      "context-budget",
-      "last_reviewed",
-      "tags",
-      "category"
-    ],
+    "conventionFields": ["version", "activation", "triggers", "execution-mode", "context-budget", "tags", "category"],
     "removableFields": [],
     "fieldFixes": {}
   },
@@ -117,10 +100,7 @@
       "pathRegexes": ["[\\\\/]\\.claude[\\\\/]agents[\\\\/].*\\.md$"],
       "fileExtensions": [".md"],
       "guideDoc": ".claude/docs/agents/README.md",
-      "rules": [
-        "Agent definitions are markdown files in .claude/agents/",
-        "Follow patterns in .claude/docs/agents/agent-patterns.md"
-      ]
+      "rules": ["Agent definitions are markdown files in .claude/agents/", "Follow patterns in .claude/docs/agents/agent-patterns.md"]
     }
   ],
   "designSystem": {
@@ -181,44 +161,25 @@
     {
       "filename": "feature-spec-reference.md",
       "purpose": "Feature Spec structure, authoring rules, and test case format",
-      "sections": [
-        "Directory Convention",
-        "8-Section Structure",
-        "Test Case ID Format",
-        "Evidence Rule"
-      ],
+      "sections": ["Directory Convention", "8-Section Structure", "Test Case ID Format", "Evidence Rule"],
       "templatePath": ".claude/templates/reference-docs/feature-spec-reference.md"
     },
     {
       "filename": "spec-system-reference.md",
       "purpose": "Project-specific extension for local spec routing, canonical artifact ownership, and generated-artifact rules",
-      "sections": [
-        "Fixed Spec Root",
-        "Canonical Artifact",
-        "Test Case Registry",
-        "Derived Artifacts"
-      ],
+      "sections": ["Fixed Spec Root", "Canonical Artifact", "Test Case Registry", "Derived Artifacts"],
       "templatePath": ".claude/templates/reference-docs/spec-system-reference.md"
     },
     {
       "filename": "spec-principles.md",
       "purpose": "Project-specific extension for local spec, test, and documentation rules",
-      "sections": [
-        "Local Authority",
-        "Local Source Routing",
-        "Local Prose Rules",
-        "Verification Commands"
-      ],
+      "sections": ["Local Authority", "Local Source Routing", "Local Prose Rules", "Verification Commands"],
       "templatePath": ".claude/templates/reference-docs/spec-principles.md"
     },
     {
       "filename": "workflow-spec-test-code-cycle-reference.md",
       "purpose": "Project-specific workflow sequence for keeping specs, tests, code, docs, and generated mirrors aligned",
-      "sections": [
-        "Local Workflow Sequence",
-        "Local Artifact Owners",
-        "Local Closure Gates"
-      ],
+      "sections": ["Local Workflow Sequence", "Local Artifact Owners", "Local Closure Gates"],
       "templatePath": ".claude/templates/reference-docs/workflow-spec-test-code-cycle-reference.md"
     },
     {
@@ -234,15 +195,7 @@
     {
       "filename": "domain-entities-reference.md",
       "purpose": "Framework conceptual domain — Hook, Skill, Agent, Workflow, Context Group, Module",
-      "sections": [
-        "hook",
-        "skill",
-        "agent",
-        "workflow",
-        "context-group",
-        "module",
-        "entity-relationships"
-      ]
+      "sections": ["hook", "skill", "agent", "workflow", "context-group", "module", "entity-relationships"]
     },
     {
       "filename": "e2e-test-reference.md",
@@ -252,12 +205,7 @@
     {
       "filename": "docs-index-reference.md",
       "purpose": "Documentation tree, file counts by category, doc relationships, and keyword-to-doc lookup table.",
-      "sections": [
-        "Documentation System",
-        "Documentation Graph",
-        "Key Doc Relationships",
-        "Doc Lookup Guide"
-      ]
+      "sections": ["Documentation System", "Documentation Graph", "Key Doc Relationships", "Doc Lookup Guide"]
     }
   ]
 }

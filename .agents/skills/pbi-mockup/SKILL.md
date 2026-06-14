@@ -91,7 +91,7 @@ Generate visual HTML mockup reports from PBI and user story artifacts.
 - When stakeholders need a visual preview of the feature
 - As the final step in `workflow-idea-to-pbi` and similar workflows
 
-**NOT for**: Implementing production UI (use `$cook`), creating design specs (use `$design-spec`), or wireframing from scratch (use `$design-spec --mode=wireframe`).
+**NOT for**: Implementing production UI (use `$feature-implement`), creating design specs (use `$design-spec`), or wireframing from scratch (use `$design-spec --mode=wireframe`).
 
 ---
 

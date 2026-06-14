@@ -65,12 +65,13 @@ function main() {
         const skillName = extractSkillName(subject);
         if (!skillName) process.exit(0); // not a workflow step task, allow
 
-        // Load workflow config and map skill → step ID
+        // Require a loadable workflow config (fail-open if missing)
         const config = loadWorkflowConfig();
         if (!config) process.exit(0);
 
-        const stepId = mapSkillToStepId(skillName, config);
-        if (!stepId) process.exit(0); // skill doesn't map to any workflow step, allow
+        // Map skill → step ID (identity — skill name == step id)
+        const stepId = mapSkillToStepId(skillName);
+        if (!stepId) process.exit(0); // empty skill name, allow
 
         // Check if this step was completed (Skill tool was invoked)
         const workflowState = loadState(sessionId);

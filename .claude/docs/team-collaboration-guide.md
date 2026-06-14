@@ -314,7 +314,7 @@ Dev:                             /code-review ──→ Implementation
 
 **Trigger:** "test-first", "TDD", "spec-driven" (the former tdd-feature workflow was merged into `feature`)
 **Roles:** Developer, QA
-**IMPORTANT MANDATORY Steps (abridged):** `/scout` → `/investigate` → `/plan` → `/spec [mode=tests]` → `/cook` → `/integration-test` → `/test` → `/docs-update`
+**IMPORTANT MANDATORY Steps (abridged):** `/scout` → `/investigate` → `/plan` → `/spec [mode=tests]` → `/feature-implement` → `/integration-test` → `/test` → `/docs-update`
 
 Test specs are written **before** implementation, then code is written to satisfy them.
 
@@ -501,14 +501,14 @@ PLANNING
 | "new idea" / "feature request" | idea-to-pbi            | /idea → /refine → /story → /prioritize |
 | "test this PBI" / "test cases" | `/spec [mode=tests]` (skill) | /spec [mode=tests] → /quality-gate     |
 | "design spec for"              | `/design-spec`         | /design-spec → /interface-design       |
-| "TDD" / "test-first"           | feature                | /plan → /spec [mode=tests] → /cook → /test |
+| "TDD" / "test-first"           | feature                | /plan → /spec [mode=tests] → /feature-implement → /test |
 
 ### Common Patterns
 
 **Feature from scratch:**
 
 ```
-/idea → /refine → /story → /design-spec → /spec [mode=tests] → /plan → /cook → /test
+/idea → /refine → /story → /design-spec → /spec [mode=tests] → /plan → /feature-implement → /test
 ```
 
 **Sprint prep:**

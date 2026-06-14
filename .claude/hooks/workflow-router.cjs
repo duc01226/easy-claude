@@ -28,7 +28,7 @@ const { WORKFLOW_CATALOG: WORKFLOW_CATALOG_MARKER, WORKFLOW_CATALOG_P2, WORKFLOW
  * @returns {string} Formatted catalog text
  */
 function buildWorkflowCatalog(config, sliceStart = 0, sliceEnd) {
-    const { workflows, commandMapping } = config;
+    const { workflows } = config;
 
     let entries = Object.entries(workflows)
         .filter(([, wf]) => wf.whenToUse)
@@ -38,9 +38,9 @@ function buildWorkflowCatalog(config, sliceStart = 0, sliceEnd) {
 
     const lines = [];
     for (const [id, wf] of entries) {
-        const sequence = wf.sequence.map(step => commandMapping[step]?.claude || `/${step}`).join(' \u2192 ');
+        const sequence = wf.sequence.map(step => `/${step}`).join(' \u2192 ');
         lines.push(`**${id}** \u2014 ${wf.name}`);
-        lines.push(`  Use: ${wf.whenToUse} | Not for: ${wf.whenNotToUse || 'N/A'} | Steps: ${sequence}`);
+        lines.push(`  Use: ${wf.whenToUse} | Steps: ${sequence}`);
     }
 
     return lines.join('\n');
@@ -81,7 +81,7 @@ function buildCatalogInjection(config) {
     lines.push('1. **MATCH:** Compare the user\'s prompt against EVERY "Use" field across ALL THREE catalog parts. Match semantics, not exact keywords.');
     lines.push('2. **ANALYZE:** Identify the best path: execute directly, invoke a skill, activate a standard workflow, or compose a custom workflow. A custom workflow is appropriate when no single workflow fits cleanly, the task spans multiple workflow boundaries, or trimming/reordering standard steps improves fit.');
     lines.push('3. **AUTO-SELECT:** Choose the best path yourself. Explicit `/skill`, `/workflow-*`, or `/start-workflow <id>` prompts count as the user choosing that path and should execute directly.');
-    lines.push('4. **COMPOSE (if custom):** Select steps from existing workflow step libraries. Use a 1-line rationale internally (e.g. `scout → plan → fix → test → docs-update — skipping cook since plan is already defined`).');
+    lines.push('4. **COMPOSE (if custom):** Select steps from existing workflow step libraries. Use a 1-line rationale internally (e.g. `scout → plan → fix → test → docs-update — skipping feature-implement since plan is already defined`).');
     lines.push('5. **ACTIVATE:** Call `/start-workflow <workflowId>` for a selected standard workflow; invoke the selected skill; sequence custom steps manually; or execute directly when that is the best fit.');
     lines.push('6. **TaskCreate:** Create `[Workflow]` tasks for each workflow/custom step BEFORE any other action');
     lines.push('');
@@ -122,8 +122,8 @@ function getStepDescription(step) {
         'plan-review': 'Review and validate plan',
         'plan-validate': 'Validate plan with critical questions',
         'why-review': 'Validate design rationale completeness',
-        cook: 'Implement the feature',
-        code: 'Execute existing plan',
+        'feature-implement': 'Implement the feature',
+        'plan-execute': 'Execute existing plan',
         'code-simplifier': 'Simplify and clean up code',
         'code-review': 'Review code quality',
         changelog: 'Update changelog entries',
@@ -156,11 +156,9 @@ function getStepDescription(step) {
  * Used by step-tracker after /start-workflow creates state.
  * @param {string} workflowId - Workflow identifier
  * @param {Object} workflow - Workflow definition
- * @param {Object} config - Full workflow configuration
  * @returns {string} Formatted instructions
  */
-function buildWorkflowInstructions(workflowId, workflow, config) {
-    const { commandMapping } = config;
+function buildWorkflowInstructions(workflowId, workflow) {
     const lines = [];
 
     lines.push(`## Workflow Activated: ${workflow.name} [${workflowId}]`);
@@ -188,7 +186,7 @@ function buildWorkflowInstructions(workflowId, workflow, config) {
     lines.push('### Sequence');
     lines.push('');
     workflow.sequence.forEach((step, i) => {
-        const cmd = commandMapping[step]?.claude || `/${step}`;
+        const cmd = `/${step}`;
         lines.push(`${i + 1}. \`${cmd}\` - ${getStepDescription(step)}`);
     });
     lines.push('');
@@ -202,7 +200,7 @@ function buildWorkflowInstructions(workflowId, workflow, config) {
     );
     lines.push('');
     workflow.sequence.forEach((step, i) => {
-        const cmd = commandMapping[step]?.claude || `/${step}`;
+        const cmd = `/${step}`;
         const desc = getStepDescription(step);
         lines.push(`${i + 1}. TaskCreate: subject="[Workflow] ${cmd} - ${desc}", description="${workflow.name} workflow step: ${cmd}", activeForm="${desc}"`);
     });

@@ -75,7 +75,7 @@ Searches codebase for relevant files and explains functionality.
 # 2. Review plan, approve when ready
 
 # 3. Execute implementation
-/cook
+/feature-implement
 
 # 4. Run tests
 /test
@@ -103,7 +103,7 @@ Searches codebase for relevant files and explains functionality.
 /scout "where is validation handled"
 
 # Deep investigation
-/feature-investigation "how does employee validation work"
+/investigate "how does employee validation work"
 ```
 
 ## Step 5: Understanding Hook Events (Optional)
@@ -160,7 +160,7 @@ For more troubleshooting, see [troubleshooting.md](./troubleshooting.md).
 
 ### Commands vs Skills
 
-- **Commands** (`/cook`, `/plan`): Explicitly invoked by user with `/` prefix
+- **Commands** (`/feature-implement`, `/plan`): Explicitly invoked by user with `/` prefix
 - **Skills**: Automatically activated based on context keywords
 
 ### Lessons System
@@ -174,7 +174,7 @@ The system that learns from your interactions:
 
 Claude Code automatically detects intent and suggests workflows:
 
-- "implement X" -> `/plan` -> `/cook` -> `/test`
+- "implement X" -> `/plan` -> `/feature-implement` -> `/test`
 - "fix X" -> `/fix` -> `/test`
 - "review X" -> `/review`
 

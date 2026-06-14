@@ -74,14 +74,14 @@ Before writing any verdict, generate 2+ sentences arguing OPPOSITE conclusion ab
 - **"Recommendations are actionable"** → On what evidence? What's the confidence of the evidence chain?
 - **Approving a knowledge artifact without challenging the evidence quality** → Forbidden.
 
-### Anti-Bias Gate (MANDATORY before finalizing verdict)
+### Anti-Bias Gate (MANDATORY before finalizing verdict) (MUST ATTENTION)
 
-- MUST ATTENTION found 1+ contradicting source per major claim (or flagged its absence)
-- MUST ATTENTION challenged 1+ confidence score ≥ 80% with a stress test
-- MUST ATTENTION stated strongest alternative conclusion from same evidence
-- MUST ATTENTION checked source balance (supporting vs. contradicting ratio)
-- MUST ATTENTION ran pre-mortem on main recommendation
-- MUST ATTENTION generated 2+ sentences arguing opposite verdict
+- found 1+ contradicting source per major claim (or flagged its absence)
+- challenged 1+ confidence score ≥ 80% with a stress test
+- stated strongest alternative conclusion from same evidence
+- checked source balance (supporting vs. contradicting ratio)
+- ran pre-mortem on main recommendation
+- generated 2+ sentences arguing opposite verdict
 
 Any item unmet → adversarial review incomplete. Go back. — why: skipping the gate ships confirmation-biased verdicts as fact.
 
@@ -172,20 +172,21 @@ Any item unmet → adversarial review incomplete. Go back. — why: skipping the
 {APPROVED | REVISE | BLOCKED}
 ```
 
-## Round 2: Focused Re-Review (MANDATORY)
+## Round 2: Focused Re-Review (conditional — triggered by findings)
 
-After completing Round 1 evaluation, execute a **second full review round**:
+Convergence follows the single contract in `SYNC:double-round-trip-review` below: **a clean Round 1 ENDS the review — there is no unconditional mandatory Round 2.** Re-review is triggered by a validated-finding fix cycle (`review → validate findings → fix → full re-review`), not by a round number.
+
+When Round 1 surfaces findings, run this focused re-review as part of that full re-review (do NOT rely on Round 1 memory):
 
 1. **Re-read** the Round 1 verdict and checklist results
-2. **Re-evaluate** ALL checklist items — do NOT rely on Round 1 memory
+2. **Re-evaluate** ALL checklist items from scratch
 3. **Challenge** Round 1 PASS items: "Is this really PASS? Did I verify citations and confidence?"
 4. **Focus on** what Round 1 typically misses:
     - Citation accuracy (do sources actually say what's claimed?)
     - Confidence calibration (are percentages realistic?)
     - Knowledge gaps that weren't flagged
     - Template compliance shortcuts
-5. **Update verdict** if Round 2 found new issues
-6. **Final verdict** must incorporate findings from BOTH rounds
+5. **Update verdict** to incorporate the new findings; then re-enter the loop until a complete review pass finds zero issues.
 
 ---
 
@@ -193,7 +194,7 @@ After completing Round 1 evaluation, execute a **second full review round**:
 
 **Prerequisites:** **MUST ATTENTION READ** before executing:
 
-> **OOP & DRY Enforcement:** MANDATORY IMPORTANT MUST ATTENTION — flag duplicated patterns that should be extracted to a base class, generic, or helper. Classes in the same group or suffix (ex *Entity, *Dto, \*Service, etc...) MUST ATTENTION inherit a common base (even if empty now — enables future shared logic and child overrides). Verify project has code linting/analyzer configured for the stack.
+> **OOP & DRY Enforcement:** MANDATORY — flag duplicated patterns that should be extracted to a base class, generic, or helper. Classes in the same group or suffix (ex *Entity, *Dto, \*Service, etc...) must inherit a common base (even if empty now — enables future shared logic and child overrides). Verify project has code linting/analyzer configured for the stack.
 
 <!-- SYNC:ai-mistake-prevention -->
 
@@ -222,7 +223,7 @@ After completing Round 1 evaluation, execute a **second full review round**:
 > **Decision after Round 1:**
 >
 > - **No issues found (PASS, zero findings)** → review ENDS. Do NOT spawn a fresh sub-agent for confirmation.
-> - **Issues found (FAIL, or any non-zero findings)** → run the active review skill's findings-validation gate first; for review skills the default gate is `/why-review --validate-findings <report-path>`, fix only validated findings, then restart the full review protocol from the beginning with a fresh task breakdown.
+> - **Issues found (FAIL, or any non-zero findings)** → run the active review skill's findings-validation gate first; for review skills the default gate is `/why-review --validate-findings <report-path>`. Fix only validated findings, then restart the full review protocol from the beginning with a fresh task breakdown.
 >
 > **Fresh full re-review after every fix cycle:** Re-run the whole review protocol over the current full target. When sub-agents are part of that protocol, spawn NEW `Agent` calls — never reuse prior agents. Reviewers re-read ALL files from scratch with ZERO memory of prior rounds. See `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. Each fresh full review must catch:
 >
@@ -254,7 +255,7 @@ After completing Round 1 evaluation, execute a **second full review round**:
 
 > **Fresh Context Re-Review** — Eliminate orchestrator confirmation bias after fixes by restarting the full review with isolated sub-agents where applicable.
 >
-> **Why:** The main agent knows what it (or `/cook`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
+> **Why:** The main agent knows what it (or `/feature-implement`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
 >
 > **When:** ONLY after a validated-finding fix cycle. A review round that finds zero issues ENDS the loop — do NOT spawn a confirmation sub-agent. A review round that finds issues triggers: validate findings → fix → full review restart from the first phase.
 >
@@ -503,6 +504,26 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:web-research -->
 
+<!-- SYNC:severity-rubric -->
+
+> **Severity Rubric** — Classify every finding by consequence, not by how easy it is to fix. One scale across all reviews so a "High" means the same thing everywhere.
+>
+> | Severity | Action | Definition |
+> | --- | --- | --- |
+> | CRITICAL | Block merge | Silent runtime failure, data corruption, validation bypass, security hole |
+> | HIGH | Must fix | Incorrect behavior, invariant gap, architectural violation |
+> | MEDIUM | Should fix | Design debt, maintainability, likely future bug |
+> | LOW | Nice to fix | Convention, documentation, minor clarity |
+>
+> **Score-based skills** map their numeric scale onto these tiers — do not invent a parallel vocabulary:
+>
+> - **0-2 criterion scoring** (e.g. sre-review): `0` = CRITICAL/HIGH (criterion unmet, blocks production readiness), `1` = MEDIUM (partial, should fix), `2` = pass (no finding).
+> - **Two-axis scoring** (e.g. performance-review, impact × likelihood): map the resulting cell to the nearest tier — high-impact + high-likelihood → CRITICAL/HIGH; low-impact OR low-likelihood → MEDIUM/LOW.
+>
+> A finding's tier drives the gate: CRITICAL/HIGH must be resolved or explicitly accepted by the owner before PASS; MEDIUM/LOW may ship with a tracked follow-up.
+
+<!-- /SYNC:severity-rubric -->
+
 <!-- SYNC:double-round-trip-review:reminder -->
 - **MANDATORY IMPORTANT MUST ATTENTION** execute the review loop: review → validate findings → fix validated findings → full re-review. A complete review pass with zero findings ENDS the review.
 <!-- /SYNC:double-round-trip-review:reminder -->
@@ -547,15 +568,22 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:nested-task-creation:reminder -->
 
+<!-- SYNC:severity-rubric:reminder -->
+
+- **MANDATORY** Classify findings Critical/High/Medium/Low by consequence; Critical/High block PASS until fixed or owner-accepted.
+- **MANDATORY** Score-based skills (sre 0-2, perf two-axis) map onto the same four tiers — no parallel severity vocabulary.
+
+<!-- /SYNC:severity-rubric:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Ensure knowledge artifacts are evidence-backed, complete, protocol-compliant, and safe to use for decisions.
-**IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
-**IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
-**IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
-**IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
-**IMPORTANT MUST ATTENTION** execute the review loop: review → validate findings → fix validated findings → full re-review. A complete review pass with zero findings ENDS the review.
-**MANDATORY IMPORTANT MUST ATTENTION** READ the following files before starting:
+- break work into small todo tasks using `TaskCreate` BEFORE starting
+- search codebase for 3+ similar patterns before creating new code
+- cite evidence for every claim — for a knowledge artifact that is the supporting source citation `[N]`/source-table row (use `file:line` only for the rare code-linked claim); confidence >80% to act
+- add a final review todo task to verify work quality
+- execute the review loop: review → validate findings → fix validated findings → full re-review. A complete review pass with zero findings ENDS the review.
+- READ the following files before starting:
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
 

@@ -12,7 +12,7 @@ const MODES = [
         mode: 'Mode 1: TDD-First',
         input: 'PBI / user story (no code yet)',
         action: 'Generate TC specs from requirements',
-        next: '/integration-test → /plan → /cook',
+        next: '/integration-test → /plan → /feature-implement',
         color: C.purple
     },
     {
@@ -33,7 +33,7 @@ const MODES = [
 
 const TDD_WORKFLOWS = [
     { name: 'idea-to-pbi', seq: '/idea → /refine → /story → /spec [mode=tests]', use: 'Idea → PBI + test specs' },
-    { name: 'feature', seq: '/scout → /spec → /plan → /spec [mode=tests] → /cook → /integration-test → /test', use: 'Spec-driven TDD cycle' },
+    { name: 'feature', seq: '/scout → /spec → /plan → /spec [mode=tests] → /feature-implement → /integration-test → /test', use: 'Spec-driven TDD cycle' },
     { name: 'write-integration-test', seq: '/scout → /spec [mode=tests] → /integration-test → verify', use: 'Spec-first integration tests' },
     { name: 'e2e --source=recording', seq: '/scout → /e2e-test → /test → /docs-update → /workflow-end → /watzup', use: 'Chrome recording → Playwright' }
 ];

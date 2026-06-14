@@ -38,13 +38,12 @@ SKILL_NAMES = [
     "why-review",
     "workflow-review-changes",
     # Cook family
-    "cook",
+    "feature-implement",
     # Bugfix / fix family (ci/issue/logs/test/ui folded into /fix --target=*)
     "fix",
     # Investigate / scout family
     "investigate",
     "debug-investigate",
-    "feature-investigation",
     "scout",
     # workflow-write-integration-test step skills (those not already listed)
     # NOTE: `spec` (merged feature-spec router) is intentionally NOT a target —

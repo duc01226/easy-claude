@@ -41,7 +41,7 @@ description: '[Architecture] Use when scaffolding reusable OOP/SOLID project fou
 ## When to Use
 
 - After the second `/plan` + `/plan-review` in greenfield-init or big-feature workflows
-- Before `/cook` begins implementing feature stories
+- Before `/feature-implement` begins implementing feature stories
 - When a new service/module needs its own base architecture within an existing project
 - **NOT** when the project already has established base classes and infrastructure
 
@@ -180,7 +180,7 @@ where each control fires at the right lifecycle stage and produces signals the a
 1. `/linter-setup` — computational feedback sensors (deterministic, fast, always-on)
 2. `/harness-setup` — full harness inventory (all feedforward guides + all feedback sensors)
 
-**Do NOT proceed to `/cook` until both complete.** (`/scaffold` verification gate enforces this)
+**Do NOT proceed to `/feature-implement` until both complete.** (`/scaffold` verification gate enforces this)
 
 ## Production Readiness Scaffolding (MANDATORY)
 
@@ -254,7 +254,7 @@ After scaffolding is complete:
 4. **Production Readiness Verification** — All 4 concern areas verified via protocol checklists
 5. **Config Files Generated** — Linter, formatter, pre-commit, Docker configs all created
 
-## Verification Gate (MANDATORY before proceeding to /cook)
+## Verification Gate (MANDATORY before proceeding to /feature-implement)
 
 Run ALL verification checklists from the production readiness protocol:
 
@@ -265,13 +265,13 @@ Run ALL verification checklists from the production readiness protocol:
 - [ ] `/linter-setup` completed (linter + formatter + pre-commit + CI gate configured)
 - [ ] `/harness-setup` completed (harness-inventory.md produced, feedforward guides in place)
 
-**BLOCK proceeding to `/cook` if ANY verification item fails.** Fix issues first, then re-verify.
+**BLOCK proceeding to `/feature-implement` if ANY verification item fails.** Fix issues first, then re-verify.
 
 ## Next Steps
 
 **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use `AskUserQuestion` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
 
-- **"/cook (Recommended)"** — Begin implementing feature stories on top of the scaffolding
+- **"/feature-implement (Recommended)"** — Begin implementing feature stories on top of the scaffolding
 - **"/workflow-review-changes"** — Review scaffolding code before proceeding
 - **"Skip, continue manually"** — user decides
 
@@ -340,7 +340,7 @@ Run ALL verification checklists from the production readiness protocol:
 > 4. **Docker Development Environment** — compose profiles (`dev`/`test`/`infra`), multi-stage Dockerfile, health checks on all services, non-root production user.
 > 5. **Integration Points** — document each outbound boundary; configure retry + circuit breaker + timeout; integration tests for happy path and failure path.
 >
-> **BLOCK `/cook` if any foundation is unchecked.** Present 2-3 options per concern via `AskUserQuestion` before implementing.
+> **BLOCK `/feature-implement` if any foundation is unchecked.** Present 2-3 options per concern via `AskUserQuestion` before implementing.
 
 <!-- /SYNC:scaffold-production-readiness -->
 
@@ -443,7 +443,7 @@ Run ALL verification checklists from the production readiness protocol:
 
 **IMPORTANT MUST ATTENTION Goal:** Produce a copy-ready, OOP/SOLID-compliant architecture foundation — base classes, infrastructure abstractions, and quality-gate tooling — that every feature story reuses before implementation starts.
 **MANDATORY IMPORTANT MUST ATTENTION** check Activation Guards FIRST — SKIP entirely if existing scaffolding found or workflow is not greenfield-init/big-feature.
-**MANDATORY IMPORTANT MUST ATTENTION** BLOCK `/cook` until both `/linter-setup` and `/harness-setup` complete and all production-readiness foundations verify.
+**MANDATORY IMPORTANT MUST ATTENTION** BLOCK `/feature-implement` until both `/linter-setup` and `/harness-setup` complete and all production-readiness foundations verify.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting.
 **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — never auto-decide.
 **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.

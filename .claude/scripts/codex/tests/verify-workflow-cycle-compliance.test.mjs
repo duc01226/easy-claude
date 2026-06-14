@@ -37,7 +37,7 @@ const sequenceByWorkflow = {
     "spec",
     "spec [mode=tests]",
     "review-artifact --type=spec-tests",
-    "cook",
+    "feature-implement",
     "integration-test",
     "integration-test-review",
     "integration-test-verify",
@@ -69,7 +69,7 @@ const sequenceByWorkflow = {
     "plan",
     "spec [mode=tests]",
     "review-artifact --type=spec-tests",
-    "cook",
+    "feature-implement",
     "integration-test",
     "integration-test-review",
     "integration-test-verify",
@@ -83,7 +83,7 @@ const sequenceByWorkflow = {
     "plan",
     "spec [mode=tests]",
     "review-artifact --type=spec-tests",
-    "cook",
+    "feature-implement",
     "integration-test",
     "integration-test-review",
     "integration-test-verify",
@@ -125,13 +125,6 @@ function makeWorkflowJson() {
   };
 
   return {
-    commandMapping: {
-      investigate: { claude: "/feature-investigation" },
-      plan: { claude: "/plan" },
-      "test-initial": { claude: "/test" },
-      "workflow-end": { claude: "/workflow-end" },
-      scout: { claude: "/scout" },
-    },
     workflows,
   };
 }
@@ -159,7 +152,6 @@ test("verify-workflow-cycle-compliance debugger trace metadata policy", () => {
 });
 
 function toSkillStepToken(step) {
-  if (step === "investigate") return "feature-investigation";
   if (step === "test-initial") return "test";
   return step;
 }
@@ -302,7 +294,7 @@ test("verify-workflow-cycle-compliance fails on paired-drift", async () => {
     await writeSkillFile(
       path.join(tempRoot, ".agents", "skills"),
       "feature",
-      "$scout -> $feature-investigation -> $unknown-step -> $workflow-end"
+      "$scout -> $investigate -> $unknown-step -> $workflow-end"
     );
 
     await assert.rejects(
@@ -418,7 +410,7 @@ test("verify-workflow-cycle-compliance enforces spec before implementation plann
       "spec",
       "spec [mode=tests]",
       "review-artifact --type=spec-tests",
-      "cook",
+      "feature-implement",
       "integration-test",
       "integration-test-review",
       "integration-test-verify",
@@ -554,17 +546,17 @@ test("verify-workflow-cycle-compliance fails on closing task-count drift", async
 
 test("checkGoalContractSkillCompliance accepts marker or active-goal wording, fails when both absent", () => {
   assert.deepEqual(
-    checkGoalContractSkillCompliance("cook", "<!-- SYNC:goal-contract-satisfaction-loop:reminder -->"),
+    checkGoalContractSkillCompliance("feature-implement", "<!-- SYNC:goal-contract-satisfaction-loop:reminder -->"),
     []
   );
   assert.deepEqual(
-    checkGoalContractSkillCompliance("cook", "Resolve the active goal before implementing."),
+    checkGoalContractSkillCompliance("feature-implement", "Resolve the active goal before implementing."),
     []
   );
 
-  const failures = checkGoalContractSkillCompliance("cook", "Implement the feature with tests.");
+  const failures = checkGoalContractSkillCompliance("feature-implement", "Implement the feature with tests.");
   assert.equal(failures.length, 1);
-  assert.match(failures[0], /Goal-contract violation \(cook\): missing active-goal lifecycle marker/);
+  assert.match(failures[0], /Goal-contract violation \(feature-implement\): missing active-goal lifecycle marker/);
 });
 
 test("checkGoalContractSkillCompliance requires Goal Satisfaction wording on review/workflow surfaces", () => {

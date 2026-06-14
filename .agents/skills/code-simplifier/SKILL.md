@@ -267,16 +267,16 @@ Used standalone (outside a review workflow), this self-review gate is sufficient
 
 ## Workflow Recommendation
 
-> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If NOT already in workflow, use a direct user question to ask user. Do NOT decide this is "simple enough to skip" — the user decides:
+> **MANDATORY — NO EXCEPTIONS:** If NOT already in workflow, use a direct user question to ask user. Do NOT decide this is "simple enough to skip" — the user decides:
 >
-> 1. **Activate `workflow-review-changes` workflow** (Recommended) — full review-changes restart gate → validated fix cycle (plan → plan-review → cook) → re-review → docs
+> 1. **Activate `workflow-review-changes` workflow** (Recommended) — full review-changes restart gate → validated fix cycle (plan → plan-review → feature-implement) → re-review → docs
 > 2. **Execute `$code-simplifier` directly** — run standalone (this skill self-reviews its own changes via the Self-Review Gate)
 
 ---
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing, use a direct user question:
+**MANDATORY — NO EXCEPTIONS** after completing, use a direct user question:
 
 - **"$workflow-review-changes (Recommended)"** — Review all changes before commit
 - **"$code-review"** — Full code review
@@ -292,7 +292,7 @@ Used standalone (outside a review workflow), this self-review gate is sufficient
 > 4. **Evaluate pattern fit.** Copying nearby code? Verify preconditions match — same scope, lifetime, base class, constraints.
 > 5. **New artifact = wired artifact.** Created? Prove registered, imported, reachable by all consumers.
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. For simple tasks, MUST ATTENTION ask user whether to skip.
+> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. For simple tasks, ask user whether to skip.
 
 **Prerequisites:** **MUST ATTENTION READ** before executing:
 
@@ -300,9 +300,9 @@ Used standalone (outside a review workflow), this self-review gate is sufficient
 
 > **External Memory:** Complex/lengthy work → write findings to `plans/reports/`. Prevents context loss, serves as deliverable.
 
-> **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION — every claim, finding, recommendation requires `file:line` proof or traced evidence (confidence >80% to act, <80% verify first).
+> **Evidence Gate:** MANDATORY — every claim, finding, recommendation requires `file:line` proof or traced evidence (confidence >80% to act, <80% verify first).
 
-> **OOP & DRY Enforcement:** MANDATORY IMPORTANT MUST ATTENTION — flag duplicated patterns for base class extraction. Same-suffix classes (`*Entity`, `*Dto`, `*Service`) MUST ATTENTION inherit common base. Verify stack has linting/analyzer configured.
+> **OOP & DRY Enforcement:** MANDATORY — flag duplicated patterns for base class extraction. Same-suffix classes (`*Entity`, `*Dto`, `*Service`) inherit common base. Verify stack has linting/analyzer configured.
 
 ## Self-Recursive Simplification Loop
 
@@ -328,6 +328,38 @@ Rules:
 - Do not re-review known findings in a fresh context before fixing them.
 - Do not hand off as clean until the self-recursive pass finds zero simplification findings.
 - After the self-recursive loop is clean, run the **Self-Review Gate** — if any files were changed, self-invoke `$code-review` scoped to those files (recursion-safe leaf skill); skip + log if nothing changed.
+
+<!-- SYNC:subagent-return-contract -->
+
+> **Sub-Agent Return Contract** — When this skill spawns a sub-agent, the sub-agent MUST return ONLY this structure. Main agent reads only this summary — NEVER requests full sub-agent output inline.
+>
+> ```markdown
+> ## Sub-Agent Result: [skill-name]
+>
+> Status: ✅ PASS | ⚠️ PARTIAL | ❌ FAIL
+> Confidence: [0-100]%
+>
+> ### Findings (Critical/High only — max 10 bullets)
+>
+> - [severity] [file:line] [finding]
+>
+> ### Actions Taken
+>
+> - [file changed] [what changed]
+>
+> ### Blockers (if any)
+>
+> - [blocker description]
+>
+> Full report: plans/reports/[skill-name]-[date]-[slug].md
+> ```
+>
+> Main agent reads `Full report` file ONLY when: (a) resolving a specific blocker, or (b) building a fix plan.
+> Sub-agent writes full report incrementally (per SYNC:incremental-persistence) — not held in memory.
+>
+> **Context budget** — the return payload is a SUMMARY, not a transcript: ≤10 finding bullets, no raw file contents / full diffs / verbatim logs inline, no re-pasted source. Everything beyond the summary lives in the `Full report` on disk. A sub-agent that would exceed the summary shape MUST write the detail to its report and return only the pointer — the orchestrator's context is the scarce resource the whole map-reduce protects.
+
+<!-- /SYNC:subagent-return-contract -->
 
 <!-- SYNC:ui-system-context -->
 
@@ -477,6 +509,26 @@ Rules:
 
 <!-- /SYNC:complexity-prevention -->
 
+<!-- SYNC:severity-rubric -->
+
+> **Severity Rubric** — Classify every finding by consequence, not by how easy it is to fix. One scale across all reviews so a "High" means the same thing everywhere.
+>
+> | Severity | Action | Definition |
+> | --- | --- | --- |
+> | CRITICAL | Block merge | Silent runtime failure, data corruption, validation bypass, security hole |
+> | HIGH | Must fix | Incorrect behavior, invariant gap, architectural violation |
+> | MEDIUM | Should fix | Design debt, maintainability, likely future bug |
+> | LOW | Nice to fix | Convention, documentation, minor clarity |
+>
+> **Score-based skills** map their numeric scale onto these tiers — do not invent a parallel vocabulary:
+>
+> - **0-2 criterion scoring** (e.g. sre-review): `0` = CRITICAL/HIGH (criterion unmet, blocks production readiness), `1` = MEDIUM (partial, should fix), `2` = pass (no finding).
+> - **Two-axis scoring** (e.g. performance-review, impact × likelihood): map the resulting cell to the nearest tier — high-impact + high-likelihood → CRITICAL/HIGH; low-impact OR low-likelihood → MEDIUM/LOW.
+>
+> A finding's tier drives the gate: CRITICAL/HIGH must be resolved or explicitly accepted by the owner before PASS; MEDIUM/LOW may ship with a tracked follow-up.
+
+<!-- /SYNC:severity-rubric -->
+
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
@@ -506,14 +558,21 @@ Rules:
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 
+<!-- SYNC:severity-rubric:reminder -->
+
+- **MANDATORY** Classify findings Critical/High/Medium/Low by consequence; Critical/High block PASS until fixed or owner-accepted.
+- **MANDATORY** Score-based skills (sre 0-2, perf two-axis) map onto the same four tiers — no parallel severity vocabulary.
+
+<!-- /SYNC:severity-rubric:reminder -->
+
 ## Closing Reminders
 
-- **IMPORTANT MUST ATTENTION Goal:** lower the cost of the next change — cut coupling, hidden state, duplicated knowledge, unclear intent — without altering observable behavior
-- **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks via task tracking BEFORE starting
-- **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via a direct user question — never auto-decide
-- **MANDATORY IMPORTANT MUST ATTENTION** add final review task to verify work quality
-- **MANDATORY IMPORTANT MUST ATTENTION** READ `docs/project-reference/code-review-rules.md` FIRST
-- **MANDATORY IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE modification. Run graph trace when graph.db exists.
+- **MANDATORY Goal:** lower the cost of the next change — cut coupling, hidden state, duplicated knowledge, unclear intent — without altering observable behavior
+- **MANDATORY** break work into small todo tasks via task tracking BEFORE starting
+- **MANDATORY** validate decisions with user via a direct user question — never auto-decide
+- **MANDATORY** add final review task to verify work quality
+- **MANDATORY** READ `docs/project-reference/code-review-rules.md` FIRST
+- **MANDATORY** search 3+ existing patterns and read code BEFORE modification. Run graph trace when graph.db exists.
 - **MANDATORY IMPORTANT MUST ATTENTION** check DRY via OOP (same-suffix → base class), right responsibility (lowest layer), SOLID. Grep dangling refs after changes.
 - **MANDATORY IMPORTANT MUST ATTENTION** NEVER simplify generated code, migrations, vendor files
 - **MANDATORY IMPORTANT MUST ATTENTION** run the self-recursive simplification loop until this skill finds zero simplification findings; do not spawn a fresh-context reviewer for this skill's own findings.

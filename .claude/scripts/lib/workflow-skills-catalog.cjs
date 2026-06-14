@@ -98,7 +98,7 @@ function readWorkflowsDoc(rootDir) {
   return JSON.parse(fs.readFileSync(p, "utf8"));
 }
 
-function resolveSkillDescription(rootDir, skill, doc, cache) {
+function resolveSkillDescription(rootDir, skill, cache) {
   if (cache.has(skill)) return cache.get(skill);
   let desc = "";
   try {
@@ -109,12 +109,9 @@ function resolveSkillDescription(rootDir, skill, doc, cache) {
     const m = raw.match(/^description:\s*(.+)$/m);
     if (m) desc = unquote(m[1]);
   } catch {
-    // Skill dir absent (pseudo-step) — fall through to fallback chain.
+    // Skill dir absent (pseudo-step) — fall through to fallback below.
   }
-  if (!desc) {
-    const mapped = doc.commandMapping && doc.commandMapping[skill];
-    desc = mapped && mapped.claude ? `Run ${mapped.claude}` : "(workflow step)";
-  }
+  if (!desc) desc = "(workflow step)";
   cache.set(skill, desc);
   return desc;
 }
@@ -155,9 +152,9 @@ function renderWorkflowsSection(entries) {
   ].join("\n");
 }
 
-function renderSkillsSection(skills, rootDir, doc, cache) {
+function renderSkillsSection(skills, rootDir, cache) {
   const rows = skills.map((skill) => {
-    const desc = safeCell(resolveSkillDescription(rootDir, skill, doc, cache));
+    const desc = safeCell(resolveSkillDescription(rootDir, skill, cache));
     return `| \`${skill}\` | ${desc} |`;
   });
   return [
@@ -204,7 +201,7 @@ function buildWorkflowSkillsCatalog(opts = {}) {
     if (section === "routing") blocks.push(renderRoutingSection(), "");
     else if (section === "workflows") blocks.push(renderWorkflowsSection(entries), "");
     else if (section === "skills")
-      blocks.push(renderSkillsSection(skills, rootDir, doc, cache), "");
+      blocks.push(renderSkillsSection(skills, rootDir, cache), "");
   }
 
   return blocks.join("\n").trimEnd();

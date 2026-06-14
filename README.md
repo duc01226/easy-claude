@@ -82,7 +82,7 @@ cp -r .agents  /path/to/your-project/.agents    # Codex skill mirror generated f
 | --------------------------------- | ------------------------------------------------------------------------------------- |
 | `/project-config`                 | `docs/project-config.json` — tech stack, modules, directory structure, build commands |
 | `/scan-all`                       | `docs/project-reference/` docs that hooks auto-inject                                 |
-| `/workflow-build-specs`       | canonical Feature Specs under `docs/specs/` (seed or audit)                           |
+| `/workflow-code-to-spec`          | canonical Feature Specs under `docs/specs/` (seed or audit from code)                 |
 | `/claude-md-init`                 | `CLAUDE.md` (generated, or smart-merged to preserve your content)                     |
 | `/review-changes` → `/why-review` | review gates over the generated setup                                                 |
 | background `/graph-build`         | the structural code graph (`.code-graph/graph.db`)                                    |
@@ -118,7 +118,7 @@ npm run codex:sync                                          # same via package.j
 **5. Start working:**
 
 ```
-/cook    # Implement features step-by-step
+/feature-implement    # Implement features step-by-step
 /fix     # Debug and fix issues
 /plan    # Create implementation plans
 /test    # Run tests
@@ -161,7 +161,7 @@ Markdown-based prompts with YAML frontmatter that guide AI behavior.
 | Category           | Examples                                                                                                   | What They Do                                            |
 | ------------------ | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
 | **Planning**       | `/plan`, `/scout`, `/investigate`                                                                          | Research, plan, investigate before coding               |
-| **Implementation** | `/cook`, `/code`, `/fix`, `/refactoring`                                                                   | Write code with quality gates                           |
+| **Implementation** | `/feature-implement`, `/plan-execute`, `/fix`, `/refactoring`                                                                   | Write code with quality gates                           |
 | **Testing**        | `/test`, `/integration-test`, `/integration-test-review`, `/integration-test-verify`, `/e2e-test`, `/spec` | Test-first, test-after, and spec-traceability workflows |
 | **Review**         | `/code-review`, `/review-changes`, `/security-review`                                                      | Code quality, security audits                           |
 | **Documentation**  | `/docs-update`, `/changelog`, `/spec`                                                                      | Auto-generate and maintain docs                         |
@@ -184,9 +184,9 @@ End-to-end process orchestration with step enforcement. The table below shows th
 | Build a large/ambiguous feature (needs R&D)  | `workflow-big-feature`            |
 | Refactor without changing behavior           | `workflow-refactor`               |
 | Start a brand-new project from scratch       | `workflow-greenfield-init`        |
-| Turn a raw vision into a ranked backlog      | `workflow-product-discovery`      |
+| Turn a raw idea into a Feature Spec          | `workflow-idea-to-spec`           |
 | Take one idea to a groomed PBI               | `workflow-idea-to-pbi`            |
-| Keep specs, tests, code & docs aligned       | `workflow-build-specs`        |
+| Author/maintain Feature Specs from code      | `workflow-code-to-spec`           |
 | Add or update integration tests              | `workflow-write-integration-test` |
 | Generate/update E2E (Playwright) tests       | `workflow-e2e`                    |
 | Research a topic into a cited report         | `workflow-research`               |

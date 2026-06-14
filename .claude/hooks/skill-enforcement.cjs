@@ -8,7 +8,7 @@
  *   - Meta skills (help, memory, etc.) always allowed
  *   - When workflow active + no tasks → block all non-meta skills
  *   - When no workflow + no tasks → block non-meta skills
- *   - Implementation skills (cook, code, fix, etc.) require tasks
+ *   - Implementation skills (feature-implement, plan-execute, fix, etc.) require tasks
  *   - Research/planning skills allowed without tasks
  *
  * Exit Codes:
@@ -53,7 +53,7 @@ const ALLOWED_SKILLS = new Set([
 ]);
 
 // Implementation keywords — skills containing these require tasks
-const IMPL_KEYWORDS = ['cook', 'code', 'fix', 'implement', 'refactor', 'build', 'create', 'develop', 'feature', 'migration'];
+const IMPL_KEYWORDS = ['plan-execute', 'feature-implement', 'cook', 'code', 'fix', 'implement', 'refactor', 'build', 'create', 'develop', 'feature', 'migration'];
 
 // ═══════════════════════════════════════════════════════════════════════════
 // HELPERS

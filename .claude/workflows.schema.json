@@ -3,23 +3,6 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": false,
   "definitions": {
-    "CommandMappingEntry": {
-      "additionalProperties": false,
-      "description": "Maps a logical command key to a Claude Code slash command invocation.",
-      "properties": {
-        "claude": {
-          "description": "Claude Code slash command (must start with /).",
-          "examples": ["/plan", "/cook", "/fix", "/code-review"],
-          "minLength": 2,
-          "pattern": "^/",
-          "title": "Claude Code Command",
-          "type": "string"
-        }
-      },
-      "required": ["claude"],
-      "title": "Command Mapping Entry",
-      "type": "object"
-    },
     "PreActions": {
       "additionalProperties": false,
       "description": "Actions to perform before starting the workflow sequence. Used to inject context or pre-read files.",
@@ -150,7 +133,7 @@
           "$ref": "#/definitions/PreActions"
         },
         "sequence": {
-          "description": "Ordered list of command keys (referencing commandMapping) to execute. Commands run in sequence from first to last.",
+          "description": "Ordered list of step-skill names to execute. Each step resolves to the slash command /<step>. Steps run in sequence from first to last.",
           "items": {
             "minLength": 1,
             "type": "string"
@@ -166,12 +149,6 @@
           "description": "Optional per-step metadata overrides keyed by command key (must match a value in sequence). Overrides execution-mode or context-budget from the skill's SKILL.md front matter. workflow-step-tracker.cjs reads this at runtime.",
           "title": "Step Metadata Overrides",
           "type": "object"
-        },
-        "whenNotToUse": {
-          "description": "Natural language description of when NOT to select this workflow. Used for disambiguation when multiple workflows could match.",
-          "minLength": 1,
-          "title": "When Not To Use",
-          "type": "string"
         },
         "whenToUse": {
           "description": "Natural language description of when the AI should select this workflow. The AI model reads this to decide which workflow matches the user's intent.",
@@ -189,21 +166,12 @@
       "type": "object"
     }
   },
-  "description": "Schema for Claude Code workflow automation configuration. Defines AI-native intent detection, command mapping, and workflow sequences for AI agent orchestration.",
+  "description": "Schema for Claude Code workflow automation configuration. Defines AI-native intent detection and workflow sequences for AI agent orchestration.",
   "properties": {
     "$schema": {
       "description": "Path or URL to the JSON Schema file for IDE validation and autocompletion.",
       "title": "Schema Reference",
       "type": "string"
-    },
-    "commandMapping": {
-      "additionalProperties": {
-        "$ref": "#/definitions/CommandMappingEntry"
-      },
-      "description": "Maps logical command keys to Claude Code slash commands. Each key is referenced by workflow sequences.",
-      "minProperties": 1,
-      "title": "Command Mapping",
-      "type": "object"
     },
     "description": {
       "description": "Human-readable description of this workflow configuration file.",
@@ -225,13 +193,13 @@
       "additionalProperties": {
         "$ref": "#/definitions/WorkflowEntry"
       },
-      "description": "Named workflow definitions selected by AI-native intent detection. Each workflow has natural language whenToUse/whenNotToUse descriptions that the AI reads to determine which workflow matches the user's intent.",
+      "description": "Named workflow definitions selected by AI-native intent detection. Each workflow has a natural language whenToUse description that the AI reads to determine which workflow matches the user's intent.",
       "minProperties": 1,
       "title": "Workflow Definitions",
       "type": "object"
     }
   },
-  "required": ["version", "description", "settings", "commandMapping", "workflows"],
+  "required": ["version", "description", "settings", "workflows"],
   "title": "Workflow Configuration",
   "type": "object"
 }

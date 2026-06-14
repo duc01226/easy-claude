@@ -68,9 +68,9 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## When Not to Use
 
-- Raw product vision without any Feature Spec -> use `$workflow-product-discovery`.
+- Raw product vision without any Feature Spec -> use `$workflow-idea-to-spec` (then chain back here for the backlog).
 - One informal idea -> use `$workflow-idea-to-pbi`.
-- Spec creation/update only -> use `$workflow-build-specs`.
+- Spec creation/update only -> use `$workflow-code-to-spec` (from code) or `$workflow-idea-to-spec` (from an idea).
 - Implementation after PBIs are ready -> use `$workflow-feature` or `$workflow-big-feature`.
 
 ## Protocol
@@ -284,6 +284,8 @@ Workflow can close only when:
 >
 > Main agent reads `Full report` file ONLY when: (a) resolving a specific blocker, or (b) building a fix plan.
 > Sub-agent writes full report incrementally (per SYNC:incremental-persistence) — not held in memory.
+>
+> **Context budget** — the return payload is a SUMMARY, not a transcript: ≤10 finding bullets, no raw file contents / full diffs / verbatim logs inline, no re-pasted source. Everything beyond the summary lives in the `Full report` on disk. A sub-agent that would exceed the summary shape MUST write the detail to its report and return only the pointer — the orchestrator's context is the scarce resource the whole map-reduce protects.
 
 <!-- /SYNC:subagent-return-contract -->
 

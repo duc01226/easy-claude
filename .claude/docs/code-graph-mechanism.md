@@ -245,7 +245,6 @@ Claude sees:
 | `/debug-investigate` invoked | `pretooluse-ctx-graph.cjs (buildGraphContext)` | Dependency context for tracing                                      |
 | `/sre-review` invoked        | `pretooluse-ctx-graph.cjs (buildGraphContext)` | Impact assessment for prod readiness                                |
 | `/investigate` invoked       | (in-skill RECOMMENDED)       | Callers, imports, tests, inheritance queries for target             |
-| `/feature-investigation`     | (in-skill RECOMMENDED)       | Same graph queries for workflow-driven investigation                |
 | `/graph-query` invoked       | (standalone skill)           | Natural language graph queries, 8 patterns                          |
 | `/graph-build --scope=sync`  | (standalone skill)           | Git-aware sync: diff last_synced_commit vs HEAD, re-parse changed   |
 | Session starts               | `graph-session-init.cjs`     | Auto-sync with git state, report stale files                        |
@@ -460,7 +459,7 @@ The BFS trace algorithm (`tools.py:trace_connections`) follows both structural e
 | `graph-export`       | Export graph to JSON (`--format=json`) or single-file Mermaid diagram (`--format=mermaid`)                                                                                                         |
 
 **Skills with graph integration** (RECOMMENDED if graph.db exists):
-scout, debug, code-review, review-changes, sre-review, investigate, feature-investigation
+scout, debug, code-review, review-changes, sre-review, investigate
 
 ## Example Workflow: Bug Fix with Graph
 
@@ -546,7 +545,7 @@ sequenceDiagram
     participant Hook as Graph Hooks
     participant Graph as graph.db
 
-    Note over Dev,Graph: Feature Workflow: /scout → /cook → /code-review
+    Note over Dev,Graph: Feature Workflow: /scout → /feature-implement → /code-review
 
     Dev->>WF: "implement login feature"
     WF->>WF: Detect: feature workflow
@@ -560,7 +559,7 @@ sequenceDiagram
     end
 
     rect rgb(255, 245, 230)
-        Note over WF,Graph: Step 2: /cook (implementation)
+        Note over WF,Graph: Step 2: /feature-implement (implementation)
         WF->>WF: Claude edits auth.py, api.py
         WF->>Hook: graph-auto-update fires (per edit)
         Hook->>Graph: Incremental re-parse changed files
@@ -580,11 +579,11 @@ sequenceDiagram
 
 | Workflow          | Steps Where Graph Activates                                             | What Graph Provides                                                |
 | ----------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| **feature**       | /scout, /cook (auto-update), /code-review, /review-changes, /sre-review | Structural overview, incremental tracking, blast radius for review |
+| **feature**       | /scout, /feature-implement (auto-update), /code-review, /review-changes, /sre-review | Structural overview, incremental tracking, blast radius for review |
 | **bugfix**        | /scout, /debug-investigate, /fix (auto-update), /code-review            | Dependency tracing for root cause, impact assessment of fix        |
-| **refactor**      | /scout, /code (auto-update), /code-review, /sre-review                  | Ensures refactoring doesn't break callers/dependents               |
+| **refactor**      | /scout, /plan-execute (auto-update), /code-review, /sre-review                  | Ensures refactoring doesn't break callers/dependents               |
 | **hotfix**        | /scout, /fix (auto-update), /review-changes, /sre-review                | Fast blast radius to verify minimal production impact              |
-| **investigation** | /scout, /feature-investigation                                          | Structural map for understanding code relationships                |
+| **investigation** | /scout, /investigate                                          | Structural map for understanding code relationships                |
 
 ### Graph-Powered Skills
 

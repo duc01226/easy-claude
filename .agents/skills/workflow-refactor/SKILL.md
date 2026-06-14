@@ -61,13 +61,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $scout -> $feature-investigation -> $plan -> $plan-review -> $plan-validate -> $why-review -> $code -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $spec [mode=sync] -> $integration-test -> $integration-test-review -> $integration-test-verify -> $workflow-review-changes -> $sre-review -> $changelog -> $test -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $scout -> $investigate -> $plan -> $plan-review -> $plan-validate -> $why-review -> $plan-execute -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $spec [mode=sync] -> $integration-test -> $integration-test-review -> $integration-test-verify -> $workflow-review-changes -> $sre-review -> $changelog -> $test -> $docs-update -> $workflow-end -> $watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its skill invocation — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
 Activate the `workflow-refactor` workflow. Run `$start-workflow workflow-refactor` with the user's prompt as context.
 
-**Steps:** $scout → $feature-investigation → $plan → $plan-review → $plan-validate → $why-review → $code → $spec [mode=tests] → $why-review → $review-artifact --type=spec-tests → $spec [mode=sync] → $integration-test → $integration-test-review → $integration-test-verify → $workflow-review-changes → $sre-review → $changelog → $test → $docs-update → $workflow-end → $watzup
+**Steps:** $scout → $investigate → $plan → $plan-review → $plan-validate → $why-review → $plan-execute → $spec [mode=tests] → $why-review → $review-artifact --type=spec-tests → $spec [mode=sync] → $integration-test → $integration-test-review → $integration-test-verify → $workflow-review-changes → $sre-review → $changelog → $test → $docs-update → $workflow-end → $watzup
 
 > **[PERFORMANCE-SDD ROUTE]** If this refactor is performance-driven (query optimization, caching, reducing allocations, improving throughput), run `$performance-review` for benchmark evidence while preserving observable behavior. Do not use performance/refactor scope to bypass spec, test, or docs sync when behavior, public contract, SLA, performance constraint, state timing boundary, or docs/spec boundary changes. Pure behavior-preserving optimization may skip new TC/integration-test generation only with explicit skip reason and invariant-preservation evidence. `$test` remains mandatory.
 
@@ -75,7 +75,7 @@ Activate the `workflow-refactor` workflow. Run `$start-workflow workflow-refacto
 
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
 
-**IMPORTANT MANDATORY Steps:** $scout -> $feature-investigation -> $plan -> $plan-review -> $plan-validate -> $why-review -> $code -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $spec [mode=sync] -> $integration-test -> $integration-test-review -> $integration-test-verify -> $workflow-review-changes -> $sre-review -> $changelog -> $test -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $scout -> $investigate -> $plan -> $plan-review -> $plan-validate -> $why-review -> $plan-execute -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $spec [mode=sync] -> $integration-test -> $integration-test-review -> $integration-test-verify -> $workflow-review-changes -> $sre-review -> $changelog -> $test -> $docs-update -> $workflow-end -> $watzup
 
 <!-- SYNC:nested-task-creation -->
 
@@ -159,6 +159,8 @@ Activate the `workflow-refactor` workflow. Run `$start-workflow workflow-refacto
 >
 > Main agent reads `Full report` file ONLY when: (a) resolving a specific blocker, or (b) building a fix plan.
 > Sub-agent writes full report incrementally (per SYNC:incremental-persistence) — not held in memory.
+>
+> **Context budget** — the return payload is a SUMMARY, not a transcript: ≤10 finding bullets, no raw file contents / full diffs / verbatim logs inline, no re-pasted source. Everything beyond the summary lives in the `Full report` on disk. A sub-agent that would exceed the summary shape MUST write the detail to its report and return only the pointer — the orchestrator's context is the scarce resource the whole map-reduce protects.
 
 <!-- /SYNC:subagent-return-contract -->
 

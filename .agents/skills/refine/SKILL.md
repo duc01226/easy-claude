@@ -859,7 +859,7 @@ For domain PBIs: detect module from `docs/specs/` directory names, extract busin
 > 4. **Docker Development Environment** — compose profiles (`dev`/`test`/`infra`), multi-stage Dockerfile, health checks on all services, non-root production user.
 > 5. **Integration Points** — document each outbound boundary; configure retry + circuit breaker + timeout; integration tests for happy path and failure path.
 >
-> **BLOCK `$cook` if any foundation is unchecked.** Present 2-3 options per concern via a direct user question before implementing.
+> **BLOCK `$feature-implement` if any foundation is unchecked.** Present 2-3 options per concern via a direct user question before implementing.
 
 <!-- /SYNC:scaffold-production-readiness -->
 

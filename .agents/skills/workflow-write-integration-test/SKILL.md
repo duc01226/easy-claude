@@ -63,7 +63,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - MUST ATTENTION verify integration suites with 3 consecutive passing runs without DB reset before declaring done.
 - NEVER skip mandatory workflow or skill gates.
 
-**IMPORTANT MANDATORY Steps:** $scout -> $feature-investigation -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $integration-test -> $integration-test-review -> $integration-test-verify -> $spec [mode=sync] -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $scout -> $investigate -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $integration-test -> $integration-test-review -> $integration-test-verify -> $spec [mode=sync] -> $docs-update -> $workflow-end -> $watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its skill invocation — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
@@ -73,7 +73,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 Activate the `workflow-write-integration-test` workflow. Run `$start-workflow workflow-write-integration-test` with the user's prompt as context.
 
-**Steps:** $scout → $feature-investigation → $spec [mode=tests] → $why-review → $review-artifact --type=spec-tests → $integration-test → $integration-test-review → $integration-test-verify → $spec [mode=sync] → $docs-update → $workflow-end → $watzup
+**Steps:** $scout → $investigate → $spec [mode=tests] → $why-review → $review-artifact --type=spec-tests → $integration-test → $integration-test-review → $integration-test-verify → $spec [mode=sync] → $docs-update → $workflow-end → $watzup
 
 > **[STEP PURPOSES]** Every step has a distinct purpose — NEVER deduplicate or batch:
 >
@@ -90,7 +90,7 @@ Activate the `workflow-write-integration-test` workflow. Run `$start-workflow wo
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $scout -> $feature-investigation -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $integration-test -> $integration-test-review -> $integration-test-verify -> $spec [mode=sync] -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $scout -> $investigate -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $integration-test -> $integration-test-review -> $integration-test-verify -> $spec [mode=sync] -> $docs-update -> $workflow-end -> $watzup
 
 <!-- SYNC:ai-mistake-prevention -->
 
@@ -201,6 +201,8 @@ Activate the `workflow-write-integration-test` workflow. Run `$start-workflow wo
 >
 > Main agent reads `Full report` file ONLY when: (a) resolving a specific blocker, or (b) building a fix plan.
 > Sub-agent writes full report incrementally (per SYNC:incremental-persistence) — not held in memory.
+>
+> **Context budget** — the return payload is a SUMMARY, not a transcript: ≤10 finding bullets, no raw file contents / full diffs / verbatim logs inline, no re-pasted source. Everything beyond the summary lives in the `Full report` on disk. A sub-agent that would exceed the summary shape MUST write the detail to its report and return only the pointer — the orchestrator's context is the scarce resource the whole map-reduce protects.
 
 <!-- /SYNC:subagent-return-contract -->
 

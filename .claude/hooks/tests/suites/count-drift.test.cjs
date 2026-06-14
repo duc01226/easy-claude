@@ -97,7 +97,7 @@ function countWorkflows() {
     const workflowsFile = path.join(REPO_ROOT, '.claude', 'workflows.json');
     const parsed = JSON.parse(fs.readFileSync(workflowsFile, 'utf8'));
     // `.workflows` is the id→definition map (same key TC-WFPROTO-006 reads); other top-level
-    // keys (commandMapping, etc.) are NOT workflows and must not be counted.
+    // keys (settings, version, etc.) are NOT workflows and must not be counted.
     return Object.keys(parsed.workflows || {}).length;
 }
 

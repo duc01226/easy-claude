@@ -72,7 +72,7 @@ function main() {
         if (eventName === 'PreToolUse') {
             const toolName = payload.tool_name || '';
 
-            // Skill invocations (plan, cook, feature-investigation, etc.) — inject without file check
+            // Skill invocations (plan, cook, investigate, etc.) — inject without file check
             if (toolName === 'Skill') {
                 console.log(buildGuidance());
                 process.exit(0);

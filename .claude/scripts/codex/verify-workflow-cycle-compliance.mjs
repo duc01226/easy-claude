@@ -57,7 +57,7 @@ const IMPLEMENTATION_WORKFLOW_IDS = new Set([
   "workflow-feature",
 ]);
 
-const IMPLEMENTATION_STEPS = new Set(["cook", "fix", "code"]);
+const IMPLEMENTATION_STEPS = new Set(["feature-implement", "fix", "plan-execute"]);
 const CANONICAL_SPEC_BEFORE_FIRST_PLAN_WORKFLOW_IDS = new Set([
   "workflow-bugfix",
   "workflow-feature",
@@ -78,7 +78,6 @@ const DEBUGGER_TRACE_WORKFLOW_TERMS = [
 ];
 
 const STEP_ALIASES = new Map([
-  ["feature-investigation", "investigate"],
   ["test-initial", "test"],
 ]);
 
@@ -97,8 +96,8 @@ const GOAL_CONTRACT_SATISFACTION_PATTERN = /goal satisfaction/i;
 const GOAL_CONTRACT_SKILL_IDS = [
   "plan", // creates {plan-dir}/goal.md during plan bootstrap
   "start-workflow", // resolves the active goal before child task creation
-  "cook", // reads the goal contract before implementation
-  "code", // reads the goal during analysis/task extraction
+  "feature-implement", // reads the goal contract before implementation
+  "plan-execute", // reads the goal during analysis/task extraction
   "feature", // maps success validation to saved criteria
   "fix", // active-goal read before root-cause work (ci/issue/logs/test/ui are --target branches)
   "prove-fix", // goal satisfaction update after fix verdict
@@ -123,7 +122,7 @@ const GOAL_CONTRACT_WORKFLOW_SKILL_IDS = [
   "workflow-bugfix",
   "workflow-review-changes",
   "workflow-write-integration-test",
-  "workflow-build-specs",
+  "workflow-code-to-spec",
   "test",
   "quality-gate",
   "integration-test-verify",
@@ -370,7 +369,7 @@ function ensureWorkflowPolicy(workflowId, workflow, sequence, failures) {
     const hasImplementationStep = sequence.some((step) => IMPLEMENTATION_STEPS.has(step));
     if (!hasImplementationStep) {
       failures.push(
-        `Workflow policy violation (${workflowId}): missing implementation step (cook|fix|code)`
+        `Workflow policy violation (${workflowId}): missing implementation step (feature-implement|fix|plan-execute)`
       );
     }
   }

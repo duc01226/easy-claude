@@ -1,7 +1,6 @@
 ---
 name: docs-update
 version: 3.3.0
-last_reviewed: 2026-04-23
 description: '[Documentation] Use when updating impacted documentation after code, spec, or test changes.'
 ---
 
@@ -407,7 +406,7 @@ ALWAYS write full report to `plans/reports/docs-update-{YYMMDD}-{HHMM}.md`:
 | Generate TCs for specific PBI (TDD-first)      | No                           | `/spec [mode=tests]`                                |
 | Route PBI/idea artifact changes                | Yes — detection/delegation   | `/spec` + `/spec [mode=tests]` owner skills |
 | Sync dashboard only (no code changes)          | No                           | `/spec [mode=sync]`               |
-| Workflow step after `/code` or `/fix`          | **Yes** — full orchestration | —                                          |
+| Workflow step after `/plan-execute` or `/fix`          | **Yes** — full orchestration | —                                          |
 | User asks "update docs after my changes"       | **Yes** — full orchestration | —                                          |
 
 ---
@@ -484,7 +483,9 @@ $ARGUMENTS
 > ```
 >
 > Main agent reads `Full report` file ONLY when: (a) resolving a specific blocker, or (b) building a fix plan.
-> Sub-agent writes full report incrementally — never held in memory.
+> Sub-agent writes full report incrementally (per SYNC:incremental-persistence) — not held in memory.
+>
+> **Context budget** — the return payload is a SUMMARY, not a transcript: ≤10 finding bullets, no raw file contents / full diffs / verbatim logs inline, no re-pasted source. Everything beyond the summary lives in the `Full report` on disk. A sub-agent that would exceed the summary shape MUST write the detail to its report and return only the pointer — the orchestrator's context is the scarce resource the whole map-reduce protects.
 
 <!-- /SYNC:subagent-return-contract -->
 

@@ -312,7 +312,7 @@ If `.code-graph/graph.db` exists, enhance analysis with structural queries:
 - **Impact of restructuring -- check importers:** `python .claude/scripts/code_graph query importers_of <module> --json`
 - **Batch analysis:** `python .claude/scripts/code_graph batch-query file1 file2 --json`
 
-> See `<!-- SYNC:graph-assisted-investigation -->` block above for graph query patterns.
+> See the `SYNC:graph-assisted-investigation` block above for graph query patterns.
 
 ### Graph-Trace for Refactoring Impact
 
@@ -333,7 +333,7 @@ When graph DB is available, BEFORE refactoring, trace to verify all consumers:
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use a direct user question to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
 >
-> 1. **Activate `workflow-refactor` workflow** (Recommended) — scout → investigate → plan → code → review → sre-review → test → docs
+> 1. **Activate `workflow-refactor` workflow** (Recommended) — scout → investigate → plan → plan-execute → review → sre-review → test → docs
 > 2. **Execute `$refactoring` directly** — run this skill standalone
 
 ---

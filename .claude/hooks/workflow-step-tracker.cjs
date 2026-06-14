@@ -69,8 +69,13 @@ function getSessionId() {
     return process.env.CLAUDE_SESSION_ID || process.env.CK_SESSION_ID || 'default';
 }
 
-function resolveCmd(stepId, config) {
-    return config.commandMapping?.[stepId]?.claude || `/${stepId}`;
+// Invariant: a workflow step id IS its skill name IS its slash command, so the
+// command is just `/<stepId>` (no lookup table). Guarded by workflow.test.cjs
+// Guard A (TC-RENAMEFIX-032), which asserts every sequence step resolves to a
+// real `.claude/skills/<stepId>/SKILL.md`. If a step ever needs a command that
+// differs from its id, reintroduce an explicit map here and update that guard.
+function resolveCmd(stepId) {
+    return `/${stepId}`;
 }
 
 async function main() {
@@ -125,7 +130,7 @@ async function main() {
             });
 
             // Output post-activation instructions
-            const output = buildWorkflowInstructions(workflowId, workflow, config);
+            const output = buildWorkflowInstructions(workflowId, workflow);
             console.log(output);
 
             process.exit(0);
@@ -138,8 +143,8 @@ async function main() {
         const config = loadWorkflowConfig();
         if (!config) process.exit(0);
 
-        // Map executed skill to step ID
-        const stepId = mapSkillToStepId(skillName, config);
+        // Map executed skill to step ID (identity — skill name == step id)
+        const stepId = mapSkillToStepId(skillName);
         if (!stepId) process.exit(0);
 
         // Check if this skill matches current or any pending step
@@ -155,10 +160,10 @@ async function main() {
 
         if (updated && updated.currentStepIndex < updated.workflowSteps.length) {
             const nextInfo = getCurrentStepInfo(sessionId);
-            const nextCmd = resolveCmd(nextInfo.currentStep, config);
+            const nextCmd = resolveCmd(nextInfo.currentStep);
 
             console.log(`\n## Workflow Step Completed\n`);
-            console.log(`✓ Completed: \`${resolveCmd(stepId, config)}\``);
+            console.log(`✓ Completed: \`${resolveCmd(stepId)}\``);
             console.log(`\n**Next step:** \`${nextCmd}\` (${nextInfo.currentStepIndex + 1}/${nextInfo.totalSteps})`);
 
             // Workflow-in-workflow hard gate
@@ -189,14 +194,14 @@ async function main() {
             }
 
             if (nextInfo.remainingSteps.length > 0) {
-                console.log(`\n**Remaining:** ${nextInfo.remainingSteps.map(s => resolveCmd(s, config)).join(' → ')}`);
+                console.log(`\n**Remaining:** ${nextInfo.remainingSteps.map(s => resolveCmd(s)).join(' → ')}`);
             }
             console.log(`\n---\n**IMPORTANT:** Execute \`${nextCmd}\` to continue the workflow.\n`);
         } else if (updated) {
             // Workflow complete — clear state so next prompt gets fresh catalog
             console.log(`\n## Workflow Complete\n`);
             console.log(`All steps in **${state.workflowType}** workflow have been completed successfully!`);
-            console.log(`\n✓ Completed steps: ${state.workflowSteps.map(s => resolveCmd(s, config)).join(', ')}`);
+            console.log(`\n✓ Completed steps: ${state.workflowSteps.map(s => resolveCmd(s)).join(', ')}`);
             clearState(sessionId);
         }
 
@@ -208,4 +213,6 @@ async function main() {
     }
 }
 
-main();
+if (require.main === module) main();
+
+module.exports = { resolveCmd };

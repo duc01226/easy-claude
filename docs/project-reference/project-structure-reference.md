@@ -13,14 +13,14 @@
 | -------------- | --------------------------------------------------------------------------------------------- | ----------------------------- | ---------------------------------------------------------------------------------- |
 | Hooks          | <!-- COUNT:hooks -->54<!-- /COUNT -->                                                         | `.claude/hooks/*.cjs`         | Top-level CommonJS Node.js hook scripts counted by ADR-0002                        |
 | Hook Libraries | <!-- COUNT:lib-modules -->33<!-- /COUNT -->                                                   | `.claude/hooks/lib/*.cjs`     | CommonJS utility modules                                                           |
-| Skills         | <!-- COUNT:skills -->156<!-- /COUNT -->                                                       | `.claude/skills/*/SKILL.md`   | Markdown + YAML frontmatter                                                        |
+| Skills         | <!-- COUNT:skills -->155<!-- /COUNT -->                                                       | `.claude/skills/*/SKILL.md`   | Markdown + YAML frontmatter                                                        |
 | Agents         | <!-- COUNT:agents -->29<!-- /COUNT -->                                                        | `.claude/agents/*.md`         | Markdown definitions                                                               |
 | Workflows      | <!-- COUNT:workflows -->17<!-- /COUNT -->                                                     | `.claude/workflows.json`      | JSON workflow definitions                                                          |
 | Output Styles  | 6                                                                                             | `.claude/output-styles/*.md`  | Coding level presets (ELI5→God)                                                    |
 | Scripts        | 28                                                                                            | `.claude/scripts/*`           | CJS + Python utilities (top-level; excludes code_graph package internals + tests/) |
 | Codex Scripts  | 10                                                                                            | `.claude/scripts/codex/*.mjs` | ESM sync, migration, notification, and verification tools                          |
 | Hook Tests     | 16 suites + 13 standalone                                                                     | `.claude/hooks/tests/`        | CJS/JS test files; 14 `test-*` files including primary runner                      |
-| Codex Mirrors  | <!-- COUNT:skills -->156<!-- /COUNT --> skills, <!-- COUNT:agents -->29<!-- /COUNT --> agents | `.agents/`, `.codex/`         | Generated Codex-compatible copy                                                    |
+| Codex Mirrors  | <!-- COUNT:skills -->155<!-- /COUNT --> skills, <!-- COUNT:agents -->29<!-- /COUNT --> agents | `.agents/`, `.codex/`         | Generated Codex-compatible copy                                                    |
 
 ## Project Directory Tree
 
@@ -212,7 +212,7 @@ easy-claude/
 │   │   ├── common/                   # Shared Python utilities
 │   │   ├── shared/                   # Shared reference/protocol files
 │   │   ├── _templates/               # Skill creation templates
-│   │   ├── cook/SKILL.md             # Implementation skill
+│   │   ├── feature-implement/SKILL.md             # Implementation skill
 │   │   ├── fix/SKILL.md              # Bug fix skill
 │   │   ├── plan/SKILL.md             # Planning skill
 │   │   ├── code-review/SKILL.md      # Code review skill
@@ -220,8 +220,6 @@ easy-claude/
 │   │   ├── workflow-*/               # Workflow trigger skills
 │   │   ├── scan-*/                   # Project scanning skills (11)
 │   │   └── ... (direct SKILL.md files)
-│   ├── tests/                        # Framework-level tests
-│   │   └── workflow-routing-test.cjs
 │   ├── tmp/                          # Temporary files (gitignored)
 │   └── workflows/                    # Workflow rule files
 │       ├── development-rules.md
@@ -277,7 +275,7 @@ easy-claude/
 | ---- | -------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
 | HK   | Hooks          | `.claude/hooks/`               | <!-- COUNT:hooks -->54<!-- /COUNT --> top-level `.cjs` runtime enforcement & context injection hook files                   |
 | HL   | Hook Libraries | `.claude/hooks/lib/`           | <!-- COUNT:lib-modules -->33<!-- /COUNT --> shared utility modules for hooks                                                |
-| SK   | Skills         | `.claude/skills/`              | <!-- COUNT:skills -->156<!-- /COUNT --> task automation skill definitions                                                   |
+| SK   | Skills         | `.claude/skills/`              | <!-- COUNT:skills -->155<!-- /COUNT --> task automation skill definitions                                                   |
 | AG   | Agents         | `.claude/agents/`              | <!-- COUNT:agents -->29<!-- /COUNT --> specialized subagent role definitions                                                |
 | WF   | Workflows      | `.claude/workflows.json`       | <!-- COUNT:workflows -->17<!-- /COUNT --> end-to-end process orchestrations                                                 |
 | SC   | Scripts        | `.claude/scripts/`             | 28 top-level utility scripts (catalog gen, audit, worktree, statusline-tps); excludes code_graph package internals + tests/ |
@@ -365,13 +363,13 @@ easy-claude/
 
 ## Workflows (<!-- COUNT:workflows -->17<!-- /COUNT -->)
 
-| Category                   | Registered Workflows                                                                                     |
-| -------------------------- | -------------------------------------------------------------------------------------------------------- |
-| **Core Development**       | `workflow-feature`, `workflow-bugfix`, `workflow-refactor`, `workflow-big-feature`                       |
-| **Discovery & Planning**   | `workflow-idea-to-pbi`, `workflow-product-discovery`, `workflow-greenfield-init`, `workflow-spec-to-pbi` |
-| **Spec & Documentation**   | `workflow-build-specs`, `workflow-spec-sync`, `workflow-feature-spec`, `workflow-research`           |
-| **Testing**                | `workflow-write-integration-test`, `workflow-e2e`, `workflow-seed-test-data`                             |
-| **Review & Visualization** | `workflow-review-changes`, `workflow-visualize`                                                          |
+| Category                   | Registered Workflows                                                                                |
+| -------------------------- | --------------------------------------------------------------------------------------------------- |
+| **Core Development**       | `workflow-feature`, `workflow-bugfix`, `workflow-refactor`, `workflow-big-feature`                  |
+| **Discovery & Planning**   | `workflow-idea-to-pbi`, `workflow-idea-to-spec`, `workflow-greenfield-init`, `workflow-spec-to-pbi` |
+| **Spec & Documentation**   | `workflow-code-to-spec`, `workflow-spec-sync`, `workflow-feature-spec`, `workflow-research`         |
+| **Testing**                | `workflow-write-integration-test`, `workflow-e2e`, `workflow-seed-test-data`                        |
+| **Review & Visualization** | `workflow-review-changes`, `workflow-visualize`                                                     |
 
 > **Also available as workflow skills** (invokeable via `/workflow-<name>` but not registered in `workflows.json`):
 > `ba-dev-handoff`, `business-evaluation`, `course-building`, `design`, `design-dev-handoff`,

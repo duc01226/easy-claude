@@ -58,18 +58,18 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
 - NEVER skip mandatory workflow or skill gates.
 
-**IMPORTANT MANDATORY Steps:** $scout -> $feature-investigation -> $plan -> $plan-review -> $plan-validate -> $why-review -> $docs-update -> $workflow-review-changes -> $review-post-task -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $scout -> $investigate -> $plan -> $plan-review -> $plan-validate -> $why-review -> $docs-update -> $workflow-review-changes -> $review-post-task -> $workflow-end -> $watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its skill invocation — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 > **[BLOCKING]** Read `docs/project-reference/spec-principles.md` before starting this workflow — baseline for completeness, TC quality, and **tech-agnostic output (§3)**: generated prose/headings name no framework/product/language/design-pattern; source paths and class names appear ONLY in evidence fields (`**Evidence**`, `[Source:]`), frontmatter, and Mermaid.
 
 Activate the `workflow-feature-spec` workflow. Run `$start-workflow workflow-feature-spec` with the user's prompt as context.
 
-**Steps:** $scout → $feature-investigation → $plan → $plan-review → $plan-validate → $why-review → $docs-update → $workflow-review-changes → $review-post-task → $workflow-end → $watzup _(this workflow is differentiated by its injectContext domain: **tech-free 8-section Feature Spec** template enforcement + `TC-{FEATURE}-{NNN}` GIVEN/WHEN/THEN test cases + `[Source: namespace/service/id]` abstract evidence anchors — see `workflows.json` `workflow-feature-spec.injectContext`)._
+**Steps:** $scout → $investigate → $plan → $plan-review → $plan-validate → $why-review → $docs-update → $workflow-review-changes → $review-post-task → $workflow-end → $watzup _(this workflow is differentiated by its injectContext domain: **tech-free 8-section Feature Spec** template enforcement + `TC-{FEATURE}-{NNN}` GIVEN/WHEN/THEN test cases + `[Source: namespace/service/id]` abstract evidence anchors — see `workflows.json` `workflow-feature-spec.injectContext`)._
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $scout -> $feature-investigation -> $plan -> $plan-review -> $plan-validate -> $why-review -> $docs-update -> $workflow-review-changes -> $review-post-task -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $scout -> $investigate -> $plan -> $plan-review -> $plan-validate -> $why-review -> $docs-update -> $workflow-review-changes -> $review-post-task -> $workflow-end -> $watzup
 
 <!-- SYNC:ai-mistake-prevention -->
 
@@ -153,6 +153,8 @@ Activate the `workflow-feature-spec` workflow. Run `$start-workflow workflow-fea
 >
 > Main agent reads `Full report` file ONLY when: (a) resolving a specific blocker, or (b) building a fix plan.
 > Sub-agent writes full report incrementally (per SYNC:incremental-persistence) — not held in memory.
+>
+> **Context budget** — the return payload is a SUMMARY, not a transcript: ≤10 finding bullets, no raw file contents / full diffs / verbatim logs inline, no re-pasted source. Everything beyond the summary lives in the `Full report` on disk. A sub-agent that would exceed the summary shape MUST write the detail to its report and return only the pointer — the orchestrator's context is the scarce resource the whole map-reduce protects.
 
 <!-- /SYNC:subagent-return-contract -->
 

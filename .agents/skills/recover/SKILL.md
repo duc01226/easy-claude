@@ -105,7 +105,7 @@ The checkpoint file contains a JSON metadata block at the end:
   "sessionId": "...",
   "activePlan": "plans/YYMMDD-slug/",
   "workflowType": "feature",
-  "currentStep": "cook",
+  "currentStep": "feature-implement",
   "remainingSteps": ["test", "code-review"],
   "pendingTodos": [...]
 }
@@ -117,7 +117,7 @@ The checkpoint file contains a JSON metadata block at the end:
 
 ```json
 [
-    { "content": "[Workflow] $cook - Implement", "status": "in_progress", "activeForm": "Executing $cook" },
+    { "content": "[Workflow] $feature-implement - Implement", "status": "in_progress", "activeForm": "Executing $feature-implement" },
     { "content": "[Workflow] $test - Run tests", "status": "pending", "activeForm": "Executing $test" },
     { "content": "[Workflow] $code-review - Review code", "status": "pending", "activeForm": "Executing $code-review" }
 ]
@@ -189,7 +189,7 @@ Claude: Let me find and restore your workflow context.
 
 2. Reading checkpoint metadata...
    - Workflow: feature
-   - Current step: $cook
+   - Current step: $feature-implement
    - Remaining: $test, $code-review
    - Active plan: plans/260110-1430-new-feature/
 
@@ -199,7 +199,7 @@ Claude: Let me find and restore your workflow context.
 4. Reading active plan...
    [Reading plans/260110-1430-new-feature/plan.md]
 
-5. Ready to continue from $cook step.
+5. Ready to continue from $feature-implement step.
    Shall I proceed with the implementation?
 ```
 

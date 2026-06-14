@@ -1,7 +1,6 @@
 ---
 name: spec-index
 version: 4.0.0
-last_reviewed: 2026-06-10
 description: '[General] Use when you need to (re)generate a DERIVED navigation index, cross-capability ERD, or reimplementation guide assembled FROM the canonical Feature Specs under docs/specs/**. Never extracts a separate A-E engineering tree.'
 ---
 

@@ -1,8 +1,7 @@
 ---
-name: workflow-build-specs
+name: workflow-code-to-spec
 version: 3.0.0
-last_reviewed: 2026-06-10
-description: '[Workflow] Use when activating spec-driven development to keep the single canonical Feature Spec, implementation, and tests synchronized.'
+description: '[Workflow] Use when activating code-to-spec development — author/maintain the single canonical Feature Spec FROM existing code, keeping spec, implementation, and tests synchronized. For idea→spec (no code yet) use workflow-idea-to-spec.'
 disable-model-invocation: true
 ---
 
@@ -14,6 +13,8 @@ disable-model-invocation: true
 > **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
+
+> **Renamed:** formerly `workflow-build-specs` — now `/workflow-code-to-spec`. The old name no longer resolves as a slash command.
 
 ## Quick Summary
 
@@ -440,7 +441,7 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 
 <!-- SYNC:subagent-return-contract -->
 
-> **Sub-Agent Return Contract** — Sub-agent MUST return ONLY this structure. Main agent reads only summary — NEVER requests full sub-agent output inline.
+> **Sub-Agent Return Contract** — When this skill spawns a sub-agent, the sub-agent MUST return ONLY this structure. Main agent reads only this summary — NEVER requests full sub-agent output inline.
 >
 > ```markdown
 > ## Sub-Agent Result: [skill-name]
@@ -463,8 +464,10 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 > Full report: plans/reports/[skill-name]-[date]-[slug].md
 > ```
 >
-> Main agent reads `Full report` ONLY when: (a) resolving specific blocker, or (b) building fix plan.
-> Sub-agent writes full report incrementally (per SYNC:incremental-persistence) — never held in memory.
+> Main agent reads `Full report` file ONLY when: (a) resolving a specific blocker, or (b) building a fix plan.
+> Sub-agent writes full report incrementally (per SYNC:incremental-persistence) — not held in memory.
+>
+> **Context budget** — the return payload is a SUMMARY, not a transcript: ≤10 finding bullets, no raw file contents / full diffs / verbatim logs inline, no re-pasted source. Everything beyond the summary lives in the `Full report` on disk. A sub-agent that would exceed the summary shape MUST write the detail to its report and return only the pointer — the orchestrator's context is the scarce resource the whole map-reduce protects.
 
 <!-- /SYNC:subagent-return-contract -->
 

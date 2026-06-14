@@ -74,11 +74,11 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
 
-**IMPORTANT MANDATORY Steps:** $scout -> $feature-investigation -> $debug-investigate -> $spec [mode=amend] -> $plan -> $plan-review -> $plan-validate -> $why-review -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $integration-test -> $fix -> $prove-fix -> $integration-test -> $integration-test-review -> $integration-test-verify -> $spec [mode=sync] -> $workflow-review-changes -> $changelog -> $test -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $scout -> $investigate -> $debug-investigate -> $spec [mode=amend] -> $plan -> $plan-review -> $plan-validate -> $why-review -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $integration-test -> $fix -> $prove-fix -> $integration-test -> $integration-test-review -> $integration-test-verify -> $spec [mode=sync] -> $workflow-review-changes -> $changelog -> $test -> $docs-update -> $workflow-end -> $watzup
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $scout -> $feature-investigation -> $debug-investigate -> $spec [mode=amend] -> $plan -> $plan-review -> $plan-validate -> $why-review -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $integration-test -> $fix -> $prove-fix -> $integration-test -> $integration-test-review -> $integration-test-verify -> $spec [mode=sync] -> $workflow-review-changes -> $changelog -> $test -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $scout -> $investigate -> $debug-investigate -> $spec [mode=amend] -> $plan -> $plan-review -> $plan-validate -> $why-review -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $integration-test -> $fix -> $prove-fix -> $integration-test -> $integration-test-review -> $integration-test-verify -> $spec [mode=sync] -> $workflow-review-changes -> $changelog -> $test -> $docs-update -> $workflow-end -> $watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its skill invocation — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
@@ -100,7 +100,7 @@ Activate the `workflow-bugfix` workflow. Run `$start-workflow workflow-bugfix` w
 
 > **Goal Contract propagation (workflow-owned):** At workflow start, resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from the bug report). Map root cause, regression-test evidence (RED fail + GREEN pass), and `$prove-fix` proof to the saved success criteria — each criterion gets `file:line`/command/report evidence in the Iteration Log. Pass the same goal file reference to every child step. Before `$workflow-end`, emit the final Goal Satisfaction matrix (PASS/FAIL/BLOCKED); workflow completion requires every required criterion PASS or BLOCKED with a user-facing escalation.
 
-**Steps:** $scout → $feature-investigation → $debug-investigate → $spec [mode=amend] → $plan → $plan-review → $plan-validate → $why-review → $spec [mode=tests] → $why-review → $review-artifact --type=spec-tests → $integration-test → $fix → $prove-fix → $integration-test → $integration-test-review → $integration-test-verify → $spec [mode=sync] → $workflow-review-changes → $changelog → $test → $docs-update → $workflow-end → $watzup
+**Steps:** $scout → $investigate → $debug-investigate → $spec [mode=amend] → $plan → $plan-review → $plan-validate → $why-review → $spec [mode=tests] → $why-review → $review-artifact --type=spec-tests → $integration-test → $fix → $prove-fix → $integration-test → $integration-test-review → $integration-test-verify → $spec [mode=sync] → $workflow-review-changes → $changelog → $test → $docs-update → $workflow-end → $watzup
 
 > **[PERFORMANCE-SDD ROUTE]** If this bug fix is performance-related (latency, throughput, memory, query speed, load behavior), run `$performance-review` and require SLA/benchmark evidence: target metric, baseline, measurement command, and acceptable regression budget. Do not use performance scope to bypass functional no-regression checks: run `$test` and any relevant functional checks when behavior can change. Update docs/specs for changed SLA, performance constraints, or behavior boundaries.
 
@@ -209,6 +209,8 @@ Activate the `workflow-bugfix` workflow. Run `$start-workflow workflow-bugfix` w
 >
 > Main agent reads `Full report` file ONLY when: (a) resolving a specific blocker, or (b) building a fix plan.
 > Sub-agent writes full report incrementally (per SYNC:incremental-persistence) — not held in memory.
+>
+> **Context budget** — the return payload is a SUMMARY, not a transcript: ≤10 finding bullets, no raw file contents / full diffs / verbatim logs inline, no re-pasted source. Everything beyond the summary lives in the `Full report` on disk. A sub-agent that would exceed the summary shape MUST write the detail to its report and return only the pointer — the orchestrator's context is the scarce resource the whole map-reduce protects.
 
 <!-- /SYNC:subagent-return-contract -->
 

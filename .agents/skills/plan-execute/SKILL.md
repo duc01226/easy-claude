@@ -1,8 +1,43 @@
 ---
-name: code
-version: 1.0.0
+name: plan-execute
 description: '[Implementation] Use when you need to start coding & testing an existing plan. Flags: --approval=off (auto/trust mode, no approval gate), --tests=off (skip the test step), --parallel (parallel phase execution via subagents).'
 ---
+
+> Codex compatibility note:
+> - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
+> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - User-question prompts mean to ask the user directly in Codex.
+> - Ignore Claude-specific mode-switch instructions when they appear.
+> - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
+> - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
+> - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
+> - For workflow skills, execute each listed child-skill step explicitly and report step-by-step evidence.
+> - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+<!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
+## Codex Project-Reference Loading (No Hooks)
+
+Codex does not receive Claude hook-based doc injection.
+When coding, planning, debugging, testing, or reviewing, open project docs explicitly using this routing.
+
+**Always read:**
+- `docs/project-config.json` (project-specific paths, commands, modules, and workflow/test settings)
+- `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
+- `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
+
+**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.
+
+**Situation-based docs:**
+- Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`, `project-structure-reference.md`
+- Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md`
+- Spec authoring, `docs/specs/` pathing, or TC format: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`
+- Behavior/public-contract changes or spec-test-code sync: `workflow-spec-test-code-cycle-reference.md` plus the spec docs above
+- Derived spec indexes/ERDs/reimplementation guides: `spec-system-reference.md` and source Feature Specs under `docs/specs/`
+- Integration test implementation/review: `integration-test-reference.md`
+- E2E test implementation/review: `e2e-test-reference.md`
+- Code review/audit work: `code-review-rules.md` plus domain docs above based on changed files
+
+Do not read all docs blindly. Start from `docs-index-reference.md`, then open only relevant files for the task.
+<!-- CODEX:PROJECT-REFERENCE-LOADING:END -->
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
@@ -17,12 +52,12 @@ description: '[Implementation] Use when you need to start coding & testing an ex
 
 **Goal:** Land the selected plan phase as working, fully-tested, reviewed, user-approved code — executing it phase-by-phase through testing, code review, and approval gates — committed only after every quality gate (100% tests, 0 critical issues, explicit approval) passes — NEVER bypass a gate to declare done.
 
-> **Renamed:** folds the former `/code-auto` (→ `--approval=off`), `/code-no-test` (→ `--tests=off`), and `/code-parallel` (→ `--parallel`) skills — those names no longer resolve as slash commands; use `/code` with the matching flag.
+> **Renamed:** formerly `code` — now `$plan-execute`. Also folds the former `/code-auto` (→ `--approval=off`), `/code-no-test` (→ `--tests=off`), and `/code-parallel` (→ `--parallel`) skills — those legacy names no longer resolve as slash commands; use `$plan-execute` with the matching flag.
 
 **Workflow:**
 
 1. **Plan Detection** — Find latest plan or use provided path, select next incomplete phase
-2. **Analysis & Tasks** — Extract tasks from phase file into TaskCreate
+2. **Analysis & Tasks** — Extract tasks from phase file into task tracking
 3. **Implementation** — Implement step-by-step, run type checks
 4. **Testing** — Call tester subagent; must reach 100% pass before proceeding
 5. **Code Review** — Call code-reviewer subagent; must reach 0 critical issues
@@ -45,9 +80,25 @@ description: '[Implementation] Use when you need to start coding & testing an ex
 
 ---
 
+> **plan-execute vs feature-implement:** `plan-execute` **executes an EXISTING plan** phase-by-phase (Step 0 detects `plans/*.md`) and owns the back of the pipeline — phase gates, auto-commit, and the `--parallel`/`--approval`/`--tests` flags. Use `$feature-implement` instead when you have only a feature description and need research + planning done first. feature-implement creates plans; plan-execute consumes them.
+
+## Standalone Mode Pipeline (skip entirely if invoked inside a workflow)
+
+> **MANDATORY — standalone `$plan-execute` only.** When this skill is invoked OUTSIDE a workflow, wrap the core spine (Steps 0-6) in this quality loop. Detect an active workflow via the current task list FIRST: if a parent `[Workflow]` row exists, SKIP this section — the surrounding workflow already sequences plan/review/why-review (e.g. `workflow-refactor`).
+>
+> Create these as task tracking tasks up front, in order, then execute them:
+>
+> 1. **`$plan`** — if Step 0 finds no plan for the request, author one first. If a plan already exists, record that and skip to step 2.
+> 2. **`$plan-review`** — recursively review/validate the plan; fix validated findings before proceeding.
+> 3. **Proceed** — run the core spine (Steps 0-6) against the approved plan.
+> 4. **`$review-changes`** — review the diff before commit (this is the post-gate; see *Standalone Review Gate* below).
+> 5. **`$why-review`** — review rationale and change quality of the implementation.
+>
+> This supersedes the standalone behavior previously split between the *Workflow Recommendation*, *Next Steps*, and *Standalone Review Gate* sections — it is the single pre+post quality loop for standalone runs.
+
 ## Mode Flags
 
-`/code` runs the full step spine below by default. Optional flags adapt the spine for the cases formerly served by dedicated skills — each flag only adds or removes a single step against the **host step numbering** (Step 3 Testing, Step 4 Code Review, Step 5 User Approval, Step 6 Finalize); the shared spine and every quality bar are otherwise unchanged.
+`$plan-execute` runs the full step spine below by default. Optional flags adapt the spine for the cases formerly served by dedicated skills — each flag only adds or removes a single step against the **host step numbering** (Step 3 Testing, Step 4 Code Review, Step 5 User Approval, Step 6 Finalize); the shared spine and every quality bar are otherwise unchanged.
 
 | Flag | Default | Effect |
 | ---- | ------- | ------ |
@@ -71,7 +122,7 @@ description: '[Implementation] Use when you need to start coding & testing an ex
 
 <HARD-GATE>
 
-If ANY check fails → STOP. Ask user: "Phase needs more detail before implementation. Refine with /plan? [Y/n]"
+If ANY check fails → STOP. Ask user: "Phase needs more detail before implementation. Refine with $plan? [Y/n]"
 Implement only phases with named files, concrete actions, and resolved decisions — DO NOT implement a phase containing planning verbs, unnamed files, or unresolved decisions.
 </HARD-GATE>
 
@@ -92,7 +143,7 @@ Implement only phases with named files, concrete actions, and resolved decisions
 
 ## Workflow Sequence
 
-**Rules:** Follow steps 1-6 in order. Each step requires output marker `✓ Step N:`. Mark each complete in TaskCreate before proceeding. Do not skip steps.
+**Rules:** Follow steps 1-6 in order. Each step requires output marker `✓ Step N:`. Mark each complete in task tracking before proceeding. Do not skip steps.
 
 ---
 
@@ -104,11 +155,11 @@ Read plan file completely. Map dependencies. List ambiguities. Identify required
 
 **Pre-Implementation Trace Gate:** If the plan is for a bugfix, failed verification, stale/incorrect final output, regression, or behavior-changing fix, MUST ATTENTION verify the plan or referenced analysis includes `Debugger Trace: End -> Start`, all feeder paths, hypothesis matrix, owning fix layer, and forward convergence proof. If missing, STOP and report the missing trace links instead of implementing.
 
-**TaskCreate Initialization:**
+**task tracking Initialization:**
 
-- Initialize TaskCreate with `Step 0: [Plan Name] - [Phase Name]` and all steps (1-6)
+- Initialize task tracking with `Step 0: [Plan Name] - [Phase Name]` and all steps (1-6)
 - Read phase file, look for tasks/steps/phases/sections/numbered/bulleted lists
-- Convert to TaskCreate tasks with UNIQUE names:
+- Convert to task tracking tasks with UNIQUE names:
     - Phase Implementation tasks → Step 2.X (Step 2.1, Step 2.2, etc.)
     - Phase Testing tasks → Step 3.X
     - Phase Code Review tasks → Step 4.X
@@ -200,7 +251,7 @@ below — if a downstream rule would raise change cost, this principle wins.
 
 **Step output format:** `✓ Step [N]: [Brief status] - [Key metrics]`
 
-**TaskCreate tracking required:** Initialize at Step 0, mark each step complete before next.
+**task tracking tracking required:** Initialize at Step 0, mark each step complete before next.
 
 **Mandatory subagent calls:** Step 3: `tester` | Step 4: `code-reviewer` | Step 6: `project-manager` AND `docs-manager` AND `git-manager`
 
@@ -216,30 +267,32 @@ Execute every step in declared order; proceed only when validation passes and th
 
 ## Workflow Recommendation
 
-> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use `AskUserQuestion` to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
+> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use a direct user question to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
 >
-> 1. **Activate `workflow-refactor` workflow** (Recommended) — scout → investigate → plan → code → review → sre-review → test → docs
-> 2. **Execute `/code` directly** — run this skill standalone
+> 1. **Activate `workflow-refactor` workflow** (Recommended) — scout → investigate → plan → plan-execute → review → sre-review → test → docs
+> 2. **Execute `$plan-execute` directly** — run this skill standalone
 
 ---
 
-## Next Steps (Standalone: MUST ATTENTION ask user via `AskUserQuestion`. Skip if inside workflow.)
+## Next Steps (Standalone: MUST ATTENTION ask user via a direct user question. Skip if inside workflow.)
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use `AskUserQuestion` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use a direct user question to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
 
 - **"Proceed with full workflow (Recommended)"** — I'll detect the best workflow to continue from here (code implemented). This ensures review, testing, and docs steps aren't skipped.
-- **"/code-simplifier"** — Simplify implementation
-- **"/integration-test"** — Generate/update integration tests from test specs
-- **"/workflow-review-changes"** — Review changes before commit
+- **"$code-simplifier"** — Simplify implementation
+- **"$integration-test"** — Generate/update integration tests from test specs
+- **"$workflow-review-changes"** — Review changes before commit
 - **"Skip, continue manually"** — user decides
 
 ## Standalone Review Gate (Non-Workflow Only)
 
-> **MANDATORY IMPORTANT MUST ATTENTION:** If this skill is called **outside a workflow** (standalone `/code`), you MUST ATTENTION create a `TaskCreate` todo task for `/review-changes` as the **last task** in your task list. This ensures all changes are reviewed before commit even without a workflow enforcing it.
+> **Post-gate of the [Standalone Mode Pipeline](#standalone-mode-pipeline-skip-entirely-if-invoked-inside-a-workflow).** The full standalone loop is plan → plan-review → proceed → `$review-changes` → `$why-review`; the two review steps below are its tail.
 >
-> If already running inside a workflow (e.g., `workflow-feature`, `workflow-refactor`), skip this — the workflow sequence handles `/review-changes` at the appropriate step.
+> **MANDATORY IMPORTANT MUST ATTENTION:** If this skill is called **outside a workflow** (standalone `$plan-execute`), you MUST ATTENTION create task tracking todo tasks for `$review-changes` then `$why-review` as the **last tasks** in your task list. This ensures all changes are reviewed before commit even without a workflow enforcing it.
+>
+> If already running inside a workflow (e.g., `workflow-feature`, `workflow-refactor`), skip this — the workflow sequence handles `$review-changes` at the appropriate step.
 
-> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
+> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
 
 **Prerequisites:** **MUST ATTENTION READ** before executing:
 
@@ -288,14 +341,14 @@ Execute every step in declared order; proceed only when validation passes and th
 
 > **Nested Task Expansion Contract** — For workflow-step invocation, the `[Workflow] ...` row is only a parent container; the child skill still creates visible phase tasks.
 >
-> 1. Call `TaskList` first. If a matching active parent workflow row exists, set `nested=true` and record `parentTaskId`; otherwise run standalone.
+> 1. Call the current task list first. If a matching active parent workflow row exists, set `nested=true` and record `parentTaskId`; otherwise run standalone.
 > 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] $skill-name — phase`.
 > 3. When nested, link the parent with `TaskUpdate(parentTaskId, addBlockedBy: [childIds])`.
 > 4. Orchestrators must pre-expand a child skill's phase list and link the workflow row before invoking that child skill or sub-agent.
 > 5. Mark exactly one child `in_progress` before work and `completed` immediately after evidence is written.
 > 6. Complete the parent only after all child tasks are completed or explicitly cancelled with reason.
 >
-> **Blocked until:** `TaskList` done, child phases created, parent linked when nested, first child marked `in_progress`.
+> **Blocked until:** the current task list done, child phases created, parent linked when nested, first child marked `in_progress`.
 
 <!-- /SYNC:nested-task-creation -->
 
@@ -305,7 +358,7 @@ Execute every step in declared order; proceed only when validation passes and th
 >
 > 1. Identify scope: file types, domain area, and operation.
 > 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under `docs/specs/`; architecture/new area `project-structure-reference.md`.
-> 3. Read every required doc. If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `/project-init` or the narrow lower-level route (`/project-config`, `/docs-init`, `/scan-all`, `/scan --target=<key>`, `/claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `/sync-codex`; do not auto-run it.
+> 3. Read every required doc. If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow lower-level route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.
 > 4. Before target work, state: `Reference docs read: ... | Not applicable: ...`.
 >
 > **Ready when:** scope evaluated, required docs checked/read or setup route completed, `lessons.md` confirmed, citation emitted.
@@ -387,7 +440,7 @@ Execute every step in declared order; proceed only when validation passes and th
 
 - **MANDATORY** After task-tracking bootstrap and before target/source work, read required project-reference docs and cite `Reference docs read: ...`.
 - **MANDATORY** Always include `lessons.md`; project conventions override generic defaults.
-- **MANDATORY** If project config, root instruction files, or any required reference doc is missing, stop and run or ask the user to run `/project-init`.
+- **MANDATORY** If project config, root instruction files, or any required reference doc is missing, stop and run or ask the user to run `$project-init`.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
 
@@ -426,14 +479,14 @@ Execute every step in declared order; proceed only when validation passes and th
 
 **IMPORTANT MUST ATTENTION Goal:** Land the selected plan phase as working, fully-tested, reviewed, user-approved code — committed only after every quality gate (100% tests, 0 critical issues, explicit approval) passes — NEVER bypass a gate to declare done.
 **MANDATORY IMPORTANT MUST ATTENTION** execute Steps 0-6 in declared order; tests 100% (Step 3), critical issues 0 (Step 4), explicit user approval (Step 5) are BLOCKING gates — NEVER skip a step or proceed on failed validation — why: a faked-green gate ships the regression it exists to catch.
-**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting.
-**MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — never auto-decide.
+**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting.
+**MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via a direct user question — never auto-decide.
 **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.
 **MANDATORY IMPORTANT MUST ATTENTION** READ the following files before starting:
 
 **IMPORTANT MUST ATTENTION** READ `CLAUDE.md` before starting
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
+**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
 
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
 
@@ -444,3 +497,39 @@ Execute every step in declared order; proceed only when validation passes and th
 > the next change cheaper or more expensive?_ If it doesn't reduce future
 > change cost, reject it. Coupling, hidden state, duplicated knowledge, and
 > unclear intent are the real enemies — call them out by name.
+
+<!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
+## Hookless Prompt Protocol Mirror (Auto-Synced)
+
+Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
+
+## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
+
+**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. Any supported AI tool may execute when this shared context and local docs are available.
+
+1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
+2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
+3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
+4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
+6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
+**[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
+**Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
+**AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
+**Goal-driven execution:** Define success criteria first, loop until verified, and stop only when observable checks pass.
+**Tests verify intent:** Tests must protect business rules/invariants and fail when the protected intent breaks, not only mirror current behavior.
+## [LESSON-LEARNED-REMINDER] [BLOCKING] Task Planning & Continuous Improvement — MANDATORY. Do not skip.
+
+Break work into small tasks (task tracking) before starting. Add final task: "Analyze AI mistakes & lessons learned".
+
+**Extract lessons — ROOT CAUSE ONLY, not symptom fixes:**
+1. Name the FAILURE MODE (reasoning/assumption failure), not symptom — "assumed API existed without reading source" not "used wrong enum value".
+2. Generality test: does this failure mode apply to ≥3 contexts/codebases? If not, abstract one level up.
+3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
+4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
+5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
+6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/`$lint` catch this?" — Yes → improve review skill instead.
+7. BOTH gates pass → ask user to run `$learn`.
+**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
+
+<!-- CODEX:SYNC-PROMPT-PROTOCOLS:END -->

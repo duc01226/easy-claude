@@ -91,6 +91,13 @@ Explain scope: same READ-ONLY evidence gate; deliverable is an in-chat developer
 - ALWAYS grep related usages, consumers, cross-service references — NEVER assume completeness
 - ALWAYS trace actual call paths with evidence — NEVER rely on signatures alone
 
+### Logical-ID Extraction & Business-Intent Rule (M3/M5)
+
+See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6)" for BLOCKING criteria. When extracting operations, business rules, or events into findings:
+
+- Assign each extracted operation/rule/event a logical ID (FR-/BR- for operations and rules) as the PRIMARY identifier. Keep the `[Source: namespace/service/id]` abstract-anchor evidence (never physical code coordinates or repository-root paths — those live only in the provenance sidecar) as a SEPARATE carrier — never fold the source link into the rule statement itself (M3).
+- For every rule, explain **WHY** it exists (the business intent / invariant it protects), not only **WHAT** the code does. State the rule in tech-agnostic business terms so the finding is reusable by a rebuild team on any stack (M5).
+
 ## Workflow
 
 1. **Discovery** — Search for all related files. Priority: Entities > Commands/Queries > EventHandlers > Controllers > Consumers > Components.

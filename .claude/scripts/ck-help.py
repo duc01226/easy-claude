@@ -48,7 +48,7 @@ def emit_output_type(output_type: str) -> None:
 TASK_MAPPINGS = {
     "fix": ["fix", "bug", "error", "broken", "issue", "debug", "crash", "fail", "wrong", "not working"],
     "plan": ["plan", "design", "architect", "research", "think", "analyze", "strategy", "how to", "approach"],
-    "cook": ["implement", "build", "create", "add", "feature", "code", "develop", "make", "write"],
+    "feature-implement": ["implement", "build", "create", "add", "feature", "code", "develop", "make", "write"],
 
     "test": ["test", "check", "verify", "validate", "spec", "unit", "integration", "coverage"],
     "docs": ["document", "readme", "docs", "explain", "comment", "documentation"],
@@ -79,17 +79,17 @@ CATEGORY_GUIDES = {
         "workflow": [
             ("Plan", "`/plan` \"your task\""),
             ("Validate", "`/plan-validate` (interview to confirm decisions)"),
-            ("Execute plan", "`/code` (runs the plan)"),
+            ("Execute plan", "`/plan-execute` (runs the plan)"),
         ],
         "tip": "Use /plan-validate to confirm assumptions before coding",
     },
-    "cook": {
+    "feature-implement": {
         "title": "Implementation",
         "workflow": [
-            ("Implement", "`/cook` \"your feature\""),
+            ("Implement", "`/feature-implement` \"your feature\""),
             ("Test", "`/test`"),
         ],
-        "tip": "Cook is standalone - it plans internally. Use /plan → /code for explicit planning",
+        "tip": "/feature-implement is standalone - it plans internally. Use /plan → /plan-execute for explicit planning",
     },
     "test": {
         "title": "Testing",
@@ -311,8 +311,8 @@ def show_overview(data: dict, prefix: str) -> None:
     print(f"{total} commands across {len(categories)} categories.")
     print()
     print("**Quick Start:**")
-    print(f"- `/{prefix}cook` - Implement features (standalone)")
-    print(f"- `/{prefix}plan` + `/{prefix}code` - Plan then execute")
+    print(f"- `/{prefix}feature-implement` - Implement features (standalone)")
+    print(f"- `/{prefix}plan` + `/{prefix}plan-execute` - Plan then execute")
     print(f"- `/{prefix}fix` - Fix bugs intelligently")
     print(f"- `/{prefix}test` - Run and analyze tests")
     print()

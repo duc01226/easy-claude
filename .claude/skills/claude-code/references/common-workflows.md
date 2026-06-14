@@ -7,14 +7,14 @@
 ```bash
 /plan implement payment integration with Stripe
 # Review plan, then proceed with implementation
-/cook implement payment integration with Stripe
+/feature-implement implement payment integration with Stripe
 ```
 
 **Direct implementation:**
 
 ```bash
-/cook implement user authentication with JWT
-/cook add dark mode toggle to settings
+/feature-implement implement user authentication with JWT
+/feature-implement add dark mode toggle to settings
 ```
 
 ## Bug Fixing

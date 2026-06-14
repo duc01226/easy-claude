@@ -61,7 +61,7 @@ context-budget: medium
 - Before changes affecting multiple parts
 - Mapping file landscape before investigation or implementation
 
-**NOT for:** Deep code analysis (use `feature-investigation`), debugging (use `debug-investigate`), implementation (use `workflow-feature`).
+**NOT for:** Deep code analysis (use `investigate`), debugging (use `debug-investigate`), implementation (use `workflow-feature`).
 
 ---
 
@@ -357,6 +357,8 @@ Combine grep + graph into numbered, prioritized file list (see Results Format).
 >
 > Main agent reads `Full report` file ONLY when: (a) resolving a specific blocker, or (b) building a fix plan.
 > Sub-agent writes full report incrementally (per SYNC:incremental-persistence) — not held in memory.
+>
+> **Context budget** — the return payload is a SUMMARY, not a transcript: ≤10 finding bullets, no raw file contents / full diffs / verbatim logs inline, no re-pasted source. Everything beyond the summary lives in the `Full report` on disk. A sub-agent that would exceed the summary shape MUST write the detail to its report and return only the pointer — the orchestrator's context is the scarce resource the whole map-reduce protects.
 
 <!-- /SYNC:subagent-return-contract -->
 

@@ -1,10 +1,10 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-06-13'
-  total_skills: 156
+  last_updated: '2026-06-14'
+  total_skills: 155
   total_by_status:
-    active: 156
+    active: 155
     deprecated: 0
     experimental: 0
 categories:
@@ -38,7 +38,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: course-builder
       path: course-builder/SKILL.md
       description: '[Content] Use when you need to build structured learning/teaching
@@ -51,7 +50,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: design
       path: design/SKILL.md
       description: '[Design] Create or describe a UI design — quick (fast), immersive
@@ -64,7 +62,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: design-spec
       path: design-spec/SKILL.md
       description: '[Project Management] Use when you need to create UI/UX design
@@ -77,7 +74,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: figma-design
       path: figma-design/SKILL.md
       description: '[Frontend] Use when you need to extract design context from Figma
@@ -89,7 +85,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: frontend-design
       path: frontend-design/SKILL.md
       description: '[Frontend] Use when you need to create distinctive, production-grade
@@ -101,7 +96,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: graph-build
       path: graph-build/SKILL.md
       description: '[Code Intelligence] Use when you need to build, update, or sync
@@ -116,7 +110,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: interface-design
       path: interface-design/SKILL.md
       description: '[Frontend] Use when you need interface design for product UIs
@@ -128,7 +121,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: review-ui
       path: review-ui/SKILL.md
       description: '[Code Quality] Use when reviewing UI/frontend changes for long-content
@@ -141,7 +133,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: strategy-builder
       path: strategy-builder/SKILL.md
       description: '[Content] Use when you need to build marketing strategy: positioning,
@@ -153,7 +144,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: test-ui
       path: test-ui/SKILL.md
       description: '[Testing] Use when you need full-site QA audit (accessibility,
@@ -165,7 +155,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: threejs
       path: threejs/SKILL.md
       description: '[General] Use when building 3D web apps with ThreeJS and related
@@ -177,7 +166,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: ui-ux-pro-max
       path: ui-ux-pro-max/SKILL.md
       description: '[Frontend] Use when designing beautiful or aesthetic interfaces
@@ -189,7 +177,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: web-design-guidelines
       path: web-design-guidelines/SKILL.md
       description: '[Code Quality] Use when reviewing UI code for accessibility, responsiveness,
@@ -201,7 +188,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     other:
     - name: ask
       path: ask/SKILL.md
@@ -214,7 +200,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: brainstorm
       path: brainstorm/SKILL.md
       description: '[Content] Use when you need to brainstorm as a PO/BA — structured
@@ -226,7 +211,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: branch-comparison
       path: branch-comparison/SKILL.md
       description: '[Git] Use when the user asks to compare branches, analyze git
@@ -239,7 +223,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: business-analyst
       path: business-analyst/SKILL.md
       description: '[Project Management] Use when creating user stories, writing acceptance
@@ -251,7 +234,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: business-evaluation
       path: business-evaluation/SKILL.md
       description: '[Content] Use when you need to evaluate business idea viability:
@@ -264,7 +246,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: changelog
       path: changelog/SKILL.md
       description: '[Documentation] Use when you need to generate or update changelog
@@ -276,7 +257,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: checkpoint
       path: checkpoint/SKILL.md
       description: '[Utilities] Use when you need to save analysis context to a checkpoint
@@ -288,7 +268,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: ck-help
       path: ck-help/SKILL.md
       description: '[Utilities] Use when you need claudeKit usage guide - just type
@@ -300,7 +279,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: claude-md-init
       path: claude-md-init/SKILL.md
       description: '[Documentation] Use when you need initialize, update, or refactor
@@ -312,21 +290,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
-    - name: code
-      path: code/SKILL.md
-      description: '[Implementation] Use when you need to start coding & testing an
-        existing plan. Flags: --approval=off (auto/trust mode, no approval gate),
-        --tests=off (skip the test step), --parallel (parallel phase execution via
-        subagents).'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-      last_reviewed: null
     - name: code-simplifier
       path: code-simplifier/SKILL.md
       description: '[Code Quality] Use when you need to simplify and refine code for
@@ -338,7 +301,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: coding-level
       path: coding-level/SKILL.md
       description: '[Utilities] Use when you need to set coding experience level for
@@ -350,7 +312,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: commit
       path: commit/SKILL.md
       description: '[Git] Use when asked to "commit", "stage and commit", "save changes",
@@ -363,7 +324,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: compact
       path: compact/SKILL.md
       description: '[Utilities] Use when you need to compress context to optimize
@@ -375,7 +335,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: context
       path: context/SKILL.md
       description: '[Utilities] Use when you need to load project context for current
@@ -387,7 +346,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: context-optimization
       path: context-optimization/SKILL.md
       description: '[Utilities] Use when managing context window usage, compressing
@@ -399,19 +357,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
-    - name: cook
-      path: cook/SKILL.md
-      description: '[Implementation] Use when you need to implement a feature [step
-        by step].'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-      last_reviewed: null
     - name: copywriting
       path: copywriting/SKILL.md
       description: '[Content] Use when you need to create high-converting copy for
@@ -424,7 +369,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: custom-agent
       path: custom-agent/SKILL.md
       description: '[AI & Tools] Use when you need create, verify, or enhance Claude
@@ -436,7 +380,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: db-migrate
       path: db-migrate/SKILL.md
       description: '[DevOps] Use when you need to run or create database migrations.'
@@ -447,7 +390,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: dependency
       path: dependency/SKILL.md
       description: '[Project Management] Use when you need to map and visualize feature
@@ -459,7 +401,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: docs-init
       path: docs-init/SKILL.md
       description: '[Documentation] Use when you need to initialize project reference
@@ -471,7 +412,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: docs-update
       path: docs-update/SKILL.md
       description: '[Documentation] Use when updating impacted documentation after
@@ -483,7 +423,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: '2026-04-23'
     - name: documentation
       path: documentation/SKILL.md
       description: '[Code Quality] Use when the user asks to enhance documentation,
@@ -496,7 +435,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: docx-to-markdown
       path: docx-to-markdown/SKILL.md
       description: '[Document Processing] Use when you need to convert Microsoft Word
@@ -508,7 +446,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: domain-analysis
       path: domain-analysis/SKILL.md
       description: '[Architecture] Use when you need to analyze business domain: bounded
@@ -520,7 +457,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: dor-gate
       path: dor-gate/SKILL.md
       description: '[Code Quality] Use when you need to validate a PBI against Definition
@@ -532,7 +468,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: dual-ai
       path: dual-ai/SKILL.md
       description: '[User-Invoked] Use ONLY when the user explicitly types /dual-ai
@@ -547,7 +482,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: e2e-test
       path: e2e-test/SKILL.md
       description: '[Testing] Use when generating, updating, or maintaining E2E tests
@@ -559,7 +493,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: estimate-actual
       path: estimate-actual/SKILL.md
       description: '[Planning] Use when calibrating estimates from actual code, diff,
@@ -571,7 +504,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: excalidraw-diagram
       path: excalidraw-diagram/SKILL.md
       description: '[Utilities] Use when the user wants to visualize workflows, architectures,
@@ -583,11 +515,10 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
-    - name: feature-investigation
-      path: feature-investigation/SKILL.md
-      description: '[Investigation] Use when the user asks to investigate, explore,
-        understand, explain, or analyze how an existing feature or logic works.'
+    - name: feature-implement
+      path: feature-implement/SKILL.md
+      description: '[Implementation] Use when you need to implement a feature [step
+        by step].'
       category: other
       has_scripts: false
       has_references: false
@@ -595,7 +526,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: fix
       path: fix/SKILL.md
       description: '[Implementation] Use when you need to analyze and fix issues [INTELLIGENT
@@ -608,7 +538,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: git-conflict-resolve
       path: git-conflict-resolve/SKILL.md
       description: '[Git] Use when you need to resolve git merge/cherry-pick/rebase
@@ -620,7 +549,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: git-developer-performance
       path: git-developer-performance/SKILL.md
       description: '[Git] Use when generating developer KPI, performance, contribution
@@ -633,7 +561,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: git-merge
       path: git-merge/SKILL.md
       description: '[Git] Use when you need ⚠️ Merge code from one branch to another.'
@@ -644,7 +571,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: graph-blast-radius
       path: graph-blast-radius/SKILL.md
       description: '[Code Intelligence] Use when you need to analyze the blast radius
@@ -656,7 +582,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: graph-connect-api
       path: graph-connect-api/SKILL.md
       description: '[Code Intelligence] Use when you need to detect frontend-to-backend
@@ -668,7 +593,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: graph-export
       path: graph-export/SKILL.md
       description: '[Code Intelligence] Use when you need to export the code review
@@ -682,7 +606,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: graph-query
       path: graph-query/SKILL.md
       description: '[Code Intelligence] Use when you need to query code relationships
@@ -694,7 +617,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: graph-trace
       path: graph-trace/SKILL.md
       description: '[Code Intelligence] Use when investigating what happens when code
@@ -706,7 +628,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: greenfield
       path: greenfield/SKILL.md
       description: '[Planning] Use when you need to start a new project from scratch
@@ -719,7 +640,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: harness-setup
       path: harness-setup/SKILL.md
       description: '[Quality] Use when setting up an agent quality harness with feedforward
@@ -731,7 +651,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: idea
       path: idea/SKILL.md
       description: '[Project Management] Use when capturing new ideas, feature requests,
@@ -743,7 +662,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: integration-test
       path: integration-test/SKILL.md
       description: '[Testing] Use when you need to generate or review integration
@@ -755,7 +673,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: integration-test-review
       path: integration-test-review/SKILL.md
       description: '[Code Quality] Use when you need to review integration tests for
@@ -769,7 +686,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: integration-test-verify
       path: integration-test-verify/SKILL.md
       description: '[Testing] Use when you need to verify integration tests pass after
@@ -781,7 +697,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: investigate
       path: investigate/SKILL.md
       description: '[Fix & Debug] Use when you need to investigate and explain how
@@ -795,7 +710,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: journal
       path: journal/SKILL.md
       description: '[Utilities] Use when recording an engineering journal entry —
@@ -807,7 +721,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: knowledge-review
       path: knowledge-review/SKILL.md
       description: '[Research] Use when you need to review knowledge artifacts for
@@ -819,7 +732,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: knowledge-synthesis
       path: knowledge-synthesis/SKILL.md
       description: '[Research] Use when you need to synthesize research findings into
@@ -831,7 +743,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: learn
       path: learn/SKILL.md
       description: '[Utilities] Use when you need to teach Claude lessons that persist
@@ -843,7 +754,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: lint
       path: lint/SKILL.md
       description: '[Code Quality] Use when you need to run linters and fix issues
@@ -855,7 +765,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: linter-setup
       path: linter-setup/SKILL.md
       description: '[Quality] Use when you need to research and configure code quality
@@ -868,7 +777,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: markdown-novel-viewer
       path: markdown-novel-viewer/SKILL.md
       description: '[Content] Use when you need background HTTP server rendering markdown
@@ -880,7 +788,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: markdown-to-docx
       path: markdown-to-docx/SKILL.md
       description: '[Document Processing] Use when you need to convert markdown files
@@ -892,7 +799,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: markdown-to-pdf
       path: markdown-to-pdf/SKILL.md
       description: '[Document Processing] Use when you need to convert markdown files
@@ -904,7 +810,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: market-analysis
       path: market-analysis/SKILL.md
       description: '[Research] Use when you need to analyze market landscape: competitors,
@@ -916,7 +821,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: memory-management
       path: memory-management/SKILL.md
       description: '[Utilities] Use when saving or retrieving important patterns,
@@ -928,7 +832,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: package-upgrade
       path: package-upgrade/SKILL.md
       description: '[Code Quality] Use when the user asks to analyze package upgrades,
@@ -941,7 +844,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: pbi-challenge
       path: pbi-challenge/SKILL.md
       description: '[Code Quality] Use when you need an AI-assisted Dev BA PIC review
@@ -953,7 +855,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: pbi-mockup
       path: pbi-mockup/SKILL.md
       description: '[Project Management] Use when you need to generate an HTML mockup
@@ -965,7 +866,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: pdf-to-markdown
       path: pdf-to-markdown/SKILL.md
       description: '[Document Processing] Use when you need to convert PDF files to
@@ -977,7 +877,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: performance-review
       path: performance-review/SKILL.md
       description: '[Debugging] Use when analyzing or optimizing performance bottlenecks:
@@ -990,7 +889,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: pr
       path: pr/SKILL.md
       description: '[Git] Use when you need to create pull request with standard format.'
@@ -1001,7 +899,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: prioritize
       path: prioritize/SKILL.md
       description: '[Project Management] Use when you need to prioritize backlog items
@@ -1013,7 +910,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: product-owner
       path: product-owner/SKILL.md
       description: '[Project Management] Use when you need to capture ideas, manage
@@ -1026,7 +922,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: project-config
       path: project-config/SKILL.md
       description: '[Utilities] Use when you need to scan workspace and update docs/project-config
@@ -1038,7 +933,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: project-init
       path: project-init/SKILL.md
       description: '[Utilities] Use when initializing or re-evaluating portable project
@@ -1052,7 +946,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: project-manager
       path: project-manager/SKILL.md
       description: '[Project Management] Use when you need to generate project status
@@ -1065,7 +958,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: prompt-enhance
       path: prompt-enhance/SKILL.md
       description: '[Skill Management] Use when enhancing, compressing, or expanding
@@ -1079,7 +971,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: prove-fix
       path: prove-fix/SKILL.md
       description: '[Code Quality] Use when you need to prove fix correctness with
@@ -1091,7 +982,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: qc-specialist
       path: qc-specialist/SKILL.md
       description: '[Project Management] Use when you need to enforce quality gates,
@@ -1104,7 +994,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: quality-gate
       path: quality-gate/SKILL.md
       description: '[Code Quality] Use when you need to run quality gate checklist.'
@@ -1115,7 +1004,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: recover
       path: recover/SKILL.md
       description: '[Utilities] Use when you need to restore workflow context from
@@ -1127,7 +1015,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: refactoring
       path: refactoring/SKILL.md
       description: '[Code Quality] Use when you need restructure code without changing
@@ -1139,7 +1026,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: refine
       path: refine/SKILL.md
       description: '[Project Management] Use when converting ideas to PBIs, validating
@@ -1151,7 +1037,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: release-doc
       path: release-doc/SKILL.md
       description: '[Documentation] Use when you need to generate a detailed, AI-analyzed
@@ -1163,7 +1048,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: release-notes
       path: release-notes/SKILL.md
       description: '[Git] Use when creating release notes from git history.'
@@ -1174,7 +1058,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: remotion
       path: remotion/SKILL.md
       description: '[User-Invoked] Use when you need create, update, or preview Remotion
@@ -1186,7 +1069,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: review-architecture
       path: review-architecture/SKILL.md
       description: '[Code Quality] Use when reviewing architecture compliance for
@@ -1198,7 +1080,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: review-artifact
       path: review-artifact/SKILL.md
       description: '[Code Quality] Use when you need to review artifact quality (PBI,
@@ -1210,7 +1091,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: review-changes
       path: review-changes/SKILL.md
       description: '[Code Quality] Use when reviewing current changes, staged or unstaged
@@ -1222,7 +1102,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: review-domain-entities
       path: review-domain-entities/SKILL.md
       description: '[DDD Quality] Use when you need to review domain entities and
@@ -1234,7 +1113,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: review-post-task
       path: review-post-task/SKILL.md
       description: '[Code Quality] Use when you need two-pass code review for task
@@ -1246,7 +1124,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: scaffold
       path: scaffold/SKILL.md
       description: '[Architecture] Use when scaffolding reusable OOP/SOLID project
@@ -1258,7 +1135,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: scan
       path: scan/SKILL.md
       description: '[Documentation] Use when scanning the codebase to (re)generate
@@ -1276,7 +1152,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: scan-all
       path: scan-all/SKILL.md
       description: '[Documentation] Use when you need orchestrate all reference doc
@@ -1288,7 +1163,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: scan-codebase-health
       path: scan-codebase-health/SKILL.md
       description: '[Documentation] Use when you need to detect codebase health issues:
@@ -1300,7 +1174,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: scout
       path: scout/SKILL.md
       description: '[Investigation] Use when quickly locating relevant files and affected
@@ -1312,7 +1185,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: security-review
       path: security-review/SKILL.md
       description: '[Code Quality] Use when you need to perform a security review
@@ -1327,7 +1199,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: seed-test-data
       path: seed-test-data/SKILL.md
       description: '[Dev Data] Use when you need to implement or enhance test data
@@ -1339,14 +1210,14 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: spec
       path: spec/SKILL.md
       description: '[Documentation] Use to author, audit, amend, or test-spec a business
-        Feature Spec. The single spec skill — modes init|update|audit|amend create/maintain
-        the tech-free 8-section Feature Spec; tests generates Section 8 TC-{FEATURE}-{NNN}
-        test specifications; sync reconciles §8 TCs ↔ integration test code. Per-mode
-        procedure lives in references/{author,tests,sync}.md.'
+        Feature Spec. The single spec skill — modes draft|init|update|audit|amend
+        create/maintain the tech-free 8-section Feature Spec; draft authors a provisional
+        spec from an idea/requirement (no code yet, Evidence: TBD); tests generates
+        Section 8 TC-{FEATURE}-{NNN} test specifications; sync reconciles §8 TCs ↔
+        integration test code. Per-mode procedure lives in references/{author,tests,sync}.md.'
       category: other
       has_scripts: false
       has_references: true
@@ -1354,7 +1225,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: '2026-06-12'
     - name: spec-index
       path: spec-index/SKILL.md
       description: '[General] Use when you need to (re)generate a DERIVED navigation
@@ -1368,7 +1238,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: '2026-06-10'
     - name: sre-review
       path: sre-review/SKILL.md
       description: '[Code Quality] Use when reviewing service-layer and API changes
@@ -1380,7 +1249,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: start-workflow
       path: start-workflow/SKILL.md
       description: '[Skill Management] Use when starting a detected workflow, initializing
@@ -1392,7 +1260,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: story
       path: story/SKILL.md
       description: '[Project Management] Use when creating user stories from PBIs,
@@ -1404,7 +1271,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: sync-codex
       path: sync-codex/SKILL.md
       description: '[Codex] Use when you need to run full Codex mirror sync (migrate
@@ -1416,7 +1282,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: sync-skills-shared-protocols
       path: sync-skills-shared-protocols/SKILL.md
       description: '[Skill Management] Use when shared protocol checklists change
@@ -1428,7 +1293,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: sync-to-copilot
       path: sync-to-copilot/SKILL.md
       description: '[AI & Tools] Use when you need to sync Claude Code knowledge to
@@ -1441,7 +1305,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: test
       path: test/SKILL.md
       description: '[Testing] Use when you need to run tests locally and analyze the
@@ -1453,7 +1316,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: understand
       path: understand/SKILL.md
       description: '[Process] Use when the developer wants something explained — by
@@ -1470,7 +1332,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: watzup
       path: watzup/SKILL.md
       description: '[Utilities] Use when you need to review recent changes and wrap
@@ -1482,7 +1343,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: webapp-testing
       path: webapp-testing/SKILL.md
       description: '[Testing] Use when you need individual page/component testing
@@ -1494,7 +1354,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: why-review
       path: why-review/SKILL.md
       description: '[Code Quality] Use when reviewing rationale and change quality
@@ -1506,7 +1365,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: workflow-big-feature
       path: workflow-big-feature/SKILL.md
       description: '[Workflow] Use when activating the Big Feature workflow for large
@@ -1518,7 +1376,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: workflow-bugfix
       path: workflow-bugfix/SKILL.md
       description: '[Workflow] Use when activating the Bug Fix workflow for systematic
@@ -1530,7 +1387,18 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
+    - name: workflow-code-to-spec
+      path: workflow-code-to-spec/SKILL.md
+      description: '[Workflow] Use when activating code-to-spec development — author/maintain
+        the single canonical Feature Spec FROM existing code, keeping spec, implementation,
+        and tests synchronized. For idea→spec (no code yet) use workflow-idea-to-spec.'
+      category: other
+      has_scripts: false
+      has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
     - name: workflow-e2e
       path: workflow-e2e/SKILL.md
       description: '[Workflow] Use when activating the E2E testing workflow to generate,
@@ -1542,7 +1410,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: workflow-end
       path: workflow-end/SKILL.md
       description: '[Process] Use when you need to end the active workflow and clear
@@ -1554,7 +1421,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: workflow-feature
       path: workflow-feature/SKILL.md
       description: '[Workflow] Use when activating the Feature Implementation workflow
@@ -1568,7 +1434,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: workflow-feature-spec
       path: workflow-feature-spec/SKILL.md
       description: '[Workflow] Use when activating the Business Feature Documentation
@@ -1580,7 +1445,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: workflow-greenfield-init
       path: workflow-greenfield-init/SKILL.md
       description: '[Workflow] Use when activating the Greenfield Project Init workflow
@@ -1593,11 +1457,11 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: workflow-idea-to-pbi
       path: workflow-idea-to-pbi/SKILL.md
       description: '[Workflow] Use when activating the Idea to PBI workflow for turning
-        ideas into prioritized PBIs and stories.'
+        an idea — or a raw product vision/problem — into prioritized PBIs and stories
+        (single-PBI deep mode, or multi-opportunity discovery mode).'
       category: other
       has_scripts: false
       has_references: false
@@ -1605,11 +1469,12 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
-    - name: workflow-product-discovery
-      path: workflow-product-discovery/SKILL.md
-      description: '[Workflow] Use when activating the Product Discovery workflow
-        for turning raw opportunities into ranked PBIs.'
+    - name: workflow-idea-to-spec
+      path: workflow-idea-to-spec/SKILL.md
+      description: '[Workflow] Use when activating the Idea-to-Spec workflow — turn
+        a raw idea/vision/problem into ONE canonical (provisional) Feature Spec. STOPS
+        at the reviewed spec; chain workflow-spec-to-pbi for a backlog. For code→spec
+        use workflow-code-to-spec.'
       category: other
       has_scripts: false
       has_references: false
@@ -1617,7 +1482,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: workflow-refactor
       path: workflow-refactor/SKILL.md
       description: '[Workflow] Use when activating the Code Refactoring workflow for
@@ -1629,7 +1493,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: workflow-review-changes
       path: workflow-review-changes/SKILL.md
       description: '[Workflow] Use when activating the Review Current Changes workflow
@@ -1641,7 +1504,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: workflow-seed-test-data
       path: workflow-seed-test-data/SKILL.md
       description: '[Workflow] Use when activating the Seed Test Data workflow for
@@ -1653,19 +1515,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
-    - name: workflow-build-specs
-      path: workflow-build-specs/SKILL.md
-      description: '[Workflow] Use when activating spec-driven development to keep
-        the single canonical Feature Spec, implementation, and tests synchronized.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-      last_reviewed: '2026-06-10'
     - name: workflow-spec-sync
       path: workflow-spec-sync/SKILL.md
       description: '[Workflow] Use when activating the Test Spec Update (Post-Change)
@@ -1678,7 +1527,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: workflow-spec-to-pbi
       path: workflow-spec-to-pbi/SKILL.md
       description: '[Workflow] Use when activating the Spec to PBI Backlog workflow
@@ -1691,7 +1539,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: workflow-visualize
       path: workflow-visualize/SKILL.md
       description: '[Workflow] Use when activating the Visual Diagram workflow for
@@ -1703,7 +1550,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: workflow-write-integration-test
       path: workflow-write-integration-test/SKILL.md
       description: '[Workflow] Use when activating the Write Integration Tests workflow
@@ -1717,7 +1563,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: worktree
       path: worktree/SKILL.md
       description: '[Git] Use when you need to create isolated git worktree for parallel
@@ -1729,7 +1574,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     dev-tools:
     - name: claude-code
       path: claude-code/SKILL.md
@@ -1742,7 +1586,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: docs-seeker
       path: docs-seeker/SKILL.md
       description: '[Documentation] Use when finding technical documentation for libraries,
@@ -1754,7 +1597,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: skill-creator
       path: skill-creator/SKILL.md
       description: '[Skill Management] Use when creating a new Claude Code skill,
@@ -1769,7 +1611,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     utilities:
     - name: code-review
       path: code-review/SKILL.md
@@ -1782,7 +1623,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: debug-investigate
       path: debug-investigate/SKILL.md
       description: '[Fix & Debug] Use when investigating a bug''s root cause — reproduce
@@ -1795,7 +1635,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: deep-research
       path: deep-research/SKILL.md
       description: '[Research] Use when deeply researching top sources from web-research.'
@@ -1806,7 +1645,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: llm-council
       path: llm-council/SKILL.md
       description: '[Decision Support] Use when pressure-testing irreversible, high-stakes
@@ -1818,7 +1656,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: plan
       path: plan/SKILL.md
       description: '[Planning] Use when you need intelligent plan creation with prompt
@@ -1832,7 +1669,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: plan-analysis
       path: plan-analysis/SKILL.md
       description: '[Planning] Use when the user provides an implementation plan file
@@ -1845,7 +1681,19 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
+    - name: plan-execute
+      path: plan-execute/SKILL.md
+      description: '[Implementation] Use when you need to start coding & testing an
+        existing plan. Flags: --approval=off (auto/trust mode, no approval gate),
+        --tests=off (skip the test step), --parallel (parallel phase execution via
+        subagents).'
+      category: utilities
+      has_scripts: false
+      has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
     - name: plan-review
       path: plan-review/SKILL.md
       description: '[Planning] Use when you need to auto-review a plan for validity,
@@ -1858,7 +1706,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: plan-validate
       path: plan-validate/SKILL.md
       description: '[Planning] Use when you need to validate a plan with critical
@@ -1870,7 +1717,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: problem-solving
       path: problem-solving/SKILL.md
       description: '[Utilities] Use when applying structured problem-solving frameworks
@@ -1882,7 +1728,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: research
       path: research/SKILL.md
       description: '[Planning] Use when you need to research, analyze, and plan technical
@@ -1894,7 +1739,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: sequential-thinking
       path: sequential-thinking/SKILL.md
       description: '[AI & Tools] Use when you need to apply structured, reflective
@@ -1907,7 +1751,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: tech-stack-research
       path: tech-stack-research/SKILL.md
       description: '[Architecture] Use when you need to research, analyze, and compare
@@ -1919,7 +1762,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: web-research
       path: web-research/SKILL.md
       description: '[Research] Use when starting a web research task — discover, gather,
@@ -1931,7 +1773,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     - name: workflow-research
       path: workflow-research/SKILL.md
       description: '[Workflow] Use when activating the Research & Synthesis workflow
@@ -1944,7 +1785,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     infrastructure:
     - name: devops
       path: devops/SKILL.md
@@ -1957,7 +1797,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
     ai-ml:
     - name: sync-ai-dev-tools
       path: sync-ai-dev-tools/SKILL.md
@@ -1973,6 +1812,5 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-      last_reviewed: null
   deprecated: {}
   experimental: {}

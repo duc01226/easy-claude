@@ -304,6 +304,7 @@ After plan creation, offer validation interview to confirm decisions before impl
 - **"$why-review"** — Validate design rationale in plan before implementation (standalone only — skipped when workflow includes it)
 - **"$plan-review"** — Validate plan before implementation
 - **"$plan-validate"** — Interview user to confirm plan decisions
+- **"$plan-execute"** — Start coding & testing the finalized plan (execute-the-plan implementation step). Recommended implementation route after the plan is validated.
 - **"Skip, continue manually"** — user decides
 
 ## Post-Plan Granularity Self-Check (MANDATORY)

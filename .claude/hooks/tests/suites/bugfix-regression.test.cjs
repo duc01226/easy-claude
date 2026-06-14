@@ -23,6 +23,10 @@ const { createTempDir, cleanupTempDir, setupWorkflowState, createMockFile, fileE
 
 // Hook paths
 const WORKFLOW_ROUTER = getHookPath('workflow-router.cjs');
+// The catalog is split across three parts (p1 emits top matches, p2/p3 the remainder).
+// Assertions about full-catalog content must aggregate all three parts.
+const WORKFLOW_ROUTER_P2 = getHookPath('workflow-router-p2.cjs');
+const WORKFLOW_ROUTER_P3 = getHookPath('workflow-router-p3.cjs');
 const SESSION_INIT = getHookPath('session-init.cjs');
 const POST_EDIT_PRETTIER = getHookPath('post-edit-prettier.cjs');
 const SESSION_END = getHookPath('session-end.cjs');
@@ -48,25 +52,16 @@ const workflowCatalogInjectionTests = [
                     JSON.stringify({
                         version: '2.0.0',
                         settings: { enabled: true },
-                        commandMapping: {
-                            plan: { claude: '/plan' },
-                            cook: { claude: '/cook' },
-                            fix: { claude: '/fix' },
-                            scout: { claude: '/scout' },
-                            debug: { claude: '/debug-investigate' }
-                        },
                         workflows: {
                             feature: {
                                 name: 'Feature Implementation',
-                                sequence: ['plan', 'cook'],
+                                sequence: ['plan', 'feature-implement'],
                                 whenToUse: 'New features, enhancements, adding functionality',
-                                whenNotToUse: 'Bug fixes, investigations, docs-only changes'
                             },
                             bugfix: {
                                 name: 'Bug Fix',
                                 sequence: ['scout', 'debug-investigate', 'fix'],
                                 whenToUse: 'Bug fixes, error corrections, broken behavior',
-                                whenNotToUse: 'New features, refactoring, documentation'
                             }
                         }
                     })
@@ -76,14 +71,17 @@ const workflowCatalogInjectionTests = [
                 const result = await runHook(WORKFLOW_ROUTER, input, { cwd: tmpDir });
 
                 assertAllowed(result.code, 'Should not block');
-                const output = result.stdout;
+                // Aggregate all three catalog parts — lower-priority workflows render in p2/p3.
+                const p2 = await runHook(WORKFLOW_ROUTER_P2, input, { cwd: tmpDir });
+                const p3 = await runHook(WORKFLOW_ROUTER_P3, input, { cwd: tmpDir });
+                const output = result.stdout + p2.stdout + p3.stdout;
 
                 // Should inject full catalog with workflow entries
                 assertContains(output, 'Workflow Catalog', 'Should inject catalog header');
                 assertContains(output, 'feature', 'Catalog should contain feature workflow');
                 assertContains(output, 'bugfix', 'Catalog should contain bugfix workflow');
                 assertContains(output, 'Use:', 'Catalog should contain Use: labels');
-                assertContains(output, 'Not for:', 'Catalog should contain Not for: labels');
+                assertContains(output, 'Steps:', 'Catalog should contain Steps: labels');
             } finally {
                 cleanupTempDir(tmpDir);
             }
@@ -101,17 +99,11 @@ const workflowCatalogInjectionTests = [
                     JSON.stringify({
                         version: '2.0.0',
                         settings: { enabled: true },
-                        commandMapping: {
-                            scout: { claude: '/scout' },
-                            debug: { claude: '/debug-investigate' },
-                            fix: { claude: '/fix' }
-                        },
                         workflows: {
                             bugfix: {
                                 name: 'Bug Fix',
                                 sequence: ['scout', 'debug-investigate', 'fix'],
                                 whenToUse: 'Bug fixes, error corrections',
-                                whenNotToUse: 'New features, documentation'
                             }
                         }
                     })
@@ -144,13 +136,11 @@ const workflowCatalogInjectionTests = [
                     JSON.stringify({
                         version: '2.0.0',
                         settings: { enabled: true },
-                        commandMapping: { fix: { claude: '/fix' } },
                         workflows: {
                             bugfix: {
                                 name: 'Bug Fix',
                                 sequence: ['fix'],
                                 whenToUse: 'Bug fixes',
-                                whenNotToUse: 'New features'
                             }
                         }
                     })
@@ -182,13 +172,11 @@ const workflowCatalogInjectionTests = [
                             enabled: true,
                             showDetection: true
                         },
-                        commandMapping: { plan: { claude: '/plan' } },
                         workflows: {
                             feature: {
                                 name: 'Feature',
                                 sequence: ['plan'],
                                 whenToUse: 'New features and enhancements',
-                                whenNotToUse: 'Bug fixes'
                             }
                         }
                     })
@@ -677,17 +665,11 @@ const workflowPrefixTests = [
                     JSON.stringify({
                         version: '2.0.0',
                         settings: { enabled: true },
-                        commandMapping: {
-                            plan: { claude: '/plan' },
-                            cook: { claude: '/cook' },
-                            test: { claude: '/test' }
-                        },
                         workflows: {
                             feature: {
                                 name: 'Feature Implementation',
-                                sequence: ['plan', 'cook', 'test'],
+                                sequence: ['plan', 'feature-implement', 'test'],
                                 whenToUse: 'New features, enhancements, adding functionality',
-                                whenNotToUse: 'Bug fixes, investigations, docs-only changes'
                             }
                         }
                     })
@@ -719,16 +701,11 @@ const workflowPrefixTests = [
                     JSON.stringify({
                         version: '2.0.0',
                         settings: { enabled: true },
-                        commandMapping: {
-                            scout: { claude: '/scout' },
-                            fix: { claude: '/fix' }
-                        },
                         workflows: {
                             bugfix: {
                                 name: 'Bug Fix',
                                 sequence: ['scout', 'fix'],
                                 whenToUse: 'Bug fixes, error corrections, broken behavior',
-                                whenNotToUse: 'New features, refactoring, documentation'
                             }
                         }
                     })
@@ -848,7 +825,7 @@ const edgeCaseTests = [
                     workflowId: 'feature',
                     workflowName: 'Feature Implementation',
                     currentStep: 1,
-                    sequence: ['plan', 'cook'],
+                    sequence: ['plan', 'feature-implement'],
                     startedAt: oldDate.toISOString()
                 });
 
@@ -859,13 +836,11 @@ const edgeCaseTests = [
                     JSON.stringify({
                         version: '2.0.0',
                         settings: { enabled: true },
-                        commandMapping: { fix: { claude: '/fix' } },
                         workflows: {
                             bugfix: {
                                 name: 'Bug Fix',
                                 sequence: ['fix'],
                                 whenToUse: 'Bug fixes, error corrections',
-                                whenNotToUse: 'New features, documentation'
                             }
                         }
                     })

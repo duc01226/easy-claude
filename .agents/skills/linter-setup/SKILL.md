@@ -223,7 +223,7 @@ After all config files generated, verify MUST ATTENTION each item:
 a direct user question:
 
 - **"$harness-setup continues (Recommended)"** — Set up feedforward guides + inferential sensors to complete the outer harness
-- **"$cook"** — Skip harness inventory and begin implementation
+- **"$feature-implement"** — Skip harness inventory and begin implementation
 - **"Skip"** — Continue manually
 
 ---

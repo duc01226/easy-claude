@@ -85,10 +85,10 @@ node -e "console.log(JSON.parse(require('fs').readFileSync('.claude/.ck.json')))
 // Checklist:
 // 1. Check workflows.json settings.enabled = true
 // 2. Detection is semantic + model-driven: the model matches your prompt
-//    against each workflow's whenToUse / whenNotToUse description and
+//    against each workflow's whenToUse description and
 //    auto-selects the best fit (no regex triggers, no priority numbers)
-// 3. If the wrong workflow activates, sharpen the workflow's whenToUse /
-//    whenNotToUse text in workflows.json
+// 3. If the wrong workflow activates, sharpen the workflow's whenToUse
+//    text in workflows.json
 
 // Example: "add dark mode" matches the feature workflow's whenToUse
 // ("implement a well-defined feature, add a component, ...")

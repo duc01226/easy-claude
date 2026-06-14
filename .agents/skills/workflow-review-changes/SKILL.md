@@ -50,9 +50,9 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Ensure changed work reaches clean review through validated findings, verified fixes, full re-review, and synchronized docs/tests — review all uncommitted changes, validate findings, fix only validated findings, then re-run `$review-changes` INLINE (only when `$cook` actually changed files), repeating the plan→cook→review-changes loop until a complete pass is clean.
+**Goal:** Ensure changed work reaches clean review through validated findings, verified fixes, full re-review, and synchronized docs/tests — review all uncommitted changes, validate findings, fix only validated findings, then re-run `$review-changes` INLINE (only when `$plan-execute` actually changed files), repeating the plan→plan-execute→review-changes loop until a complete pass is clean.
 
-**Sequence:** $review-changes (owns UI review — invokes $review-ui internally when frontend changes) → $why-review (validate findings) → **[parallel batch]** $review-architecture + $review-domain-entities (if entity changes) + $performance-review + $integration-test-review + $security-review → $code-simplifier (self-reviews its own changes via $code-review) → $plan → $plan-review → $cook → **/review-changes (conditional inline re-review — only if $cook changed files; loops $plan→/cook→/review-changes until clean)** → $docs-update → $workflow-end → $watzup
+**Sequence:** $review-changes (owns UI review — invokes $review-ui internally when frontend changes) → $why-review (validate findings) → **[parallel batch]** $review-architecture + $review-domain-entities (if entity changes) + $performance-review + $integration-test-review + $security-review → $code-simplifier (self-reviews its own changes via $code-review) → $plan → $plan-review → $plan-execute → **/review-changes (conditional inline re-review — only if $plan-execute changed files; loops $plan→/plan-execute→/review-changes until clean)** → $docs-update → $workflow-end → $watzup
 
 **Key Rules:**
 
@@ -62,7 +62,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - MUST ATTENTION include unresolved risk register, generated mirror drift, and spec/test/docs drift in the fresh review prompt when relevant.
 - MUST ATTENTION run `$why-review` at step 2 to validate the `$review-changes` findings BEFORE spawning the parallel reviewers — drop false positives early so the batch and fix cycle act only on warranted findings.
 
-- After `$cook` applies validated fixes (and ONLY if `$cook` changed files) → re-run `$review-changes` INLINE over the current full diff from the first phase; re-read the diff from scratch to counter orchestrator confirmation bias
+- After `$plan-execute` applies validated fixes (and ONLY if `$plan-execute` changed files) → re-run `$review-changes` INLINE over the current full diff from the first phase; re-read the diff from scratch to counter orchestrator confirmation bias
 - Main-agent re-review (with knowledge of its own fixes) is NOT sufficient — orchestrator-level confirmation bias
 - PASS = one complete review pass finds zero blocking issues after all validated fixes and verification are included
 - Repeated blockers are tracked in conversation context; stop after 3 no-progress full invocations of the same blocker
@@ -106,8 +106,8 @@ Create one task per row in the table below — source of truth is `workflows.jso
 | 8   | `[Workflow] $code-simplifier — Simplify and refine code (self-reviews its own changes via $code-review before returning)`                                                       | No — runs AFTER parallel batch (modifies code; batch reviews pre-simplification state; simplifier owns review of its own output) |
 | 9   | `[Workflow] $plan — Consolidate validated review findings into fix plan`                                                                                                       | Conditional — run ONLY if reviews surfaced validated findings to fix; skip if all reviews PASS  |
 | 10  | `[Workflow] $plan-review — Architecture/design review of fix plan (includes adversarial design-rationale pass + internal $why-review --validate-findings of its own findings)` | Conditional — run ONLY if there is a fix plan (i.e. findings exist); skip if all reviews PASS    |
-| 11  | `[Workflow] $cook — Implement fixes from plan`                                                                                                                                 | Conditional — run ONLY if there are validated findings to fix; skip if all reviews PASS          |
-| 12  | `[Workflow] $review-changes — Conditional inline re-review after $cook (re-runs the review over the current diff); loop $plan→/cook→/review-changes until clean`                | Skip if all reviews PASS, OR if $cook applied no file changes                                  |
+| 11  | `[Workflow] $plan-execute — Implement fixes from plan`                                                                                                                                 | Conditional — run ONLY if there are validated findings to fix; skip if all reviews PASS          |
+| 12  | `[Workflow] $review-changes — Conditional inline re-review after $plan-execute (re-runs the review over the current diff); loop $plan→/plan-execute→/review-changes until clean`                | Skip if all reviews PASS, OR if $plan-execute applied no file changes                                  |
 | 13  | `[Workflow] $docs-update — Update impacted documentation`                                                                                                                      | Always run — $docs-update triages internally (fast-exits when only config/tool files changed)  |
 | 14  | `[Workflow] $workflow-end — End workflow state (prints the concise change recap, then clears state)`                                                                           | No                                                                                             |
 | 15  | `[Workflow] $watzup — Post-workflow summary and final $understand handoff`                                                                                                    | No                                                                                             |
@@ -219,7 +219,7 @@ All four (plus the UI-dimension `$review-ui` findings when frontend files change
 | `review-changes` (#1)           | Establishes baseline — must run first                                       |
 | `why-review` (#2)               | Validates the `review-changes` findings before the batch — gates which findings the batch and fix cycle act on |
 | `code-simplifier` (#8)          | Modifies code — batch reviews pre-simplification state; self-reviews its own output via `$code-review` before returning |
-| `plan` → `plan-review` → `cook` (#9–11) | Ordered validated fix-plan cycle — `$plan` consumes already-validated review findings; `$plan-review` reviews the fix plan's design (adversarial rationale pass + internal `$why-review --validate-findings` of its own findings) before `$cook` implements it |
+| `plan` → `plan-review` → `plan-execute` (#9–11) | Ordered validated fix-plan cycle — `$plan` consumes already-validated review findings; `$plan-review` reviews the fix plan's design (adversarial rationale pass + internal `$why-review --validate-findings` of its own findings) before `$plan-execute` implements it |
 
 ---
 
@@ -229,20 +229,20 @@ All four (plus the UI-dimension `$review-ui` findings when frontend files change
 
 ```
 Reviews (steps 1-8) → ALL PASS (no findings)?
-  YES → skip steps 9-12 ($plan//plan-review//cook//review-changes), proceed to $docs-update (step 13) → $workflow-end → $watzup → DONE
-  NO (findings exist) → $plan → $plan-review → $cook → (if $cook changed files) $review-changes INLINE re-review (step 12) → loop until clean
+  YES → skip steps 9-12 ($plan//plan-review//plan-execute//review-changes), proceed to $docs-update (step 13) → $workflow-end → $watzup → DONE
+  NO (findings exist) → $plan → $plan-review → $plan-execute → (if $plan-execute changed files) $review-changes INLINE re-review (step 12) → loop until clean
 Note: $code-simplifier (step 8) self-reviews the code it changes via $code-review before returning — there is no separate workflow-level code-review step.
 Note: $why-review runs ONCE (step 2) as a FINDINGS-VALIDATION gate over the $review-changes findings before the parallel batch. The fix plan's design rationale is reviewed by $plan-review (step 10) — which applies its own adversarial rationale pass and self-invokes $why-review --validate-findings on its own findings — so no separate post-plan-review $why-review step is needed.
 ```
 
-### Conditional Inline Re-Review Gate (Step 12) — After `$cook` Applies Fixes
+### Conditional Inline Re-Review Gate (Step 12) — After `$plan-execute` Applies Fixes
 
-1. **CONDITION (run only if $cook changed files):** Step 12 runs ONLY when `$cook` actually modified files (validated fixes were applied). If `$cook` made no file changes — nothing was wrong, or the plan resolved to no-ops — SKIP step 12 entirely and proceed to `$docs-update`.
+1. **CONDITION (run only if $plan-execute changed files):** Step 12 runs ONLY when `$plan-execute` actually modified files (validated fixes were applied). If `$plan-execute` made no file changes — nothing was wrong, or the plan resolved to no-ops — SKIP step 12 entirely and proceed to `$docs-update`.
 2. **DO** re-run the `$review-changes` protocol **INLINE in the main session** over the current full diff. Create a fresh task breakdown, rerun blast radius, risk detection, surface categorization, diff collection, dimensional reviews, synthesis, and validation gates. (Inline by design for this workflow — cheaper than spawning a fresh sub-agent; accept the mild orchestrator-confirmation-bias tradeoff, and counter it by re-reading the diff from scratch.)
 3. **DO** track re-review invocation count and repeated blockers in conversation context
 4. **DO** integrate the inline `$review-changes` findings — MUST NOT filter, reinterpret, or override
 5. **IF** the inline re-review returns PASS with zero findings → proceed through `$docs-update` → `$workflow-end` → `$watzup` → DONE
-6. **IF** the inline re-review returns FAIL and the same blocker has not repeated 3 times → validate findings, run `$plan` + `$cook` again, then re-run `$review-changes` (step 12)
+6. **IF** the inline re-review returns FAIL and the same blocker has not repeated 3 times → validate findings, run `$plan` + `$plan-execute` again, then re-run `$review-changes` (step 12)
 7. **IF** the same validated blocker repeats across 3 invocations with no observable progress → STOP and escalate via a direct user question — do NOT silently loop or fall back to any prior protocol
 
 ### Iteration Tracking (Conversation-Scoped)
@@ -254,16 +254,16 @@ Iteration count is tracked **in conversation context only** — no persistent fi
 - **Repeated blocker cap** — if the same validated finding repeats for 3 full invocations with no progress, STOP and escalate via a direct user question (manual review required)
 - **PASS = done** — if no fix cycle happened, initial clean reviews/tests are enough; if a fix cycle happened, PASS requires a complete inline `$review-changes` re-review pass with zero findings
 - **Issue count increasing** — if round N finds MORE issues than round N-1, STOP and escalate via a direct user question
-- **Goal Satisfaction FAIL = findings exist** — a required saved criterion at FAIL in the Goal Satisfaction matrix enters the SAME loop as a code finding: validate the gap is real → `$plan` → `$cook` → inline re-review of the affected criteria only. Workflow end requires every required criterion PASS or BLOCKED with a user-facing escalation reason; mark criteria BLOCKED (never silently drop them) when two consecutive iterations show no criterion progress.
+- **Goal Satisfaction FAIL = findings exist** — a required saved criterion at FAIL in the Goal Satisfaction matrix enters the SAME loop as a code finding: validate the gap is real → `$plan` → `$plan-execute` → inline re-review of the affected criteria only. Workflow end requires every required criterion PASS or BLOCKED with a user-facing escalation reason; mark criteria BLOCKED (never silently drop them) when two consecutive iterations show no criterion progress.
 
 > **Goal Contract propagation (workflow-owned):** At workflow start, resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md`). Pass the same goal file reference to every child step; step 1 `$review-changes` emits the Goal Satisfaction matrix against the SAME saved criteria. After each fix cycle, append an Iteration Log entry to the goal file with evidence references.
 
 ### Flow Diagram
 
 ```
-Main Session: Review → Validate findings → Plan → Fix ($cook) → $review-changes re-review
+Main Session: Review → Validate findings → Plan → Fix ($plan-execute) → $review-changes re-review
                   │                                          │
-                  │ (no issues)                              │ (only if $cook changed files;
+                  │ (no issues)                              │ (only if $plan-execute changed files;
                   ↓                                          ↓  else skip to $docs-update)
             $docs-update                        $review-changes re-runs INLINE
             $workflow-end                       over the current full diff
@@ -277,12 +277,12 @@ Main Session: Review → Validate findings → Plan → Fix ($cook) → $review-
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $review-changes -> $why-review -> $review-architecture -> $review-domain-entities -> $performance-review -> $integration-test-review -> $security-review -> $code-simplifier -> $plan -> $plan-review -> $cook -> $review-changes -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $review-changes -> $why-review -> $review-architecture -> $review-domain-entities -> $performance-review -> $integration-test-review -> $security-review -> $code-simplifier -> $plan -> $plan-review -> $plan-execute -> $review-changes -> $docs-update -> $workflow-end -> $watzup
 
 > **[STEP CONDITIONS]** Not every step always runs — the bare list above is the canonical order; these are the run-conditions:
 > - **Step 4 `$review-domain-entities`** — only if domain entity files (Domain/, Entities/, ValueObjects/) are in the diff.
-> - **Steps 9–11 `$plan` → `$plan-review` → `$cook`** — only if reviews surfaced validated findings to fix (i.e. there are findings / code changes to make). Skip all three when steps 1–8 PASS clean.
-> - **Step 12 `$review-changes` (re-review)** — only if `$cook` actually changed files; re-runs INLINE and loops `$plan`→`$cook`→`$review-changes` until a clean pass (3-repeat blocker cap).
+> - **Steps 9–11 `$plan` → `$plan-review` → `$plan-execute`** — only if reviews surfaced validated findings to fix (i.e. there are findings / code changes to make). Skip all three when steps 1–8 PASS clean.
+> - **Step 12 `$review-changes` (re-review)** — only if `$plan-execute` actually changed files; re-runs INLINE and loops `$plan`→`$plan-execute`→`$review-changes` until a clean pass (3-repeat blocker cap).
 > - **Steps 1–3, 5–8, 13–15** — always run.
 
 > **[BLOCKING SEQUENCING]** Step 1 `$review-changes` is SEQUENTIAL and MUST run FIRST — it produces the baseline (surface analysis + integration-test/translation gap detection) consumed by all downstream reviewers, AND owns the UI review (invokes `$review-ui` internally via a ui-ux-designer sub-agent when the diff has frontend/UI files). Step 2 `$why-review` is SEQUENTIAL and runs immediately after — it validates the `$review-changes` findings (drops false positives) before any parallel reviewer spawns. Steps 3–7 (`$review-architecture`, `$review-domain-entities`, `$performance-review`, `$integration-test-review`, `$security-review`) form a PARALLEL BATCH — spawn all in ONE message via specialized `spawn_agent` tool calls (`architect`, `code-reviewer`, `performance-optimizer`, `integration-tester`, `security-auditor`). Step 8 `$code-simplifier` is SEQUENTIAL and waits until ALL parallel batch sub-agents return + consolidation summary is built; it self-reviews the code it changes via `$code-review` (scoped to its own changed files) before returning, so there is no separate workflow-level code-review step. Steps 9+ proceed sequentially as listed.
@@ -293,8 +293,8 @@ Main Session: Review → Validate findings → Plan → Fix ($cook) → $review-
 >
 > **Standalone invocation** (not inside a workflow): inline execution is fine — no sub-agent required.
 
-> **[BLOCKING]** Each step MUST ATTENTION invoke its skill invocation — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
-> **[CONDITIONAL INLINE RE-REVIEW]** After validated fixes in `$cook` — and ONLY if `$cook` changed files — re-run `$review-changes` INLINE (step 12) over the current full diff. If `$cook` made no changes, skip step 12. Clean review passes with zero findings end the loop; repeated blockers stop after 3 no-progress invocations.
+> **[BLOCKING]** Each step MUST invoke its skill invocation — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
+> **[CONDITIONAL INLINE RE-REVIEW]** After validated fixes in `$plan-execute` — and ONLY if `$plan-execute` changed files — re-run `$review-changes` INLINE (step 12) over the current full diff. If `$plan-execute` made no changes, skip step 12. Clean review passes with zero findings end the loop; repeated blockers stop after 3 no-progress invocations.
 > **[REPEATED BLOCKER CAP]** Track re-review invocations in conversation context, not persistent files. After a fix cycle, PASS = a complete inline `$review-changes` re-review pass finds zero findings without more fixes; stop after the same blocker repeats 3 times with no progress.
 
 Activate the `workflow-review-changes` workflow. Run `$start-workflow workflow-review-changes` with the user's prompt as context.
@@ -331,11 +331,13 @@ Activate the `workflow-review-changes` workflow. Run `$start-workflow workflow-r
 
 <!-- /SYNC:end-to-start-debugger-trace -->
 
+> **Applicability in this workflow (reconciles with step 12):** the canonical block below is the general fresh-context mechanism. In `workflow-review-changes` the **step-12 post-fix re-review applies its _principle_ — zero memory, re-read the full diff from scratch, no self-filtering — INLINE in the main session** (the deliberate cost tradeoff documented at step 12), NOT via an isolated sub-agent. The isolated-sub-agent form below governs (a) the parallel dimensional reviewers in steps 3–7 (already sub-agents) and (b) the case where this entire workflow is invoked as a sub-agent inside a parent workflow. So "with isolated sub-agents **where applicable**" resolves to *inline* for the step-12 self-re-review — no contradiction.
+
 <!-- SYNC:fresh-context-review -->
 
 > **Fresh Context Re-Review** — Eliminate orchestrator confirmation bias after fixes by restarting the full review with isolated sub-agents where applicable.
 >
-> **Why:** The main agent knows what it (or `$cook`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
+> **Why:** The main agent knows what it (or `$feature-implement`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
 >
 > **When:** ONLY after a validated-finding fix cycle. A review round that finds zero issues ENDS the loop — do NOT spawn a confirmation sub-agent. A review round that finds issues triggers: validate findings → fix → full review restart from the first phase.
 >
@@ -399,6 +401,8 @@ Activate the `workflow-review-changes` workflow. Run `$start-workflow workflow-r
 >
 > Main agent reads `Full report` file ONLY when: (a) resolving a specific blocker, or (b) building a fix plan.
 > Sub-agent writes full report incrementally (per SYNC:incremental-persistence) — not held in memory.
+>
+> **Context budget** — the return payload is a SUMMARY, not a transcript: ≤10 finding bullets, no raw file contents / full diffs / verbatim logs inline, no re-pasted source. Everything beyond the summary lives in the `Full report` on disk. A sub-agent that would exceed the summary shape MUST write the detail to its report and return only the pointer — the orchestrator's context is the scarce resource the whole map-reduce protects.
 
 <!-- /SYNC:subagent-return-contract -->
 
@@ -529,12 +533,12 @@ Activate the `workflow-review-changes` workflow. Run `$start-workflow workflow-r
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Ensure changed work reaches clean review through validated findings, verified fixes, full re-review, and synchronized docs/tests.
-**IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting — create ALL 15 tasks immediately
-**IMPORTANT MUST ATTENTION** after fixes in `$cook` (and ONLY if `$cook` changed files), re-run `$review-changes` INLINE over the current full diff from Phase 0; loop `$plan`→`$cook`→`$review-changes` until clean
-**IMPORTANT MUST ATTENTION** track full re-review invocations and repeated blockers in conversation context (session-scoped, no persistent files) — stop after the same blocker repeats 3 times with no progress and escalate via a direct user question
-**IMPORTANT MUST ATTENTION** PASS means a complete review pass finds zero blocking issues after all validated fixes and verification are included
-**IMPORTANT MUST ATTENTION** skip steps 9-12 when all reviews PASS with zero findings (no fixes needed)
+**MUST ATTENTION Goal:** Ensure changed work reaches clean review through validated findings, verified fixes, full re-review, and synchronized docs/tests.
+**MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting — create ALL 15 tasks immediately
+**MUST ATTENTION** after fixes in `$plan-execute` (and ONLY if `$plan-execute` changed files), re-run `$review-changes` INLINE over the current full diff from Phase 0; loop `$plan`→`$plan-execute`→`$review-changes` until clean
+**MUST ATTENTION** track full re-review invocations and repeated blockers in conversation context (session-scoped, no persistent files) — stop after the same blocker repeats 3 times with no progress and escalate via a direct user question
+**MUST ATTENTION** PASS means a complete review pass finds zero blocking issues after all validated fixes and verification are included
+**MUST ATTENTION** skip steps 9-12 when all reviews PASS with zero findings (no fixes needed)
 **IMPORTANT MUST ATTENTION** each step MUST invoke its skill invocation — marking completed without invocation is a violation
 **IMPORTANT MUST ATTENTION** treat multilingual UI translation gaps as mandatory user-decision gates — no silent pass when locale updates are missing
 **IMPORTANT MUST ATTENTION** `$why-review` runs ONCE at step 2 as a FINDINGS-VALIDATION gate (sanity-checks the `$review-changes` findings before the parallel batch — drops false positives early); the fix-plan rationale check is owned by `$plan-review` (step 10), which self-invokes `$why-review --validate-findings` internally — no separate explicit step needed

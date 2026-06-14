@@ -212,7 +212,7 @@ const todoFlowTests = [
         });
 
         // Enforcement should allow skill with active todos
-        const skillInput = createPreToolUseInput('Skill', { skill: 'cook' });
+        const skillInput = createPreToolUseInput('Skill', { skill: 'feature-implement' });
         const result = await runHook(TODO_ENFORCEMENT, skillInput, {
           env: { CK_SESSION_ID: sessionId }
         });
@@ -229,13 +229,13 @@ const todoFlowTests = [
       const sessionId = `integration-noflow-${Date.now()}`;
       try {
         // No todos setup - enforcement should block (exit 1)
-        const skillInput = createPreToolUseInput('Skill', { skill: 'cook' });
+        const skillInput = createPreToolUseInput('Skill', { skill: 'feature-implement' });
         const result = await runHook(TODO_ENFORCEMENT, skillInput, {
           env: { CK_SESSION_ID: sessionId }
         });
 
         // skill-enforcement blocks with exit code 1 (not 2)
-        assertTrue(result.code === 1, 'Should block /cook without todos (exit 1)');
+        assertTrue(result.code === 1, 'Should block /feature-implement without todos (exit 1)');
       } finally {
         cleanupCkTodoState(sessionId);
       }

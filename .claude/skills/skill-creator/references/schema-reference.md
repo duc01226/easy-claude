@@ -26,7 +26,7 @@ Official fields: `name`, `description`, `argument-hint`, `disable-model-invocati
 
 ```json
 "skillConventions": {
-  "conventionFields": ["version", "activation", "triggers", "execution-mode", "context-budget", "last_reviewed", "tags", "category"],
+  "conventionFields": ["version", "activation", "triggers", "execution-mode", "context-budget", "tags", "category"],
   "removableFields": ["infer"],          // WARN + (--fix) removes
   "fieldFixes": { "tools": "allowed-tools" }  // WARN + (--fix) renames
 }

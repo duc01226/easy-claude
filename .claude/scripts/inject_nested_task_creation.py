@@ -35,13 +35,13 @@ SKILL_NAMES = [
     "review-post-task", "sre-review",
     "why-review",
     # Cook family
-    "cook",
+    "feature-implement",
     # Code family
-    "code",
+    "plan-execute",
     # Fix family (ci/issue/logs/test/ui folded into /fix --target=*)
     "fix",
     # Investigate / scout family
-    "investigate", "debug-investigate", "feature-investigation",
+    "investigate", "debug-investigate",
     "scout",
     # Refactor / migration / scaffold
     "refactoring", "db-migrate", "scaffold",
@@ -58,10 +58,10 @@ SKILL_NAMES = [
     "workflow-feature-spec",
     "workflow-greenfield-init",
     "workflow-idea-to-pbi",
-    "workflow-product-discovery",
+    "workflow-idea-to-spec",
     "workflow-refactor", "workflow-research",
     "workflow-review-changes",
-    "workflow-seed-test-data", "workflow-build-specs", "workflow-spec-to-pbi",
+    "workflow-seed-test-data", "workflow-code-to-spec", "workflow-spec-to-pbi",
     "workflow-spec-sync",
     "workflow-visualize",
     "workflow-write-integration-test",

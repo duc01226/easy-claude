@@ -83,6 +83,24 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 >
 > **Fast mode skips (and only skips):** parallel subagent investigation (direct read/grep instead), separate fix plan (inline change), regression-test authoring (only if covering test exists). Does NOT skip Confidence & Evidence Gate, Behavioral Delta Matrix, or running existing test suite.
 
+## Standalone Mode Minimum Contract (Non-Workflow Only)
+
+> **`$fix` is normally a step inside `workflow-bugfix`** — there the sequence (`scout → investigate → debug-investigate → spec [mode=amend] → plan → … → fix → prove-fix → … → spec [mode=sync] → workflow-review-changes`) supplies the diagnosis, spec sync, and review around the fix. **Called STANDALONE, no sequence supplies them.** `$fix` alone diagnoses and patches code; it does NOT by itself guarantee the root cause was traced to its owning layer, that the Feature Spec under `docs/specs/` still matches behavior, or that the change was reviewed. Standalone, that gap is symptom-patching + spec/doc drift.
+>
+> **Scope:** this contract governs the **no-flag `$fix` spine** (the full diagnose→fix path). The `--target={ci|issue|logs|test|types|ui}` branches are self-contained — each runs its own diagnosis + `$prove-fix` — so they do NOT re-run §1/§2 here; standalone, they inherit only **§3 (spec-correctness check)** and **§4 (why-review)** as their trailing gates (and `--target=issue` already owns its own `$review-changes` gate — see that branch).
+>
+> **Detect mode:** call the current task list first (per the Nested Task Expansion Contract below). **Active parent workflow row present → this whole section is SKIPPED** (the workflow owns these steps; duplicating them double-runs the spine). **No parent row → standalone:** before the first code edit, MUST ATTENTION self-assemble this minimum bugfix spine as task tracking todos, in order:
+>
+> 1. **`$debug-investigate`** — *root cause, FIRST.* Trace the symptom end-to-start to the invariant-owning layer with `file:line` evidence (hypothesis matrix + forward convergence proof). This **is** the standalone diagnosis — it subsumes the spine's internal step-1 `debugger` subagent; resume the spine from its planning step using this report. *Fast-mode-trivial bugs (ALL Default Mode Policy opt-out conditions met) MAY inline the trace instead of spawning the skill, but the end-to-start trace is still required.*
+> 2. **Fix spine** — *this skill's* `plan → 🛑 approve → implement → `$prove-fix`` body below. The Validate-Before-Fix approval gate and `$prove-fix` are unchanged.
+> 3. **`$spec` spec-correctness check** — *CONDITIONAL, ensures spec docs aren't left stale.* From the proven root cause, decide which case holds:
+>    - **Spec was WRONG / stale** — it described behavior that was never true, or intended behavior changed and the spec wasn't updated. The spec is (part of) the defect → run `$spec [mode=amend]` to correct the §1-§7 spec, then `$spec [mode=sync]` to reconcile §8 `TC-{FEATURE}-{NNN}` ↔ integration tests.
+>    - **Spec was CORRECT, the code just failed to meet it** — pure code defect; §1-§7 behavior now matches the spec again. **No §1-§7 amendment.** But still check the §8 test cases: if the bug reproduced a scenario/edge case that **no existing `TC-{FEATURE}-{NNN}` covered** (the spec was *correct but lacked the bug case*), add a regression test case via `$spec [mode=tests]` so the spec captures it, then `$spec [mode=sync]` to reconcile §8 ↔ the new regression test. Only if an existing TC already covered the case do you record `Spec verified correct, bug case already in §8 — no spec change (code-only defect)` with `file:line` evidence and move on. Never leave a fixed bug whose case is absent from the spec's §8.
+>    - **No governing spec exists** — the buggy area has no Feature Spec under `docs/specs/`. Record `No governing spec — nothing to amend` with `file:line` evidence; if the area now warrants one, run `$spec [mode=init]` (then `[mode=tests]` to seed §8 with the bug case as a regression TC) rather than only suggesting it. *Decide the case explicitly — skip only the amendment, never the decision; never leave the bug case undocumented when a spec governs the area.*
+> 4. **`$why-review`** — *rationale review, the FINAL todo (after the fix AND after any `$review-changes`).* Terminal sign-off on the converged change: root cause correctly owned, fix at the lowest invariant-owning layer (not the crash site), no symptom-patching, regression covered, and the §3 spec decision justified. Reporting "done" is blocked until this passes. *Non-functional-trivial fixes (typo, log/comment text; fast-mode) MAY satisfy this inline/briefly rather than spawning the full skill — symmetric with §1.*
+>
+> **Production-code fixes** also get a `$review-changes` todo **before** §4 (the broad code review whose validated fixes may change the diff; §4 then signs off on the result). `$review-changes` placement and the inside-workflow skip are owned by the shared Standalone Review Gate below — reference it; do not restate the mandate. **Final standalone todo order:** `debug-investigate → [fix spine + prove-fix] → spec-check → review-changes (if production code) → why-review`.
+
 ## Debug Mindset (NON-NEGOTIABLE)
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.**
@@ -173,7 +191,7 @@ The Debug Mindset, Confidence & Evidence Gate, and all SYNC gates below apply to
 3. **🛑 Present root cause + proposed fix → a direct user question → wait for approval before implementing.**
 4. Implement, then run `$prove-fix`.
 
-> **Standalone Review Gate (non-workflow only):** if `$fix --target=issue` runs **outside a workflow**, add a `$review-changes` task tracking todo as the **last** task. Inside a workflow, skip — the sequence handles `$review-changes`.
+> **Standalone Review Gate (non-workflow only):** any standalone production-code fix — the no-flag spine (Standalone Mode Minimum Contract above) **or** `$fix --target=issue` — adds a `$review-changes` task tracking todo as the **final review-changes gate**, placed immediately before the contract's §4 `$why-review` terminal sign-off (spec-check → review-changes → why-review). Inside a workflow, skip — the sequence handles `$review-changes`.
 
 The Debug Mindset, Confidence & Evidence Gate, and all SYNC gates below apply to this branch unchanged.
 
@@ -293,7 +311,7 @@ Analyze skills catalog and activate other needed skills during the process.
 2. Use `researcher` subagent to research root causes on internet (if needed) and report back.
 3. Use `planner` subagent to create implementation plan based on reports; report back.
 4. **🛑 Present root cause + fix plan → a direct user question → wait for user approval.**
-5. Use `$code` SlashCommand to implement plan step by step.
+5. Use `$plan-execute` SlashCommand to implement plan step by step.
 6. Final Report:
 
 - Report back to user with summary of changes; explain briefly; guide user to get started; suggest next steps.
@@ -312,16 +330,18 @@ Analyze skills catalog and activate other needed skills during the process.
 
 ---
 
-## Next Steps (Standalone: MUST ATTENTION ask user via a direct user question. Skip if inside workflow.)
+## Next Steps (Standalone: after the Minimum Contract completes. Skip if inside workflow.)
 
-> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If this skill was called **outside a workflow**, MUST ATTENTION use a direct user question to present these options. Do NOT skip because task seems "simple" or "obvious" — user decides:
+> **The Standalone Mode Minimum Contract above is NOT optional and NOT a question** — standalone `$fix` has already auto-run `debug-investigate` → fix spine → `$prove-fix` → conditional `$spec` check → (`$review-changes` for production code) → `$why-review` as the terminal sign-off. Do not re-ask the user whether to do those; they are the guaranteed floor.
+>
+> **AFTER that floor is met,** MUST ATTENTION use a direct user question to offer what lies BEYOND the minimum (user decides):
 
-- **"Proceed with full workflow (Recommended)"** — Detect best workflow to continue from here (fix applied). Ensures prove-fix, review, testing, docs steps aren't skipped.
-- **"$prove-fix"** — Prove fix correctness with code traces
-- **"$test"** — Run tests to verify fix
-- **"Skip, continue manually"** — user decides
+- **"Proceed with full workflow (Recommended)"** — Hand off to the best-fit workflow (e.g. `workflow-bugfix`) from here to add the remaining gates the minimum spine omits — `plan-validate`, `integration-test` authoring/review/verify, `sre-review`, `security-review`, `changelog`, `docs-update`.
+- **"$test"** — Run the full test suite to verify the fix in context.
+- **"Commit & push"** — Hand the proven, reviewed change to the `git-manager` subagent.
+- **"Stop here"** — Minimum contract satisfied; user takes it from here.
 
-> If already inside a workflow, skip — workflow handles sequencing.
+> If already inside a workflow, skip both the contract and this menu — the workflow sequence handles diagnosis, spec sync, review, and next steps.
 
 > **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. Prevents context loss from long files. For simple tasks, MUST ATTENTION ask user whether to skip.
 

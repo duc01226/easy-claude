@@ -78,7 +78,7 @@ A reusable task automation capability. Each skill is a directory with a `SKILL.m
 
 ### Relationships
 
-- Skills reference **Agents** as subagents (e.g., `/code` calls `tester`, `code-reviewer`, `git-manager`)
+- Skills reference **Agents** as subagents (e.g., `/plan-execute` calls `tester`, `code-reviewer`, `git-manager`)
 - Skills reference shared protocols in `.claude/skills/shared/`
 - Skills are orchestrated in sequence by **Workflows**
 - Hooks enforce skill rules (e.g., `skill-enforcement.cjs`, `code-review-rules-injector.cjs`)
@@ -136,7 +136,7 @@ A named sequence of skill steps that orchestrates a multi-step process (feature 
 ### Key Properties
 
 - **Step gates:** Steps have validation requirements (e.g., tests 100% passing, 0 critical issues, user approval)
-- **Skill activation:** Each step maps to a specific skill (`/plan`, `/code`, `/test`, `/code-review`)
+- **Skill activation:** Each step maps to a specific skill (`/plan`, `/plan-execute`, `/test`, `/code-review`)
 - **Orchestration patterns:** Sequential (plan then code then test), parallel (backend + frontend), recovery (resume from failure)
 
 ### Relationships

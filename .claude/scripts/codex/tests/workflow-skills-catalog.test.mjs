@@ -96,7 +96,6 @@ test("TC-WSC-005 falls back (no throw) for a step-skill with no SKILL.md", () =>
   fs.writeFileSync(
     path.join(tmp, ".claude", "workflows.json"),
     JSON.stringify({
-      commandMapping: { "ghost-step": { claude: "/ghost-step" } },
       workflows: {
         "workflow-x": { name: "X", whenToUse: "test", sequence: ["ghost-step", "missing-step"] },
       },
@@ -106,7 +105,8 @@ test("TC-WSC-005 falls back (no throw) for a step-skill with no SKILL.md", () =>
   assert.doesNotThrow(() => {
     out = buildWorkflowSkillsCatalog({ rootDir: tmp, sections: ["skills"] });
   });
-  assert.ok(out.includes("| `ghost-step` | Run /ghost-step |"));
+  // Steps with no SKILL.md dir fall back to a single generic label.
+  assert.ok(out.includes("| `ghost-step` | (workflow step) |"));
   assert.ok(out.includes("| `missing-step` | (workflow step) |"));
 });
 

@@ -1,4 +1,22 @@
-> The `spec` skill (`../SKILL.md`) loads this body for `[mode=init|update|audit|amend]` — the Feature Spec authoring + §8-shell modes. The shared M1-M6 contract, SYNC blocks, and prompt-enhance scaffolding live ONCE in the host SKILL.md; this body carries only the authoring procedure.
+> The `spec` skill (`../SKILL.md`) loads this body for `[mode=draft|init|update|audit|amend]` — the Feature Spec authoring + §8-shell modes. The shared M1-M6 contract, SYNC blocks, and prompt-enhance scaffolding live ONCE in the host SKILL.md; this body carries only the authoring procedure.
+
+## Source Resolution (code vs idea) — resolve BEFORE Project Pattern Discovery
+
+Every author-mode run sources from ONE of two inputs. Resolve which before any extraction:
+
+| Source | Modes | Where §1-7 come from | §8 Evidence | Provisional? |
+| ------ | ----- | -------------------- | ----------- | ------------ |
+| **Code** (existing implementation) | `init`, `update`, `audit`, `amend` | grep/trace the implementation (the extraction phases below) | real `[Source: namespace/service/id]` anchors | no |
+| **Idea** (requirement/prompt text, no code yet) | `draft` | derive from the requirement/idea text — NO code grep | `Evidence: TBD` (reference-only) | **yes** — `provisional: true` |
+
+**`mode=draft` (idea → provisional spec):** the implementation does not exist yet, so the code-extraction phases (Step 1-INIT.* greps, graph trace, evidence verification) are **skipped**. Instead:
+
+1. Derive §1-7 (Overview, Glossary, User Stories & AC, Business Rules, Domain Model, Process Flows, Permissions & Roles) from the supplied idea/requirement/prompt — SAME 8-section tech-free template (`docs/templates/detailed-feature-spec-template.md`), SAME M1-M6 prose rules, SAME size caps. Draft does NOT get a lighter template — only a lighter evidence obligation.
+2. Author §8 TC **shells** in the canonical `tc-format.md` template (Objective, GWT, AC, Test Data, Edge Cases) but set **`Evidence: TBD`** and **`Status: Planned`** — these are reference-only until code lands.
+3. Flag the spec provisional: add `provisional: true` to YAML frontmatter and a header banner `> **DRAFT — provisional spec, unverified until code lands. §8 evidence is TBD.**`.
+4. State the next step explicitly: *"Reconcile against real code via `/spec [mode=update]` once implemented — that run upgrades every `Evidence: TBD` to a real `[Source:]` anchor and clears the provisional flag."*
+
+**Draft → update transition rule (BLOCKING for the first code-backed run):** when `update` (or `init`, if the draft was a scratch file later replaced) runs against a spec carrying `provisional: true`, it MUST (a) replace every §8 `Evidence: TBD` with the verified `[Source: namespace/service/id]` anchor discovered from code, (b) flip each upgraded TC `Status` from `Planned` to `Untested`/`Tested` per `sync`, and (c) remove `provisional: true` + the DRAFT banner. A spec that still has any `Evidence: TBD` MUST keep its provisional flag. `tests`/`sync` need no special-casing beyond this upgrade — a TBD TC is treated as a not-yet-implemented TC.
 
 ## Project Pattern Discovery
 
@@ -121,14 +139,23 @@ Plus YAML frontmatter (header/metadata). Domain events appear in Section 5 / Sec
 
 | Condition                                    | Mode       | Next Step                          |
 | -------------------------------------------- | ---------- | ---------------------------------- |
-| `docs/specs/{Bucket}/` NOT found | **INIT**   | → Mode: INIT                       |
+| Source is an idea/requirement/prompt, **no code yet** (explicit `[mode=draft]`) | **DRAFT** | → Source Resolution (idea branch): author §1-7 from text + §8 shells with `Evidence: TBD` + provisional marker |
+| `docs/specs/{Bucket}/` NOT found AND code exists to source from | **INIT**   | → Mode: INIT                       |
 | `docs/specs/{Bucket}/` exists    | **UPDATE** | → Phase 1.5 (existing update mode) |
 | `[mode=amend]` arg (bugfix caller) AND doc exists | **AMEND** | → Mode: AMEND (scoped: regression TC + AC adjust only) |
+| `[mode=amend]` arg (bugfix caller) AND doc does **NOT** exist | **INIT** (code exists) / **DRAFT** (no code yet), then seed bug case | → run INIT/DRAFT to create the governing spec, then add the regression `TC-{FC}-NNN` for the bug case to §8 (Status `Untested`). Do NOT no-op. |
 | `--audit` flag OR user requests audit        | **AUDIT**  | → Mode: AUDIT                      |
 
-> **Scale gate for INIT mode (workflow context only):** If `workflow-build-specs` is the caller AND module_count ≥ 4 → MUST spawn sub-agents (one per module) in ONE message. When `spec` is invoked STANDALONE for a single module, no scale gate applies — single-module init is always single-session.
+> **Scale gate for INIT mode (workflow context only):** If `workflow-code-to-spec` is the caller AND module_count ≥ 4 → MUST spawn sub-agents (one per module) in ONE message. When `spec` is invoked STANDALONE for a single module, no scale gate applies — single-module init is always single-session.
 
-> **Mode: AMEND (bugfix scope — NOT a re-author).** Triggered by `spec [mode=amend]` from the bugfix workflow (inserted after `debug-investigate`, before `plan`). The Feature Spec already exists; a bug fix changes a narrow slice of behavior. Do the MINIMUM — touch only the sections the bug touches:
+> **Mode: AMEND (bugfix scope — NOT a re-author).** Triggered by `spec [mode=amend]` from the bugfix workflow (inserted after `debug-investigate`, before `plan`). A bug fix changes a narrow slice of behavior. Do the MINIMUM — touch only the sections the bug touches.
+>
+> **Branch FIRST — amend vs init (mirrors `fix` standalone §3 spec-correctness check).** Before amending, confirm a governing Feature Spec exists for the buggy area under `docs/specs/`:
+> - **Governing spec exists** → do the scoped AMEND below.
+> - **No governing spec exists** → do NOT no-op. Route to **INIT** (code exists to source from) or **DRAFT** (no code yet) to create the spec, then add the bug case as a regression `TC-{FC}-NNN` to §8. Record `No governing spec — created via {INIT|DRAFT}, bug case seeded as TC-{FC}-NNN` with `file:line` evidence.
+> - **Governing spec exists, §1-§7 already correct, but NO existing TC covered the bug case** → skip the §4/§3 wording edits and add ONLY the regression `TC-{FC}-NNN` (item 3). The spec was *correct but lacked the bug case* — never leave it undocumented.
+>
+> Scoped AMEND steps (governing spec exists):
 >
 > 1. **§4 Business Rules** — if the bug violated or mis-stated a rule, correct ONLY that rule's wording (preserve its `BR-{FC}-NNN` ID verbatim, keep its [HARD]/[SOFT] tag). If the spec documented the *buggy* behavior (Spec Bug per the bugfix SPEC-BUG GATE), fix the rule to the intended behavior.
 > 2. **§3 Acceptance Criteria** — adjust ONLY the AC the fix changes; add a new `AC-{FC}-NN` if the fix guarantees a new behavior. Preserve existing AC IDs.
@@ -506,7 +533,7 @@ When UPDATING existing feature docs (not from scratch):
 
 - **Section 8 (Test Specifications)**: Add test cases (TC-{FEATURE}-{NNN}) for new features.
 
-> **[BLOCKING] TC Format:** Use canonical format in `.claude/skills/shared/tc-format.md`. NEVER use abbreviated flat GIVEN/WHEN/THEN — use full template with all required fields (Objective, Preconditions, GWT steps, Acceptance Criteria, Test Data, Edge Cases, Evidence, IntegrationTest, Status). Section 8 owned exclusively by `spec [mode=tests]` — the author modes populate it only during INIT. Existing TCs MUST NOT be overwritten during UPDATE mode.
+> **[BLOCKING] TC Format:** Use canonical format in `.claude/skills/shared/tc-format.md`. NEVER use abbreviated flat GIVEN/WHEN/THEN — use full template with all required fields (Objective, Preconditions, GWT steps, Acceptance Criteria, Test Data, Edge Cases, Evidence, IntegrationTest, Status). Section 8 owned exclusively by `spec [mode=tests]` — the author modes populate it only during authoring (INIT with real `[Source:]`, DRAFT with `Evidence: TBD`). Existing TCs MUST NOT be overwritten during UPDATE mode (the draft→update run only UPGRADES `Evidence: TBD` → real anchors, never rewrites the TC body).
 
 > **[BLOCKING] TC ID Collision Prevention:** Before assigning new TC IDs, check highest existing ID:
 >

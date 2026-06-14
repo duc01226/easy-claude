@@ -7,7 +7,7 @@
 | Goal                         | Document                                                                                        |
 | ---------------------------- | ----------------------------------------------------------------------------------------------- |
 | **New to Claude Code?**      | [quick-start.md](./quick-start.md) - 5-minute onboarding                                        |
-| **Need a skill?**            | [skills/README.md](./skills/README.md) - 156 skills catalog                                     |
+| **Need a skill?**            | [skills/README.md](./skills/README.md) - 155 skills catalog                                     |
 | **Building a feature?**      | [skills/README.md](./skills/README.md) + `docs/project-reference/` patterns                     |
 | **Understanding hooks?**     | [hooks/README.md](./hooks/README.md) - 54 top-level hook files deep-dive                        |
 | **Understanding workflows?** | `CLAUDE.md` workflow catalog (project root) - 17 workflows                                      |
@@ -54,10 +54,10 @@
 
 | Task                     | Command                    | Skill                     |
 | ------------------------ | -------------------------- | ------------------------- |
-| Implement a feature      | `/cook`                    | `feature`                 |
+| Implement a feature      | `/feature-implement`                    | `feature`                 |
 | Fix a bug                | `/fix`                     | `debug-investigate`       |
 | Create a PR              | `/commit --push`           | `commit`                  |
-| Understand code          | `/scout`                   | `feature-investigation`   |
+| Understand code          | `/scout`                   | `investigate`   |
 | Plan implementation      | `/plan`                    | `plan`                    |
 | Run tests                | `/test`                    | `test`                    |
 | Review code              | `/review`                  | `code-review`             |
@@ -143,13 +143,13 @@
 
 | Category               | Count |
 | ---------------------- | ----- |
-| Skills                 | 156   |
+| Skills                 | 155   |
 | Hook files (top-level) | 54    |
 | Lib Modules            | 33    |
 | Hook Events            | 9     |
 | Agents                 | 29    |
 | Workflows              | 17    |
-| Hook Tests             | 362   |
+| Hook Tests             | 375   |
 | Documentation Files    | 28    |
 
 ---

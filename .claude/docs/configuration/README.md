@@ -119,23 +119,22 @@ The `codeReview` section configures automatic injection of project-specific revi
     },
     "workflows": {
         "feature": {
-            "sequence": ["plan", "cook", "test", "code-review", "docs-update"],
-            "whenToUse": "User wants to implement new functionality",
-            "whenNotToUse": "Bug fixes or documentation-only work"
+            "sequence": ["plan", "feature-implement", "test", "code-review", "docs-update"],
+            "whenToUse": "User wants to implement new functionality"
         }
     }
 }
 ```
 
-**Schema:** Each workflow entry supports `description`, `name`, `parallelGroups`, `preActions`, `sequence`, `stepMeta`, `whenNotToUse`, `whenToUse`. There are NO `priority` or `triggers` properties — detection is semantic: the model matches the prompt against each workflow's `whenToUse`/`whenNotToUse` descriptions and auto-selects the best fit (works in any prompt language).
+**Schema:** Each workflow entry supports `description`, `name`, `parallelGroups`, `preActions`, `sequence`, `stepMeta`, `whenToUse`. There are NO `priority` or `triggers` properties — detection is semantic: the model matches the prompt against each workflow's `whenToUse` description and auto-selects the best fit (works in any prompt language).
 
-**Live catalog (17 workflows):** `workflow-big-feature`, `workflow-bugfix`, `workflow-e2e`, `workflow-feature`, `workflow-feature-spec`, `workflow-greenfield-init`, `workflow-idea-to-pbi`, `workflow-product-discovery`, `workflow-refactor`, `workflow-research`, `workflow-review-changes`, `workflow-build-specs`, `workflow-spec-to-pbi`, `workflow-spec-sync`, `workflow-visualize`, `workflow-seed-test-data`, `workflow-write-integration-test`.
+**Live catalog (17 workflows):** `workflow-big-feature`, `workflow-bugfix`, `workflow-e2e`, `workflow-feature`, `workflow-feature-spec`, `workflow-greenfield-init`, `workflow-idea-to-pbi`, `workflow-idea-to-spec`, `workflow-refactor`, `workflow-research`, `workflow-review-changes`, `workflow-code-to-spec`, `workflow-spec-to-pbi`, `workflow-spec-sync`, `workflow-visualize`, `workflow-seed-test-data`, `workflow-write-integration-test`.
 
 | Workflow         | Sequence (abridged, from `workflows.json`)                                                        | whenToUse (abridged)                              |
 | ---------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| `workflow-feature`        | scout → investigate → … → plan → plan-review → … → cook → … → integration-test → … → workflow-end | Well-defined feature implementation               |
+| `workflow-feature`        | scout → investigate → … → plan → plan-review → … → plan-execute → … → integration-test → … → workflow-end | Well-defined feature implementation               |
 | `workflow-bugfix`         | scout → investigate → debug-investigate → … → fix → prove-fix → … → workflow-end                  | Bug, error, crash, regression; end-to-start trace |
-| `workflow-refactor`       | scout → investigate → plan → … → code → … → workflow-end                                          | Restructure code without behavior change          |
+| `workflow-refactor`       | scout → investigate → plan → … → plan-execute → … → workflow-end                                  | Restructure code without behavior change          |
 | `workflow-review-changes` | review-changes → why-review → parallel reviewers → code-simplifier → … → workflow-end             | Review uncommitted changes before committing      |
 
 ---

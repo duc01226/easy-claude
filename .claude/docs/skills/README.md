@@ -11,7 +11,7 @@ User: "I need to fix a bug in the employee validation"
        ↓
 Skill Detection: "fix", "employee", "validation"
        ↓
-Skills Activated: fix, feature-investigation
+Skills Activated: fix, investigate
 ```
 
 ## How Skills Work
@@ -141,7 +141,7 @@ See `docs/project-reference/frontend-patterns-reference.md` for project-specific
 | `plan`                  | plan, strategy, approach, research | Implementation planning (includes research phase + engine references) |
 | `plan-analysis`         | analyze plan, review plan          | Plan review                                                           |
 | `feature`               | implement, add, create, build      | Feature development                                                   |
-| `feature-investigation` | how does, explain, trace           | Code exploration                                                      |
+| `investigate`           | how does, explain, trace           | Code exploration                                                      |
 | `problem-solving`       | complex problem, solution          | Problem analysis                                                      |
 | `research`              | research, explore, analyze         | Technical research & solution analysis (standalone)                   |
 
@@ -274,11 +274,11 @@ Skills are often activated alongside commands:
 
 | Command         | Primary Skills Activated         |
 | --------------- | -------------------------------- |
-| `/cook`         | `feature`, `plan`, `spec [mode=tests]` |
+| `/feature-implement`         | `feature`, `plan`, `spec [mode=tests]` |
 | `/fix`          | `debug-investigate`              |
 | `/plan`         | `plan`, `plan-analysis`          |
 | `/review`       | `code-review`                    |
-| `/scout`        | `scout`, `feature-investigation` |
+| `/scout`        | `scout`, `investigate` |
 | `/test`         | `spec [mode=tests]`, `webapp-testing` |
 | `/idea`         | `idea`, `product-owner`          |
 | `/refine`       | `refine`, `business-analyst`     |

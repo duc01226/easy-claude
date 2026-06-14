@@ -1,6 +1,6 @@
 # ADR-0001: Skill Lifecycle Schema, Cadence, and Catalog Migration
 
-- **Status:** Accepted
+- **Status:** Accepted (amended 2026-06-13 — `last_reviewed` field retired; see Amendments)
 - **Date:** 2026-05-14
 - **Plan:** `plans/260514-1407-harness-quality-refactor/phase-02a-deprecation-policy.md`
 - **Supersedes:** None (first ADR)
@@ -25,15 +25,17 @@ migration path for the existing catalog shape consumed by hooks and docs.
 
 `.claude/skills/<name>/SKILL.md` frontmatter MAY carry these new optional fields:
 
-| Field              | Type   | Default   | Semantics                                                                                            |
-| ------------------ | ------ | --------- | ---------------------------------------------------------------------------------------------------- |
-| `status`           | enum   | `active`  | One of `active` \| `deprecated` \| `experimental`. Absent = `active`.                                |
-| `deprecated_by`    | string | _(unset)_ | When `status=deprecated`: canonical skill name that supersedes this one.                             |
-| `deprecated_since` | date   | _(unset)_ | When `status=deprecated`: ISO date the deprecation landed.                                           |
-| `removal_after`    | date   | _(unset)_ | When `status=deprecated`: explicit earliest date GC may delete. Missing value blocks GC.              |
-| `last_reviewed`    | date   | _(unset)_ | ISO date a maintainer last audited the skill. Optional informational signal.                         |
+| Field              | Type   | Default   | Semantics                                                                                |
+| ------------------ | ------ | --------- | ---------------------------------------------------------------------------------------- |
+| `status`           | enum   | `active`  | One of `active` \| `deprecated` \| `experimental`. Absent = `active`.                    |
+| `deprecated_by`    | string | _(unset)_ | When `status=deprecated`: canonical skill name that supersedes this one.                 |
+| `deprecated_since` | date   | _(unset)_ | When `status=deprecated`: ISO date the deprecation landed.                               |
+| `removal_after`    | date   | _(unset)_ | When `status=deprecated`: explicit earliest date GC may delete. Missing value blocks GC. |
 
-All five fields are optional. Existing skills with no lifecycle frontmatter
+> `last_reviewed` (date) was part of the original schema but was retired
+> 2026-06-13 — see [Amendments](#amendments).
+
+All four fields are optional. Existing skills with no lifecycle frontmatter
 are treated as `status: active` by every consumer.
 
 ### Baseline Cleanup Exception
@@ -237,3 +239,22 @@ as `--output`). This is the CI-ready signal consumed by Phase 4's drift gate.
 - `plans/260514-1407-harness-quality-refactor/phase-02a-deprecation-policy.md`
 - `plans/260514-1407-harness-quality-refactor/phase-02b-gc-script-and-poc.md`
 - `plans/reports/council-260514-1407-harness-quality-refactor.md`
+
+## Amendments
+
+### 2026-06-13 — `last_reviewed` retired
+
+The `last_reviewed` field is removed from the lifecycle schema. It was the only
+field of the original five not consumed by the GC mechanism — purely an
+informational "maintainer last audited" signal — and in practice carried a
+value on fewer than five of ~156 skills while ~150 emitted `null`. The cost
+(an extra frontmatter field, a catalog column, a validator convention entry)
+outweighed its non-existent operational use.
+
+Removed from: the five `SKILL.md` files that set it, `scan_skills.py` emit,
+`docs/project-config.json` `skillConventions.conventionFields`,
+`skill-creator/references/schema-reference.md` (and its `.agents` mirror), and
+the regenerated `SKILLS.yaml` / `skills_data.yaml` catalogs. The four remaining
+lifecycle fields (`status`, `deprecated_by`, `deprecated_since`,
+`removal_after`) are unaffected. This does **not** touch the unrelated Feature
+Spec `last_reviewed` frontmatter under `docs/specs/**`.

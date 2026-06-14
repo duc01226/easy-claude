@@ -29,36 +29,19 @@ function getDefaultConfig() {
       feature: {
         name: 'Feature Implementation',
         whenToUse: 'User wants to implement new functionality, add a feature, create a component, build a capability',
-        whenNotToUse: 'Bug fixes, documentation, test-only tasks, feature requests/ideas',
-        sequence: ['plan', 'cook', 'test', 'code-review']
+        sequence: ['plan', 'feature-implement', 'test', 'code-review']
       },
       bugfix: {
         name: 'Bug Fix',
         whenToUse: 'User reports a bug, error, crash, stale/incorrect final output, regression, or something not working; wants to fix/debug with end-to-start trace',
-        whenNotToUse: 'New feature implementation, code improvement, investigation-only',
-        sequence: ['scout', 'investigate', 'debug', 'plan', 'fix', 'code-review', 'test'],
+        sequence: ['scout', 'investigate', 'debug-investigate', 'plan', 'fix', 'code-review', 'test'],
         requiredGate: 'End-to-start debugger trace: observed final output -> reader -> storage/projection -> writer -> consumer/job -> producer/origin; include feeder paths, hypothesis matrix, owning fix layer, and forward convergence proof before fix'
       },
       documentation: {
         name: 'Documentation',
         whenToUse: 'User wants to create, update, or improve documentation, READMEs, or code comments',
-        whenNotToUse: 'Feature implementation, bug fixes, test writing',
         sequence: ['scout', 'investigate', 'docs-update', 'watzup']
       }
-    },
-    commandMapping: {
-      plan: { claude: '/plan' },
-      cook: { claude: '/cook' },
-      test: { claude: '/test' },
-      'test-initial': { claude: '/test' },
-      fix: { claude: '/fix' },
-      debug: { claude: '/debug-investigate' },
-      scout: { claude: '/scout' },
-      investigate: { claude: '/feature-investigation' },
-      'code-review': { claude: '/code-review' },
-      'code-simplifier': { claude: '/code-simplifier' },
-      'docs-update': { claude: '/docs-update' },
-      watzup: { claude: '/watzup' }
     }
   };
 }

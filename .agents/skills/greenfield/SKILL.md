@@ -94,7 +94,7 @@ This skill is the explicit entry point for the `workflow-greenfield-init` workfl
 
 - Existing codebase with code (use `$plan` or `$start-workflow workflow-feature` instead)
 - Bug fixes, refactoring, or feature implementation
-- Quick prototyping (use `$cook` instead)
+- Quick prototyping (use `$feature-implement` instead)
 
 ## Output
 
@@ -119,7 +119,7 @@ plans/{id}/
   plan.md (master plan with YAML frontmatter)
 ```
 
-After completion, recommend next step: `$cook` to scaffold the project structure.
+After completion, recommend next step: `$feature-implement` to scaffold the project structure.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 

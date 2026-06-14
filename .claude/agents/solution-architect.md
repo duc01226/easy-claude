@@ -333,7 +333,7 @@ After tech stack is confirmed, generate a starter `CLAUDE.md` containing:
 - Master `plan.md` with YAML frontmatter (title, description, status, priority, effort, branch, tags, created)
 - Concise reports (<=150 lines per artifact)
 - List unresolved questions at end of each artifact
-- After completing all stages, announce completion and recommend next step (`/cook` or `/bootstrap`)
+- After completing all stages, announce completion and recommend next step (`/feature-implement` or `/bootstrap`)
 
 ---
 

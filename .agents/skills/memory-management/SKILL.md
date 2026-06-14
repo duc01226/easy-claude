@@ -493,7 +493,7 @@ All long-running workflows should follow this pattern:
 | `$watzup`                | Generate progress summary           |
 | `workflow-feature`                | Uses task analysis notes pattern    |
 | `debug-investigate`      | Uses investigation logs             |
-| `feature-investigation`  | Uses analysis report pattern        |
+| `investigate`  | Uses analysis report pattern        |
 
 ### Memory Decision Matrix
 

@@ -187,7 +187,7 @@ function renderSequenceWithBarriers(sequence, parallelGroups, separator, renderS
 }
 
 function buildWorkflowCatalog(config) {
-    const { workflows, commandMapping, settings } = config;
+    const { workflows, settings } = config;
     const lines = [];
 
     const standardEntries = [];
@@ -221,10 +221,9 @@ function buildWorkflowCatalog(config) {
 
     for (const [id, wf] of allEntries) {
         const parallelGroups = Array.isArray(wf.parallelGroups) ? wf.parallelGroups : [];
-        const sequence = renderSequenceWithBarriers(wf.sequence, parallelGroups, ' \u2192 ', step => commandMapping[step]?.copilot || step);
+        const sequence = renderSequenceWithBarriers(wf.sequence, parallelGroups, ' \u2192 ', step => step);
         lines.push(`**${id}** \u2014 ${wf.name}`);
         lines.push(`  Use: ${wf.whenToUse}`);
-        if (wf.whenNotToUse) lines.push(`  Not for: ${wf.whenNotToUse}`);
         lines.push(`  Steps: ${sequence}`);
         if (parallelGroups.length > 0) {
             lines.push(`  Parallel phase = all-return barrier: spawn ALL members together (one message); advance only after EVERY member returns (a skipped conditional member, marked *, counts as returned). A sub-agent completion advances the step identically to an inline call.`);

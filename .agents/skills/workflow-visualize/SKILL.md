@@ -60,19 +60,19 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $scout -> $feature-investigation -> $excalidraw-diagram -> $workflow-end
+**IMPORTANT MANDATORY Steps:** $scout -> $investigate -> $excalidraw-diagram -> $workflow-end
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its skill invocation — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
 Activate the `workflow-visualize` workflow. Run `$start-workflow workflow-visualize` with the user's prompt as context.
 
-**Steps:** $scout → $feature-investigation → $excalidraw-diagram → $workflow-end
+**Steps:** $scout → $investigate → $excalidraw-diagram → $workflow-end
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
 
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
 
-**IMPORTANT MANDATORY Steps:** $scout -> $feature-investigation -> $excalidraw-diagram -> $workflow-end
+**IMPORTANT MANDATORY Steps:** $scout -> $investigate -> $excalidraw-diagram -> $workflow-end
 
 <!-- SYNC:nested-task-creation -->
 
@@ -156,6 +156,8 @@ Activate the `workflow-visualize` workflow. Run `$start-workflow workflow-visual
 >
 > Main agent reads `Full report` file ONLY when: (a) resolving a specific blocker, or (b) building a fix plan.
 > Sub-agent writes full report incrementally (per SYNC:incremental-persistence) — not held in memory.
+>
+> **Context budget** — the return payload is a SUMMARY, not a transcript: ≤10 finding bullets, no raw file contents / full diffs / verbatim logs inline, no re-pasted source. Everything beyond the summary lives in the `Full report` on disk. A sub-agent that would exceed the summary shape MUST write the detail to its report and return only the pointer — the orchestrator's context is the scarce resource the whole map-reduce protects.
 
 <!-- /SYNC:subagent-return-contract -->
 

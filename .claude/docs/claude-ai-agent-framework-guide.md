@@ -119,7 +119,7 @@ graph TB
 
     subgraph "Intelligence Layer — 176 Skills"
         SP[Shared Protocols<br/>5 files]
-        IS[Implementation Skills<br/>cook, fix, refactor]
+        IS[Implementation Skills<br/>feature-implement, fix, refactor]
         QS[Quality Skills<br/>code-review, prove-fix]
         PS[Planning Skills<br/>plan, investigate, scout]
     end
@@ -503,7 +503,7 @@ mindmap
       scout
       research
     Implementation
-      cook
+      feature-implement
       fix
       refactoring
     Testing & TDD
@@ -770,10 +770,9 @@ Workflows are **JSON-defined sequences of skills** stored in `.claude/workflows.
     "bugfix": {
         "name": "Bug Fix",
         "whenToUse": "User reports a bug, error, crash, failure",
-        "whenNotToUse": "New feature implementation, refactoring",
         "sequence": [
             "scout",
-            "feature-investigation",
+            "investigate",
             "debug",
             "plan",
             "plan-review",
@@ -820,10 +819,10 @@ WORKFLOW CATALOG
 ├── DISCOVERY & PLANNING (6)
 │   ├── workflow-greenfield-init
 │   ├── workflow-idea-to-pbi
-│   ├── workflow-product-discovery
+│   ├── workflow-idea-to-spec
 │   ├── workflow-research
 │   ├── workflow-spec-to-pbi
-│   └── workflow-build-specs
+│   └── workflow-code-to-spec
 │
 ├── DOCUMENTATION & SPEC (1)
 │   └── workflow-feature-spec
@@ -1103,7 +1102,7 @@ graph TB
 │  AI evaluates: direct edit? single skill? feature workflow?      │
 │                    ↓                                              │
 │  Best match: feature workflow → activates immediately            │
-│  (steps: scout→investigate→spec [mode=tests]→plan→cook→test→docs)│
+│  (steps: scout→investigate→spec [mode=tests]→plan→feature-implement→test→docs)│
 │                                                                   │
 │  EXCEPTION: explicit invocation — when the user names a          │
 │  workflow or skill (start-workflow X, slash-skill), that exact   │
@@ -1351,7 +1350,7 @@ flowchart LR
 │  Input: PBI / user story (no code yet)                           │
 │  Action: Generate TC specs from requirements                     │
 │  Evidence: "TBD (pre-implementation)"                            │
-│  Next: /integration-test → /plan → /cook                        │
+│  Next: /integration-test → /plan → /feature-implement                        │
 │                                                                   │
 │  Mode 2: IMPLEMENT-FIRST                                         │
 │  Input: Existing codebase (code already written)                 │
@@ -1380,7 +1379,7 @@ Dedicated registered workflows and workflow trigger skills support test-driven d
 | Workflow                                           | Sequence                                                                                                    | Use Case                                                                                         |
 | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | **idea-to-pbi**                                    | `/idea` → `/refine` → `/story` → `/spec [mode=tests]` → `/dor-gate`                                                | Go from raw idea to grooming-ready PBI, stories, and reviewed test specifications                |
-| **feature**                                        | `/scout` → `/investigate` → `/spec` → `/spec [mode=tests]` → `/plan` → `/cook` → `/integration-test` → ... | Spec-driven with tests by default: test specs written and reviewed FIRST, then implement         |
+| **feature**                                        | `/scout` → `/investigate` → `/spec` → `/spec [mode=tests]` → `/plan` → `/feature-implement` → `/integration-test` → ... | Spec-driven with tests by default: test specs written and reviewed FIRST, then implement         |
 | **e2e** (`--source=recording\|update-ui\|changes`) | `/scout` → `/e2e-test` → `/test` → `/docs-update` → `/workflow-end` → `/watzup`                             | Generate from a recording, update screenshot baselines, or sync E2E tests to spec/source changes |
 
 #### Interactive Idea & Requirement Capture
@@ -1439,7 +1438,7 @@ The framework supports AI-assisted development across **every phase** of the sof
 │                     │ /plan-validate         │ plans with user    │
 │                     │ /why-review            │ Q&A validation     │
 │─────────────────────│────────────────────────│────────────────────│
-│  5. IMPLEMENTATION  │ /cook                  │ Pattern-enforced   │
+│  5. IMPLEMENTATION  │ /feature-implement                  │ Pattern-enforced   │
 │                     │ /fix, /refactoring     │ coding with auto   │
 │                     │ feature workflow        │ context injection  │
 │─────────────────────│────────────────────────│────────────────────│
@@ -1583,7 +1582,7 @@ feature:
   scout → investigate → domain-analysis → why-review → spec →
   plan → plan-review → plan-validate → why-review →
   spec [mode=tests] → why-review → review-artifact --type=spec-tests → plan → plan-review →
-  cook → review-domain-entities → spec [mode=tests] → why-review → review-artifact --type=spec-tests →
+  feature-implement → review-domain-entities → spec [mode=tests] → why-review → review-artifact --type=spec-tests →
   spec [mode=sync] → integration-test → integration-test-review →
   integration-test-verify → workflow-review-changes → sre-review →
   security-review → changelog → test → docs-update → workflow-end → watzup
@@ -1859,7 +1858,7 @@ write-integration-test: scout → investigate → spec [mode=tests] → why-revi
 │  Full TDD cycle          │ /spec [mode=tests] then│ feature            │
 │                          │ /integration-   │ (spec-driven       │
 │                          │  test           │  by default)       │
-│  Feature + int. tests    │ /cook then      │ feature            │
+│  Feature + int. tests    │ /feature-implement then      │ feature            │
 │                          │ /spec [mode=tests] then│                    │
 │                          │ /integration-   │                    │
 │                          │  test           │                    │
@@ -2136,7 +2135,7 @@ flowchart TB
     D -->|Code exists| F[Normal Mode<br/>Standard hooks & skills]
 
     E --> G["greenfield workflow<br/>40-step inception + implementation"]
-    G --> H["idea - research - evaluate -<br/>domain - scaffold - cook -<br/>integration-test - review"]
+    G --> H["idea - research - evaluate -<br/>domain - scaffold - feature-implement -<br/>integration-test - review"]
 
     style C fill:#FF9800,color:white
     style E fill:#4CAF50,color:white
@@ -2217,7 +2216,7 @@ greenfield-init: FULL WATERFALL INCEPTION → IMPLEMENTATION → INTEGRATION TES
 │
 ├── IMPLEMENTATION (2 steps)
 │   ├── /why-review ────────── Validate design rationale before coding
-│   └── /cook ─────────────── Implement feature (backend + frontend)
+│   └── /feature-implement ─────────────── Implement feature (backend + frontend)
 │
 ├── INTEGRATION TESTING (6 steps)
 │   ├── /spec [mode=tests] ──── Write test specs for implemented code
@@ -2271,7 +2270,7 @@ Nine skills auto-detect greenfield and switch behavior:
 | `/domain-analysis`     | Analyze existing domain entities/events | Full DDD from scratch: bounded contexts, aggregates, ERD |
 | `/tech-stack-research` | Evaluate additions to existing stack    | Full stack comparison: top 3 per layer, confidence %     |
 | `/story`               | Feature stories from existing patterns  | Foundation PBIs: infra, scaffold, CI/CD, first feature   |
-| `/cook`                | Implement from plan                     | Scaffold project structure from approved plan            |
+| `/feature-implement`                | Implement from plan                     | Scaffold project structure from approved plan            |
 
 **Detection is per-skill-activation** (not cached from session start), so it stays accurate even as the project evolves during a session.
 
@@ -2342,7 +2341,7 @@ big-feature: RESEARCH-DRIVEN FEATURE DEVELOPMENT
 │   └── /why-review ────────── Design rationale check
 │
 ├── IMPLEMENTATION PHASE (5 steps)
-│   ├── /cook ──────────────── Pattern-enforced coding
+│   ├── /feature-implement ──────────────── Pattern-enforced coding
 │   ├── /integration-test ──── Generate integration tests
 │   ├── /code-simplifier ───── YAGNI/KISS/DRY pass
 │   ├── /review-changes ────── Pre-commit review
@@ -2497,7 +2496,7 @@ This section maps **established prompt engineering techniques** to specific fram
 │  1. WORKFLOW SEQUENCES — The entire workflow system IS chain-    │
 │     of-thought at macro scale. Instead of "implement feature,"   │
 │     the AI is forced through:                                    │
-│     scout → investigate → plan → review → validate → cook       │
+│     scout → investigate → plan → review → validate → plan-execute │
 │     Each step produces an intermediate artifact that feeds       │
 │     the next step's reasoning.                                   │
 │                                                                   │
@@ -2636,7 +2635,7 @@ This section maps **established prompt engineering techniques** to specific fram
 │                                                                   │
 │  Workflow steps that force self-correction:                      │
 │                                                                   │
-│  /cook ────────→ /code-simplifier ──→ /review-changes ──→       │
+│  /feature-implement ────────→ /code-simplifier ──→ /review-changes ──→       │
 │  (generate)      (simplify/clean)     (self-review)              │
 │                                                                   │
 │  /fix ─────────→ /prove-fix ────────→ /test                     │
@@ -2667,7 +2666,7 @@ This section maps **established prompt engineering techniques** to specific fram
 | **Few-shot examples**         | Context injection hooks, reference doc scans                                  |
 | **Structured output**         | Confidence declarations, risk matrices, TC format, plan templates             |
 | **Negative prompting**        | Forbidden phrases, anti-pattern lists, NEVER rules, lessons system            |
-| **Iterative refinement**      | Multi-pass review (cook→simplify→review→code-review→sre→security)             |
+| **Iterative refinement**      | Multi-pass review (feature-implement→simplify→review→code-review→sre→security)             |
 | **Task decomposition**        | Workflows decompose "implement feature" into 15+ discrete steps               |
 | **Retrieval-augmented gen.**  | Context hooks inject project-specific docs at decision points                 |
 | **Self-consistency checking** | /prove-fix requires proof traces; /plan-validate asks critical questions      |
@@ -3022,7 +3021,7 @@ sequenceDiagram
 | **Sync**    | `/graph-build --scope=sync` | Sync graph with git state after pull/checkout                                            |
 | **Batch**   | `/graph-query batch`        | Multi-file deduplicated query                                                            |
 
-Skills that **automatically receive graph context** when graph.db exists: `/code-review`, `/review-changes`, `/review-architecture`, `/scout`, `/debug-investigate`, `/sre-review`, `/investigate`, `/feature-investigation`, `/fix`, `/refactoring`, `/security-review`, `/performance-review`, `/code-simplifier`, `/prove-fix`.
+Skills that **automatically receive graph context** when graph.db exists: `/code-review`, `/review-changes`, `/review-architecture`, `/scout`, `/debug-investigate`, `/sre-review`, `/investigate`, `/fix`, `/refactoring`, `/security-review`, `/performance-review`, `/code-simplifier`, `/prove-fix`.
 
 #### Auto-Maintenance
 
@@ -3835,7 +3834,7 @@ The framework elevates the AI from a code autocomplete tool to a **strategic dev
 | Single-shot responses        | Multi-step workflows with quality gates at each stage                                               |
 | User must remember all rules | Hooks inject rules automatically — human memory not required                                        |
 | Loads all context upfront    | JIT context injection — right docs at right time (context eng.)                                     |
-| One-pass generation          | Multi-pass review: cook→simplify→review→code-review→sre (prompt eng.)                               |
+| One-pass generation          | Multi-pass review: feature-implement→simplify→review→code-review→sre (prompt eng.)                               |
 | Skills work in isolation     | Plan-aware skills (Step 0) read prior workflow outputs automatically                                |
 | Manual workflow progression  | Skill chain navigation (Next Steps) auto-recommends next action                                     |
 | Artifacts flow unchecked     | Review gate skills validate PBIs, stories, and test specs mid-flow                                  |
