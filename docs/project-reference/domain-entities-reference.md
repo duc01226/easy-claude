@@ -25,7 +25,6 @@ A CJS module that intercepts Claude Code lifecycle events. Hooks read JSON from 
 | `PreToolUse`       | Before a tool executes (matched by tool name)   | Context injection, enforcement blocks, path boundary checks  |
 | `PostToolUse`      | After a tool executes (matched by tool name)    | Output processing, task tracking, formatting                 |
 | `PreCompact`       | Before context compaction                       | Write recovery markers                                       |
-| `SubagentStart`    | When a subagent (Task tool) is spawned          | Inject project context subagents don't inherit               |
 | `UserPromptSubmit` | When user submits a prompt                      | Prompt gating, workflow routing                              |
 | `Notification`     | Idle/waiting events                             | Desktop notifications                                        |
 | `Stop`             | Agent stops                                     | Notifications                                                |
@@ -41,7 +40,7 @@ A CJS module that intercepts Claude Code lifecycle events. Hooks read JSON from 
 
 - Hooks read configuration from **Context Groups** and **Modules** via `project-config-loader.cjs`
 - Hooks may reference **Skills** (e.g., `skill-enforcement.cjs` validates skill activation)
-- `subagent-init-*.cjs` (13 hooks) inject context into **Agents** at spawn time
+- There is no `SubagentStart` hook — the former `subagent-init-*.cjs` injectors were removed in the de-hooking refactor; **Agents** now carry project context statically in their `.claude/agents/*.md` definition
 
 ---
 
@@ -81,13 +80,13 @@ A reusable task automation capability. Each skill is a directory with a `SKILL.m
 - Skills reference **Agents** as subagents (e.g., `/plan-execute` calls `tester`, `code-reviewer`, `git-manager`)
 - Skills reference shared protocols in `.claude/skills/shared/`
 - Skills are orchestrated in sequence by **Workflows**
-- Hooks enforce skill rules (e.g., `skill-enforcement.cjs`, `code-review-rules-injector.cjs`)
+- Hooks enforce skill rules (e.g., `skill-enforcement.cjs`); skill-specific rules/patterns are read statically from `docs/project-reference/*` per the `CLAUDE.md` gate (the former per-skill inject hooks were removed in the de-hooking refactor)
 
 ---
 
 ## 3. Agent
 
-A markdown file defining a specialized subagent role. Agents are spawned via the `Task` tool and receive injected context from the `subagent-init-*.cjs` hooks (13). Each agent has a focused responsibility (review, test, debug, manage docs, etc.).
+A markdown file defining a specialized subagent role. Agents are spawned via the `Task` tool and carry project context **statically** in their own `.md` system prompt (the former `subagent-init-*.cjs` SubagentStart hooks were removed in the de-hooking refactor — there is no `SubagentStart` hook). Each agent has a focused responsibility (review, test, debug, manage docs, etc.).
 
 **Location:** `.claude/agents/<agent-name>.md`
 
@@ -107,14 +106,14 @@ A markdown file defining a specialized subagent role. Agents are spawned via the
 
 - **Evidence Gate:** Most agents require `file:line` proof for claims
 - **External Memory:** Agents write reports to `plans/reports/` to survive context loss
-- **Fail-open subagent injection:** The `subagent-init-*.cjs` hooks (13) inject CLAUDE.md, lessons, and rules into every spawned agent since subagents don't inherit parent context
+- **Static context contract:** Each agent `.md` bakes in CLAUDE.md instructions, the lessons read contract, and shared SYNC rule blocks, so a spawned agent (and a hookless harness) gets identical context without any `SubagentStart` hook
 
 ### Relationships
 
 - Agents are spawned by **Skills** during workflow execution
-- Agents receive context injection from **Hooks** (`subagent-init-*.cjs` (13 hooks))
+- Agents carry context **statically** in their `.md` body (no `SubagentStart` injection hook)
 - Agents may activate **Skills** listed in their frontmatter
-- Agent types are classified for pattern-aware injection (e.g., `fullstack-developer`, `code-reviewer` get coding pattern context)
+- Agent types are reflected by the static guidance authored into each `.md` (e.g., `fullstack-developer`, `code-reviewer` carry coding-pattern read contracts)
 
 ---
 
@@ -180,8 +179,8 @@ A configuration entry in `docs/project-config.json` that maps file path patterns
 
 ### Relationships
 
-- Context groups are consumed by **Hooks** (`frontend-context.cjs`, `backend-context.cjs`, etc.) via `project-config-loader.cjs`
-- Context groups reference documentation files that **Skills** and **Agents** also read
+- Context groups map paths to the `patternsDoc` a reader should open; the runtime hooks that once auto-injected them (`frontend-context.cjs`, `backend-context.cjs`, etc.) were removed in the de-hooking refactor, so the routing is now applied statically via the `CLAUDE.md` project-reference-docs gate
+- Context groups reference documentation files that **Skills** and **Agents** read directly
 - Context groups complement **Modules** (modules identify _what_ a component is; context groups define _what rules apply_)
 
 ---
@@ -240,14 +239,14 @@ A registry entry in `docs/project-config.json` that describes a project componen
 Workflow ──orchestrates──▶ Skill ──spawns──▶ Agent
     │                        │                  │
     │                        │                  ▼
-    ▼                        ▼            Hook (subagent-init)
-Hook (router/tracker)   Hook (enforcement)     │
-    │                        │                  ▼
-    ▼                        ▼            Context injection
+    ▼                        ▼          Static context in agent .md
+Hook (router/tracker)   Hook (enforcement)  (no SubagentStart hook)
+    │                        │                  │
+    ▼                        ▼                  ▼
 Context Group ◀──────── project-config.json ──────▶ Module
 ```
 
 - **Workflows** chain **Skills** in order with gate conditions
 - **Skills** spawn **Agents** as subagents for specialized work
-- **Hooks** intercept events to inject context, enforce rules, and track state
-- **Context Groups** and **Modules** (both in `project-config.json`) provide the configuration data that hooks use to determine what context to inject for which files
+- **Hooks** intercept events to enforce rules, route workflows, and track state (the runtime context-injection hooks were removed in the de-hooking refactor)
+- **Context Groups** and **Modules** (both in `project-config.json`) map paths to the `patternsDoc` a reader opens statically per the `CLAUDE.md` gate

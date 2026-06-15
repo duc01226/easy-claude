@@ -30,9 +30,9 @@ git --version
 ```
 .claude/
 |-- settings.json     # Main configuration (hooks, features)
-|-- skills/           # 257 skills (invoked via / prefix, activated by context)
+|-- skills/           # 155 skills (invoked via / prefix, activated by context)
 |-- agents/           # Subagent configurations
-|-- hooks/            # 64 top-level hook files + 29 lib modules
+|-- hooks/            # 29 top-level hook files + 28 lib modules
 |   +-- lib/          # Shared hook libraries
 |-- workflows/        # Development rules and workflows
 +-- scripts/          # Utility scripts
@@ -108,20 +108,19 @@ Searches codebase for relevant files and explains functionality.
 
 ## Step 5: Understanding Hook Events (Optional)
 
-Claude Code intercepts 9 event types:
+Claude Code intercepts 8 event types (there is no `SubagentStart` hook — agent context is static in the agent `.md` files):
 
 | Event                   | When It Fires             | Example Hook                    |
 | ----------------------- | ------------------------- | ------------------------------- |
 | `SessionStart`          | Claude Code starts        | `session-init.cjs`              |
 | `SessionEnd`            | Claude Code exits         | `session-end.cjs`               |
-| `UserPromptSubmit`      | Before each user message  | `prompt-context-assembler.cjs`  |
+| `UserPromptSubmit`      | Before each user message  | `init-prompt-gate.cjs`          |
 | `PostToolUse`           | After tool execution      | `tool-output-swap.cjs`          |
 | `PreToolUse`            | Before tool execution     | `privacy-block.cjs`             |
 | `PreCompact`            | Before context compaction | `write-compact-marker.cjs`      |
 | `SessionStart` (resume) | After compaction recovery | `post-compact-recovery.cjs`     |
-| `SubagentStart`         | Subagent initialization   | `subagent-init-*.cjs` (8 hooks) |
 | `Stop`                  | Response complete         | `notify-waiting.js`             |
-| `Notification`          | Idle/waiting events       | `notify-waiting.js`             |
+| `Notification`          | Idle/waiting events       | `notifications/notify.cjs`      |
 
 See [hooks/README.md](./hooks/README.md) for detailed explanations.
 
@@ -168,7 +167,7 @@ For more troubleshooting, see [troubleshooting.md](./troubleshooting.md).
 The system that learns from your interactions:
 
 1. **`/learn` skill**: Appends lessons to `docs/project-reference/lessons.md`
-2. **Lessons injection**: `prompt-context-assembler.cjs` injects lessons on prompts; `buildLessons` (via `pretooluse-ctx-edit-tail.cjs`) injects them on edits
+2. **Lessons delivery**: the read-lessons contract is carried statically in `CLAUDE.md` / `SKILL.md`; `post-compact-recovery.cjs` restores lessons after compaction (the former runtime inject hooks were removed)
 
 ### Workflow Detection
 

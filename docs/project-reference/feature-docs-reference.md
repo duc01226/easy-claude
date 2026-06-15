@@ -21,7 +21,7 @@
 |-- troubleshooting.md                 Consolidated troubleshooting guide
 |
 |-- hooks/                             Hook system documentation
-|   |-- README.md                      34 hooks + 25 lib modules catalog
+|   |-- README.md                      29 hooks + 28 lib modules catalog
 |   |-- architecture.md                Event-driven system architecture diagrams
 |   |-- extending-hooks.md             Guide for creating custom hooks
 |   +-- external-memory-swap.md        Post-compaction swap file recovery
@@ -31,7 +31,7 @@
 |   +-- pressure-testing-guide.md      Validate skills change AI behavior
 |
 |-- agents/                            Agent system documentation
-|   |-- README.md                      28 specialized subagents catalog
+|   |-- README.md                      29 specialized subagents catalog
 |   +-- agent-patterns.md             When/how to use each agent type
 |
 |-- configuration/                     Configuration guides

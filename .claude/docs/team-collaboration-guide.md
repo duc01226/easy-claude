@@ -27,8 +27,8 @@ Claude Code uses a **three-pillar architecture** to assist every role:
 
 | Pillar                        | What It Does                                                     | Count                   |
 | ----------------------------- | ---------------------------------------------------------------- | ----------------------- |
-| **Hooks** (Enforcement)       | Auto-inject context, enforce quality gates, block unsafe actions | 52 top-level hook files |
-| **Skills** (Intelligence)     | Prompt-engineered protocols loaded on demand via `/skill-name`   | 176 skills              |
+| **Hooks** (Enforcement)       | Enforce quality gates, block unsafe actions, manage session & post-compact recovery | 29 top-level hook files |
+| **Skills** (Intelligence)     | Prompt-engineered protocols loaded on demand via `/skill-name`   | 155 skills              |
 | **Workflows** (Orchestration) | Multi-step sequences of skills with progress tracking            | 17 workflows            |
 
 ### Workflow Detection
@@ -42,9 +42,9 @@ When you describe what you want to do, Claude automatically:
 
 You never need to memorize workflow names — just describe your intent.
 
-### Context Injection
+### Project Knowledge (Static Embedding)
 
-Hooks automatically inject relevant project knowledge (backend patterns, frontend patterns, design tokens, code review rules, learned lessons) whenever Claude reads or edits files. No manual loading needed.
+Project knowledge — backend/frontend patterns, design tokens, code-review rules, learned lessons — lives **statically** in `CLAUDE.md`, the agent definitions, and the skills, plus the reference docs under `docs/project-reference/`. Skills and agents read the relevant doc on demand. Because the guidance is embedded rather than injected at runtime, every harness — Claude, Codex, Copilot — sees identical instructions with no hook dependency.
 
 ---
 
@@ -558,15 +558,15 @@ PLANNING
 
 ---
 
-### Context Not Injected
+### Agent Doesn't Know Project Patterns
 
-**Symptom:** Claude doesn't seem to know project patterns.
+**Symptom:** Claude/Codex/Copilot doesn't seem to know project patterns.
 
 **Fix:**
 
-1. Verify `docs/project-config.json` exists and has correct paths
-2. Check hooks are registered: review `.claude/settings.json`
-3. Context is auto-injected — no manual action needed if hooks are configured
+1. Verify `docs/project-config.json` exists and points at the reference docs
+2. Confirm the relevant `docs/project-reference/*` docs are populated — run the matching `/scan-*` if stale or empty
+3. Project guidance is read on demand from those docs + `CLAUDE.md`; there is no runtime injection, so a missing or empty doc means the agent won't see it
 
 ---
 

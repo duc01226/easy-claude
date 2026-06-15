@@ -5,7 +5,7 @@
 **Audience:** AI engineers, tech leads, and teams wanting to build reliable AI-assisted development systems.
 **Scope:** What each layer does, why it exists, how the pieces compose, the design principles behind every decision, and which AI agent best practices each addresses.
 
-> **Document Sync Status** — Current local verification (2026-06-14): **52 hook files · 156 skills · 17 workflows · 29 agents** using the ADR-0002 filesystem metrics. Codex mirrors are committed under `.agents/`, `.codex/`, and `AGENTS.md`; Copilot instructions are generated on demand by the Copilot sync skills/scripts. Notable mechanisms documented here include multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential-thinking.
+> **Document Sync Status** — Current local verification (2026-06-14): **29 hook files · 155 skills · 17 workflows · 29 agents** using the ADR-0002 filesystem metrics. Codex mirrors are committed under `.agents/`, `.codex/`, and `AGENTS.md`; Copilot instructions are generated on demand by the Copilot sync skills/scripts. Notable mechanisms documented here include multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential-thinking.
 
 ---
 
@@ -45,7 +45,7 @@
 
 ## 1. Executive Summary
 
-This framework wraps Claude Code in a three-pillar execution framework — **52 top-level hook files**, **156 skills**, **17 registered workflows**, and **29 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
+This framework wraps Claude Code in a three-pillar execution framework — **29 top-level hook files**, **155 skills**, **17 registered workflows**, and **29 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
 
 It is also **harness- and project-agnostic**: the `.claude/` source compiles to verified OpenAI Codex mirrors (`AGENTS.md`, `.agents/`, `.codex/`) and can generate GitHub Copilot instruction files on demand, while all project-specific knowledge is factored into `project-config.json` + reference docs — so the same behavior runs on any supported AI tool and ports to any codebase (Section 13).
 
@@ -96,7 +96,7 @@ graph TB
         AUQ[Model Auto-Select<br/>start-workflow]
     end
 
-    subgraph "Enforcement Layer — 52 Top-Level Hook Files"
+    subgraph "Enforcement Layer — 29 Top-Level Hook Files"
         subgraph "Safety Hooks"
             PB[Path Boundary Block]
             PR[Privacy Block]
@@ -117,7 +117,7 @@ graph TB
         end
     end
 
-    subgraph "Intelligence Layer — 176 Skills"
+    subgraph "Intelligence Layer — 155 Skills"
         SP[Shared Protocols<br/>5 files]
         IS[Implementation Skills<br/>feature-implement, fix, refactor]
         QS[Quality Skills<br/>code-review, prove-fix]
@@ -263,14 +263,12 @@ graph LR
         POTU --> SE[SessionEnd]
     end
 
-    subgraph "Subagent Events"
-        SAS[SubagentStart]
-    end
-
     subgraph "Notification Events"
         N[Notification]
         STOP[Stop]
     end
+
+    %% No SubagentStart hook — sub-agent context is static in agents/*.md
 
     style SS fill:#4CAF50,color:white
     style SE fill:#f44336,color:white
@@ -281,97 +279,82 @@ graph LR
 
 ### 4.3 Hook Files — Organized by Purpose
 
+> **Static guidance layer (current architecture).** This harness has no runtime
+> per-context PreToolUse "inject" layer. Path-scoped guidance, mindset principles, and
+> sub-agent context live **statically** in `CLAUDE.md`, agent `.md` files, and skill
+> `SKILL.md` files, so a hookless harness (Codex / Copilot) reads identical instructions.
+> The tree below lists only hooks that map to a real registration in
+> `.claude/settings.json`.
+
 ```
-HOOK SYSTEM (52 top-level hook files)
+HOOK SYSTEM (29 top-level .cjs hooks + 1 .js notification helper)
 │
-├── SESSION LIFECYCLE (7 hooks)
-│   ├── session-init.cjs ─────────── Load config, set 25 env vars
+├── SESSION LIFECYCLE (10 hooks)
+│   ├── verify-install.cjs ────────── Install-integrity preflight (runs first)
+│   ├── session-init.cjs ─────────── Load config, set env vars
 │   ├── session-init-docs.cjs ────── Initialize reference docs from project-config
 │   ├── post-compact-recovery.cjs ── Restore state after context compaction
 │   ├── session-resume.cjs ────────── Restore todos from checkpoints
 │   ├── npm-auto-install.cjs ──────── Install missing npm packages
+│   ├── graph-session-init.cjs ───── Check Python/tree-sitter/graph.db, inject status
 │   ├── session-end.cjs ──────────── Cleanup swap files, save state
-│   └── subagent-init-*.cjs ──────── Inject context into subagents (8 hooks)
+│   ├── pre-compact-snapshot.cjs ─── Capture rolling transcript snapshot (UserPromptSubmit)
+│   └── write-compact-marker.cjs ─── Save recovery state pre-compact (PreCompact)
 │
-├── PROMPT PROCESSING (3 hooks)
+├── PROMPT PROCESSING (2 hooks)
 │   ├── init-prompt-gate.cjs ──────── Block until project-config exists; routes
 │   │                                  /project-init when CLAUDE.md/AGENTS.md missing
-│   ├── workflow-router.cjs ───────── Detect & inject workflow catalog
-│   └── prompt-context-assembler.cjs ─ Assemble dev rules + lessons + reminders
+│   └── workflow-router.cjs ───────── Detect & inject workflow catalog (also UserPromptSubmit)
 │
-├── SAFETY & BLOCKING (4 hooks)
+├── SAFETY & BLOCKING (5 hooks)
 │   ├── path-boundary-block.cjs ──── Block access outside project root
 │   ├── privacy-block.cjs ─────────── Block .env, credentials, keys
-│   ├── scout-block.cjs ──────────── Block node_modules, dist, obj
-│   └── windows-command-detector ──── Block Windows CMD in Git Bash
+│   ├── scout-block.cjs ──────────── Block bulk reads outside approved scope
+│   ├── windows-command-detector ──── Block Windows CMD in Git Bash
+│   └── git-commit-block.cjs ──────── Block git commit/push unless /commit is active
 │
-├── QUALITY ENFORCEMENT (3 hooks)
+├── QUALITY ENFORCEMENT (5 hooks)
 │   ├── edit-enforcement.cjs ──────── Require tasks before edits
 │   ├── skill-enforcement.cjs ─────── Require tasks before skills
+│   ├── workflow-task-guard.cjs ───── Block completing workflow tasks without a Skill
+│   ├── agent-files-skill-gate.cjs ── Route to generator skill when CLAUDE.md/AGENTS.md missing
 │   └── doc-sync-gate.cjs ─────────── WARN (exit 0, advisory — never blocks) when a
 │                                      commit ships behavioral code in an enforced
 │                                      area without its Feature Spec update
 │
-├── CONTEXT INJECTION (9 pretooluse-ctx-* dispatchers + 2 standalone)
-│   │   The former standalone inject modules (backend/frontend/design-system/scss/
-│   │   code-patterns/knowledge/lessons/role/spec/artifact/code-review-rules/graph/
-│   │   mindset/mindset-compact/python-call-guide + canonical design-system guide)
-│   │   are now pure builder functions in lib/pretooluse-context-builders.cjs,
-│   │   dispatched by 9 cap-bounded processes via lib/pretooluse-dispatch.cjs:
-│   ├── pretooluse-ctx-edit.cjs ───── buildDesignSystemCanonicalGuide / DesignSystemContext / KnowledgeContext
-│   ├── pretooluse-ctx-edit-tail.cjs  buildBackendContext / FrontendContext / ScssStyling / CodePatterns / RoleContext / Lessons
-│   ├── pretooluse-ctx-edit-spec.cjs  buildSpecContext (docs/specs/** 8-section) / buildArtifactPath
-│   ├── pretooluse-ctx-canon.cjs ──── buildDesignSystemCanonicalGuide (Read|Skill)
-│   ├── pretooluse-ctx-crr.cjs ────── buildCodeReviewRules (code review standards)
-│   ├── pretooluse-ctx-dev.cjs ────── buildDevRules (development-rules.md)
-│   ├── pretooluse-ctx-graph.cjs ──── buildGraphContext (blast radius on review/debug)
-│   ├── pretooluse-ctx-mindset.cjs ── buildMindset (critical thinking + AI mistake prevention)
-│   ├── pretooluse-ctx-readbash.cjs   buildMindsetCompact / buildPythonGuide (read-only tools)
-│   ├── figma-context-extractor.cjs ─ Figma design context (standalone, NOT consolidated)
-│   └── ba-refinement-context.cjs ─── BA refinement context for PBI artifacts (standalone)
-│
-├── POST-PROCESSING (6 hooks)
+├── POST-PROCESSING (7 hooks)
 │   ├── tool-output-swap.cjs ──────── Externalize large outputs (>50KB)
 │   ├── post-edit-prettier.cjs ────── Auto-format after edits
 │   ├── bash-cleanup.cjs ─────────── Clean temp files
+│   ├── graph-auto-update.cjs ─────── Incremental graph update after edits (debounced)
 │   ├── todo-tracker.cjs ─────────── Persist todo state to disk
-│   ├── workflow-step-tracker.cjs ── Track workflow step completion
-│   └── write-compact-marker.cjs ─── Save recovery state pre-compact
+│   ├── workflow-step-tracker.cjs ── Track workflow step completion (accelerator only)
+│   └── post-agent-validator.cjs ─── Detect truncated/incomplete subagent results
 │
-└── SUPPORT INFRASTRUCTURE (33 lib modules)
-    ├── State: ck-session-state, workflow-state, todo-state, edit-state
-    ├── Context: context-injector-base, prompt-injections, context-tracker
+└── SUPPORT INFRASTRUCTURE (28 lib modules)
+    ├── State: ck-session-state, workflow-state, todo-state, edit-state, context-tracker
+    ├── Context: prompt-injections
     ├── Memory: swap-engine (externalize large outputs)
     ├── Config: ck-paths, ck-config-loader, project-config-loader, ck-config-utils
     ├── Session: session-init-helpers, test-fixture-generator
     └── Utils: debug-log, hook-runner, stdin-parser, dedup-constants, ck-env-utils, ck-git-utils, ck-plan-resolver
 ```
 
-### 4.3.5 Hook Part-File Architecture
+### 4.3.5 Hook File Organization
 
-Large hooks are split into chained **part-files** (`-p2.cjs`, `-p3.cjs`) to stay within single-file maintainability limits. The Claude Code harness chains them sequentially at runtime — each part-file reads stdin, appends its output, and passes through to the next.
+No active hook ships chained part-files; each registered hook is a single standalone `.cjs` file. `workflow-router.cjs` is registered standalone (SessionStart + UserPromptSubmit). Single-responsibility is met by keeping each hook focused on one concern and inlining guidance content statically into `CLAUDE.md`, agent `.md`, and skill `SKILL.md` files rather than chaining runtime injectors.
 
-```
-prompt-context-assembler.cjs      ← Main: dev rules + workflow catalog
-prompt-context-assembler-closers.cjs   ← Closers: project config summary + CLAUDE.md re-injection
-prompt-context-assembler-claude.cjs   ← Claude-specific: model/session context
-prompt-context-assembler-docs.cjs ← Docs: read-guidance pointer for project-structure-reference.md
-
-workflow-router.cjs               ← Main: detect workflow intent
-workflow-router-p2.cjs            ← Part 2: inject workflow catalog
-workflow-router-p3.cjs            ← Part 3: lesson-learned reminder
-
-pretooluse-ctx-mindset.cjs        ← Dispatches buildMindset: critical thinking + AI mistakes + golden rules (Skill|Agent|Edit|Write|MultiEdit|TaskCreate|TaskUpdate)
-pretooluse-ctx-readbash.cjs       ← Dispatches buildMindsetCompact: critical-thinking only (Read|Grep|Glob|Bash) — cheap re-anchor
-```
-
-**Why this matters:** Previously, accumulating logic in a single hook file made it hard to reason about, test, and maintain. Part-file splitting applies single-responsibility at the file level — each part handles one concern.
-
-**File-based deduplication:** `dedup-constants.cjs` holds shared dedup keys. Every injection point checks whether its key has already fired in the current session, preventing the same rules from appearing multiple times in a long prompt context.
+**File-based deduplication:** `dedup-constants.cjs` holds shared dedup keys. The hooks that emit context (`workflow-router.cjs`, `post-compact-recovery.cjs`) check whether their key has already fired in the current session, preventing the same content from appearing multiple times in a long prompt context.
 
 ### 4.4 How Context Injection Works
 
-This is the **most important pattern** in the framework. Every time the AI edits a file, relevant knowledge is automatically injected:
+This is the **most important pattern** in the framework: relevant knowledge reaches the
+AI before it edits a file.
+
+> **Delivered statically.** The path → patterns routing lives **statically** in
+> `CLAUDE.md`, agent `.md`, and skill `SKILL.md` guidance (and is restored after
+> compaction by `post-compact-recovery.cjs`). The diagram below shows the conceptual
+> routing; the only runtime hook in this path is the `edit-enforcement.cjs` task gate.
 
 ```mermaid
 graph TB
@@ -379,10 +362,10 @@ graph TB
         E[Edit src/Services/Orders/CreateOrderCommand.ts]
     end
 
-    subgraph "PreToolUse Hook Pipeline"
-        BC[pretooluse-ctx-edit-tail.cjs<br/>buildBackendContext]
-        CP[pretooluse-ctx-edit-tail.cjs<br/>buildCodePatterns]
-        LI[pretooluse-ctx-edit-tail.cjs<br/>buildLessons]
+    subgraph "Context Sources (static guidance + edit gate)"
+        BC[CLAUDE.md / SKILL.md<br/>backend patterns guidance]
+        CP[CLAUDE.md / SKILL.md<br/>code-patterns guidance]
+        LI[lessons.md read contract<br/>static + post-compact restore]
         EE[edit-enforcement.cjs]
     end
 
@@ -404,33 +387,29 @@ graph TB
     LI --> P3
     EE --> P5
 
-    P1 & P2 & P3 --> INJ[Injected into LLM context<br/>before edit executes]
+    P1 & P2 & P3 --> INJ[Read into LLM context<br/>via the static guidance / read contract]
     P5 -->|No task?| BLOCK2[❌ Block: Create task first]
 ```
 
-**Why this matters:** The AI receives ~50-100KB of project-specific context **automatically**, without the developer needing to remember to ask for it.
+**Why this matters:** The path → patterns routing reaches the AI through static `CLAUDE.md` / `SKILL.md` guidance and the project-reference-docs read gate — read identically by Claude Code, Codex, and Copilot, with no hook required.
 
 ### 4.5 Deduplication — Preventing Context Bloat
 
-Hooks check the last N lines of the conversation transcript for dedup markers before re-injecting:
+Path-scoped guidance lives statically, so there is no per-edit injection to dedup. The hooks that emit context (`workflow-router.cjs`, `post-compact-recovery.cjs`) keep their dedup keys in `dedup-constants.cjs`: each marker-based emitter checks whether its key already appears in the recent transcript window before re-emitting, and re-injects only when compaction has cleared the marker. The marker-based discipline works as follows:
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│  DEDUP MECHANISM                                     │
+│  DEDUP MECHANISM (marker-based emitters)            │
 │                                                      │
-│  Builder                 │ Marker           │ Lines  │
+│  Emitter                 │ Marker           │ Lines  │
 │──────────────────────────│──────────────────│────────│
-│  buildBackendContext     │ ## Backend Context│  300  │
-│  buildFrontendContext    │ ## Frontend Context│ 300  │
-│  buildCodePatterns       │ ## Code Patterns  │  300  │
-│  buildLessons (prompt)   │ ## Learned Lessons│   50  │
+│  workflow-router         │ ## Workflow Catalog│ 300  │
+│  post-compact-recovery   │ ## Recovery       │  50   │
 │                                                      │
 │  IF marker found in last N lines → SKIP injection    │
 │  IF not found → INJECT (context was compacted away)  │
 └─────────────────────────────────────────────────────┘
 ```
-
-**Why:** Without dedup, the same 50KB backend patterns doc would be injected on every single edit, consuming the context window. With dedup, it's injected once per compaction cycle.
 
 ### 4.6 Blocking Hierarchy
 
@@ -479,11 +458,11 @@ allowed-tools: Read, Grep, Glob, Bash, Write, TaskCreate
 2. Declare confidence level...
 ```
 
-### 5.2 Skill Categories (176 skills)
+### 5.2 Skill Categories (155 skills)
 
 ```mermaid
 mindmap
-  root((176 Skills))
+  root((155 Skills))
     Quality & Verification
       code-review
       prove-fix
@@ -902,8 +881,8 @@ The hook and skill system is **project-agnostic**. All project-specific knowledg
 ```mermaid
 graph LR
     subgraph "Generic Framework (reusable)"
-        H[52 Hook Files]
-        S[176 Skills]
+        H[29 Hook Files]
+        S[155 Skills]
         W[17 Workflows]
     end
 
@@ -998,7 +977,7 @@ Beyond `project-config.json`, `settings.json` governs Claude Code's runtime beha
 
 ```mermaid
 flowchart TB
-    A["AI edits: src/services/orders/create-order.ts"] --> B["pretooluse-ctx-edit-tail.cjs → buildBackendContext triggers"]
+    A["AI edits: src/services/orders/create-order.ts"] --> B["Path → patternsDoc routing (now via static CLAUDE.md / SKILL.md guidance)"]
     B --> C["Load project-config.json"]
     C --> D{"Match pathRegexes"}
     D -->|"src/services/ matches Backend Services"| E["Read backend-patterns-reference.md"]
@@ -1064,8 +1043,8 @@ graph TB
     end
 
     subgraph "The Reminder Solution"
-        R1[prompt-context-assembler.cjs<br/>Re-injects rules + lessons EVERY prompt]
-        R2[buildLessons via pretooluse-ctx-edit-tail.cjs<br/>Re-injects lessons on edit context]
+        R1[Static rules in CLAUDE.md + SKILL.md;<br/>workflow-router.cjs re-injects catalog EVERY prompt]
+        R2[post-compact-recovery.cjs<br/>Restores rules + lessons after compaction]
     end
 
     F1 --> F2 --> F3
@@ -1253,9 +1232,9 @@ flowchart TB
     end
 
     subgraph "Lesson Persisted"
-        P1[prompt-context-assembler.cjs<br/>Injects on EVERY prompt]
-        P2[buildLessons via pretooluse-ctx-edit-tail.cjs<br/>Injects on EVERY edit]
-        P3[subagent-init.cjs / -2 / -3 (3 SubagentStart dispatchers)<br/>Injects into subagents]
+        P1[Static read-lessons contract in<br/>CLAUDE.md / SKILL.md (every prompt)]
+        P2[post-compact-recovery.cjs<br/>Restores lessons after compaction]
+        P3[Agent .md files carry the<br/>lessons read contract into subagents]
     end
 
     subgraph "Mistake Prevented"
@@ -1273,10 +1252,10 @@ flowchart TB
 **Properties:**
 
 - Max 50 lessons (FIFO trim — oldest removed when full)
-- Injected with dedup on prompt (checks last 50 transcript lines)
-- Injected WITHOUT dedup on edit (performance: avoids I/O per edit)
+- Read-lessons contract delivered statically via `CLAUDE.md` / `SKILL.md` (no runtime inject hook)
+- Restored after compaction by `post-compact-recovery.cjs` (via `lib/prompt-injections.cjs`)
 - Persists across sessions (stored in `docs/project-reference/lessons.md`)
-- Shared with subagents (via 8 `subagent-init-*.cjs` hooks)
+- Shared with subagents via the lessons read contract baked into the agent `.md` files
 
 ### 8.9 TDD Workflow & Unified Test Specification System
 
@@ -2534,9 +2513,9 @@ This section maps **established prompt engineering techniques** to specific fram
 │                                                                   │
 │  WHERE APPLIED:                                                   │
 │                                                                   │
-│  1. CONTEXT INJECTION HOOKS — When editing a backend file,       │
-│     buildBackendContext (via pretooluse-ctx-edit-tail.cjs)       │
-│     injects backend-patterns-reference.md                        │
+│  1. STATIC PATTERN GUIDANCE — When editing a backend file,       │
+│     CLAUDE.md / SKILL.md guidance points to                      │
+│     backend-patterns-reference.md                                │
 │     (~60KB of real code examples from the project). The AI       │
 │     sees actual repository patterns, validation patterns,        │
 │     event handler patterns — not generic instructions.           │
@@ -2677,6 +2656,8 @@ This section maps **established prompt engineering techniques** to specific fram
 
 Context engineering is the discipline of **managing what information reaches the LLM, when, and how** — treating the context window as a scarce computational resource. This framework implements context engineering as a first-class architectural concern.
 
+> **Note — delivery is static.** The principles below (just-in-time context, path-based routing, dedup) are authored statically in `CLAUDE.md`, agent `.md`, and skill `SKILL.md` content and read identically by Claude Code, Codex, and Copilot; only `workflow-router.cjs` and `post-compact-recovery.cjs` emit context at runtime.
+
 #### The Context Engineering Problem
 
 ```
@@ -2754,14 +2735,13 @@ Context engineering is the discipline of **managing what information reaches the
 │  Edit file 4 → check last 300 lines for marker → NOT FOUND →   │
 │  Re-inject 60KB (compaction removed the marker = context lost)   │
 │                                                                   │
-│  DEDUP CONFIG per builder:                                        │
-│  • buildBackendContext: marker "## Backend Context", window 300  │
-│  • buildFrontendContext: marker "## Frontend Context", window 300│
-│  • buildLessons (prompt): marker "## Learned Lessons", 50        │
+│  DEDUP CONFIG per emitter:                                        │
+│  • workflow-router: marker "## Workflow Catalog", window 300     │
+│  • post-compact-recovery: marker "## Recovery", window 50        │
 │                                                                   │
-│  WHY VARIABLE WINDOWS: Lessons (small, 50 lines) need frequent   │
-│  re-injection. Backend patterns (large, 300 lines) stay longer.  │
-│  The dedup window trades freshness against context budget.        │
+│  WHY VARIABLE WINDOWS: Recovery state (small, 50 lines) needs    │
+│  frequent re-emission. The catalog (large, 300 lines) stays      │
+│  longer. The dedup window trades freshness against context budget.│
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -2887,8 +2867,8 @@ Context engineering is the discipline of **managing what information reaches the
 │  │ patterns             │           │ No: impl state      │        │
 │  └────────────────────┘           └────────────────────┘        │
 │                                                                   │
-│  28 agents × isolated contexts = no cross-contamination          │
-│  Each agent inherits: CLAUDE.md + lessons (via subagent-init-*) │
+│  29 agents × isolated contexts = no cross-contamination          │
+│  Each agent inherits: CLAUDE.md + lessons (baked into agent .md) │
 │  Each agent ignores: unrelated session state                     │
 │                                                                   │
 │  PARALLEL BENEFIT: 5 code-reviewer agents reviewing different    │
@@ -2907,7 +2887,7 @@ Context engineering is the discipline of **managing what information reaches the
 | **External memory**            | Swap engine, todo state, workflow state, plan files on disk                   |
 | **Context budget management**  | JIT loading + swap + dedup = 50+ tool call sessions vs 15 without             |
 | **Recovery after amnesia**     | Pre-compact save → post-compact restore → auto re-injection pipeline          |
-| **Context isolation**          | 28 specialized agents with independent context windows                        |
+| **Context isolation**          | 29 specialized agents with independent context windows                        |
 | **Path-based routing**         | project-config.json pathRegexes drive which docs load for which files         |
 | **Tiered injection frequency** | Lessons (every prompt) vs patterns (every edit) vs design tokens (UI only)    |
 | **Output compression**         | Swap engine replaces 500-line outputs with 10-line summaries + disk pointers  |
@@ -2960,9 +2940,9 @@ graph TB
         DEB --> INC["Incremental update:<br/>re-parse changed file<br/>+ dependents"]
     end
 
-    subgraph "Hook 3: pretooluse-ctx-graph.cjs (buildGraphContext)"
-        SKILL["PreToolUse(Skill)<br/>/code-review, /scout,<br/>/debug-investigate, /production-readiness-review"] --> BR["Run graph-blast-radius"]
-        BR --> INJ["Inject into context:<br/>Risk level, impacted files,<br/>untested functions"]
+    subgraph "Static graph contract (in skills, no inject hook)"
+        SKILL["/code-review, /scout,<br/>/debug-investigate, /production-readiness-review<br/>skill instructions"] --> BR["Run graph-blast-radius"]
+        BR --> INJ["Surface in context:<br/>Risk level, impacted files,<br/>untested functions"]
     end
 
     style SE fill:#339af0,stroke:#1864ab,color:#fff
@@ -3275,29 +3255,19 @@ Sections 8.1–8.2 cover injecting _project knowledge_ (patterns, reference docs
 
 The short principles are authored once as hardcoded strings in `.claude/hooks/lib/prompt-injections.cjs` (the 5-line `injectCriticalContext` block + the 26-bullet AI-mistake-prevention block); their long-form canon lives in `.claude/docs/development-rules.md` and `.claude/docs/anti-hallucination-patterns.md`; and the reusable ones are also SYNC-tagged in `sync-inline-versions.md` so they propagate into skill bodies and the cross-tool mirrors (Section 13.5).
 
-#### Three injection timings — principle stays in the attention window
+#### Static delivery — principle stays in the attention window
 
-The mindset layer fires at three distinct moments, each tuned for cost:
+> **Delivered statically.** The 5-principle and AI-mistake-prevention blocks live
+> **statically** as SYNC-tagged content in `CLAUDE.md`, agent `.md`, and skill `SKILL.md`
+> bodies (authored once in `sync-inline-versions.md`). `post-compact-recovery.cjs`
+> re-emits them after compaction via `lib/prompt-injections.cjs`. The mechanism below is
+> the design intent the static layout realizes.
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│  UserPromptSubmit  →  prompt-context-assembler.cjs (TOP bookend)     │
-│     full 5-principle block + AI-mistake block, every prompt         │
-│  UserPromptSubmit  →  prompt-context-assembler-closers.cjs (BOTTOM)  │
-│     graph/workflow/lesson closing gates — the recency bookend       │
-│                                                                     │
-│  PreToolUse: Edit|Write|Skill|Agent|Task → pretooluse-ctx-mindset   │
-│     (buildMindset) re-injects principles + Golden Rules before any  │
-│     consequential action (coding/planning/review skills, spawn)     │
-│                                                                     │
-│  PreToolUse: Read|Grep|Glob|Bash → pretooluse-ctx-readbash          │
-│     (buildMindsetCompact)                                           │
-│     re-anchors ONLY the 1-line critical-thinking marker (cheap)     │
-│     so it can't scroll out during long read sessions                │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-The top/bottom split is the **mechanical implementation of the Primacy-Recency principle**: the assembler places critical rules at the start of injected context, the closers hook places gates at the end — the model sees them at both bookends of every turn. (The split also keeps each hook under the harness's 10,000-char per-hook limit.) Injection is deliberately skipped at `SessionStart` (the harness truncates it to ~2KB) and delivered on the first real prompt instead.
+The principle is placed at both **bookends** of every turn — the **mechanical implementation
+of the Primacy-Recency principle**: critical rules sit near the top of the agent's standing
+instructions and the closing gates near the bottom, so the model sees them at both ends. The
+short principles are authored once and propagated by SYNC tags rather than chained across
+multiple hook part-files.
 
 #### Dual-window dedup — anchoring without bloat
 
@@ -3396,35 +3366,16 @@ For large tool outputs (>50KB grep results, file reads), the swap engine externa
 
 ### 10.1 Test Coverage
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  HOOK TEST INFRASTRUCTURE: 616 Tests                             │
-│                                                                   │
-│  Suite                         │ Tests │ Coverage Area            │
-│────────────────────────────────│───────│──────────────────────────│
-│  test-all-hooks.cjs            │  372  │ All 34 hook behaviors    │
-│  test-lib-modules.cjs          │   10  │ Core lib modules         │
-│  test-lib-modules-extended.cjs │  153  │ Extended lib + greenfield│
-│  test-swap-engine.cjs          │   50  │ Swap engine edge cases   │
-│  test-context-tracker.cjs      │   10  │ Context tracker          │
-│  test-init-reference-docs.cjs  │    4  │ Init reference docs      │
-│  test-shared-utilities.cjs     │   17  │ Shared utilities         │
-│────────────────────────────────│───────│──────────────────────────│
-│  Total                         │  616  │                          │
-│                                                                   │
-│  Additional suites in tests/suites/:                              │
-│  • context.test.cjs — Context injection behavior                 │
-│  • integration.test.cjs — Cross-hook interactions                │
-│  • lifecycle.test.cjs — Session lifecycle events                 │
-│  • security.test.cjs — Safety/blocking hooks                     │
-│  • workflow.test.cjs — Workflow routing                          │
-│  • notification.test.cjs — Notification providers                │
-│  • bugfix-regression.test.cjs — Regression tests                 │
-│                                                                   │
-│  Run all: node .claude/hooks/tests/test-all-hooks.cjs            │
-│  See CLAUDE.md "Development Commands" for full test list         │
-└─────────────────────────────────────────────────────────────────┘
-```
+| Runner | Tests | Scope |
+| --- | --- | --- |
+| `test-all-hooks.cjs` (primary gate) | **303** | All 29 hook behaviors + bridged suites + count-drift guard |
+| `run-all-tests.cjs` (full aggregate) | **410** | Primary + extended lib, swap-engine, context-tracker, shared-utilities, and every `tests/suites/*.test.cjs` |
+
+> Counts are live-verified (`test-all-hooks.cjs` = 303, `run-all-tests.cjs` = 410; 2026-06-15). The former per-suite breakdown was hand-maintained and drifted — derive counts from a live run, not a static table.
+
+Suites under `tests/suites/` (15): context, integration, lifecycle, security, workflow, notification, bugfix-regression, pre-compact-snapshot, swap-engine, doc-sync-gate, agent-files-gate, init-reference-docs, catalog-dedup-markers, agent-universal-rules, content-presence.
+
+Run the primary gate with `node .claude/hooks/tests/test-all-hooks.cjs`; the full aggregate with `node .claude/hooks/tests/run-all-tests.cjs`. See CLAUDE.md "Development Commands" for the full list.
 
 ### 10.2 Why Test Hooks?
 
@@ -3448,7 +3399,7 @@ flowchart TB
     A[User submits prompt] --> B[init-prompt-gate.cjs<br/>Config populated?]
     B -->|No| BLOCK1[❌ Block until config exists]
     B -->|Yes| C[workflow-router.cjs<br/>Inject workflow catalog]
-    C --> D[prompt-context-assembler.cjs<br/>Inject dev rules + lessons + reminders]
+    C --> D[Static dev rules + lessons + reminders<br/>from CLAUDE.md / SKILL.md]
 
     D --> H{LLM processes prompt<br/>with injected context}
 
@@ -3459,7 +3410,7 @@ flowchart TB
     I3 --> I4[path-boundary-block]
     I4 --> I5[edit-enforcement<br/>Task exists?]
     I5 -->|No task| BLOCK2[❌ Block: Create task first]
-    I5 -->|Task exists| I7[Context injection:<br/>backend/frontend/design/patterns/lessons]
+    I5 -->|Task exists| I7[Static pattern guidance applies:<br/>backend/frontend/design/patterns/lessons]
     I7 --> EXEC[Tool executes]
 
     EXEC --> J[PostToolUse pipeline]
@@ -3479,17 +3430,17 @@ flowchart TB
 
 | AI Agent Best Practice                         | Framework Mechanism                                                 | Layer     |
 | ---------------------------------------------- | ------------------------------------------------------------------- | --------- |
-| **Context injection at decision points**       | 10 context injector hooks, auto-triggered by file path              | Hooks     |
-| **Reminder rules prevent forgetting**          | 3 UserPromptSubmit hooks re-inject on every prompt                  | Hooks     |
-| **Generic & configurable via config**          | project-config.json drives all context injection                    | Config    |
-| **Prompt engineering quality**                 | 176 skills with YAML frontmatter + behavior protocols               | Skills    |
+| **Context injection at decision points**       | Static path→patternsDoc guidance in CLAUDE.md / SKILL.md (was hook-injected) | Skills/Config |
+| **Reminder rules prevent forgetting**          | Static SYNC rules + workflow-router.cjs re-injects catalog every prompt | Hooks/Skills |
+| **Generic & configurable via config**          | project-config.json drives path→patternsDoc routing                 | Config    |
+| **Prompt engineering quality**                 | 155 skills with YAML frontmatter + behavior protocols               | Skills    |
 | **Auto-select workflow path before acting**    | workflow-router.cjs → direct/skill/workflow/custom path             | Workflows |
 | **Confirm plan with questions**                | /plan-validate asks 3-8 questions before implementation             | Skills    |
 | **Sequential thinking for complex problems**   | /sequential-thinking skill + /debug-investigate skill               | Skills    |
 | **Code proof tracing prevents hallucination**  | evidence-based-reasoning-protocol + /prove-fix                      | Skills    |
 | **State survives context compaction**          | Swap engine + todo-tracker + compact-recovery                       | State     |
-| **Lessons persist across sessions**            | docs/project-reference/lessons.md + buildLessons (pretooluse-ctx-edit-tail.cjs) | Hooks     |
-| **Subagents inherit project context**          | 3 subagent-init\*.cjs dispatchers inject CLAUDE.md + lessons        | Hooks     |
+| **Lessons persist across sessions**            | docs/project-reference/lessons.md + static read contract; restored by post-compact-recovery.cjs | Skills/Hooks |
+| **Subagents inherit project context**          | CLAUDE.md + lessons read contract baked into agent `.md` files       | Agents    |
 | **Safety boundaries**                          | path-boundary, privacy, scout blocks (exit code 2)                  | Hooks     |
 | **Task-gated edits**                           | edit-enforcement.cjs requires TaskCreate before edits               | Hooks     |
 | **Auto-formatting**                            | post-edit-prettier.cjs runs formatter after every edit              | Hooks     |
@@ -3506,7 +3457,7 @@ flowchart TB
 | **DDD domain modeling**                        | /domain-analysis skill: bounded contexts, ERD, aggregates           | Skills    |
 | **Tech stack comparison with evidence**        | /tech-stack-research: top 3 per layer, confidence %                 | Skills    |
 | **Step-selection gate for long workflows**     | big-feature + greenfield preActions let user deselect               | Workflows |
-| **Workflow trigger shortcuts**                 | 53 workflow-\* skills for workflow activation and lifecycle control | Skills    |
+| **Workflow trigger shortcuts**                 | 18 workflow-\* skills for workflow activation and lifecycle control | Skills    |
 | **Prompt engineering (role + CoT + evidence)** | Skills use role prompting, chain-of-thought, few-shot               | Skills    |
 | **Context engineering (JIT + dedup + budget)** | Hooks manage context window with precision injection                | Hooks     |
 | **Skill chain navigation (Next Steps)**        | AskUserQuestion recommends logical next skill per step              | Skills    |
@@ -3526,24 +3477,22 @@ flowchart TB
 ├── .ckignore ─────────── Scout block patterns
 ├── workflows.json ─────── 17 workflow definitions
 ├── workflows/ ──────────── Workflow definitions (primary-workflow.md, etc.)
-├── hooks/ ─────────────── 52 top-level hook files + 33 lib modules
+├── hooks/ ─────────────── 29 top-level .cjs hooks (+ 1 .js helper) + 28 lib modules
 │   ├── session-init.cjs
 │   ├── workflow-router.cjs
-│   ├── prompt-context-assembler.cjs
 │   ├── edit-enforcement.cjs
 │   ├── ...
 │   ├── lib/ ──────────── Shared modules
 │   │   ├── swap-engine.cjs
-│   │   ├── context-injector-base.cjs
 │   │   ├── prompt-injections.cjs
 │   │   ├── todo-state.cjs
 │   │   └── ...
 │   └── tests/ ────────── Test suites
-├── skills/ ────────────── 186 skill definitions
+├── skills/ ────────────── 155 skill definitions
 │   ├── {skill-name}/SKILL.md
-│   ├── shared/ ───────── 5 shared reference/protocol files
+│   ├── shared/ ───────── 6 shared reference/protocol files
 │   └── _templates/ ───── Skill scaffolding
-├── agents/ ────────────── 28 agent definitions
+├── agents/ ────────────── 29 agent definitions
 ├── docs/ ─────────────── Framework documentation (co-located)
 └── patterns/ ──────────── Anti-hallucination patterns
 
@@ -3570,7 +3519,7 @@ docs/
 Agents are **Markdown files** (`.claude/agents/*.md`) that define specialized AI subprocesses. Each agent receives a focused system prompt, restricted tool set, and domain-specific instructions. They run as child processes of the main Claude Code session.
 
 ```
-AGENT SYSTEM (28 agents)
+AGENT SYSTEM (29 agents)
 │
 ├── IMPLEMENTATION AGENTS
 │   ├── backend-developer ──── .NET CQRS patterns, entities, events
@@ -3621,11 +3570,11 @@ Agents solve two critical problems:
 
 2. **Parallel execution** — Multiple agents can run simultaneously (e.g., 5 code-reviewer agents reviewing different file categories in parallel: architecture, domain-entities, performance, integration-test-review, and security), dramatically reducing time for large tasks.
 
-**Key design:** Agents inherit project context via 8 `subagent-init-*.cjs` hooks — they automatically receive CLAUDE.md instructions, learned lessons, and active workflow state.
+**Key design:** Agents inherit project context through their own `.md` system prompts, which bake in the CLAUDE.md instructions and the learned-lessons read contract. Active workflow state is restored after compaction by `post-compact-recovery.cjs`.
 
 ### 12.3 Agent Behavioral Rules (NEW)
 
-All 28 agents include two layers of behavioral enforcement:
+All 29 agents include two layers of behavioral enforcement:
 
 **Layer 1 — Domain-specific NEVER/ALWAYS rules** appended to their system prompts:
 
@@ -3708,15 +3657,15 @@ Every generated file **self-declares** as a mirror. `AGENTS.md`: _"This block is
 
 ### 13.2 Why Mirrors at All? The Hookless-Parity Problem
 
-Claude Code's power in this framework comes substantially from **hooks** — they inject context, re-anchor principles, and block unsafe actions _automatically_, outside the model's control loop (Section 4). Codex and Copilot **have no hook system**. A naive port would lose every automatic injection.
+Claude Code's power in this framework comes substantially from **hooks** plus a large body of **static standing instructions** that re-anchor principles and gate routing inside the model's control loop. Path-scoped guidance and mindset principles are carried statically in `CLAUDE.md` / `SKILL.md` (see Section 4). Codex and Copilot **have no hook system at all**. A naive port would lose every automatic injection that any remaining hook performs.
 
-The mirror compensates by **baking what hooks would have injected into the static artifacts**:
+The mirror compensates by **baking what hooks deliver (and what Claude carries statically) into the mirror artifacts**:
 
-| Hook-delivered on Claude Code                                      | How the mirror delivers it to a hookless tool                                                                    |
+| Behavior on Claude Code                                            | How the mirror delivers it to a hookless tool                                                                    |
 | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
-| `graph-session-init` / workflow catalog auto-injected              | Catalog written into `.codex/CODEX_CONTEXT.md` and `copilot-instructions.md` as static text                      |
-| `buildLessons` re-injects `lessons.md`                             | Replaced by an explicit `CODEX:PROJECT-REFERENCE-LOADING` gate telling Codex to open the reference docs itself   |
-| `prompt-context-assembler` injects project-config + reference docs | A loading gate instructs the tool to read `docs/project-config.json` + `docs/project-reference/**` at task start |
+| `workflow-router.cjs` auto-injects the workflow catalog            | Catalog written into `.codex/CODEX_CONTEXT.md` and `copilot-instructions.md` as static text                      |
+| Static `lessons.md` read contract                                  | Replaced by an explicit `CODEX:PROJECT-REFERENCE-LOADING` gate telling Codex to open the reference docs itself   |
+| Static project-config + reference-doc read contract               | A loading gate instructs the tool to read `docs/project-config.json` + `docs/project-reference/**` at task start |
 | `/skill` slash invocation                                          | Rewritten to Codex's `$skill` invocation syntax; `Agent(...)` → `spawn_agent`, `subagent_type` → `agent_type`    |
 
 So the mirror is not a copy — it is a **transform** that converts hook-dependent automation into self-service instructions the hookless tool can follow. Frontmatter is sanitized (Claude-only keys like `version` stripped; `disable-model-invocation` preserved) so each tool reads only what it understands.
@@ -3805,10 +3754,10 @@ This framework answers that question with **defense in depth**: multiple indepen
 | **Fail closed, not open**         | Safety hooks use `exit 2` (non-overridable block). When in doubt, block and explain rather than allow and hope.                                                                                                                                |
 | **Convention over configuration** | `project-config.json` centralizes all project-specific knowledge. Hooks read it at runtime — no hardcoded assumptions.                                                                                                                         |
 | **Enforce at the boundary**       | Hooks run as separate processes at lifecycle boundaries. The AI can't bypass them because they execute outside the LLM's control loop.                                                                                                         |
-| **Learn from mistakes**           | The `/learn` skill captures AI errors into `lessons.md`. `prompt-context-assembler.cjs` re-injects them on every prompt and `buildLessons` (via `pretooluse-ctx-edit-tail.cjs`) on every edit. Past mistakes become future guardrails.          |
+| **Learn from mistakes**           | The `/learn` skill captures AI errors into `lessons.md`. The static read-lessons contract in `CLAUDE.md` / `SKILL.md` keeps them in view, and `post-compact-recovery.cjs` restores them after compaction. Past mistakes become future guardrails.          |
 | **Plan before implement**         | `edit-enforcement.cjs` requires `TaskCreate` before any file edit. Combined with workflow step tracking, this ensures AI doesn't skip from question to code without a plan.                                                                    |
 | **State survives amnesia**        | External state files (todo, workflow progress, swap) persist to disk. After context compaction, `post-compact-recovery.cjs` restores progress — the AI resumes where it left off.                                                              |
-| **Stateless-per-turn invariants** | Rules are re-injected at every `UserPromptSubmit` via `prompt-context-assembler` (and re-anchored at PreToolUse by `pretooluse-ctx-mindset` / `buildMindset`). The framework never trusts the AI to remember rules from prior turns — they are re-stated as invariants at each interaction boundary. |
+| **Stateless-per-turn invariants** | Critical rules are carried as static SYNC-tagged invariants in `CLAUDE.md` / agent `.md` / skill `SKILL.md` bodies, `workflow-router.cjs` re-injects the catalog every prompt, and `post-compact-recovery.cjs` restores them after compaction. The framework never trusts the AI to remember rules from prior turns — they are re-stated as invariants at each interaction boundary. |
 | **Self-contained skill units**    | Skills inline shared protocols via `<!-- SYNC:tag -->` blocks rather than referencing external files. Each skill is a complete, deployable prompt unit. The `sync-skills-shared-protocols` skill keeps copies synchronized from a canonical source.          |
 | **Structural intelligence first** | The code graph (`code_graph.py`) is a HARD-GATE before any investigation concludes. Grep finds files; graph traces reveal callers, events, bus consumers, and API contracts — relationships that textual search cannot find.                   |
 
@@ -3865,7 +3814,7 @@ The framework succeeds because it aligns with how LLMs actually fail:
 
 ### The Result
 
-**52 top-level hook files**, **156 skills**, **17 registered workflows**, and **29 specialized agents** working in concert to deliver:
+**29 top-level hook files**, **155 skills**, **17 registered workflows**, and **29 specialized agents** working in concert to deliver:
 
 - **Fewer hallucinations** — Evidence gates and proof traces catch AI fabrications before they reach files
 - **Better code quality** — Pattern injection ensures AI follows project conventions, not generic training data
@@ -3873,7 +3822,7 @@ The framework succeeds because it aligns with how LLMs actually fail:
 - **Consistent adherence** — Programmatic enforcement means quality doesn't degrade in long sessions or complex tasks
 - **Recovery from amnesia** — External state persistence means context compaction doesn't lose progress
 - **Persistent learning** — Mistakes captured once prevent recurrence across all future sessions
-- **Prompt engineering depth** — Role prompting, chain-of-thought, few-shot, negative prompting, and iterative refinement applied systematically across 176 skills (Section 8.15)
+- **Prompt engineering depth** — Role prompting, chain-of-thought, few-shot, negative prompting, and iterative refinement applied systematically across 155 skills (Section 8.15)
 - **Context engineering precision** — JIT injection, dedup, external memory, budget management, and recovery keep the AI informed without overwhelming its context window (Section 8.16)
 
 The framework is **generic and reusable**. Replace `project-config.json` with your project's specifics, and the entire system adapts — different tech stack, different patterns, different conventions, same quality enforcement.

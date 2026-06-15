@@ -119,12 +119,6 @@
           "installedVersion": "v2.1.0"
         },
         {
-          "path": "hooks/prompt-context-assembler.cjs",
-          "checksum": "75ed15c7ca98cde43f5e1324e4cb05eab8fb0b5d47289563870ee34271335538",
-          "ownership": "user",
-          "installedVersion": "v2.1.0"
-        },
-        {
           "path": "hooks/docs/README.md",
           "checksum": "c1c7cbc7f128cd26eda0725d5bf90ad7b872ff0910286d8bb77e836d9aa0a4cf",
           "ownership": "user",
@@ -325,12 +319,6 @@
         {
           "path": "hooks/session-init.cjs",
           "checksum": "3d12c6f404004f7f005aec8678f1e9ab3dadfb619254c8b959e8263fb930c4f1",
-          "ownership": "user",
-          "installedVersion": "v2.1.0"
-        },
-        {
-          "path": "hooks/subagent-init.cjs",
-          "checksum": "24f09bc2e3ec2ddf625421125488ece4302c1b11bd27a76c21c46d9ff681d06e",
           "ownership": "user",
           "installedVersion": "v2.1.0"
         },

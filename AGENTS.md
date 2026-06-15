@@ -1,4 +1,5 @@
 # Codex Project Instructions
+
 <!-- CLAUDE-MIRROR:START -->
 ## Claude Instructions Mirror (Auto-Synced)
 
@@ -14,14 +15,14 @@ Do not edit manually; update `CLAUDE.md` and re-sync.
 >
 > Classify complexity and risk first, then route it:
 >
-> | Request is about… | Default route |
-> | --- | --- |
-> | A simple, straightforward task with a clear target and low risk | **direct execution** — do it without a workflow |
-> | A simple task that needs a few coordinated steps or skills | **custom simple workflow** — sequence only the necessary skills/steps |
-> | A non-trivial bug, error, crash, regression, or wrong/stale output | **`workflow-bugfix` workflow** — `$start-workflow workflow-bugfix` |
-> | A non-trivial new feature, capability, or enhancement | **`workflow-feature` workflow** — `$start-workflow workflow-feature` (use `workflow-big-feature` when scope is large, ambiguous, or research-heavy) |
-> | Anything matching a skill's or workflow's "Use" clause | that skill / workflow |
-> | A one-off question, or a truly trivial edit | direct execution |
+> | Request is about…                                                  | Default route                                                                                                                                       |
+> | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+> | A simple, straightforward task with a clear target and low risk    | **direct execution** — do it without a workflow                                                                                                     |
+> | A simple task that needs a few coordinated steps or skills         | **custom simple workflow** — sequence only the necessary skills/steps                                                                               |
+> | A non-trivial bug, error, crash, regression, or wrong/stale output | **`workflow-bugfix` workflow** — `$start-workflow workflow-bugfix`                                                                                  |
+> | A non-trivial new feature, capability, or enhancement              | **`workflow-feature` workflow** — `$start-workflow workflow-feature` (use `workflow-big-feature` when scope is large, ambiguous, or research-heavy) |
+> | Anything matching a skill's or workflow's "Use" clause             | that skill / workflow                                                                                                                               |
+> | A one-off question, or a truly trivial edit                        | direct execution                                                                                                                                    |
 >
 > 1. **An explicit `/skill` or `/workflow` in the prompt is the user's choice — execute it directly.** Otherwise auto-select the route yourself; never ask the user which path to take.
 > 2. **Analyze whether the task is simple and straightforward before defaulting to a standard workflow.** If the target is clear, the change is low-risk, and a short direct execution can satisfy it, choose direct execution.
@@ -32,16 +33,10 @@ Do not edit manually; update `CLAUDE.md` and re-sync.
 >     - **Skill route →** invoke that skill via the skill invocation.
 >     - **Custom simple workflow →** create a small task list from the selected skills/steps, then execute them in order.
 >     - **Direct route →** build the task list yourself, then proceed.
->   In every case the route must be activated BEFORE the first edit, sub-agent, or command.
+>       In every case the route must be activated BEFORE the first edit, sub-agent, or command.
 > 6. **Direct execution is a legitimate route** for trivial, one-off, or simple straightforward work — but the declare-route and activate steps still apply.
 
 <!-- /CK:WORKFLOW-GATE -->
-
-
-
-
-
-
 
 
 # easy-claude - Code Instructions
@@ -107,10 +102,10 @@ Workflow progression is **model-driven** — your responsibility, not a tool/hoo
 
 **Decision Quick-Ref:**
 
-| Task | Pattern |
-|---|---|
-| New API endpoint | Controller + CQRS Command |
-| Business logic | Command Handler (Application layer) |
+| Task             | Pattern                             |
+| ---------------- | ----------------------------------- |
+| New API endpoint | Controller + CQRS Command           |
+| Business logic   | Command Handler (Application layer) |
 
 <!-- /SECTION:decision-quick-ref -->
 
@@ -124,6 +119,19 @@ Before writing code, you MUST grep/glob for 3+ similar examples and follow the l
 
 **Why:** projects have local conventions that differ from framework defaults.
 **Enforced by:** Feature/Bugfix/Refactor workflows (scout → investigate steps).
+
+### Path → Reference Doc (read BEFORE editing the matched path)
+
+| Edited path                                 | Read first                                                                                      |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Backend / `.cs` (commands, handlers, repos) | `docs/project-reference/backend-patterns-reference.md` — CQRS, validation, entity events        |
+| Frontend / UI components, stores            | `docs/project-reference/frontend-patterns-reference.md` — base classes, store, reactive effects |
+| Integration tests                           | `docs/project-reference/integration-test-reference.md` — subcutaneous CQRS, real DI, no mocks   |
+| E2E tests                                   | `docs/project-reference/e2e-test-reference.md` — Page Object, BDD conventions                   |
+| Feature specs / `docs/specs/**`             | `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`                 |
+| SCSS / style files                          | SCSS guide — BEM on all elements, no magic numbers, max 3 nesting levels                        |
+
+> **[ROOT-CAUSE-FIX]** Fix at the correct layer (Entity > Service > Handler) — never patch symptoms.
 
 ---
 
@@ -203,6 +211,8 @@ node .claude/hooks/tests/test-all-hooks.cjs   # all
 node .claude/hooks/tests/run-all-tests.cjs    # suite
 ```
 
+**Platform (Windows):** invoke Python via `py -3` or `py` — NEVER `python3` (MS Store alias exits 49). Scripts resolve `python` then `py -3` (see `count-drift.test.cjs:29-32`). macOS/Linux: use `python3`.
+
 <!-- /SECTION:dev-commands -->
 
 <!-- SECTION:integration-testing -->
@@ -256,6 +266,8 @@ python .claude/scripts/code_graph search <keyword> --kind Function --json       
 
 **Pattern:** Grep finds files > trace reveals system flow > grep verifies details.
 
+**Routing:** When grep surfaces an important file, or before editing across modules, run a graph trace (see the `graph-*` skills) to map callers/dependents first.
+
 ---
 
 ## Automatic Skill Activation
@@ -264,11 +276,13 @@ python .claude/scripts/code_graph search <keyword> --kind Function --json       
 
 These skills auto-activate before file edits in their path patterns:
 
-| Path Pattern | Skill / Auto-Context | Pre-Read Files |
-|---|---|---|
-| `/\.claude/hooks/.*\.cjs$**` | _(auto-context)_ | `.claude/docs/hooks/README.md` |
-| `/\.claude/skills/.*SKILL\.md$**` | _(auto-context)_ | `.claude/docs/skills/README.md` |
-| `/\.claude/agents/.*\.md$**` | _(auto-context)_ | `.claude/docs/agents/README.md` |
+| Path Pattern                      | Skill / Auto-Context | Pre-Read Files                  |
+| --------------------------------- | -------------------- | ------------------------------- |
+| `/\.claude/hooks/.*\.cjs$**`      | _(auto-context)_     | `.claude/docs/hooks/README.md`  |
+| `/\.claude/skills/.*SKILL\.md$**` | _(auto-context)_     | `.claude/docs/skills/README.md` |
+| `/\.claude/agents/.*\.md$**`      | _(auto-context)_     | `.claude/docs/agents/README.md` |
+
+**Design routing:** SCSS / style files → review-ui / frontend-design skill (BEM conventions live there). UI / HTML / CSS files → design skill (canonical design-system doc: tokens, components, BEM).
 
 <!-- /SECTION:skill-activation -->
 
@@ -281,11 +295,11 @@ These skills auto-activate before file edits in their path patterns:
 | Kind        | Count                                       |
 | ----------- | ------------------------------------------- |
 | Skills      | <!-- COUNT:skills -->155<!-- /COUNT -->     |
-| Hooks       | <!-- COUNT:hooks -->52<!-- /COUNT -->       |
+| Hooks       | <!-- COUNT:hooks -->29<!-- /COUNT -->       |
 | Agents      | <!-- COUNT:agents -->29<!-- /COUNT -->      |
 | Workflows   | <!-- COUNT:workflows -->17<!-- /COUNT -->   |
 | Shared      | <!-- COUNT:shared -->6<!-- /COUNT -->       |
-| Lib modules | <!-- COUNT:lib-modules -->33<!-- /COUNT --> |
+| Lib modules | <!-- COUNT:lib-modules -->28<!-- /COUNT --> |
 
 ---
 
@@ -302,14 +316,14 @@ docs/templates/  (1 files)
 
 <!-- SECTION:doc-lookup -->
 
-| If user prompt mentions... | Read first |
-|---|---|
-| Feature specs, capability behavior, business rules, test cases | `docs/specs/` + `docs/project-reference/feature-spec-reference.md` |
-| Spec paths, TC format, canonical vs derived spec artifacts | `docs/project-reference/spec-system-reference.md` |
-| Spec quality, AI-implementability, tech-agnostic prose | `docs/project-reference/spec-principles.md` |
-| Behavior or public contract changes, spec-test-code sync | `docs/project-reference/workflow-spec-test-code-cycle-reference.md` |
-| Backend patterns, CQRS, validation | `docs/project-reference/backend-patterns-reference.md` |
-| Frontend patterns, components, stores | `docs/project-reference/frontend-patterns-reference.md` |
+| If user prompt mentions...                                     | Read first                                                          |
+| -------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Feature specs, capability behavior, business rules, test cases | `docs/specs/` + `docs/project-reference/feature-spec-reference.md`  |
+| Spec paths, TC format, canonical vs derived spec artifacts     | `docs/project-reference/spec-system-reference.md`                   |
+| Spec quality, AI-implementability, tech-agnostic prose         | `docs/project-reference/spec-principles.md`                         |
+| Behavior or public contract changes, spec-test-code sync       | `docs/project-reference/workflow-spec-test-code-cycle-reference.md` |
+| Backend patterns, CQRS, validation                             | `docs/project-reference/backend-patterns-reference.md`              |
+| Frontend patterns, components, stores                          | `docs/project-reference/frontend-patterns-reference.md`             |
 
 <!-- /SECTION:doc-lookup -->
 <!-- CLAUDE-MIRROR:END -->
@@ -1521,6 +1535,31 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 ---
 
+## SYNC:agent-bootstrap
+
+> **Plan first, then act.** Break work into small tasks before editing; keep exactly one task in progress; mark each complete immediately after its evidence lands. On context loss, inspect the existing task list before creating new tasks.
+>
+> **Context guard / progress file (MANDATORY when task > 5 files or > 3 steps).** Context exhaustion = silent loss of ALL findings; no progress file = no recovery.
+>
+> 1. **On start:** create `tmp/ck-agent-{ts}-{rnd}.progress.md` — `ts` = current timestamp in `YYYYMMDDHHmmssSSS` (17 digits), `rnd` = random 6-char hex. First line records the session id.
+> 2. **After each step:** append findings, marking `[done]` / `[partial]` / `[pending]`.
+> 3. **Running out of context?** Write `[partial]` to the file FIRST — NEVER summarize before writing.
+> 4. **Producing a report?** Persist it incrementally to `plans/reports/` and start the final message with its path.
+>
+> **Blocked until:** task breakdown exists · progress file created when the task exceeds the size threshold.
+
+---
+
+## SYNC:agent-code-standards
+
+> **Development rules.** YAGNI / KISS / DRY. Place logic in the LOWEST layer (Entity/Model > Service > Component/Handler) — mapping → Command/DTO, constants → Model. Kebab-case files. Search 3+ existing patterns before writing new code; read existing code before changing it. Read `.claude/docs/development-rules.md` for full coding standards, quality gates, and the pre-commit checklist (when present).
+>
+> **Coding patterns.** Before implementing, read the project pattern references named in `docs/project-config.json` / the docs index (e.g. `docs/project-reference/backend-patterns-reference.md`, `frontend-patterns-reference.md`) — local conventions override generic framework defaults.
+>
+> **Blocked until:** dev-rules + pattern docs read before writing or changing code.
+
+---
+
 ## SYNC:source-test-drift-check
 
 > **Source/test drift check.** For coding, fix, debug, investigation, test, or review work: when source behavior changes, inspect affected unit/integration/E2E tests and decide from evidence whether tests should change to match intended behavior or the source change is an unintended bug to fix. Do not write tests for migration code; schema/data migrations are one-time execution paths, not core application logic.
@@ -2762,6 +2801,31 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 ---
 
+## SYNC:agent-bootstrap
+
+> **Plan first, then act.** Break work into small tasks before editing; keep exactly one task in progress; mark each complete immediately after its evidence lands. On context loss, inspect the existing task list before creating new tasks.
+>
+> **Context guard / progress file (MANDATORY when task > 5 files or > 3 steps).** Context exhaustion = silent loss of ALL findings; no progress file = no recovery.
+>
+> 1. **On start:** create `tmp/ck-agent-{ts}-{rnd}.progress.md` — `ts` = current timestamp in `YYYYMMDDHHmmssSSS` (17 digits), `rnd` = random 6-char hex. First line records the session id.
+> 2. **After each step:** append findings, marking `[done]` / `[partial]` / `[pending]`.
+> 3. **Running out of context?** Write `[partial]` to the file FIRST — NEVER summarize before writing.
+> 4. **Producing a report?** Persist it incrementally to `plans/reports/` and start the final message with its path.
+>
+> **Blocked until:** task breakdown exists · progress file created when the task exceeds the size threshold.
+
+---
+
+## SYNC:agent-code-standards
+
+> **Development rules.** YAGNI / KISS / DRY. Place logic in the LOWEST layer (Entity/Model > Service > Component/Handler) — mapping → Command/DTO, constants → Model. Kebab-case files. Search 3+ existing patterns before writing new code; read existing code before changing it. Read `.claude/docs/development-rules.md` for full coding standards, quality gates, and the pre-commit checklist (when present).
+>
+> **Coding patterns.** Before implementing, read the project pattern references named in `docs/project-config.json` / the docs index (e.g. `docs/project-reference/backend-patterns-reference.md`, `frontend-patterns-reference.md`) — local conventions override generic framework defaults.
+>
+> **Blocked until:** dev-rules + pattern docs read before writing or changing code.
+
+---
+
 ## SYNC:source-test-drift-check
 
 > **Source/test drift check.** For coding, fix, debug, investigation, test, or review work: when source behavior changes, inspect affected unit/integration/E2E tests and decide from evidence whether tests should change to match intended behavior or the source change is an unintended bug to fix. Do not write tests for migration code; schema/data migrations are one-time execution paths, not core application logic.
@@ -2898,17 +2962,14 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 # Codex Context (Hookless Parity)
 
-Purpose: provide Codex with the same core principles and lessons normally injected by Claude hooks.
+Purpose: give Codex the same core principles and lessons that Claude carries statically in CLAUDE.md, agent, and skill files.
 
-Source hooks:
+Source:
 
-- `.claude/hooks/lib/prompt-injections.cjs`
-- `.claude/hooks/code-patterns-injector.cjs`
-- `.claude/hooks/mindset-injector.cjs`
-- `.claude/hooks/lessons-injector.cjs`
+- `.claude/hooks/lib/prompt-injections.cjs` — the injector library whose exports the mirror generators read to emit this parity content.
 - `docs/project-reference/lessons.md`
 
-Last synced: 2026-05-29
+Last synced: 2026-06-14
 
 
 ## Codex Hookless Project Reference Gate

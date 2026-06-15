@@ -30,16 +30,18 @@ Hooks are standalone Node.js CJS scripts triggered by Claude Code at specific li
 
 ### 1.3 Hook Event Types
 
-| Event              | When Fired                      | Example Hooks                                                                  |
-| ------------------ | ------------------------------- | ------------------------------------------------------------------------------ |
-| `SessionStart`     | startup, resume, clear, compact | `session-init`, `workflow-router`                                              |
-| `SessionEnd`       | Session closing                 | `session-end`                                                                  |
-| `UserPromptSubmit` | Each user message               | `workflow-router`, `prompt-context-assembler`                                  |
-| `SubagentStart`    | Subagent spawn                  | `subagent-init-2`, `subagent-init-3` (2 cap-bounded dispatchers)               |
-| `PreToolUse`       | Before tool execution           | `privacy-block`, `path-boundary-block`, `edit-enforcement`, `pretooluse-ctx-*` |
-| `PostToolUse`      | After tool execution            | `tool-output-swap`, `todo-tracker`                                             |
-| `PreCompact`       | Before context compaction       | `write-compact-marker`                                                         |
-| `Notification`     | System notifications            | Various                                                                        |
+| Event              | When Fired                      | Example Hooks                                                             |
+| ------------------ | ------------------------------- | ------------------------------------------------------------------------- |
+| `SessionStart`     | startup, resume, clear, compact | `session-init`, `workflow-router`                                         |
+| `SessionEnd`       | Session closing                 | `session-end`                                                             |
+| `UserPromptSubmit` | Each user message               | `workflow-router`                                                         |
+| `PreToolUse`       | Before tool execution           | `privacy-block`, `path-boundary-block`, `edit-enforcement`, `scout-block` |
+| `PostToolUse`      | After tool execution            | `tool-output-swap`, `todo-tracker`, `graph-auto-update`                   |
+| `PreCompact`       | Before context compaction       | `pre-compact-snapshot`, `write-compact-marker`                            |
+| `Stop`             | Main agent finishes responding  | `notify-waiting`                                                          |
+| `Notification`     | System notifications            | Various                                                                   |
+
+> No `SubagentStart` hook — the runtime context-injection layer (including the former `subagent-init*` dispatchers and `prompt-context-assembler` / `pretooluse-ctx-*` inject hooks) was removed in the de-hooking refactor; that guidance is now static in `CLAUDE.md` / `agents/*.md` / `SKILL.md`.
 
 ### 1.4 Stdin JSON Payload Structure
 
@@ -99,19 +101,17 @@ async function main() {
 main().catch(() => process.exit(0)); // Fail-open
 ```
 
-### 2.3 Pattern C: Context Injector Base
+### 2.3 Pattern C: Context Injection (REMOVED — de-hooking refactor)
 
-Used by the consolidated context-injection builder functions in `lib/pretooluse-context-builders.cjs` — formerly the standalone `frontend-context`, `backend-context`, `scss-styling-context`, and `knowledge-context` hooks (since merged into builders) — via `lib/context-injector-base.cjs`.
-
-```js
-const { parsePreToolUseInput, wasRecentlyInjected } = require('./lib/context-injector-base.cjs');
-
-const input = parsePreToolUseInput(); // Returns null if wrong tool/no path
-if (!input) process.exit(0);
-if (wasRecentlyInjected(transcriptPath, MARKER, WINDOW)) process.exit(0);
-console.log(buildInjection(input)); // Inject context
-process.exit(0);
-```
+The framework previously shipped a per-context PreToolUse "inject" layer (the
+`frontend-context`, `backend-context`, `scss-styling-context`, `knowledge-context`
+hooks) sharing a `lib/context-injector-base.cjs` base, and later the consolidated
+`lib/pretooluse-context-builders.cjs` / `lib/subagent-context-builders.cjs` builders.
+**That entire layer was removed.** The guidance those hooks injected at runtime now
+lives statically in `CLAUDE.md`, agent `.md`, and skill `SKILL.md` files, so a hookless
+harness (Codex / Copilot) reads identical instructions. There is no live runtime
+context-injection pattern — PreToolUse hooks that remain are gates (Pattern B) and the
+`runHook` wrapper (Pattern A).
 
 ### 2.4 Pattern D: `require.main === module` Guard
 
@@ -130,16 +130,16 @@ if (require.main === module) {
 
 ### 3.1 Module Categories
 
-| Category      | Modules                                                                                              | Purpose                                              |
-| ------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| **Stdin/IO**  | `stdin-parser`, `debug-log`                                                                          | Input parsing, debug output to stderr                |
-| **Execution** | `hook-runner`                                                                                        | Wrap hooks with timeout, error handling, exit codes  |
-| **Config**    | `ck-config-loader`, `ck-config-utils`, `project-config-loader`, `project-config-schema`, `wr-config` | Cascading config resolution, project detection       |
-| **Paths**     | `ck-paths`, `ck-path-utils`                                                                          | Centralized `/tmp/ck/` namespace, path normalization |
-| **State**     | `ck-session-state`, `workflow-state`, `edit-state`, `todo-state`, `context-tracker`                  | Session-scoped persistence in temp files             |
-| **Injection** | `context-injector-base`, `prompt-injections`, `dedup-constants`                                      | Shared context injection with dedup                  |
-| **Engine**    | `swap-engine`                                                                                        | External memory swap (large output externalization)  |
-| **Plan**      | `ck-plan-resolver`, `ck-git-utils`, `ck-env-utils`                                                   | Plan naming resolution, git/env helpers              |
+| Category      | Modules                                                                                              | Purpose                                                                          |
+| ------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| **Stdin/IO**  | `stdin-parser`, `debug-log`                                                                          | Input parsing, debug output to stderr                                            |
+| **Execution** | `hook-runner`                                                                                        | Wrap hooks with timeout, error handling, exit codes                              |
+| **Config**    | `ck-config-loader`, `ck-config-utils`, `project-config-loader`, `project-config-schema`, `wr-config` | Cascading config resolution, project detection                                   |
+| **Paths**     | `ck-paths`, `ck-path-utils`                                                                          | Centralized `/tmp/ck/` namespace, path normalization                             |
+| **State**     | `ck-session-state`, `workflow-state`, `edit-state`, `todo-state`, `context-tracker`                  | Session-scoped persistence in temp files                                         |
+| **Injection** | `prompt-injections`, `dedup-constants`                                                               | Shared prompt-injection helpers (post-compact recovery) + dedup marker constants |
+| **Engine**    | `swap-engine`                                                                                        | External memory swap (large output externalization)                              |
+| **Plan**      | `ck-plan-resolver`, `ck-git-utils`, `ck-env-utils`                                                   | Plan naming resolution, git/env helpers                                          |
 
 ### 3.2 Config Cascading Resolution
 

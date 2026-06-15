@@ -9,7 +9,7 @@
 | **New to Claude Code?**      | [quick-start.md](./quick-start.md) - 5-minute onboarding                                        |
 | **Need a skill?**            | [skills/README.md](./skills/README.md) - 155 skills catalog                                     |
 | **Building a feature?**      | [skills/README.md](./skills/README.md) + `docs/project-reference/` patterns                     |
-| **Understanding hooks?**     | [hooks/README.md](./hooks/README.md) - 52 top-level hook files deep-dive                        |
+| **Understanding hooks?**     | [hooks/README.md](./hooks/README.md) - 29 top-level hook files deep-dive                        |
 | **Understanding workflows?** | `CLAUDE.md` workflow catalog (project root) - 17 workflows                                      |
 | **Configuring Claude?**      | [configuration/README.md](./configuration/README.md)                                            |
 | **Team collaboration?**      | [team-collaboration-guide.md](./team-collaboration-guide.md) - PO, BA, QA, QC, UX, PM workflows |
@@ -23,17 +23,17 @@
 |-- README.md                 <- You are here (Navigation hub)
 |-- quick-start.md            5-minute onboarding guide
 |
-|-- skills/                   159 skills across 15+ domains
+|-- skills/                   155 skills across 15+ domains
 |   |-- README.md             Skills overview + full catalog
 |   +-- (patterns)           → docs/project-reference/
 |
-|-- hooks/                    52 top-level hook files, 33 lib modules
+|-- hooks/                    29 top-level hook files, 28 lib modules
 |   |-- README.md             Hooks overview, lessons system, session lifecycle
 |   +-- extending-hooks.md    How to create custom hooks
 |
 |-- code-graph-mechanism.md  How the structural knowledge graph works
 |-- code-graph-setup.md      Setup guide for Python + Tree-sitter
-|-- development-rules.md     Dev rules extracted from CLAUDE.md (hook-injected)
+|-- development-rules.md     Dev rules extracted from CLAUDE.md (static reference)
 |-- anti-hallucination-patterns.md  AI failure mode catalog + remediation patterns
 |
 |-- agents/                   Subagent configurations
@@ -80,7 +80,7 @@
 | ------------------------------------------- | ----------------------------------------------------------------------------- |
 | How skills work                             | [skills/README.md](./skills/README.md)                                        |
 | How skills are activated                    | [skills/README.md](./skills/README.md)                                        |
-| How lessons system works                    | [hooks/README.md](./hooks/README.md) — `/learn` skill + `buildLessons` (pretooluse-ctx-edit-tail) |
+| How lessons system works                    | [hooks/README.md](./hooks/README.md) — `/learn` skill + `post-compact-recovery.cjs` re-injection |
 | How hooks intercept events                  | [hooks/README.md](./hooks/README.md) — hook catalog + lifecycle               |
 | Hook execution order by event               | [hooks/README.md](./hooks/README.md) — hook catalog + execution order         |
 | Session lifecycle (init → compact → resume) | [hooks/README.md#session-lifecycle](./hooks/README.md#session-lifecycle)      |
@@ -144,12 +144,12 @@
 | Category               | Count |
 | ---------------------- | ----- |
 | Skills                 | 155   |
-| Hook files (top-level) | 52    |
-| Lib Modules            | 33    |
-| Hook Events            | 9     |
+| Hook files (top-level) | 29    |
+| Lib Modules            | 28    |
+| Hook Events            | 8     |
 | Agents                 | 29    |
 | Workflows              | 17    |
-| Hook Tests             | 375   |
+| Hook Tests             | 303   |
 | Documentation Files    | 28    |
 
 ---

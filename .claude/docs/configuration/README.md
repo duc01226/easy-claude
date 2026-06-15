@@ -93,15 +93,15 @@ CLAUDE.md                # Project instructions at repo root (read by Claude)
 
 #### Code Review Configuration
 
-The `codeReview` section configures automatic injection of project-specific review rules:
+The `codeReview` section records which project-specific review-rule doc the review skills/agents read (rules are read on demand via the project-reference-docs gate in `CLAUDE.md`):
 
 | Field            | Type     | Description                                                                          |
 | ---------------- | -------- | ------------------------------------------------------------------------------------ |
-| `enabled`        | boolean  | Enable/disable rule injection (default: `true`)                                      |
+| `enabled`        | boolean  | Whether review skills/agents consult the rules doc (default: `true`)                 |
 | `rulesPath`      | string   | Path to rules markdown file (default: `docs/project-reference/code-review-rules.md`) |
-| `injectOnSkills` | string[] | Skills that trigger injection                                                        |
+| `injectOnSkills` | string[] | Skills associated with the review-rules doc                                          |
 
-**To update code review rules:** Edit `docs/project-reference/code-review-rules.md` directly. Rules auto-inject next time a review skill is used.
+**To update code review rules:** Edit `docs/project-reference/code-review-rules.md` directly. Review skills/agents read it on demand via the project-reference-docs gate.
 
 **To add new trigger skills:** Edit `.claude/.ck.json`, add skill name to `injectOnSkills` array. Matching is case-insensitive and partial.
 
@@ -310,6 +310,8 @@ Configuration is loaded in order with later files overriding earlier:
 | `SessionEnd`       | Session ends              |
 | `SubagentStart`    | Subagent spawning         |
 | `Notification`     | Idle/waiting events       |
+
+> These are the Claude Code events available for hooks. This framework registers no `SubagentStart` hook (sub-agent context is static in `agents/*.md`).
 
 ### Hook Structure
 

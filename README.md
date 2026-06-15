@@ -4,7 +4,7 @@
 
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **52 top-level hook files**, **156 skills**, **17 workflows**, and **29 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`, with Copilot instruction generation available through sync skills and scripts.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **29 top-level hook files**, **155 skills**, **17 workflows**, and **29 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`, with Copilot instruction generation available through sync skills and scripts.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -81,7 +81,7 @@ cp -r .agents  /path/to/your-project/.agents    # Codex skill mirror generated f
 | Step it runs                      | What it produces                                                                      |
 | --------------------------------- | ------------------------------------------------------------------------------------- |
 | `/project-config`                 | `docs/project-config.json` — tech stack, modules, directory structure, build commands |
-| `/scan-all`                       | `docs/project-reference/` docs that hooks auto-inject                                 |
+| `/scan-all`                       | `docs/project-reference/` docs the project-reference-docs gate reads on demand        |
 | `/workflow-code-to-spec`          | canonical Feature Specs under `docs/specs/` (seed or audit from code)                 |
 | `/claude-md-init`                 | `CLAUDE.md` (generated, or smart-merged to preserve your content)                     |
 | `/review-changes` → `/why-review` | review gates over the generated setup                                                 |
@@ -108,7 +108,7 @@ npm run codex:sync                                          # same via package.j
 **4. Refresh reference docs later (as the codebase evolves):**
 
 ```
-/scan-all                          # refresh every reference doc (the docs hooks auto-inject)
+/scan-all                          # refresh every reference doc (read on demand via the project-reference-docs gate)
 /scan --target=backend-patterns    # refresh one (targets: project-structure | backend-patterns |
                                    #   frontend-patterns | scss-styling | design-system | code-review-rules |
                                    #   domain-entities | feature-spec | docs-index | e2e-tests | integration-tests)
@@ -137,39 +137,49 @@ npm run codex:sync                                          # same via package.j
 
 ## What's Inside
 
-### Hooks (52 top-level files, 33 lib modules)
+### Hooks (29 top-level `.cjs` files + 1 `.js` helper, 28 lib modules)
 
 Runtime Node.js scripts that fire on Claude Code lifecycle events.
 
-| Category               | Hooks                                                                                                               | Purpose                                                                 |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| **Safety**             | `path-boundary-block`, `privacy-block`, `scout-block`                                                               | Prevent out-of-scope access, block secrets, limit broad searches        |
-| **Quality**            | `edit-enforcement`, `skill-enforcement`                                                                             | Force task tracking, enforce skill usage                                |
-| **Context Injection**  | `pretooluse-ctx-*` (9 dispatchers) + `prompt-context-assembler` — builders in `lib/pretooluse-context-builders.cjs` | Auto-inject relevant patterns when editing specific file types          |
-| **Session Management** | `session-init`, `session-end`, `session-resume`, `post-compact-recovery`                                            | Initialize state, persist across compactions, recover after memory loss |
-| **Workflow**           | `workflow-router` (3 files), `workflow-step-tracker`, `todo-tracker`                                                | Detect intent, route to workflows, track step progress                  |
-| **Freshness Gates**    | `graph-build` gate, reference-docs staleness gate                                                                   | Block investigations when code graph or reference docs are stale        |
+| Category               | Hooks                                                                                                                                                     | Purpose                                                                         |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| **Safety**             | `path-boundary-block`, `privacy-block`, `scout-block`, `git-commit-block`, `windows-command-detector`                                                     | Prevent out-of-scope access, block secrets, limit broad searches, guard git/CMD |
+| **Quality**            | `edit-enforcement`, `skill-enforcement`, `workflow-task-guard`, `doc-sync-gate`, `agent-files-skill-gate`                                                 | Force task tracking, enforce skill usage, warn on doc⇄code drift                |
+| **Session Management** | `verify-install`, `session-init`, `session-init-docs`, `session-end`, `session-resume`, `post-compact-recovery`, `npm-auto-install`, `graph-session-init` | Initialize state, persist across compactions, recover after memory loss         |
+| **Workflow**           | `workflow-router`, `workflow-step-tracker`, `todo-tracker`                                                                                                | Detect intent, route to workflows, track step progress                          |
+| **Post-processing**    | `tool-output-swap`, `post-edit-prettier`, `bash-cleanup`, `graph-auto-update`, `post-agent-validator`                                                     | Externalize large outputs, format, clean temp, update graph, validate subagents |
+| **Compaction**         | `pre-compact-snapshot`, `write-compact-marker`                                                                                                            | Snapshot transcript and write recovery markers before context compaction        |
 
-**Context re-injection:** The framework re-injects CLAUDE.md rules, project config, and project-reference patterns at every `UserPromptSubmit` via `prompt-context-assembler` (5 files) and the `pretooluse-ctx-mindset` dispatcher. This stateless-per-turn design prevents context drift over long sessions. `lib/dedup-constants.cjs` ensures each injection fires exactly once per session.
+> **De-hooked context injection.** Earlier versions ran a runtime per-edit/per-prompt
+> inject layer (`pretooluse-ctx-*` dispatchers, `prompt-context-assembler*`,
+> `subagent-init*`, the `workflow-router-p2/-p3` part-files, and the standalone
+> `ba-refinement-context` / `figma-context-extractor` / `design-system-canonical-guide` /
+> `graph-grep-suggester` hooks). Those hooks were **removed**; the guidance they injected
+> now lives **statically** in `CLAUDE.md`, agent `.md`, and skill `SKILL.md` files, so a
+> hookless harness (Codex / Copilot) reads identical instructions.
 
-**Hook part-file architecture:** Large hooks are split into chained part-files for maintainability. The harness chains them at runtime. Affected: `prompt-context-assembler` (5 files: base + `-claude`, `-closers`, `-docs`, `-project-config`), `workflow-router` (3 files: base + `-p2`, `-p3`).
+**Context re-injection:** Critical rules are carried as static SYNC-tagged invariants in
+`CLAUDE.md` / agent / skill bodies; `workflow-router.cjs` re-injects the workflow catalog at
+every `UserPromptSubmit`, and `post-compact-recovery.cjs` restores rules and lessons after
+compaction. This stateless-per-turn design prevents context drift over long sessions.
+`lib/dedup-constants.cjs` ensures hook-emitted injections fire at most once per session.
 
-### Skills (156 definitions)
+### Skills (155 definitions)
 
 Markdown-based prompts with YAML frontmatter that guide AI behavior.
 
-| Category           | Examples                                                                                                   | What They Do                                            |
-| ------------------ | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| **Planning**       | `/plan`, `/scout`, `/investigate`                                                                          | Research, plan, investigate before coding               |
-| **Implementation** | `/feature-implement`, `/plan-execute`, `/fix`, `/refactoring`                                              | Write code with quality gates                           |
-| **Testing**        | `/test`, `/integration-test`, `/integration-test-review`, `/integration-test-verify`, `/e2e-test`, `/spec` | Test-first, test-after, and spec-traceability workflows |
-| **Review**         | `/code-review`, `/review-changes`, `/security-review`                                                      | Code quality, security audits                           |
-| **Documentation**  | `/docs-update`, `/changelog`, `/spec`                                                                      | Auto-generate and maintain docs                         |
-| **Research**       | `/web-research`, `/deep-research`, `/docs-seeker`                                                          | Web research, library docs fetching                     |
-| **Design**         | `/design-spec`, `/interface-design`, `/pbi-mockup`, `/excalidraw-diagram`                                  | UI/UX specs, wireframes, PBI visuals, diagrams          |
-| **DevOps**         | `/devops`, `/fix --target=ci`, `/production-readiness-review`                                              | Infrastructure, CI/CD, reliability                      |
-| **Scanning**       | `/scan-all`, `/scan --target=<key>`, `/scan-codebase-health`                                               | Generate reference docs for hooks to auto-inject        |
-| **Documents**      | `/markdown-to-pdf`, `/markdown-to-docx`, `/pdf-to-markdown`                                                | Document format conversion                              |
+| Category           | Examples                                                                                                   | What They Do                                             |
+| ------------------ | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| **Planning**       | `/plan`, `/scout`, `/investigate`                                                                          | Research, plan, investigate before coding                |
+| **Implementation** | `/feature-implement`, `/plan-execute`, `/fix`, `/refactoring`                                              | Write code with quality gates                            |
+| **Testing**        | `/test`, `/integration-test`, `/integration-test-review`, `/integration-test-verify`, `/e2e-test`, `/spec` | Test-first, test-after, and spec-traceability workflows  |
+| **Review**         | `/code-review`, `/review-changes`, `/security-review`                                                      | Code quality, security audits                            |
+| **Documentation**  | `/docs-update`, `/changelog`, `/spec`                                                                      | Auto-generate and maintain docs                          |
+| **Research**       | `/web-research`, `/deep-research`, `/docs-seeker`                                                          | Web research, library docs fetching                      |
+| **Design**         | `/design-spec`, `/interface-design`, `/pbi-mockup`, `/excalidraw-diagram`                                  | UI/UX specs, wireframes, PBI visuals, diagrams           |
+| **DevOps**         | `/devops`, `/fix --target=ci`, `/production-readiness-review`                                              | Infrastructure, CI/CD, reliability                       |
+| **Scanning**       | `/scan-all`, `/scan --target=<key>`, `/scan-codebase-health`                                               | Generate reference docs the project-reference gate reads |
+| **Documents**      | `/markdown-to-pdf`, `/markdown-to-docx`, `/pdf-to-markdown`                                                | Document format conversion                               |
 
 ### Workflows (17 definitions)
 
@@ -238,12 +248,12 @@ easy-claude/
 ├── .codex/                   # Codex agents, hooks, and context parity files
 ├── .claude/                  # <-- The framework template (copy this to your project)
 │   ├── agents/               # 29 specialized agent definitions
-│   ├── hooks/                # 52 top-level hook files + lib/ utilities
+│   ├── hooks/                # 29 top-level hook files + lib/ utilities
 │   │   ├── lib/              # Shared hook libraries
 │   │   ├── notifications/    # Multi-channel notification system
 │   │   ├── scout-block/      # Broad search prevention
 │   │   └── tests/            # Hook test suites
-│   ├── skills/               # 156 skill definitions
+│   ├── skills/               # 155 skill definitions
 │   │   ├── <skill>/          # Each skill directory contains:
 │   │   │   ├── SKILL.md      # Entry point (prompt + frontmatter)
 │   │   │   ├── scripts/      # Optional automation scripts
@@ -275,7 +285,7 @@ The entire framework is **project-agnostic**. All project-specific knowledge liv
 ```
 ┌─────────────────────────────────────┐
 │     Generic Framework (reusable)    │
-│ 52 Hook Files + 156 Skills + 17 Flows │
+│ 29 Hook Files + 155 Skills + 17 Flows │
 └──────────────┬──────────────────────┘
                │
         ┌──────┴──────┐
@@ -292,19 +302,18 @@ The entire framework is **project-agnostic**. All project-specific knowledge liv
 
 ### Hook Lifecycle
 
-Hooks fire on 9 Claude Code events:
+Hooks are registered on 8 Claude Code events (there is no `SubagentStart` hook — agent context is now static in the agent `.md` files):
 
-| Event              | When                      | Example Hook                                                   |
-| ------------------ | ------------------------- | -------------------------------------------------------------- |
-| `SessionStart`     | Claude Code starts        | `session-init.cjs` — load config, inject context               |
-| `SessionEnd`       | Claude Code exits         | `session-end.cjs` — persist final state                        |
-| `UserPromptSubmit` | Before each user message  | `prompt-context-assembler.cjs` — inject rules                  |
-| `PreToolUse`       | Before tool execution     | `privacy-block.cjs` — block secrets access                     |
-| `PostToolUse`      | After tool execution      | `tool-output-swap.cjs` — compress large outputs                |
-| `PreCompact`       | Before context compaction | `write-compact-marker.cjs` — save state                        |
-| `SubagentStart`    | Subagent init             | `subagent-init-*.cjs` (3 hooks) — inject agent context (paged) |
-| `Notification`     | Desktop notify event      | `notify-waiting.js` — send system notification                 |
-| `Stop`             | Response complete         | `notify-waiting.js` — desktop notification                     |
+| Event              | When                      | Example Hook                                     |
+| ------------------ | ------------------------- | ------------------------------------------------ |
+| `SessionStart`     | Claude Code starts        | `session-init.cjs` — load config, inject context |
+| `SessionEnd`       | Claude Code exits         | `session-end.cjs` — persist final state          |
+| `UserPromptSubmit` | Before each user message  | `init-prompt-gate.cjs` — gate until config ready |
+| `PreToolUse`       | Before tool execution     | `privacy-block.cjs` — block secrets access       |
+| `PostToolUse`      | After tool execution      | `tool-output-swap.cjs` — compress large outputs  |
+| `PreCompact`       | Before context compaction | `write-compact-marker.cjs` — save state          |
+| `Notification`     | Desktop notify event      | `notify-waiting.js` — send system notification   |
+| `Stop`             | Response complete         | `notify-waiting.js` — desktop notification       |
 
 ### Workflow Detection
 

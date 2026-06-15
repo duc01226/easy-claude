@@ -119,15 +119,15 @@ These are defined in the init schema and auto-create in any project on first `gr
 
 ## Auto-Maintenance (Zero Manual Effort)
 
-The graph maintains itself through 3 automatic mechanisms:
+The graph maintains itself through 2 automatic hooks (plus a manual rebuild):
 
 | Trigger                  | Hook                                      | What happens                                                                                                         |
 | ------------------------ | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | **Claude edits a file**  | `graph-auto-update.cjs` (PostToolUse)     | Re-parses the edited file, updates nodes/edges. 3s debounce + atomic lock prevents duplicates.                       |
 | **New session starts**   | `graph-session-init.cjs` (SessionStart)   | Diffs `last_synced_commit` vs current HEAD. Re-parses all files changed since last sync (git pull, checkout, merge). |
-| **Review/Agent invoked** | `pretooluse-ctx-graph.cjs` (buildGraphContext, PreToolUse) | Injects blast radius + trace CLI hints when skills or agents (including Explore) are invoked.                        |
-| **Grep finds key files** | `graph-grep-suggester.cjs` (PostToolUse)  | Suggests graph queries when grep finds entity/command/handler/consumer files.                                        |
 | **Manual rebuild**       | `/graph-build`                            | Full rebuild from scratch. Safety net if graph gets out of sync.                                                     |
+
+> Blast radius, trace CLI hints, and grep-to-graph suggestions are pulled on demand by the `graph-*` skills and the Graph Intelligence gate in `CLAUDE.md` — not injected by a hook.
 
 **After `git pull`:** The next Claude session automatically syncs. No manual action needed.
 

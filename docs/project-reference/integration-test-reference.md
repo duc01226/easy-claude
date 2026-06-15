@@ -25,28 +25,29 @@ Both layers can run independently; `test-all-hooks.cjs` delegates to `run-all-te
 | Lib unit tests        | `.claude/hooks/lib/__tests__/*.test.cjs`    | Direct `node` execution |
 | Scout-block tests (7) | `.claude/hooks/scout-block/tests/test-*.js` | Direct `node` execution |
 
-## Test Suites (16)
+## Test Suites (15)
 
 Suites export `module.exports = { name: string, tests: Array<{ name, fn, skip? }> }`.
 
-| Suite                  | File                                            | What It Tests                           |
-| ---------------------- | ----------------------------------------------- | --------------------------------------- |
-| BA Refinement Context  | `suites/ba-refinement-context.test.cjs`         | BA team context injection on PBI writes |
-| Bugfix Regression      | `suites/bugfix-regression.test.cjs`             | Regression tests for fixed bugs         |
-| Code Patterns Injector | `suites/code-patterns-injector.test.cjs`        | Pattern injection logic                 |
-| Count Drift            | `suites/count-drift.test.cjs`                   | Generated count/catalog drift           |
-| Context                | `suites/context.test.cjs`                       | Context injection tests                 |
-| Dev Rules Injector     | `suites/dev-rules-injector.test.cjs`            | Development-rule injection behavior     |
-| Init Reference Docs    | `suites/init-reference-docs.test.cjs`           | Doc initialization                      |
-| Integration            | `suites/integration.test.cjs`                   | Cross-hook integration                  |
-| Lifecycle              | `suites/lifecycle.test.cjs`                     | Session lifecycle events                |
-| Notification           | `suites/notification.test.cjs`                  | Notification providers                  |
-| Pre-Compact Snapshot   | `suites/pre-compact-snapshot.test.cjs`          | Transcript snapshot capture             |
-| Quality Audit          | `suites/quality-audit.test.cjs`                 | Audit logic                             |
-| Security               | `suites/security.test.cjs`                      | Security hooks                          |
-| Subagent Concurrency   | `suites/subagent-concurrency.test.cjs`          | Subagent concurrency guardrails         |
-| Swap Engine            | `suites/swap-engine.test.cjs`                   | Output compression                      |
-| Workflow               | `suites/workflow.test.cjs`                      | Workflow routing/tracking               |
+> The runtime context-injection suites (`ba-refinement-context`, `code-patterns-injector`, `context`, `dev-rules-injector`, etc.) were removed alongside the inject hooks in the de-hooking refactor; `content-presence.test.cjs` now guards that the relocated guidance stays present in the static `CLAUDE.md` / agent files.
+
+| Suite                 | File                                    | What It Tests                                                |
+| --------------------- | --------------------------------------- | ------------------------------------------------------------ |
+| Agent Files Gate      | `suites/agent-files-gate.test.cjs`      | Agent-files / skill gate behavior                            |
+| Agent Universal Rules | `suites/agent-universal-rules.test.cjs` | Universal rule blocks present in agents                      |
+| Bugfix Regression     | `suites/bugfix-regression.test.cjs`     | Regression tests for fixed bugs                              |
+| Catalog Dedup Markers | `suites/catalog-dedup-markers.test.cjs` | Catalog/dedup marker integrity                               |
+| Content Presence      | `suites/content-presence.test.cjs`      | Relocated static guidance is present (de-hooking parity net) |
+| Count Drift           | `suites/count-drift.test.cjs`           | Generated count/catalog drift                                |
+| Doc Sync Gate         | `suites/doc-sync-gate.test.cjs`         | Doc sync gate behavior                                       |
+| Init Reference Docs   | `suites/init-reference-docs.test.cjs`   | Doc initialization                                           |
+| Integration           | `suites/integration.test.cjs`           | Cross-hook integration                                       |
+| Lifecycle             | `suites/lifecycle.test.cjs`             | Session lifecycle events                                     |
+| Notification          | `suites/notification.test.cjs`          | Notification providers                                       |
+| Pre-Compact Snapshot  | `suites/pre-compact-snapshot.test.cjs`  | Transcript snapshot capture                                  |
+| Security              | `suites/security.test.cjs`              | Security hooks                                               |
+| Swap Engine           | `suites/swap-engine.test.cjs`           | Output compression                                           |
+| Workflow              | `suites/workflow.test.cjs`              | Workflow routing/tracking                                    |
 
 ## Standalone Test Files (13)
 
@@ -234,11 +235,11 @@ As of 2026-05-15 scan:
 
 ## Naming Conventions
 
-| Type             | Pattern                             | Example                                        |
-| ---------------- | ----------------------------------- | ---------------------------------------------- |
-| Suite file       | `suites/<topic>.test.cjs`           | `suites/workflow.test.cjs`                     |
-| Standalone (CJS) | `test-<topic>.cjs`                  | `test-lib-modules.cjs`                         |
-| Standalone (JS)  | `test-<topic>.js`                   | `test-privacy-block.js`                        |
-| Scout-block test | `scout-block/tests/test-<topic>.js` | `test-pattern-matcher.js`                      |
-| Lib unit test    | `lib/__tests__/<module>.test.cjs`   | `ck-config-utils.test.cjs`                     |
-| Test name prefix | `[hook-name]` in suite test names   | `[ba-refinement-context] injects for Write...` |
+| Type             | Pattern                             | Example                                           |
+| ---------------- | ----------------------------------- | ------------------------------------------------- |
+| Suite file       | `suites/<topic>.test.cjs`           | `suites/workflow.test.cjs`                        |
+| Standalone (CJS) | `test-<topic>.cjs`                  | `test-lib-modules.cjs`                            |
+| Standalone (JS)  | `test-<topic>.js`                   | `test-privacy-block.js`                           |
+| Scout-block test | `scout-block/tests/test-<topic>.js` | `test-pattern-matcher.js`                         |
+| Lib unit test    | `lib/__tests__/<module>.test.cjs`   | `ck-config-utils.test.cjs`                        |
+| Test name prefix | `[hook-name]` in suite test names   | `[buildBaRefinementContext] injects for Write...` |
