@@ -1,6 +1,6 @@
 # Agents Reference
 
-> 28 specialized subagents for autonomous task execution
+> 29 specialized subagents for autonomous task execution
 
 ## Overview
 
@@ -59,6 +59,7 @@ Main Claude Session
 | `tester`                   | Validate code through testing                           | All tools                              |
 | `debugger`                 | Investigate issues and analyze system behavior          | All tools                              |
 | `e2e-runner`               | E2E testing docs, Playwright patterns (Sonnet)          | All tools                              |
+| `quality-gate-review`      | Quality gates, compliance audits, metrics, checklists   | All tools                              |
 
 ### Operations & Management
 
@@ -188,14 +189,15 @@ Task({
 
 ## Agent Configuration
 
-### SubagentStart Hook
+### Subagent Context (no SubagentStart hook)
 
-The 8 `subagent-init-*.cjs` hooks inject context into all spawned agents:
+> There is **no** `SubagentStart` hook. Each agent's context contract — project rules,
+> reports path, naming, and the development-rules / lessons read contract — is baked
+> statically into the agent's `.md` system prompt and the shared SYNC blocks it inlines,
+> so a hookless tool (Codex / Copilot) gets identical guidance. Each agent's `.md`
+> carries, in effect:
 
 ```
-## Subagent: [agent_type]
-ID: [agent_id] | CWD: [working_directory]
-
 ## Context
 - Plan: [active_plan_path or none]
 - Reports: [reports_path]
@@ -352,13 +354,17 @@ Task({
 
 ---
 
+## Authoring Rule — No Meta-Log
+
+> An agent `.md` is read as live instruction. Write only the CURRENT actionable truth. Do NOT add change-history, migration rationale, or provenance — "formerly", "removed in the … refactor", "now baked statically", "used to be hook-injected". It carries zero instruction value and dilutes the directive the agent acts on. Change history belongs in git / `CHANGELOG.md` / `docs/adr/**` / `plans/reports/**`. State what IS, not what changed.
+
 ## Related Documentation
 
 - [agent-patterns.md](./agent-patterns.md) - Detailed agent usage patterns
 - [../skills/README.md](../skills/README.md) - Skills that enhance agent capabilities
-- [../hooks/README.md](../hooks/README.md) - SubagentStart hook details
+- [../hooks/README.md](../hooks/README.md) - Hook lifecycle (no `SubagentStart` hook; sub-agent context is static in `agents/*.md`)
 - [../configuration/README.md](../configuration/README.md) - Agent configuration options
 
 ---
 
-_Source: Task tool system prompt | 28 specialized agent types_
+_Source: Task tool system prompt | 29 specialized agent types_

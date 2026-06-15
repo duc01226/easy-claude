@@ -39,8 +39,148 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 Do not read all docs blindly. Start from `docs-index-reference.md`, then open only relevant files for the task.
 <!-- CODEX:PROJECT-REFERENCE-LOADING:END -->
 
+## Quick Summary
+
+**Goal:** Generate and maintain E2E tests on the project's auto-detected framework with mandatory TC-code↔test traceability, producing a suite that runs, repeats deterministically, and provably maps every test back to its spec.
+
+**Workflow:**
+
+1. **Read project E2E docs** — `docs/project-reference/e2e-test-reference.md`, `docs/project-config.json`
+2. **Detect framework** — Playwright, Cypress, Selenium, etc.
+3. **Load test specs** — find TC codes in feature docs
+4. **Generate/update tests** — follow Page Object pattern
+5. **Run tests** — project's configured commands
+6. **Update docs** — add learnings to `docs/project-reference/e2e-test-reference.md`
+
+**Key Rules:**
+
+- NEVER fabricate file paths, function names, or behavior — investigate first, then act — why: a hallucinated selector or path passes review and fails only at runtime
+- MUST ATTENTION include TC code (`TC-{MODULE}-E2E-{NNN}`) in every test — why: traceability is how a test proves which spec it covers
+- NEVER hardcode brittle selectors — derive stable ones from `data-testid`, BEM classes, or ARIA roles — why: generated/positional selectors break on every unrelated markup change
+- ALWAYS update visual baselines when UI changes — why: stale baselines turn real regressions into false failures
+- MUST ATTENTION read the project E2E reference BEFORE any E2E work — why: local conventions override generic framework defaults
+
+---
+
 > **Evidence Gate** — Every claim, finding, and recommendation requires `file:line` proof or traced evidence. Confidence >80% to act; <80% must verify first. NEVER speculate without proof.
 > **External Memory** — For complex or lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report file in `plans/reports/` — prevents context loss.
+
+## MANDATORY: Read Project E2E Reference (FIRST)
+
+> **E2E Skill** — Detect framework from config, use Page Object Model, TC-code traceability mandatory, unique test data (GUIDs), explicit waits only, document preconditions. MUST ATTENTION READ `.claude/skills/e2e-test/SKILL.md` for the framework-detection table and detailed workflow.
+
+**BEFORE ANY E2E WORK — run these, then act on results:**
+
+```bash
+head -100 docs/project-reference/e2e-test-reference.md  # Project-specific patterns
+grep -A 50 '"e2eTesting"' docs/project-config.json       # Framework, paths, commands
+grep -r "TC-.*-E2E-" docs/specs/  # Find TC codes
+```
+
+**When fixing E2E failures, MUST ATTENTION update `docs/project-reference/e2e-test-reference.md` with learnings — why: the next run starts from the lesson, not the same failure.**
+
+---
+
+## Capabilities
+
+| Mode             | Input                      | Output                       |
+| ---------------- | -------------------------- | ---------------------------- |
+| `from-recording` | Browser recording + spec   | Test file + page object      |
+| `update-ui`      | Git diff of UI changes     | Updated screenshot baselines |
+| `from-changes`   | Changed test specs or code | Updated test implementations |
+| `from-spec`      | TC codes from test specs   | New tests matching specs     |
+
+---
+
+## Framework Detection
+
+```bash
+# TypeScript/JavaScript
+grep -l "playwright\\|cypress\\|selenium\\|webdriver" package.json 2>/dev/null
+ls playwright.config.* cypress.config.* wdio.conf.* 2>/dev/null
+
+# C# .NET
+grep -r "Selenium.WebDriver\\|Microsoft.Playwright" **/*.csproj 2>/dev/null
+```
+
+| Framework    | Config File          | Test Extension | Run Command           |
+| ------------ | -------------------- | -------------- | --------------------- |
+| Playwright   | playwright.config.ts | \\*.spec.ts     | `npx playwright test` |
+| Cypress      | cypress.config.ts    | \\*.cy.ts       | `npx cypress run`     |
+| WebdriverIO  | wdio.conf.js         | \\*.e2e.ts      | `npx wdio run`        |
+| Selenium.NET | \\*.csproj            | \\*Tests.cs     | `dotnet test`         |
+
+---
+
+## Core Principles
+
+### TC Code Traceability (MANDATORY)
+
+Every test MUST ATTENTION carry a TC code: `TC-{MODULE}-E2E-{NNN}`
+
+```typescript
+// TypeScript
+test('TC-LR-E2E-001: Submit leave request', async () => { ... });
+```
+
+```csharp
+// C# .NET
+[Fact]
+[Trait("TC", "TC-LR-E2E-001")]
+public async Task SubmitLeaveRequest() { ... }
+```
+
+### Page Object Model
+
+- Encapsulate locators in page classes; methods represent user actions
+- Keep assertions in the test file, NEVER in the page object — why: a page object that asserts hides intent and can't be reused across tests
+
+### Selector Strategy (Priority Order)
+
+1. Semantic classes (BEM: `.block__element`)
+2. Data attributes (`[data-testid]`, `[data-cy]`)
+3. ARIA/Role (`role=button`, `aria-label`)
+4. Text content (last resort)
+
+**AVOID:** generated classes (`.ng-star-inserted`), positional selectors (`:nth-child`), XPath
+
+### Test Data & Repeatability
+
+- Append GUIDs to test data — NEVER depend on specific DB state — why: shared fixed data makes tests order-dependent and flaky
+- Use explicit waits — NEVER arbitrary `sleep`/`timeout` — why: fixed sleeps are slow and still race the app
+- Reuse auth session state — NEVER re-login each test — why: per-test login wastes runtime and adds a failure point
+- Document preconditions (infrastructure, seed data, feature configs) — why: an undocumented precondition is a silent prerequisite the next runner can't satisfy
+
+---
+
+## Output
+
+E2E test report: files created/modified, TC codes covered, run command, preconditions needed.
+
+<!-- SYNC:agent-code-standards -->
+
+> **Development rules.** YAGNI / KISS / DRY. Place logic in the LOWEST layer (Entity/Model > Service > Component/Handler) — mapping → Command/DTO, constants → Model. Kebab-case files. Search 3+ existing patterns before writing new code; read existing code before changing it. Read `.claude/docs/development-rules.md` for full coding standards, quality gates, and the pre-commit checklist (when present).
+>
+> **Coding patterns.** Before implementing, read the project pattern references named in `docs/project-config.json` / the docs index (e.g. `docs/project-reference/backend-patterns-reference.md`, `frontend-patterns-reference.md`) — local conventions override generic framework defaults.
+>
+> **Blocked until:** dev-rules + pattern docs read before writing or changing code.
+
+<!-- /SYNC:agent-code-standards -->
+
+<!-- SYNC:agent-bootstrap -->
+
+> **Plan first, then act.** Break work into small tasks before editing; keep exactly one task in progress; mark each complete immediately after its evidence lands. On context loss, inspect the existing task list before creating new tasks.
+>
+> **Context guard / progress file (MANDATORY when task > 5 files or > 3 steps).** Context exhaustion = silent loss of ALL findings; no progress file = no recovery.
+>
+> 1. **On start:** create `tmp/ck-agent-{ts}-{rnd}.progress.md` — `ts` = current timestamp in `YYYYMMDDHHmmssSSS` (17 digits), `rnd` = random 6-char hex. First line records the session id.
+> 2. **After each step:** append findings, marking `[done]` / `[partial]` / `[pending]`.
+> 3. **Running out of context?** Write `[partial]` to the file FIRST — NEVER summarize before writing.
+> 4. **Producing a report?** Persist it incrementally to `plans/reports/` and start the final message with its path.
+>
+> **Blocked until:** task breakdown exists · progress file created when the task exceeds the size threshold.
+
+<!-- /SYNC:agent-bootstrap -->
 
 <!-- SYNC:sequential-thinking-protocol -->
 
@@ -192,162 +332,52 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 <!-- /SYNC:ai-mistake-prevention -->
 
-## Quick Summary
-
-**Goal:** Generate and maintain E2E tests using the project's configured testing framework, with full TC code traceability.
-
-**Workflow:**
-
-1. **Read project E2E docs** — `docs/project-reference/e2e-test-reference.md`, `docs/project-config.json`
-2. **Detect framework** — Check for Playwright, Cypress, Selenium, etc.
-3. **Load test specs** — Find TC codes in feature docs
-4. **Generate/update tests** — Follow Page Object pattern
-5. **Run tests** — Use project's configured commands
-6. **Update docs** — Add learnings to `docs/project-reference/e2e-test-reference.md`
-
-**Key Rules:**
-
-- NEVER fabricate file paths, function names, or behavior — investigate first, then act
-- MUST ATTENTION include TC code (`TC-{MODULE}-E2E-{NNN}`) in every test
-- NEVER hardcode selectors — use `data-testid` or stable BEM selectors
-- ALWAYS update test baselines when UI changes
-- MUST ATTENTION read project E2E reference BEFORE any E2E work
-
----
-
-## MANDATORY: Read Project E2E Reference (FIRST)
-
-> **E2E Skill** — Detect framework from config, use Page Object Model, TC code traceability mandatory, unique test data (GUIDs), explicit waits only, document preconditions. MUST ATTENTION READ `.claude/skills/e2e-test/SKILL.md` for framework detection table and detailed workflow.
-
-**BEFORE ANY E2E WORK:**
-
-```bash
-head -100 docs/project-reference/e2e-test-reference.md  # Project-specific patterns
-grep -A 50 '"e2eTesting"' docs/project-config.json       # Framework, paths, commands
-grep -r "TC-.*-E2E-" docs/specs/  # Find TC codes
-```
-
-**When fixing E2E failures, update `docs/project-reference/e2e-test-reference.md` with learnings.**
-
----
-
-## Capabilities
-
-| Mode             | Input                      | Output                       |
-| ---------------- | -------------------------- | ---------------------------- |
-| `from-recording` | Browser recording + spec   | Test file + page object      |
-| `update-ui`      | Git diff of UI changes     | Updated screenshot baselines |
-| `from-changes`   | Changed test specs or code | Updated test implementations |
-| `from-spec`      | TC codes from test specs   | New tests matching specs     |
-
----
-
-## Framework Detection
-
-```bash
-# TypeScript/JavaScript
-grep -l "playwright\\|cypress\\|selenium\\|webdriver" package.json 2>/dev/null
-ls playwright.config.* cypress.config.* wdio.conf.* 2>/dev/null
-
-# C# .NET
-grep -r "Selenium.WebDriver\\|Microsoft.Playwright" **/*.csproj 2>/dev/null
-```
-
-| Framework    | Config File          | Test Extension | Run Command           |
-| ------------ | -------------------- | -------------- | --------------------- |
-| Playwright   | playwright.config.ts | \\*.spec.ts     | `npx playwright test` |
-| Cypress      | cypress.config.ts    | \\*.cy.ts       | `npx cypress run`     |
-| WebdriverIO  | wdio.conf.js         | \\*.e2e.ts      | `npx wdio run`        |
-| Selenium.NET | \\*.csproj            | \\*Tests.cs     | `dotnet test`         |
-
----
-
-## Core Principles
-
-### TC Code Traceability (MANDATORY)
-
-Every test MUST ATTENTION have TC code: `TC-{MODULE}-E2E-{NNN}`
-
-```typescript
-// TypeScript
-test('TC-LR-E2E-001: Submit leave request', async () => { ... });
-```
-
-```csharp
-// C# .NET
-[Fact]
-[Trait("TC", "TC-LR-E2E-001")]
-public async Task SubmitLeaveRequest() { ... }
-```
-
-### Page Object Model
-
-- Encapsulate locators in page classes; methods represent user actions
-- Assertions in test file, NOT in page object
-
-### Selector Strategy (Priority Order)
-
-1. Semantic classes (BEM: `.block__element`)
-2. Data attributes (`[data-testid]`, `[data-cy]`)
-3. ARIA/Role (`role=button`, `aria-label`)
-4. Text content (last resort)
-
-**AVOID:** Generated classes (`.ng-star-inserted`), positional selectors (`:nth-child`), XPath
-
-### Test Data & Repeatability
-
-- Append GUIDs to test data — never depend on specific DB state
-- Use explicit waits — NEVER arbitrary `sleep`/`timeout`
-- Reuse auth session state — don't re-login each test
-- Document preconditions (infrastructure, seed data, feature configs)
-
----
-
-## Output
-
-E2E test report: files created/modified, TC codes covered, run command, preconditions needed.
-
----
-
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
+
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
 **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
-## Closing Reminders
-
-**IMPORTANT MUST ATTENTION** read `docs/project-reference/e2e-test-reference.md` and `docs/project-config.json` BEFORE any E2E work — no exceptions
-**IMPORTANT MUST ATTENTION** every test MUST have `TC-{MODULE}-E2E-{NNN}` code — traceability is mandatory
-**IMPORTANT MUST ATTENTION** NEVER hardcode selectors — use `data-testid`, BEM classes, or ARIA roles
-**IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
-**IMPORTANT MUST ATTENTION** update `docs/project-reference/e2e-test-reference.md` with learnings after fixing failures
-
-  <!-- SYNC:sequential-thinking-protocol:reminder -->
+<!-- SYNC:sequential-thinking-protocol:reminder -->
 
 **MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer; see `$sequential-thinking` skill.
 
-  <!-- /SYNC:sequential-thinking-protocol:reminder -->
-  <!-- SYNC:task-tracking-external-report:reminder -->
+<!-- /SYNC:sequential-thinking-protocol:reminder -->
+
+<!-- SYNC:task-tracking-external-report:reminder -->
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-    <!-- /SYNC:task-tracking-external-report:reminder -->
-    <!-- SYNC:project-reference-docs-guide:reminder -->
+<!-- /SYNC:task-tracking-external-report:reminder -->
+
+<!-- SYNC:project-reference-docs-guide:reminder -->
 
 - **MANDATORY** After task-tracking bootstrap and before target/source work, read required project-reference docs and cite `Reference docs read: ...`.
 - **MANDATORY** Always include `lessons.md`; project conventions override generic defaults.
 - **MANDATORY** If project config, root instruction files, or any required reference doc is missing or stale, auto-run `$project-init` or the narrow lower-level route before ordinary project-specific work.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
-  <!-- SYNC:cross-service-check:reminder -->
+
+<!-- SYNC:cross-service-check:reminder -->
 
 **IMPORTANT MUST ATTENTION** microservices/event-driven: scan producers, consumers, sagas, contracts in task scope. Per touchpoint: owner · message · consumers · risk (NONE/ADDITIVE/BREAKING). Missing consumer = silent regression.
 
-  <!-- /SYNC:cross-service-check:reminder -->
+<!-- /SYNC:cross-service-check:reminder -->
+
+## Closing Reminders
+
+**IMPORTANT MUST ATTENTION Goal:** Generate and maintain E2E tests on the project's auto-detected framework with mandatory TC-code↔test traceability, producing a suite that runs, repeats deterministically, and provably maps every test back to its spec.
+**IMPORTANT MUST ATTENTION** read `docs/project-reference/e2e-test-reference.md` and `docs/project-config.json` BEFORE any E2E work — no exceptions
+**IMPORTANT MUST ATTENTION** every test MUST carry a `TC-{MODULE}-E2E-{NNN}` code — traceability is mandatory
+**IMPORTANT MUST ATTENTION** NEVER hardcode brittle selectors — derive stable ones from `data-testid`, BEM classes, or ARIA roles
+**IMPORTANT MUST ATTENTION** keep assertions in the test file, NEVER in the page object
+**IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
+**IMPORTANT MUST ATTENTION** after fixing failures, update `docs/project-reference/e2e-test-reference.md` with the learnings
+**IMPORTANT MUST ATTENTION** add a final review task to verify the suite runs green and every test maps to a TC code
 """

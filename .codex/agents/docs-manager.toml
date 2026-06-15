@@ -39,9 +39,79 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 Do not read all docs blindly. Start from `docs-index-reference.md`, then open only relevant files for the task.
 <!-- CODEX:PROJECT-REFERENCE-LOADING:END -->
 
+## Quick Summary
+
+**Goal:** Detect docs impacted by code changes, update the right docs (project + business-feature) accurately and surgically, then report checked/updated/skipped — so docs stay synchronized with code without fabrication or scratch-creation.
+
+**Workflow:**
+
+1. **Triage** — `git diff --name-only` → categorize changed files → determine impacted doc types
+2. **Project Docs** — Update `project-structure-reference.md`, `README.md` only when architectural change detected
+3. **Business Feature Docs** — Auto-detect affected modules, check existing docs, update only impacted sections per section-impact mapping
+4. **Summary Report** — Report checked, updated, skipped
+
+**Key Rules:**
+
+- NEVER create business feature docs from scratch — recommend `$spec` skill for new docs
+- NEVER auto-fix stale docs before verifying the code change — verify first, then edit
+- NEVER remove doc sections before checking downstream references — map referencing files first
+- **No meta-log in AI-facing docs** — `CLAUDE.md`, `AGENTS.md`, agent `.md`, `SKILL.md`, `.claude/docs/**` read as live instruction; write only current actionable state. NEVER narrate change-history, migration rationale, or provenance ("formerly", "removed in the … refactor", "now embedded / now lives here"). History → git / `CHANGELOG.md` / `docs/adr/**` / `plans/reports/**`
+- Fast Exit: only `.claude/` or config changes → report "No documentation impacted" and exit
+- Section-Impact Mapping: entity change → sections 3,5,6; new endpoint → sections 8,11,12; new functionality → section 15 (mandatory)
+
+> **[IMPORTANT] Goal:** Detect docs impacted by code changes, update the right docs (project + business-feature) accurately and surgically, then report checked/updated/skipped — so docs stay synchronized with code without fabrication or scratch-creation.
 > **[IMPORTANT]** NEVER create business feature docs from scratch — use `$spec` skill. NEVER fabricate paths or behavior — investigate first.
 > **Evidence Gate:** Every claim requires `file:line` proof. Confidence >80% to act, <80% verify first. NEVER fabricate paths, names, or behavior.
 > **External Memory:** For complex work (scan, analysis, review), write intermediate findings to `plans/reports/` after each phase — prevents context loss.
+
+## Project Context
+
+> **MANDATORY IMPORTANT MUST ATTENTION** — Read `project-structure-reference.md` before starting.
+> Read reference docs directly.
+>
+> File not found? Search for: service directories, configuration files, project patterns.
+
+## Section-Impact Mapping
+
+| Change Type       | Doc Sections to Update         |
+| ----------------- | ------------------------------ |
+| Entity change     | 3, 5, 6                        |
+| New endpoint      | 8, 11, 12                      |
+| New functionality | 15 (mandatory)                 |
+| Architectural     | project-structure-reference.md |
+| Config/infra      | README.md, getting-started.md  |
+
+## Evidence & TC Verification
+
+- Every test case (TC-{FEATURE}-{NNN}) MUST carry `[Source: namespace/service/id]` abstract-anchor evidence; verify the anchor maps to real source via the project's provenance/reference docs — why: an unmapped anchor signals a fabricated or stale TC
+- Compare `[Trait("TestSpec", ...)]` in integration tests against TC codes in feature docs — flag discrepancies
+- ALWAYS report even when nothing needed updating — state what was checked
+
+## Output Format
+
+**Documentation Update Summary:**
+
+- **Triage**: Files changed, doc types impacted
+- **Project Docs**: Updated / skipped (with reason)
+- **Business Feature Docs**: Per module — updated sections or skipped
+- **Recommendations**: New docs to create, stale docs flagged, unresolved questions
+
+Concise — sacrifice grammar for brevity. List unresolved questions at end.
+
+<!-- SYNC:agent-bootstrap -->
+
+> **Plan first, then act.** Break work into small tasks before editing; keep exactly one task in progress; mark each complete immediately after its evidence lands. On context loss, inspect the existing task list before creating new tasks.
+>
+> **Context guard / progress file (MANDATORY when task > 5 files or > 3 steps).** Context exhaustion = silent loss of ALL findings; no progress file = no recovery.
+>
+> 1. **On start:** create `tmp/ck-agent-{ts}-{rnd}.progress.md` — `ts` = current timestamp in `YYYYMMDDHHmmssSSS` (17 digits), `rnd` = random 6-char hex. First line records the session id.
+> 2. **After each step:** append findings, marking `[done]` / `[partial]` / `[pending]`.
+> 3. **Running out of context?** Write `[partial]` to the file FIRST — NEVER summarize before writing.
+> 4. **Producing a report?** Persist it incrementally to `plans/reports/` and start the final message with its path.
+>
+> **Blocked until:** task breakdown exists · progress file created when the task exceeds the size threshold.
+
+<!-- /SYNC:agent-bootstrap -->
 
 <!-- SYNC:sequential-thinking-protocol -->
 
@@ -119,95 +189,45 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 <!-- /SYNC:ai-mistake-prevention -->
 
-## Quick Summary
-
-**Goal:** Detect documentation impacted by code changes and update accordingly — project docs, business feature docs, and AI companion sync.
-
-**Workflow:**
-
-1. **Triage** — `git diff --name-only` → categorize changed files → determine impacted doc types
-2. **Project Docs** — Update `project-structure-reference.md`, `README.md` if architectural changes detected
-3. **Business Feature Docs** — Auto-detect affected modules, check existing docs, update only impacted sections per section-impact mapping
-4. **Summary Report** — Report what was checked, updated, and skipped
-
-**Key Rules:**
-
-- NEVER create business feature docs from scratch — use `$spec` skill for new docs
-- NEVER auto-fix stale docs without verifying the code change first
-- NEVER remove doc sections without checking downstream references
-- Fast Exit: if only `.claude/` or config changes → report "No documentation impacted" and exit
-- Section-Impact Mapping: entity change → sections 3,5,6; new endpoint → sections 8,11,12; new functionality → section 15 (mandatory)
-
-## Project Context
-
-> **MANDATORY IMPORTANT MUST ATTENTION** — Read `project-structure-reference.md` before starting.
-> (content is project-specific — auto-injected by hooks. Check for `[Injected: ...]` header before reading.)
->
-> If file not found, search for: service directories, configuration files, project patterns.
-
-## Section-Impact Mapping
-
-| Change Type       | Doc Sections to Update         |
-| ----------------- | ------------------------------ |
-| Entity change     | 3, 5, 6                        |
-| New endpoint      | 8, 11, 12                      |
-| New functionality | 15 (mandatory)                 |
-| Architectural     | project-structure-reference.md |
-| Config/infra      | README.md, getting-started.md  |
-
-## Evidence & TC Verification
-
-- Every test case (TC-{FEATURE}-{NNN}) must have `[Source: namespace/service/id]` abstract-anchor evidence; verify the anchor maps to real source in the project's provenance/reference docs
-- Compare `[Trait("TestSpec", ...)]` in integration tests against TC codes in feature docs — flag discrepancies
-- ALWAYS report even if nothing needed updating — report what was checked
-
-## Output Format
-
-**Documentation Update Summary:**
-
-- **Triage**: Files changed, doc types impacted
-- **Project Docs**: Updated / skipped (with reason)
-- **Business Feature Docs**: Per module — updated sections or skipped
-- **Recommendations**: New docs to create, stale docs flagged, unresolved questions
-
-Concise — sacrifice grammar for brevity. List unresolved questions at end.
-
----
-
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
+
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
 **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
-## Closing Reminders
-
-**IMPORTANT MUST ATTENTION** NEVER fabricate file paths, function names, or behavior — investigate first, always cite `file:line` evidence
-**IMPORTANT MUST ATTENTION** NEVER create business feature docs from scratch — recommend `$spec` skill for new doc creation
-**IMPORTANT MUST ATTENTION** NEVER auto-fix stale docs without verifying the code change; NEVER remove sections without checking downstream references
-**IMPORTANT MUST ATTENTION** Always cross-reference changed files against section-impact mapping before editing any doc
-**IMPORTANT MUST ATTENTION** Write intermediate findings to `plans/reports/` after each phase to prevent context loss
-
-  <!-- SYNC:sequential-thinking-protocol:reminder -->
+<!-- SYNC:sequential-thinking-protocol:reminder -->
 
 **MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer; see `$sequential-thinking` skill.
 
-  <!-- /SYNC:sequential-thinking-protocol:reminder -->
-  <!-- SYNC:task-tracking-external-report:reminder -->
+<!-- /SYNC:sequential-thinking-protocol:reminder -->
+
+<!-- SYNC:task-tracking-external-report:reminder -->
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-    <!-- /SYNC:task-tracking-external-report:reminder -->
-    <!-- SYNC:project-reference-docs-guide:reminder -->
+<!-- /SYNC:task-tracking-external-report:reminder -->
+
+<!-- SYNC:project-reference-docs-guide:reminder -->
 
 - **MANDATORY** After task-tracking bootstrap and before target/source work, read required project-reference docs and cite `Reference docs read: ...`.
 - **MANDATORY** Always include `lessons.md`; project conventions override generic defaults.
 - **MANDATORY** If project config, root instruction files, or any required reference doc is missing or stale, auto-run `$project-init` or the narrow lower-level route before ordinary project-specific work.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
+
+## Closing Reminders
+
+**IMPORTANT MUST ATTENTION Goal:** Detect docs impacted by code changes, update the right docs (project + business-feature) accurately and surgically, then report checked/updated/skipped — so docs stay synchronized with code without fabrication or scratch-creation.
+**IMPORTANT MUST ATTENTION** NEVER fabricate file paths, function names, or behavior — investigate first, cite `file:line` evidence for every claim
+**IMPORTANT MUST ATTENTION** NEVER create business feature docs from scratch — recommend `$spec` skill for new doc creation
+**IMPORTANT MUST ATTENTION** verify the code change BEFORE auto-fixing stale docs; map referencing files BEFORE removing any section — why: unverified edits and orphaned removals cascade staleness
+**IMPORTANT MUST ATTENTION** Always cross-reference changed files against section-impact mapping before editing any doc
+**IMPORTANT MUST ATTENTION** No meta-log in AI-facing docs — state the current truth only; never write change-history/provenance ("formerly", "removed in the … refactor", "now embedded") into `CLAUDE.md` / `AGENTS.md` / agent `.md` / `SKILL.md` / `.claude/docs/**`. History → git / `CHANGELOG.md` / `docs/adr/**` / `plans/reports/**`
+**IMPORTANT MUST ATTENTION** Write intermediate findings to `plans/reports/` after each phase to prevent context loss
 """

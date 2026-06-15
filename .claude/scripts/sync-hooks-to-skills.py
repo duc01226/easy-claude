@@ -5,25 +5,36 @@ Inserts SYNC: blocks sourced from canonical (sync-inline-versions.md) into all
 SKILL.md and agent .md files. Idempotent: skips files that already contain a block.
 
 Tiered blocks (agents):
-  Core-5 (every agent):
+  Core-6 (every agent):
     - SYNC:critical-thinking-mindset
     - SYNC:ai-mistake-prevention
     - SYNC:sequential-thinking-protocol
     - SYNC:task-tracking-external-report
     - SYNC:project-reference-docs-guide
-  Code-9 (Core-5 + 4, for code/review agents in CODE_AGENTS):
+    - SYNC:agent-bootstrap
+  Code-10 (Core-6 + 4, for code/review agents in CODE_AGENTS):
     - SYNC:understand-code-first
     - SYNC:evidence-based-reasoning
     - SYNC:cross-service-check
     - SYNC:fix-layer-accountability
+  agent-code-standards (gated INDEPENDENTLY by CODE_STANDARDS_AGENTS — NOT the
+  same set as CODE_AGENTS): dev-rules + coding-pattern pointers for agents that
+  write/modify/review/debug/optimize/test code. Appended on top of whichever tier
+  (Core or Code) the agent already has. Non-code-standards agents never receive it.
 Skills keep the original 2-block SKILL_BLOCK_ORDER (no skills regression).
 
 Agent tier is set by explicit CODE_AGENTS / CORE_ONLY_AGENTS membership; an
 unclassified or double-classified agent raises (no silent default).
+agent-code-standards membership (CODE_STANDARDS_AGENTS) is a SEPARATE axis: an
+agent can be in CODE_AGENTS (code-investigation tier) yet NOT in
+CODE_STANDARDS_AGENTS (e.g. researcher/scout/ui-ux-designer read or locate code
+but do not author/review it), and vice versa.
 
-Insertion point: after the first block of > lines (the [IMPORTANT] header), before ## headings.
-Reminder lines: appended inside ## Closing Reminders if the section exists (only
-for blocks that have a :reminder variant).
+Insertion point: all SYNC blocks (main + :reminder variants) are inserted as ONE
+group in the bottom zone, immediately BEFORE the `## Closing Reminders` section
+(or appended at EOF when that section is absent). Main blocks precede reminder
+variants. Canonical layout: ...main body... -> SYNC main -> SYNC reminders ->
+## Closing Reminders. Markers are emitted left-flush (matches refactor_*_layout.py).
 """
 
 import os
@@ -193,6 +204,33 @@ BLOCKS = {
 > - "Both fix is safer" — Pick ONE authoritative layer. Redundant checks across layers send mixed signals about who owns the invariant.
 
 <!-- /SYNC:fix-layer-accountability -->""",
+
+    "agent-bootstrap": """\
+<!-- SYNC:agent-bootstrap -->
+
+> **Plan first, then act.** Break work into small tasks before editing; keep exactly one task in progress; mark each complete immediately after its evidence lands. On context loss, inspect the existing task list before creating new tasks.
+>
+> **Context guard / progress file (MANDATORY when task > 5 files or > 3 steps).** Context exhaustion = silent loss of ALL findings; no progress file = no recovery.
+>
+> 1. **On start:** create `tmp/ck-agent-{ts}-{rnd}.progress.md` — `ts` = current timestamp in `YYYYMMDDHHmmssSSS` (17 digits), `rnd` = random 6-char hex. First line records the session id.
+> 2. **After each step:** append findings, marking `[done]` / `[partial]` / `[pending]`.
+> 3. **Running out of context?** Write `[partial]` to the file FIRST — NEVER summarize before writing.
+> 4. **Producing a report?** Persist it incrementally to `plans/reports/` and start the final message with its path.
+>
+> **Blocked until:** task breakdown exists · progress file created when the task exceeds the size threshold.
+
+<!-- /SYNC:agent-bootstrap -->""",
+
+    "agent-code-standards": """\
+<!-- SYNC:agent-code-standards -->
+
+> **Development rules.** YAGNI / KISS / DRY. Place logic in the LOWEST layer (Entity/Model > Service > Component/Handler) — mapping → Command/DTO, constants → Model. Kebab-case files. Search 3+ existing patterns before writing new code; read existing code before changing it. Read `.claude/docs/development-rules.md` for full coding standards, quality gates, and the pre-commit checklist (when present).
+>
+> **Coding patterns.** Before implementing, read the project pattern references named in `docs/project-config.json` / the docs index (e.g. `docs/project-reference/backend-patterns-reference.md`, `frontend-patterns-reference.md`) — local conventions override generic framework defaults.
+>
+> **Blocked until:** dev-rules + pattern docs read before writing or changing code.
+
+<!-- /SYNC:agent-code-standards -->""",
 }
 
 REMINDERS = {
@@ -234,16 +272,20 @@ REMINDERS = {
 # Skills keep the original 2-block order (no skills regression).
 SKILL_BLOCK_ORDER = ["critical-thinking-mindset", "ai-mistake-prevention"]
 
-# Core-5: every agent. (critical-thinking + ai-mistake already present in agents.)
+# Core: every agent. (critical-thinking + ai-mistake already present in agents.)
+# agent-bootstrap (Phase 03): self-contained subagent startup contract for hookless
+# harnesses (Codex/Copilot have no SubagentStart hook). Regenerated from canonical
+# via sync-update-blocks.py agent-bootstrap.
 CORE_BLOCK_ORDER = [
     "critical-thinking-mindset",
     "ai-mistake-prevention",
     "sequential-thinking-protocol",
     "task-tracking-external-report",
     "project-reference-docs-guide",
+    "agent-bootstrap",
 ]
 
-# Code-9: Core-5 + 4 code-investigation blocks for agents that read/review code.
+# Code-10: Core-6 + 4 code-investigation blocks for agents that read/review code.
 CODE_BLOCK_ORDER = CORE_BLOCK_ORDER + [
     "understand-code-first",
     "evidence-based-reasoning",
@@ -264,6 +306,20 @@ CODE_AGENTS = {
 CORE_ONLY_AGENTS = {
     "business-analyst", "docs-manager", "git-manager", "journal-writer",
     "knowledge-worker", "product-owner", "project-manager", "quality-gate-review",
+}
+
+# agent-code-standards audience — SEPARATE axis from CODE_AGENTS. Only agents that
+# author/modify/review/debug/optimize/test production or framework code. An agent
+# in CODE_AGENTS may be excluded here (researcher/scout/scout-external research or
+# locate code but do not author/review it; ui-ux-designer produces design artifacts).
+# Membership is NOT validated against the disk set the way CODE/CORE_ONLY are — it is
+# a pure inclusion list; absence simply means "no code-standards block".
+CODE_STANDARDS_AGENTS = {
+    "architect", "backend-developer", "code-reviewer", "code-simplifier",
+    "database-admin", "debugger", "e2e-runner", "framework-maintainer",
+    "frontend-developer", "fullstack-developer", "integration-tester",
+    "performance-optimizer", "planner", "security-auditor", "solution-architect",
+    "spec-compliance-reviewer", "tester",
 }
 
 
@@ -295,79 +351,37 @@ def find_target_files(agents_only=False):
                 f"Unclassified agent: '{name}' - add it to CODE_AGENTS or "
                 f"CORE_ONLY_AGENTS (edit {os.path.basename(__file__)})."
             )
-        targets.append((path, CODE_BLOCK_ORDER if in_code else CORE_BLOCK_ORDER))
+        # Build a fresh list per agent (never mutate the shared *_BLOCK_ORDER
+        # constants). agent-code-standards is gated on the SEPARATE
+        # CODE_STANDARDS_AGENTS axis and appended for code-standards agents only.
+        order = list(CODE_BLOCK_ORDER if in_code else CORE_BLOCK_ORDER)
+        if name in CODE_STANDARDS_AGENTS:
+            order.append("agent-code-standards")
+        targets.append((path, order))
 
     return targets
 
 
 # ─── Insertion logic ─────────────────────────────────────────────────────────
 
-def find_frontmatter_end(lines):
-    """Return index of the line AFTER the closing --- of frontmatter. 0 if no frontmatter."""
-    if not lines or lines[0].strip() != "---":
-        return 0
-    for i in range(1, len(lines)):
-        if lines[i].strip() == "---":
-            return i + 1
-    return 0
-
-
-def find_body_insert_point(lines, fm_end):
-    """
-    Find insertion point: after the first contiguous block of > lines past frontmatter.
-    If no > block exists, return fm_end (insert right after frontmatter).
-    """
-    i = fm_end
-    # Skip leading blank lines
-    while i < len(lines) and not lines[i].strip():
-        i += 1
-
-    if i >= len(lines):
-        return i
-
-    # If first content is a > block, consume it (including interior blank lines)
-    if lines[i].startswith(">"):
-        # Walk forward through > lines and blank separators between > paragraphs
-        j = i
-        while j < len(lines):
-            stripped = lines[j].strip()
-            if stripped.startswith(">"):
-                j += 1
-            elif stripped == "":
-                # Peek ahead — if next non-blank is also >, continue; else stop
-                k = j + 1
-                while k < len(lines) and not lines[k].strip():
-                    k += 1
-                if k < len(lines) and lines[k].startswith(">"):
-                    j = k
-                else:
-                    break
-            else:
-                break
-        return j  # insert after the > block
-
-    # No > block — insert right at start of content
-    return i
-
-
-def find_closing_reminders_end(lines):
-    """
-    Return index just before the end of ## Closing Reminders section.
-    Returns -1 if the section doesn't exist.
-    """
-    start = -1
+def find_closing_reminders_start(lines):
+    """Index of the `## Closing Reminders` heading line, or -1 if absent."""
     for i, line in enumerate(lines):
         if line.strip().startswith("## Closing Reminders"):
-            start = i
-            break
-    if start == -1:
-        return -1
+            return i
+    return -1
 
-    # Find end: next ## heading or EOF
-    for i in range(start + 1, len(lines)):
-        if lines[i].startswith("## ") or lines[i].startswith("# "):
-            return i  # insert before this heading
-    return len(lines)  # insert at EOF
+
+def _normalize_block(text):
+    """Strip the block and left-flush its SYNC marker lines (canonical form)."""
+    out = []
+    for ln in text.strip().splitlines():
+        stripped = ln.lstrip()
+        if stripped.startswith("<!-- SYNC:") or stripped.startswith("<!-- /SYNC:"):
+            out.append(stripped)
+        else:
+            out.append(ln)
+    return "\n".join(out)
 
 
 def block_present(content, block_name):
@@ -398,38 +412,24 @@ def process_file(path, block_order, dry_run=False):
     if not missing_blocks and not missing_reminders:
         return "skip"
 
-    fm_end = find_frontmatter_end(lines)
-    insert_at = find_body_insert_point(lines, fm_end)
+    # Canonical layout: all SYNC blocks live in the bottom zone — main blocks
+    # first, then :reminder variants — inserted as ONE group immediately BEFORE
+    # the `## Closing Reminders` section (or appended at EOF when it is absent).
+    chunks = [_normalize_block(BLOCKS[name]) for name in block_order if name in missing_blocks]
+    chunks += [_normalize_block(REMINDERS[name]) for name in block_order if name in missing_reminders]
+    block_text = "\n\n".join(chunks)
 
-    # Build the block text to inject
-    blocks_to_insert = []
-    for name in block_order:
-        if name in missing_blocks:
-            blocks_to_insert.append(BLOCKS[name])
-
-    if blocks_to_insert:
-        insert_text = "\n\n" + "\n\n".join(blocks_to_insert) + "\n"
-        insert_lines = insert_text.splitlines()
-        lines = lines[:insert_at] + insert_lines + lines[insert_at:]
-
-    # Re-compute content for reminder insertion (lines may have shifted)
-    content_after_blocks = "\n".join(lines)
-
-    if missing_reminders:
-        lines2 = content_after_blocks.splitlines()
-        closing_end = find_closing_reminders_end(lines2)
-        if closing_end != -1:
-            reminder_lines = []
-            for name in block_order:
-                if name in missing_reminders and f"<!-- SYNC:{name}:reminder -->" not in content_after_blocks:
-                    reminder_lines.extend(REMINDERS[name].splitlines())
-            if reminder_lines:
-                lines2 = lines2[:closing_end] + reminder_lines + lines2[closing_end:]
-        content_after_blocks = "\n".join(lines2)
+    insert_idx = find_closing_reminders_start(lines)
+    if insert_idx == -1:
+        new_content = original.rstrip("\n") + "\n\n" + block_text + "\n"
+    else:
+        before = "\n".join(lines[:insert_idx]).rstrip("\n")
+        after = "\n".join(lines[insert_idx:]).rstrip("\n")
+        new_content = before + "\n\n" + block_text + "\n\n" + after + "\n"
 
     if not dry_run:
         with open(path, "w", encoding="utf-8", newline="\n") as f:
-            f.write(content_after_blocks)
+            f.write(new_content)
 
     return "updated"
 

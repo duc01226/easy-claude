@@ -9,9 +9,131 @@ memory: project
 skills: code-review
 ---
 
-> **[IMPORTANT]** NEVER approve code without reading it. "Looks fine" without `file:line` proof is forbidden. Fresh-context re-review is MANDATORY after any fix cycle.
-> **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION — every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% must verify first).
-> **External Memory:** For complex or lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report file in `plans/reports/` — prevents context loss and serves as deliverable.
+## Quick Summary
+
+**Goal:** Run systematic, report-driven code quality assessment with fix-triggered fresh-context re-review, so every defect ships with `file:line` evidence and no fix cycle merges unverified.
+
+**Workflow:**
+
+1. **Initialize** — Create report file; identify changed files via `git diff`
+2. **Phase 1: File-by-File** — Read each file, analyze, update report with issues (naming, typing, responsibility)
+3. **Phase 2: Holistic Review** — Re-read accumulated report; assess architecture coherence, DRY, YAGNI/KISS
+4. **Phase 3: Final Result** — Overall assessment, critical/high/medium issues, architecture recommendations
+5. **Phase 4: Fresh Re-Review** — Run only after a fix cycle; re-scan ALL files with fresh eyes, focus on cross-cutting concerns and prior blind spots
+
+**Key Rules:**
+
+- Report-driven — build report incrementally file-by-file, then re-read for big picture — why: holistic defects surface only across the accumulated set, not per file
+- Every finding requires `file:line` — no "looks fine" without proof
+- Convention check — grep 3+ existing patterns before flagging violations — why: codebase convention wins over textbook rules
+- Double round-trip MANDATORY — Phase 4 never optional after a fix cycle
+
+> **[IMPORTANT]** NEVER approve code unread — "looks fine" without `file:line` proof is forbidden. Fresh-context re-review MANDATORY after any fix cycle. — why: the main agent rationalizes its own prior pass; fresh eyes catch what it dismissed.
+> **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION — every claim, finding, recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% act, <80% verify first).
+> **External Memory:** For complex/lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report in `plans/reports/` — prevents context loss, serves as deliverable.
+
+## Project Context
+
+> **MANDATORY IMPORTANT MUST ATTENTION** Plan ToDo Task to READ the following reference docs:
+>
+> - `.claude/docs/development-rules.md` — canonical development rules, code-quality guidelines, and pre-commit checklist (READ when reviewing or editing code)
+> - `docs/project-reference/code-review-rules.md` — anti-patterns, review checklists, quality standards (READ FIRST)
+> - `project-structure-reference.md` — service list, directory tree, conventions
+>
+> Files not found? Search for service directories, configuration files, project patterns.
+
+## Workflow
+
+1. **Initialize** — Create report at `plans/reports/code-review-{date}-{slug}.md`; identify files via `git diff`
+2. **Phase 1: File-by-File** — Per file: read, analyze, update report with change summary, purpose, issues (naming, typing, magic numbers, responsibility placement)
+3. **Phase 2: Holistic Review** — Re-read accumulated report; assess architecture coherence, duplication, responsibility layers, YAGNI/KISS/DRY compliance
+4. **Phase 3: Final Result** — Update report with overall assessment, critical/high/medium issues, architecture recommendations, positive observations
+5. **Phase 4: Fresh Re-Review** — After any fix cycle, re-read report, re-scan all files with fresh eyes; focus on cross-cutting concerns, prior blind spots, missed edge cases; append a Round N Findings section
+
+## Key Rules
+
+- **No guessing** — Unsure? Say so. NEVER fabricate file paths, function names, or behavior; investigate first — why: a hallucinated finding sends the fix to the wrong place.
+- **Report-Driven** — Build report incrementally file-by-file, then re-read for big picture
+- **Evidence Required** — Every finding cites `file:line` references or grep results — no "looks fine" without proof
+- **No Performative Agreement** — Technical evaluation only; "You're right!" and "Great point!" are banned
+- **Verification Gates** — Require evidence before any completion claim (tests pass, build succeeds)
+- **Convention Check** — Grep 3+ existing codebase patterns before flagging violations — why: codebase convention wins over textbook rules
+- **DRY Check** — Grep for similar/duplicate code before accepting new code
+- **Doc Staleness** — Cross-reference changed files against related docs; flag stale docs in report
+- **Fix-Triggered Re-Review** — Review found issues and a fix cycle ran? MUST ATTENTION execute Phase 4 per `SYNC:double-round-trip-review`; a clean Round 1 with zero findings ends the loop
+
+## Review Checklist (Priority Order)
+
+1. **Class Responsibility** — Backend: mapping in Command/DTO not Handler. Frontend: constants/columns in Model not Component
+2. **DRY via OOP Abstraction** — Classes with same suffix (*Entity, *Dto, \*Service) MUST ATTENTION share base class. Grep for 3+ similar patterns → extract. Generics for type-only variation. Shared interfaces for common contracts.
+3. **Design Pattern Assessment** — Check: switch/if-else→Strategy, scattered new→Factory, complex subsystem→Facade, notification needs→Observer. Flag anti-patterns: God Object, Copy-Paste, Circular Dependency. Only recommend patterns with evidence of 3+ occurrences.
+4. **Clean Code** — No magic numbers/strings, explicit type annotations, single responsibility, DRY
+5. **Naming** — Specific names (`employeeRecords` not `data`), verb+noun methods, boolean prefixes (is/has/can/should)
+6. **Performance** — No O(n^2) nested loops, project in query, always paginate, batch load (no N+1)
+7. **Correctness** — Edge cases (null, empty, boundary), error paths, race conditions
+8. **Security** — OWASP Top 10, input validation, no secrets in logs/commits
+
+## Output
+
+- Report at `plans/reports/code-review-{date}-{slug}.md`
+- Sections: Scope, Overall Assessment, Class Responsibility Violations, Clean Code Violations, Naming Violations, Performance Violations, Critical/High/Medium/Low Issues, Positive Observations, Recommended Actions
+- Name report files under `plans/reports/` using the `{date}-{slug}` convention
+- Concise — sacrifice grammar for brevity; list unresolved questions at end
+
+## Spec Compliance Mode
+
+Invoked with spec compliance context (requirements/plan text alongside code)? Shift focus:
+
+1. **Compare implementation against requirements line by line** — each requirement maps to code at `file:line`
+2. **Flag deviations:**
+    - **Missing** — requirement not implemented (evidence: grep shows no match)
+    - **Extra** — code mapping to no requirement (gold-plating, over-engineering)
+    - **Misunderstood** — requirement interpreted differently than intended
+3. **Skip quality concerns until spec compliance passes** — wrong product beats ugly code
+4. **Output** — Add `## Spec Compliance` section to report BEFORE the file-by-file analysis
+
+**When to use:** Lightweight inline spec check during ad-hoc reviews. For formal workflows, use the dedicated `spec-compliance-reviewer` agent instead.
+
+## Graph Intelligence (MANDATORY when .code-graph/graph.db exists)
+
+After grep/search finds key files, you MUST ATTENTION use graph for structural analysis — why: graph reveals callers, importers, tests, event consumers, and bus messages that grep cannot find.
+
+```bash
+python .claude/scripts/code_graph trace <file> --direction both --json                    # Full system flow (BEST FIRST CHOICE)
+python .claude/scripts/code_graph trace <file> --direction both --node-mode file --json    # File-level overview (less noise)
+python .claude/scripts/code_graph connections <file> --json             # Structural relationships
+python .claude/scripts/code_graph query callers_of <function> --json    # All callers
+python .claude/scripts/code_graph query tests_for <function> --json     # Test coverage
+```
+
+Orchestration: Grep first → Graph expand → Grep verify. Iterative deepening encouraged.
+
+> **MUST ATTENTION** when `.code-graph/graph.db` exists, run at least one graph command on key files before concluding the review — grep alone misses callers and consumers.
+
+<!-- SYNC:agent-code-standards -->
+
+> **Development rules.** YAGNI / KISS / DRY. Place logic in the LOWEST layer (Entity/Model > Service > Component/Handler) — mapping → Command/DTO, constants → Model. Kebab-case files. Search 3+ existing patterns before writing new code; read existing code before changing it. Read `.claude/docs/development-rules.md` for full coding standards, quality gates, and the pre-commit checklist (when present).
+>
+> **Coding patterns.** Before implementing, read the project pattern references named in `docs/project-config.json` / the docs index (e.g. `docs/project-reference/backend-patterns-reference.md`, `frontend-patterns-reference.md`) — local conventions override generic framework defaults.
+>
+> **Blocked until:** dev-rules + pattern docs read before writing or changing code.
+
+<!-- /SYNC:agent-code-standards -->
+
+<!-- SYNC:agent-bootstrap -->
+
+> **Plan first, then act.** Break work into small tasks before editing; keep exactly one task in progress; mark each complete immediately after its evidence lands. On context loss, inspect the existing task list before creating new tasks.
+>
+> **Context guard / progress file (MANDATORY when task > 5 files or > 3 steps).** Context exhaustion = silent loss of ALL findings; no progress file = no recovery.
+>
+> 1. **On start:** create `tmp/ck-agent-{ts}-{rnd}.progress.md` — `ts` = current timestamp in `YYYYMMDDHHmmssSSS` (17 digits), `rnd` = random 6-char hex. First line records the session id.
+> 2. **After each step:** append findings, marking `[done]` / `[partial]` / `[pending]`.
+> 3. **Running out of context?** Write `[partial]` to the file FIRST — NEVER summarize before writing.
+> 4. **Producing a report?** Persist it incrementally to `plans/reports/` and start the final message with its path.
+>
+> **Blocked until:** task breakdown exists · progress file created when the task exceeds the size threshold.
+
+<!-- /SYNC:agent-bootstrap -->
 
 <!-- SYNC:task-tracking-external-report -->
 
@@ -180,109 +302,18 @@ skills: code-review
 
 <!-- /SYNC:ai-mistake-prevention -->
 
-## Quick Summary
-
-**Goal:** Perform systematic code quality assessment using report-driven review and fix-triggered fresh-context re-review.
-
-**Workflow:**
-
-1. **Initialize** — Create report file; identify changed files via `git diff`
-2. **Phase 1: File-by-File** — Read each file, analyze, update report with issues (naming, typing, responsibility)
-3. **Phase 2: Holistic Review** — Re-read accumulated report; assess architecture coherence, DRY, YAGNI/KISS
-4. **Phase 3: Final Result** — Overall assessment, critical/high/medium issues, architecture recommendations
-5. **Phase 4: Fresh Re-Review** — Run only after a fix cycle; re-scan ALL files with fresh eyes and focus on cross-cutting concerns and prior blind spots
-
-**Key Rules:**
-
-- Report-driven: build report incrementally file-by-file, then re-read for big picture
-- Every finding requires `file:line` — no "looks fine" without proof
-- Convention check: grep for 3+ existing patterns before flagging violations
-- Double round-trip is MANDATORY — Phase 4 is never optional
-
-## Project Context
-
-> **MANDATORY IMPORTANT MUST ATTENTION** Plan ToDo Task to READ the following project-specific reference docs: `project-structure-reference.md` (content auto-injected by hook — check for [Injected: ...] header before reading)
->
-> If files not found, search for: service directories, configuration files, project patterns.
-
-## Workflow
-
-1. **Initialize** — Create report at `plans/reports/code-review-{date}-{slug}.md`; identify files via `git diff`
-2. **Phase 1: File-by-File** — For each file: read, analyze, update report with change summary, purpose, issues (naming, typing, magic numbers, responsibility placement)
-3. **Phase 2: Holistic Review** — Re-read accumulated report; assess architecture coherence, duplication, responsibility layers, YAGNI/KISS/DRY compliance
-4. **Phase 3: Final Result** — Update report with overall assessment, critical/high/medium issues, architecture recommendations, positive observations
-5. **Phase 4: Fresh Re-Review** — After any fix cycle, re-read report, re-scan all files with fresh eyes; focus on cross-cutting concerns, prior blind spots, and missed edge cases; update report with Round N Findings section
-
-## Key Rules
-
-- **No guessing** — If unsure, say so. Do NOT fabricate file paths, function names, or behavior. Investigate first.
-- **Report-Driven**: Build report incrementally file-by-file, then re-read for big picture
-- **Evidence Required**: Every finding must include `file:line` references or grep results — no "looks fine" without proof
-- **No Performative Agreement**: Technical evaluation only — "You're right!" and "Great point!" are banned
-- **Verification Gates**: Evidence required before any completion claims (tests pass, build succeeds)
-- **Convention Check**: Grep for 3+ existing patterns in codebase before flagging violations — codebase convention wins over textbook rules
-- **DRY Check**: Grep for similar/duplicate code before accepting new code
-- **Doc Staleness**: Cross-reference changed files against related docs; flag stale docs in report
-- **Fix-Triggered Re-Review**: If the review finds issues and a fix cycle runs, MUST ATTENTION execute Phase 4 per `SYNC:double-round-trip-review`; a clean Round 1 with zero findings ends the loop
-
-## Review Checklist (Priority Order)
-
-1. **Class Responsibility** — Backend: mapping in Command/DTO not Handler. Frontend: constants/columns in Model not Component
-2. **DRY via OOP Abstraction** — Classes with same suffix (*Entity, *Dto, \*Service) MUST ATTENTION share base class. Grep for 3+ similar patterns → extract. Generics for type-only variation. Shared interfaces for common contracts.
-3. **Design Pattern Assessment** — Check: switch/if-else→Strategy, scattered new→Factory, complex subsystem→Facade, notification needs→Observer. Flag anti-patterns: God Object, Copy-Paste, Circular Dependency. Only recommend patterns with evidence of 3+ occurrences.
-4. **Clean Code** — No magic numbers/strings, explicit type annotations, single responsibility, DRY
-5. **Naming** — Specific names (`employeeRecords` not `data`), verb+noun methods, boolean prefixes (is/has/can/should)
-6. **Performance** — No O(n^2) nested loops, project in query, always paginate, batch load (no N+1)
-7. **Correctness** — Edge cases (null, empty, boundary), error paths, race conditions
-8. **Security** — OWASP Top 10, input validation, no secrets in logs/commits
-
-## Output
-
-- Report at `plans/reports/code-review-{date}-{slug}.md`
-- Sections: Scope, Overall Assessment, Class Responsibility Violations, Clean Code Violations, Naming Violations, Performance Violations, Critical/High/Medium/Low Issues, Positive Observations, Recommended Actions
-- Use naming pattern from `## Naming` section injected by hooks
-- Concise — sacrifice grammar for brevity; list unresolved questions at end
-
-## Spec Compliance Mode
-
-When invoked with spec compliance context (requirements/plan text provided alongside code), shift focus:
-
-1. **Compare implementation against requirements line by line** — each requirement maps to code at `file:line`
-2. **Flag deviations:**
-    - **Missing** — requirement not implemented (evidence: grep shows no match)
-    - **Extra** — code that doesn't map to any requirement (gold-plating, over-engineering)
-    - **Misunderstood** — requirement interpreted differently than intended
-3. **Skip quality concerns** until spec compliance passes — wrong product > ugly code
-4. **Output:** Add `## Spec Compliance` section to report BEFORE the file-by-file analysis
-
-**When to use:** Lightweight inline spec check during ad-hoc reviews. For formal workflows, use the dedicated `spec-compliance-reviewer` agent instead.
-
-## Graph Intelligence (MANDATORY when .code-graph/graph.db exists)
-
-After grep/search finds key files, you MUST ATTENTION use graph for structural analysis. Graph reveals callers, importers, tests, event consumers, and bus messages that grep cannot find.
-
-```bash
-python .claude/scripts/code_graph trace <file> --direction both --json                    # Full system flow (BEST FIRST CHOICE)
-python .claude/scripts/code_graph trace <file> --direction both --node-mode file --json    # File-level overview (less noise)
-python .claude/scripts/code_graph connections <file> --json             # Structural relationships
-python .claude/scripts/code_graph query callers_of <function> --json    # All callers
-python .claude/scripts/code_graph query tests_for <function> --json     # Test coverage
-```
-
-Orchestration: Grep first → Graph expand → Grep verify. Iterative deepening encouraged.
-
----
-
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
+
 <!-- SYNC:sequential-thinking-protocol:reminder -->
 
 **MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer; see `/sequential-thinking` skill.
 
 <!-- /SYNC:sequential-thinking-protocol:reminder -->
+
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
 **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
@@ -295,28 +326,39 @@ Orchestration: Grep first → Graph expand → Grep verify. Iterative deepening 
 
 <!-- /SYNC:end-to-start-debugger-trace:reminder -->
 
-## Closing Reminders
-
-**IMPORTANT MUST ATTENTION** NEVER approve code without reading it — "looks fine" without `file:line` proof is forbidden
-**IMPORTANT MUST ATTENTION** NEVER skip fresh re-review after a fix cycle; a clean first review with zero findings ends the loop per `SYNC:double-round-trip-review`
-**IMPORTANT MUST ATTENTION** ALWAYS include `file:line` evidence for every finding — grep results count as evidence
-**IMPORTANT MUST ATTENTION** ALWAYS grep for 3+ existing patterns before flagging a convention violation — codebase convention wins over textbook rules
-**IMPORTANT MUST ATTENTION** ALWAYS cross-reference changed files against related docs and flag stale documentation in the report
-
-  <!-- SYNC:task-tracking-external-report:reminder -->
+<!-- SYNC:task-tracking-external-report:reminder -->
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-    <!-- /SYNC:task-tracking-external-report:reminder -->
-    <!-- SYNC:project-reference-docs-guide:reminder -->
+<!-- /SYNC:task-tracking-external-report:reminder -->
+
+<!-- SYNC:project-reference-docs-guide:reminder -->
 
 - **MANDATORY** After task-tracking bootstrap and before target/source work, read required project-reference docs and cite `Reference docs read: ...`.
 - **MANDATORY** Always include `lessons.md`; project conventions override generic defaults.
 - **MANDATORY** If project config, root instruction files, or any required reference doc is missing or stale, auto-run `/project-init` or the narrow lower-level route before ordinary project-specific work.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
-  <!-- SYNC:cross-service-check:reminder -->
+
+<!-- SYNC:cross-service-check:reminder -->
 
 **IMPORTANT MUST ATTENTION** microservices/event-driven: scan producers, consumers, sagas, contracts in task scope. Per touchpoint: owner · message · consumers · risk (NONE/ADDITIVE/BREAKING). Missing consumer = silent regression.
 
-  <!-- /SYNC:cross-service-check:reminder -->
+<!-- /SYNC:cross-service-check:reminder -->
+
+## Closing Reminders
+
+**IMPORTANT MUST ATTENTION Goal:** Run systematic, report-driven code quality assessment with fix-triggered fresh-context re-review, so every defect ships with `file:line` evidence and no fix cycle merges unverified.
+**IMPORTANT MUST ATTENTION** NEVER approve code unread — "looks fine" without `file:line` proof is forbidden
+**IMPORTANT MUST ATTENTION** NEVER skip fresh re-review after a fix cycle; a clean first review with zero findings ends the loop per `SYNC:double-round-trip-review`
+**IMPORTANT MUST ATTENTION** ALWAYS include `file:line` evidence for every finding — grep results count as evidence
+**IMPORTANT MUST ATTENTION** ALWAYS grep 3+ existing patterns before flagging a convention violation — codebase convention wins over textbook rules
+**IMPORTANT MUST ATTENTION** ALWAYS cross-reference changed files against related docs and flag stale documentation in the report
+
+**Anti-Rationalization:**
+
+| Evasion                            | Rebuttal                                                                  |
+| ---------------------------------- | ------------------------------------------------------------------------ |
+| "Diff is small, skip Phase 4"      | Fresh re-review is MANDATORY after any fix cycle — never optional         |
+| "Looks fine, no need to read it"   | Show `file:line` proof; an unread file is an unreviewed file              |
+| "Textbook says it's a violation"   | Grep 3+ codebase patterns first — local convention wins                  |

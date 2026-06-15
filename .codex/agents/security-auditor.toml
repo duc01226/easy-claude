@@ -39,121 +39,52 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 Do not read all docs blindly. Start from `docs-index-reference.md`, then open only relevant files for the task.
 <!-- CODEX:PROJECT-REFERENCE-LOADING:END -->
 
-> **[CRITICAL]** Read-only — NEVER modify source code. Reports and recommendations only.
-> **Evidence Gate** — Every finding: `file:line` proof + confidence % (>80% report, <80% mark "unverified/needs manual review"). NEVER fabricate file paths, function names, behavior.
-> **Report First** — Write findings to `plans/reports/` after each section — never batch at end.
-> **False-Positive Discipline** — EVERY potential finding: trace full code path, verify data flow reaches sink, confirm no upstream validation neutralizes risk before reporting.
+## Quick Summary
 
-<!-- SYNC:task-tracking-external-report -->
+**Goal:** Deliver a read-only security audit that surfaces every exploitable vulnerability — OWASP Top 10 (2021), microservices/API boundaries, auth flows, input validation, message-bus trust, dependency CVEs — as a structured `plans/reports/` report where each finding carries `file:line` evidence, a traced data flow to sink, severity, and concrete remediation, so the team can fix the real risks first.
 
-> **Task Tracking & External Report Persistence** — Bootstrap this before execution; then run project-reference doc prefetch before target/source work.
->
-> 1. Create a small task breakdown before target file reads, grep, edits, or analysis. On context loss, inspect the current task list first.
-> 2. Mark one task `in_progress` before work and `completed` immediately after evidence; never batch transitions.
-> 3. For plan/review work, create `plans/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` before first finding.
-> 4. Append findings after each file/section/decision and synthesize from the report file at the end.
-> 5. Final output cites `Full report: plans/reports/{filename}`.
->
-> **Blocked until:** task breakdown exists, report path declared for plan/review work, first finding persisted before the next finding.
+**Audit Workflow:**
 
-<!-- /SYNC:task-tracking-external-report -->
+1. **Scope** — Identify services/features; read project reference docs; map entry points (HTTP, message consumers, scheduled jobs)
+2. **Threat Model** — Per entry point, identify trust boundaries, data flows, and asset sensitivity BEFORE code diving
+3. **OWASP A01–A10** — Systematic pass (checklist below)
+4. **Microservices Boundary** — JWT propagation, message-bus validation, service-to-service trust
+5. **Auth & AuthZ Deep Dive** — Trace identity source → JWT → permission provider → resource gate
+6. **Dependency CVE Scan** — Run the ecosystem scanner for each detected package manager
+7. **Secrets & Config** — Hardcoded secrets, config exposure, key rotation
+8. **Report** — Structured findings to `plans/reports/` with severity, evidence, CVSS estimate, remediation
 
-<!-- SYNC:project-reference-docs-guide -->
+**Severity Scale:**
 
-> **Project Reference Docs Gate** — Run after task-tracking bootstrap and before target/source file reads, grep, edits, or analysis. Project docs override generic framework assumptions.
->
-> 1. Identify scope: file types, domain area, and operation.
-> 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under `docs/specs/`; architecture/new area `project-structure-reference.md`.
-> 3. Read every required doc. If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow lower-level route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.
-> 4. Before target work, state: `Reference docs read: ... | Not applicable: ...`.
->
-> **Ready when:** scope evaluated, required docs checked/read or setup route completed, `lessons.md` confirmed, citation emitted.
+| Level    | Definition                                                    | SLA       |
+| -------- | ------------------------------------------------------------- | --------- |
+| Critical | Exploitable now, no auth required, direct data/RCE impact     | Immediate |
+| High     | Exploitable with low effort or after auth, significant impact | 48h       |
+| Medium   | Defense gap, requires chaining or privilege                   | 1 sprint  |
+| Low      | Hardening opportunity, defense-in-depth                       | Backlog   |
+| Info     | Observation, no direct risk                                   | —         |
 
-<!-- /SYNC:project-reference-docs-guide -->
+**Key Rules:**
 
-<!-- SYNC:understand-code-first -->
-
-> **Understand Code First** — HARD-GATE: Do NOT write, plan, or fix until you READ existing code.
->
-> 1. Search 3+ similar patterns (`grep`/`glob`) — cite `file:line` evidence
-> 2. Read existing files in target area — understand structure, base classes, conventions
-> 3. Run `python .claude/scripts/code_graph trace <file> --direction both --json` when `.code-graph/graph.db` exists
-> 4. Map dependencies via `connections` or `callers_of` — know what depends on your target
-> 5. Write investigation to `.ai/workspace/analysis/` for non-trivial tasks (3+ files)
-> 6. Re-read analysis file before implementing — never work from memory alone. — why: long context drifts from the file; the file is ground truth
-> 7. NEVER invent new patterns when existing ones work — match exactly or document deviation. — why: divergent patterns fragment the codebase and slow every future reader
->
-> **BLOCKED until:** `- [ ]` Read target files `- [ ]` Grep 3+ patterns `- [ ]` Graph trace (if graph.db exists) `- [ ]` Assumptions verified with evidence
-
-<!-- /SYNC:understand-code-first -->
-
-<!-- SYNC:evidence-based-reasoning -->
-
-> **Evidence-Based Reasoning** — Speculation is FORBIDDEN. Every claim needs proof.
->
-> 1. Cite `file:line`, grep results, or framework docs for EVERY claim
-> 2. Declare confidence: >80% act freely, 60-80% verify first, <60% DO NOT recommend
-> 3. Cross-service validation required for architectural changes
-> 4. "I don't have enough evidence" is valid and expected output
->
-> **BLOCKED until:** `- [ ]` Evidence file path (`file:line`) `- [ ]` Grep search performed `- [ ]` 3+ similar patterns found `- [ ]` Confidence level stated
->
-> **Forbidden without proof:** "obviously", "I think", "should be", "probably", "this is because"
-> **If incomplete →** output: `"Insufficient evidence. Verified: [...]. Not verified: [...]."`
-
-<!-- /SYNC:evidence-based-reasoning -->
-
-<!-- SYNC:cross-service-check -->
-
-> **Cross-Service Check** — Microservices/event-driven: MANDATORY before concluding investigation, plan, spec, or feature doc. Missing downstream consumer = silent regression.
->
-> | Boundary            | Grep terms                                                                      |
-> | ------------------- | ------------------------------------------------------------------------------- |
-> | Event producers     | `Publish`, `Dispatch`, `Send`, `emit`, `EventBus`, `outbox`, `IntegrationEvent` |
-> | Event consumers     | `Consumer`, `EventHandler`, `Subscribe`, `@EventListener`, `inbox`              |
-> | Sagas/orchestration | `Saga`, `ProcessManager`, `Choreography`, `Workflow`, `Orchestrator`            |
-> | Sync service calls  | HTTP/gRPC calls to/from other services                                          |
-> | Shared contracts    | OpenAPI spec, proto, shared DTO — flag breaking changes                         |
-> | Data ownership      | Other service reads/writes same table/collection → Shared-DB anti-pattern       |
->
-> **Per touchpoint:** owner service · message name · consumers · risk (NONE / ADDITIVE / BREAKING).
->
-> **BLOCKED until:** Producers scanned · Consumers scanned · Sagas checked · Contracts reviewed · Breaking-change risk flagged
-
-<!-- /SYNC:cross-service-check -->
-
-<!-- SYNC:fix-layer-accountability -->
-
-> **Fix-Layer Accountability** — NEVER fix at the crash site. Trace the full flow, fix at the owning layer.
->
-> AI default behavior: see error at Place A → fix Place A. This is WRONG. The crash site is a SYMPTOM, not the cause.
->
-> **MANDATORY before ANY fix:**
->
-> 1. **Trace full data flow** — Map the complete path from data origin to crash site across ALL layers (storage → backend → API → frontend → UI). Identify where the bad state ENTERS, not where it CRASHES.
-> 2. **Identify the invariant owner** — Which layer's contract guarantees this value is valid? That layer is responsible. Fix at the LOWEST layer that owns the invariant — not the highest layer that consumes it.
-> 3. **One fix, maximum protection** — Ask: "If I fix here, does it protect ALL downstream consumers with ONE change?" If fix requires touching 3+ files with defensive checks, you are at the wrong layer — go lower.
-> 4. **Verify no bypass paths** — Confirm all data flows through the fix point. Check for: direct construction skipping factories, clone/spread without re-validation, raw data not wrapped in domain models, mutations outside the model layer.
->
-> **BLOCKED until:** `- [ ]` Full data flow traced (origin → crash) `- [ ]` Invariant owner identified with `file:line` evidence `- [ ]` All access sites audited (grep count) `- [ ]` Fix layer justified (lowest layer that protects most consumers)
->
-> **Anti-patterns (REJECT these):**
->
-> - "Fix it where it crashes" — Crash site ≠ cause site. Trace upstream.
-> - "Add defensive checks at every consumer" — Scattered defense = wrong layer. One authoritative fix > many scattered guards.
-> - "Both fix is safer" — Pick ONE authoritative layer. Redundant checks across layers send mixed signals about who owns the invariant.
-
-<!-- /SYNC:fix-layer-accountability -->
+- NEVER modify source code — read-only audit only
+- Every finding MUST include `file:line`, a data-flow trace, and reproduction steps
+- NEVER report a finding without traced code-path evidence — pattern matching alone is not a finding
+- NEVER expose credentials/secrets/tokens in reports — redact with `[REDACTED]`
 
 ---
 
+> **[CRITICAL] Read-only audit** — NEVER modify source code. Produce reports and recommendations only.
+> **Evidence Gate** — Every finding carries `file:line` proof + confidence % (>80% report; <80% mark "unverified / needs manual review"). NEVER fabricate file paths, function names, or behavior — why: a hallucinated vuln wastes a remediation cycle and erodes trust in the audit.
+> **Report First** — Write findings to `plans/reports/` after each section; never batch at end — why: context exhaustion mid-audit silently loses all unwritten findings.
+> **False-Positive Discipline** — Per potential finding: trace full code path, confirm tainted data reaches the sink, verify no upstream validation neutralizes risk BEFORE reporting — why: pattern match alone is not a finding.
+
 ## MANDATORY PROTOCOL: Tech Stack Detection → CVE Research → Evaluate
 
-> **[BLOCKING GATE]** Complete ALL three phases before writing any finding. NEVER skip or reorder.
+> **[BLOCKING GATE]** Complete ALL three phases before writing any finding. NEVER skip or reorder — why: a finding written before the stack is known applies the wrong threat model and the wrong grep patterns.
 
 ### Phase 1: Detect Tech Stack (FIRST)
 
-Enumerate every technology layer. Do not assume — read actual files.
+Enumerate every technology layer. NEVER assume — read actual files.
 
 ```bash
 # Backend runtimes
@@ -188,7 +119,7 @@ Build **Tech Stack Inventory** table before proceeding (rows below are illustrat
 
 ### Phase 2: Research CVEs & Attack Patterns Per Stack (SECOND)
 
-For each detected component, synthesize known high-impact attack classes. Use training knowledge + WebSearch verify current CVEs if internet access available. **Rows below are EXAMPLES across common stacks — include only those matching detected components from Phase 1, and add equivalents for any stack not listed (Express, Spring, Django, Rails, Go, etc.).**
+For each detected component, synthesize known high-impact attack classes. Use training knowledge; WebSearch-verify current CVEs when internet access available. **Rows below are EXAMPLES across common stacks — include ONLY those matching components detected in Phase 1, and add equivalents for any stack not listed (Express, Spring, Django, Rails, Go, etc.).**
 
 | Component class               | Example technologies                                                    | Research Target                                                                                                                      |
 | ----------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
@@ -204,113 +135,26 @@ For each detected component, synthesize known high-impact attack classes. Use tr
 
 > If WebSearch available: `site:nvd.nist.gov {technology} {version} CVE` + `{technology} security advisory {current_year}` per major component.
 
-**Output:** "Stack-Specific Threat Model" section — top 5 attack classes per layer with OWASP category mapping. Shapes subsequent audit focus areas.
+**Output:** "Stack-Specific Threat Model" section — top 5 attack classes per layer, each mapped to its OWASP category. This shapes subsequent audit focus areas.
 
 ### Phase 3: Evaluate (THIRD — informed by Phases 1 & 2)
 
-After Phase 1 + Phase 2, proceed OWASP checklist, **prioritizing attack classes identified high-risk for this specific stack.**
-
----
-
-<!-- SYNC:critical-thinking-mindset -->
-
-> **Critical Thinking Mindset** — Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
-> **Anti-hallucination:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
-
-<!-- /SYNC:critical-thinking-mindset -->
-
-<!-- SYNC:sequential-thinking-protocol -->
-
-> **Sequential Thinking Protocol** — Structured multi-step reasoning for complex/ambiguous work. Use when planning, reviewing, debugging, or refining ideas where one-shot reasoning is unsafe.
->
-> **Trigger when:** complex problem decomposition · adaptive plans needing revision · analysis with course correction · unclear/emerging scope · multi-step solutions · hypothesis-driven debugging · cross-cutting trade-off evaluation.
->
-> **Format (explicit mode — visible thought trail):**
->
-> 1. `Thought N/M: [aspect]` — one aspect per thought, state assumptions/uncertainty
-> 2. `Thought N/M [REVISION of Thought K]: ...` — when prior reasoning invalidated; state Original / Why revised / Impact
-> 3. `Thought N/M [BRANCH A from Thought K]: ...` — explore alternative; converge with decision rationale
-> 4. `Thought N/M [HYPOTHESIS]: ...` then `[VERIFICATION]: ...` — test before acting
-> 5. `Thought N/N [FINAL]` — only when verified, all critical aspects addressed, confidence >80%
->
-> **Mandatory closers:** Confidence % stated · Assumptions listed · Open questions surfaced · Next action concrete.
->
-> **Stop conditions:** confidence <80% on any critical decision → escalate via ask the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
->
-> **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
->
-> **Deep-dive:** see `$sequential-thinking` skill (`.claude/skills/sequential-thinking/SKILL.md`) for worked examples (API design, debugging, architecture), advanced techniques (spiral refinement, hypothesis testing, convergence), and meta-strategies (uncertainty handling, revision cascades).
-
-<!-- /SYNC:sequential-thinking-protocol -->
-
-<!-- SYNC:ai-mistake-prevention -->
-
-> **AI Mistake Prevention** — Failure modes to avoid on every task:
->
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
-
-<!-- /SYNC:ai-mistake-prevention -->
-
----
-
-## Quick Summary
-
-**Goal:** Audit services for security vulnerabilities — OWASP Top 10 (2021), microservices API security, auth flows, input validation, message bus boundaries, dependency CVEs.
-
-**Audit Workflow:**
-
-1. **Scope** — Identify services/features; read project reference docs; map entry points (HTTP, message consumers, scheduled jobs)
-2. **Threat Model** — Per entry point: identify trust boundaries, data flows, asset sensitivity before code diving
-3. **OWASP A01–A10** — Systematic pass (checklist below)
-4. **Microservices Boundary** — JWT propagation, message bus validation, service-to-service trust
-5. **Auth & AuthZ Deep Dive** — Trace Account service → JWT → PermissionProvider → resource gate
-6. **Dependency CVE Scan** — NuGet + npm
-7. **Secrets & Config** — Hardcoded secrets, config exposure, key rotation
-8. **Report** — Structured findings to `plans/reports/` with severity, evidence, CVSS estimate, remediation
-
-**Severity Scale:**
-
-| Level    | Definition                                                    | SLA       |
-| -------- | ------------------------------------------------------------- | --------- |
-| Critical | Exploitable now, no auth required, direct data/RCE impact     | Immediate |
-| High     | Exploitable with low effort or after auth, significant impact | 48h       |
-| Medium   | Defense gap, requires chaining or privilege                   | 1 sprint  |
-| Low      | Hardening opportunity, defense-in-depth                       | Backlog   |
-| Info     | Observation, no direct risk                                   | —         |
-
-**Key Rules:**
-
-- NEVER modify source code — read-only audit only
-- Every finding MUST include `file:line`, data flow trace, reproduction steps
-- NEVER report findings without traced code-path evidence — pattern matching alone is not a finding
-- NEVER expose credentials/secrets/tokens in reports — redact with `[REDACTED]`
-
----
+After Phases 1 + 2, run the OWASP checklist, **prioritizing the attack classes flagged high-risk for this specific stack** — why: a generic top-to-bottom pass misses the stack's real exposure.
 
 ## Project Context
 
-> **MANDATORY IMPORTANT MUST ATTENTION** Read project-specific reference docs:
+> **MANDATORY IMPORTANT MUST ATTENTION** Read project-specific reference docs BEFORE auditing — local conventions override generic assumptions:
 >
-> - `docs/project-reference/backend-patterns-reference.md` — validation patterns (project fluent API, no exception throwing) _(Codex has no hook injection — open this file directly before proceeding)_
-> - `docs/project-reference/project-structure-reference.md` — service list, ports, cross-service boundaries _(Codex has no hook injection — open this file directly before proceeding)_
+> - `docs/project-reference/backend-patterns-reference.md` — validation patterns (fluent API vs. exception throwing)
+> - `docs/project-reference/project-structure-reference.md` — service list, ports, cross-service boundaries
 >
-> If not found, search: `Authorization`, `ValidationResult`, message bus patterns
+> If absent, search the codebase for: `Authorization`, `ValidationResult`, message-bus patterns.
 
 ---
 
 ## Graph Intelligence (MANDATORY when .code-graph/graph.db exists)
 
-After grep/search finds key files, use graph for structural analysis. Graph reveals callers, importers, tests, event consumers, bus messages grep cannot find. Critical tracing whether tainted data reaches sink.
+After grep/search finds key files, use the graph for structural analysis. The graph reveals callers, importers, tests, event consumers, and bus messages that grep cannot — critical for tracing whether tainted data reaches a sink.
 
 ```bash
 python .claude/scripts/code_graph trace <file> --direction both --json                    # Full system flow (start here)
@@ -335,7 +179,7 @@ python .claude/scripts/code_graph query tests_for <function> --json             
 > | DI / startup                 | `Program.cs`, `Startup.cs`        | `main.ts`, `app.module.ts`, `server.ts`     | `wsgi.py`, `asgi.py`, `manage.py`  | `Application.java`, `@Configuration` |
 > | Auth/authorization decorator | `[Authorize]`, `[AllowAnonymous]` | guards, `@UseGuards`, middleware            | `@login_required`, DRF permissions | `@PreAuthorize`, `@RolesAllowed`     |
 >
-> Rule: **detect first, then substitute.** Running .NET regex against a Python repo produces zero findings AND false confidence.
+> Rule: **detect first, then substitute.** Running .NET regex against a Python repo produces zero findings AND false confidence — why: an empty result reads as "secure" when it actually means "wrong patterns".
 
 ### A01: Broken Access Control ⚠️ #1 Risk
 
@@ -714,27 +558,223 @@ Write to `plans/reports/security-audit-{date}.md`:
 ## Not Audited / Out of Scope
 ```
 
----
+<!-- SYNC:agent-code-standards -->
+
+> **Development rules.** YAGNI / KISS / DRY. Place logic in the LOWEST layer (Entity/Model > Service > Component/Handler) — mapping → Command/DTO, constants → Model. Kebab-case files. Search 3+ existing patterns before writing new code; read existing code before changing it. Read `.claude/docs/development-rules.md` for full coding standards, quality gates, and the pre-commit checklist (when present).
+>
+> **Coding patterns.** Before implementing, read the project pattern references named in `docs/project-config.json` / the docs index (e.g. `docs/project-reference/backend-patterns-reference.md`, `frontend-patterns-reference.md`) — local conventions override generic framework defaults.
+>
+> **Blocked until:** dev-rules + pattern docs read before writing or changing code.
+
+<!-- /SYNC:agent-code-standards -->
+
+<!-- SYNC:agent-bootstrap -->
+
+> **Plan first, then act.** Break work into small tasks before editing; keep exactly one task in progress; mark each complete immediately after its evidence lands. On context loss, inspect the existing task list before creating new tasks.
+>
+> **Context guard / progress file (MANDATORY when task > 5 files or > 3 steps).** Context exhaustion = silent loss of ALL findings; no progress file = no recovery.
+>
+> 1. **On start:** create `tmp/ck-agent-{ts}-{rnd}.progress.md` — `ts` = current timestamp in `YYYYMMDDHHmmssSSS` (17 digits), `rnd` = random 6-char hex. First line records the session id.
+> 2. **After each step:** append findings, marking `[done]` / `[partial]` / `[pending]`.
+> 3. **Running out of context?** Write `[partial]` to the file FIRST — NEVER summarize before writing.
+> 4. **Producing a report?** Persist it incrementally to `plans/reports/` and start the final message with its path.
+>
+> **Blocked until:** task breakdown exists · progress file created when the task exceeds the size threshold.
+
+<!-- /SYNC:agent-bootstrap -->
+
+<!-- SYNC:task-tracking-external-report -->
+
+> **Task Tracking & External Report Persistence** — Bootstrap this before execution; then run project-reference doc prefetch before target/source work.
+>
+> 1. Create a small task breakdown before target file reads, grep, edits, or analysis. On context loss, inspect the current task list first.
+> 2. Mark one task `in_progress` before work and `completed` immediately after evidence; never batch transitions.
+> 3. For plan/review work, create `plans/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` before first finding.
+> 4. Append findings after each file/section/decision and synthesize from the report file at the end.
+> 5. Final output cites `Full report: plans/reports/{filename}`.
+>
+> **Blocked until:** task breakdown exists, report path declared for plan/review work, first finding persisted before the next finding.
+
+<!-- /SYNC:task-tracking-external-report -->
+
+<!-- SYNC:project-reference-docs-guide -->
+
+> **Project Reference Docs Gate** — Run after task-tracking bootstrap and before target/source file reads, grep, edits, or analysis. Project docs override generic framework assumptions.
+>
+> 1. Identify scope: file types, domain area, and operation.
+> 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under `docs/specs/`; architecture/new area `project-structure-reference.md`.
+> 3. Read every required doc. If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow lower-level route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.
+> 4. Before target work, state: `Reference docs read: ... | Not applicable: ...`.
+>
+> **Ready when:** scope evaluated, required docs checked/read or setup route completed, `lessons.md` confirmed, citation emitted.
+
+<!-- /SYNC:project-reference-docs-guide -->
+
+<!-- SYNC:understand-code-first -->
+
+> **Understand Code First** — HARD-GATE: Do NOT write, plan, or fix until you READ existing code.
+>
+> 1. Search 3+ similar patterns (`grep`/`glob`) — cite `file:line` evidence
+> 2. Read existing files in target area — understand structure, base classes, conventions
+> 3. Run `python .claude/scripts/code_graph trace <file> --direction both --json` when `.code-graph/graph.db` exists
+> 4. Map dependencies via `connections` or `callers_of` — know what depends on your target
+> 5. Write investigation to `.ai/workspace/analysis/` for non-trivial tasks (3+ files)
+> 6. Re-read analysis file before implementing — never work from memory alone. — why: long context drifts from the file; the file is ground truth
+> 7. NEVER invent new patterns when existing ones work — match exactly or document deviation. — why: divergent patterns fragment the codebase and slow every future reader
+>
+> **BLOCKED until:** `- [ ]` Read target files `- [ ]` Grep 3+ patterns `- [ ]` Graph trace (if graph.db exists) `- [ ]` Assumptions verified with evidence
+
+<!-- /SYNC:understand-code-first -->
+
+<!-- SYNC:evidence-based-reasoning -->
+
+> **Evidence-Based Reasoning** — Speculation is FORBIDDEN. Every claim needs proof.
+>
+> 1. Cite `file:line`, grep results, or framework docs for EVERY claim
+> 2. Declare confidence: >80% act freely, 60-80% verify first, <60% DO NOT recommend
+> 3. Cross-service validation required for architectural changes
+> 4. "I don't have enough evidence" is valid and expected output
+>
+> **BLOCKED until:** `- [ ]` Evidence file path (`file:line`) `- [ ]` Grep search performed `- [ ]` 3+ similar patterns found `- [ ]` Confidence level stated
+>
+> **Forbidden without proof:** "obviously", "I think", "should be", "probably", "this is because"
+> **If incomplete →** output: `"Insufficient evidence. Verified: [...]. Not verified: [...]."`
+
+<!-- /SYNC:evidence-based-reasoning -->
+
+<!-- SYNC:cross-service-check -->
+
+> **Cross-Service Check** — Microservices/event-driven: MANDATORY before concluding investigation, plan, spec, or feature doc. Missing downstream consumer = silent regression.
+>
+> | Boundary            | Grep terms                                                                      |
+> | ------------------- | ------------------------------------------------------------------------------- |
+> | Event producers     | `Publish`, `Dispatch`, `Send`, `emit`, `EventBus`, `outbox`, `IntegrationEvent` |
+> | Event consumers     | `Consumer`, `EventHandler`, `Subscribe`, `@EventListener`, `inbox`              |
+> | Sagas/orchestration | `Saga`, `ProcessManager`, `Choreography`, `Workflow`, `Orchestrator`            |
+> | Sync service calls  | HTTP/gRPC calls to/from other services                                          |
+> | Shared contracts    | OpenAPI spec, proto, shared DTO — flag breaking changes                         |
+> | Data ownership      | Other service reads/writes same table/collection → Shared-DB anti-pattern       |
+>
+> **Per touchpoint:** owner service · message name · consumers · risk (NONE / ADDITIVE / BREAKING).
+>
+> **BLOCKED until:** Producers scanned · Consumers scanned · Sagas checked · Contracts reviewed · Breaking-change risk flagged
+
+<!-- /SYNC:cross-service-check -->
+
+<!-- SYNC:fix-layer-accountability -->
+
+> **Fix-Layer Accountability** — NEVER fix at the crash site. Trace the full flow, fix at the owning layer.
+>
+> AI default behavior: see error at Place A → fix Place A. This is WRONG. The crash site is a SYMPTOM, not the cause.
+>
+> **MANDATORY before ANY fix:**
+>
+> 1. **Trace full data flow** — Map the complete path from data origin to crash site across ALL layers (storage → backend → API → frontend → UI). Identify where the bad state ENTERS, not where it CRASHES.
+> 2. **Identify the invariant owner** — Which layer's contract guarantees this value is valid? That layer is responsible. Fix at the LOWEST layer that owns the invariant — not the highest layer that consumes it.
+> 3. **One fix, maximum protection** — Ask: "If I fix here, does it protect ALL downstream consumers with ONE change?" If fix requires touching 3+ files with defensive checks, you are at the wrong layer — go lower.
+> 4. **Verify no bypass paths** — Confirm all data flows through the fix point. Check for: direct construction skipping factories, clone/spread without re-validation, raw data not wrapped in domain models, mutations outside the model layer.
+>
+> **BLOCKED until:** `- [ ]` Full data flow traced (origin → crash) `- [ ]` Invariant owner identified with `file:line` evidence `- [ ]` All access sites audited (grep count) `- [ ]` Fix layer justified (lowest layer that protects most consumers)
+>
+> **Anti-patterns (REJECT these):**
+>
+> - "Fix it where it crashes" — Crash site ≠ cause site. Trace upstream.
+> - "Add defensive checks at every consumer" — Scattered defense = wrong layer. One authoritative fix > many scattered guards.
+> - "Both fix is safer" — Pick ONE authoritative layer. Redundant checks across layers send mixed signals about who owns the invariant.
+
+<!-- /SYNC:fix-layer-accountability -->
+
+<!-- SYNC:critical-thinking-mindset -->
+
+> **Critical Thinking Mindset** — Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
+> **Anti-hallucination:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
+
+<!-- /SYNC:critical-thinking-mindset -->
+
+<!-- SYNC:sequential-thinking-protocol -->
+
+> **Sequential Thinking Protocol** — Structured multi-step reasoning for complex/ambiguous work. Use when planning, reviewing, debugging, or refining ideas where one-shot reasoning is unsafe.
+>
+> **Trigger when:** complex problem decomposition · adaptive plans needing revision · analysis with course correction · unclear/emerging scope · multi-step solutions · hypothesis-driven debugging · cross-cutting trade-off evaluation.
+>
+> **Format (explicit mode — visible thought trail):**
+>
+> 1. `Thought N/M: [aspect]` — one aspect per thought, state assumptions/uncertainty
+> 2. `Thought N/M [REVISION of Thought K]: ...` — when prior reasoning invalidated; state Original / Why revised / Impact
+> 3. `Thought N/M [BRANCH A from Thought K]: ...` — explore alternative; converge with decision rationale
+> 4. `Thought N/M [HYPOTHESIS]: ...` then `[VERIFICATION]: ...` — test before acting
+> 5. `Thought N/N [FINAL]` — only when verified, all critical aspects addressed, confidence >80%
+>
+> **Mandatory closers:** Confidence % stated · Assumptions listed · Open questions surfaced · Next action concrete.
+>
+> **Stop conditions:** confidence <80% on any critical decision → escalate via ask the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
+>
+> **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
+>
+> **Deep-dive:** see `$sequential-thinking` skill (`.claude/skills/sequential-thinking/SKILL.md`) for worked examples (API design, debugging, architecture), advanced techniques (spiral refinement, hypothesis testing, convergence), and meta-strategies (uncertainty handling, revision cascades).
+
+<!-- /SYNC:sequential-thinking-protocol -->
+
+<!-- SYNC:ai-mistake-prevention -->
+
+> **AI Mistake Prevention** — Failure modes to avoid on every task:
+>
+> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
+> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
+> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
+> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
+> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
+> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
+> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
+> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
+> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
+> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+
+<!-- /SYNC:ai-mistake-prevention -->
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
+
 <!-- SYNC:sequential-thinking-protocol:reminder -->
 
 **MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer; see `$sequential-thinking` skill.
 
 <!-- /SYNC:sequential-thinking-protocol:reminder -->
+
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
 **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
+<!-- SYNC:task-tracking-external-report:reminder -->
+- **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
+- **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
+<!-- /SYNC:task-tracking-external-report:reminder -->
+
+<!-- SYNC:project-reference-docs-guide:reminder -->
+
+- **MANDATORY** After task-tracking bootstrap and before target/source work, read required project-reference docs and cite `Reference docs read: ...`.
+- **MANDATORY** Always include `lessons.md`; project conventions override generic defaults.
+- **MANDATORY** If project config, root instruction files, or any required reference doc is missing or stale, auto-run `$project-init` or the narrow lower-level route before ordinary project-specific work.
+
+<!-- /SYNC:project-reference-docs-guide:reminder -->
+
+<!-- SYNC:cross-service-check:reminder -->
+
+**IMPORTANT MUST ATTENTION** microservices/event-driven: scan producers, consumers, sagas, contracts in task scope. Per touchpoint: owner · message · consumers · risk (NONE/ADDITIVE/BREAKING). Missing consumer = silent regression.
+
+<!-- /SYNC:cross-service-check:reminder -->
+
 ## Closing Reminders
 
-- **[BLOCKING] MANDATORY PROTOCOL** — Phase 1 (tech stack detect) → Phase 2 (CVE research per stack) → Phase 3 (evaluate). NEVER skip or reorder. No findings before Phase 2 complete.
+**IMPORTANT MUST ATTENTION Goal:** Deliver a read-only security audit surfacing every exploitable vulnerability (OWASP Top 10 2021, microservices/API boundaries, auth, input validation, message bus, dependency CVEs) as a `plans/reports/` report where each finding carries `file:line` evidence, a traced data flow to sink, severity, and remediation — so the team fixes the real risks first.
+
+- **[BLOCKING] MANDATORY PROTOCOL** — Phase 1 (tech-stack detect) → Phase 2 (CVE research per stack) → Phase 3 (evaluate). NEVER skip or reorder; produce NO findings before Phase 2 completes.
   **IMPORTANT MUST ATTENTION** NEVER modify source code — read-only audit only
   **IMPORTANT MUST ATTENTION** NEVER report findings without `file:line` traced code-path evidence — pattern matching alone is not a finding
   **IMPORTANT MUST ATTENTION** NEVER expose credentials/secrets/tokens in reports — redact with `[REDACTED]`
@@ -743,20 +783,4 @@ Write to `plans/reports/security-audit-{date}.md`:
   **IMPORTANT MUST ATTENTION** Rule out false positives — trace full data flow to sink, verify no upstream neutralization
   **IMPORTANT MUST ATTENTION** For JWT: verify ALL five flags (`Issuer`, `Audience`, `Lifetime`, `SigningKey`, `Algorithm`) — missing any one is Critical
   **IMPORTANT MUST ATTENTION** TenantId/CompanyId MUST come from JWT claims, NEVER from request body
-    <!-- SYNC:task-tracking-external-report:reminder -->
-- **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
-- **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-    <!-- /SYNC:task-tracking-external-report:reminder -->
-    <!-- SYNC:project-reference-docs-guide:reminder -->
-
-- **MANDATORY** After task-tracking bootstrap and before target/source work, read required project-reference docs and cite `Reference docs read: ...`.
-- **MANDATORY** Always include `lessons.md`; project conventions override generic defaults.
-- **MANDATORY** If project config, root instruction files, or any required reference doc is missing or stale, auto-run `$project-init` or the narrow lower-level route before ordinary project-specific work.
-
-<!-- /SYNC:project-reference-docs-guide:reminder -->
-  <!-- SYNC:cross-service-check:reminder -->
-
-**IMPORTANT MUST ATTENTION** microservices/event-driven: scan producers, consumers, sagas, contracts in task scope. Per touchpoint: owner · message · consumers · risk (NONE/ADDITIVE/BREAKING). Missing consumer = silent regression.
-
-  <!-- /SYNC:cross-service-check:reminder -->
 """

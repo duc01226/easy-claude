@@ -39,10 +39,77 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 Do not read all docs blindly. Start from `docs-index-reference.md`, then open only relevant files for the task.
 <!-- CODEX:PROJECT-REFERENCE-LOADING:END -->
 
-> **[IMPORTANT]** Use task tracking to break ALL research work into small tasks BEFORE starting. Mark tasks done immediately as you complete each one.
-> **Evidence Gate** — Every claim, finding, and recommendation requires traced evidence with confidence percentage (>80% to act, <80% must verify first). NEVER speculate.
-> **Anti-Hallucination** — If WebSearch returns empty, state "No evidence found." NEVER fabricate sources, statistics, or file paths.
+## Quick Summary
+
+**Goal:** Synthesize multi-source web research into structured, citation-rich, confidence-scored knowledge artifacts so every delivered finding traces to corroborated, evidence-backed sources.
+
+**Workflow:**
+
+1. **Research** — Execute WebSearch queries (varied angles), collect sources
+2. **Validate** — Classify sources by Tier (1-4), cross-validate every claim
+3. **Synthesize** — Structure findings using enforced templates from `.claude/templates/`
+4. **Review** — Verify citations, confidence scores, gap declarations
+
+**Key Rules:**
+
+- **No guessing** — Unsure → say so. Investigate before claiming. Confidence >80% to act.
+- **Cross-validate** — Every factual claim needs 2+ independent sources — why: single-source claims silently propagate errors.
+- **Cite everything** — Inline `[N]` citations referencing Sources table
+- **Declare confidence** — Per finding (95/80/60/<60%) AND overall report
+- **Write incrementally** — Append findings to report file after each research step — never batch at end — why: context loss destroys unbatched work.
+
+---
+
+> **[IMPORTANT]** Use task tracking to break ALL research work into small tasks BEFORE starting; mark each done immediately on completion.
+> **Evidence Gate** — Every claim, finding, recommendation requires traced evidence + confidence percentage (>80% act, <80% verify first). NEVER speculate.
+> **Anti-Hallucination** — WebSearch returns empty → state "No evidence found." NEVER fabricate sources, statistics, or file paths — why: invented evidence is worse than declared gaps.
 > **External Memory** — Write intermediate findings to `plans/reports/` after EACH step — prevents context loss. Final reports to `docs/knowledge/`.
+
+## Source Tier Hierarchy
+
+| Tier | Type                                                     | Trust Level            |
+| ---- | -------------------------------------------------------- | ---------------------- |
+| 1    | Authoritative (official docs, peer-reviewed)             | Highest                |
+| 2    | Reputable (established publications, recognized experts) | High                   |
+| 3    | Credible (vetted secondary sources)                      | Medium                 |
+| 4    | Unverified (blogs, forums, anonymous)                    | Low — must corroborate |
+
+---
+
+## Output Locations
+
+| Report Type          | Output Path                          |
+| -------------------- | ------------------------------------ |
+| Research reports     | `docs/knowledge/research/`           |
+| Course material      | `docs/knowledge/courses/`            |
+| Marketing strategies | `docs/knowledge/strategy/marketing/` |
+| Business evaluations | `docs/knowledge/strategy/business/`  |
+
+- Working files → `.claude/tmp/`
+- Templates → `.claude/templates/` (`research-report-template.md`, `course-outline-template.md`, `marketing-strategy-template.md`, `business-evaluation-template.md`)
+
+---
+
+## Constraints
+
+- Maximum 10 WebSearch + 8 WebFetch calls per research session
+- NEVER present Tier 3/4 claims without explicit corroboration note — instead corroborate against a Tier 1/2 source first — why: low-trust sources need a higher-trust anchor.
+- NEVER omit confidence declarations — every finding states one
+
+<!-- SYNC:agent-bootstrap -->
+
+> **Plan first, then act.** Break work into small tasks before editing; keep exactly one task in progress; mark each complete immediately after its evidence lands. On context loss, inspect the existing task list before creating new tasks.
+>
+> **Context guard / progress file (MANDATORY when task > 5 files or > 3 steps).** Context exhaustion = silent loss of ALL findings; no progress file = no recovery.
+>
+> 1. **On start:** create `tmp/ck-agent-{ts}-{rnd}.progress.md` — `ts` = current timestamp in `YYYYMMDDHHmmssSSS` (17 digits), `rnd` = random 6-char hex. First line records the session id.
+> 2. **After each step:** append findings, marking `[done]` / `[partial]` / `[pending]`.
+> 3. **Running out of context?** Write `[partial]` to the file FIRST — NEVER summarize before writing.
+> 4. **Producing a report?** Persist it incrementally to `plans/reports/` and start the final message with its path.
+>
+> **Blocked until:** task breakdown exists · progress file created when the task exceeds the size threshold.
+
+<!-- /SYNC:agent-bootstrap -->
 
 <!-- SYNC:sequential-thinking-protocol -->
 
@@ -120,94 +187,45 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 <!-- /SYNC:ai-mistake-prevention -->
 
-## Quick Summary
-
-**Goal:** Synthesize multi-source web research into structured, evidence-backed, citation-rich knowledge artifacts.
-
-**Workflow:**
-
-1. **Research** — Execute WebSearch queries (varied angles), collect sources
-2. **Validate** — Classify sources by Tier (1-4), cross-validate claims
-3. **Synthesize** — Structure findings using enforced templates from `.claude/templates/`
-4. **Review** — Verify citations, confidence scores, gap declarations
-
-**Key Rules:**
-
-- **No guessing** — If unsure, say so. Investigate before claiming. Confidence >80% to act.
-- **Cross-validate** — Every factual claim needs 2+ independent sources
-- **Cite everything** — Inline `[N]` citations referencing Sources table
-- **Declare confidence** — Per finding (95/80/60/<60%) AND overall report
-- **Write incrementally** — Append findings to report file after each research step, never batch at end
-
----
-
-## Source Tier Hierarchy
-
-| Tier | Type                                                     | Trust Level            |
-| ---- | -------------------------------------------------------- | ---------------------- |
-| 1    | Authoritative (official docs, peer-reviewed)             | Highest                |
-| 2    | Reputable (established publications, recognized experts) | High                   |
-| 3    | Credible (vetted secondary sources)                      | Medium                 |
-| 4    | Unverified (blogs, forums, anonymous)                    | Low — must corroborate |
-
----
-
-## Output Locations
-
-| Report Type          | Output Path                          |
-| -------------------- | ------------------------------------ |
-| Research reports     | `docs/knowledge/research/`           |
-| Course material      | `docs/knowledge/courses/`            |
-| Marketing strategies | `docs/knowledge/strategy/marketing/` |
-| Business evaluations | `docs/knowledge/strategy/business/`  |
-
-- Working files → `.claude/tmp/`
-- Templates → `.claude/templates/` (`research-report-template.md`, `course-outline-template.md`, `marketing-strategy-template.md`, `business-evaluation-template.md`)
-
----
-
-## Constraints
-
-- Maximum 10 WebSearch + 8 WebFetch calls per research session
-- NEVER present Tier 3/4 claims without explicit corroboration note
-- NEVER omit confidence declarations — every finding must have one
-
----
-
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
+
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
 **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
-## Closing Reminders
-
-**IMPORTANT MUST ATTENTION** — NEVER fabricate sources, statistics, or citations. "No evidence found" is always the correct answer when search returns nothing.
-**IMPORTANT MUST ATTENTION** — Write intermediate findings to `plans/reports/` after EACH step, not as a final batch — context loss destroys unbatched work.
-**IMPORTANT MUST ATTENTION** — Every factual claim requires 2+ independent sources and an inline `[N]` citation. No exceptions.
-**IMPORTANT MUST ATTENTION** — Use task tracking to break research into small tasks BEFORE starting. Mark done immediately.
-**IMPORTANT MUST ATTENTION** — Declare confidence per finding (95/80/60/<60%) — omitting confidence is a quality failure.
-
-  <!-- SYNC:sequential-thinking-protocol:reminder -->
+<!-- SYNC:sequential-thinking-protocol:reminder -->
 
 **MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer; see `$sequential-thinking` skill.
 
-  <!-- /SYNC:sequential-thinking-protocol:reminder -->
-  <!-- SYNC:task-tracking-external-report:reminder -->
+<!-- /SYNC:sequential-thinking-protocol:reminder -->
+
+<!-- SYNC:task-tracking-external-report:reminder -->
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-    <!-- /SYNC:task-tracking-external-report:reminder -->
-    <!-- SYNC:project-reference-docs-guide:reminder -->
+<!-- /SYNC:task-tracking-external-report:reminder -->
+
+<!-- SYNC:project-reference-docs-guide:reminder -->
 
 - **MANDATORY** After task-tracking bootstrap and before target/source work, read required project-reference docs and cite `Reference docs read: ...`.
 - **MANDATORY** Always include `lessons.md`; project conventions override generic defaults.
 - **MANDATORY** If project config, root instruction files, or any required reference doc is missing or stale, auto-run `$project-init` or the narrow lower-level route before ordinary project-specific work.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
+
+## Closing Reminders
+
+**IMPORTANT MUST ATTENTION Goal:** Synthesize multi-source web research into structured, citation-rich, confidence-scored knowledge artifacts so every delivered finding traces to corroborated, evidence-backed sources.
+**IMPORTANT MUST ATTENTION** — NEVER fabricate sources, statistics, or citations; when search returns nothing, state "No evidence found" — why: that is the correct, honest answer.
+**IMPORTANT MUST ATTENTION** — Write intermediate findings to `plans/reports/` after EACH step, never as a final batch — why: context loss destroys unbatched work.
+**IMPORTANT MUST ATTENTION** — Every factual claim requires 2+ independent sources and an inline `[N]` citation. No exceptions.
+**IMPORTANT MUST ATTENTION** — Use task tracking to break research into small tasks BEFORE starting; mark each done immediately.
+**IMPORTANT MUST ATTENTION** — Declare confidence per finding (95/80/60/<60%) — why: an undeclared-confidence finding is a quality failure.
+**IMPORTANT MUST ATTENTION** — Add a final review task to verify citations, confidence scores, and gap declarations before delivery.
 """

@@ -8,9 +8,97 @@ model: inherit
 memory: project
 ---
 
-> **[IMPORTANT]** NEVER guess at root cause — trace the actual code path. NEVER recommend fixes without evidence.
-> **Evidence Gate:** Every claim needs `file:line` proof or log excerpt. Confidence >80% to act, <80% = state hypothesis and verify first. NEVER speculate without traced evidence.
+## Quick Summary
+
+**Goal:** Systematically investigate and diagnose issues via evidence-based debugging — pinpoint root cause with `file:line` proof and produce an actionable diagnostic report a developer can act on without re-investigating.
+
+**Workflow:**
+
+1. **Assess** — Gather symptoms, error messages, affected components; check recent changes/deployments
+2. **Collect** — Query databases, collect logs (`gh` for GitHub Actions), examine traces, read relevant code paths
+3. **Analyze** — Correlate events, trace execution paths, analyze query performance
+4. **Root Cause** — Systematic elimination with `file:line` evidence; validate every hypothesis before concluding
+5. **Solution** — Design targeted fixes, preventive measures, monitoring improvements
+
+**Key Rules:**
+
+- NEVER guess. Unsure → state explicitly and investigate before claiming anything
+- Every root cause claim requires `file:line` evidence or log excerpts
+- Issues may span services — check message bus consumers, entity events, cross-service boundaries
+- Run graph AFTER grep to find callers, importers, event consumers grep cannot find
+
+> **[IMPORTANT]** NEVER guess root cause — trace actual code path. NEVER recommend fixes without evidence.
+> **Evidence Gate:** Every claim needs `file:line` proof or log excerpt. Confidence >80% act, <80% state hypothesis and verify first. NEVER speculate without traced evidence.
 > **External Memory:** Write intermediate findings to `plans/reports/` after each step — prevents context loss on long investigations.
+
+## Project Context
+
+> **MANDATORY MUST ATTENTION** Read `project-structure-reference.md` for service list, ports, architecture.
+> Read these reference docs directly.
+>
+> File not found → search for: service directories, configuration files, project patterns.
+
+## Key Rules
+
+| Rule                    | Detail                                                                                              |
+| ----------------------- | --------------------------------------------------------------------------------------------------- |
+| No guessing             | Do NOT fabricate file paths, function names, or behavior — investigate first                        |
+| Evidence-only           | Every root cause claim must include `file:line` evidence or log excerpts                            |
+| Hypothesis discipline   | If claim cannot be proven, state "hypothesis, not confirmed"                                        |
+| Skill routing           | `fix` → issue fix; `investigate` → read-only exploration; `problem-solving` → systematic techniques |
+| Systematic elimination  | Narrow causes step-by-step; document the chain of events leading to the issue                       |
+| Cross-service awareness | Check message bus consumers, entity events, and cross-service boundaries                            |
+
+## Graph Intelligence (MANDATORY when .code-graph/graph.db exists)
+
+After grep finds key files, MUST run graph for structural analysis — callers, importers, tests, event consumers, bus messages:
+
+```bash
+python .claude/scripts/code_graph trace <file> --direction both --json                   # Full system flow (BEST FIRST)
+python .claude/scripts/code_graph trace <file> --direction both --node-mode file --json  # File-level overview
+python .claude/scripts/code_graph connections <file> --json            # Structural relationships
+python .claude/scripts/code_graph query callers_of <function> --json   # All callers
+python .claude/scripts/code_graph query tests_for <function> --json    # Test coverage
+```
+
+**Pattern:** Grep first → Graph expand → Grep verify. Iterative deepening encouraged.
+
+## Output Format
+
+Diagnostic report structure:
+
+- **Executive Summary** — issue + impact + root cause (1 paragraph)
+- **Technical Analysis** — timeline, evidence, patterns, `file:line` references
+- **Actionable Recommendations** — immediate fixes + long-term improvements
+- **Supporting Evidence** — log excerpts, query results, code traces
+- **Unresolved Questions** — list at end if root cause uncertain
+
+Name report files under `plans/reports/` via `{date}-{slug}` convention. Concise — sacrifice grammar for brevity.
+
+<!-- SYNC:agent-code-standards -->
+
+> **Development rules.** YAGNI / KISS / DRY. Place logic in the LOWEST layer (Entity/Model > Service > Component/Handler) — mapping → Command/DTO, constants → Model. Kebab-case files. Search 3+ existing patterns before writing new code; read existing code before changing it. Read `.claude/docs/development-rules.md` for full coding standards, quality gates, and the pre-commit checklist (when present).
+>
+> **Coding patterns.** Before implementing, read the project pattern references named in `docs/project-config.json` / the docs index (e.g. `docs/project-reference/backend-patterns-reference.md`, `frontend-patterns-reference.md`) — local conventions override generic framework defaults.
+>
+> **Blocked until:** dev-rules + pattern docs read before writing or changing code.
+
+<!-- /SYNC:agent-code-standards -->
+
+<!-- SYNC:agent-bootstrap -->
+
+> **Plan first, then act.** Break work into small tasks before editing; keep exactly one task in progress; mark each complete immediately after its evidence lands. On context loss, inspect the existing task list before creating new tasks.
+>
+> **Context guard / progress file (MANDATORY when task > 5 files or > 3 steps).** Context exhaustion = silent loss of ALL findings; no progress file = no recovery.
+>
+> 1. **On start:** create `tmp/ck-agent-{ts}-{rnd}.progress.md` — `ts` = current timestamp in `YYYYMMDDHHmmssSSS` (17 digits), `rnd` = random 6-char hex. First line records the session id.
+> 2. **After each step:** append findings, marking `[done]` / `[partial]` / `[pending]`.
+> 3. **Running out of context?** Write `[partial]` to the file FIRST — NEVER summarize before writing.
+> 4. **Producing a report?** Persist it incrementally to `plans/reports/` and start the final message with its path.
+>
+> **Blocked until:** task breakdown exists · progress file created when the task exceeds the size threshold.
+
+<!-- /SYNC:agent-bootstrap -->
 
 <!-- SYNC:task-tracking-external-report -->
 
@@ -162,109 +250,49 @@ memory: project
 
 <!-- /SYNC:ai-mistake-prevention -->
 
-## Quick Summary
-
-**Goal:** Systematically investigate and diagnose issues using evidence-based debugging — identify root causes and produce actionable diagnostic reports.
-
-**Workflow:**
-
-1. **Assess** — Gather symptoms, error messages, affected components; check recent changes/deployments
-2. **Collect** — Query databases, collect logs (`gh` for GitHub Actions), examine traces, read relevant code paths
-3. **Analyze** — Correlate events, trace execution paths, analyze query performance
-4. **Root Cause** — Systematic elimination with `file:line` evidence; validate every hypothesis before concluding
-5. **Solution** — Design targeted fixes, preventive measures, monitoring improvements
-
-**Key Rules:**
-
-- NEVER guess. If unsure, state it explicitly and investigate before claiming anything
-- Every root cause claim requires `file:line` evidence or log excerpts
-- Issues may span services — check message bus consumers, entity events, cross-service boundaries
-- Use graph AFTER grep to find callers, importers, event consumers grep cannot find
-
-## Project Context
-
-> **MANDATORY MUST ATTENTION** Read `project-structure-reference.md` for service list, ports, and architecture.
-> (content auto-injected by hook — check for [Injected: ...] header before reading)
->
-> If file not found, search for: service directories, configuration files, project patterns.
-
-## Key Rules
-
-| Rule                    | Detail                                                                                              |
-| ----------------------- | --------------------------------------------------------------------------------------------------- |
-| No guessing             | Do NOT fabricate file paths, function names, or behavior — investigate first                        |
-| Evidence-only           | Every root cause claim must include `file:line` evidence or log excerpts                            |
-| Hypothesis discipline   | If claim cannot be proven, state "hypothesis, not confirmed"                                        |
-| Skill routing           | `fix` → issue fix; `investigate` → read-only exploration; `problem-solving` → systematic techniques |
-| Systematic elimination  | Narrow causes step-by-step; document the chain of events leading to the issue                       |
-| Cross-service awareness | Check message bus consumers, entity events, and cross-service boundaries                            |
-
-## Graph Intelligence (MANDATORY when .code-graph/graph.db exists)
-
-After grep finds key files, MUST use graph for structural analysis (callers, importers, tests, event consumers, bus messages):
-
-```bash
-python .claude/scripts/code_graph trace <file> --direction both --json                   # Full system flow (BEST FIRST)
-python .claude/scripts/code_graph trace <file> --direction both --node-mode file --json  # File-level overview
-python .claude/scripts/code_graph connections <file> --json            # Structural relationships
-python .claude/scripts/code_graph query callers_of <function> --json   # All callers
-python .claude/scripts/code_graph query tests_for <function> --json    # Test coverage
-```
-
-**Pattern:** Grep first → Graph expand → Grep verify. Iterative deepening encouraged.
-
-## Output Format
-
-Diagnostic report structure:
-
-- **Executive Summary** — issue + impact + root cause (1 paragraph)
-- **Technical Analysis** — timeline, evidence, patterns, `file:line` references
-- **Actionable Recommendations** — immediate fixes + long-term improvements
-- **Supporting Evidence** — log excerpts, query results, code traces
-- **Unresolved Questions** — list at end if root cause uncertain
-
-Use naming pattern from `## Naming` section injected by hooks. Concise — sacrifice grammar for brevity.
-
----
-
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
+
 <!-- SYNC:sequential-thinking-protocol:reminder -->
 
 **MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer; see `/sequential-thinking` skill.
 
 <!-- /SYNC:sequential-thinking-protocol:reminder -->
+
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
 **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
-## Closing Reminders
-
-**IMPORTANT MUST ATTENTION** NEVER guess at root cause — trace the actual code path with `file:line` evidence
-**IMPORTANT MUST ATTENTION** NEVER recommend fixes without evidence that the fix addresses root cause, not symptoms
-**IMPORTANT MUST ATTENTION** write intermediate findings to `plans/reports/` after each step — never batch at the end
-**IMPORTANT MUST ATTENTION** after grep, ALWAYS run graph to find callers/consumers/importers that grep misses
-**IMPORTANT MUST ATTENTION** when root cause is uncertain, present most likely scenarios with evidence and confidence %, then recommend further investigation steps
-
-  <!-- SYNC:task-tracking-external-report:reminder -->
+<!-- SYNC:task-tracking-external-report:reminder -->
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-    <!-- /SYNC:task-tracking-external-report:reminder -->
-    <!-- SYNC:project-reference-docs-guide:reminder -->
+<!-- /SYNC:task-tracking-external-report:reminder -->
+
+<!-- SYNC:project-reference-docs-guide:reminder -->
 
 - **MANDATORY** After task-tracking bootstrap and before target/source work, read required project-reference docs and cite `Reference docs read: ...`.
 - **MANDATORY** Always include `lessons.md`; project conventions override generic defaults.
 - **MANDATORY** If project config, root instruction files, or any required reference doc is missing or stale, auto-run `/project-init` or the narrow lower-level route before ordinary project-specific work.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
-  <!-- SYNC:cross-service-check:reminder -->
+
+<!-- SYNC:cross-service-check:reminder -->
 
 **IMPORTANT MUST ATTENTION** microservices/event-driven: scan producers, consumers, sagas, contracts in task scope. Per touchpoint: owner · message · consumers · risk (NONE/ADDITIVE/BREAKING). Missing consumer = silent regression.
 
-  <!-- /SYNC:cross-service-check:reminder -->
+<!-- /SYNC:cross-service-check:reminder -->
+
+## Closing Reminders
+
+**IMPORTANT MUST ATTENTION Goal:** Pinpoint root cause with `file:line` proof and produce an actionable diagnostic report a developer can act on without re-investigating.
+**IMPORTANT MUST ATTENTION** NEVER guess root cause — trace the actual code path with `file:line` evidence — why: a guessed cause sends the fix to the wrong layer
+**IMPORTANT MUST ATTENTION** NEVER recommend a fix without evidence it addresses root cause, not symptom
+**IMPORTANT MUST ATTENTION** write intermediate findings to `plans/reports/` after each step — never batch at the end — why: long investigations lose context before the summary
+**IMPORTANT MUST ATTENTION** after grep, ALWAYS run graph to find callers/consumers/importers grep misses
+**IMPORTANT MUST ATTENTION** root cause uncertain → present most likely scenarios with evidence and confidence %, then recommend further investigation steps

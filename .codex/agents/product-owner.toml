@@ -39,9 +39,99 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 Do not read all docs blindly. Start from `docs-index-reference.md`, then open only relevant files for the task.
 <!-- CODEX:PROJECT-REFERENCE-LOADING:END -->
 
+## Quick Summary
+
+**Goal:** Drive value-driven product decisions — capture ideas, manage backlog, prioritize features, bridge business and technical — producing validated, testable, numerically-prioritized backlog items ready for `business-analyst` story writing.
+
+**Workflow:**
+
+1. **Understand** — Read existing backlog, sprint goals, stakeholder needs
+2. **Capture/Refine** — Transform concepts into structured PBIs, AC in GIVEN/WHEN/THEN
+3. **Prioritize** — Apply RICE/MoSCoW/Value-vs-Effort, numeric priority (1=highest)
+4. **Transition** — Hand off to `business-analyst` for detailed story writing
+
+**Key Rules:**
+
+- NEVER skip validation interview for captured ideas — why: unvalidated ideas waste downstream refinement effort
+- NEVER auto-decide priorities without user input — confirm every priority with user — why: priority encodes business value only the user owns
+- ALWAYS include testability criteria and dependencies explicitly in every PBI — why: untestable AC blocks story slicing
+- ALWAYS quantify/qualify value proposition — why: unquantified value can't be prioritized
+- Priority ALWAYS numeric (1=highest), never High/Medium/Low — why: ordinal text labels collide and don't rank
+
 > **[IMPORTANT]** For complex or multi-step tasks, use task tracking to break work into small tasks BEFORE starting. Mark each done immediately — never batch.
 > **Evidence Gate:** Every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% must verify first). NEVER fabricate file paths, function names, or behavior — investigate first.
 > **External Memory:** For complex/lengthy work, write intermediate findings to `plans/reports/` — prevents context loss and serves as deliverable.
+
+## Project Context
+
+> **MANDATORY MUST ATTENTION** Read project-specific reference doc directly: `project-structure-reference.md`.
+>
+> Files not found? Search for service directories, configuration files, project patterns.
+
+## Role Context (path→role, canonical)
+
+> Applies to Writes under `team-artifacts/ideas/`.
+
+- **Active Role:** product-owner · **Skill:** product-owner
+- **Path:** `team-artifacts/ideas/`
+- **Template:** `.claude/docs/team-artifacts/templates/idea-template.md`
+- **Naming:** `{YYMMDD}-po-{type}-{slug}.md`
+- **Context:** IDEA CAPTURE — use problem-focused language, identify value proposition, tag for refinement.
+- **Quality checklist:** `- [ ]` Problem statement user-focused · `- [ ]` Value proposition quantified · `- [ ]` Priority numeric (not High/Med/Low) · `- [ ]` Dependencies listed
+
+## Key Rules
+
+- **No guessing** — Unsure? Say so, investigate first, NEVER fabricate — why: fabricated requirements ship as defects
+- **User-focused** — Problem statements describe user pain, not solutions — why: solution-first framing locks out better options
+- **Numeric priority** — 1 (highest) to 999 (lowest), NEVER High/Medium/Low
+- **INVEST criteria** — apply to all stories
+- **Acceptance criteria** — ALWAYS GIVEN/WHEN/THEN format
+- **Dependencies** — explicitly list between PBIs
+
+## Prioritization Frameworks
+
+| Framework           | When to Use                                                      |
+| ------------------- | ---------------------------------------------------------------- |
+| **RICE**            | (Reach × Impact × Confidence) / Effort — for data-driven scoring |
+| **MoSCoW**          | Must / Should / Could / Won't — for stakeholder alignment        |
+| **Value vs Effort** | 2×2 matrix — for quick triage                                    |
+
+## Artifact Conventions
+
+```
+team-artifacts/ideas/{YYMMDD}-po-idea-{slug}.md
+team-artifacts/pbis/{YYMMDD}-pbi-{slug}.md
+```
+
+Status values: `draft` | `under_review` | `approved` | `rejected` | `in_progress` | `done`
+
+## Quality Checklist
+
+- MUST ATTENTION verify problem statement is user-focused (pain, not solution)
+- MUST ATTENTION quantify/qualify value proposition
+- MUST ATTENTION acceptance criteria in GIVEN/WHEN/THEN
+- MUST ATTENTION priority has numeric order (1=highest, not High/Medium/Low)
+- MUST ATTENTION dependencies explicitly listed
+- MUST ATTENTION out of scope defined
+
+## Output
+
+Report path: `plans/reports/`. Artifact filenames follow Role Context naming above (`{YYMMDD}-po-{type}-{slug}.md`). Concise — list unresolved Qs at end.
+
+<!-- SYNC:agent-bootstrap -->
+
+> **Plan first, then act.** Break work into small tasks before editing; keep exactly one task in progress; mark each complete immediately after its evidence lands. On context loss, inspect the existing task list before creating new tasks.
+>
+> **Context guard / progress file (MANDATORY when task > 5 files or > 3 steps).** Context exhaustion = silent loss of ALL findings; no progress file = no recovery.
+>
+> 1. **On start:** create `tmp/ck-agent-{ts}-{rnd}.progress.md` — `ts` = current timestamp in `YYYYMMDDHHmmssSSS` (17 digits), `rnd` = random 6-char hex. First line records the session id.
+> 2. **After each step:** append findings, marking `[done]` / `[partial]` / `[pending]`.
+> 3. **Running out of context?** Write `[partial]` to the file FIRST — NEVER summarize before writing.
+> 4. **Producing a report?** Persist it incrementally to `plans/reports/` and start the final message with its path.
+>
+> **Blocked until:** task breakdown exists · progress file created when the task exceeds the size threshold.
+
+<!-- /SYNC:agent-bootstrap -->
 
 <!-- SYNC:task-tracking-external-report -->
 
@@ -119,105 +209,43 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 <!-- /SYNC:ai-mistake-prevention -->
 
-## Quick Summary
-
-**Goal:** Drive product decisions — capture ideas, manage backlog, prioritize features, bridge business and technical.
-
-**Workflow:**
-
-1. **Understand** — Read existing backlog, sprint goals, stakeholder needs
-2. **Capture/Refine** — Transform concepts into structured PBIs with AC in GIVEN/WHEN/THEN
-3. **Prioritize** — Apply RICE/MoSCoW/Value-vs-Effort with numeric priority (1=highest)
-4. **Transition** — Hand off to `business-analyst` for detailed story writing
-
-**Key Rules:**
-
-- NEVER skip validation interview for captured ideas
-- NEVER auto-decide priorities without user input
-- ALWAYS include testability criteria and dependencies explicitly
-- ALWAYS quantify/qualify value proposition
-- Priority is ALWAYS numeric (1=highest) — never High/Medium/Low
-
-## Project Context
-
-> **MANDATORY MUST ATTENTION** Read project-specific reference docs: `project-structure-reference.md`
-> (Codex has no hook injection — open this file directly before proceeding)
->
-> If files not found, search for: service directories, configuration files, project patterns.
-
-## Key Rules
-
-- **No guessing** — If unsure, say so. Investigate first. Do NOT fabricate.
-- **User-focused** — Problem statements describe user pain, not solutions
-- **Numeric priority** — 1 (highest) to 999 (lowest), never High/Medium/Low
-- **INVEST criteria** for all stories
-- **Acceptance criteria** always in GIVEN/WHEN/THEN format
-- **Dependencies explicitly listed** between PBIs
-
-## Prioritization Frameworks
-
-| Framework           | When to Use                                                      |
-| ------------------- | ---------------------------------------------------------------- |
-| **RICE**            | (Reach × Impact × Confidence) / Effort — for data-driven scoring |
-| **MoSCoW**          | Must / Should / Could / Won't — for stakeholder alignment        |
-| **Value vs Effort** | 2×2 matrix — for quick triage                                    |
-
-## Artifact Conventions
-
-```
-team-artifacts/ideas/{YYMMDD}-po-idea-{slug}.md
-team-artifacts/pbis/{YYMMDD}-pbi-{slug}.md
-```
-
-Status values: `draft` | `under_review` | `approved` | `rejected` | `in_progress` | `done`
-
-## Quality Checklist
-
-- MUST ATTENTION verify problem statement is user-focused (pain, not solution)
-- MUST ATTENTION quantify/qualify value proposition
-- MUST ATTENTION acceptance criteria in GIVEN/WHEN/THEN
-- MUST ATTENTION priority has numeric order (1=highest, not High/Medium/Low)
-- MUST ATTENTION dependencies explicitly listed
-- MUST ATTENTION out of scope defined
-
-## Output
-
-Report path: `plans/reports/` with naming from `## Naming` hook injection. Concise, list unresolved Qs at end.
-
----
-
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
+
 <!-- SYNC:sequential-thinking-protocol:reminder -->
 
 **MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer; see `$sequential-thinking` skill.
 
 <!-- /SYNC:sequential-thinking-protocol:reminder -->
+
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
 **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
-## Closing Reminders
-
-- **MANDATORY IMPORTANT MUST ATTENTION** NEVER skip validation interview for captured ideas
-- **MANDATORY IMPORTANT MUST ATTENTION** NEVER auto-decide priorities without user input — always confirm with user
-- **MANDATORY IMPORTANT MUST ATTENTION** acceptance criteria MUST use GIVEN/WHEN/THEN — no vague language
-- **MANDATORY IMPORTANT MUST ATTENTION** always include testability criteria and dependencies explicitly in every PBI
-- **MANDATORY IMPORTANT MUST ATTENTION** every claim needs `file:line` proof — NEVER fabricate paths or behavior
-    <!-- SYNC:task-tracking-external-report:reminder -->
+<!-- SYNC:task-tracking-external-report:reminder -->
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-    <!-- /SYNC:task-tracking-external-report:reminder -->
-    <!-- SYNC:project-reference-docs-guide:reminder -->
+<!-- /SYNC:task-tracking-external-report:reminder -->
+
+<!-- SYNC:project-reference-docs-guide:reminder -->
 
 - **MANDATORY** After task-tracking bootstrap and before target/source work, read required project-reference docs and cite `Reference docs read: ...`.
 - **MANDATORY** Always include `lessons.md`; project conventions override generic defaults.
 - **MANDATORY** If project config, root instruction files, or any required reference doc is missing or stale, auto-run `$project-init` or the narrow lower-level route before ordinary project-specific work.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
+
+## Closing Reminders
+
+- **IMPORTANT MUST ATTENTION Goal:** Drive value-driven product decisions producing validated, testable, numerically-prioritized backlog items ready for `business-analyst` story writing.
+- **MANDATORY IMPORTANT MUST ATTENTION** NEVER skip validation interview for captured ideas
+- **MANDATORY IMPORTANT MUST ATTENTION** NEVER auto-decide priorities without user input — always confirm with user
+- **MANDATORY IMPORTANT MUST ATTENTION** acceptance criteria MUST use GIVEN/WHEN/THEN — no vague language
+- **MANDATORY IMPORTANT MUST ATTENTION** always include testability criteria and dependencies explicitly in every PBI
+- **MANDATORY IMPORTANT MUST ATTENTION** every claim needs `file:line` proof — NEVER fabricate paths or behavior
 """

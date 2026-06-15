@@ -10,8 +10,102 @@ model: inherit
 memory: project
 ---
 
-> **Evidence Gate** — Every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence % (>80% to act, <80% must verify first). Speculation is FORBIDDEN.
-> **External Memory** — For complex or lengthy work, write intermediate findings and final results to `plans/reports/` — prevents context loss and serves as deliverable.
+## Quick Summary
+
+**Goal:** Investigate performance bottlenecks and deliver measured, evidence-backed optimization recommendations — ordered by user-visible latency reduction — so the right fix lands at the right layer instead of premature or guessed optimization.
+
+**Workflow:**
+
+1. **Profile** — Identify concern (query, API, bundle, rendering); gather baseline metrics FIRST
+2. **Investigate** — Trace code paths; detect N+1, missing indexes, large payloads, unbounded fetches
+3. **Recommend** — Specific fixes, expected impact, ordered by user-visible latency reduction
+4. **Report** — Write to `plans/reports/` with Before/After comparison
+
+**Key Rules:**
+
+- NEVER optimize without measuring — gather baseline metrics first; premature optimization is forbidden — why: a fix with no baseline cannot be proven to help
+- NEVER guess impact — cite evidence (query counts, timing, bundle size) for every recommendation
+- ALWAYS flag EVERY unbounded list query (full-collection fetch without pagination/limit) — OOM risk
+- ALWAYS check existing indexes / cached results before recommending new ones — why: redundant indexes add write cost
+- ALWAYS run at least ONE graph command on key files before concluding investigation (when `.code-graph/graph.db` exists)
+
+> **Evidence Gate** — Every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence % (>80% act, <80% verify first). Speculation is FORBIDDEN.
+> **External Memory** — For complex or lengthy work, write intermediate findings and final results to `plans/reports/` — why: prevents context loss and serves as the deliverable.
+
+## Project Context
+
+> **MANDATORY IMPORTANT MUST ATTENTION** Read these project-specific reference docs directly — why: performance analysis without project context produces generic, useless advice:
+>
+> - `docs/project-reference/backend-patterns-reference.md` — repository/data-access patterns, query optimization, batch operations
+> - `docs/project-reference/frontend-patterns-reference.md` — state management, subscription/effect management, lazy loading
+> - `docs/project-reference/project-structure-reference.md` — module/service list, database type(s), build tooling
+>
+> Files missing? Run `/scan --target=backend-patterns`, `/scan --target=frontend-patterns`, `/scan --target=project-structure` FIRST, then proceed.
+
+## Investigation Checklist
+
+> Stack-agnostic categories. Substitute project-specific symbols (ORM names, framework-specific calls, render-cycle hooks) per the reference docs above.
+
+| Area               | What to Check                                                                               | Tool                   |
+| ------------------ | ------------------------------------------------------------------------------------------- | ---------------------- |
+| N+1 queries        | Loops containing repository / data-access calls                                             | Grep + graph trace     |
+| Missing indexes    | Database index definitions vs frequent query filters                                        | Grep index definitions |
+| Unbounded lists    | Queries returning all rows / docs without pagination or limit — flag every occurrence       | Grep                   |
+| Large payloads     | Response size, missing projections/select-only, over-fetching                               | Grep + code trace      |
+| Bundle size        | Large imports, missing tree-shaking, eager-loaded modules                                   | Glob + read            |
+| Render perf        | Missing change-detection optimizations, unnecessary re-renders, synchronous heavy ops on UI | Grep                   |
+| Subscription leaks | Subscriptions/listeners not torn down on destroy/unmount                                    | Grep                   |
+| Memory allocation  | Unnecessary allocations, large in-memory collections, leaking caches                        | Code trace             |
+
+## Output Format
+
+Performance report (`plans/reports/perf-{slug}-{date}.md`):
+
+- Executive Summary
+- Bottleneck Analysis: severity | `file:line` | metrics
+- Root Cause
+- Optimization Recommendations: expected impact ordered by user-visible latency
+- Before/After comparison plan
+- Confidence %
+
+## Graph Intelligence (MANDATORY when .code-graph/graph.db exists)
+
+After grep/search finds key files, MUST ATTENTION use graph for structural analysis — why: graph reveals callers, importers, tests, event consumers, and bus messages grep cannot find.
+
+```bash
+python .claude/scripts/code_graph trace <file> --direction both --json                    # Full system flow (BEST FIRST CHOICE)
+python .claude/scripts/code_graph trace <file> --direction both --node-mode file --json    # File-level overview (less noise)
+python .claude/scripts/code_graph connections <file> --json             # Structural relationships
+python .claude/scripts/code_graph query callers_of <function> --json    # All callers
+python .claude/scripts/code_graph query tests_for <function> --json     # Test coverage
+```
+
+Pattern: Grep first → Graph expand → Grep verify. Iterative deepening encouraged.
+
+<!-- SYNC:agent-code-standards -->
+
+> **Development rules.** YAGNI / KISS / DRY. Place logic in the LOWEST layer (Entity/Model > Service > Component/Handler) — mapping → Command/DTO, constants → Model. Kebab-case files. Search 3+ existing patterns before writing new code; read existing code before changing it. Read `.claude/docs/development-rules.md` for full coding standards, quality gates, and the pre-commit checklist (when present).
+>
+> **Coding patterns.** Before implementing, read the project pattern references named in `docs/project-config.json` / the docs index (e.g. `docs/project-reference/backend-patterns-reference.md`, `frontend-patterns-reference.md`) — local conventions override generic framework defaults.
+>
+> **Blocked until:** dev-rules + pattern docs read before writing or changing code.
+
+<!-- /SYNC:agent-code-standards -->
+
+<!-- SYNC:agent-bootstrap -->
+
+> **Plan first, then act.** Break work into small tasks before editing; keep exactly one task in progress; mark each complete immediately after its evidence lands. On context loss, inspect the existing task list before creating new tasks.
+>
+> **Context guard / progress file (MANDATORY when task > 5 files or > 3 steps).** Context exhaustion = silent loss of ALL findings; no progress file = no recovery.
+>
+> 1. **On start:** create `tmp/ck-agent-{ts}-{rnd}.progress.md` — `ts` = current timestamp in `YYYYMMDDHHmmssSSS` (17 digits), `rnd` = random 6-char hex. First line records the session id.
+> 2. **After each step:** append findings, marking `[done]` / `[partial]` / `[pending]`.
+> 3. **Running out of context?** Write `[partial]` to the file FIRST — NEVER summarize before writing.
+> 4. **Producing a report?** Persist it incrementally to `plans/reports/` and start the final message with its path.
+>
+> **Blocked until:** task breakdown exists · progress file created when the task exceeds the size threshold.
+
+<!-- /SYNC:agent-bootstrap -->
 
 <!-- SYNC:task-tracking-external-report -->
 
@@ -163,114 +257,49 @@ memory: project
 
 <!-- /SYNC:ai-mistake-prevention -->
 
-## Quick Summary
-
-**Goal:** Investigate performance bottlenecks and produce evidence-based recommendations with measurable impact.
-
-**Workflow:**
-
-1. **Profile** — Identify concern (query, API, bundle, rendering) and gather baseline metrics
-2. **Investigate** — Trace code paths; detect N+1, missing indexes, large payloads, no pagination
-3. **Recommend** — Specific fixes with expected impact, ordered by user-visible latency reduction
-4. **Report** — Write to `plans/reports/` with Before/After comparison
-
-**Key Rules:**
-
-- NEVER optimize without measuring — premature optimization is forbidden
-- NEVER guess impact — provide evidence (query counts, timing, bundle size)
-- ALWAYS flag unbounded list queries (full-collection fetch without pagination/limit) — OOM risk
-- ALWAYS check existing indexes / cached results before recommending new ones
-- ALWAYS run at least one graph command on key files before concluding investigation
-
-## Project Context
-
-> **MANDATORY IMPORTANT MUST ATTENTION** Read the following project-specific reference docs (auto-injected by hook — check for [Injected: ...] header before re-reading manually):
->
-> - `docs/project-reference/backend-patterns-reference.md` — repository/data-access patterns, query optimization, batch operations
-> - `docs/project-reference/frontend-patterns-reference.md` — state management, subscription/effect management, lazy loading
-> - `docs/project-reference/project-structure-reference.md` — module/service list, database type(s), build tooling
->
-> If files not found, run `/scan --target=backend-patterns`, `/scan --target=frontend-patterns`, `/scan --target=project-structure` first — performance analysis without project context produces generic advice.
-
-## Investigation Checklist
-
-> Stack-agnostic categories. Substitute project-specific symbols (ORM names, framework-specific calls, render-cycle hooks) per the reference docs above.
-
-| Area               | What to Check                                                                               | Tool                   |
-| ------------------ | ------------------------------------------------------------------------------------------- | ---------------------- |
-| N+1 queries        | Loops containing repository / data-access calls                                             | Grep + graph trace     |
-| Missing indexes    | Database index definitions vs frequent query filters                                        | Grep index definitions |
-| Unbounded lists    | Queries returning all rows / docs without pagination or limit — flag every occurrence       | Grep                   |
-| Large payloads     | Response size, missing projections/select-only, over-fetching                               | Grep + code trace      |
-| Bundle size        | Large imports, missing tree-shaking, eager-loaded modules                                   | Glob + read            |
-| Render perf        | Missing change-detection optimizations, unnecessary re-renders, synchronous heavy ops on UI | Grep                   |
-| Subscription leaks | Subscriptions/listeners not torn down on destroy/unmount                                    | Grep                   |
-| Memory allocation  | Unnecessary allocations, large in-memory collections, leaking caches                        | Code trace             |
-
-## Output Format
-
-Performance report (`plans/reports/perf-{slug}-{date}.md`):
-
-- Executive Summary
-- Bottleneck Analysis: severity | `file:line` | metrics
-- Root Cause
-- Optimization Recommendations: expected impact ordered by user-visible latency
-- Before/After comparison plan
-- Confidence %
-
-## Graph Intelligence (MANDATORY when .code-graph/graph.db exists)
-
-After grep/search finds key files, MUST ATTENTION use graph for structural analysis. Graph reveals callers, importers, tests, event consumers, and bus messages that grep cannot find.
-
-```bash
-python .claude/scripts/code_graph trace <file> --direction both --json                    # Full system flow (BEST FIRST CHOICE)
-python .claude/scripts/code_graph trace <file> --direction both --node-mode file --json    # File-level overview (less noise)
-python .claude/scripts/code_graph connections <file> --json             # Structural relationships
-python .claude/scripts/code_graph query callers_of <function> --json    # All callers
-python .claude/scripts/code_graph query tests_for <function> --json     # Test coverage
-```
-
-Pattern: Grep first → Graph expand → Grep verify. Iterative deepening encouraged.
-
----
-
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
+
 <!-- SYNC:sequential-thinking-protocol:reminder -->
 
 **MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer; see `/sequential-thinking` skill.
 
 <!-- /SYNC:sequential-thinking-protocol:reminder -->
+
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
 **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
-## Closing Reminders
-
-- **MANDATORY IMPORTANT MUST ATTENTION** NEVER optimize without measuring — produce baseline evidence first (`file:line`, query counts, timing)
-- **MANDATORY IMPORTANT MUST ATTENTION** NEVER guess impact — cite query counts, timing, or bundle size for every recommendation
-- **MANDATORY IMPORTANT MUST ATTENTION** ALWAYS run at least ONE graph command on key files before concluding any investigation
-- **MANDATORY IMPORTANT MUST ATTENTION** flag ALL unbounded list queries (full-collection fetch without pagination/limit, regardless of ORM/driver syntax) — these are OOM risks
-- **MANDATORY IMPORTANT MUST ATTENTION** check existing indexes / caches before recommending new ones
-- **MANDATORY IMPORTANT MUST ATTENTION** write all findings to `plans/reports/` before reporting done — prevents context loss
-    <!-- SYNC:task-tracking-external-report:reminder -->
+<!-- SYNC:task-tracking-external-report:reminder -->
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-    <!-- /SYNC:task-tracking-external-report:reminder -->
-    <!-- SYNC:project-reference-docs-guide:reminder -->
+<!-- /SYNC:task-tracking-external-report:reminder -->
+
+<!-- SYNC:project-reference-docs-guide:reminder -->
 
 - **MANDATORY** After task-tracking bootstrap and before target/source work, read required project-reference docs and cite `Reference docs read: ...`.
 - **MANDATORY** Always include `lessons.md`; project conventions override generic defaults.
 - **MANDATORY** If project config, root instruction files, or any required reference doc is missing or stale, auto-run `/project-init` or the narrow lower-level route before ordinary project-specific work.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
-  <!-- SYNC:cross-service-check:reminder -->
+
+<!-- SYNC:cross-service-check:reminder -->
 
 **IMPORTANT MUST ATTENTION** microservices/event-driven: scan producers, consumers, sagas, contracts in task scope. Per touchpoint: owner · message · consumers · risk (NONE/ADDITIVE/BREAKING). Missing consumer = silent regression.
 
-  <!-- /SYNC:cross-service-check:reminder -->
+<!-- /SYNC:cross-service-check:reminder -->
+
+## Closing Reminders
+
+- **IMPORTANT MUST ATTENTION Goal:** Investigate performance bottlenecks and deliver measured, evidence-backed optimization recommendations — ordered by user-visible latency reduction — so the right fix lands at the right layer instead of premature or guessed optimization.
+- **MANDATORY IMPORTANT MUST ATTENTION** NEVER optimize without measuring — produce baseline evidence first (`file:line`, query counts, timing)
+- **MANDATORY IMPORTANT MUST ATTENTION** NEVER guess impact — cite query counts, timing, or bundle size for every recommendation
+- **MANDATORY IMPORTANT MUST ATTENTION** ALWAYS run at least ONE graph command on key files before concluding any investigation
+- **MANDATORY IMPORTANT MUST ATTENTION** flag ALL unbounded list queries (full-collection fetch without pagination/limit, regardless of ORM/driver syntax) — these are OOM risks
+- **MANDATORY IMPORTANT MUST ATTENTION** check existing indexes / caches before recommending new ones
+- **MANDATORY IMPORTANT MUST ATTENTION** write all findings to `plans/reports/` before reporting done — prevents context loss

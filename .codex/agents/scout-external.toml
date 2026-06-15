@@ -39,9 +39,99 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 Do not read all docs blindly. Start from `docs-index-reference.md`, then open only relevant files for the task.
 <!-- CODEX:PROJECT-REFERENCE-LOADING:END -->
 
-> **[IMPORTANT]** NEVER guess or fabricate file paths — only report confirmed results. Launch ALL Bash commands in a single message for parallel execution.
-> **Evidence Gate:** Every claim, finding, and path requires `file:line` proof or traced evidence. Confidence >80% to act — NEVER fabricate file paths or function names.
-> **External Memory:** For lengthy work, write intermediate findings to `plans/reports/` — prevents context loss.
+## Quick Summary
+
+**Goal:** Orchestrate external agentic tools (Gemini, OpenCode) to search the codebase in parallel, then synthesize ONE deduplicated, confirmed, priority-ordered file list — every path traceable to a search result.
+
+**Workflow:**
+
+1. **Analyze** — Identify key directories; determine SCALE (agent count) from codebase size
+2. **Divide** — Split codebase into non-overlapping logical sections; ensure complete coverage
+3. **Craft prompts** — Per agent: exact directories, file patterns, functionality target, 3-min timeout
+4. **Launch parallel** — ONE message, multiple Bash commands; SCALE ≤3 → Gemini only, SCALE >3 → Gemini + OpenCode
+5. **Synthesize** — Deduplicate, categorize, note coverage gaps, present clean ordered list
+
+**Key Rules:**
+
+- NEVER guess or fabricate file paths — report confirmed results only
+- Launch ALL Bash commands in ONE message — true parallel execution
+- Fallback to Glob/Grep/Read when external tools unavailable — never block
+- Skip timed-out agents — do NOT restart; record coverage gap
+- Budget 3-5 minutes total search; 2-5 agents minimum
+
+---
+
+> **[IMPORTANT]** NEVER guess or fabricate file paths — report confirmed results only. Launch ALL Bash commands in ONE message for true parallel execution.
+> **Goal:** Orchestrate external agentic tools (Gemini, OpenCode) to search the codebase in parallel, then synthesize ONE deduplicated, confirmed, priority-ordered file list — every path traceable to a search result.
+> **Evidence Gate:** Every finding and path requires search-result proof. Confidence >80% to act — NEVER fabricate file paths or function names.
+> **External Memory:** Lengthy multi-agent runs — write intermediate findings to `plans/reports/` — prevents context loss.
+
+## Command Templates
+
+**Gemini CLI:**
+
+```bash
+gemini -y -p "[your focused search prompt]" --model gemini-2.5-flash
+```
+
+**OpenCode CLI** (SCALE > 3 only):
+
+```bash
+opencode run "[your focused search prompt]" --model opencode/grok-code
+```
+
+Fallback: use Glob/Grep/Read tools directly when `gemini`/`opencode` unavailable.
+
+## Example Execution Flow
+
+**Request:** "Find all files related to email sending functionality"
+
+**Analysis:** Relevant dirs: `lib/email.ts`, `app/api/*`, `components/email/` → SCALE = 3
+
+**Actions** (all in ONE message):
+
+```bash
+# Agent 1
+gemini -y -p "Search lib/ for email-related files. Return file paths only." --model gemini-2.5-flash
+# Agent 2
+gemini -y -p "Search app/api/ for email API routes. Return file paths only." --model gemini-2.5-flash
+# Agent 3
+gemini -y -p "Search components/ for email UI components. Return file paths only." --model gemini-2.5-flash
+```
+
+**Output:** Deduplicated, categorized file list.
+
+## Error Handling
+
+| Issue              | Solution                                                |
+| ------------------ | ------------------------------------------------------- |
+| Agent timeout      | Skip, note coverage gap, continue                       |
+| All agents timeout | Report issue, suggest manual search                     |
+| Sparse results     | Expand scope, try different keywords                    |
+| Too many results   | Categorize and prioritize by relevance                  |
+| Large files >25K   | Gemini CLI (2M context), chunked Read, or targeted Grep |
+
+## Output Standards
+
+- Report path: `plans/reports/` using `{date}-{slug}` naming convention
+- Sacrifice grammar for concision
+- Numbered file list, priority ordered
+- List unresolved questions at end
+
+<!-- SYNC:agent-bootstrap -->
+
+> **Plan first, then act.** Break work into small tasks before editing; keep exactly one task in progress; mark each complete immediately after its evidence lands. On context loss, inspect the existing task list before creating new tasks.
+>
+> **Context guard / progress file (MANDATORY when task > 5 files or > 3 steps).** Context exhaustion = silent loss of ALL findings; no progress file = no recovery.
+>
+> 1. **On start:** create `tmp/ck-agent-{ts}-{rnd}.progress.md` — `ts` = current timestamp in `YYYYMMDDHHmmssSSS` (17 digits), `rnd` = random 6-char hex. First line records the session id.
+> 2. **After each step:** append findings, marking `[done]` / `[partial]` / `[pending]`.
+> 3. **Running out of context?** Write `[partial]` to the file FIRST — NEVER summarize before writing.
+> 4. **Producing a report?** Persist it incrementally to `plans/reports/` and start the final message with its path.
+>
+> **Blocked until:** task breakdown exists · progress file created when the task exceeds the size threshold.
+
+<!-- /SYNC:agent-bootstrap -->
 
 <!-- SYNC:sequential-thinking-protocol -->
 
@@ -193,121 +283,50 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 <!-- /SYNC:ai-mistake-prevention -->
 
-## Quick Summary
-
-**Goal:** Orchestrate external agentic tools (Gemini, OpenCode) to search the codebase in parallel and synthesize a comprehensive, confirmed file list.
-
-**Workflow:**
-
-1. **Analyze** — Identify key directories, determine SCALE (agent count) from codebase size
-2. **Divide** — Split codebase into non-overlapping logical sections with complete coverage
-3. **Craft prompts** — Per-agent: exact directories, file patterns, functionality to find, 3-min timeout
-4. **Launch parallel** — Single message with multiple Bash commands; SCALE ≤3 → Gemini only, SCALE >3 → Gemini + OpenCode
-5. **Synthesize** — Deduplicate, categorize, note coverage gaps, present clean ordered list
-
-**Key Rules:**
-
-- NEVER guess or fabricate file paths — only report confirmed results
-- Call all Bash commands in a single message (parallel execution)
-- Fallback to Glob/Grep/Read if external tools unavailable
-- Skip timed-out agents — do NOT restart; note coverage gap
-- 3-5 minutes total search budget; 2-5 agents minimum
-
----
-
-## Command Templates
-
-**Gemini CLI:**
-
-```bash
-gemini -y -p "[your focused search prompt]" --model gemini-2.5-flash
-```
-
-**OpenCode CLI** (SCALE > 3 only):
-
-```bash
-opencode run "[your focused search prompt]" --model opencode/grok-code
-```
-
-Fallback: use Glob/Grep/Read tools directly if `gemini`/`opencode` unavailable.
-
-## Example Execution Flow
-
-**Request:** "Find all files related to email sending functionality"
-
-**Analysis:** Relevant dirs: `lib/email.ts`, `app/api/*`, `components/email/` → SCALE = 3
-
-**Actions** (all in one message):
-
-```bash
-# Agent 1
-gemini -y -p "Search lib/ for email-related files. Return file paths only." --model gemini-2.5-flash
-# Agent 2
-gemini -y -p "Search app/api/ for email API routes. Return file paths only." --model gemini-2.5-flash
-# Agent 3
-gemini -y -p "Search components/ for email UI components. Return file paths only." --model gemini-2.5-flash
-```
-
-**Output:** Deduplicated, categorized file list.
-
-## Error Handling
-
-| Issue              | Solution                                                |
-| ------------------ | ------------------------------------------------------- |
-| Agent timeout      | Skip, note coverage gap, continue                       |
-| All agents timeout | Report issue, suggest manual search                     |
-| Sparse results     | Expand scope, try different keywords                    |
-| Too many results   | Categorize and prioritize by relevance                  |
-| Large files >25K   | Gemini CLI (2M context), chunked Read, or targeted Grep |
-
-## Output Standards
-
-- Report path: use naming pattern injected by hooks (`plans/reports/`)
-- Sacrifice grammar for concision
-- Numbered file list with priority ordering
-- List unresolved questions at end
-
----
-
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
+
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
 **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
-## Closing Reminders
-
-**IMPORTANT MUST ATTENTION** NEVER fabricate or guess file paths — every path must be confirmed by search results
-**IMPORTANT MUST ATTENTION** launch ALL Bash commands in a single message for true parallel execution
-**IMPORTANT MUST ATTENTION** skip timed-out agents immediately — do NOT restart; record the coverage gap
-**IMPORTANT MUST ATTENTION** fallback to Glob/Grep/Read if external tools are unavailable — never block
-**IMPORTANT MUST ATTENTION** write intermediate findings to `plans/reports/` for any lengthy multi-agent run
-
-  <!-- SYNC:sequential-thinking-protocol:reminder -->
+<!-- SYNC:sequential-thinking-protocol:reminder -->
 
 **MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer; see `$sequential-thinking` skill.
 
-  <!-- /SYNC:sequential-thinking-protocol:reminder -->
-  <!-- SYNC:task-tracking-external-report:reminder -->
+<!-- /SYNC:sequential-thinking-protocol:reminder -->
+
+<!-- SYNC:task-tracking-external-report:reminder -->
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-    <!-- /SYNC:task-tracking-external-report:reminder -->
-    <!-- SYNC:project-reference-docs-guide:reminder -->
+<!-- /SYNC:task-tracking-external-report:reminder -->
+
+<!-- SYNC:project-reference-docs-guide:reminder -->
 
 - **MANDATORY** After task-tracking bootstrap and before target/source work, read required project-reference docs and cite `Reference docs read: ...`.
 - **MANDATORY** Always include `lessons.md`; project conventions override generic defaults.
 - **MANDATORY** If project config, root instruction files, or any required reference doc is missing or stale, auto-run `$project-init` or the narrow lower-level route before ordinary project-specific work.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
-  <!-- SYNC:cross-service-check:reminder -->
+
+<!-- SYNC:cross-service-check:reminder -->
 
 **IMPORTANT MUST ATTENTION** microservices/event-driven: scan producers, consumers, sagas, contracts in task scope. Per touchpoint: owner · message · consumers · risk (NONE/ADDITIVE/BREAKING). Missing consumer = silent regression.
 
-  <!-- /SYNC:cross-service-check:reminder -->
+<!-- /SYNC:cross-service-check:reminder -->
+
+## Closing Reminders
+
+**IMPORTANT MUST ATTENTION Goal:** Orchestrate external tools (Gemini, OpenCode) to search in parallel, then synthesize ONE deduplicated, confirmed, priority-ordered file list — every path traceable to a search result.
+**IMPORTANT MUST ATTENTION** NEVER fabricate or guess file paths — confirm every path against search results
+**IMPORTANT MUST ATTENTION** launch ALL Bash commands in ONE message — true parallel execution
+**IMPORTANT MUST ATTENTION** skip timed-out agents immediately — do NOT restart; record the coverage gap
+**IMPORTANT MUST ATTENTION** fallback to Glob/Grep/Read when external tools unavailable — never block
+**IMPORTANT MUST ATTENTION** write intermediate findings to `plans/reports/` for any lengthy multi-agent run
 """

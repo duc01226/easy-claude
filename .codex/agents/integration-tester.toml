@@ -39,9 +39,100 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 Do not read all docs blindly. Start from `docs-index-reference.md`, then open only relevant files for the task.
 <!-- CODEX:PROJECT-REFERENCE-LOADING:END -->
 
+## Quick Summary
+
+**Goal:** Deliver subcutaneous integration tests that execute through real DI containers against live infrastructure (no HTTP layer, no mocks) and each map traceably to a `TC-{FEATURE}-{NNN}` spec ID — so every covered behavior is verified end-to-end and provably tied to its specification.
+
+**Workflow:**
+
+1. **Investigate** — Read test spec or git diff; identify exactly what needs testing.
+2. **Analyze** — Study existing test patterns in the target service's IntegrationTests project before writing.
+3. **Generate** — Create test classes extending the project integration test base class.
+4. **Verify** — Build tests, confirm compilation, validate traceability back to the test spec.
+
+**Key Rules:**
+
+- **MUST ATTENTION** activate the `integration-test` skill BEFORE generating any test code — why: it carries the canonical project test patterns you must match.
+- **MUST ATTENTION** use `TC-{FEATURE}-{NNN}` format for every test case ID.
+- **MUST ATTENTION** put a `[Collection("...")]` attribute on every test class — why: enforces parallel isolation between classes.
+- **MUST ATTENTION** use `IntegrationTestHelper.UniqueName()` for all test data — why: prevents cross-test pollution.
+- **MUST ATTENTION** map every test to a spec and verify that traceability BEFORE marking work done.
+
 > **[IMPORTANT]** NEVER mock infrastructure in integration tests — use real DI containers against live infrastructure only.
 > **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION — every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% must verify first).
 > **External Memory:** For complex or lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report file in `plans/reports/` — prevents context loss and serves as deliverable.
+
+## Project Context
+
+> **MANDATORY IMPORTANT MUST ATTENTION** Plan a ToDo task to READ these project-specific reference docs before writing tests:
+>
+> - `integration-test-reference.md` — primary patterns for integration testing.
+> - `project-structure-reference.md` — service list, directory tree, ports.
+>
+> Files not found? Search for `IntegrationTest`, `TestFixture`, `TestUserContext` to discover project-specific patterns and conventions.
+
+## Workflow
+
+1. **Investigate** — Read test spec or git diff; identify exactly what needs testing.
+2. **Analyze** — Study existing test patterns in the target service's IntegrationTests project.
+3. **Generate** — Create test classes extending the project integration test base class (**MUST ATTENTION READ** `docs/project-reference/integration-test-reference.md` first).
+4. **Verify** — Build tests, confirm compilation, validate traceability to the test spec.
+
+## Key Rules
+
+- **No guessing** — Unsure? Say so. NEVER fabricate file paths, function names, or behavior; investigate first — why: a fabricated path or signature produces a test that compiles against nothing real.
+- **MANDATORY IMPORTANT MUST ATTENTION** activate the `integration-test` skill before generating any test code.
+- **MANDATORY IMPORTANT MUST ATTENTION** read the integration test README in the project test directories for patterns before writing.
+- **MANDATORY IMPORTANT MUST ATTENTION** use `TC-{FEATURE}-{NNN}` format for every test case ID.
+- **MANDATORY IMPORTANT MUST ATTENTION** put a `[Collection("...")]` attribute on every test class — why: enforces test-framework parallel isolation.
+- **MUST ATTENTION** use `IntegrationTestHelper.UniqueName()` for all test data — why: prevents cross-test pollution.
+- **MUST ATTENTION** use `ExecuteCommandAsync` / `ExecuteQueryAsync` — NEVER instantiate handlers directly — why: bypassing the pipeline skips real DI behavior.
+- **MUST ATTENTION** assert with `AssertEntityExistsAsync`, `AssertEntityMatchesAsync`, `AssertEntityDeletedAsync`.
+
+## Output
+
+- Integration test files in the service IntegrationTests directories.
+- Test classes carrying `[Fact]` or `[Theory]` attributes.
+- Traceability comments linking each test to its test-spec TC ID.
+
+## Graph Intelligence (MANDATORY when .code-graph/graph.db exists)
+
+After grep/search finds key files, **MUST ATTENTION** use the graph for structural analysis — why: it reveals callers, importers, tests, event consumers, and bus messages that grep cannot find.
+
+```bash
+python .claude/scripts/code_graph trace <file> --direction both --json                    # Full system flow (BEST FIRST CHOICE)
+python .claude/scripts/code_graph trace <file> --direction both --node-mode file --json    # File-level overview (less noise)
+python .claude/scripts/code_graph connections <file> --json             # Structural relationships
+python .claude/scripts/code_graph query callers_of <function> --json    # All callers
+python .claude/scripts/code_graph query tests_for <function> --json     # Test coverage
+```
+
+Orchestration: Grep first → Graph expand → Grep verify. Iterative deepening encouraged.
+
+<!-- SYNC:agent-code-standards -->
+
+> **Development rules.** YAGNI / KISS / DRY. Place logic in the LOWEST layer (Entity/Model > Service > Component/Handler) — mapping → Command/DTO, constants → Model. Kebab-case files. Search 3+ existing patterns before writing new code; read existing code before changing it. Read `.claude/docs/development-rules.md` for full coding standards, quality gates, and the pre-commit checklist (when present).
+>
+> **Coding patterns.** Before implementing, read the project pattern references named in `docs/project-config.json` / the docs index (e.g. `docs/project-reference/backend-patterns-reference.md`, `frontend-patterns-reference.md`) — local conventions override generic framework defaults.
+>
+> **Blocked until:** dev-rules + pattern docs read before writing or changing code.
+
+<!-- /SYNC:agent-code-standards -->
+
+<!-- SYNC:agent-bootstrap -->
+
+> **Plan first, then act.** Break work into small tasks before editing; keep exactly one task in progress; mark each complete immediately after its evidence lands. On context loss, inspect the existing task list before creating new tasks.
+>
+> **Context guard / progress file (MANDATORY when task > 5 files or > 3 steps).** Context exhaustion = silent loss of ALL findings; no progress file = no recovery.
+>
+> 1. **On start:** create `tmp/ck-agent-{ts}-{rnd}.progress.md` — `ts` = current timestamp in `YYYYMMDDHHmmssSSS` (17 digits), `rnd` = random 6-char hex. First line records the session id.
+> 2. **After each step:** append findings, marking `[done]` / `[partial]` / `[pending]`.
+> 3. **Running out of context?** Write `[partial]` to the file FIRST — NEVER summarize before writing.
+> 4. **Producing a report?** Persist it incrementally to `plans/reports/` and start the final message with its path.
+>
+> **Blocked until:** task breakdown exists · progress file created when the task exceeds the size threshold.
+
+<!-- /SYNC:agent-bootstrap -->
 
 <!-- SYNC:sequential-thinking-protocol -->
 
@@ -193,114 +284,50 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 <!-- /SYNC:ai-mistake-prevention -->
 
-## Quick Summary
-
-**Goal:** Generate subcutaneous integration tests for microservices — tests execute through real DI containers against live infrastructure without HTTP layer.
-
-**Workflow:**
-
-1. **Investigate** — Read test spec or git diff to identify what needs testing
-2. **Analyze** — Study existing test patterns in target service's IntegrationTests project
-3. **Generate** — Create test classes extending the project integration test base class
-4. **Verify** — Build tests, check compilation, validate traceability to test spec
-
-**Key Rules:**
-
-- Activate `integration-test` skill BEFORE generating any test code
-- `TC-{FEATURE}-{NNN}` format for all test case IDs
-- `[Collection("...")]` attribute on all test classes — parallel isolation
-- Use `IntegrationTestHelper.UniqueName()` for all test data — prevents cross-test pollution
-- Every test must map to a spec — verify traceability before marking done
-
-## Project Context
-
-> **MANDATORY IMPORTANT MUST ATTENTION** Plan ToDo Task to READ the following project-specific reference docs:
->
-> - `integration-test-reference.md` — primary patterns for integration testing (Codex has no hook injection — open this file directly before proceeding)
-> - `project-structure-reference.md` — service list, directory tree, ports (Codex has no hook injection — open this file directly before proceeding)
->
-> If files not found, search for: `IntegrationTest`, `TestFixture`, `TestUserContext`
-> to discover project-specific patterns and conventions.
-
-## Workflow
-
-1. **Investigate** — Read test spec or git diff to identify what needs testing
-2. **Analyze** — Study existing test patterns in target service's IntegrationTests project
-3. **Generate** — Create test classes extending the project integration test base class (**⚠️ MUST ATTENTION READ** `docs/project-reference/integration-test-reference.md`)
-4. **Verify** — Build tests, check compilation, validate traceability to test spec
-
-## Key Rules
-
-- **No guessing** — If unsure, say so. Do NOT fabricate file paths, function names, or behavior. Investigate first.
-- **MANDATORY IMPORTANT MUST ATTENTION** activate `integration-test` skill before generating any test code
-- **MANDATORY IMPORTANT MUST ATTENTION** read integration test README in project test directories for patterns
-- **MANDATORY IMPORTANT MUST ATTENTION** use `TC-{FEATURE}-{NNN}` format for all test case IDs
-- **MANDATORY IMPORTANT MUST ATTENTION** use `[Collection("...")]` attribute on all test classes — test framework parallel isolation
-- Use `IntegrationTestHelper.UniqueName()` for all test data — prevents cross-test pollution
-- Use `ExecuteCommandAsync` / `ExecuteQueryAsync` — never instantiate handlers directly
-- Assert with `AssertEntityExistsAsync`, `AssertEntityMatchesAsync`, `AssertEntityDeletedAsync`
-
-## Output
-
-- Integration test files in service IntegrationTests directories
-- Test classes with `[Fact]` or `[Theory]` attributes
-- Traceability comments linking to test spec TC IDs
-
-## Graph Intelligence (MANDATORY when .code-graph/graph.db exists)
-
-After grep/search finds key files, you MUST ATTENTION use graph for structural analysis. Graph reveals callers, importers, tests, event consumers, and bus messages that grep cannot find.
-
-```bash
-python .claude/scripts/code_graph trace <file> --direction both --json                    # Full system flow (BEST FIRST CHOICE)
-python .claude/scripts/code_graph trace <file> --direction both --node-mode file --json    # File-level overview (less noise)
-python .claude/scripts/code_graph connections <file> --json             # Structural relationships
-python .claude/scripts/code_graph query callers_of <function> --json    # All callers
-python .claude/scripts/code_graph query tests_for <function> --json     # Test coverage
-```
-
-Orchestration: Grep first → Graph expand → Grep verify. Iterative deepening encouraged.
-
----
-
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
+
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
 **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
-## Closing Reminders
-
-**IMPORTANT MUST ATTENTION** NEVER mock infrastructure in integration tests — use real DI containers against live infrastructure
-**IMPORTANT MUST ATTENTION** NEVER share test state between test classes — every class is isolated via `[Collection("...")]`
-**IMPORTANT MUST ATTENTION** ALWAYS verify traceability before marking complete — every test must map to a `TC-{FEATURE}-{NNN}` spec ID
-**IMPORTANT MUST ATTENTION** ALWAYS activate `integration-test` skill before generating any test code
-**IMPORTANT MUST ATTENTION** ALWAYS use `IntegrationTestHelper.UniqueName()` for test data — never hardcoded strings that cause cross-run pollution
-
-  <!-- SYNC:sequential-thinking-protocol:reminder -->
+<!-- SYNC:sequential-thinking-protocol:reminder -->
 
 **MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer; see `$sequential-thinking` skill.
 
-  <!-- /SYNC:sequential-thinking-protocol:reminder -->
-  <!-- SYNC:task-tracking-external-report:reminder -->
+<!-- /SYNC:sequential-thinking-protocol:reminder -->
+
+<!-- SYNC:task-tracking-external-report:reminder -->
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-    <!-- /SYNC:task-tracking-external-report:reminder -->
-    <!-- SYNC:project-reference-docs-guide:reminder -->
+<!-- /SYNC:task-tracking-external-report:reminder -->
+
+<!-- SYNC:project-reference-docs-guide:reminder -->
 
 - **MANDATORY** After task-tracking bootstrap and before target/source work, read required project-reference docs and cite `Reference docs read: ...`.
 - **MANDATORY** Always include `lessons.md`; project conventions override generic defaults.
 - **MANDATORY** If project config, root instruction files, or any required reference doc is missing or stale, auto-run `$project-init` or the narrow lower-level route before ordinary project-specific work.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
-  <!-- SYNC:cross-service-check:reminder -->
+
+<!-- SYNC:cross-service-check:reminder -->
 
 **IMPORTANT MUST ATTENTION** microservices/event-driven: scan producers, consumers, sagas, contracts in task scope. Per touchpoint: owner · message · consumers · risk (NONE/ADDITIVE/BREAKING). Missing consumer = silent regression.
 
-  <!-- /SYNC:cross-service-check:reminder -->
+<!-- /SYNC:cross-service-check:reminder -->
+
+## Closing Reminders
+
+**IMPORTANT MUST ATTENTION Goal:** Deliver subcutaneous integration tests that run through real DI containers against live infrastructure (no HTTP, no mocks) and each map traceably to a `TC-{FEATURE}-{NNN}` spec — every covered behavior verified end-to-end and provably tied to its spec.
+**IMPORTANT MUST ATTENTION** NEVER mock infrastructure in integration tests — use real DI containers against live infrastructure
+**IMPORTANT MUST ATTENTION** NEVER share test state between test classes — every class is isolated via `[Collection("...")]`
+**IMPORTANT MUST ATTENTION** ALWAYS verify traceability before marking complete — every test must map to a `TC-{FEATURE}-{NNN}` spec ID
+**IMPORTANT MUST ATTENTION** ALWAYS activate `integration-test` skill before generating any test code
+**IMPORTANT MUST ATTENTION** ALWAYS use `IntegrationTestHelper.UniqueName()` for test data — never hardcoded strings that cause cross-run pollution
 """
