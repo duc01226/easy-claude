@@ -46,7 +46,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 > **MANDATORY IMPORTANT MUST ATTENTION** Plan ToDo Task to READ the following project-specific reference doc:
 >
 > - `project-structure-reference.md` -- project patterns and structure
-> - `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models) (read directly when relevant; do not rely on hook-injected conversation text)
+> - `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
 >
 > If file not found, search for: project documentation, coding standards, architecture docs.
 
@@ -222,6 +222,17 @@ When user says "prioritize" or "order backlog":
 4. Update priority field in PBI frontmatter
 
 ---
+
+## Role Context (path→role, canonical)
+
+> Applies to Writes under `team-artifacts/ideas/`.
+
+- **Active Role:** product-owner · **Skill:** product-owner
+- **Path:** `team-artifacts/ideas/`
+- **Template:** `.claude/docs/team-artifacts/templates/idea-template.md`
+- **Naming:** `{YYMMDD}-po-{type}-{slug}.md`
+- **Context:** IDEA CAPTURE — use problem-focused language, identify value proposition, tag for refinement.
+- **Quality checklist:** `- [ ]` Problem statement user-focused · `- [ ]` Value proposition quantified · `- [ ]` Priority numeric (not High/Med/Low) · `- [ ]` Dependencies listed
 
 ## Output Conventions
 

@@ -365,7 +365,7 @@ For each `.claude/` protocol reference:
 > **Scope rules:**
 >
 > - `.claude/` protocol files → always add an inline summary (stable, belongs to framework)
-> - `docs/project-reference/` files → NO inline summary (project-specific). Add: `(read directly when relevant; do not rely on hook-injected conversation text)`
+> - `docs/project-reference/` files → NO inline summary (project-specific).
 >
 > ### Transform 2: Top Summary Section
 >

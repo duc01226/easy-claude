@@ -138,6 +138,16 @@ python .claude/scripts/code_graph search <keyword> --kind Function --json
 
 Then retry with the full qualified name.
 
+## Post-Grep Trace Trigger (run a trace after grep surfaces a key file)
+
+When a grep/glob surfaces an important entry-point file — an entity, command, query, event/command handler, controller, bus message/consumer, component, store, or api-service — immediately run a graph trace on it before concluding. Grep finds files; the trace reveals callers, consumers, bus messages, event chains, and tests that grep CANNOT find:
+
+```bash
+python .claude/scripts/code_graph trace <key-entry-file> --direction both --json
+```
+
+**Pattern: grep finds files → graph trace reveals full system flow → grep verifies specific details.**
+
 ## Edge Types Traced
 
 | Edge Kind                | Meaning                                          |

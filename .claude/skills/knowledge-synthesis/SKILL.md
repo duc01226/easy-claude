@@ -26,6 +26,10 @@ description: '[Research] Use when you need to synthesize research findings into 
 
 # Knowledge Synthesis
 
+## Knowledge Work Rules
+
+> **Web Research Protocol** — Every factual claim needs 2+ independent sources. Source tiers: Tier 1 (authoritative .gov/.edu/official docs), Tier 2 (industry reports), Tier 3 (credible blogs — cross-validate), Tier 4 (unverified — NEVER cite as fact). Declare confidence (95/80/60/<60%) for all findings. Use the enforced template structure — all sections required. Working files → `.claude/tmp/`, final output → `docs/knowledge/`. Canonical protocol lives in the `web-research` skill.
+
 ## Step 1: Load Evidence
 
 Read `.claude/tmp/_evidence-{slug}.md` and `.claude/tmp/_sources-{slug}.md`.

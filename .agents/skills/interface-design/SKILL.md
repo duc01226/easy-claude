@@ -66,7 +66,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - Produce 4 domain outputs before proposing any direction
 - Run 4 mandate checks before showing output to user
 - Save reusable patterns to `docs/design-system/interface-system.md` when 2+ uses
-- Component patterns: `docs/project-reference/frontend-patterns-reference.md` (read directly when relevant; do not rely on hook-injected conversation text)
+- Component patterns: `docs/project-reference/frontend-patterns-reference.md`
 - Styling/BEM guide: `docs/project-reference/scss-styling-guide.md`
 
 **Scope:**

@@ -13,7 +13,6 @@ export const genericSourceRoots = ['.claude/skills', '.claude/hooks/config'];
 const genericSourceFiles = [
     '.claude/.ck.json',
     '.claude/hooks/lib/prompt-injections.cjs',
-    '.claude/hooks/prompt-context-assembler-project-config.cjs',
     '.claude/hooks/session-init-docs.cjs'
 ];
 // Project-SYMBOL scan roots (base-class leakage). Covers skills AND hook source — generic hooks

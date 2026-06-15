@@ -589,7 +589,7 @@ public static Expression<Func<Order, bool>> ByWarehouseExpression(string warehou
 1. Glob `plans/*/plan.md` sorted by modification time — find active plan directory
 2. Read `plan.md` — project scope, goals, prior decisions
 3. Read all `{plan-dir}/research/*.md` — avoid duplicating prior work
-4. Read `docs/project-reference/domain-entities-reference.md` (if exists) — project's single source of truth for domain entities (read directly when relevant; do not rely on hook-injected conversation text)
+4. Read `docs/project-reference/domain-entities-reference.md` (if exists) — project's single source of truth for domain entities
 5. Set `{plan-dir}` variable — all outputs write to this directory
 
 If no plan directory, create using naming convention from session context.

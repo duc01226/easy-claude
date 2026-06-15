@@ -1,6 +1,6 @@
 # Skills Reference
 
-> 159 skills across 15+ domains + 5 shared reference/protocol files for context-aware AI assistance
+> 155 skills across 15+ domains + 5 shared reference/protocol files for context-aware AI assistance
 
 ## Overview
 
@@ -22,7 +22,7 @@ Skills Activated: fix, investigate
 
 ## Skill Domains
 
-> Curated highlights — the full catalog has 159 skills; the tables below list selected skills per domain, not the complete set.
+> Curated highlights — the full catalog has 155 skills; the tables below list selected skills per domain, not the complete set.
 
 | Domain                                            | Skills | Description                                          |
 | ------------------------------------------------- | ------ | ---------------------------------------------------- |
@@ -291,6 +291,10 @@ Skills are often activated alongside commands:
 
 ---
 
+## Authoring Rule — No Meta-Log
+
+> A `SKILL.md` is read as live instruction. Write only the CURRENT actionable truth. Do NOT add change-history, migration rationale, or provenance — "formerly auto-injected", "removed in the … refactor", "now embedded here", "used to be hook-injected". It carries zero instruction value and dilutes the directive the agent acts on. Change history belongs in git / `CHANGELOG.md` / `docs/adr/**` / `plans/reports/**`. Keep the actionable scope (the path/trigger a block applies to, SYNC-mirror notes); drop the historical clause. State what IS, not what changed.
+
 ## Creating Custom Skills
 
 Use `/skill-creator` to create a new skill:
@@ -311,4 +315,4 @@ Use `/skill-creator` to create a new skill:
 
 ---
 
-_Source: `.claude/skills/` | 159 skills across 15+ domains + 5 shared reference/protocol files_
+_Source: `.claude/skills/` | 155 skills across 15+ domains + 5 shared reference/protocol files_

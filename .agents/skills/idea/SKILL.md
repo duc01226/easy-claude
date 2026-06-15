@@ -141,6 +141,8 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - Role: infer from context or ask
 - Include domain context if detected
 
+> **Artifact Path (canonical convention)** — Command `$idea` → base path `team-artifacts/ideas/`, role token `po`, type `idea`. Filename pattern: `{YYMMDD}-{role}-{type}-{slug}.md` → e.g. `260119-po-idea-dark-mode-toggle.md`. Slug = lowercased basename, non-alphanumeric → `-`, trimmed, max 50 chars.
+
 ### Step 6.5: Discovery Interview (MANDATORY)
 
 Use a direct user question — 3-5 structured questions. Each MUST ATTENTION have 2-4 options with one marked "(Recommended)".

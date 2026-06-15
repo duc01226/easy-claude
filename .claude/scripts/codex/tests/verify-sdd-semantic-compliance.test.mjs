@@ -477,10 +477,6 @@ test("runChecks passes positive SDD fixture", async () => {
         "docs/project-config.json docs/project-reference",
       ],
       [
-        ".claude/hooks/prompt-context-assembler-project-config.cjs",
-        "docs/project-config.json docs/project-reference",
-      ],
-      [
         ".agents/skills/workflow-feature/SKILL.md",
         "shared/sdd-artifact-contract.md SDD Artifact Contract",
       ],

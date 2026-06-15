@@ -72,10 +72,10 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 > **`references/integration-test-patterns.md`** — canonical test templates: collection attributes, base class usage, TC annotation format, async polling helpers, unique name generators, DB assertion patterns. Read before writing ANY test.
 >
-> **`docs/specs/`** — existing TCs by module: read to verify test-to-spec traceability and get TC IDs before generating. (read directly when relevant; do not rely on hook-injected conversation text)
+> **`docs/specs/`** — existing TCs by module: read to verify test-to-spec traceability and get TC IDs before generating.
 
 - `references/integration-test-patterns.md` — canonical test templates (MUST READ before writing any test)
-- `docs/project-reference/domain-entities-reference.md` — domain entity catalog, relationships, cross-service sync (read directly when relevant; do not rely on hook-injected conversation text)
+- `docs/project-reference/domain-entities-reference.md` — domain entity catalog, relationships, cross-service sync
 - `docs/specs/` — existing TCs by module (read before generating tests; verify test-to-spec traceability)
 
 > **CRITICAL: Search existing patterns FIRST.** Before generating ANY test, grep existing integration test files in same service. Read ≥1 existing test file to match conventions (namespace, usings, collection name, base class, helper usage). NEVER generate tests contradicting established codebase patterns.

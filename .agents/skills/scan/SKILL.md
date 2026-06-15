@@ -41,7 +41,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Scan the codebase for ONE target reference doc and surgically (re)populate it with actual patterns — every example from real project files with `file:line`. The 4-phase engine below is shared; the per-target data (which doc, how many sub-agents, what to detect, what sections to write, what NOT to do) comes from the target's entry in `references/targets.md`. (read directly when relevant; do not rely on hook-injected conversation text)
+**Goal:** Scan the codebase for ONE target reference doc and surgically (re)populate it with actual patterns — every example from real project files with `file:line`. The 4-phase engine below is shared; the per-target data (which doc, how many sub-agents, what to detect, what sections to write, what NOT to do) comes from the target's entry in `references/targets.md`.
 
 **Workflow:**
 

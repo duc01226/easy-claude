@@ -35,6 +35,19 @@ description: '[Research] Use when starting a web research task — discover, gat
 
 # Web Research
 
+## Knowledge Work Rules (canonical)
+
+> **Web Research Protocol** — Every factual claim needs 2+ independent sources. Source tiers: Tier 1 (authoritative .gov/.edu/official docs), Tier 2 (industry reports), Tier 3 (credible blogs — cross-validate), Tier 4 (unverified — NEVER cite as fact). Declare confidence for all findings.
+
+1. Follow source hierarchy (official docs > peer-reviewed > industry blogs > forums) for all factual claims
+2. Include source citations with Tier classification (inline `[N]`)
+3. Cross-validate claims with 2+ independent sources
+4. Declare confidence level (95/80/60/<60%) for all findings
+5. Use enforced template structure — all sections required
+6. Working files → `.claude/tmp/`, final output → `docs/knowledge/`
+
+This protocol is the canonical home for the knowledge-work rules that apply to knowledge/research workspaces; `deep-research` and `knowledge-synthesis` reference it.
+
 ## Step 1: Define Search Scope
 
 Parse user's topic, generate 5-10 search queries covering:

@@ -205,7 +205,8 @@ After sub-agent returns:
 
 > **MANDATORY** Plan ToDo Task to READ the following project-specific reference docs:
 >
-> - `docs/project-reference/code-review-rules.md` — anti-patterns, review checklists, quality standards **(READ FIRST)** (read directly when relevant; do not rely on hook-injected conversation text)
+> - `.claude/docs/development-rules.md` — canonical development rules, code-quality guidelines, and pre-commit checklist **(READ FIRST when reviewing or editing code)**
+> - `docs/project-reference/code-review-rules.md` — anti-patterns, review checklists, quality standards **(READ FIRST)**
 > - `docs/project-reference/integration-test-reference.md` — Integration test patterns, fixture setup, seeder conventions, lessons learned (MUST READ before reviewing/writing integration tests)
 > - `project-structure-reference.md` — service list, directory tree, conventions
 >

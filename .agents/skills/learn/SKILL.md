@@ -94,25 +94,25 @@ $learn clear
 
 ## Reference Doc Catalog (READ before routing)
 
-Each `docs/project-reference/` file is auto-initialized by `session-init-docs.cjs` hook and populated by `/scan-*` skills. Understanding their roles is **critical** for correct routing.
+Each `docs/project-reference/` file is auto-initialized by `session-init-docs.cjs` hook and populated by `/scan-*` skills. Understanding their roles is **critical** for correct routing: routing is static — read the doc whose **Read Trigger** matches your task.
 
-| File                             | Role & Content                                                                                   | Injected By                                          | Injection Trigger                   | Scan Skill                |
-| -------------------------------- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------- | ----------------------------------- | ------------------------- |
-| `project-structure-reference.md` | Architecture, directory tree, tech stack, module registry, service map                           | `subagent-init-*.cjs` (8 hooks)                      | Agent spawn                         | `$scan --target=project-structure` |
-| `backend-patterns-reference.md`  | Backend/hook patterns: CJS modules, CQRS, repositories, validation, message bus, background jobs | `code-patterns-injector.cjs`, `backend-context.cjs`  | Edit/Write backend files            | `$scan --target=backend-patterns`  |
-| `seed-test-data-reference.md`    | Seed/dev-data patterns: environment gate, idempotency loop, DI scope safety, command-dispatch    | Referenced in config + seed workflows                | Seeder/DataSeeder file edits        | `$scan --target=seed-test-data` |
-| `frontend-patterns-reference.md` | Frontend patterns: components, state mgmt, API services, styling conventions, directives         | `code-patterns-injector.cjs`, `frontend-context.cjs` | Edit/Write frontend files           | `$scan --target=frontend-patterns` |
-| `integration-test-reference.md`  | Test architecture: base classes, fixtures, helpers, service-specific setup, test runners         | Referenced in config                                 | Test file edits                     | `$scan --target=integration-tests` |
-| `feature-spec-reference.md`      | Feature doc templates, app-to-service mapping, doc structure conventions                         | On-demand (skill reads)                              | Skill activation                    | `$scan --target=feature-spec`      |
-| `code-review-rules.md`           | Review rules, conventions, anti-patterns, decision trees, checklists                             | `code-review-rules-injector.cjs`                     | Review skill activation             | `$scan --target=code-review-rules` |
-| `lessons.md`                     | General lessons — fallback catch-all. **Injected on EVERY prompt** (budget-controlled)           | `prompt-injections.cjs`                              | Every UserPromptSubmit + Edit/Write | Managed by `$learn`       |
-| `scss-styling-guide.md`          | SCSS/CSS: BEM methodology, mixins, variables, theming, responsive patterns                       | `design-system-context.cjs`                          | Styling file edits                  | `$scan --target=scss-styling`      |
-| `design-system/README.md`        | Design system: tokens overview, component inventory, app-to-doc mapping                          | `design-system-context.cjs`                          | Design file edits                   | `$scan --target=design-system`     |
-| `e2e-test-reference.md`          | E2E test patterns: framework, page objects, config, best practices                               | `code-patterns-injector.cjs`                         | E2E file edits                      | `$scan --target=e2e-tests`         |
-| `domain-entities-reference.md`   | Domain entities, data models, DTOs, aggregate boundaries, ER diagrams, cross-service sync        | `backend-context.cjs`, `frontend-context.cjs`        | Backend/frontend file edits         | `$scan --target=domain-entities`   |
-| `docs-index-reference.md`        | Documentation tree, file counts, doc relationships, keyword-to-doc lookup                        | On-demand (manual)                                   | Manual reference                    | `$scan --target=docs-index`        |
+| File                             | Role & Content                                                                                   | Read Trigger (static)               | Scan Skill                |
+| -------------------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------- | ------------------------- |
+| `project-structure-reference.md` | Architecture, directory tree, tech stack, module registry, service map                           | New area / architecture work        | `$scan --target=project-structure` |
+| `backend-patterns-reference.md`  | Backend/hook patterns: CJS modules, CQRS, repositories, validation, message bus, background jobs | Editing backend / CQRS / API files  | `$scan --target=backend-patterns`  |
+| `seed-test-data-reference.md`    | Seed/dev-data patterns: environment gate, idempotency loop, DI scope safety, command-dispatch    | Seeder / DataSeeder file edits      | `$scan --target=seed-test-data` |
+| `frontend-patterns-reference.md` | Frontend patterns: components, state mgmt, API services, styling conventions, directives         | Editing frontend / UI files         | `$scan --target=frontend-patterns` |
+| `integration-test-reference.md`  | Test architecture: base classes, fixtures, helpers, service-specific setup, test runners         | Integration test file edits         | `$scan --target=integration-tests` |
+| `feature-spec-reference.md`      | Feature doc templates, app-to-service mapping, doc structure conventions                         | Authoring / reading feature specs   | `$scan --target=feature-spec`      |
+| `code-review-rules.md`           | Review rules, conventions, anti-patterns, decision trees, checklists                             | Any review skill activation         | `$scan --target=code-review-rules` |
+| `lessons.md`                     | General lessons — fallback catch-all. Read on EVERY task (per project-reference-docs gate)       | Every task                          | Managed by `$learn`       |
+| `scss-styling-guide.md`          | SCSS/CSS: BEM methodology, mixins, variables, theming, responsive patterns                       | Styling / SCSS file edits           | `$scan --target=scss-styling`      |
+| `design-system/README.md`        | Design system: tokens overview, component inventory, app-to-doc mapping                          | Design / UI file edits              | `$scan --target=design-system`     |
+| `e2e-test-reference.md`          | E2E test patterns: framework, page objects, config, best practices                               | E2E file edits                      | `$scan --target=e2e-tests`         |
+| `domain-entities-reference.md`   | Domain entities, data models, DTOs, aggregate boundaries, ER diagrams, cross-service sync        | Backend / frontend domain work      | `$scan --target=domain-entities`   |
+| `docs-index-reference.md`        | Documentation tree, file counts, doc relationships, keyword-to-doc lookup                        | Doc lookup / navigation             | `$scan --target=docs-index`        |
 
-**Key insight:** Files injected automatically by hooks have higher visibility — lessons placed enforced during edits. Files injected on-demand are only seen when skills explicitly read them. Prefer auto-injected files for high-recurrence lessons.
+**Key insight:** `lessons.md` and `code-review-rules.md` are the highest-recurrence routing targets — read them on every relevant task. Place high-recurrence lessons where the matching **Read Trigger** guarantees a future session opens them.
 
 ---
 
@@ -327,13 +327,14 @@ Run these 2 tasks at the end of every `$learn` operation:
 
 When Claude detects correction phrases in conversation (e.g., "always use X", "remember this", "never do Y", "from now on"), this skill auto-activates. When auto-inferred (not explicit `$learn`), **confirm with the user before saving**: "Save this as a lesson? [Y/n]"
 
-## Injection
+## How Lessons Reach the AI
 
-Lessons are injected by `lessons-injector.cjs` hook on:
+Lessons and pattern references are read statically, per the project-reference-docs gate in `CLAUDE.md`:
 
-- **UserPromptSubmit** — `docs/project-reference/lessons.md` content (with dedup)
-- **PreToolUse(Edit|Write|MultiEdit)** — `docs/project-reference/lessons.md` content (always)
-- Pattern reference files are injected by their respective hooks (`code-patterns-injector.cjs`, `code-review-rules-injector.cjs`, etc.)
+- `docs/project-reference/lessons.md` — read on **every** task (the gate always includes it).
+- Pattern/rule references (`backend-patterns-reference.md`, `code-review-rules.md`, etc.) — read by their matching trigger (see the Reference Doc Catalog table above).
+
+Because the routing is static prose, hookless harnesses (Codex / Copilot) load the same lessons and patterns as Claude Code.
 
 ## Prompt Enhancement (MANDATORY final step)
 

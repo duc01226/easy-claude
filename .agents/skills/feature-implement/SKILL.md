@@ -119,6 +119,14 @@ below — if a downstream rule would raise change cost, this principle wins.
 >
 > **Fast mode skips (and only skips):** researcher subagent phase (direct grep instead), mandatory `code-reviewer` review (self-review only), separate test phase (verify inline). Does NOT skip `$plan` step, test execution, `$docs-update` triage.
 
+### Backend Context (if applicable)
+
+> When task involves backend changes, read these directly before implementing:
+
+- CQRS commands/queries, validation, repositories, entity events: `docs/project-reference/backend-patterns-reference.md`
+- Entity catalog, relationships, cross-service sync: `docs/project-reference/domain-entities-reference.md`
+- **Repository type (service-specific):** when the project declares a per-service repository abstraction (`backendServices.serviceRepositories` in `docs/project-config.json`), use that repository type for the service — NEVER the generic root repository base.
+
 ### Frontend/UI Context (if applicable)
 
 > When task involves frontend or UI changes:
@@ -262,7 +270,7 @@ mistakes compound through later tasks.
 
 > **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. Prevents context loss from long files. For simple tasks, MUST ATTENTION ask user whether to skip.
 
-- `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models) (read directly when relevant; do not rely on hook-injected conversation text)
+- `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
 - `docs/specs/` — Test specifications by module (read existing TCs; generate/update via `$spec [mode=tests]` after implementation)
 
 <!-- SYNC:end-to-start-debugger-trace -->

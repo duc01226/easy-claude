@@ -87,6 +87,24 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
     - Suggest files to prioritize in review
     - Warn about inheritance/implementation relationship changes
 
+## Run the CLI Live (never expect pre-injected blast-radius)
+
+This skill is the on-invoke home for blast-radius analysis. There is no auto-injected, pre-computed blast-radius context — you MUST ATTENTION **run the CLI yourself** to get LIVE impact data for the current working tree. Frozen/stale numbers are wrong by definition once the diff changes:
+
+```bash
+python .claude/scripts/code_graph blast-radius --json
+```
+
+## Post-Grep Trace Trigger (run a trace after grep surfaces a key file)
+
+When a grep/glob during this analysis surfaces an important entry-point file — an entity, command, query, event/command handler, controller, bus message/consumer, component, store, or api-service — immediately run a graph trace on it before concluding. Grep finds files; the trace reveals callers, consumers, bus messages, event chains, and tests that grep CANNOT find:
+
+```bash
+python .claude/scripts/code_graph trace <key-entry-file> --direction both --json
+```
+
+**Pattern: grep finds files → graph trace reveals full system flow → grep verifies specific details.**
+
 ## Trace for Deep Impact Analysis
 
 For impact beyond direct callers/importers, use the `trace` command to follow the full chain through implicit connections:

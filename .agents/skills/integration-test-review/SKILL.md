@@ -72,7 +72,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - NEVER accept assertions that always pass regardless of handler correctness
 - **NO smoke/fake/useless tests** — every test MUST execute actual operations and verify data state
 
-- `docs/project-reference/integration-test-reference.md` — Integration test patterns, fixture setup, seeder conventions, lessons learned (MUST READ before reviewing) _(read directly; do not rely on hook-injected conversation text)_
+- `docs/project-reference/integration-test-reference.md` — Integration test patterns, fixture setup, seeder conventions, lessons learned (MUST READ before reviewing)
 
 ---
 

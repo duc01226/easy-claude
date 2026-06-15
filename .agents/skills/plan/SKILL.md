@@ -320,7 +320,7 @@ After creating all phase files, run **recursive decomposition loop**:
 
 > **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. Prevents context loss from long files. For simple tasks, MUST ATTENTION ask user whether to skip.
 
-- `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models) (read directly when relevant; do not rely on hook-injected conversation text)
+- `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
 - `docs/specs/` — Test specifications by module (read existing TCs to include test strategy in plan)
 
 > Each phase file MUST ATTENTION satisfy: <=5 files per phase, <=3h effort, clear success criteria, mapped test cases.

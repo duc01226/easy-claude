@@ -317,13 +317,6 @@ const CHECKS = [
     message: "Session init hook must initialize project config/docs rather than embedding local project rules.",
   },
   {
-    code: "SDD010",
-    file: ".claude/hooks/prompt-context-assembler-project-config.cjs",
-    requireAll: ["docs/project-config.json", "docs/project-reference"],
-    forbidAny: PROJECT_RESIDUE_TERMS,
-    message: "Project-config prompt hook must summarize config/docs rather than embedding local project rules.",
-  },
-  {
     code: "SDD011",
     file: ".claude/workflows.json",
     requireAll: ["PERFORMANCE-SDD ROUTE", "performance-review", "SLA", "functional no-regression"],

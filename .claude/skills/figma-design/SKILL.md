@@ -21,7 +21,7 @@ description: '[Frontend] Use when you need to extract design context from Figma 
 
 > When this task involves frontend or UI changes,
 
-- Component patterns: `docs/project-reference/frontend-patterns-reference.md` (read directly when relevant; do not rely on hook-injected conversation text)
+- Component patterns: `docs/project-reference/frontend-patterns-reference.md`
 - Styling/BEM guide: `docs/project-reference/scss-styling-guide.md`
 - Design system tokens: `docs/project-reference/design-system/README.md`
 
@@ -65,6 +65,27 @@ If no MCP and no API token:
 1. Ask user via `AskUserQuestion`: "Please screenshot the Figma frame and paste here"
 2. Analyze via `visual analysis tooling` skill with design extraction prompts
 3. Extract: approximate colors, fonts, spacing, layout, components
+
+## Figma URL Detection & MCP Extraction (canonical)
+
+> Applies when reading PBI/design-spec files that reference Figma URLs. URL→MCP extraction runs inline in this skill.
+
+When a PBI or design-spec references one or more Figma URLs, parse each URL and extract:
+
+- **File Key** — the `[a-zA-Z0-9]+` segment after `figma.com/design/` or `figma.com/file/`.
+- **Node ID** — the `node-id=NNN-NNN` query param (display form, e.g. `1-23`). API form replaces `-` with `:` → `1:23`.
+
+Then extract the referenced nodes via the available Figma MCP tools:
+
+```
+# With a node id (preferred — narrow, cheap):
+mcp__figma__get_file_nodes file_key="{fileKey}" node_ids="{apiNodeId}"
+
+# Whole file (no node id):
+mcp__figma__get_file file_key="{fileKey}"
+```
+
+**Token Budget:** extract specific nodes only — target <5K tokens per design. Never pull a whole file when a node id is available.
 
 ## Output Format
 
@@ -115,7 +136,7 @@ Save to `team-artifacts/design-specs/{YYMMDD}-figma-extract-{slug}.md`:
 
 - `references/figma-mcp-setup.md` — MCP server setup guide (created in Phase 09)
 - `.claude/skills/plan/references/engine-figma.md` — integration protocol
-- `.claude/hooks/figma-context-extractor.cjs` — URL detection hook
+- URL detection is handled inline in this skill
 
 ---
 

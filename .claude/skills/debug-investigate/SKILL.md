@@ -203,7 +203,7 @@ After `/fix` applies changes, `/prove-fix` MUST be run — builds code proof tra
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files.
 
-- `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models) (read directly when relevant; do not rely on hook-injected conversation text)
+- `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
 
 <!-- SYNC:end-to-start-debugger-trace -->
 

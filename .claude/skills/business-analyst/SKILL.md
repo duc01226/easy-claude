@@ -25,7 +25,7 @@ description: '[Project Management] Use when creating user stories, writing accep
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
-- `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models) (read directly when relevant; do not rely on hook-injected conversation text)
+- `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
 
 # Business Analyst Assistant
 
@@ -354,6 +354,15 @@ Then {error handling}
 - **T**ime-bound: Has a deadline or sprint
 
 ---
+
+## Role Context (path→role, canonical)
+
+> Applies to Writes under `team-artifacts/pbis/` and `team-artifacts/pbis/stories/`.
+
+- **Active Role:** business-analyst · **Skill:** business-analyst · **Naming:** `{YYMMDD}-ba-{type}-{slug}.md`
+- **Path `team-artifacts/pbis/`** → Template `.claude/docs/team-artifacts/templates/pbi-template.md` · Context: PBI CREATION — GIVEN/WHEN/THEN format required, INVEST criteria, numeric priority.
+- **Path `team-artifacts/pbis/stories/`** → Template `.claude/docs/team-artifacts/templates/user-story-template.md` · Context: USER STORY — As a... I want... So that... format, 3+ scenarios per story.
+- **Quality checklist:** `- [ ]` User story format correct · `- [ ]` 3+ scenarios (positive, negative, edge) · `- [ ]` GIVEN/WHEN/THEN format · `- [ ]` INVEST criteria met
 
 ## Output Conventions
 

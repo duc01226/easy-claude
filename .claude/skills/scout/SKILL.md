@@ -140,6 +140,8 @@ python .claude/scripts/code_graph query callers_of <name> --limit 5 --filter "Se
 
 Graph results get HIGHER priority than grep — structural relationships > text matches. After graph expansion, grep again to verify content in discovered files.
 
+**Post-Grep Trace Trigger:** whenever a grep/glob surfaces an important entry-point file — an entity, command, query, event/command handler, controller, bus message/consumer, component, store, or api-service — immediately run a graph trace on it before concluding. The trace reveals callers, consumers, bus messages, event chains, and tests that grep CANNOT find: `python .claude/scripts/code_graph trace <key-entry-file> --direction both --json`. **Pattern: grep finds files → graph trace reveals full system flow → grep verifies specific details.**
+
 ### Step 4: Low-Result Check
 
 If total files found <5 after Steps 2-3:
@@ -272,7 +274,7 @@ Combine grep + graph into numbered, prioritized file list (see Results Format).
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
 
-- `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models) (read directly when relevant; do not rely on hook-injected conversation text)
+- `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
 
 > **External Memory:** Complex/lengthy work → write findings incrementally to `plans/reports/`. Prevents context loss.
 

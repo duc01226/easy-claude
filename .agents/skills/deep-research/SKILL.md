@@ -70,6 +70,10 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 # Deep Research
 
+## Knowledge Work Rules
+
+> **Web Research Protocol** — Every factual claim needs 2+ independent sources. Source tiers: Tier 1 (authoritative .gov/.edu/official docs), Tier 2 (industry reports), Tier 3 (credible blogs — cross-validate), Tier 4 (unverified — NEVER cite as fact). Declare confidence (95/80/60/<60%) for all findings. Working files → `.claude/tmp/`, final output → `docs/knowledge/`. Canonical protocol lives in the `web-research` skill.
+
 ## Step 1: Load Source Map
 
 Read the source map from `.claude/tmp/_sources-{slug}.md` (output of web-research step).

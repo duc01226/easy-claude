@@ -34,7 +34,7 @@ context-budget: high
 > 1. Project styling rules doc — BEM convention, mixins, variables, responsive patterns **(READ FIRST — primary styling rules source; resolve via project config/docs index)**
 > 2. Project design-system/token doc — design tokens, especially the **Z-Index & Layering** section
 > 3. Project frontend architecture/patterns doc — base component classes, state/store, API service, lifecycle teardown rules shared with `review-architecture`
-> 4. Project code-review rules doc — anti-patterns and conventions **(read directly; do not rely on hook-injected conversation text)**
+> 4. Project code-review rules doc — anti-patterns and conventions
 >
 > Not found → search: "scss styling", "design tokens", "frontend patterns". Rules come from docs — NOT general knowledge.
 
@@ -227,6 +227,8 @@ Cross-reference the project design-system **Z-Index & Layering** map. The chosen
 ### Category 5: SCSS/CSS Best Practices & BEM — Severity: WARN (BLOCKED on `!important`, chained BEM modifiers)
 
 **Think:** Does this stylesheet read cleanly, follow BEM, and use tokens — or does it hardcode, over-nest, and chain modifiers?
+
+> **SCSS/BEM rules (canonical):** BEM classes on ALL template elements (`block__element--modifier`). No magic numbers — use variables / design tokens. Max 3 nesting levels.
 
 **Detection signals:**
 

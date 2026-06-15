@@ -66,7 +66,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - If wireframe image provided (hand-drawn/digital/tool-export) → handled internally via `--mode=wireframe` (see "Mode: wireframe" below)
 - If screenshot provided → uses `visual analysis tooling` for design extraction
 - Reference existing design system tokens from `docs/project-reference/design-system/`
-- Component patterns: `docs/project-reference/frontend-patterns-reference.md` (read directly when relevant; do not rely on hook-injected conversation text)
+- Component patterns: `docs/project-reference/frontend-patterns-reference.md`
 - Include accessibility requirements (keyboard nav, ARIA labels, contrast)
 - **[BLOCKING] Tech-agnostic output:** spec prose/headings follow `docs/project-reference/spec-principles.md` §3 — describe components by UX role, not framework/library names; source paths and class names appear ONLY in evidence fields (`**Evidence**`, `[Source:]`), frontmatter, and Mermaid.
 
@@ -149,6 +149,17 @@ For ANY visual input: extract design context FIRST, then proceed to spec generat
     - Design spec: `team-artifacts/design-specs/{YYMMDD}-designspec-{feature-slug}.md`
     - Accessibility audit: `team-artifacts/design-specs/{YYMMDD}-ux-audit-{feature-slug}.md`
     - Single-component doc: `team-artifacts/design-specs/{YYMMDD}-ux-component-{component-name}.md`
+
+### Role Context & Artifact Path (canonical)
+
+> Applies to Writes under `team-artifacts/design-specs/`.
+
+- **Active Role:** ui-ux-designer · **Skill:** design-spec
+- **Path:** `team-artifacts/design-specs/` · **Type:** designspec · **Role token:** ux
+- **Template:** `.claude/docs/team-artifacts/templates/design-spec-template.md`
+- **Naming:** `{YYMMDD}-ux-{type}-{slug}.md` (general artifact-path pattern: `{YYMMDD}-{role}-{type}-{slug}.md`)
+- **Context:** DESIGN SPEC — include component states, design tokens, accessibility requirements.
+- **Quality checklist:** `- [ ]` All states documented · `- [ ]` Design tokens specified · `- [ ]` Accessibility notes included · `- [ ]` Responsive breakpoints defined
 
 ## Mode: wireframe (image → spec)
 

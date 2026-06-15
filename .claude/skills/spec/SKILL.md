@@ -53,6 +53,30 @@ triggers: 'feature spec, feature documentation, create feature doc, update featu
 
 > `docs/project-reference/feature-spec-reference.md` — project-specific Feature Spec patterns (read directly when relevant). `docs/project-reference/domain-entities-reference.md` — domain entity catalog, relationships, cross-service sync.
 
+### 8-Section Feature Spec Rules (canonical reference)
+
+> Canonical home for the Feature Spec rules; applies to any edit under the Feature Spec docs root.
+
+**Format:** Tech-free 8-section Feature Spec. Activate the `/spec` skill before editing.
+
+**Read first:** `docs/project-reference/feature-spec-reference.md`, `docs/project-reference/spec-system-reference.md`, and `docs/project-reference/spec-principles.md`. For behavior/public-contract changes, also read `docs/project-reference/workflow-spec-test-code-cycle-reference.md`.
+
+**8 sections (exact order):** 1. Overview · 2. Glossary · 3. User Stories & Acceptance Criteria · 4. Business Rules · 5. Domain Model · 6. Process Flows · 7. Permissions & Roles · 8. Test Specifications — then a trailing Change History. No technical sections (Commands/Events/API/Cross-Service/Performance/Troubleshooting) — code is the technical source of truth.
+
+**Mandatory:**
+
+- §1-7 prose is STRICTLY tech-free — no framework/product/language/persistence/messaging/auth names (banned tokens → `spec-principles.md` §3.2). Technical identifiers live ONLY in evidence carriers.
+- Section 5 (Domain Model): Mermaid ERD + `[Source: component/{service}/{id}]` abstract anchor per entity (cannot be omitted)
+- Section 4 (Business Rules): `[Source: rule/{service}/{id}]` abstract anchor per rule group
+- Section 8 (Test Specifications): canonical TC source — TC-{FEATURE}-{NNN} IDs, each carrying a hidden `[Source: namespace/service/id]` carrier + an `IntegrationTest:` field
+
+**Rules:**
+
+- TC IDs live in Section 8 only — never authored in `docs/specs/` directly
+- Section 8 authored via `/spec [mode=tests]`; `/spec [mode=init]` populates it only during initial authoring
+- Size caps: body (sections 1-7) ≤1200 lines, whole file ≤1800 (hard). Split the capability when body>1200 OR TCs>40
+- Change History entry required for every functional change (trailing section)
+
 ### M1-M6 Compliance (BLOCKING — applies to every authored spec and every TC)
 
 See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6)" for the full BLOCKING criteria. In brief: **M1** tech-agnostic prose; **M2** no source code in prose; **M3** logical-IDs-first traceability with a SEPARATE `[Source:]` carrier; **M4** AI-implementability (one interpretation, named success/failure); **M5** rebuild-from-scratch on any stack from §1-8 prose alone. Tech terms are allowed ONLY inside evidence carriers (`**Evidence**`, `IntegrationTest`, `[Source:]`), YAML frontmatter, and ` ```mermaid ``` ` blocks.

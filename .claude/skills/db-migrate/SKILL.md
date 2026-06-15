@@ -95,7 +95,7 @@ List migrations:
 
 **Prerequisites:** **MUST ATTENTION READ** before executing:
 
-- `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models) (read directly when relevant; do not rely on hook-injected conversation text)
+- `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
 
 <!-- SYNC:source-test-drift-check -->
 

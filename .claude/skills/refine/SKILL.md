@@ -44,7 +44,7 @@ description: '[Project Management] Use when converting ideas to PBIs, validating
 
 ## Frontend/UI Context (if applicable)
 
-- Component patterns: `docs/project-reference/frontend-patterns-reference.md` (read directly when relevant; do not rely on hook-injected conversation text)
+- Component patterns: `docs/project-reference/frontend-patterns-reference.md`
 - Styling/BEM guide: `docs/project-reference/scss-styling-guide.md`
 - Design system tokens: `docs/project-reference/design-system/README.md`
 
@@ -360,6 +360,8 @@ Compute `delta_pct = (new_likely_days - draft_likely_days) / draft_likely_days �
 
 **Path:** `team-artifacts/pbis/{YYMMDD}-pbi-{slug}.md` | **ID Pattern:** `PBI-{YYMMDD}-{NNN}`
 
+> **Artifact Path (canonical convention)** — Command `/refine` → base path `team-artifacts/pbis/`, role token `ba`, type `pbi`. General filename pattern: `{YYMMDD}-{role}-{type}-{slug}.md` → e.g. `260119-ba-pbi-invoice-approval.md`. Slug = lowercased basename, non-alphanumeric → `-`, trimmed, max 50 chars.
+
 ### PBI Template
 
 ```markdown
@@ -566,6 +568,32 @@ Then error "{message}"
 
 - **Every PBI MUST ATTENTION include Dependencies table** — types: `must-before`, `can-parallel`, `blocked-by`, `independent`. Enables `/prioritize` and `/plan` to respect ordering.
 - **No vague dependency descriptions** — Each dependency must specify concrete PBI, service, or feature and WHY relationship exists.
+
+## BA Team Refinement Context (canonical)
+
+> Applies to Writes/Edits under `team-artifacts/pbis/`, `.../stories/`, `team-artifacts/ideas/`. Mirrored for Codex via `SYNC:ba-team-decision-model` / `SYNC:refinement-dor-checklist` in AGENTS.md (do not hand-edit the mirror).
+
+**Decision Model:** 2/3 majority vote (UX BA + Designer BA + Dev BA PIC). Dev BA PIC has technical veto.
+**Disagree-and-Commit:** Once decided, everyone commits. No re-litigating.
+**Grooming Override:** BA team decision changes only if >75% remaining team votes to override.
+
+**Role Scopes:**
+
+- **UX BA:** UI/UX flows, wireframes, interaction AC, user research
+- **Designer BA:** Design feasibility, product thinking, visual design, equal vote
+- **Dev BA PIC:** Technical feasibility review, AI pre-review, DoR gate, grooming presentation
+
+**DoR Gate (ALL must pass before grooming):**
+
+- [ ] User story template (As a... I want... So that...)
+- [ ] AC testable (GIVEN/WHEN/THEN, no vague language)
+- [ ] Wireframes attached (UX BA) + UI design ready (Designer BA)
+- [ ] AI pre-review passed (`/review-artifact --type=pbi` or `/pbi-challenge`)
+- [ ] Story points estimated by AI
+- [ ] Dependencies table complete
+
+**Refinement Cadence:** Always one sprint ahead. Weekly meeting (60 min + ~3h async).
+**Skills:** Use `/pbi-challenge` for collaborative review, `/dor-gate` before grooming.
 
 ## Definition of Ready (INVEST)
 

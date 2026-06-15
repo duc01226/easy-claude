@@ -219,7 +219,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 <!-- /SYNC:estimation-framework -->
 
-> - `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models) (read directly when relevant; do not rely on hook-injected conversation text)
+> - `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
 > - `docs/specs/` — Test specifications by module (read existing TCs for related features; include test story/acceptance criteria for new stories)
 >
 > If file not found, search for: project documentation, coding standards, architecture docs.
@@ -318,6 +318,8 @@ If running within a workflow (big-feature, greenfield-init, etc.):
 
 - **Path:** `team-artifacts/pbis/stories/{YYMMDD}-us-{pbi-slug}.md`
 - **Format:** Single file with all stories (use ## headers per story)
+
+> **Artifact Path (canonical convention)** — Command `$story` → base path `team-artifacts/pbis/stories/`, role token `ba`, type `story`. General filename pattern: `{YYMMDD}-{role}-{type}-{slug}.md` → e.g. `260119-ba-story-invoice-approval.md`. Slug = lowercased basename, non-alphanumeric → `-`, trimmed, max 50 chars.
 
 ---
 

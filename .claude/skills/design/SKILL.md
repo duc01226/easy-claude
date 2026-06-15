@@ -132,6 +132,7 @@ Treat `$ARGUMENTS` as the video to recreate exactly. Same as `--mode=screenshot`
 
 ## Notes (all modes)
 
+- **Design system (canonical):** When implementing UI — HTML, CSS, or SCSS — read the project canonical design-system doc `docs/project-reference/design-system/design-system-canonical.md` first for design tokens, component patterns, and BEM conventions. Prefer `designSystem.canonicalDoc` + `tokenFiles` (resolved from `docs/project-config.json`) over per-app docs for new design work.
 - Remember you have the capability to generate images, videos, edit images, etc. with `visual analysis tooling` skills. Use them to create the design and real assets.
 - Always review, analyze, and double-check generated assets with `visual analysis tooling` skills to verify quality.
 - Use media processing tooling (RMBG) to remove background from generated assets if needed (`good`/`screenshot`/`video`).

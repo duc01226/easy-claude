@@ -27,7 +27,7 @@
 > **`.claude/skills/spec/references/spec-tests-template.md`** — TC format template: GWT structure, Evidence field, decade-numbering, Preservation Tests section (mandatory for bugfixes). Read before generating any TC.
 
 - `.claude/skills/spec/references/spec-tests-template.md` — TC template format
-- `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read directly when relevant; do not rely on hook-injected conversation text)
+- `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync
 - `docs/project-reference/integration-test-reference.md` — Integration test patterns, fixture setup, seeder conventions, lessons learned (MUST READ before reviewing/writing integration tests)
 - `docs/specs/` — Existing TCs by module — read BEFORE generating to avoid ID collisions
 
@@ -121,9 +121,9 @@ Skip confirmation only when mode explicit in `$ARGUMENTS` AND feature name unamb
 
 **Must read FIRST:**
 
-1. `docs/project-reference/feature-spec-reference.md` — correct `{FEATURE}` code for TC IDs (read directly when relevant; do not rely on hook-injected conversation text)
+1. `docs/project-reference/feature-spec-reference.md` — correct `{FEATURE}` code for TC IDs
 2. Target feature doc — Section 8 exists? Read existing TCs to avoid ID collisions
-3. `docs/project-reference/spec-principles.md` — Section 7 (TC Coverage Mapping), minimum categories and depth (read directly when relevant; do not rely on hook-injected conversation text)
+3. `docs/project-reference/spec-principles.md` — Section 7 (TC Coverage Mapping), minimum categories and depth
 
 **Spec Readiness Gate (BLOCKING — implement-first and update modes only):**
 

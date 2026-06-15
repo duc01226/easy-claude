@@ -1344,6 +1344,7 @@ HARD-GATE: Do NOT write, plan, or fix until you READ existing code.
 BLOCKED until: Read target files; Grep 3+ patterns; Graph trace (if graph.db exists); Assumptions verified with evidence.
 
 ## Reference Docs (READ before reviewing)
+- `.claude/docs/development-rules.md` — canonical development rules, code-quality guidelines, and pre-commit checklist
 - docs/project-reference/code-review-rules.md
 - {skill-specific reference docs — e.g., integration-test-reference.md for integration-test-review; backend-patterns-reference.md for backend reviews; frontend-patterns-reference.md for frontend reviews}
 

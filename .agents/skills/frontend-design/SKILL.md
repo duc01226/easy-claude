@@ -66,9 +66,11 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 > When this task involves frontend or UI changes,
 
-- Component patterns: `docs/project-reference/frontend-patterns-reference.md` (read directly when relevant; do not rely on hook-injected conversation text)
+- Component patterns: `docs/project-reference/frontend-patterns-reference.md`
 - Styling/BEM guide: `docs/project-reference/scss-styling-guide.md`
 - Design system tokens: `docs/project-reference/design-system/README.md`
+
+> **SCSS/BEM rules (canonical):** BEM classes on ALL template elements (`block__element--modifier`). No magic numbers — use variables / design tokens. Max 3 nesting levels.
 
 - For screenshot inputs, extract design guidelines FIRST before coding
 - Choose distinctive, characterful fonts and a bold cohesive palette — never use generic fonts (Inter, Roboto, Arial) or cliched color schemes

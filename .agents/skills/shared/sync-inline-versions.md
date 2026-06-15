@@ -1403,6 +1403,31 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 ---
 
+## SYNC:agent-bootstrap
+
+> **Plan first, then act.** Break work into small tasks before editing; keep exactly one task in progress; mark each complete immediately after its evidence lands. On context loss, inspect the existing task list before creating new tasks.
+>
+> **Context guard / progress file (MANDATORY when task > 5 files or > 3 steps).** Context exhaustion = silent loss of ALL findings; no progress file = no recovery.
+>
+> 1. **On start:** create `tmp/ck-agent-{ts}-{rnd}.progress.md` — `ts` = current timestamp in `YYYYMMDDHHmmssSSS` (17 digits), `rnd` = random 6-char hex. First line records the session id.
+> 2. **After each step:** append findings, marking `[done]` / `[partial]` / `[pending]`.
+> 3. **Running out of context?** Write `[partial]` to the file FIRST — NEVER summarize before writing.
+> 4. **Producing a report?** Persist it incrementally to `plans/reports/` and start the final message with its path.
+>
+> **Blocked until:** task breakdown exists · progress file created when the task exceeds the size threshold.
+
+---
+
+## SYNC:agent-code-standards
+
+> **Development rules.** YAGNI / KISS / DRY. Place logic in the LOWEST layer (Entity/Model > Service > Component/Handler) — mapping → Command/DTO, constants → Model. Kebab-case files. Search 3+ existing patterns before writing new code; read existing code before changing it. Read `.claude/docs/development-rules.md` for full coding standards, quality gates, and the pre-commit checklist (when present).
+>
+> **Coding patterns.** Before implementing, read the project pattern references named in `docs/project-config.json` / the docs index (e.g. `docs/project-reference/backend-patterns-reference.md`, `frontend-patterns-reference.md`) — local conventions override generic framework defaults.
+>
+> **Blocked until:** dev-rules + pattern docs read before writing or changing code.
+
+---
+
 ## SYNC:source-test-drift-check
 
 > **Source/test drift check.** For coding, fix, debug, investigation, test, or review work: when source behavior changes, inspect affected unit/integration/E2E tests and decide from evidence whether tests should change to match intended behavior or the source change is an unintended bug to fix. Do not write tests for migration code; schema/data migrations are one-time execution paths, not core application logic.

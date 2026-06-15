@@ -222,7 +222,7 @@ When a review pass finds issues, validate findings before any fix. Do not spawn 
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting. For simple tasks, AI MUST ask user whether to skip.
 
-- `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models) (read directly when relevant; do not rely on hook-injected conversation text)
+- `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
 
 > **Critical Purpose:** Ensure quality — no flaws, no bugs, no missing updates, no stale content. Verify code AND documentation.
 

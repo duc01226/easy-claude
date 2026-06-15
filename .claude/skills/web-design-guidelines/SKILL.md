@@ -20,7 +20,7 @@ argument-hint: <file-or-pattern>
 
 - Review-only skill: finds issues, does NOT fix them
 - Check categories in priority order (accessibility first)
-- Also reference `docs/project-reference/scss-styling-guide.md` if available (read directly when relevant; do not rely on hook-injected conversation text)
+- Also reference `docs/project-reference/scss-styling-guide.md` if available
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 

@@ -64,6 +64,23 @@ description: '[Code Quality] Use when you need to validate a PBI against Definit
 
 If ANY box fails → DoR result is FAIL; list each violated mandate ID with its concrete section/line citation in the Blocking Items.
 
+## BA Refinement Context (canonical DoR)
+
+> Applies to Writes under `team-artifacts/pbis/`. Mirrored for Codex via `SYNC:refinement-dor-checklist` / `SYNC:ba-team-decision-model` in AGENTS.md (do not hand-edit the mirror). This is the self-contained DoR source — no external protocol-file dependency required to run the gate.
+
+**Decision Model:** 2/3 majority vote (UX BA + Designer BA + Dev BA PIC). Dev BA PIC has technical veto. Disagree-and-commit after decision. Grooming override requires >75% remaining-team vote.
+
+**DoR Gate (ALL must pass before grooming):**
+
+- [ ] User story template (As a... I want... So that...)
+- [ ] AC testable (GIVEN/WHEN/THEN, no vague language; min 3 scenarios + 1 auth scenario)
+- [ ] Wireframes attached (UX BA) + UI design ready (Designer BA); backend-only → explicit "N/A"
+- [ ] AI pre-review passed (`/review-artifact --type=pbi` or `/pbi-challenge` returned PASS or WARN)
+- [ ] Story points estimated (Fibonacci 1-21 + complexity); >13 SP → recommend split
+- [ ] Dependencies table complete (Dependency · Type must-before/can-parallel/blocked-by/independent · Status)
+
+**Failure fixes:** Vague AC → specify exact CRUD + roles. Missing auth → add roles × CRUD table. No wireframes → UX BA creates. TBD in AC → replace with decision.
+
 ## Output
 
 ```markdown

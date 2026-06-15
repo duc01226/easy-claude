@@ -24,7 +24,7 @@ description: '[Code Quality] Use when reviewing architecture compliance for laye
 > 1. `docs/project-reference/backend-patterns-reference.md` — CQRS, messaging, repos, validation, entity events, layer rules **(READ FIRST — primary rules source)**
 > 2. `docs/project-reference/project-structure-reference.md` — service map, layer structure, DB ownership
 > 3. `docs/project-reference/frontend-patterns-reference.md` — component hierarchy, store, API patterns **(frontend files only)**
-> 4. `docs/project-reference/code-review-rules.md` — anti-patterns, conventions **(read directly; do not rely on hook-injected conversation text)**
+> 4. `docs/project-reference/code-review-rules.md` — anti-patterns, conventions
 >
 > Not found → search: "architecture documentation", "service patterns", "messaging patterns". Rules come from docs — NOT general knowledge.
 

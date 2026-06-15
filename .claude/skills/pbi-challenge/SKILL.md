@@ -50,7 +50,7 @@ PBI drafts routinely pass informal review unchallenged on architectural feasibil
 
 > When this task involves frontend or UI changes,
 
-- Component patterns: `docs/project-reference/frontend-patterns-reference.md` (read directly when relevant; do not rely on hook-injected conversation text)
+- Component patterns: `docs/project-reference/frontend-patterns-reference.md`
 - Styling/BEM guide: `docs/project-reference/scss-styling-guide.md`
 - Design system tokens: `docs/project-reference/design-system/README.md`
 
