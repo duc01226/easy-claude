@@ -4,15 +4,15 @@
 /**
  * PreCompact Hook: Write session-specific marker file when conversation is compacted
  *
- * Captures `git status --short` into `compactState.gitStatus` so
- * `prompt-context-assembler.cjs` can emit the post-compact "CONTEXT COMPACTED"
- * re-verify warning on the next UserPromptSubmit.
+ * Writes a session-scoped marker whose EXISTENCE signals to
+ * `post-compact-recovery.cjs` (next SessionStart resume|compact) that a compact
+ * occurred — gating partial-progress recovery, the transcript snapshot, and the
+ * AI-principle re-anchoring. The marker is an existence flag; it carries no payload.
  *
  * Fixes #178: Uses /tmp/ck/ namespace for temp files
  */
 
 const fs = require('fs');
-const { execSync } = require('child_process');
 const {
   MARKERS_DIR,
   DEBUG_DIR,
@@ -36,31 +36,8 @@ function debugLog(sessionId, message) {
   }
 }
 
-/**
- * Capture git status --short for post-compact re-verify context.
- * Returns null on failure (non-git dir, timeout, etc.) — fail silently.
- * @param {string} cwd - Project directory
- * @returns {string|null}
- */
-function captureGitStatus(cwd) {
-  try {
-    const output = execSync('git status --short', {
-      cwd,
-      timeout: 3000,
-      encoding: 'utf8'
-    }).trim();
-    // Truncate to 50 lines max to keep marker file small
-    const lines = output.split('\n');
-    return lines.length > 50
-      ? lines.slice(0, 50).join('\n') + '\n[...truncated]'
-      : output;
-  } catch (_e) {
-    return null; // non-git dir, git not found, or timeout
-  }
-}
-
 // COMPACT INVARIANT: This hook must fire BEFORE post-compact-recovery sees the marker.
-// The marker file provides `compactState.gitStatus` for the post-compact re-verify warning.
+// The marker's existence is the signal post-compact-recovery keys on (it reads no payload).
 // Workflow state is separately managed by todo-tracker.cjs and workflow-step-tracker.cjs.
 
 // Read JSON from stdin (PreCompact payload)
@@ -80,16 +57,13 @@ process.stdin.on('end', () => {
     // Ensure marker directory exists
     ensureDir(MARKERS_DIR);
 
-    // Write session-specific marker so prompt-context-assembler.cjs can emit
-    // the post-compact "CONTEXT COMPACTED" warning with captured git status
+    // Write session-specific marker; its existence tells post-compact-recovery.cjs
+    // a compact occurred (gates partial-progress recovery, snapshot, re-anchoring).
     const markerPath = getMarkerPath(sessionId);
-    const cwd = data.cwd || process.env.CLAUDE_PROJECT_DIR || process.cwd();
-    const gitStatus = captureGitStatus(cwd);
     const marker = {
       sessionId: sessionId,
       trigger: data.trigger || 'unknown',
-      timestamp: Date.now(),
-      ...(gitStatus ? { compactState: { gitStatus, warningShown: false } } : {})
+      timestamp: Date.now()
     };
     fs.writeFileSync(markerPath, JSON.stringify(marker));
 

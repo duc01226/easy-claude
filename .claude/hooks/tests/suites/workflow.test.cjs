@@ -22,7 +22,6 @@ const PROJECT_ROOT = path.resolve(__dirname, '..', '..', '..', '..');
 const TODO_ENFORCEMENT = getHookPath('skill-enforcement.cjs');
 const TODO_TRACKER = getHookPath('todo-tracker.cjs');
 const WORKFLOW_ROUTER = getHookPath('workflow-router.cjs');
-const PROMPT_CONTEXT_ASSEMBLER = getHookPath('prompt-context-assembler.cjs');
 
 // Helper to create Skill tool input
 function createSkillInput(skill, args = '') {
@@ -767,39 +766,9 @@ const deadModuleVerificationTests = [
     }
 ];
 
-// ============================================================================
-// prompt-context-assembler.cjs Tests
-// ============================================================================
-
-const devRulesReminderTests = [
-    {
-        name: '[prompt-context-assembler] injects context on prompt',
-        fn: async () => {
-            const tmpDir = createTempDir();
-            try {
-                const input = createUserPromptInput('add a new feature');
-                const result = await runHook(PROMPT_CONTEXT_ASSEMBLER, input, { cwd: tmpDir });
-                assertAllowed(result.code, 'Should not block');
-                // May or may not have output depending on config
-            } finally {
-                cleanupTempDir(tmpDir);
-            }
-        }
-    },
-    {
-        name: '[prompt-context-assembler] handles empty prompt',
-        fn: async () => {
-            const tmpDir = createTempDir();
-            try {
-                const input = createUserPromptInput('');
-                const result = await runHook(PROMPT_CONTEXT_ASSEMBLER, input, { cwd: tmpDir });
-                assertAllowed(result.code, 'Should not block empty prompt');
-            } finally {
-                cleanupTempDir(tmpDir);
-            }
-        }
-    }
-];
+// prompt-context-assembler.cjs was removed in the inject-hook removal (Claude/Codex skill
+// parity); its two prompt-injection smoke tests were dropped with it. The surviving
+// UserPromptSubmit hook (workflow-router.cjs) is covered by workflowRouterTests above.
 
 // ============================================================================
 // Framework Rename Regression Guards
@@ -959,7 +928,6 @@ module.exports = {
         ...workflowRouterTests,
         ...catalogStructureTests,
         ...deadModuleVerificationTests,
-        ...devRulesReminderTests,
         ...renameFixGuardTests
     ]
 };

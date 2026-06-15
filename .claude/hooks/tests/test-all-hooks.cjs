@@ -747,243 +747,13 @@ async function testSessionEnd() {
 }
 
 // ============================================================================
-// Test Cases: Subagent
+// Test Cases: Subagent — REMOVED
+// SubagentStart context-injection dispatchers (subagent-init.cjs / -2 / -3) were
+// removed in the inject-hook removal (Claude/Codex skill-parity). Their guidance
+// now lives in agent .md SYNC:agent-bootstrap blocks (Phase 03). Genuine lifecycle
+// asserts (post-compact-recovery, write-compact-marker, state libs) remain in
+// suites/lifecycle.test.cjs.
 // ============================================================================
-
-async function testSubagentInitDispatcher1() {
-    logSection('SubagentStart: subagent-init.cjs (dispatcher 1/3 — identity + patterns + dev-rules + code-review-rules + lessons)');
-
-    // Identity (builder 1) + lessons (builder 5) are UNIVERSAL — emitted for every
-    // agent type. Loop the representative set: exit 0, valid format, identity marker,
-    // ≤8500-char block (the hard per-block cap the dispatcher must never exceed).
-    const subagentTypes = ['scout', 'Explore', 'planner', 'researcher', 'debugger', 'tester', 'code-reviewer', 'fullstack-developer'];
-
-    for (const subagentType of subagentTypes) {
-        const result = await runHook('subagent-init.cjs', {
-            agent_type: subagentType,
-            prompt: `Test prompt for ${subagentType}`
-        });
-        logResult(`${subagentType} subagent exits 0`, result.code === 0);
-
-        if (result.stdout) {
-            const parsed = parseSubagentOutput(result.stdout);
-            logOutputValidation(`${subagentType} output valid`, parsed.valid || !result.stdout.includes('{'));
-            if (parsed.valid) {
-                const ctx = parsed.additionalContext || '';
-                logResult(`${subagentType} contains universal identity block`, ctx.includes('## Subagent'));
-                logResult(`${subagentType} dispatcher-1 block ≤8500 chars`, ctx.length <= 8500);
-            }
-        }
-    }
-
-    // TC-PA-001 / TC-DR-001 / TC-CRR-001: the three CONDITIONAL builders all fold in
-    // for code-reviewer — each heading must be present in the single combined block.
-    {
-        const result = await runHook('subagent-init.cjs', { agent_type: 'code-reviewer', prompt: 'test' });
-        logResult('[TC-PA-001/DR-001/CRR-001] code-reviewer exits 0', result.code === 0);
-        if (result.stdout) {
-            const parsed = parseSubagentOutput(result.stdout);
-            if (parsed.valid) {
-                const ctx = parsed.additionalContext || '';
-                logResult('[TC-PA-001] Contains Coding Patterns heading', ctx.includes('## Coding Patterns & Reference Docs'));
-                logResult('[TC-DR-001] Contains Development Rules heading', ctx.includes('## Development Rules'));
-                logResult('[TC-CRR-001] Contains Code Review Rules heading', ctx.includes('## Code Review Rules'));
-                logResult('[TC-CRR-001] references code-review-rules.md', ctx.includes('code-review-rules.md'));
-                logResult('[TC-PA-001] dispatcher-1 block ≤8500 chars (worst case)', ctx.length <= 8500);
-            }
-        }
-    }
-
-    // TC-CRR-002/002b: code-review-rules builder folds in for every remaining
-    // CODE_REVIEW_RULES_AGENT_TYPES member (loop so adding a member auto-extends coverage).
-    const codeReviewAgents = [
-        { type: 'code-simplifier', tc: 'TC-CRR-002' },
-        { type: 'spec-compliance-reviewer', tc: 'TC-CRR-002b' }
-    ];
-    for (const { type, tc } of codeReviewAgents) {
-        const result = await runHook('subagent-init.cjs', { agent_type: type, prompt: 'test' });
-        logResult(`[${tc}] ${type} exits 0`, result.code === 0);
-        if (result.stdout) {
-            const parsed = parseSubagentOutput(result.stdout);
-            if (parsed.valid) {
-                const ctx = parsed.additionalContext || '';
-                logResult(`[${tc}] ${type} contains Code Review Rules heading`, ctx.includes('## Code Review Rules'));
-                logResult(`[${tc}] ${type} references code-review-rules.md`, ctx.includes('code-review-rules.md'));
-            }
-        }
-    }
-
-    // TC-PA-006 / TC-DR-005: patterns + dev-rules builders fold in for planner.
-    {
-        const result = await runHook('subagent-init.cjs', { agent_type: 'planner', prompt: 'test' });
-        logResult('[TC-PA-006/DR-005] planner exits 0', result.code === 0);
-        if (result.stdout) {
-            const parsed = parseSubagentOutput(result.stdout);
-            if (parsed.valid) {
-                const ctx = parsed.additionalContext || '';
-                logResult('[TC-DR-005] planner has Development Rules heading', ctx.includes('## Development Rules'));
-                logResult('[TC-PA-006] planner has patterns content', ctx.length > 0);
-            }
-        }
-    }
-
-    logSubsection('Edge Cases — conditional builders stay silent for general-purpose');
-
-    // TC-PA-007 / TC-DR-003-004 / TC-CRR-003: the three conditional builders do NOT fire
-    // for general-purpose. Dispatcher 1 still emits the universal identity + lessons blocks,
-    // so we assert HEADING ABSENCE (not stdout absence) — the equivalence-preserving reframe
-    // of the legacy `!result.stdout` checks. The test still FAILS if a conditional builder
-    // wrongly fires, while tolerating the always-present universal content.
-    {
-        const result = await runHook('subagent-init.cjs', { agent_type: 'general-purpose', prompt: 'test' });
-        logResult('[TC-PA-007/DR-003-004/CRR-003] general-purpose exits 0', result.code === 0);
-        if (result.stdout) {
-            const parsed = parseSubagentOutput(result.stdout);
-            if (parsed.valid) {
-                const ctx = parsed.additionalContext || '';
-                logResult('[TC-PA-007] general-purpose: no Coding Patterns heading', !ctx.includes('## Coding Patterns & Reference Docs'));
-                logResult('[TC-DR-003/004] general-purpose: no Development Rules heading', !ctx.includes('## Development Rules'));
-                logResult('[TC-CRR-003] general-purpose: no Code Review Rules heading', !ctx.includes('## Code Review Rules'));
-                logResult('general-purpose still gets universal identity block', ctx.includes('## Subagent'));
-                logOutputValidation('[lessons] general-purpose output valid', parsed.valid);
-            }
-        }
-    }
-
-    logSubsection('Edge Cases — malformed / empty input (fail-open)');
-
-    // TC-PA-008 / TC-DR-006 / TC-CRR-004: malformed JSON → exit 0
-    {
-        const result = await runHook('subagent-init.cjs', 'not-json');
-        logResult('[TC-PA-008/DR-006/CRR-004] malformed JSON exits 0', result.code === 0);
-    }
-
-    // TC-PA-009 / TC-DR-007 / TC-CRR-005: null/empty stdin → exit 0
-    {
-        const result = await runHook('subagent-init.cjs', null);
-        logResult('[TC-PA-009/DR-007/CRR-005] null stdin exits 0', result.code === 0);
-    }
-
-    // Unknown agent type → exit 0 (identity emits with 'unknown')
-    {
-        const result = await runHook('subagent-init.cjs', { agent_type: 'unknown-type', prompt: 'test' });
-        logResult('Unknown type handled', result.code === 0);
-    }
-
-    // Empty prompt → exit 0
-    {
-        const result = await runHook('subagent-init.cjs', { agent_type: 'scout', prompt: '' });
-        logResult('Empty prompt handled', result.code === 0);
-    }
-}
-
-async function testSubagentInitDispatcher2() {
-    logSection('SubagentStart: subagent-init-2.cjs (dispatcher 2/3 — AI mistake prevention)');
-
-    // TC-SUBAGENT-002: ai-mistakes is UNIVERSAL — fires for code-reviewer; the isolated
-    // block must stay ≤8500 chars and carry a prevention bullet.
-    {
-        const result = await runHook('subagent-init-2.cjs', { agent_type: 'code-reviewer', prompt: 'test' });
-        logResult('[TC-SUBAGENT-002] code-reviewer exits 0', result.code === 0);
-        if (result.stdout) {
-            const parsed = parseSubagentOutput(result.stdout);
-            if (parsed.valid) {
-                const ctx = parsed.additionalContext || '';
-                logResult('[TC-SUBAGENT-002] dispatcher-2 block ≤8500 chars', ctx.length <= 8500);
-                logResult('[TC-SUBAGENT-002] Contains AI mistake prevention bullet', ctx.includes('fabricat') || ctx.includes('invent') || ctx.includes('halluc'));
-            }
-        }
-    }
-
-    // TC-SUBAGENT-002b: general-purpose → also receives ai-mistakes (universal injection)
-    {
-        const result = await runHook('subagent-init-2.cjs', { agent_type: 'general-purpose', prompt: 'test' });
-        logResult('[TC-SUBAGENT-002b] general-purpose exits 0', result.code === 0);
-    }
-
-    logSubsection('Edge Cases');
-
-    {
-        const result = await runHook('subagent-init-2.cjs', 'not-json');
-        logResult('[TC-SUBAGENT-002c] malformed JSON exits 0', result.code === 0);
-    }
-
-    {
-        const result = await runHook('subagent-init-2.cjs', null);
-        logResult('[TC-SUBAGENT-002d] null stdin exits 0', result.code === 0);
-    }
-}
-
-async function testSubagentInitDispatcher3() {
-    logSection('SubagentStart: subagent-init-3.cjs (dispatcher 3/3 — context-guard + parent todos)');
-
-    // Note: in the test harness there is no parent-session todo state, so the parent-todo
-    // builder (8) contributes nothing and dispatcher 3 emits the context-guard block alone.
-    // The context-guard assertions below therefore hold unchanged from the legacy hook.
-
-    // TC-CG-001: code-reviewer → context-guard content present, block ≤8500 chars
-    {
-        const result = await runHook('subagent-init-3.cjs', {
-            agent_type: 'code-reviewer',
-            prompt: 'test'
-        });
-        logResult('[TC-CG-001] code-reviewer exits 0', result.code === 0);
-        if (result.stdout) {
-            const parsed = parseSubagentOutput(result.stdout);
-            if (parsed.valid) {
-                const ctx = parsed.additionalContext || '';
-                logResult('[TC-CG-001] Contains Context Guard', ctx.includes('Context Guard'));
-                logResult('[TC-CG-001] dispatcher-3 block ≤8500 chars', ctx.length <= 8500);
-            }
-        }
-    }
-
-    // TC-CG-002: general-purpose → stdout present (universal — no agent filtering)
-    {
-        const result = await runHook('subagent-init-3.cjs', {
-            agent_type: 'general-purpose',
-            prompt: 'test'
-        });
-        logResult('[TC-CG-002] general-purpose exits 0', result.code === 0);
-        if (result.stdout) {
-            const parsed = parseSubagentOutput(result.stdout);
-            if (parsed.valid) {
-                const ctx = parsed.additionalContext || '';
-                logResult('[TC-CG-002] Universal injection — general-purpose gets context-guard', ctx.includes('Context Guard'));
-            }
-        }
-    }
-
-    // TC-CG-003: planner → stdout present
-    {
-        const result = await runHook('subagent-init-3.cjs', {
-            agent_type: 'planner',
-            prompt: 'test'
-        });
-        logResult('[TC-CG-003] planner exits 0', result.code === 0);
-        if (result.stdout) {
-            const parsed = parseSubagentOutput(result.stdout);
-            if (parsed.valid) {
-                const ctx = parsed.additionalContext || '';
-                logResult('[TC-CG-003] Universal injection — planner gets context-guard', ctx.includes('Context Guard'));
-            }
-        }
-    }
-
-    logSubsection('Edge Cases');
-
-    // TC-CG-004: malformed JSON → guard skipped (unparseable), todos empty → exit 0 (fail-open)
-    {
-        const result = await runHook('subagent-init-3.cjs', 'not-json');
-        logResult('[TC-CG-004] Malformed JSON exits 0', result.code === 0);
-    }
-
-    // TC-CG-005: empty stdin → guard skipped (legacy parity), todos empty → exit 0 (fail-open)
-    {
-        const result = await runHook('subagent-init-3.cjs', null);
-        logResult('[TC-CG-005] Empty input exits 0', result.code === 0);
-    }
-}
 
 // ============================================================================
 // Test Cases: User Input
@@ -1431,41 +1201,9 @@ async function testResolveCmd() {
     })());
 }
 
-async function testDevRulesReminder() {
-    logSection('UserPromptSubmit: prompt-context-assembler.cjs');
-
-    // Test 1: Basic prompt
-    {
-        const result = await runHook('prompt-context-assembler.cjs', {
-            prompt: 'help me write a component'
-        });
-        logResult('Basic prompt exits 0', result.code === 0);
-    }
-
-    // Test 2: Empty prompt
-    {
-        const result = await runHook('prompt-context-assembler.cjs', {
-            prompt: ''
-        });
-        logResult('Empty prompt exits 0', result.code === 0);
-    }
-
-    // Test 3: Long prompt
-    {
-        const result = await runHook('prompt-context-assembler.cjs', {
-            prompt: 'a'.repeat(5000)
-        });
-        logResult('Long prompt handled', result.code === 0);
-    }
-
-    // Test 4: Unicode prompt
-    {
-        const result = await runHook('prompt-context-assembler.cjs', {
-            prompt: 'implement 日本語 feature with emoji 🎉'
-        });
-        logResult('Unicode prompt handled', result.code === 0);
-    }
-}
+// testDevRulesReminder REMOVED — it drove the deleted UserPromptSubmit inject hook
+// prompt-context-assembler.cjs. The lesson-reminder invariant survives via
+// lib/prompt-injections.cjs, covered by testLessonLearnedReminder below.
 
 async function testLessonLearnedReminder() {
     logSection('lib/prompt-injections: injectLessonReminder');
@@ -2146,7 +1884,7 @@ async function testPreCompactHooks() {
         logResult(`write-compact-marker (${trigger})`, result.code === 0);
     }
 
-    // Test: compactState.gitStatus written to marker file (in git repo)
+    // Test: marker written with existence-flag schema (sessionId/trigger/timestamp, no payload)
     {
         const testSessionId = `test-compact-state-${Date.now()}`;
         const result = await runHook('write-compact-marker.cjs', {
@@ -2158,73 +1896,26 @@ async function testPreCompactHooks() {
         try {
             const markerPath = getMarkerPath(testSessionId);
             const marker = JSON.parse(fs.readFileSync(markerPath, 'utf8'));
-            // In a git repo: compactState should be present with non-null gitStatus
-            // In a non-git dir: compactState should be absent (gitStatus === null → truthy guard)
+            // Marker is an existence flag: sessionId/trigger/timestamp only, NO compactState payload.
             const hasValidStructure = (
                 marker.sessionId === testSessionId &&
-                (marker.compactState === undefined ||
-                    (typeof marker.compactState.gitStatus === 'string' &&
-                     marker.compactState.gitStatus.length > 0 &&
-                     marker.compactState.warningShown === false))
+                marker.trigger === 'manual' &&
+                typeof marker.timestamp === 'number' &&
+                marker.compactState === undefined
             );
-            logResult('write-compact-marker: marker has valid compactState structure', hasValidStructure);
+            logResult('write-compact-marker: marker has existence-flag structure (no compactState)', hasValidStructure);
         } catch (_e) {
             logResult('write-compact-marker: marker file readable', false);
         }
     }
 
-    // Test: buildPostCompactWarning fires once, deduplicates on second call
-    logSubsection('prompt-context-assembler.cjs — post-compact dedup');
-    {
-        const testSessionId = `test-compact-dedup-${Date.now()}`;
-        ensureDir(MARKERS_DIR);
-        const markerPath = getMarkerPath(testSessionId);
-        // Write a marker with compactState to simulate a post-compact state
-        fs.writeFileSync(markerPath, JSON.stringify({
-            sessionId: testSessionId,
-            trigger: 'manual',
-            timestamp: Date.now(),
-            compactState: { gitStatus: 'M  .claude/hooks/write-compact-marker.cjs', warningShown: false }
-        }));
-
-        // First call: warning should appear
-        const result1 = await runHook('prompt-context-assembler.cjs', {
-            session_id: testSessionId,
-            prompt: 'continue'
-        });
-        logResult('buildPostCompactWarning: warning appears on first call', result1.stdout.includes('CONTEXT COMPACTED'));
-
-        // Second call: warning should be suppressed (warningShown dedup)
-        const result2 = await runHook('prompt-context-assembler.cjs', {
-            session_id: testSessionId,
-            prompt: 'continue'
-        });
-        logResult('buildPostCompactWarning: warning suppressed on second call (dedup)', !result2.stdout.includes('CONTEXT COMPACTED'));
-    }
-
-    // Test: SESSION_ID_DEFAULT fallback — warning fires when session_id absent
-    {
-        ensureDir(MARKERS_DIR);
-        const markerPath = getMarkerPath(SESSION_ID_DEFAULT);
-        // Write marker at 'default' path
-        fs.writeFileSync(markerPath, JSON.stringify({
-            sessionId: SESSION_ID_DEFAULT,
-            trigger: 'manual',
-            timestamp: Date.now(),
-            compactState: { gitStatus: 'M  test.txt', warningShown: false }
-        }));
-
-        // Run without session_id — should fall back to SESSION_ID_DEFAULT
-        const result = await runHook('prompt-context-assembler.cjs', {
-            prompt: 'continue'
-            // no session_id — tests fallback to SESSION_ID_DEFAULT
-        });
-        logResult('buildPostCompactWarning: fires when session_id absent (SESSION_ID_DEFAULT fallback)', result.stdout.includes('CONTEXT COMPACTED'));
-
-        // Clean up 'default' marker to avoid interference with other test runs
-        try { fs.unlinkSync(markerPath); } catch (_e) { /* ignore */ }
-    }
-
+    // Post-compact warning DELIVERY tests REMOVED — they drove the deleted
+    // UserPromptSubmit inject hook prompt-context-assembler.cjs to emit the
+    // "CONTEXT COMPACTED" warning. The inject-hook removal deleted that delivery
+    // path (no surviving runtime caller of buildPostCompactWarning), and the
+    // marker no longer carries a compactState/gitStatus payload — it is purely an
+    // existence flag. The marker WRITE invariant (write-compact-marker.cjs) is
+    // covered above and in suites/lifecycle.test.cjs / suites/pre-compact-snapshot.test.cjs.
 }
 
 // ============================================================================
@@ -2556,23 +2247,18 @@ async function testDedupConstants() {
     logResult('Exports CODE_PATTERNS (non-empty string)', typeof constants.CODE_PATTERNS === 'string' && constants.CODE_PATTERNS.length > 0);
     logResult('Exports LESSON_LEARNED (non-empty string)', typeof constants.LESSON_LEARNED === 'string' && constants.LESSON_LEARNED.length > 0);
 
-    // Test 2: All consuming hooks import from dedup-constants (no inline definitions).
+    // Test 2: All surviving consumers of the dedup markers import from
+    // dedup-constants (no inline definitions) — the "single source of truth"
+    // invariant for the marker strings.
     //
-    // Phase 04 consolidated the backend-context / frontend-context /
-    // code-patterns-injector inject hooks into pure builders. Their dedup logic
-    // now lives in lib/pretooluse-context-builders.cjs (which requires
-    // dedup-constants directly) on top of lib/context-injector-base.cjs (the
-    // shared wasRecentlyInjected / werePatternRecentlyInjected helpers, which
-    // also require dedup-constants). The three legacy modules are UNREGISTERED
-    // and will be deleted, so each legacy entry is repointed to the live file
-    // that now owns its dedup-constants usage — keeping the same 4 checks and
-    // surviving the legacy deletion. prompt-context-assembler.cjs is unchanged:
-    // it remains a registered hook that imports dedup-constants directly.
+    // The Phase-05 inject-hook removal deleted the former consumers
+    // (pretooluse-context-builders.cjs, prompt-context-assembler.cjs). The
+    // invariant survives in the modules that STILL own dedup-marker usage after
+    // the removal — repointed here so the same "imports dedup-constants" check
+    // guards live code (verified via `grep dedup-constants .claude/hooks/**`).
     const dedupConsumers = [
-        { label: 'backend-context dedup (now lib/pretooluse-context-builders.cjs)', file: 'lib/pretooluse-context-builders.cjs' },
-        { label: 'frontend-context dedup (now lib/context-injector-base.cjs)', file: 'lib/context-injector-base.cjs' },
-        { label: 'code-patterns dedup (now lib/pretooluse-context-builders.cjs)', file: 'lib/pretooluse-context-builders.cjs' },
-        { label: 'prompt-context-assembler.cjs', file: 'prompt-context-assembler.cjs' },
+        { label: 'lib/prompt-injections.cjs', file: 'lib/prompt-injections.cjs' },
+        { label: 'workflow-router.cjs', file: 'workflow-router.cjs' },
     ];
 
     for (const { label, file } of dedupConsumers) {
@@ -2683,15 +2369,9 @@ async function runAllTests() {
         await testSessionEnd();
     }
 
-    // Subagent
-    if (!FILTER || 'subagent'.includes(FILTER)) {
-        // 8 legacy subagent-init-*.cjs hooks consolidated into 3 cap-bounded dispatchers
-        // (subagent-init.cjs = builders 1-5, subagent-init-2.cjs = builder 6,
-        // subagent-init-3.cjs = builders 7-8). See plans/260613-1006-hooks-system-audit-optimization.
-        await testSubagentInitDispatcher1();
-        await testSubagentInitDispatcher2();
-        await testSubagentInitDispatcher3();
-    }
+    // SubagentStart context-injection dispatchers (subagent-init*.cjs) were removed
+    // in the inject-hook removal — Codex/Claude skill-parity. Their context now lives
+    // in agent .md SYNC:agent-bootstrap blocks (Phase 03), so no hook tests remain.
 
     // User Input
     if (!FILTER || 'user'.includes(FILTER) || 'prompt'.includes(FILTER) || 'init'.includes(FILTER)) {
@@ -2699,7 +2379,6 @@ async function runAllTests() {
         await testWorkflowRouter();
         await testMapSkillToStepId();
         await testResolveCmd();
-        await testDevRulesReminder();
         await testLessonLearnedReminder();
     }
 

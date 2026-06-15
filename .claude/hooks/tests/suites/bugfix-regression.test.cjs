@@ -23,10 +23,6 @@ const { createTempDir, cleanupTempDir, setupWorkflowState, createMockFile, fileE
 
 // Hook paths
 const WORKFLOW_ROUTER = getHookPath('workflow-router.cjs');
-// The catalog is split across three parts (p1 emits top matches, p2/p3 the remainder).
-// Assertions about full-catalog content must aggregate all three parts.
-const WORKFLOW_ROUTER_P2 = getHookPath('workflow-router-p2.cjs');
-const WORKFLOW_ROUTER_P3 = getHookPath('workflow-router-p3.cjs');
 const SESSION_INIT = getHookPath('session-init.cjs');
 const POST_EDIT_PRETTIER = getHookPath('post-edit-prettier.cjs');
 const SESSION_END = getHookPath('session-end.cjs');
@@ -47,17 +43,15 @@ const workflowCatalogInjectionTests = [
                 // Setup: workflows.json v2.0.0 config
                 const claudeDir = path.join(tmpDir, '.claude');
                 fs.mkdirSync(claudeDir, { recursive: true });
+                // workflow-router-p2/-p3.cjs were removed in the inject-hook removal; the
+                // surviving workflow-router.cjs emits the part-1 catalog. Use a single-workflow
+                // config so the part-1 slice deterministically renders that workflow's entry.
                 fs.writeFileSync(
                     path.join(claudeDir, 'workflows.json'),
                     JSON.stringify({
                         version: '2.0.0',
                         settings: { enabled: true },
                         workflows: {
-                            feature: {
-                                name: 'Feature Implementation',
-                                sequence: ['plan', 'feature-implement'],
-                                whenToUse: 'New features, enhancements, adding functionality',
-                            },
                             bugfix: {
                                 name: 'Bug Fix',
                                 sequence: ['scout', 'debug-investigate', 'fix'],
@@ -71,14 +65,10 @@ const workflowCatalogInjectionTests = [
                 const result = await runHook(WORKFLOW_ROUTER, input, { cwd: tmpDir });
 
                 assertAllowed(result.code, 'Should not block');
-                // Aggregate all three catalog parts — lower-priority workflows render in p2/p3.
-                const p2 = await runHook(WORKFLOW_ROUTER_P2, input, { cwd: tmpDir });
-                const p3 = await runHook(WORKFLOW_ROUTER_P3, input, { cwd: tmpDir });
-                const output = result.stdout + p2.stdout + p3.stdout;
+                const output = result.stdout;
 
-                // Should inject full catalog with workflow entries
+                // Should inject the catalog with the workflow entry + labels
                 assertContains(output, 'Workflow Catalog', 'Should inject catalog header');
-                assertContains(output, 'feature', 'Catalog should contain feature workflow');
                 assertContains(output, 'bugfix', 'Catalog should contain bugfix workflow');
                 assertContains(output, 'Use:', 'Catalog should contain Use: labels');
                 assertContains(output, 'Steps:', 'Catalog should contain Steps: labels');

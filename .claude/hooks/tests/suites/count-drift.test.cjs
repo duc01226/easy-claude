@@ -93,19 +93,19 @@ function countTopLevelHooks() {
         .length;
 }
 
+function countLibModules() {
+    const libDir = path.join(REPO_ROOT, '.claude', 'hooks', 'lib');
+    return fs.readdirSync(libDir, { withFileTypes: true })
+        .filter((entry) => entry.isFile() && entry.name.endsWith('.cjs'))
+        .length;
+}
+
 function countWorkflows() {
     const workflowsFile = path.join(REPO_ROOT, '.claude', 'workflows.json');
     const parsed = JSON.parse(fs.readFileSync(workflowsFile, 'utf8'));
     // `.workflows` is the id→definition map (same key TC-WFPROTO-006 reads); other top-level
     // keys (settings, version, etc.) are NOT workflows and must not be counted.
     return Object.keys(parsed.workflows || {}).length;
-}
-
-function countSubagentInitHooks() {
-    const hooksDir = path.join(REPO_ROOT, '.claude', 'hooks');
-    return fs.readdirSync(hooksDir, { withFileTypes: true })
-        .filter((entry) => entry.isFile() && /^subagent-init.*\.cjs$/.test(entry.name))
-        .length;
 }
 
 function assertMatches(file, text, pattern, description) {
@@ -151,7 +151,7 @@ const tests = [
             const skillCount = countDirectSkillFiles();
             const hookCount = countTopLevelHooks();
             const workflowCount = countWorkflows();
-            const subagentInitHookCount = countSubagentInitHooks();
+            const libCount = countLibModules();
             const docsReadme = fs.readFileSync(
                 path.join(REPO_ROOT, '.claude', 'docs', 'README.md'),
                 'utf8'
@@ -160,8 +160,12 @@ const tests = [
                 path.join(REPO_ROOT, '.claude', 'docs', 'claude-ai-agent-framework-guide.md'),
                 'utf8'
             );
-            const explainerScene = fs.readFileSync(
-                path.join(REPO_ROOT, '.claude', 'docs', 'claude-agent-explainer', 'src', 'scenes', 'Scene05ContextInjection.tsx'),
+            const quickStart = fs.readFileSync(
+                path.join(REPO_ROOT, '.claude', 'docs', 'quick-start.md'),
+                'utf8'
+            );
+            const rootReadme = fs.readFileSync(
+                path.join(REPO_ROOT, 'README.md'),
                 'utf8'
             );
 
@@ -189,11 +193,40 @@ const tests = [
                 new RegExp(`${workflowCount}\\s+registered workflows`),
                 'workflow'
             );
+
+            // --- Inventory-count surfaces gated against filesystem truth ---
+            // quick-start.md directory tree: "<skills> skills", "<hooks> top-level hook files + <lib> lib modules"
             assertMatches(
-                '.claude/docs/claude-agent-explainer/src/scenes/Scene05ContextInjection.tsx',
-                explainerScene,
-                new RegExp(`${subagentInitHookCount}\\s+subagent-init hooks`),
-                'subagent init hook'
+                '.claude/docs/quick-start.md',
+                quickStart,
+                new RegExp(`${skillCount}\\s+skills\\s+\\(invoked`),
+                'skill'
+            );
+            assertMatches(
+                '.claude/docs/quick-start.md',
+                quickStart,
+                new RegExp(`${hookCount}\\s+top-level hook files\\s+\\+\\s+${libCount}\\s+lib modules`),
+                'top-level hook + lib module'
+            );
+            // framework-guide "The Result" totals line: "**<hooks> top-level hook files**, **<skills> skills**"
+            assertMatches(
+                '.claude/docs/claude-ai-agent-framework-guide.md',
+                frameworkGuide,
+                new RegExp(`\\*\\*${hookCount} top-level hook files\\*\\*,\\s*\\*\\*${skillCount} skills\\*\\*`),
+                'hook + skill totals'
+            );
+            // root README: section header + architecture box "<hooks> Hook Files + <skills> Skills"
+            assertMatches(
+                'README.md',
+                rootReadme,
+                new RegExp(`###\\s+Skills\\s+\\(${skillCount} definitions\\)`),
+                'skill'
+            );
+            assertMatches(
+                'README.md',
+                rootReadme,
+                new RegExp(`${hookCount} Hook Files\\s+\\+\\s+${skillCount} Skills`),
+                'hook + skill'
             );
         }
     }

@@ -77,19 +77,19 @@ test('writeMarker creates marker with sessionId and trigger', () => {
   deleteMarker('write-test');
 });
 
-test('writeMarker preserves compactState.gitStatus (preservation invariant)', () => {
+test('writeMarker round-trips the full marker object (trigger + timestamp preserved)', () => {
+  const ts = Date.now();
   const marker = {
-    sessionId: 'git-status-test',
-    trigger: 'manual',
-    timestamp: Date.now(),
-    compactState: { gitStatus: 'M foo.cs\n?? bar.cs', warningShown: false }
+    sessionId: 'roundtrip-test',
+    trigger: 'auto',
+    timestamp: ts
   };
-  writeMarker('git-status-test', marker);
-  const read = readMarker('git-status-test');
+  writeMarker('roundtrip-test', marker);
+  const read = readMarker('roundtrip-test');
   assertTrue(read !== null, 'Marker should be readable');
-  assertEqual(read.compactState.gitStatus, 'M foo.cs\n?? bar.cs', 'gitStatus must be preserved');
-  assertEqual(read.compactState.warningShown, false, 'warningShown must be preserved');
-  deleteMarker('git-status-test');
+  assertEqual(read.trigger, 'auto', 'trigger should round-trip');
+  assertEqual(read.timestamp, ts, 'timestamp should round-trip');
+  deleteMarker('roundtrip-test');
 });
 
 test('readMarker returns null for missing session', () => {

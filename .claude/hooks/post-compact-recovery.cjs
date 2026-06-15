@@ -405,9 +405,9 @@ async function main() {
                     try { cleanupDoneProgressFiles(24, sessionId); } catch (e) {} // best-effort cleanup
 
                     // Re-anchor AI principles even for non-workflow compacts.
-                    // prompt-context-assembler injects injectCriticalContext at top (primacy),
-                    // but injectAiMistakePrevention is never called on SessionStart — inject it
-                    // here at the bottom (recency) so the full lesson list survives compact.
+                    // This hook injects injectCriticalContext at the top (primacy);
+                    // injectAiMistakePrevention is injected here at the bottom (recency)
+                    // so the full lesson list survives compact.
                     try {
                         const aiMistake = injectAiMistakePrevention(null, true);
                         if (aiMistake) console.log(aiMistake);

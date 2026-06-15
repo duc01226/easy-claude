@@ -15,10 +15,10 @@ Hooks are small CommonJS entry points that run at Claude Code lifecycle events. 
 
 ```text
 SessionStart -> UserPromptSubmit -> PreToolUse -> Tool -> PostToolUse
-              -> PreCompact / SessionEnd / SubagentStart / Notification / Stop
+              -> PreCompact / SessionEnd / Notification / Stop
 ```
 
-Session hooks initialize project context, recover workflow/todo state, and load routing guidance. Prompt hooks route workflows and assemble context. PreToolUse hooks inject file-specific guidance or block unsafe actions. PostToolUse hooks persist state, track workflow progress, format outputs, and update the code graph.
+The framework registers 8 hook events; there is no `SubagentStart` hook (sub-agent guidance is now static in `.claude/agents/*.md`). Session hooks initialize project context, recover workflow/todo state, and load routing guidance. Prompt hooks route workflows and re-inject the workflow catalog. PreToolUse hooks enforce safety gates and block unsafe actions. PostToolUse hooks persist state, track workflow progress, format outputs, and update the code graph.
 
 ## Layer Boundaries
 
@@ -30,7 +30,7 @@ Session hooks initialize project context, recover workflow/todo state, and load 
 
 ## Context Injection
 
-Context hooks should inject only the guidance needed for the current event. For large references, inject a read-on-demand pointer rather than whole files. Use stable dedup markers from `.claude/hooks/lib/dedup-constants.cjs` when a hook can fire repeatedly in one session.
+Per-edit/per-prompt context-injection guidance lives statically in `CLAUDE.md`, `.claude/agents/*.md`, and skill `SKILL.md` files so a hookless harness (Codex / Copilot) reads identical instructions; there are no runtime context-injection hooks. Hooks that still emit context (e.g. `workflow-router.cjs` re-injecting the workflow catalog, `post-compact-recovery.cjs`) should inject only the guidance needed for the current event, prefer a read-on-demand pointer over whole files for large references, and use stable dedup markers from `.claude/hooks/lib/dedup-constants.cjs` when a hook can fire repeatedly in one session.
 
 ## Safety And Privacy
 

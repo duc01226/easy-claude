@@ -7,18 +7,24 @@
  * drops a rule on edit, or a NEW agent is added with no tier decision.
  *
  * Tiers (MUST mirror the inserter's constants exactly — single invariant, two
- * enforcers: sync-hooks-to-skills.py:235-267 and this suite):
- *   - CORE  : 5 blocks — every agent.
+ * enforcers: sync-hooks-to-skills.py and this suite):
+ *   - CORE  : 6 blocks — every agent.
  *   - CODE  : CORE + 4 code-investigation blocks — agents that read/review code.
+ *   - CODE_STANDARDS : agent-code-standards (dev-rules + pattern pointers) — gated
+ *                    on a SEPARATE axis (CODE_STANDARDS_AGENTS) from CODE_AGENTS.
+ *                    An agent may be CODE (reads/locates code) yet NOT code-standards
+ *                    (researcher/scout/ui-ux-designer don't author/review code).
  *
  * Tests:
- *   A (TC-UAR-003) — every agent carries all Core-5 open+close tags.
+ *   A (TC-UAR-003) — every agent carries all Core-6 open+close tags.
  *   B (TC-UAR-004) — each code agent carries all 4 code tags; each core-only
  *                    agent carries NONE of them.
  *   C (TC-UAR-005) — disk agent set == CODE_AGENTS ∪ CORE_ONLY_AGENTS, disjoint
  *                    (a new/renamed agent fails until classified — same fail-loud
  *                    rule as the inserter).
  *   D (TC-UAR-006) — SYNC open/close balance per agent.
+ *   E (TC-UAR-007) — agent-code-standards present iff agent ∈ CODE_STANDARDS_AGENTS
+ *                    (present in every code-standards agent, ABSENT from every other).
  */
 
 const fs = require('fs');
@@ -34,6 +40,7 @@ const CORE_TAGS = [
     'sequential-thinking-protocol',
     'task-tracking-external-report',
     'project-reference-docs-guide',
+    'agent-bootstrap',
 ];
 const CODE_TAGS = [
     'understand-code-first',
@@ -52,6 +59,15 @@ const CORE_ONLY_AGENTS = new Set([
     'business-analyst', 'docs-manager', 'git-manager', 'journal-writer',
     'knowledge-worker', 'product-owner', 'project-manager', 'quality-gate-review',
 ]);
+// agent-code-standards audience — SEPARATE axis (mirror sync-hooks-to-skills.py
+// CODE_STANDARDS_AGENTS verbatim). NOT the same set as CODE_AGENTS.
+const CODE_STANDARDS_AGENTS = new Set([
+    'architect', 'backend-developer', 'code-reviewer', 'code-simplifier',
+    'database-admin', 'debugger', 'e2e-runner', 'framework-maintainer',
+    'frontend-developer', 'fullstack-developer', 'integration-tester',
+    'performance-optimizer', 'planner', 'security-auditor', 'solution-architect',
+    'spec-compliance-reviewer', 'tester',
+]);
 
 const diskAgents = fs
     .readdirSync(AGENTS_DIR)
@@ -66,7 +82,7 @@ module.exports = {
     name: 'agent-universal-rules',
     tests: [
         {
-            name: '[agent-universal-rules] TC-UAR-003 every agent carries all Core-5 open+close tags',
+            name: '[agent-universal-rules] TC-UAR-003 every agent carries all Core-6 open+close tags',
             fn: () => {
                 const missing = [];
                 for (const name of diskAgents) {
@@ -75,7 +91,7 @@ module.exports = {
                         if (!hasBlock(body, tag)) missing.push(`${name} → ${tag}`);
                     }
                 }
-                assertEqual(missing.length, 0, `agents missing Core-5 blocks:\n  ${missing.join('\n  ')}`);
+                assertEqual(missing.length, 0, `agents missing Core-6 blocks:\n  ${missing.join('\n  ')}`);
             },
         },
         {
@@ -127,6 +143,24 @@ module.exports = {
                     if (opens !== closes) unbalanced.push(`${name}: ${opens} open / ${closes} close`);
                 }
                 assertTrue(unbalanced.length === 0, `unbalanced SYNC tags:\n  ${unbalanced.join('\n  ')}`);
+            },
+        },
+        {
+            name: '[agent-universal-rules] TC-UAR-007 agent-code-standards present iff agent in CODE_STANDARDS_AGENTS',
+            fn: () => {
+                const problems = [];
+                for (const name of diskAgents) {
+                    const present = hasBlock(read(name), 'agent-code-standards');
+                    const expected = CODE_STANDARDS_AGENTS.has(name);
+                    if (expected && !present) problems.push(`code-standards agent ${name} MISSING agent-code-standards`);
+                    if (!expected && present) problems.push(`non-code-standards agent ${name} LEAKS agent-code-standards`);
+                }
+                assertEqual(problems.length, 0, `agent-code-standards gating violations:\n  ${problems.join('\n  ')}`);
+
+                // CODE_STANDARDS_AGENTS must all exist on disk (catch rename/delete).
+                const onDisk = new Set(diskAgents);
+                const ghosts = [...CODE_STANDARDS_AGENTS].filter(a => !onDisk.has(a));
+                assertEqual(ghosts.length, 0, `CODE_STANDARDS_AGENTS not on disk: ${ghosts.join(', ')}`);
             },
         },
     ],

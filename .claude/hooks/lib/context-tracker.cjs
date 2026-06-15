@@ -8,19 +8,15 @@
  *
  * Architecture:
  * - No global state — each session has its own marker file
- * - Marker file consumed by `prompt-context-assembler.cjs` to emit the
- *   post-compact "CONTEXT COMPACTED" re-verify warning using `compactState.gitStatus`
+ * - The marker's EXISTENCE is the signal `post-compact-recovery.cjs` keys on to
+ *   detect that a compact occurred; it reads no payload from the marker
  * - Markers deleted on session-end to prevent cross-session leakage
  *
  * Marker schema (current):
  * {
  *   sessionId: string,
  *   trigger: string,                   // 'manual' | 'auto' | 'unknown'
- *   timestamp: number,
- *   compactState?: {
- *     gitStatus: string,               // captured by write-compact-marker.cjs
- *     warningShown: boolean            // flipped by prompt-context-assembler.cjs after display
- *   }
+ *   timestamp: number
  * }
  *
  * @module context-tracker

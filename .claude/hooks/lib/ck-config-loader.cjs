@@ -73,8 +73,8 @@ const DEFAULT_CONFIG = {
 };
 
 // Canonical default portability paths — single source of truth.
-// Consumers (project-config-loader, prompt-injections, prompt-context-assembler-project-config)
-// reference this instead of re-hardcoding the literals, so a default change is one edit.
+// Consumers (project-config-loader, prompt-injections) reference this instead of
+// re-hardcoding the literals, so a default change is one edit.
 // Safe to use in catch/fallback paths: it is a require-time constant, not a runtime call
 // that can throw — referencing it never re-triggers the loadConfig() failure those paths guard.
 const DEFAULT_PORTABILITY = DEFAULT_CONFIG.portability;

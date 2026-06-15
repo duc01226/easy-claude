@@ -188,6 +188,8 @@ Register hooks in `.claude/settings.json`:
 | `Stop`             | (none needed)                                                        | Main agent finishes responding |
 | `Notification`     | (none needed)                                                        | Waiting for user input         |
 
+> These are the events Claude Code supports for new hooks. This framework registers no `SubagentStart` hook (sub-agent context is static in `agents/*.md`); it is listed here only because the event remains available if you add one.
+
 ### Matcher Patterns
 
 ```json

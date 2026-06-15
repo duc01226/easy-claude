@@ -2,12 +2,15 @@
 /**
  * Shared prompt injection helpers for UserPromptSubmit and PreToolUse hooks.
  *
- * Consumers:
- *   injectLessons            → prompt-context-assembler (UserPromptSubmit), lessons-injector (PreToolUse), subagent-context-builders (Agent)
- *   injectCriticalContext    → prompt-context-assembler (UserPromptSubmit), mindset-injector (PreToolUse), subagent-context-builders (Agent)
- *   injectAiMistakePrevention → mindset-injector (PreToolUse), subagent-context-builders (Agent)
- *   injectWorkflowProtocol   → prompt-context-assembler (UserPromptSubmit)
- *   injectLessonReminder     → prompt-context-assembler (UserPromptSubmit)
+ * Live consumer (after the de-hooking refactor):
+ *   injectCriticalContext / injectAiMistakePrevention → post-compact-recovery.cjs
+ *     (re-anchors AI principles after compaction on SessionStart).
+ * The remaining exports (injectLessons / injectWorkflowProtocol / injectLessonReminder)
+ * fed the former prompt-context-assembler / lessons-injector / mindset-injector hooks,
+ * which were removed — that guidance now lives statically in CLAUDE.md / agent / skill files.
+ * NOTE: these three are NOT dead — they are still live-consumed by the Codex/Copilot mirror
+ * generators (sync-context-workflows.mjs, migrate-claude-to-codex.mjs, sync-copilot-workflows.cjs)
+ * and verify-workflow-cycle-compliance.mjs to embed the same guidance statically. Do not remove.
  */
 
 const fs = require('fs');

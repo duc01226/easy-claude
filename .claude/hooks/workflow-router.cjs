@@ -12,29 +12,25 @@
 const fs = require('fs');
 const path = require('path');
 const { loadWorkflowConfig } = require('./lib/wr-config.cjs');
-const { WORKFLOW_CATALOG: WORKFLOW_CATALOG_MARKER, WORKFLOW_CATALOG_P2, WORKFLOW_CATALOG_P3, DEDUP_LINES, TOP_DEDUP_LINES } = require('./lib/dedup-constants.cjs');
+const { WORKFLOW_CATALOG: WORKFLOW_CATALOG_MARKER, DEDUP_LINES, TOP_DEDUP_LINES } = require('./lib/dedup-constants.cjs');
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CATALOG GENERATION
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Build the workflow catalog string for a given slice of entries.
- * Full format: 2 lines per workflow (name line + Use/Not for/Steps line).
+ * Build the workflow catalog string for all whenToUse workflows.
+ * Full format: 2 lines per workflow (name line + Use/Steps line).
  * Entries are sorted alphabetically by workflow ID.
  * @param {Object} config - Workflow configuration
- * @param {number} [sliceStart=0] - Start index (inclusive) for this catalog part
- * @param {number} [sliceEnd] - End index (exclusive); omit for all remaining
  * @returns {string} Formatted catalog text
  */
-function buildWorkflowCatalog(config, sliceStart = 0, sliceEnd) {
+function buildWorkflowCatalog(config) {
     const { workflows } = config;
 
-    let entries = Object.entries(workflows)
+    const entries = Object.entries(workflows)
         .filter(([, wf]) => wf.whenToUse)
         .sort(([a], [b]) => a.localeCompare(b));
-
-    entries = entries.slice(sliceStart, sliceEnd);
 
     const lines = [];
     for (const [id, wf] of entries) {
@@ -47,19 +43,15 @@ function buildWorkflowCatalog(config, sliceStart = 0, sliceEnd) {
 }
 
 /**
- * Build the catalog injection output for the FIRST THIRD of workflows.
- * The remaining workflows are injected by workflow-router-p2.cjs and workflow-router-p3.cjs
- * as separate hooks, keeping each hook's output under the harness per-hook size limit.
- * Detection instructions are included here (primacy position) and reference parts 2 and 3.
+ * Build the catalog injection output for the FULL workflow catalog.
+ * Emitted as a single block on UserPromptSubmit, where the harness imposes no
+ * per-hook size limit. The former 3-way split across workflow-router-p2.cjs and
+ * workflow-router-p3.cjs was removed when those part-file hooks were deleted in the
+ * de-hooking refactor; the whole catalog now ships from this one hook.
  * @param {Object} config - Workflow configuration
- * @returns {string} Full injection text (part 1)
+ * @returns {string} Full injection text
  */
 function buildCatalogInjection(config) {
-    const allEntries = Object.entries(config.workflows)
-        .filter(([, wf]) => wf.whenToUse)
-        .sort(([a], [b]) => a.localeCompare(b));
-    const thirdCount = Math.ceil(allEntries.length / 3);
-
     const lines = [];
 
     lines.push('');
@@ -70,15 +62,14 @@ function buildCatalogInjection(config) {
     lines.push('> Auto-select the best option yourself; do not ask the user to choose between workflow/direct/skill/custom paths.');
     lines.push('');
     lines.push('> **IMPORTANT:** MUST ATTENTION create todo tasks for ALL steps. Do NOT skip any steps in the selected workflow.');
-    lines.push(`> **NOTE:** This is part 1 of 3. See "${WORKFLOW_CATALOG_P2}" and "${WORKFLOW_CATALOG_P3}" below for the remaining ${allEntries.length - thirdCount} workflows.`);
     lines.push('');
 
-    lines.push(buildWorkflowCatalog(config, 0, thirdCount));
+    lines.push(buildWorkflowCatalog(config));
     lines.push('');
 
     lines.push('## Workflow Detection Instructions');
     lines.push('');
-    lines.push('1. **MATCH:** Compare the user\'s prompt against EVERY "Use" field across ALL THREE catalog parts. Match semantics, not exact keywords.');
+    lines.push('1. **MATCH:** Compare the user\'s prompt against EVERY "Use" field in the catalog above. Match semantics, not exact keywords.');
     lines.push('2. **ANALYZE:** Identify the best path: execute directly, invoke a skill, activate a standard workflow, or compose a custom workflow. A custom workflow is appropriate when no single workflow fits cleanly, the task spans multiple workflow boundaries, or trimming/reordering standard steps improves fit.');
     lines.push('3. **AUTO-SELECT:** Choose the best path yourself. Explicit `/skill`, `/workflow-*`, or `/start-workflow <id>` prompts count as the user choosing that path and should execute directly.');
     lines.push('4. **COMPOSE (if custom):** Select steps from existing workflow step libraries. Use a 1-line rationale internally (e.g. `scout → plan → fix → test → docs-update — skipping feature-implement since plan is already defined`).');

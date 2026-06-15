@@ -35,10 +35,12 @@ const M1 = MARK.WORKFLOW_CATALOG;       // '## Workflow Catalog'
 const M2 = MARK.WORKFLOW_CATALOG_P2;    // '## Workflow Catalog (continued)'
 const M3 = MARK.WORKFLOW_CATALOG_P3;    // '## Workflow Catalog (part 3)'
 
+// workflow-router-p2/-p3.cjs were removed in the inject-hook removal; only the
+// surviving workflow-router.cjs (part 1) emits a catalog block. The P2/P3 marker
+// CONSTANTS remain in dedup-constants.cjs (single-source byte-lock asserted by
+// TC-HOOKS-040c below), but no hook spawns them anymore.
 const ROUTERS = [
-    { stem: 'workflow-router', marker: M1 },
-    { stem: 'workflow-router-p2', marker: M2 },
-    { stem: 'workflow-router-p3', marker: M3 }
+    { stem: 'workflow-router', marker: M1 }
 ];
 
 function spawnRouter(stem, payload) {
