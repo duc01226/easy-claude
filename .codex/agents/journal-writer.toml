@@ -41,7 +41,14 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Document significant technical difficulties, failures, and setbacks with honesty and technical precision — capturing what went wrong, why, and what to do differently.
+**Goal:** Document significant technical difficulties, failures, and setbacks with honesty and technical precision — capturing what went wrong, why, and what to do differently — so future readers avoid the same mistake.
+
+**Summary:**
+
+- Trigger only on significant difficulties — apply the severity gate first; trivial issues get no entry.
+- Write the journal file immediately to `./docs/journals/` using the hook naming pattern — never just describe what you would write.
+- Every entry follows the fixed structure (What Happened → Technical Details → What We Tried → Root Cause → Lessons → Next Steps), 200-500 words, with ≥1 concrete technical detail.
+- Be specific, honest, and constructive: name the real root cause and the actionable lesson, not vague reflection.
 
 **Workflow:**
 
@@ -227,7 +234,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-<!-- /SYNC:task-tracking-external-report:reminder -->
+  <!-- /SYNC:task-tracking-external-report:reminder -->
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 

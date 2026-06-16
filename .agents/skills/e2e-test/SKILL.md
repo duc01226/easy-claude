@@ -52,6 +52,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Produce maintainable, spec-traceable E2E tests (TC-{MODULE}-E2E-{NNN}) from recordings, specs, or code changes that protect business behavior using the project's configured framework (Playwright, Selenium, Cypress, others) — so future UI changes break tests only when intended behavior breaks.
 
+**Summary:**
+
+- Read `docs/project-reference/e2e-test-reference.md` + the `e2eTesting` block of `docs/project-config.json` FIRST, then detect the framework from project files — never assume a stack or invent a TC-annotation marker.
+- Every test carries its `TC-{MODULE}-E2E-{NNN}` code traced to a spec, structured with the Page Object Model (locators/actions in the page class, assertions in the test).
+- Selector priority is semantic/BEM > data-testid > ARIA/role > visible text; AVOID generated classes, `:nth-child`, and XPath.
+- Generate unique self-sufficient data (GUID/timestamp), never depend on pre-existing DB state, never tear down seeded data; spawn the `e2e-runner` sub-agent for generation and baseline updates.
+
 **Workflow:**
 
 1. **Detect** — classify request scope, target artifacts, framework.

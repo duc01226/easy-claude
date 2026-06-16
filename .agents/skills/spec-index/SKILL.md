@@ -54,6 +54,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Generate, on demand, a regenerable single-writer navigation layer (catalog + cross-capability ERD + rebuild guide) **assembled FROM** the canonical tech-free 8-section Feature Specs under `docs/specs/{Bucket}/` — so a bucket can be browsed or replatformed without ever forking a second, hand-maintained source of truth. The Feature Specs are the source of truth; this skill only assembles regenerable aids over them.
 
+**Summary:**
+
+- This skill is a DERIVED-aid assembler only: it reads §1 Overview, §5 Domain Model Mermaid, and §8 TCs from existing Feature Specs to build `INDEX.md` (default), an optional cross-capability `{Bucket}.erd.md`, and an optional `{Bucket}.reimplementation-guide.md` — it NEVER authors business content.
+- Hard prohibition is the load-bearing rule: never emit the retired A-E engineering tree, `M##` dirs, `00-module-registry.md`, `01-domain-erd.md`, `06-reimplementation-guide.md`, or `docs/specs/README.md`/`PRIORITY-INDEX.md`. Use the `{Bucket}.*` filenames instead.
+- Step 0 Scope Gate via a direct user question (bucket + mode + artifacts) is BLOCKING and runs before any read; if the target bucket has no `README.*.md` specs, STOP and route to `$spec` — never fabricate a spec to index.
+- Every generated file carries the `> DERIVED — regenerate via $spec-index; do NOT hand-edit` banner, links each row/entity back to its source spec, and keeps INDEX/ERD prose tech-free — only the reimplementation guide may name a target stack.
+
 > **Renamed:** repurposes the former `/spec-discovery` skill (v4.0.0 derived-aid rewrite) — `/spec-discovery` no longer resolves as a slash command; use `$spec-index`.
 
 > **[SCOPE]** This skill assembles a **DERIVED** index / ERD / reimplementation guide over the canonical Feature Specs. It MUST NOT emit a per-module A-E engineering bundle (`A-domain-model`, `B-business-rules`, `C-api-contracts`, `D-events`, `E-user-journeys`), `M##` directories, `00-module-registry.md`, `01-domain-erd.md`, or `06-reimplementation-guide.md` — those are not part of the spec model; their content lives in the Feature Spec (thin-index-only contract: output is DERIVED — never emit A-E bundle files). Authority: [`docs/project-reference/spec-system-reference.md`](../../../docs/project-reference/spec-system-reference.md).

@@ -275,9 +275,18 @@ Algorithm: scan source files → extract keys via `contentPattern` regex capture
 
 **IMPORTANT MUST ATTENTION** record detected rules in the plan/report before writing; do not pause for user approval. **IMPORTANT MUST ATTENTION** scope `paths` to relevant dirs (not repo root).
 
-### 2q. Reference Docs
+### 2q. Reference Docs — Canonical Floor (MUST normalize, NEVER raw-import)
 
-Build `referenceDocs[]` from `docs/project-reference/`: `{ filename, purpose, sections[] }`
+⛔ Reference docs are the FRAMEWORK's canonical set, not whatever files happen to sit in `docs/project-reference/`. Do **NOT** build `referenceDocs[]` by listing on-disk files — that silently re-imports drift (legacy filenames like `feature-docs-reference.md`, missing canonical docs, wrong order). Normalize against the canonical floor instead:
+
+```bash
+node -e "const h=require('./.claude/hooks/lib/session-init-helpers.cjs');const{loadProjectConfig}=require('./.claude/hooks/lib/project-config-loader.cjs');console.log(JSON.stringify(h.normalizeReferenceDocs((loadProjectConfig()||{}).referenceDocs),null,2))"
+```
+
+- Set `config.referenceDocs` = the returned **`normalized`** array (canonical docs + genuine project-specific extras, canonical order, legacy names resolved, canonical `templatePath`s preserved). Add project-specific reference docs only as EXTRA entries; **never** delete or rename a canonical entry.
+- For each **`renames[]`** `{from,to}`: if `docs/project-reference/<from>` exists — `git mv` it to `<to>` when `<to>` is absent; if `<to>` already exists, `<from>` is a stale duplicate → confirm `<to>` holds the canonical content, then `git rm <from>`. Migrate every downstream textual reference (`docs-index-reference.md`, `project-structure-reference.md`, `docs/copilot-registry.json`, generated `.github/*` mirrors) `<from>` → `<to>`.
+- **`added[]`** are canonical docs missing on disk — the SessionStart hook (or the matching `/scan --target=<key>`) creates them. Do not hand-fabricate content; per-doc purpose/sections come from `DEFAULT_REFERENCE_DOCS`.
+- Re-run the probe after merging; `changed:false` with empty `renames`/`added`/`removedLegacy` is the only PASS state.
 
 ---
 

@@ -52,6 +52,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Analyze business domain (bounded contexts, aggregates, entities, VOs, domain events, cross-context relationships) and generate a domain model report + ERD — producing a user-validated DDD domain model with correct bounded contexts, aggregate boundaries, and event flows so downstream implementation builds on the right invariants and avoids costly boundary rework after consumers depend on them.
 
+**Summary:**
+
+- Drive the model from business artifacts, not guesses: load plan/PBI/business-eval inputs and `domain-entities-reference.md`, then extract nouns→entities, verbs→events, roles, and processes before classifying anything.
+- Every concept passes the Entity-vs-VO matrix and aggregate boundary rules (≤5 entities, one transaction, reference-by-ID only, root is the sole mutation entry) — flag primitive obsession and anemic models as you go.
+- User validation is non-skippable: present bounded contexts and the Mermaid ERD, then run the 5-8 question a direct user question interview to confirm boundaries, aggregate roots, and event flows before marking the model confirmed.
+- Close the loop on persistence: reconcile findings against `domain-entities-reference.md` (new/modified/deprecated), update the `## Domain Model` section of `plan.md`, and keep cross-context communication event-driven with `{AggregateNoun}{PastTenseVerb}` naming and no cross-service FKs.
+
 **Workflow:**
 
 1. **Load Business Context** — Read idea, business evaluation, refined PBI artifacts + domain-entities-reference.md

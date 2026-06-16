@@ -17,6 +17,13 @@ description: '[Project Management] Use when you need to generate an HTML mockup 
 
 **Goal:** Give stakeholders a realistic, system-matching visual preview of every story's UI — by generating a self-contained HTML mock-up file (one per PBI covering all stories) from finalized PBI/story artifacts, styled from the project's reference design docs, existing UI, components, and real domain entity data — before implementation begins, so layout/UX/state gaps surface while changes are still cheap.
 
+**Summary:**
+
+- This is a PRE-implementation preview tool, not a UI builder: only run on finalized PBIs/stories (reviewed, gated); for backend-only PBIs with no UI sections, skip generation and tell the user — do NOT use it for production UI, design specs, or scratch wireframes.
+- Output is exactly ONE self-contained HTML file per PBI (all stories as tabs/sections), inline CSS/JS, no external deps except Google Fonts, saved alongside the PBI artifact as `{pbi-filename}-mockup.html`.
+- Fidelity is the whole point — the mock-up must LOOK like the existing app: load the canonical + matched per-app design-system docs (NEW→canonical, REFACTOR→per-app), read real shared/module components for layout patterns, and populate with real domain entity fields and realistic sample data, never Lorem ipsum.
+- Render every defined component state (default/loading/empty/error) as toggleable, keep any accompanying prose/captions tech-agnostic (business terms, not framework/CSS class names) per the M1/M2 mandates, even though the rendered HTML may use real class names internally.
+
 **Workflow:**
 
 1. **Locate Artifacts** — Find PBI and story files in `team-artifacts/pbis/`

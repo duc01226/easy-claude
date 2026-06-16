@@ -65,7 +65,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **NOT for:** Manual step execution (follow task tracking items), workflow design (use `plan`), catalog management.
 
-**Related:** `$start-workflow <workflowId>` | Hook: `workflow-step-tracker.cjs` | Hook: `workflow-router.cjs`
+**Related:** `$start-workflow <workflowId>` | Catalog: static `## Workflow Catalog` baked into `CLAUDE.md` (no router/tracker hooks)
 
 ---
 
@@ -129,7 +129,7 @@ ALWAYS try tiers in order — stop at first success.
 
 ### Tier 1: Context (FREE — no file reads)
 
-The workflow catalog is already injected as `## Workflow Catalog` in your context (injected by `workflow-router.cjs` on every UserPromptSubmit).
+The workflow catalog is already present as the `## Workflow Catalog` section in your context — baked statically into `CLAUDE.md` (and the `AGENTS.md` mirror), not injected by any hook.
 
 1. Search your context for `## Workflow Catalog`
 2. Find the line: `**{workflowId}** — {name}`
@@ -266,7 +266,7 @@ Some workflow steps ARE themselves full workflows. Running them inline causes th
 5. Return ONLY SYNC:subagent-return-contract summary — write full findings to `plans/reports/`
 6. Main agent reads `plans/reports/` file only when resolving specific blockers
 
-> The `workflow-step-tracker.cjs` PostToolUse hook injects the ⚠️ **[WORKFLOW-IN-WORKFLOW GATE]** warning automatically when the next step is one of the above.
+> The ⚠️ **[WORKFLOW-IN-WORKFLOW GATE]** is model-driven: apply it yourself whenever the next step is one of the above — no hook emits this warning.
 
 ---
 

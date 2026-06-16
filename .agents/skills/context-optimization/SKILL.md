@@ -46,10 +46,10 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Workflow:**
 
-1. **Write** — Save critical findings to persistent memory entities
-2. **Select** — Retrieve relevant memories at session/task start
-3. **Compress** — Create context anchors every 10 operations summarizing progress
-4. **Isolate** — Delegate exploration tasks to sub-agents to reduce context usage
+1. **Compress** — Create context anchors every 10 operations summarizing progress
+2. **Isolate** — Delegate exploration tasks to sub-agents to reduce context usage
+
+> Cross-session persistence (saving findings to survive a new session) is out of scope here — use file checkpoints via `$checkpoint` and restore with `$recover` (see the `memory-management` skill).
 
 **Key Rules:**
 
@@ -86,49 +86,9 @@ Manage context window efficiently to maintain productivity in long sessions.
 
 ---
 
-## Four Context Strategies
+## Two Context Strategies
 
-### 1. Writing (Save Important Context)
-
-Save critical findings to persistent memory:
-
-```javascript
-// After discovering important patterns or decisions
-mcp__memory__create_entities([
-    {
-        name: 'OrderValidation',
-        entityType: 'Pattern',
-        observations: ['Uses validation framework fluent API', 'Async validation via ValidateRequestAsync', 'Found in the application-layer command folder (per project structure reference)']
-    }
-]);
-```
-
-**When to Write:**
-
-- Discovered architectural patterns
-- Important business rules
-- Cross-service dependencies
-- Solution decisions
-
-### 2. Selecting (Retrieve Relevant Context)
-
-Load relevant memories at session start:
-
-```javascript
-// Search for relevant patterns
-mcp__memory__search_nodes({ query: 'Order validation pattern' });
-
-// Open specific entities
-mcp__memory__open_nodes({ names: ['OrderValidation', 'ServiceAModule'] });
-```
-
-**When to Select:**
-
-- Starting a related task
-- Continuing previous work
-- Cross-referencing patterns
-
-### 3. Compressing (Summarize Long Trajectories)
+### 1. Compressing (Summarize Long Trajectories)
 
 Create context anchors every 10 operations:
 
@@ -168,7 +128,7 @@ Before a manual `$compact` (or any context compaction), confirm these are saved 
 
 **Preserve** decisions, files modified, current task state. **Drop** redundant tool outputs, repeated searches, verbose logs. Compact at natural breakpoints (after commits/PR), not mid-task; after compacting, restate the current objective.
 
-### 4. Isolating (Use Sub-Agents)
+### 2. Isolating (Use Sub-Agents)
 
 Delegate specialized tasks to sub-agents:
 
@@ -195,7 +155,7 @@ Task({ agent_type: 'Plan', prompt: 'Plan return approval workflow' });
 1. **Re-read original task** from todo list or initial prompt
 2. **Verify alignment** with current work
 3. **Write anchor** summarizing progress
-4. **Save to memory** if discovering important patterns
+4. **Persist to a checkpoint** (`$checkpoint`) if discovering important patterns
 
 ```markdown
 === CONTEXT ANCHOR [10] ===
@@ -246,49 +206,16 @@ Grep({ pattern: 'CreateAsync|UpdateAsync|DeleteAsync', output_mode: 'files_with_
 
 ---
 
-## Memory Management Commands
-
-### Save Session Summary
-
-```javascript
-// Before ending session or hitting limits
-const summary = {
-    task: 'Implementing order return request feature',
-    completed: ['Entity', 'Command', 'Handler'],
-    remaining: ['Query', 'Controller', 'Tests'],
-    discoveries: ['Use entity events for notifications'],
-    files: ['Return.cs', 'SaveReturnCommand.cs']
-};
-
-// Save to memory
-mcp__memory__create_entities([
-    {
-        name: `Session_${new Date().toISOString().split('T')[0]}`,
-        entityType: 'SessionSummary',
-        observations: [JSON.stringify(summary)]
-    }
-]);
-```
-
-### Load Previous Session
-
-```javascript
-// At session start
-mcp__memory__search_nodes({ query: 'Session return request' });
-```
-
----
-
 ## Anti-Patterns
 
 | Anti-Pattern               | Better Approach                |
 | -------------------------- | ------------------------------ |
 | Reading entire large files | Use offset/limit or grep first |
 | Sequential searches        | Combine with OR patterns       |
-| Repeating same searches    | Cache results in memory        |
+| Repeating same searches    | Reuse earlier results          |
 | No context anchors         | Write anchor every 10 ops      |
 | Not using sub-agents       | Isolate exploration tasks      |
-| Forgetting discoveries     | Save to memory entities        |
+| Forgetting discoveries     | Save findings to a checkpoint  |
 
 ---
 
@@ -305,12 +232,6 @@ mcp__memory__search_nodes({ query: 'Session return request' });
 - 50K tokens: Consider compression
 - 100K tokens: Required compression
 - 150K tokens: Critical - save and summarize
-
-**Memory Commands:**
-
-- `mcp__memory__create_entities` - Save new knowledge
-- `mcp__memory__search_nodes` - Find relevant context
-- `mcp__memory__add_observations` - Update existing entities
 
 ## Related
 

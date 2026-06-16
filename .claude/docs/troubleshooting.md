@@ -145,9 +145,10 @@ npx -y @modelcontextprotocol/server-github --help
 
 // If context seems lost, check:
 // 1. The agent .md file exists and includes the standard SYNC blocks
-// 2. CLAUDE.md / AGENTS.md are present (agent-files-skill-gate routes to the
-//    generator skill when they are missing)
-// 3. post-compact-recovery.cjs restored state after any compaction
+// 2. CLAUDE.md / AGENTS.md are present (the catalog/route guidance is static
+//    in them; regenerate via /claude-md-init or /sync-codex when missing)
+// 3. Re-read CLAUDE.md / SKILL.md to re-anchor rules and lessons after any
+//    compaction (recovery is static, not hook-driven)
 ```
 
 ---

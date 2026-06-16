@@ -17,6 +17,13 @@ description: '[Process] Use when you need to end the active workflow and clear s
 
 **Goal:** [Process] Close the active workflow cleanly — clear workflow tracking so the next prompt gets fresh detection, and before clearing state print a one-way developer-comprehension recap (what / purpose / how / why) of what the workflow changed so the developer understands the work without re-reading the diff.
 
+**Summary:**
+
+- This is the penultimate state-closure step (runs before `/watzup`); workflow end is model-driven — it completes when all TaskList items are done, NO hook clears state on completion (residual `.ck-workflow-state.json` is only cleared by `session-init` on explicit `/clear`).
+- Gate before closing: run the integration-test coverage check on changed business-logic files (handlers/commands/services/controllers) — if any lacks a matching test, MUST surface via `AskUserQuestion`, never silent-skip.
+- When a diff exists, ALWAYS print the one-way four-part comprehension recap (what changed / purpose / how / why), depth throttled by `codingLevel` (`CK_CODING_LEVEL` → `.claude/.ck.json` → default 3); skip only when there are no changes. The recap never quizzes and never blocks — deeper explanation is the standalone `/understand` skill.
+- Sync the knowledge graph only if `.code-graph/` exists, then announce `Workflow [name] completed` so the next prompt gets fresh detection.
+
 **Workflow:**
 
 1. **Detect** — classify request scope and target artifacts.
@@ -88,15 +95,15 @@ This skill is the **workflow state-closure step**. In workflows including `/watz
     4. **Why this way** — rationale and trade-offs; why over the obvious alternative.
 
 5. Announce to the user: "Workflow **[name]** completed. Next prompt will trigger fresh workflow detection."
-6. The `workflow-step-tracker` hook handles the actual state cleanup automatically when this skill completes
+6. Workflow end is model-driven — it completes once this skill's TaskList items are all marked done. No hook clears persisted state on completion; any residual `.claude/.ck-workflow-state.json` is cleared by `session-init` on an explicit `/clear`.
 
 ---
 
 ## See Also
 
 - **Skill:** `/start-workflow` - Start/switch workflows
-- **Hook:** `workflow-step-tracker.cjs` - Clears state on final step completion
-- **Hook:** `workflow-router.cjs` - Detects active vs inactive workflows
+- **Doc:** `CLAUDE.md` → _Workflow Step Advancement_ - model-driven advancement rule (no step-tracking hook)
+- **Hook:** `session-init.cjs` - clears any residual `.ck-workflow-state.json` on an explicit `/clear`
 
 ---
 

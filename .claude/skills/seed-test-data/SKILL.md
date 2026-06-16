@@ -18,6 +18,13 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob, TaskCreate, Agent
 
 **Goal:** Implement or enhance test data seeders that create realistic, idempotent, valid test data through application-layer commands (NEVER direct DB writes) — simulating QC happy-path scenarios without corrupting domain state.
 
+**Summary:**
+
+- Seeders orchestrate the real app pipeline: invoke application-layer commands (which own validation, domain logic, and event side-effects) — never repo/DB inserts for domain entities, never duplicate command logic in the seeder.
+- Four non-negotiable gates in order: (1) environment gate as the FIRST check, (2) count-before-seed idempotency, (3) loop from `existing_count` to `target_count` (never 0), (4) scoped DI per iteration — a shared scope silently corrupts the DbContext/session.
+- Discover the project's seeder base class, env gate key, and count config key in Step 1 with `file:line` evidence; read the count multiplier from config and never hardcode it (zero → no-op).
+- Always pre-read `docs/project-reference/seed-test-data-reference.md` + project-config `Data Seeders` group, then close with a fresh zero-memory `code-reviewer` round; re-review fully only after a validated fix.
+
 **Workflow:**
 
 1. **Phase 0** — Detect seeder task type (new / enhance / fix)

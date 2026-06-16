@@ -8,6 +8,13 @@ version: 2.2.1
 
 **Goal:** Produce an evidence-backed understanding of how existing code works through READ-ONLY exploration with zero changes — every claim traced to `file:line` or explicitly marked "inferred" — so the next decision or change rests on verified system flow, never assumption.
 
+**Summary:**
+
+- Classify scope FIRST (Phase 0: quick / deep / debug / recommendation) — depth and deliverables (analysis file, validation chain) flow from this, so never skip straight to grepping.
+- Graph is MANDATORY, not optional: the main agent MUST run at least one `code_graph` command on 2-3 key files before concluding — graph surfaces callers, bus consumers, and importers that grep alone misses (sub-agents cannot use graph).
+- Stay strictly READ-ONLY and cite `file:line` for every claim; unverified statements MUST be marked "inferred", and recommending any code change forces the full validation chain (all impls/registrations/usages/cross-service impact + confidence declaration).
+- `--mode=explain` only changes the deliverable (one-way developer narrative → git-ignored `tmp/understand/{branch}.md` ledger) — the same evidence gate, graph rule, and READ-ONLY constraint still bind; deep scope writes to `.ai/workspace/analysis/[feature]-investigation.md` and must be re-read in full before presenting.
+
 **Workflow:**
 
 1. **Phase 0: Classify** — Determine scope (quick / deep / debug / recommendation) before acting

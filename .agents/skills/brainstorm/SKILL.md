@@ -53,6 +53,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Facilitate a structured PO/BA brainstorming session via the Double Diamond process (diverge to discover problems and opportunities, then converge to validate and prioritize) to deliver a scored, ranked shortlist of 3-5 candidate ideas — each carrying a problem + value hypothesis, an identified riskiest assumption, and the cheapest validation test designed — so the team commits to the right problem AND the right solution before building, never to a flat unvalidated idea list.
 
+**Summary:**
+
+- Run a direct user question Phase 0 FIRST to detect scenario (Problem-Solving / New Product / Enhancement), role (PO / BA / Mixed), and how-much-is-known — each scenario routes a different technique sequence (see Scenario Cheat Sheets), so misclassifying here derails everything downstream.
+- Strictly separate diverge (Phases 1 & 3 — generate, "Yes, and…", zero judgment) from converge (Phases 2 & 4 — narrow, RICE/Kano/MoSCoW scoring); mixing the two modes is the Golden Rule violation that kills idea output.
+- Never stop at a raw or flat idea list: every top-3 candidate MUST carry a problem + value hypothesis card, an identified riskiest assumption (RAT), and the single cheapest validation test designed before any build commitment.
+- Close with an opinionated decision (Phase 6 — recommend ONE option with trade-offs, not a menu), every claim evidence-backed at >80% confidence, then offer handoff via a direct user question to `$idea`, `$refine`, `$plan`, etc.
+
 **Three Scenarios:**
 
 | Scenario                | Entry Trigger                                          | Primary Methods                                                                |

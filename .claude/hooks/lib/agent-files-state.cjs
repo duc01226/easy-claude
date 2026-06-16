@@ -11,8 +11,9 @@
  *                  produced by /sync-codex or its standalone node runner.
  *
  * This lib is the single source of truth for "is a root agent file missing and what
- * fixes it" — consumed by both the UserPromptSubmit router (init-prompt-gate.cjs) and
- * the PreToolUse Skill router (agent-files-skill-gate.cjs). Pure detection: no process.exit.
+ * fixes it" — consumed by the UserPromptSubmit router (init-prompt-gate.cjs), now the sole
+ * agent-files bootstrap router (the PreToolUse agent-files-skill-gate.cjs Skill router was
+ * removed in the de-hooking refactor). Pure detection: no process.exit.
  *
  * Path resolution uses CLAUDE_PROJECT_DIR so a copied .claude bootstraps in any folder.
  *
@@ -35,7 +36,7 @@ const DISMISS_TTL_MS = 24 * 60 * 60 * 1000; // 1 day — matches the other init 
 // stamps the sentinel below; bumping UNIVERSAL_GUIDES_VERSION re-offers an update on
 // every previously-stamped file. The agent-files-gate.test.cjs sync test asserts the
 // generator emits a marker matching this version — keep them in lockstep.
-const UNIVERSAL_GUIDES_VERSION = 3;
+const UNIVERSAL_GUIDES_VERSION = 4;
 const SENTINEL_RE = /<!--\s*CK:UNIVERSAL-GUIDES\s+v(\d+)\s*-->/i;
 // Fallback for legacy/hand-written files with no sentinel: the static portable
 // section headings the template always ships (see claude-md-template.md).
@@ -47,6 +48,44 @@ const REQUIRED_ANCHORS = [
     /evidence-based reasoning/i
 ];
 
+// ── Shared-protocol content contract ───────────────────────────────────────
+// Beyond the prose guides, a complete root context file MUST carry the always-on
+// shared hookless protocol (critical-thinking + ai-mistake-prevention) baked from the
+// canonical `:full` blocks. A file may carry the sentinel/anchors yet have lost the
+// protocol bake (e.g. an old generator stamped before protocol baking existed) — that
+// file must still route to `update` so it self-heals. Detection covers BOTH surface
+// representations because the two generators emit different markup for the same body:
+//   - CLAUDE.md (generate-claude-md.cjs): wraps each block in CK: HTML markers.
+//   - AGENTS.md (sync-context-workflows.mjs): bakes the canonical `:full` body without
+//     CK: markers — so probe the stable heading/phrase the canonical text emits.
+// The probes are file-specific so a CLAUDE.md never passes on AGENTS.md-only markup
+// and vice-versa; getAgentFileIssues() selects the probe via the AGENT_FILES entry.
+const CK_PROTOCOL_MARKERS = [/<!--\s*CK:CRITICAL-THINKING\s*-->/i, /<!--\s*CK:AI-MISTAKE-PREVENTION\s*-->/i];
+// Canonical phrases the `:full` bodies always emit (verbatim heading/lead line from
+// sync-inline-versions.md `critical-thinking-mindset:full` + `ai-mistake-prevention:full`).
+// Stable across the Codex tool-term rewrite (neither phrase contains a rewritten token).
+const CANONICAL_PROTOCOL_PHRASES = [/\[CRITICAL-THINKING-MINDSET\]/, /Common AI Mistake Prevention \(System Lessons\)/i];
+
+/**
+ * Does this CLAUDE.md content carry the marker-wrapped shared protocol blocks?
+ * @param {string} content
+ * @returns {boolean}
+ */
+function hasClaudeProtocol(content) {
+    const text = content || '';
+    return CK_PROTOCOL_MARKERS.every(re => re.test(text));
+}
+
+/**
+ * Does this AGENTS.md content carry the canonical shared-protocol body (no CK: markers)?
+ * @param {string} content
+ * @returns {boolean}
+ */
+function hasAgentsProtocol(content) {
+    const text = content || '';
+    return CANONICAL_PROTOCOL_PHRASES.every(re => re.test(text));
+}
+
 /**
  * Canonical root agent files and the skill that (re)generates each.
  * `aiRunnable` distinguishes routes Claude can invoke itself (/claude-md-init) from
@@ -57,14 +96,18 @@ const AGENT_FILES = [
         file: 'CLAUDE.md',
         route: '/claude-md-init',
         aiRunnable: true,
-        why: 'Claude Code root instructions — generated from docs/project-config.json + template.'
+        why: 'Claude Code root instructions — generated from docs/project-config.json + template.',
+        // Per-file shared-protocol probe (CK: HTML markers — the CLAUDE.md surface form).
+        hasProtocol: hasClaudeProtocol
     },
     {
         file: 'AGENTS.md',
         route: '/sync-codex',
         aiRunnable: false,
         fallbackCommand: 'node .claude/skills/sync-codex/scripts/run-codex-sync.mjs',
-        why: 'Codex/cross-tool root instructions — generated mirror of CLAUDE.md.'
+        why: 'Codex/cross-tool root instructions — generated mirror of CLAUDE.md.',
+        // Per-file shared-protocol probe (canonical `:full` body — AGENTS.md emits no CK: markers).
+        hasProtocol: hasAgentsProtocol
     }
 ];
 
@@ -128,7 +171,11 @@ function getAgentFileIssues() {
         } catch {
             continue; // fail-open: unreadable → don't claim incomplete
         }
-        if (!hasUniversalGuides(content)) {
+        // Completeness = prose guides AND the shared hookless protocol. A file with the
+        // sentinel/anchors but WITHOUT the protocol bake (the stale-CLAUDE.md defect) is
+        // incomplete → routed to `update` so the generator re-bakes the protocol and self-heals.
+        const protocolPresent = typeof entry.hasProtocol === 'function' ? entry.hasProtocol(content) : true;
+        if (!hasUniversalGuides(content) || !protocolPresent) {
             issues.push({ ...entry, reason: 'incomplete', mode: 'update' });
         }
     }
@@ -233,7 +280,11 @@ module.exports = {
     UNIVERSAL_GUIDES_VERSION,
     SENTINEL_RE,
     REQUIRED_ANCHORS,
+    CK_PROTOCOL_MARKERS,
+    CANONICAL_PROTOCOL_PHRASES,
     hasUniversalGuides,
+    hasClaudeProtocol,
+    hasAgentsProtocol,
     isUniversalGuidesRequired,
     getAgentFileIssues,
     getMissingAgentFiles,

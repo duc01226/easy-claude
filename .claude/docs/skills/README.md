@@ -1,6 +1,6 @@
 # Skills Reference
 
-> 155 skills across 15+ domains + 5 shared reference/protocol files for context-aware AI assistance
+> 154 skills across 15+ domains + 5 shared reference/protocol files for context-aware AI assistance
 
 ## Overview
 
@@ -22,7 +22,7 @@ Skills Activated: fix, investigate
 
 ## Skill Domains
 
-> Curated highlights — the full catalog has 155 skills; the tables below list selected skills per domain, not the complete set.
+> Curated highlights — the full catalog has 154 skills; the tables below list selected skills per domain, not the complete set.
 
 | Domain                                            | Skills | Description                                          |
 | ------------------------------------------------- | ------ | ---------------------------------------------------- |
@@ -77,13 +77,13 @@ See `docs/project-reference/frontend-patterns-reference.md` for project-specific
 
 ## Debugging/Testing
 
-| Skill                         | Triggers                                                              | Description                                                                                                                             |
-| ----------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `webapp-testing`              | E2E, Playwright, Cypress                                              | End-to-end testing                                                                                                                      |
-| `spec [mode=tests]`           | test specification, QA spec, test strategy, TC-IDs, test cases        | Unified test case writer — generates TC-{FEATURE}-{NNN} specs from PBIs and feature docs                                                |
-| `spec [mode=sync]`            | sync test specs, update dashboard, reverse sync, sync to feature docs | Dashboard sync mode — syncs TCs from feature docs Section 8 to `docs/specs/` (sync mode retires when dashboards are removed in Phase 7) |
-| `integration-test-review`     | integration test review, assertion quality, test gate review, TC gate | Review integration tests against 5 quality gates (assertion value, data state, repeatability, domain logic, TC)                         |
-| `integration-test-verify`     | run integration tests, verify tests pass, test runner, dotnet test    | Run integration tests after writing/reviewing them — reads project-config.json for project-specific run guidance                        |
+| Skill                     | Triggers                                                              | Description                                                                                                                             |
+| ------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `webapp-testing`          | E2E, Playwright, Cypress                                              | End-to-end testing                                                                                                                      |
+| `spec [mode=tests]`       | test specification, QA spec, test strategy, TC-IDs, test cases        | Unified test case writer — generates TC-{FEATURE}-{NNN} specs from PBIs and feature docs                                                |
+| `spec [mode=sync]`        | sync test specs, update dashboard, reverse sync, sync to feature docs | Dashboard sync mode — syncs TCs from feature docs Section 8 to `docs/specs/` (sync mode retires when dashboards are removed in Phase 7) |
+| `integration-test-review` | integration test review, assertion quality, test gate review, TC gate | Review integration tests against 5 quality gates (assertion value, data state, repeatability, domain logic, TC)                         |
+| `integration-test-verify` | run integration tests, verify tests pass, test runner, dotnet test    | Run integration tests after writing/reviewing them — reads project-config.json for project-specific run guidance                        |
 
 ---
 
@@ -109,14 +109,14 @@ See `docs/project-reference/frontend-patterns-reference.md` for project-specific
 
 ## Git/Workflow
 
-| Skill               | Triggers                                                | Description                                          |
-| ------------------- | ------------------------------------------------------- | ---------------------------------------------------- |
-| `commit`            | commit, stage, save changes                             | Git commits                                          |
-| `branch-comparison` | compare branches, git diff                              | Branch analysis                                      |
-| `code-review`       | review, feedback, PR review                             | Code review                                          |
-| `scout`             | find files, locate, search codebase                     | Fast codebase file discovery                         |
-| `why-review`        | why, design rationale, plan validation, alternatives    | Validate design rationale in plan files              |
-| `production-readiness-review`        | sre, production, observability, reliability, ops review | Production readiness scoring for service/API changes |
+| Skill                         | Triggers                                                | Description                                          |
+| ----------------------------- | ------------------------------------------------------- | ---------------------------------------------------- |
+| `commit`                      | commit, stage, save changes                             | Git commits                                          |
+| `branch-comparison`           | compare branches, git diff                              | Branch analysis                                      |
+| `code-review`                 | review, feedback, PR review                             | Code review                                          |
+| `scout`                       | find files, locate, search codebase                     | Fast codebase file discovery                         |
+| `why-review`                  | why, design rationale, plan validation, alternatives    | Validate design rationale in plan files              |
+| `production-readiness-review` | sre, production, observability, reliability, ops review | Production readiness scoring for service/API changes |
 
 ---
 
@@ -136,14 +136,14 @@ See `docs/project-reference/frontend-patterns-reference.md` for project-specific
 
 ## Planning/Research
 
-| Skill                   | Triggers                           | Description                                                           |
-| ----------------------- | ---------------------------------- | --------------------------------------------------------------------- |
-| `plan`                  | plan, strategy, approach, research | Implementation planning (includes research phase + engine references) |
-| `plan-analysis`         | analyze plan, review plan          | Plan review                                                           |
-| `feature`               | implement, add, create, build      | Feature development                                                   |
-| `investigate`           | how does, explain, trace           | Code exploration                                                      |
-| `problem-solving`       | complex problem, solution          | Problem analysis                                                      |
-| `research`              | research, explore, analyze         | Technical research & solution analysis (standalone)                   |
+| Skill             | Triggers                           | Description                                                           |
+| ----------------- | ---------------------------------- | --------------------------------------------------------------------- |
+| `plan`            | plan, strategy, approach, research | Implementation planning (includes research phase + engine references) |
+| `plan-analysis`   | analyze plan, review plan          | Plan review                                                           |
+| `feature`         | implement, add, create, build      | Feature development                                                   |
+| `investigate`     | how does, explain, trace           | Code exploration                                                      |
+| `problem-solving` | complex problem, solution          | Problem analysis                                                      |
+| `research`        | research, explore, analyze         | Technical research & solution analysis (standalone)                   |
 
 ---
 
@@ -168,17 +168,17 @@ See `docs/project-reference/frontend-patterns-reference.md` for project-specific
 
 ## Team Collaboration
 
-| Skill              | Triggers                                                                                         | Description                               |
-| ------------------ | ------------------------------------------------------------------------------------------------ | ----------------------------------------- |
-| `business-analyst` | requirements, user story, acceptance criteria, BDD                                               | Requirements analysis, story writing      |
-| `product-owner`    | backlog, prioritize, PBI, feature idea, stakeholder                                              | Backlog management, prioritization        |
-| `project-manager`  | timeline, dependencies, status, milestone, resource                                              | Project tracking, reporting               |
-| `spec [mode=tests]` | test plan, test cases, coverage, automation                                                     | Test specification and case generation    |
-| `design-spec`      | UI specification, component spec, layout spec, wireframe, mockup, user flow, accessibility audit | Design specification documents, UX design |
-| `idea`             | capture idea, new idea, add to backlog                                                           | Idea capture and structuring              |
-| `refine`           | refine idea, convert to PBI, acceptance criteria                                                 | Idea-to-PBI transformation                |
-| `story`            | user story, vertical slice, split story                                                          | PBI-to-story breakdown                    |
-| `prioritize`       | RICE score, MoSCoW, value-effort matrix                                                          | Backlog prioritization frameworks         |
+| Skill               | Triggers                                                                                         | Description                               |
+| ------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------- |
+| `business-analyst`  | requirements, user story, acceptance criteria, BDD                                               | Requirements analysis, story writing      |
+| `product-owner`     | backlog, prioritize, PBI, feature idea, stakeholder                                              | Backlog management, prioritization        |
+| `project-manager`   | timeline, dependencies, status, milestone, resource                                              | Project tracking, reporting               |
+| `spec [mode=tests]` | test plan, test cases, coverage, automation                                                      | Test specification and case generation    |
+| `design-spec`       | UI specification, component spec, layout spec, wireframe, mockup, user flow, accessibility audit | Design specification documents, UX design |
+| `idea`              | capture idea, new idea, add to backlog                                                           | Idea capture and structuring              |
+| `refine`            | refine idea, convert to PBI, acceptance criteria                                                 | Idea-to-PBI transformation                |
+| `story`             | user story, vertical slice, split story                                                          | PBI-to-story breakdown                    |
+| `prioritize`        | RICE score, MoSCoW, value-effort matrix                                                          | Backlog prioritization frameworks         |
 
 ---
 
@@ -272,22 +272,22 @@ disable-model-invocation: false
 
 Skills are often activated alongside commands:
 
-| Command         | Primary Skills Activated         |
-| --------------- | -------------------------------- |
-| `/feature-implement`         | `feature`, `plan`, `spec [mode=tests]` |
-| `/fix`          | `debug-investigate`              |
-| `/plan`         | `plan`, `plan-analysis`          |
-| `/review`       | `code-review`                    |
-| `/scout`        | `scout`, `investigate` |
-| `/test`         | `spec [mode=tests]`, `webapp-testing` |
-| `/idea`         | `idea`, `product-owner`          |
-| `/refine`       | `refine`, `business-analyst`     |
-| `/story`        | `story`, `business-analyst`      |
-| `/design-spec`  | `design-spec`                    |
-| `/spec [mode=tests]` | `spec [mode=tests]`         |
-| `/quality-gate-review` | `quality-gate-review`                 |
-| `/dependency`   | `dependency`, `project-manager`  |
-| `/prioritize`   | `prioritize`, `product-owner`    |
+| Command                | Primary Skills Activated               |
+| ---------------------- | -------------------------------------- |
+| `/feature-implement`   | `feature`, `plan`, `spec [mode=tests]` |
+| `/fix`                 | `debug-investigate`                    |
+| `/plan`                | `plan`, `plan-analysis`                |
+| `/review`              | `code-review`                          |
+| `/scout`               | `scout`, `investigate`                 |
+| `/test`                | `spec [mode=tests]`, `webapp-testing`  |
+| `/idea`                | `idea`, `product-owner`                |
+| `/refine`              | `refine`, `business-analyst`           |
+| `/story`               | `story`, `business-analyst`            |
+| `/design-spec`         | `design-spec`                          |
+| `/spec [mode=tests]`   | `spec [mode=tests]`                    |
+| `/quality-gate-review` | `quality-gate-review`                  |
+| `/dependency`          | `dependency`, `project-manager`        |
+| `/prioritize`          | `prioritize`, `product-owner`          |
 
 ---
 
@@ -315,4 +315,4 @@ Use `/skill-creator` to create a new skill:
 
 ---
 
-_Source: `.claude/skills/` | 155 skills across 15+ domains + 5 shared reference/protocol files_
+_Source: `.claude/skills/` | 154 skills across 15+ domains + 5 shared reference/protocol files_

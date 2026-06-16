@@ -17,6 +17,13 @@ description: '[Planning] Use when you need to auto-review a plan for validity, c
 
 **Goal:** Block any plan from reaching implementation unless it is hallucination-free (every existing-code claim proven at `file:line`) and implementation-ready (every step concrete, small enough to code from immediately) — by auto-reviewing implementation plans for validity, correctness, and best practices. **Recursive:** when any findings exist, validate findings with `/why-review --validate-findings`, fix only validated findings in plan files, and rerun the full plan review until no findings remain.
 
+**Summary:**
+
+- Review as a SKEPTIC, not a validator: every existing-code claim in the plan needs `file:line` proof (Anti-Hallucination Gate), and every phase must clear the "Detailed & Small Enough" granularity gate (≤5 files, ≤3h, no planning verbs) — too vague → detail it, too big → break it.
+- Detect the plan type FIRST (Phase 0) so the right focus applies — bugfix plans MANDATE the Behavioral Delta Matrix; security/performance/refactor/contract/infra each add their own targeted checks.
+- Findings are never fixed blindly: run the `/why-review --validate-findings` gate BEFORE editing any `plan.md`/`phase-*.md`, fix only validated findings, then restart the FULL review with a fresh, zero-memory sub-agent — loop until a clean pass with zero findings.
+- No arbitrary round cap; a clean pass ends the loop immediately. Escalate via `AskUserQuestion` only when the same blocker survives 3 consecutive full re-reviews with no progress.
+
 **Workflow:**
 
 1. **Resolve Plan** — Use $ARGUMENTS path or active plan from `## Plan Context`

@@ -17,6 +17,13 @@ description: '[Architecture] Use when scaffolding reusable OOP/SOLID project fou
 
 **Goal:** Generate and validate the project's architecture scaffolding — all base classes, interfaces, infrastructure abstractions, and reusable foundation code — BEFORE any feature story implementation begins, producing a copy-ready, OOP/SOLID-compliant architecture foundation with quality-gate tooling that every feature story reuses before implementation starts.
 
+**Summary:**
+
+- Gate-first skill: check Activation Guards before any work — proceed ONLY in `workflow-greenfield-init` / `workflow-big-feature` AND when grep finds NO existing base/abstract/infrastructure scaffolding; otherwise SKIP and mark the step completed.
+- Scope is architecture-infrastructure creation (base classes, interfaces, DI, repos, cross-cutting), NOT feature implementation — read the plan, adapt the Backend/Frontend/UI checklists to the detected tech stack, and confirm the final checklist via `AskUserQuestion` before generating code.
+- Stand up the production-readiness foundations (code-quality tooling, error handling, loading state, Docker) and delegate ALL sensor setup to `/linter-setup` then `/harness-setup` — never hand-configure linters/hooks here.
+- Enforce OOP/SOLID on every base class and HARD-BLOCK the handoff to `/feature-implement` until the Verification Gate passes — all 4 foundations verified plus `/linter-setup` and `/harness-setup` complete.
+
 **Purpose:** Scaffolded project copy-ready as starter template for similar projects. All base code, utilities, interfaces, infrastructure services created. Setup follows best practices with generic functions any feature story could reuse.
 
 **Key distinction:** This is architecture infrastructure creation, NOT feature implementation. Creates the foundation layer that all stories build upon.

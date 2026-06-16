@@ -43,6 +43,12 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Rapidly locate every file relevant to a task across a large codebase via parallel grep/glob + MANDATORY graph expansion, producing a numbered, priority-ordered file list with cross-service integration points and top-3 starting points — so the next agent reads the right files first and misses no downstream dependency.
 
+**Summary:**
+
+- Grep/glob to find entry files, then MANDATORY graph expand (`connections`/`callers_of`/`batch-query`) — never optional; graph results outrank grep matches.
+- Confirm every path via Grep/Glob (never guess); report cross-service consumers AND their producers — both sides, never one.
+- Deliver a numbered priority-ordered list (Entities → Commands/Queries → Handlers → Controllers → Supporting) plus top-3 starting points, within 3-5 minutes.
+
 **Workflow:**
 
 1. **Analyze search request** — extract entity names, feature names, scope (backend-only, frontend-only, full-stack)
@@ -393,6 +399,74 @@ When Read fails with "exceeds maximum allowed tokens":
 
 <!-- /SYNC:ai-mistake-prevention -->
 
+<!-- SYNC:end-to-start-debugger-trace -->
+
+> **End-to-Start Debugger Trace** — For non-trivial bugs, failed verification, regression fixes, behavior-changing code, or unclear code flow, start from the observed final state and walk backward before proposing a fix.
+>
+> 1. **Frame 0: observed end state** — Name the exact user-visible output, failing assertion, log line, persisted value, API response, rendered UI, or aggregate bucket. Record the reader/query/renderer that produced it with `file:line` evidence.
+> 2. **Walk backward one hop at a time** — Trace final reader -> projection/cache/storage -> writer -> consumer/handler/job -> producer/caller -> original trigger. At every hop record: input, transformation, output, owner, and evidence.
+> 3. **Enumerate all feeder paths** — Find every upstream producer/caller/event/job that can write into the final path, including retry, async, cache, background, and alternate UI/API paths. Mark each path verified, ruled out, or still unknown.
+> 4. **Build the hypothesis matrix** — For each plausible cause, list evidence for, evidence against, how to reproduce/verify, blast radius, and status (`primary`, `contributing`, `ruled out`, `latent`). Do not fix until competing causes are explicitly resolved or bounded.
+> 5. **Choose the owning fix layer** — Identify the invariant owner and the lowest shared point that protects all downstream consumers. A fix at the symptom site is rejected unless the symptom site owns the invariant.
+> 6. **Prove convergence forward** — After choosing the fix, walk start -> end again and show how the corrected state reaches the observed final output. Map each root cause to a fix part and each fix part to a test/proof.
+>
+> **BLOCKED until:** final state named · backward trace written · all feeder paths enumerated · hypothesis matrix completed · owning fix layer justified · forward convergence proof mapped to tests.
+>
+> **NEVER:** Start at the first suspicious code path. Collapse multiple producers into one "flow". Treat duplicate symptoms as duplicate records without proving the read model. Skip ruled-out hypotheses.
+
+<!-- /SYNC:end-to-start-debugger-trace -->
+
+<!-- SYNC:graph-assisted-investigation -->
+
+> **Graph-Assisted Investigation** — MANDATORY when `.code-graph/graph.db` exists.
+>
+> **HARD-GATE:** MUST ATTENTION run at least ONE graph command on key files before concluding any investigation.
+>
+> **Pattern:** Grep finds files → `trace --direction both` reveals full system flow → Grep verifies details
+>
+> | Task                | Minimum Graph Action                         |
+> | ------------------- | -------------------------------------------- |
+> | Investigation/Scout | `trace --direction both` on 2-3 entry files  |
+> | Fix/Debug           | `callers_of` on buggy function + `tests_for` |
+> | Feature/Enhancement | `connections` on files to be modified        |
+> | Code Review         | `tests_for` on changed functions             |
+> | Blast Radius        | `trace --direction downstream`               |
+>
+> **CLI:** `python .claude/scripts/code_graph {command} --json`. Use `--node-mode file` first (10-30x less noise), then `--node-mode function` for detail.
+
+<!-- /SYNC:graph-assisted-investigation -->
+
+<!-- SYNC:incremental-persistence -->
+
+> **Incremental Result Persistence** — MANDATORY for all sub-agents or heavy inline steps processing >3 files.
+>
+> 1. **Before starting:** Create report file `plans/reports/{skill}-{date}-{slug}.md`
+> 2. **After each file/section reviewed:** Append findings to report immediately — never hold in memory
+> 3. **Return to main agent:** Summary only (per SYNC:subagent-return-contract) with `Full report:` path
+> 4. **Main agent:** Reads report file only when resolving specific blockers
+>
+> **Why:** Context cutoff mid-execution loses ALL in-memory findings. Each disk write survives compaction. Partial results are better than no results.
+>
+> **Report naming:** `plans/reports/{skill-name}-{YYMMDD}-{HHmm}-{slug}.md`
+
+<!-- /SYNC:incremental-persistence -->
+
+<!-- SYNC:rationalization-prevention -->
+
+> **Rationalization Prevention** — AI skips steps via these evasions. Recognize and reject:
+>
+> | Evasion                      | Rebuttal                                                      |
+> | ---------------------------- | ------------------------------------------------------------- |
+> | "Too simple for a plan"      | Simple + wrong assumptions = wasted time. Plan anyway.        |
+> | "I'll test after"            | RED before GREEN. Write/verify test first.                    |
+> | "Already searched"           | Show grep evidence with `file:line`. No proof = no search.    |
+> | "Just do it"                 | Still need task tracking. Skip depth, never skip tracking.       |
+> | "Just a small fix"           | Small fix in wrong location cascades. Verify file:line first. |
+> | "Code is self-explanatory"   | Future readers need evidence trail. Document anyway.          |
+> | "Combine steps to save time" | Combined steps dilute focus. Each step has distinct purpose.  |
+
+<!-- /SYNC:rationalization-prevention -->
+
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
@@ -415,7 +489,7 @@ When Read fails with "exceeds maximum allowed tokens":
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-<!-- /SYNC:task-tracking-external-report:reminder -->
+  <!-- /SYNC:task-tracking-external-report:reminder -->
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 
@@ -431,9 +505,15 @@ When Read fails with "exceeds maximum allowed tokens":
 
 <!-- /SYNC:cross-service-check:reminder -->
 
+<!-- SYNC:end-to-start-debugger-trace:reminder -->
+
+**IMPORTANT MUST ATTENTION** debugger trace gate: for non-trivial bug/fix/investigation/review work, start at the observed final output and trace backward through reader -> storage/projection -> writer -> consumer/job -> producer/trigger. Enumerate all feeder paths and hypotheses before fixing. **BLOCKED until** trace, hypothesis matrix, owning fix layer, and forward convergence proof exist.
+
+<!-- /SYNC:end-to-start-debugger-trace:reminder -->
+
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Rapidly locate every file relevant to a task via grep/glob + MANDATORY graph expansion, producing a numbered, priority-ordered file list with cross-service integration points and top-3 starting points — so the next agent reads the right files first and misses no downstream dependency.
+**IMPORTANT MUST ATTENTION Goal:** Rapidly locate every file relevant to a task across a large codebase via parallel grep/glob + MANDATORY graph expansion, producing a numbered, priority-ordered file list with cross-service integration points and top-3 starting points — so the next agent reads the right files first and misses no downstream dependency.
 **IMPORTANT MUST ATTENTION** NEVER guess file paths — report ONLY files confirmed via Grep/Glob results
 **IMPORTANT MUST ATTENTION** NEVER skip graph expand after finding entry files — without graph, cross-service dependencies are invisible
 **IMPORTANT MUST ATTENTION** ALWAYS identify cross-service consumers AND their producers — never report one side only

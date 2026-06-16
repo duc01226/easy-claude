@@ -17,6 +17,13 @@ description: '[Code Quality] Use when you need to review artifact quality (PBI, 
 
 **Goal:** Review an artifact (PBI, design spec, story, test spec) for completeness and quality so reviewed artifacts are complete, evidence-backed, and ready for handoff without missing assumptions or acceptance gaps.
 
+**Summary:**
+
+- Dispatch on `--type={pbi|story|spec-tests|design}` (infer if omitted) — each type has its own Required/Recommended checklist and output template; verdict = PASS (all Required + ≥50% Recommended), WARN (all Required, <50% Recommended), FAIL (any Required fails).
+- Be a SKEPTIC, not a presence-checker: sections that exist but hold weak/untestable content are worse than missing ones. Run the full Adversarial Mindset (steel-man alternatives, stress-test 3 assumptions, AC-testability, pre-mortem, contrarian pass) and clear the Anti-Bias Gate before any verdict.
+- Enforce the BLOCKING M1-M6 compliance gate on ALL types — any M1-M5 violation forces NEEDS WORK citing the mandate ID + exact section/line; exempt source identifiers inside evidence carriers (`[Source:]`, `**Evidence**`, `IntegrationTest`, frontmatter, mermaid).
+- After fixes are applied, do not confirm-in-place: fix only validated findings, then restart the FULL review (fresh `general-purpose` sub-agent for artifacts) and loop until a clean pass — clean review ENDS the loop.
+
 **Workflow:**
 
 1. **Identify** — What artifact type is being reviewed

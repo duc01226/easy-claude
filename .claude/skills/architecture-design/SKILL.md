@@ -1,6 +1,6 @@
 ---
 name: architecture-design
-version: 2.0.0
+version: 2.1.0
 description: '[Architecture] Use when designing solution architecture across backend, frontend, deployment, monitoring, testing, and code quality.'
 ---
 
@@ -16,6 +16,13 @@ description: '[Architecture] Use when designing solution architecture across bac
 ## Quick Summary
 
 **Goal:** Act as solution architect to deliver a complete, evidence-backed, user-validated architecture decision report covering ALL concerns (backend, frontend, design patterns, library ecosystem, testing strategy, CI/CD, deployment, monitoring, code quality, dependency management) — every concern researched with 3+ options, every recommendation carrying confidence % + cited evidence, every decision confirmed by the user — so implementation proceeds on sound, owned architectural choices.
+
+**Summary:**
+
+- Decide mode FIRST (Step 1): greenfield researches every concern from scratch; brownfield reads reference docs + accepted ADRs and constrains research to the existing stack — NEVER re-litigate a settled ADR-recorded decision without a superseding-ADR rationale.
+- Drive the style choice with NUMBERS, not adjectives: quantify Step-2 quality-attribute scenarios (latency p95/p99, throughput, SLO, RPO/RTO, data growth, concurrency); any unknown target becomes an explicit `Unresolved question`, never a silent guess.
+- Every concern needs 3+ researched options with cited evidence (stars, last release, downloads, CVE scan) + a confidence % — familiarity alone is never sufficient grounds for a recommendation.
+- Produce the two binding downstream contracts and you're done; skip either and the chain breaks: emit an ADR per hard-to-reverse decision (`review-architecture` Cat 9 enforces it) and the Scaffold Handoff tool-choices table (`scaffold`/`harness-setup` consume it), then run the MANDATORY Step-12 user-validation interview before confirming.
 
 **Workflow (12 steps):**
 
@@ -45,9 +52,26 @@ description: '[Architecture] Use when designing solution architecture across bac
 
 ---
 
+## Inputs & Handoffs (consume vs produce)
+
+Skill sits mid-workflow — consumes settled upstream decisions, produces artifacts downstream steps build on. Do NOT re-derive what upstream step already owns; do NOT leave downstream consumer without its needed artifact. — why: re-deriving settled decisions wastes effort and risks divergence from the recorded choice.
+
+| Consumes (read, don't re-derive)                 | From                  | Produces (named deliverable)                                  | Consumed by                         |
+| ------------------------------------------------ | --------------------- | ------------------------------------------------------------- | ----------------------------------- |
+| Bounded contexts, aggregates, domain events, ERD | `domain-analysis`     | Architecture decision report (`{plan-dir}/research/...`)      | `plan`, `plan-execute`              |
+| Confirmed languages/frameworks/databases         | `tech-stack-research` | Confirmed decisions (`{plan-dir}/phase-02b-architecture.md`)  | `plan`, `scaffold`                  |
+| Expected scale, compliance, budget constraints   | `business-evaluation` | Scaffold Handoff table (tooling + fitness rules)             | `scaffold`, `harness-setup`         |
+| Existing stack/patterns/ADRs (brownfield)        | reference docs, `docs/adr/**` | ADRs for hard-to-reverse decisions (`docs/adr/`)     | `review-architecture` (conformance) |
+
+If upstream artifact missing, capture minimum needed here and note gap — NEVER silently re-run full upstream analysis. — why: a silent re-run hides the missing-input gap that the owning step should resolve.
+
+---
+
 ## Step 1: Load Context
 
-Read artifacts from prior workflow steps (search in `plans/` and `team-artifacts/`):
+> **Mode (decide first):** **Greenfield** (new project, e.g. via `workflow-greenfield-init`) → research every concern from scratch, full 3-options-per-concern. **Brownfield** (large feature in existing codebase, e.g. `workflow-big-feature`) → FIRST read project reference docs + accepted ADRs, constrain research to existing stack/patterns, propose changes only where new requirement genuinely outgrows them — NEVER re-litigate settled ADR-recorded decision without superseding-ADR rationale. — why: re-deciding a recorded choice churns the codebase and breaks downstream conformance checks.
+
+Read artifacts from prior workflow steps (search `plans/` and `team-artifacts/`):
 
 - Domain model / ERD (complexity, bounded contexts, aggregate count)
 - Tech stack decisions (confirmed languages, frameworks, databases)
@@ -55,7 +79,7 @@ Read artifacts from prior workflow steps (search in `plans/` and `team-artifacts
 - Refined PBI (scope, acceptance criteria)
 - Discovery interview (team skills, experience level)
 
-Extract and summarize:
+Extract, summarize:
 
 | Signal                  | Value        | Source           |
 | ----------------------- | ------------ | ---------------- |
@@ -86,6 +110,23 @@ Map signals to architecture constraints:
 | Compliance                  | Audit trail, immutable events, access control layers      | Must     |
 | Real-time                   | Event sourcing or pub/sub, WebSocket/SSE support          | Should   |
 | High integration complexity | Anti-corruption layers, adapter pattern, API gateway      | Should   |
+
+### Quality-Attribute Scenarios (quantify — these drive the style choice)
+
+Qualitative "Must/Should" cannot decide between, e.g., modular monolith vs microservices. Capture **measurable** targets; ask user for any unknown via `AskUserQuestion` (guess acceptable only when labelled an assumption with confidence %). These targets become ADR-recorded budgets `review-architecture` Category 9 later checks changes against. — why: a style chosen without numbers is a guess, not an enforceable decision.
+
+| Quality attribute     | Scenario (stimulus → measurable response)                             | Target (fill in) |
+| --------------------- | -------------------------------------------------------------------- | ---------------- |
+| Latency               | p95 / p99 response time for the hottest read and write paths         | e.g. p99 < 300ms |
+| Throughput            | Sustained req/s and peak burst the system must absorb                | e.g. 500 rps peak |
+| Availability / SLO    | Target uptime and error budget                                       | e.g. 99.9%       |
+| Data durability (RPO) | Max acceptable data loss on failure                                  | e.g. ≤ 5 min     |
+| Recovery (RTO)        | Max acceptable time to restore service                               | e.g. ≤ 30 min    |
+| Data-volume growth    | Row/document/event growth → storage, index, partition strategy       | e.g. 10M rows/yr |
+| Concurrency           | Concurrent users/sessions and contention hot spots                   | e.g. 2k concurrent |
+| Compliance/retention  | Regulated data, retention window, residency, audit                   | e.g. GDPR, 7yr   |
+
+**Rule:** any target left unknown is explicit `Unresolved question` (Step 11), NEVER a silent omission — an architecture chosen without scale numbers is a guess, not a decision.
 
 **MANDATORY IMPORTANT MUST ATTENTION** validate derived requirements with user via `AskUserQuestion` before proceeding.
 
@@ -127,7 +168,7 @@ Evaluate applicability per layer:
 | **Outbox**          | Messaging      | Reliable event publishing with DB transactions    |
 | **Circuit Breaker** | Infrastructure | External service resilience                       |
 
-Per recommended pattern, document: **Apply to**, **Why**, **Example**, **Risk if skipped**.
+Per recommended pattern document: **Apply to**, **Why**, **Example**, **Risk if skipped**.
 
 ---
 
@@ -169,11 +210,11 @@ WebSearch top 3 frontend architecture styles. Candidates:
 
 > **Skip if:** Backend-only project, no frontend component.
 
-Research and recommend the project's design system architecture. Use `AskUserQuestion` for each decision.
+Research, recommend project design system architecture. Use `AskUserQuestion` for each decision.
 
 ### 4B-1: Styling Approach
 
-WebSearch top 3 styling approaches for the confirmed frontend framework:
+WebSearch top 3 styling approaches for confirmed frontend framework:
 
 | Approach                         | Best For                                 | Research Focus                     |
 | -------------------------------- | ---------------------------------------- | ---------------------------------- |
@@ -216,6 +257,8 @@ WebSearch top 3 styling approaches for the confirmed frontend framework:
 
 Per concern below, WebSearch top 3 library options for confirmed tech stack. Evaluate: maturity, community, bundle size, maintenance activity, license, learning curve.
 
+> **MUST ATTENTION** never recommend a library from familiarity alone — every pick needs cited evidence (stars, release date, downloads, CVE scan). — why: familiarity bias ships unmaintained or insecure dependencies.
+
 ### Library Concerns Checklist
 
 | Concern                     | What to Research                                            | Evaluation Criteria                            |
@@ -255,7 +298,7 @@ Per concern below, WebSearch top 3 library options for confirmed tech stack. Eva
 
 ## Step 6: Testing Architecture
 
-Research best testing tools and strategy for the confirmed tech stack:
+Research best testing tools, strategy for confirmed tech stack:
 
 | Testing Layer           | What to Research                                  | Top Candidates to Compare                    |
 | ----------------------- | ------------------------------------------------- | -------------------------------------------- |
@@ -287,7 +330,7 @@ Research best testing tools and strategy for the confirmed tech stack:
 
 ## Step 7: CI/CD & Deployment
 
-Research deployment architecture and CI/CD tooling:
+Research deployment architecture, CI/CD tooling:
 
 | Concern                 | What to Research                                     | Top Candidates to Compare                     |
 | ----------------------- | ---------------------------------------------------- | --------------------------------------------- |
@@ -342,7 +385,7 @@ Research deployment architecture and CI/CD tooling:
 
 ## Step 9: Code Quality & Clean Code Enforcement
 
-Research and recommend tooling for automated code quality:
+Research, recommend tooling for automated code quality:
 
 | Concern                    | What to Research                                   | Top Candidates to Compare                     |
 | -------------------------- | -------------------------------------------------- | --------------------------------------------- |
@@ -372,7 +415,7 @@ Research and recommend tooling for automated code quality:
 
 ### Scaffold Handoff (MANDATORY — consumed by `/scaffold`)
 
-After code quality research, produce this handoff table in architecture report. `/scaffold` reads this table to generate actual config files — without it, scaffold cannot auto-configure quality tooling.
+After code quality research, produce this handoff table in architecture report. `/scaffold` reads this table to generate actual config files — without it, scaffold cannot auto-configure quality tooling. — why: the handoff table is the only contract scaffold has for tool choices.
 
 ```markdown
 ### Scaffold Handoff — Tool Choices
@@ -383,18 +426,19 @@ After code quality research, produce this handoff table in architecture report. 
 | Linter (BE)    | {tool}            | {filename}  | {why}     |
 | Formatter      | {tool}            | {filename}  | {why}     |
 | Pre-commit     | {tool}            | {filename}  | {why}     |
+| Arch rules / fitness | {tool: ArchUnit / NetArchTest / Dependency-Cruiser} | {filename} | {layer + dependency rules and Step-2 NFR budgets to enforce} |
 | Error handling | {pattern}         | {files}     | {why}     |
 | Loading state  | {pattern}         | {files}     | {why}     |
 | Docker         | {compose pattern} | {files}     | {why}     |
 ```
 
-**Also include:** Error handling strategy (4-layer pattern), loading state approach (global vs per-component), and Docker profile structure. Specific tool choices → `docs/project-reference/` or `project-config.json`.
+**Also include:** Error handling strategy (4-layer pattern), loading state approach (global vs per-component), Docker profile structure. Specific tool choices → `docs/project-reference/` or `project-config.json`. The **Arch rules / fitness** row MUST encode Step-2 quality-attribute budgets and layer/dependency rules as executable checks — `harness-setup` wires these into CI so recorded ADR decisions stay enforced, not merely documented. — why: documented-but-unenforced budgets erode silently as code changes.
 
 ---
 
 ## Step 10: Dependency Risk Assessment
 
-Per recommended library/package, evaluate maintenance and obsolescence risk:
+Per recommended library/package, evaluate maintenance, obsolescence risk:
 
 ### Package Health Scorecard
 
@@ -452,6 +496,10 @@ Write report to `{plan-dir}/research/architecture-design.md` with sections:
 12. Risk assessment for overall architecture
 13. Unresolved questions
 
+### Emit ADRs for hard-to-reverse decisions (MANDATORY)
+
+For each decision significant AND costly to reverse — backend/frontend style, persistence/consistency model, messaging approach, a Step-2 quality-attribute budget, a rejected-with-reason alternative — write one ADR to `docs/adr/{NNNN}-{slug}.md` following the repo's existing ADR format (Status, Date, Context, Decision, Consequences [Positive/Negative/Neutral], Alternatives Considered, Related; see `docs/adr/0001-skill-lifecycle.md` for canonical shape). Start `Status: Proposed`; promote to `Accepted` after Step-12 user validation confirms it. These ADRs are the binding record `review-architecture` Category 9 checks changed code against — **a decision not written as an ADR cannot be enforced downstream.** Route ADR authoring through the `architect` sub-agent for cross-service/security/performance impact analysis.
+
 ### Architecture Diagram Template
 
 ````markdown
@@ -499,7 +547,7 @@ graph TB
 
 ## Step 12: User Validation Interview
 
-**MANDATORY IMPORTANT MUST ATTENTION** present findings and ask 8-12 questions via `AskUserQuestion`:
+**MANDATORY IMPORTANT MUST ATTENTION** present findings, ask 8-12 questions via `AskUserQuestion`:
 
 ### Required Questions
 
@@ -523,13 +571,13 @@ graph TB
 - "Self-hosted observability or managed SaaS?"
 - "Strict lint rules from day 1 or gradual adoption?"
 
-After user confirms, update report with final decisions and mark as `status: confirmed`.
+After user confirms, update report with final decisions, mark `status: confirmed`.
 
 ---
 
 ## Best Practices Audit (applied across all steps)
 
-Validate architecture against these principles — flag violations in report:
+Validate architecture against these principles — flag violations in report. — why: an unflagged SOLID/DRY violation compounds into rework once code lands on the flaw.
 
 | Principle                      | Check                                                      | Status |
 | ------------------------------ | ---------------------------------------------------------- | ------ |
@@ -555,6 +603,7 @@ Validate architecture against these principles — flag violations in report:
 ```
 {plan-dir}/research/architecture-design.md     # Full architecture analysis report
 {plan-dir}/phase-02b-architecture.md           # Confirmed architecture decisions
+docs/adr/{NNNN}-{slug}.md                       # One ADR per hard-to-reverse decision (see Step 11)
 ```
 
 ---
@@ -568,7 +617,7 @@ Validate architecture against these principles — flag violations in report:
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use `AskUserQuestion` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use `AskUserQuestion` to present these options. NEVER skip because the task seems "simple" or "obvious" — the user decides:
 
 - **"/plan (Recommended)"** — Create implementation plan from architecture design
 - **"/refine"** — If need to create PBIs first
@@ -576,7 +625,7 @@ Validate architecture against these principles — flag violations in report:
 
 ### Council escalation (always-offer, second prompt)
 
-After the existing `## Next Steps` prompt above resolves, present a **second**, independent `AskUserQuestion` call (do NOT merge into the first):
+After the existing `## Next Steps` prompt above resolves, present a **second**, independent `AskUserQuestion` call (NEVER merge into the first):
 
 - **"Skip council — proceed (Recommended)"** — Continue with the architecture decision as-is. Recommended default.
 - **"Escalate to /llm-council"** — Run 11 sub-agent council (5 advisors + 5 reviewers + chairman). Use when this architecture pick is hard to reverse and you need adversarial framing. Cheaper alternatives: `/why-review`, `/plan-validate` (run these first if you haven't).
@@ -592,12 +641,25 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 
+## Anti-Rationalization (reject these excuses)
+
+| Excuse the model tells itself                          | Reality                                                                                            |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| "I know this stack — skip the 3-options research"     | Familiarity ≠ evidence. Research 3+ options with cited proof per concern, every time.              |
+| "The architecture is obvious — skip user validation"  | Step 12 is MANDATORY. The user owns hard-to-reverse decisions; never auto-decide.                  |
+| "No scale numbers given, I'll just pick a style"      | Missing target = explicit `Unresolved question`, never a silent guess. Quantify via Step-2 first.  |
+| "It's a small feature — skip the ADR"                 | If a decision is significant AND costly to reverse, it needs an ADR or it cannot be enforced.      |
+| "Brownfield, but my preferred style is better"        | NEVER re-litigate a settled ADR-recorded decision without a superseding-ADR rationale.             |
+| "I'll document the budget, enforcement is optional"   | Documented-but-unenforced budgets erode. Encode them as executable fitness checks for CI.          |
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Deliver a complete, evidence-backed, user-validated architecture decision report — every concern researched with 3+ options, every recommendation carrying confidence % + cited evidence, every decision confirmed by the user — so implementation proceeds on sound, owned architectural choices.
-**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting.
-**MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — never auto-decide.
-**MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.
+**MANDATORY IMPORTANT MUST ATTENTION** research min 3 options per architecture concern with cited web evidence — NEVER recommend from familiarity alone.
+**MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` (Step 12) — NEVER auto-decide a hard-to-reverse choice.
+**MANDATORY IMPORTANT MUST ATTENTION** emit an ADR for every significant hard-to-reverse decision — a decision not written as an ADR cannot be enforced downstream.
+**MANDATORY IMPORTANT MUST ATTENTION** brownfield: NEVER re-litigate a settled ADR-recorded decision without a superseding-ADR rationale.
+**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting; add a final review todo.
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 

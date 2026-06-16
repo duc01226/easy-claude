@@ -52,6 +52,12 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Deliver an accurate, read-only pass/fail verdict — by running tests locally via the `tester` subagent and analyzing the summary report — with exact counts, failing-test names, report path, and Goal Contract evidence, so the user knows the true test state without any fix applied.
 
+**Summary:**
+
+- Always run tests through the `tester` subagent — never invoke test commands directly — then analyze its summary report.
+- This skill is strictly READ-ONLY: report pass/fail counts, failing-test names, and the report path; stop at reporting and NEVER start implementing fixes (that is `$fix`'s job).
+- After the run, resolve the active Goal Contract and append verification evidence (command, exact counts, report path) to the goal file's Iteration Log, updating the Goal Satisfaction matrix; record "No active goal" inline when none exists. Never copy sensitive fixture data into the goal file.
+
 **Workflow:**
 
 1. **Delegate** — Launch `tester` subagent with test scope from arguments

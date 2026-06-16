@@ -130,12 +130,12 @@ The `codeReview` section records which project-specific review-rule doc the revi
 
 **Live catalog (17 workflows):** `workflow-big-feature`, `workflow-bugfix`, `workflow-e2e`, `workflow-feature`, `workflow-feature-spec`, `workflow-greenfield-init`, `workflow-idea-to-pbi`, `workflow-idea-to-spec`, `workflow-refactor`, `workflow-research`, `workflow-review-changes`, `workflow-code-to-spec`, `workflow-spec-to-pbi`, `workflow-spec-sync`, `workflow-visualize`, `workflow-seed-test-data`, `workflow-write-integration-test`.
 
-| Workflow         | Sequence (abridged, from `workflows.json`)                                                        | whenToUse (abridged)                              |
-| ---------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| Workflow                  | Sequence (abridged, from `workflows.json`)                                                                | whenToUse (abridged)                              |
+| ------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
 | `workflow-feature`        | scout → investigate → … → plan → plan-review → … → plan-execute → … → integration-test → … → workflow-end | Well-defined feature implementation               |
-| `workflow-bugfix`         | scout → investigate → debug-investigate → … → fix → prove-fix → … → workflow-end                  | Bug, error, crash, regression; end-to-start trace |
-| `workflow-refactor`       | scout → investigate → plan → … → plan-execute → … → workflow-end                                  | Restructure code without behavior change          |
-| `workflow-review-changes` | review-changes → why-review → parallel reviewers → code-simplifier → … → workflow-end             | Review uncommitted changes before committing      |
+| `workflow-bugfix`         | scout → investigate → debug-investigate → … → fix → prove-fix → … → workflow-end                          | Bug, error, crash, regression; end-to-start trace |
+| `workflow-refactor`       | scout → investigate → plan → … → plan-execute → … → workflow-end                                          | Restructure code without behavior change          |
+| `workflow-review-changes` | review-changes → why-review → parallel reviewers → code-simplifier → … → workflow-end                     | Review uncommitted changes before committing      |
 
 ---
 
@@ -158,10 +158,6 @@ The `codeReview` section records which project-specific review-rule doc the revi
         "sequential-thinking": {
             "command": "npx",
             "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
-        },
-        "memory": {
-            "command": "npx",
-            "args": ["-y", "@modelcontextprotocol/server-memory"]
         }
     }
 }
@@ -172,7 +168,6 @@ The `codeReview` section records which project-specific review-rule doc the revi
 | `github`              | GitHub API integration (issues, PRs, repos) |
 | `context7`            | Documentation fetching from Context7        |
 | `sequential-thinking` | Step-by-step reasoning tool                 |
-| `memory`              | Knowledge graph persistence                 |
 | `figma`               | Figma design extraction (HTTP transport)    |
 
 **See:** [figma-setup.md](./figma-setup.md) for Figma MCP server setup.

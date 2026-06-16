@@ -358,6 +358,28 @@ Task({
 
 > An agent `.md` is read as live instruction. Write only the CURRENT actionable truth. Do NOT add change-history, migration rationale, or provenance — "formerly", "removed in the … refactor", "now baked statically", "used to be hook-injected". It carries zero instruction value and dilutes the directive the agent acts on. Change history belongs in git / `CHANGELOG.md` / `docs/adr/**` / `plans/reports/**`. State what IS, not what changed.
 
+## Quality-Parity with Skills
+
+Every agent carries the **same role-specific quality protocol** as its twin skill(s). Skills are heavily enhanced (severity rubrics, evidence gates, adversarial review, incremental persistence); agents that do equivalent work inherit those same SYNC blocks so a `code-reviewer` _agent_ reviews with the rigor of the `review-changes` _skill_. Agents do NOT inherit main-loop **orchestration** blocks (`nested-task-creation`, `sub-agent-selection`, `subagent-return-contract`, `parallel-phase-advancement`) — those govern the orchestrator, not a spawned worker.
+
+**Source of truth (do not re-describe per-agent block lists here — they drift):**
+
+| Concern                                   | File                                                                                                                                                          |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Per-agent block assignment (the manifest) | `.claude/scripts/agent_protocol_matrix.py` (`AGENT_QUALITY_BLOCKS`)                                                                                           |
+| Injector / idempotent maintenance tool    | `.claude/scripts/inject_agent_protocol_blocks.py`                                                                                                             |
+| Canonical block bodies                    | `.claude/skills/shared/sync-inline-versions.md`                                                                                                               |
+| Full agent↔skill map + evaluation         | [`plans/260616-agent-skill-quality-parity/research/agent-skill-mapping.md`](../../../plans/260616-agent-skill-quality-parity/research/agent-skill-mapping.md) |
+
+**Tier model** (enforced by `agent_protocol_matrix.py` `validate()` and the `agent-universal-rules` test suite — `TC-UAR-003..007`):
+
+- **Core-6** universal blocks → all 29 agents.
+- **Code-tier** blocks (`understand-code-first`, `evidence-based-reasoning`, `cross-service-check`, `fix-layer-accountability`) → only the 21 code-touching agents; NEVER a core-only agent (business-analyst, docs-manager, git-manager, journal-writer, knowledge-worker, product-owner, project-manager, quality-gate-review).
+- **Code-standards** (`agent-code-standards`) → the 17 agents that author/review code (a separate axis — `researcher`/`scout`/`scout-external`/`ui-ux-designer` read code but don't author it, so they're excluded).
+- **Additive quality blocks** → per the matrix manifest; 26 agents carry a quality-block row, 3 (git-manager, journal-writer, project-manager) intentionally carry only Core-6.
+
+> See [agent-patterns.md](./agent-patterns.md) → _Adding or changing an agent's quality protocol_ for the contributor loop and the `framework-maintainer` orchestration whitelist. Source-side edits land first; mirrors (`.agents/`, `.codex/`, `.github/copilot-*`, `AGENTS.md`) regenerate via `npm run sync:all` + `npm run verify:all` as a tracked follow-up.
+
 ## Related Documentation
 
 - [agent-patterns.md](./agent-patterns.md) - Detailed agent usage patterns

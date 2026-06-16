@@ -17,6 +17,13 @@ description: '[Project Management] Use when capturing new ideas, feature request
 
 **Goal:** Turn a vague product idea into a validated, tech-agnostic, module-anchored backlog artifact ready for `/refine` to convert into a PBI — preserving problem intent without leaking solution or stack choices.
 
+**Summary:**
+
+- Two interview gates are NON-NEGOTIABLE: Discovery Interview (Step 6.5, 3-5 `AskUserQuestion` items incl. the always-on testability question) AND Validation (Step 7, 2-3 items) — never skip either even for "simple" ideas.
+- Keep the problem statement strictly tech-agnostic (M1): name no framework/product/language/pattern, and do NOT assign logical IDs — the downstream PBI inherits the clean narrative and owns `FR-`/`BR-` assignment.
+- Auto-detect the project module silently via `Glob("docs/specs/*/README.md")` and load feature context (8-12K token budget); prompt only when ambiguous. Greenfield (no real code dirs) → skip module detection and NEVER ask about tech stack.
+- Persist to `team-artifacts/ideas/{YYMMDD}-{role}-idea-{slug}.md` with `t_shirt_size`, then hand off to `/refine` for PBI conversion.
+
 > **MANDATORY IMPORTANT MUST ATTENTION** TaskCreate task to READ project-specific reference doc:
 > `project-structure-reference.md` — project patterns and structure. Not found → search: project documentation, coding standards, architecture docs.
 

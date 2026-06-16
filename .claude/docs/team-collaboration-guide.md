@@ -25,11 +25,11 @@
 
 Claude Code uses a **three-pillar architecture** to assist every role:
 
-| Pillar                        | What It Does                                                     | Count                   |
-| ----------------------------- | ---------------------------------------------------------------- | ----------------------- |
-| **Hooks** (Enforcement)       | Enforce quality gates, block unsafe actions, manage session & post-compact recovery | 29 top-level hook files |
-| **Skills** (Intelligence)     | Prompt-engineered protocols loaded on demand via `/skill-name`   | 155 skills              |
-| **Workflows** (Orchestration) | Multi-step sequences of skills with progress tracking            | 17 workflows            |
+| Pillar                        | What It Does                                                          | Count                   |
+| ----------------------------- | --------------------------------------------------------------------- | ----------------------- |
+| **Hooks** (Enforcement)       | Enforce quality gates, block unsafe actions, manage session lifecycle | 15 top-level hook files |
+| **Skills** (Intelligence)     | Prompt-engineered protocols loaded on demand via `/skill-name`        | 154 skills              |
+| **Workflows** (Orchestration) | Multi-step sequences of skills with progress tracking                 | 17 workflows            |
 
 ### Workflow Detection
 
@@ -214,13 +214,13 @@ Project knowledge — backend/frontend patterns, design tokens, code-review rule
 
 ### Testing & Quality
 
-| Skill               | Purpose                                  | Example                     |
-| ------------------- | ---------------------------------------- | --------------------------- |
-| `/spec [mode=tests]` | Generate test specs (TC-{FEATURE}-{NNN}) | `/spec [mode=tests] {feature-doc}` |
-| `/integration-test` | Generate integration tests from specs    | `/integration-test`         |
-| `/e2e-test`         | Generate E2E tests                       | `/e2e-test`                 |
-| `/quality-gate-review`     | Run quality checklist                    | `/quality-gate-review pre-dev`     |
-| `/test`             | Run and analyze tests                    | `/test`                     |
+| Skill                  | Purpose                                  | Example                            |
+| ---------------------- | ---------------------------------------- | ---------------------------------- |
+| `/spec [mode=tests]`   | Generate test specs (TC-{FEATURE}-{NNN}) | `/spec [mode=tests] {feature-doc}` |
+| `/integration-test`    | Generate integration tests from specs    | `/integration-test`                |
+| `/e2e-test`            | Generate E2E tests                       | `/e2e-test`                        |
+| `/quality-gate-review` | Run quality checklist                    | `/quality-gate-review pre-dev`     |
+| `/test`                | Run and analyze tests                    | `/test`                            |
 
 ### Design & Frontend
 
@@ -324,9 +324,9 @@ Test specs are written **before** implementation, then code is written to satisf
 
 Claude provides end-to-end workflows that span multiple roles:
 
-| Workflow                 | Roles | Trigger          | Steps                                                                         |
-| ------------------------ | ----- | ---------------- | ----------------------------------------------------------------------------- |
-| `idea-to-pbi` (PO→BA)    | PO→BA | "hand off to BA" | `/idea` → `/review-artifact` → `/refine` → `/story` (conditional first step)  |
+| Workflow              | Roles | Trigger          | Steps                                                                        |
+| --------------------- | ----- | ---------------- | ---------------------------------------------------------------------------- |
+| `idea-to-pbi` (PO→BA) | PO→BA | "hand off to BA" | `/idea` → `/review-artifact` → `/refine` → `/story` (conditional first step) |
 
 Each workflow tracks progress across roles so the next role has full visibility into upstream artifacts.
 
@@ -485,23 +485,23 @@ PLANNING
 
 ### Role Quick Reference
 
-| Role | Primary Skills                              | Workflow               |
-| ---- | ------------------------------------------- | ---------------------- |
-| PO   | `/idea`, `/prioritize`                      | idea-to-pbi            |
-| BA   | `/refine`, `/story`                         | idea-to-pbi            |
+| Role | Primary Skills                                     | Workflow               |
+| ---- | -------------------------------------------------- | ---------------------- |
+| PO   | `/idea`, `/prioritize`                             | idea-to-pbi            |
+| BA   | `/refine`, `/story`                                | idea-to-pbi            |
 | QA   | `/spec [mode=tests]`, `/integration-test`, `/test` | write-integration-test |
 | QC   | `/quality-gate-review`, `/review-artifact`         | —                      |
-| UX   | `/design-spec`, `/frontend-design`          | —                      |
-| PM   | `/project-manager`, `/dependency`           | —                      |
+| UX   | `/design-spec`, `/frontend-design`                 | —                      |
+| PM   | `/project-manager`, `/dependency`                  | —                      |
 
 ### Workflow Quick Triggers
 
-| Say This                       | Activates              | Sequence                               |
-| ------------------------------ | ---------------------- | -------------------------------------- |
-| "new idea" / "feature request" | idea-to-pbi            | /idea → /refine → /story → /prioritize |
-| "test this PBI" / "test cases" | `/spec [mode=tests]` (skill) | /spec [mode=tests] → /quality-gate-review     |
-| "design spec for"              | `/design-spec`         | /design-spec → /interface-design       |
-| "TDD" / "test-first"           | feature                | /plan → /spec [mode=tests] → /feature-implement → /test |
+| Say This                       | Activates                    | Sequence                                                |
+| ------------------------------ | ---------------------------- | ------------------------------------------------------- |
+| "new idea" / "feature request" | idea-to-pbi                  | /idea → /refine → /story → /prioritize                  |
+| "test this PBI" / "test cases" | `/spec [mode=tests]` (skill) | /spec [mode=tests] → /quality-gate-review               |
+| "design spec for"              | `/design-spec`               | /design-spec → /interface-design                        |
+| "TDD" / "test-first"           | feature                      | /plan → /spec [mode=tests] → /feature-implement → /test |
 
 ### Common Patterns
 

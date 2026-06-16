@@ -16,6 +16,13 @@ description: '[Utilities] Use when the user wants to visualize workflows, archit
 
 **Goal:** Produce `.excalidraw` JSON diagrams that visualize workflows, architectures, or concepts and visually ARGUE a concept — where the structure itself carries the meaning and (for technical diagrams) concrete evidence artifacts teach — validated through the render-view-fix loop until the rendered image matches the conceptual design.
 
+**Summary:**
+
+- Diagrams must ARGUE not DISPLAY: pass the Isomorphism Test (structure alone communicates the concept) — map each major concept to a DIFFERENT visual pattern (fan-out, convergence, timeline, tree, cycle) and default text to free-floating (<30% inside containers).
+- Assess depth FIRST: simple/conceptual (abstract shapes) vs comprehensive/technical — technical diagrams MUST research real specs (actual event names, JSON formats, API/method names) and embed evidence artifacts across the three zoom levels (summary flow + section boundaries + concrete detail).
+- Build comprehensive JSON section-by-section, never in one pass (hard ~32k-token output limit) — use descriptive string IDs, namespace seeds per section (100xxx, 200xxx), and update cross-section `boundElements` as you go; pull all colors from `references/color-palette.md` and never invent new ones.
+- The Render & Validate loop is MANDATORY, not a final check: render to PNG via `render_excalidraw.py`, Read the image, audit against your planned vision plus visual defects (clipping, overlaps, arrows crossing shapes), fix, and re-render — typically 2-4 iterations until it matches the conceptual design.
+
 **Workflow:**
 
 1. **Detect** — classify request scope and target artifacts.

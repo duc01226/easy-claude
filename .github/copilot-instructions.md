@@ -38,6 +38,29 @@
 
 ---
 
+## Critical Thinking & Anti-Hallucination (Always-On)
+
+> Full protocol (5-line critical-thinking + 27-item AI-mistake-prevention + system lessons) lives in `.github/instructions/common-protocol.instructions.md`. The condensed anchor below is repeated here because this repo-wide instructions file is the most reliably loaded.
+
+> **Critical Thinking Mindset** — Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
+> **Anti-hallucination:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
+
+> **AI Mistake Prevention** — Failure modes to avoid on every task:
+>
+> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
+> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
+> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
+> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
+> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
+> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
+> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
+> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
+> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
+> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+
+---
+
 ## TL;DR - Golden Rules
 
 1. Hooks use CommonJS (require/module.exports)
@@ -77,7 +100,7 @@ Before writing ANY code:
 ## Key File Locations
 
 ```
-.claude/hooks/          # Runtime hooks for context injection, enforcement, and session management
+.claude/hooks/          # Runtime hooks for session initialization, safety gates, graph maintenance, and code formatting
 .claude/hooks/lib/      # Shared hook utilities consumed by hooks
 .claude/skills/         # Canonical skill definitions
 .agents/skills/         # Generated Codex skill mirror
@@ -100,9 +123,9 @@ plans/                  # Plans, reports, and task artifacts
 | --- | ------- | --------- |
 | [Project Structure Reference](docs/project-reference/project-structure-reference.md) | Project directory structure, module boundaries, inventory counts, framework entry points, and scan targets. | changing framework layout, module ownership, inventory counts, generated mirrors, or onboarding docs |
 | [Backend Patterns Reference](docs/project-reference/backend-patterns-reference.md) | Hook architecture, hook composition, shared hook libraries, state management, error handling, security, and hook testing patterns. | changing hook code, hook libraries, hook state, hook error handling, security checks, or hook tests |
+| [Seed Test Data Reference](docs/project-reference/seed-test-data-reference.md) | Idempotent seeder architecture, DI scope safety, application-layer command dispatch, and config-driven counts for test-data seeding. | implementing or reviewing test-data seeders, idempotent seeding, DI scope safety, or config-driven seed counts |
 | [Frontend Patterns Reference](docs/project-reference/frontend-patterns-reference.md) | Frontend pattern status for this framework repository and guidance for target projects that define product UI conventions. | working on frontend, component, store, or API-service conventions for a target project |
 | [Integration Test Reference](docs/project-reference/integration-test-reference.md) | Hook test architecture, suite organization, standalone test files, and local commands for running integration-style tests. | adding, reviewing, or verifying hook integration tests, test suites, fixtures, or coverage gates |
-| [Feature Docs Reference](docs/project-reference/feature-docs-reference.md) | Legacy feature documentation structure, category organization, and conventions for adding feature docs. | checking feature documentation availability, legacy feature-doc routing, or feature doc organization |
 | [Feature Documentation Reference](docs/project-reference/feature-spec-reference.md) | Feature Spec directory conventions, 8-section structure, test-case ID format, evidence rules, and spec-to-code registries. | creating or updating Feature Specs, test cases, behavior docs, evidence mappings, or thin spec indexes |
 | [Spec System Reference](docs/project-reference/spec-system-reference.md) | Local spec root, canonical artifact ownership, test-case registry, derived artifact rules, and companion docs. | changing spec paths, canonical spec ownership, generated spec aids, ERDs, indexes, or spec routing |
 | [Project Spec Principles](docs/project-reference/spec-principles.md) | Local spec authority, source routing, prose rules, evidence format, test mapping, generated artifact rules, and verification commands. | writing spec prose, syncing specs with tests, reviewing SDD compliance, or refreshing generated prompt surfaces |
@@ -136,3 +159,10 @@ npm run copilot:verify:divergence
 npm run codex:verify:sync-divergence
 npm run codex:verify:sdd
 ```
+
+---
+
+## Critical Thinking — Recency Anchor
+
+> **Critical Thinking Mindset** — Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
+> **Anti-hallucination:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.

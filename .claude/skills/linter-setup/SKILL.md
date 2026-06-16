@@ -17,6 +17,13 @@ description: '[Quality] Use when you need to research and configure code quality
 
 **Goal:** Ensure every code change is caught by an automated quality sensor — both locally (fast feedback) AND in CI (enforcement gate) — before it reaches main, with zero divergence between the two, by installing the full computational feedback sensor layer for the tech stack (linters, formatters, type checkers, static analyzers, pre-commit hooks, and CI quality gates).
 
+**Summary:**
+
+- Detect the stack first (from `plan.md` / architecture report), then research each tool category (linter, formatter, type checker, static analyzer, dependency scanner, architecture fitness) via QUERY TEMPLATES — NEVER hardcode tool names; present top 2-3 options per category through `AskUserQuestion` and let the user pick.
+- Configure with the STRICTEST reasonable defaults (loosen ONLY with explicit user approval), always emit a stack-agnostic `.editorconfig`, and add tool cache dirs to `.gitignore`.
+- Wire BOTH a pre-commit hook (formatter→linter→type-check, staged-files-only, <30s) AND a matching CI quality gate — the local and CI checks MUST NOT diverge.
+- Prove it works: fire the pre-commit hook with an intentional violation and confirm it blocks the commit before declaring complete.
+
 **Output:** Config files at project root + pre-commit hook config + CI quality gate step + `.editorconfig`.
 
 **When invoked:** After `/scaffold` in the greenfield workflow, before `/harness-setup`.

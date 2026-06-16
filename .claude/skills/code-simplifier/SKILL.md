@@ -18,6 +18,13 @@ context-budget: critical
 
 **Goal:** Lower the cost of the next change — cut coupling, hidden state, duplicated knowledge, unclear intent — by simplifying and refining code for clarity, consistency, and maintainability without altering any observable behavior. — why: every simplification serves future change cost, not aesthetics.
 
+**Summary:**
+
+- Skeptical-first MUTATOR, not a suggester: grep all usages + trace consumers (graph downstream when graph.db exists) and cite `file:line` before touching anything — apply a simplification ONLY when certain it preserves behavior, never when unsure.
+- Detect artifact type in Phase 0 first; HARD-SKIP generated/migration/vendor files; reason by the 5 Simplification Dimensions (readability, DRY/abstraction ≥3 occurrences, right-responsibility-lowest-layer, complexity reduction, DB paging+indexes) — every technique answers one test: does this make the next change cheaper?
+- Apply one refactoring type at a time and verify tests after each change; then run the Self-Recursive Loop (analyze → simplify → verify) until zero findings remain or a no-progress/unsafe/owner-decision stop condition hits — do NOT spawn a fresh-context reviewer for your own findings.
+- This skill owns review of its own output: when it changed any file, run the Self-Review Gate by self-invoking `/code-review` scoped to ONLY those changed files (recursion-safe leaf — NEVER `/review-changes`); skip + log the reason when nothing changed.
+
 > **MANDATORY IMPORTANT MUST ATTENTION** Plan task to READ:
 >
 > - `docs/project-reference/code-review-rules.md` — anti-patterns, review checklists **(READ FIRST)**

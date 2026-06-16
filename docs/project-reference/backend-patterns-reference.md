@@ -20,26 +20,26 @@ Hooks are standalone Node.js CJS scripts triggered by Claude Code at specific li
 
 ### 1.2 Exit Code Convention
 
-| Exit Code | Meaning                        | Used By                                               |
-| --------- | ------------------------------ | ----------------------------------------------------- |
-| `0`       | Allow / success (non-blocking) | All hooks (default)                                   |
-| `1`       | Soft block with message        | `edit-enforcement`, `skill-enforcement`               |
-| `2`       | Hard block (action rejected)   | `privacy-block`, `path-boundary-block`, `scout-block` |
+| Exit Code | Meaning                        | Used By                                                                                                            |
+| --------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `0`       | Allow / success (non-blocking) | All hooks (default)                                                                                                |
+| `1`       | Soft block with message        | _(none after de-hooking — `edit-enforcement` / `skill-enforcement` were removed; no surviving hook uses exit `1`)_ |
+| `2`       | Hard block (action rejected)   | `privacy-block`, `path-boundary-block`, `scout-block`, `git-commit-block`, `windows-command-detector`              |
 
 **Fail-open principle:** On uncaught errors, hooks exit `0` to avoid blocking Claude. Errors log to stderr.
 
 ### 1.3 Hook Event Types
 
-| Event              | When Fired                      | Example Hooks                                                             |
-| ------------------ | ------------------------------- | ------------------------------------------------------------------------- |
-| `SessionStart`     | startup, resume, clear, compact | `session-init`, `workflow-router`                                         |
-| `SessionEnd`       | Session closing                 | `session-end`                                                             |
-| `UserPromptSubmit` | Each user message               | `workflow-router`                                                         |
-| `PreToolUse`       | Before tool execution           | `privacy-block`, `path-boundary-block`, `edit-enforcement`, `scout-block` |
-| `PostToolUse`      | After tool execution            | `tool-output-swap`, `todo-tracker`, `graph-auto-update`                   |
-| `PreCompact`       | Before context compaction       | `pre-compact-snapshot`, `write-compact-marker`                            |
-| `Stop`             | Main agent finishes responding  | `notify-waiting`                                                          |
-| `Notification`     | System notifications            | Various                                                                   |
+| Event              | When Fired                      | Example Hooks                                                                                   |
+| ------------------ | ------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `SessionStart`     | startup, resume, clear, compact | `session-init`, `session-init-docs`, `graph-session-init`, `verify-install`, `npm-auto-install` |
+| `SessionEnd`       | Session closing                 | `session-end`                                                                                   |
+| `UserPromptSubmit` | Each user message               | `init-prompt-gate`                                                                              |
+| `PreToolUse`       | Before tool execution           | `privacy-block`, `path-boundary-block`, `scout-block`, `git-commit-block`                       |
+| `PostToolUse`      | After tool execution            | `graph-auto-update`, `post-edit-prettier`                                                       |
+| `PreCompact`       | Before context compaction       | _(none — `pre-compact-snapshot` / `write-compact-marker` removed in the de-hooking refactor)_   |
+| `Stop`             | Main agent finishes responding  | `notifications/notify.cjs`                                                                      |
+| `Notification`     | System notifications            | Various                                                                                         |
 
 > No `SubagentStart` hook — the runtime context-injection layer (including the former `subagent-init*` dispatchers and `prompt-context-assembler` / `pretooluse-ctx-*` inject hooks) was removed in the de-hooking refactor; that guidance is now static in `CLAUDE.md` / `agents/*.md` / `SKILL.md`.
 
@@ -130,16 +130,16 @@ if (require.main === module) {
 
 ### 3.1 Module Categories
 
-| Category      | Modules                                                                                              | Purpose                                                                          |
-| ------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| **Stdin/IO**  | `stdin-parser`, `debug-log`                                                                          | Input parsing, debug output to stderr                                            |
-| **Execution** | `hook-runner`                                                                                        | Wrap hooks with timeout, error handling, exit codes                              |
-| **Config**    | `ck-config-loader`, `ck-config-utils`, `project-config-loader`, `project-config-schema`, `wr-config` | Cascading config resolution, project detection                                   |
-| **Paths**     | `ck-paths`, `ck-path-utils`                                                                          | Centralized `/tmp/ck/` namespace, path normalization                             |
-| **State**     | `ck-session-state`, `workflow-state`, `edit-state`, `todo-state`, `context-tracker`                  | Session-scoped persistence in temp files                                         |
-| **Injection** | `prompt-injections`, `dedup-constants`                                                               | Shared prompt-injection helpers (post-compact recovery) + dedup marker constants |
-| **Engine**    | `swap-engine`                                                                                        | External memory swap (large output externalization)                              |
-| **Plan**      | `ck-plan-resolver`, `ck-git-utils`, `ck-env-utils`                                                   | Plan naming resolution, git/env helpers                                          |
+| Category      | Modules                                                                                 | Purpose                                                                                             |
+| ------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| **Stdin/IO**  | `stdin-parser`, `debug-log`                                                             | Input parsing, debug output to stderr                                                               |
+| **Execution** | `hook-runner`                                                                           | Wrap hooks with timeout, error handling, exit codes                                                 |
+| **Config**    | `ck-config-loader`, `ck-config-utils`, `project-config-loader`, `project-config-schema` | Cascading config resolution, project detection                                                      |
+| **Paths**     | `ck-paths`, `ck-path-utils`                                                             | Centralized `/tmp/ck/` namespace, path normalization                                                |
+| **State**     | `ck-session-state`, `workflow-state`, `todo-state`                                      | Session-scoped persistence in temp files                                                            |
+| **Injection** | `prompt-injections`, `dedup-constants`                                                  | Canonical runtime-text helpers (verified against `SYNC:*` blocks by tests) + dedup marker constants |
+| **Engine**    | `swap-engine`                                                                           | External memory swap (large output externalization)                                                 |
+| **Plan**      | `ck-plan-resolver`, `ck-git-utils`, `ck-env-utils`                                      | Plan naming resolution, git/env helpers                                                             |
 
 ### 3.2 Config Cascading Resolution
 
@@ -221,7 +221,7 @@ Includes stale lock detection (5-second timeout) to prevent deadlocks.
 
 ### 4.3 Session-Scoped State
 
-State is always keyed by `sessionId` to prevent cross-session contamination. Example modules: `ck-session-state`, `workflow-state`, `edit-state`, `todo-state`.
+State is always keyed by `sessionId` to prevent cross-session contamination. Example modules: `ck-session-state`, `workflow-state`, `todo-state`.
 
 ---
 

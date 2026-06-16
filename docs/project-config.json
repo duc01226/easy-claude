@@ -25,7 +25,7 @@
       "name": "hooks",
       "kind": "library",
       "pathRegex": "[\\\\/]\\.claude[\\\\/]hooks[\\\\/]",
-      "description": "Runtime hooks for context injection, enforcement, and session management",
+      "description": "Runtime hooks for session initialization, safety gates, graph maintenance, and code formatting",
       "tags": ["core", "cjs"]
     },
     {
@@ -124,9 +124,10 @@
       "integration": "*.test.cjs"
     },
     "commands": {
-      "all": "node .claude/hooks/tests/test-all-hooks.cjs",
-      "suite": "node .claude/hooks/tests/run-all-tests.cjs"
-    }
+      "hook tests": "node .claude/hooks/tests/test-all-hooks.cjs",
+      "all suites": "node .claude/hooks/tests/run-all-tests.cjs"
+    },
+    "commandsNote": "**Platform (Windows):** invoke Python via `py -3` or `py` — NEVER `python3` (MS Store alias exits 49). Scripts resolve `python` then `py -3` (see `count-drift.test.cjs:29-32`). macOS/Linux: use `python3`."
   },
   "databases": {},
   "messaging": {},
@@ -141,22 +142,23 @@
     {
       "filename": "backend-patterns-reference.md",
       "purpose": "Backend coding patterns (N/A for framework project)",
-      "sections": []
+      "sections": ["Repository Pattern", "CQRS Patterns", "Validation Patterns", "Entity Patterns", "Message Bus"]
+    },
+    {
+      "filename": "seed-test-data-reference.md",
+      "purpose": "Seed test data patterns: idempotent seeder architecture, DI scope safety, command dispatch, and config-driven counts.",
+      "sections": [],
+      "templatePath": ".claude/templates/reference-docs/seed-test-data-reference.md"
     },
     {
       "filename": "frontend-patterns-reference.md",
       "purpose": "Frontend coding patterns (N/A for framework project)",
-      "sections": []
+      "sections": ["Component Base Classes", "State Management", "API Services", "Styling Conventions", "Directory Structure"]
     },
     {
       "filename": "integration-test-reference.md",
       "purpose": "Integration test patterns and conventions",
-      "sections": []
-    },
-    {
-      "filename": "feature-docs-reference.md",
-      "purpose": "Business feature documentation index",
-      "sections": []
+      "sections": ["Test Architecture", "Test Base Classes", "Test Helpers", "Service-Specific Setup"]
     },
     {
       "filename": "feature-spec-reference.md",
@@ -185,22 +187,42 @@
     {
       "filename": "code-review-rules.md",
       "purpose": "Code review checklist and rules",
+      "sections": ["Critical Rules", "Backend Rules", "Frontend Rules", "Architecture Rules", "Anti-Patterns", "Checklists"]
+    },
+    {
+      "filename": "lessons.md",
+      "purpose": "Learned lessons from past sessions — written and managed via the /learn skill (not auto-injected).",
       "sections": []
     },
     {
       "filename": "scss-styling-guide.md",
       "purpose": "SCSS styling patterns (N/A for framework project)",
-      "sections": []
+      "sections": ["BEM Methodology", "SCSS Architecture", "Mixins & Variables", "Theming", "Responsive Patterns"]
+    },
+    {
+      "filename": "design-system/README.md",
+      "purpose": "Design system index: app-to-doc mapping, design tokens overview, component inventory.",
+      "sections": ["Design System Overview", "App Documentation Map", "Design Tokens", "Component Inventory"]
+    },
+    {
+      "filename": "e2e-test-reference.md",
+      "purpose": "E2E test patterns (N/A for framework project)",
+      "sections": [
+        "Architecture Overview",
+        "Project Structure",
+        "Key Dependencies",
+        "Base Classes",
+        "Page Object Pattern",
+        "Wait & Assertion Patterns",
+        "Configuration",
+        "Running Tests",
+        "Best Practices"
+      ]
     },
     {
       "filename": "domain-entities-reference.md",
       "purpose": "Framework conceptual domain — Hook, Skill, Agent, Workflow, Context Group, Module",
       "sections": ["hook", "skill", "agent", "workflow", "context-group", "module", "entity-relationships"]
-    },
-    {
-      "filename": "e2e-test-reference.md",
-      "purpose": "E2E test patterns (N/A for framework project)",
-      "sections": []
     },
     {
       "filename": "docs-index-reference.md",

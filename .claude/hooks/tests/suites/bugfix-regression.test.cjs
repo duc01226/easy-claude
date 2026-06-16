@@ -2,10 +2,12 @@
  * Bugfix Regression Test Suite
  *
  * Tests for bug fixes implemented in January 2026:
- * 1. Workflow catalog injection with v2.0.0 schema - workflow-router.cjs
- * 2. tmpclaude cleanup in .claude subdirectories - session-init.cjs & session-end.cjs
- * 3. Prettier skip patterns for .claude directories - post-edit-prettier.cjs
- * 4. [Workflow] prefix in workflow-generated todos - workflow-router.cjs
+ * 1. tmpclaude cleanup in .claude subdirectories - session-init.cjs & session-end.cjs
+ * 2. Prettier skip patterns for .claude directories - post-edit-prettier.cjs
+ *
+ * NOTE: the former bug-fix 1 (workflow catalog injection) and bug-fix 4
+ * ([Workflow] todo prefix) test groups were removed alongside workflow-router.cjs
+ * — the workflow catalog is now static in CLAUDE.md `## Workflow & Skills Catalog`.
  */
 
 const path = require('path');
@@ -19,173 +21,12 @@ const {
     createPostToolUseInput
 } = require('../lib/hook-runner.cjs');
 const { assertEqual, assertContains, assertAllowed, assertNotContains, assertTrue } = require('../lib/assertions.cjs');
-const { createTempDir, cleanupTempDir, setupWorkflowState, createMockFile, fileExists } = require('../lib/test-utils.cjs');
+const { createTempDir, cleanupTempDir, createMockFile, fileExists } = require('../lib/test-utils.cjs');
 
-// Hook paths
-const WORKFLOW_ROUTER = getHookPath('workflow-router.cjs');
+// Hook paths
 const SESSION_INIT = getHookPath('session-init.cjs');
 const POST_EDIT_PRETTIER = getHookPath('post-edit-prettier.cjs');
 const SESSION_END = getHookPath('session-end.cjs');
-
-// ============================================================================
-// BUG FIX 1: Workflow Catalog Injection with v2.0.0 Schema
-// ============================================================================
-// v2.0.0: Removed regex-based intent detection (triggerPatterns, excludePatterns,
-// priority). Router now injects a compact workflow catalog on qualifying prompts.
-// AI reads catalog, selects workflow, calls /start-workflow <id>.
-
-const workflowCatalogInjectionTests = [
-    {
-        name: '[catalog-injection] injects catalog on qualifying prompt',
-        fn: async () => {
-            const tmpDir = createTempDir();
-            try {
-                // Setup: workflows.json v2.0.0 config
-                const claudeDir = path.join(tmpDir, '.claude');
-                fs.mkdirSync(claudeDir, { recursive: true });
-                // workflow-router-p2/-p3.cjs were removed in the inject-hook removal; the
-                // surviving workflow-router.cjs emits the part-1 catalog. Use a single-workflow
-                // config so the part-1 slice deterministically renders that workflow's entry.
-                fs.writeFileSync(
-                    path.join(claudeDir, 'workflows.json'),
-                    JSON.stringify({
-                        version: '2.0.0',
-                        settings: { enabled: true },
-                        workflows: {
-                            bugfix: {
-                                name: 'Bug Fix',
-                                sequence: ['scout', 'debug-investigate', 'fix'],
-                                whenToUse: 'Bug fixes, error corrections, broken behavior',
-                            }
-                        }
-                    })
-                );
-
-                const input = createUserPromptInput('fix this bug in the login form');
-                const result = await runHook(WORKFLOW_ROUTER, input, { cwd: tmpDir });
-
-                assertAllowed(result.code, 'Should not block');
-                const output = result.stdout;
-
-                // Should inject the catalog with the workflow entry + labels
-                assertContains(output, 'Workflow Catalog', 'Should inject catalog header');
-                assertContains(output, 'bugfix', 'Catalog should contain bugfix workflow');
-                assertContains(output, 'Use:', 'Catalog should contain Use: labels');
-                assertContains(output, 'Steps:', 'Catalog should contain Steps: labels');
-            } finally {
-                cleanupTempDir(tmpDir);
-            }
-        }
-    },
-    {
-        name: '[catalog-injection] catalog contains step sequences',
-        fn: async () => {
-            const tmpDir = createTempDir();
-            try {
-                const claudeDir = path.join(tmpDir, '.claude');
-                fs.mkdirSync(claudeDir, { recursive: true });
-                fs.writeFileSync(
-                    path.join(claudeDir, 'workflows.json'),
-                    JSON.stringify({
-                        version: '2.0.0',
-                        settings: { enabled: true },
-                        workflows: {
-                            bugfix: {
-                                name: 'Bug Fix',
-                                sequence: ['scout', 'debug-investigate', 'fix'],
-                                whenToUse: 'Bug fixes, error corrections',
-                            }
-                        }
-                    })
-                );
-
-                const input = createUserPromptInput('continue fixing the login bug');
-                const result = await runHook(WORKFLOW_ROUTER, input, { cwd: tmpDir });
-
-                assertAllowed(result.code, 'Should not block');
-                const output = result.stdout;
-
-                // Catalog should show step sequence
-                assertContains(output, 'Steps:', 'Catalog should contain Steps: label');
-                assertContains(output, '/scout', 'Catalog should contain /scout step');
-                assertContains(output, '/fix', 'Catalog should contain /fix step');
-            } finally {
-                cleanupTempDir(tmpDir);
-            }
-        }
-    },
-    {
-        name: '[catalog-injection] injects catalog even for short prompts',
-        fn: async () => {
-            const tmpDir = createTempDir();
-            try {
-                const claudeDir = path.join(tmpDir, '.claude');
-                fs.mkdirSync(claudeDir, { recursive: true });
-                fs.writeFileSync(
-                    path.join(claudeDir, 'workflows.json'),
-                    JSON.stringify({
-                        version: '2.0.0',
-                        settings: { enabled: true },
-                        workflows: {
-                            bugfix: {
-                                name: 'Bug Fix',
-                                sequence: ['fix'],
-                                whenToUse: 'Bug fixes',
-                            }
-                        }
-                    })
-                );
-
-                // Short prompts now also get catalog (simplified injection — no length filter)
-                const input = createUserPromptInput('yes');
-                const result = await runHook(WORKFLOW_ROUTER, input, { cwd: tmpDir });
-
-                assertAllowed(result.code, 'Should not block');
-                assertContains(result.stdout, 'Workflow Catalog', 'Should inject catalog for all prompts including short ones');
-            } finally {
-                cleanupTempDir(tmpDir);
-            }
-        }
-    },
-    {
-        name: '[catalog-injection] ordinary prompt gets auto-select workflow guidance',
-        fn: async () => {
-            const tmpDir = createTempDir();
-            try {
-                const claudeDir = path.join(tmpDir, '.claude');
-                fs.mkdirSync(claudeDir, { recursive: true });
-                fs.writeFileSync(
-                    path.join(claudeDir, 'workflows.json'),
-                    JSON.stringify({
-                        version: '2.0.0',
-                        settings: {
-                            enabled: true,
-                            showDetection: true
-                        },
-                        workflows: {
-                            feature: {
-                                name: 'Feature',
-                                sequence: ['plan'],
-                                whenToUse: 'New features and enhancements',
-                            }
-                        }
-                    })
-                );
-
-                const input = createUserPromptInput('implement a new feature with auth support');
-                const result = await runHook(WORKFLOW_ROUTER, input, { cwd: tmpDir });
-
-                assertAllowed(result.code, 'Should not block');
-                const output = result.stdout;
-
-                assertContains(output, 'Auto-select the best option yourself', 'Should show auto-select workflow guidance');
-                assertNotContains(output, 'Which workflow do you want to activate?', 'Should not ask for workflow selection');
-            } finally {
-                cleanupTempDir(tmpDir);
-            }
-        }
-    }
-];
 
 // ============================================================================
 // BUG FIX 2: tmpclaude Cleanup in .claude Subdirectories
@@ -636,87 +477,6 @@ const prettierSkipPatternTests = [
 ];
 
 // ============================================================================
-// BUG FIX 4: [Workflow] Prefix in Workflow-Generated Todos
-// ============================================================================
-// Issue: Workflow-generated todos didn't have a distinguishing prefix.
-// Fix: Added instruction to prefix workflow todos with [Workflow].
-
-const workflowPrefixTests = [
-    {
-        name: '[workflow-prefix] catalog includes [Workflow] prefix in TaskCreate guidance',
-        fn: async () => {
-            const tmpDir = createTempDir();
-            try {
-                // Setup: workflows.json v2.0.0 config
-                const claudeDir = path.join(tmpDir, '.claude');
-                fs.mkdirSync(claudeDir, { recursive: true });
-                fs.writeFileSync(
-                    path.join(claudeDir, 'workflows.json'),
-                    JSON.stringify({
-                        version: '2.0.0',
-                        settings: { enabled: true },
-                        workflows: {
-                            feature: {
-                                name: 'Feature Implementation',
-                                sequence: ['plan', 'feature-implement', 'test'],
-                                whenToUse: 'New features, enhancements, adding functionality',
-                            }
-                        }
-                    })
-                );
-
-                const input = createUserPromptInput('implement a new login feature');
-                const result = await runHook(WORKFLOW_ROUTER, input, { cwd: tmpDir });
-
-                assertAllowed(result.code, 'Should not block');
-                const output = result.stdout;
-
-                // Catalog injection includes [Workflow] prefix and TaskCreate step
-                assertContains(output, '[Workflow]', 'Should include [Workflow] prefix in todo guidance');
-                assertContains(output, 'TaskCreate', 'Should include TaskCreate step instruction');
-            } finally {
-                cleanupTempDir(tmpDir);
-            }
-        }
-    },
-    {
-        name: '[workflow-prefix] catalog shows workflow commands in todo example',
-        fn: async () => {
-            const tmpDir = createTempDir();
-            try {
-                const claudeDir = path.join(tmpDir, '.claude');
-                fs.mkdirSync(claudeDir, { recursive: true });
-                fs.writeFileSync(
-                    path.join(claudeDir, 'workflows.json'),
-                    JSON.stringify({
-                        version: '2.0.0',
-                        settings: { enabled: true },
-                        workflows: {
-                            bugfix: {
-                                name: 'Bug Fix',
-                                sequence: ['scout', 'fix'],
-                                whenToUse: 'Bug fixes, error corrections, broken behavior',
-                            }
-                        }
-                    })
-                );
-
-                const input = createUserPromptInput('fix this login bug that crashes');
-                const result = await runHook(WORKFLOW_ROUTER, input, { cwd: tmpDir });
-
-                const output = result.stdout;
-
-                // Catalog should contain workflow commands in todo example
-                assertContains(output, '/scout', 'Should show /scout command in catalog steps');
-                assertContains(output, '/fix', 'Should show /fix command in catalog steps');
-            } finally {
-                cleanupTempDir(tmpDir);
-            }
-        }
-    }
-];
-
-// ============================================================================
 // Edge Cases and Regression Prevention
 // ============================================================================
 
@@ -803,50 +563,6 @@ const edgeCaseTests = [
         }
     },
     {
-        name: '[edge-case] workflow state with expired timestamp',
-        fn: async () => {
-            const tmpDir = createTempDir();
-            try {
-                // Setup: Old workflow state (24+ hours ago)
-                const oldDate = new Date();
-                oldDate.setHours(oldDate.getHours() - 25);
-
-                setupWorkflowState(tmpDir, {
-                    workflowId: 'feature',
-                    workflowName: 'Feature Implementation',
-                    currentStep: 1,
-                    sequence: ['plan', 'feature-implement'],
-                    startedAt: oldDate.toISOString()
-                });
-
-                // Setup: workflows.json v2.0.0 config
-                const claudeDir = path.join(tmpDir, '.claude');
-                fs.writeFileSync(
-                    path.join(claudeDir, 'workflows.json'),
-                    JSON.stringify({
-                        version: '2.0.0',
-                        settings: { enabled: true },
-                        workflows: {
-                            bugfix: {
-                                name: 'Bug Fix',
-                                sequence: ['fix'],
-                                whenToUse: 'Bug fixes, error corrections',
-                            }
-                        }
-                    })
-                );
-
-                // New prompt - catalog injection should work regardless of stale state
-                const input = createUserPromptInput('fix this bug in production');
-                const result = await runHook(WORKFLOW_ROUTER, input, { cwd: tmpDir });
-
-                assertAllowed(result.code, 'Should handle stale workflow state');
-            } finally {
-                cleanupTempDir(tmpDir);
-            }
-        }
-    },
-    {
         name: '[edge-case] prettier hook with tool_error set',
         fn: async () => {
             const tmpDir = createTempDir();
@@ -896,11 +612,9 @@ const edgeCaseTests = [
 module.exports = {
     name: 'Bugfix Regression Tests',
     tests: [
-        ...workflowCatalogInjectionTests,
         ...tmpclaudeCleanupTests,
         ...tmpclaudeSessionEndTests,
         ...prettierSkipPatternTests,
-        ...workflowPrefixTests,
         ...edgeCaseTests
     ]
 };

@@ -15,6 +15,13 @@ memory: project
 
 **Goal:** Diagnose DB performance issues, optimize schemas/indexes, manage backups, and deliver evidence-backed health assessments across the project's multi-database infrastructure — so every recommendation ships with metrics, a rollback plan, and zero risk to data integrity.
 
+**Summary:**
+
+- Data integrity is non-negotiable — every structural change ships with a rollback plan; no destructive op without user confirmation and a verified backup.
+- Diagnose from real metrics (query plans, index usage, lock contention) — never recommend without evidence from actual data.
+- Sequence: assess current state → diagnose bottlenecks → optimize → report prioritized fixes with expected impact and risk.
+- Test in non-production first; apply least privilege to every permission grant.
+
 **Workflow:**
 
 1. **Assess** — identify DB system; review current state and configuration
@@ -236,6 +243,12 @@ Report path: `plans/reports/{date}-{slug}.md`. List unresolved questions at end.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
+<!-- SYNC:graph-impact-analysis -->
+
+> **Graph Impact Analysis** — When `.code-graph/graph.db` exists, run `blast-radius --json` to detect ALL files affected by changes (7 edge types: CALLS, MESSAGE_BUS, API_ENDPOINT, TRIGGERS_EVENT, PRODUCES_EVENT, TRIGGERS_COMMAND_EVENT, INHERITS). Compute gap: impacted_files - changed_files = potentially stale files. Risk: <5 Low, 5-20 Medium, >20 High. Use `trace --direction downstream` for deep chains on high-impact files.
+
+<!-- /SYNC:graph-impact-analysis -->
+
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
@@ -258,7 +271,7 @@ Report path: `plans/reports/{date}-{slug}.md`. List unresolved questions at end.
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-<!-- /SYNC:task-tracking-external-report:reminder -->
+  <!-- /SYNC:task-tracking-external-report:reminder -->
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 
@@ -276,7 +289,7 @@ Report path: `plans/reports/{date}-{slug}.md`. List unresolved questions at end.
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Diagnose DB performance issues, optimize schemas/indexes, manage backups, and deliver evidence-backed health assessments across the project's multi-database infrastructure — every recommendation ships with metrics, a rollback plan, and zero risk to data integrity.
+**IMPORTANT MUST ATTENTION Goal:** Diagnose DB performance issues, optimize schemas/indexes, manage backups, and deliver evidence-backed health assessments across the project's multi-database infrastructure — so every recommendation ships with metrics, a rollback plan, and zero risk to data integrity.
 **IMPORTANT MUST ATTENTION** NEVER drop tables or delete data without explicit user confirmation
 **IMPORTANT MUST ATTENTION** NEVER run destructive operations in production without a verified backup
 **IMPORTANT MUST ATTENTION** ALWAYS include a rollback strategy for every structural change

@@ -1,6 +1,6 @@
 ---
 name: performance-review
-description: '[Debugging] Use when analyzing or optimizing performance bottlenecks: database queries, N+1 fan-out, indexing, API latency, memory, concurrency, frontend rendering, caching, and distributed paths.'
+description: '[Debugging] Use when analyzing or optimizing performance bottlenecks: database queries, N+1 fan-out, indexing, API latency, memory, concurrency, algorithmic complexity (O(n²)), frontend rendering, caching, and distributed paths.'
 ---
 
 > Codex compatibility note:
@@ -41,7 +41,9 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 > **[IMPORTANT]** MANDATORY MUST ATTENTION stay project-generic: discover local stack, conventions, query APIs, index definitions, metrics, and report paths before judging.
 > **[IMPORTANT]** MANDATORY MUST ATTENTION prove every performance claim with measurement or static evidence: `file:line`, query text/shape, row counts, query plan/explain output, trace, profile, or logs.
-> **[IMPORTANT]** MANDATORY MUST ATTENTION review database performance one dimension at a time: over-fetching, filters, indexes, N+1 fan-out, batching, aggregation/join shape, materialization, writes, caching.
+> **[IMPORTANT]** MANDATORY MUST ATTENTION review performance one dimension at a time: over-fetching, filters, indexes, N+1 fan-out, batching, aggregation/join shape, materialization, writes, caching, in-process compute/algorithmic complexity, concurrency/pool saturation.
+> **[IMPORTANT]** MANDATORY MUST ATTENTION include in-process compute, not just I/O: flag O(n²)+ nested scans, linear membership lookups inside loops, ReDoS-prone regex, and per-iteration serialize/clone — CPU bottlenecks need the same evidence rigor as queries.
+> **[IMPORTANT]** MANDATORY MUST ATTENTION when an operation is fast but p95/p99 is high, suspect saturation not the query: measure pool/thread acquire-wait and queue depth, and size pools by Little's Law (in-use = arrival-rate × hold-time) × replica count.
 
 <!-- SYNC:critical-thinking-mindset -->
 
@@ -79,7 +81,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Ensure every shipped performance fix removes a measured (or static-risk-labeled) real bottleneck — especially database waste (too many rows, too many columns, missing/unused indexes, query-in-loop fan-out, unbounded materialization, slow joins/aggregations, write amplification) — while preserving behavior, authorization, and semantics, proven by before/after evidence, validated via `$why-review` before any fix, and confirmed by a clean full Phase-0 re-review — never a guess-driven change that hides waste or breaks correctness.
+**Goal:** Ensure every shipped performance fix removes a measured (or static-risk-labeled) real bottleneck — across database waste (rows/columns, missing/unused indexes, query-in-loop fan-out, unbounded materialization, slow joins/aggregations, write amplification), in-process compute (O(n²) scans, wrong data structures, ReDoS, serialize/clone churn), and concurrency saturation (pool/queue acquire-wait sized by Little's Law) — while preserving behavior, authorization, and semantics, proven by before/after evidence, validated via `$why-review` before any fix, and confirmed by a clean full Phase-0 re-review — never a guess-driven change that hides waste or breaks correctness.
+
+**Summary:**
+
+- Evidence is the gate, not intuition: capture a runtime baseline (query plan/explain, row counts, p95/p99, pool acquire-wait, microbench at worst-case N) or label the finding `static risk` with the exact verify command — never recommend below 60% confidence.
+- Walk dimensions ONE pass at a time (query shape → index/access path → N+1 → aggregation/join → materialization → write/locks → cache → API/distributed/frontend → compute/algorithmic), never all at once; reduce rows at the source before trimming columns or caching, and size pools by Little's Law (replica count × per-instance pool) when a fast op shows high p99.
+- No finding is fixable until `$why-review --validate-findings` confirms it (Phase 6); each validated fix then restarts the FULL review from Phase 0 over the whole target (Phase 7) — a targeted before/after check alone never earns a PASS.
 
 > **Renamed:** formerly `/performance` — that name no longer resolves as a slash command; use `$performance-review`.
 
@@ -116,9 +124,11 @@ Classify before analysis. Detection drives dimensions, evidence, sub-agent choic
 | DB write | slow save, lock waits, per-row updates, transaction bloat | write loop, batch size, lock/deadlock logs, transaction scope |
 | N+1/fan-out | loop with query/API call, lazy loading, per-item lookup | caller trace, query count, loop source |
 | API latency | high p95/p99, timeout, slow endpoint/job | trace/profile/logs, call chain |
+| Saturation/Queueing | high p99 while the operation itself is fast, pool exhausted/timeout, threads blocked on acquire | pool active/idle/pending, acquire-wait time, threads/workers vs pool size, replica count × pool |
 | Memory/OOM | large materialization, blobs, no paging, buffering | allocation profile, result size, collection loads |
 | Frontend | slow render, huge bundle, repeated fetch, DOM churn | browser profile, network waterfall, component/render trace |
 | Distributed | message lag, cross-service waterfall, retry storm | trace spans, queue metrics, consumer/producer chain |
+| Compute/CPU | hot loop, nested iteration, quadratic scaling, regex stall, heavy serialize/clone | input N, operation count vs N, profiler/flame-graph sample, microbench |
 
 Skip reason allowed only when target explicitly narrows scope and evidence proves dimension irrelevant.
 
@@ -146,6 +156,7 @@ Architecture-altitude rules (decide at design time — cheapest to fix here):
 - **Caching is a design decision, not a patch** — choose request-scope memoization vs bounded shared cache up front, with key dimensions (tenant/user/auth/version), TTL/invalidation, size limits, and privacy constraints specified; never cache to hide an unbounded query.
 - **Async I/O is structural** — never design a path that blocks threads with `.Result`; bounded parallelism for fan-out work is part of the design, with a fresh safe scope/context per worker.
 - **Make the cost visible** — design slow-operation logging and query logging in from the start so regressions are observable in production.
+- **Size pools and parallelism, never default them** — derive connection/thread/permit pool size from Little's Law (in-use = arrival-rate × hold-time) and state the assumptions; shrink *hold-time* (release the resource across non-DB / external-wait spans) before growing the pool; size a shared backend against fleet-aggregate demand (replica count × per-instance pool), not one instance — local per-instance tuning becomes a thundering herd on the shared dependency.
 
 For database index strategy at design time, see the `database-optimization` skill (composite key order, covering/partial indexes, write-cost analysis). The tactical evidence gate (measure baseline, prove with plan/explain) in the phases below still applies to every recommendation made at this altitude.
 
@@ -175,6 +186,19 @@ MANDATORY baseline for DB findings:
 - ALWAYS capture access path: query plan/explain, used index, sort/group strategy, join method when available
 - ALWAYS capture timing: p50/p95/p99, elapsed query time, query count, allocation or response size
 - ALWAYS capture context: endpoint/job/consumer frequency and worst-case fan-out
+
+MANDATORY baseline for compute/CPU findings:
+
+- ALWAYS capture input size N and the growth assumption (expected and worst-case N)
+- ALWAYS capture operation count vs N (constant / linear / quadratic+) and the nested-loop or repeated-scan source `file:line`
+- ALWAYS capture timing: microbench / `console.time` / profiler or flame-graph sample at representative AND worst-case N
+
+MANDATORY baseline for saturation/pooling findings:
+
+- ALWAYS capture offered concurrency and arrival rate (RPS / worker count / threads.max)
+- ALWAYS capture resource hold-time vs total request time (a connection/lock/permit is held only for the fraction it is actually used, not the whole request)
+- ALWAYS capture pool state: size, active/idle/pending, and acquire-wait time / queue depth at the pool entrance
+- ALWAYS capture aggregate demand on shared dependencies: replica count × per-instance pool → total connections/cores the shared backend must serve
 
 Confidence:
 
@@ -303,6 +327,22 @@ Find:
 - bundle or asset load dominates interaction
 
 Prefer fixes: batch API, reduce payload, add backpressure, virtualize large lists, stabilize render keys, lazy-load cold assets/routes, measure browser/network trace.
+
+### 9. Compute And Algorithmic Complexity
+
+**Think:** Does in-process work grow super-linearly with input size, independent of any query or network call?
+
+MUST ATTENTION find:
+
+- nested iteration over the same/related collection (O(n²)+): loop-in-loop, `map` inside `map`, repeated full re-scan
+- linear membership/lookup inside a loop — `.find`/`.includes`/`.indexOf`/`in list`/`.contains` where a `Set`/`Map`/dict gives O(1)
+- wrong data structure for the access pattern: array used as a keyed store; repeated `.filter().length` for existence
+- string built by concatenation in a loop; repeated `JSON.parse`/`stringify`/deep-clone/serialize per iteration
+- catastrophic-backtracking regex on user- or attacker-sized input (ReDoS — cross-link `$security-review`)
+- pure-CPU result recomputed every call when inputs are stable (memoization candidate, distinct from data cache)
+- redundant sort/re-sort, or sorting when a single-pass min/max/partition suffices
+
+Prefer fixes: build a `Set`/`Map`/dict index once and look up in O(1); hoist invariant work out of the loop; accumulate into an array + single `join` instead of `+=`; precompute/memoize stable pure results; anchor/bound regex and cap input length; pick the data structure that matches the access pattern. Prove with a microbench/profiler sample at representative AND worst-case N — never reasoning alone.
 
 ---
 
@@ -515,7 +555,7 @@ If evidence insufficient, output: `Insufficient evidence. Verified: [...]. Not v
 **IMPORTANT Goal:** Ensure every shipped performance fix removes a measured (or static-risk-labeled) bottleneck while preserving behavior, authorization, and semantics — proven by before/after evidence, validated via `$why-review` before any fix, and confirmed by a clean full Phase-0 re-review — never a guess-driven change that hides waste or breaks correctness.
 **MANDATORY** stay project-generic: discover local stack, conventions, query APIs, index definitions, metrics, and report paths before judging.
 **MANDATORY** prove every performance claim with measurement or static evidence: `file:line`, query text/shape, row counts, query plan/explain output, trace, profile, or logs.
-**MANDATORY** review database performance one dimension at a time: over-fetching, filters, indexes, N+1 fan-out, batching, aggregation/join shape, materialization, writes, caching.
+**MANDATORY** review performance one dimension at a time: over-fetching, filters, indexes, N+1 fan-out, batching, aggregation/join shape, materialization, writes, caching, in-process compute/algorithmic complexity, concurrency/pool saturation.
 **MANDATORY** ALWAYS measure before/after; static review findings need explicit verification command.
 **MANDATORY** ALWAYS verify index usability with actual query shape/order and plan/explain; index existence alone is not proof.
 **IMPORTANT MANDATORY MUST ATTENTION** ALWAYS push row filters to data source before projection/caching; row-count reduction beats column trimming.
@@ -531,6 +571,8 @@ If evidence insufficient, output: `Insufficient evidence. Verified: [...]. Not v
 | "Projection enough" | First reduce rows. Loading fewer columns from too many rows still wastes work. |
 | "Just cache it" | Fix query shape/index/bounds first. Cache can hide stale, unsafe, unbounded work. |
 | "Only one query in code" | Trace loops, serializers, resolvers, consumers, and retries. Fan-out often hides upstream. |
+| "Loop is fine, the list is small" | Show N and worst-case N. O(n²) that's fine at 10 melts at 10k. Bench at real scale. |
+| "Query is fast, so the endpoint is fast" | Measure pool acquire-wait and queue depth. A 2ms query behind a saturated pool still yields a 200ms p99 — the wait is at the pool entrance, not in the query. |
 
 **[TASK-PLANNING]** Break work into small tracked tasks before starting; update each status immediately.
 

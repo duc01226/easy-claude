@@ -52,6 +52,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Transform raw ideas into a Definition-of-Ready PBI using BA best practices, hypothesis validation, and domain research — problem-validated, tech-agnostic, with testable acceptance criteria, estimates, and a Dependencies table — so a team can build it without re-asking what or why.
 
+**Summary:**
+
+- Two gates are NON-OPTIONAL: validate the problem hypothesis (Phase 3) before building, and run the 3-5 question validation interview (Phase 7) before writing the PBI — the user decides assumptions, scope, and dependencies, never the AI.
+- Acceptance criteria are BDD GIVEN/WHEN/THEN (min 3: happy/edge/error) and MUST satisfy the AI-SDD M1-M5 gate (Phase 5.1): tech-agnostic Business Intent, logical FR-/BR- IDs first, observable single-interpretation ACs, rebuild-from-scratch validity.
+- Estimate twice: Phase 6 drafts story points/man-days against draft scope, then Phase 7.5 RE-DERIVES them against the locked post-interview scope (per SYNC:estimation-framework) — shipping stale Phase 6 numbers is the cardinal failure.
+- The PBI frontmatter MUST carry `story_points`, `complexity`, `man_days_traditional`, `man_days_ai`, and every PBI MUST include a complete Dependencies table (`must-before`/`can-parallel`/`blocked-by`/`independent`).
+
 **Workflow:**
 
 | Phase | Name                | Key Activity                     | Output                 |

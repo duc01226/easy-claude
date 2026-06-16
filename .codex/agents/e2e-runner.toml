@@ -43,6 +43,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Generate and maintain E2E tests on the project's auto-detected framework with mandatory TC-code↔test traceability, producing a suite that runs, repeats deterministically, and provably maps every test back to its spec.
 
+**Summary:**
+
+- Read the project E2E reference + config FIRST — detect the framework (Playwright/Cypress/Selenium) before writing anything.
+- Every test carries a `TC-{MODULE}-E2E-{NNN}` code — traceability back to the spec is mandatory.
+- Use Page Object Model; derive stable selectors from `data-testid`/BEM/ARIA, never positional/generated ones; keep assertions out of page objects.
+- Deterministic runs — unique GUID test data, explicit waits only, reused auth session; after fixing failures, record the learning back in the E2E reference doc.
+
 **Workflow:**
 
 1. **Read project E2E docs** — `docs/project-reference/e2e-test-reference.md`, `docs/project-config.json`
@@ -332,6 +339,26 @@ E2E test report: files created/modified, TC codes covered, run command, precondi
 
 <!-- /SYNC:ai-mistake-prevention -->
 
+<!-- SYNC:source-test-drift-check -->
+
+> **Source/test drift check.** For coding, fix, debug, investigation, test, or review work: when source behavior changes, inspect affected unit/integration/E2E tests and decide from evidence whether tests should change to match intended behavior or the source change is an unintended bug to fix. Do not write tests for migration code; schema/data migrations are one-time execution paths, not core application logic.
+
+<!-- /SYNC:source-test-drift-check -->
+
+<!-- SYNC:repeatable-test-principle -->
+
+> **Infinitely Repeatable Tests** — Tests MUST run N times without failure. Like manual QC — run the suite 100 times, each run just adds more data. Verification is only PASS after the relevant suite/project passes 3 consecutive runs without database reset.
+>
+> 1. **Unique data per run:** Use the project's unique ID generator for ALL entity IDs created in tests. NEVER hardcode IDs.
+> 2. **Additive only:** Tests create data, never delete/reset. Prior test runs MUST NOT interfere with current run.
+> 3. **No schema rollback dependency:** Tests work with current schema only. Never rely on schema rollback or migration reversals.
+> 4. **Idempotent seeders:** Fixture-level seeders use create-if-missing pattern (check existence before insert). Test-level data uses unique IDs per execution.
+> 5. **No cleanup required:** No teardown, no database reset between runs. Each test is isolated by unique seed data, not by cleanup.
+> 6. **Unique names/codes:** When entities require unique names/codes, append a unique suffix using the project's ID generator.
+> 7. **Migration code excluded:** Do not write tests for migration code. Schema/data migrations are one-time execution paths, not core application logic.
+
+<!-- /SYNC:repeatable-test-principle -->
+
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
@@ -354,7 +381,7 @@ E2E test report: files created/modified, TC codes covered, run command, precondi
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-<!-- /SYNC:task-tracking-external-report:reminder -->
+  <!-- /SYNC:task-tracking-external-report:reminder -->
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 

@@ -20,6 +20,17 @@ const require = createRequire(import.meta.url);
 const CK_SKILLS_START = "<!-- CK:WORKFLOW-SKILLS -->";
 const CK_SKILLS_END = "<!-- /CK:WORKFLOW-SKILLS -->";
 
+// CK markers wrapping the two FULL always-on protocol blocks (critical-thinking +
+// ai-mistake-prevention) that generate-claude-md.cjs now bakes into CLAUDE.md at BOTH top
+// and bottom. AGENTS.md = CLAUDE-mirror + CONTEXT-mirror; the CONTEXT mirror already bakes
+// these blocks (now canonical-sourced), so the CLAUDE-mirror dedup below must strip BOTH
+// occurrences or AGENTS.md would carry each block three times. TWIN: keep byte-identical
+// with generate-claude-md.cjs CK_CRIT_OPEN/CLOSE + CK_AIMP_OPEN/CLOSE.
+const CK_CRIT_START = "<!-- CK:CRITICAL-THINKING -->";
+const CK_CRIT_END = "<!-- /CK:CRITICAL-THINKING -->";
+const CK_AIMP_START = "<!-- CK:AI-MISTAKE-PREVENTION -->";
+const CK_AIMP_END = "<!-- /CK:AI-MISTAKE-PREVENTION -->";
+
 // Resolve the shared catalog builder at RUNTIME from the consuming repo root — never a
 // file-relative `../lib` require, which would escape the portable Codex tree (only
 // .claude/scripts/codex/*.mjs travel). Guarded like prompt-injections.cjs below: if the
@@ -133,6 +144,26 @@ function buildProjectReferenceGateSection() {
   ].join("\n");
 }
 
+// Legacy orphan: pre-refactor CODEX_CONTEXT.md / AGENTS.md carried a free-standing
+// `# Codex Context (Hookless Parity)` section between PROMPT-PROTOCOLS:END and WORKFLOWS:START.
+// It re-inlined the SAME critical-thinking + ai-mistake-prevention + Lessons content the managed
+// Prompt Protocol Mirror block already carries (canonical `:full` sourced), plus a duplicate of the
+// managed Codex Hookless Project Reference Gate — so every regen produced two full copies of each.
+// The block is NOT wrapped in any managed marker, so the strip-and-restamp of the marker blocks never
+// removed it; it persisted across syncs undetected (verify-sync-divergence only checks .agents/skills,
+// not CODEX_CONTEXT.md/AGENTS.md). Strip it on every run so the protocol + gate live in exactly one
+// (managed) home. Spans from the `# Codex Context (Hookless Parity)` heading up to — but not including —
+// the WORKFLOWS:START marker (the next managed block), which is always present in a synced context.
+const LEGACY_HOOKLESS_PARITY_HEADING = "# Codex Context (Hookless Parity)";
+function stripLegacyHooklessParityBlock(contextMd) {
+  const text = contextMd.replace(/\r\n?/g, "\n");
+  const pattern = new RegExp(
+    `(?:^|\\n)${escapeRegExp(LEGACY_HOOKLESS_PARITY_HEADING)}\\n[\\s\\S]*?(?=\\n${escapeRegExp(START_MARKER)})`,
+    "g"
+  );
+  return text.replace(pattern, "").replace(/\n{3,}/g, "\n\n");
+}
+
 function stripProjectReferenceGateSection(contextMd) {
   let nextText = contextMd.replace(/\r\n?/g, "\n");
   const pattern = new RegExp(
@@ -158,12 +189,25 @@ function stripProjectReferenceGateSection(contextMd) {
 function upsertProjectReferenceGateSection(contextMd) {
   const contextWithoutGate = stripProjectReferenceGateSection(contextMd);
   const gateSection = buildProjectReferenceGateSection();
-  const criticalThinkingHeading = "\n## Critical Thinking Mindset";
 
+  // Anchor before a standalone `## Critical Thinking Mindset` heading when one survives (legacy
+  // contexts that still carry it outside the now-stripped Hookless-Parity block, and the
+  // gate-replacement regression fixture). Kept as the primary anchor for backward compatibility.
+  const criticalThinkingHeading = "\n## Critical Thinking Mindset";
   if (contextWithoutGate.includes(criticalThinkingHeading)) {
     return contextWithoutGate.replace(
       criticalThinkingHeading,
       `\n\n${gateSection}\n${criticalThinkingHeading}`
+    );
+  }
+
+  // Real-world case after the legacy strip: no `## Critical Thinking Mindset` heading remains, so
+  // anchor just before the WORKFLOWS:START managed block — the stable, always-present landmark in a
+  // synced context. Without this fallback the gate would prepend above the Prompt Protocol Mirror.
+  if (contextWithoutGate.includes(START_MARKER)) {
+    return contextWithoutGate.replace(
+      START_MARKER,
+      `${gateSection}\n\n${START_MARKER}`
     );
   }
 
@@ -410,14 +454,70 @@ function normalizePromptProtocolText(text) {
   return normalized.length > 0 ? normalized : null;
 }
 
-function extractSyncBlock(markdown, tag) {
-  const marker = `## SYNC:${tag}`;
-  const start = markdown.indexOf(marker);
-  if (start === -1) return null;
+// Shared canonical SYNC-block parser. Resolved at RUNTIME from the consuming repo root and
+// guarded exactly like loadCatalogBuilder above — NEVER a file-relative `../lib` require,
+// which would escape the portable Codex tree (only .claude/scripts/codex/*.mjs travel). When
+// .claude/scripts/lib/extract-sync-block.cjs is absent in a stripped portable consumer, the
+// CRLF-safe local TWIN below is used so the CONTEXT bake never silently vanishes. This is the
+// SAME parser generate-claude-md.cjs uses to bake CLAUDE.md — one source across generators.
+function loadSyncBlockExtractor() {
+  try {
+    return require(path.join(rootDir, ".claude", "scripts", "lib", "extract-sync-block.cjs"));
+  } catch {
+    return null;
+  }
+}
+const sharedSyncBlockExtractor = loadSyncBlockExtractor();
 
-  const next = markdown.indexOf("\n---\n\n## SYNC:", start + marker.length);
-  const end = next === -1 ? markdown.length : next;
-  return markdown.slice(start, end).trim();
+// CRLF-safe local TWIN of .claude/scripts/lib/extract-sync-block.cjs — fallback only.
+// Normalizing CRLF→LF up front is REQUIRED: the canonical markdown is committed LF but a
+// Windows checkout is CRLF, and the `\n---\n\n## SYNC:` boundary never matches
+// `\r\n---\r\n\r\n` — an un-normalized parse silently over-captures to EOF. Keep
+// byte-equivalent to the shared lib.
+function extractSyncBlock(markdown, tag) {
+  if (sharedSyncBlockExtractor) return sharedSyncBlockExtractor.extractSyncBlock(markdown, tag);
+  const md = String(markdown).replace(/\r\n?/g, "\n");
+  const marker = `## SYNC:${tag}`;
+  // Whole-line marker match — mirrors findMarkerStart() in extract-sync-block.cjs so a base
+  // tag can't match a longer tag it prefixes (`foo` vs `foo:full`/`foo-bar`). Kept inline
+  // and helper-free so this fallback body stays self-contained (the parity test lifts it).
+  let start = -1;
+  for (let from = 0; ; ) {
+    const idx = md.indexOf(marker, from);
+    if (idx === -1) break;
+    const atLineStart = idx === 0 || md[idx - 1] === "\n";
+    const after = md[idx + marker.length];
+    const atLineEnd = after === undefined || after === "\n";
+    if (atLineStart && atLineEnd) {
+      start = idx;
+      break;
+    }
+    from = idx + marker.length;
+  }
+  if (start === -1) return null;
+  const next = md.indexOf("\n---\n\n## SYNC:", start + marker.length);
+  const end = next === -1 ? md.length : next;
+  return md.slice(start, end).trim();
+}
+
+function extractSyncBody(markdown, tag) {
+  if (sharedSyncBlockExtractor) return sharedSyncBlockExtractor.extractSyncBody(markdown, tag);
+  const block = extractSyncBlock(markdown, tag);
+  if (block == null) return null;
+  const nl = block.indexOf("\n");
+  return (nl === -1 ? "" : block.slice(nl + 1)).trim();
+}
+
+// Read a FULL protocol block body (heading stripped) from the canonical source. Approach C:
+// critical-thinking + ai-mistake-prevention bake from canonical `:full` — the SAME source
+// CLAUDE.md bakes — not the Claude runtime hook, so every static mirror shares one source.
+async function buildCanonicalFullProtocolText(tag) {
+  try {
+    const content = await fs.readFile(sharedSyncInlinePath, "utf8");
+    return extractSyncBody(content, tag);
+  } catch {
+    return null;
+  }
 }
 
 async function buildSharedAiSddMarkerSection() {
@@ -461,11 +561,14 @@ async function buildPromptProtocolMirrorSection(headingSuffix = "Auto-Synced") {
       normalizePromptProtocolText(
         "**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes."
       ),
-      // Universal rules the Claude hooks inject at runtime (mindset, system-lesson mistake
-      // prevention, learned lessons). Baked here because Codex has no hooks. skipDedup=true
-      // forces the full block; the runtime transcript-dedup arg is irrelevant at sync time.
-      normalizePromptProtocolText(promptInjections.injectCriticalContext?.("", true)),
-      normalizePromptProtocolText(promptInjections.injectAiMistakePrevention?.("", true)),
+      // Universal rules baked here because Codex has no hooks. Critical-thinking +
+      // ai-mistake-prevention now source from the canonical `:full` markdown (approach C) —
+      // the SAME source CLAUDE.md bakes — not the runtime hook, so every static mirror shares
+      // one source. `injectLessons` stays hook-sourced (lessons.md content has no canonical
+      // SYNC home). skipDedup=true on injectLessons forces the full block; the runtime
+      // transcript-dedup arg is irrelevant at sync time.
+      normalizePromptProtocolText(await buildCanonicalFullProtocolText("critical-thinking-mindset:full")),
+      normalizePromptProtocolText(await buildCanonicalFullProtocolText("ai-mistake-prevention:full")),
       normalizePromptProtocolText(promptInjections.injectLessons?.("", true)),
     ].filter(Boolean);
 
@@ -480,7 +583,7 @@ async function buildPromptProtocolMirrorSection(headingSuffix = "Auto-Synced") {
     return [
       `## Prompt Protocol Mirror (${headingSuffix})`,
       "",
-      "Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`",
+      "Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks)",
       "",
       ...sections,
     ].join("\n");
@@ -524,6 +627,9 @@ async function main() {
   // Keep one mirrored prompt protocol block at top; strip legacy bottom block if present.
   contextMd = stripManagedBlock(contextMd, PROMPT_PROTOCOLS_START, PROMPT_PROTOCOLS_END);
   contextMd = stripManagedBlock(contextMd, PROMPT_PROTOCOLS_BOTTOM_START, PROMPT_PROTOCOLS_BOTTOM_END);
+  // Strip the unmanaged legacy Hookless-Parity duplicate before re-stamping; the managed Prompt
+  // Protocol Mirror + Project Reference Gate below are the single home for that content.
+  contextMd = stripLegacyHooklessParityBlock(contextMd);
   contextMd = `${promptProtocolTopBlock}\n\n${contextMd.trimStart()}`;
   contextMd = upsertProjectReferenceGateSection(contextMd);
 
@@ -543,15 +649,20 @@ async function main() {
   );
   contextMd = `${contextMd.trimEnd()}\n`;
 
-  // Strip the workflow-skills catalog from the CLAUDE.md mirror copy: the Codex
-  // context block (above) already carries it, and AGENTS.md = claudeMirror + contextMirror.
-  // Without this strip the catalog would appear twice in AGENTS.md.
+  // Strip from the CLAUDE.md mirror copy so AGENTS.md (= claudeMirror + contextMirror) carries
+  // each block exactly once:
+  //   (1) the workflow-skills catalog — the Codex context block (above) already carries it;
+  //   (2) the two FULL protocol blocks (critical-thinking + ai-mistake-prevention) — CLAUDE.md
+  //       now stamps each at top AND bottom, and the CONTEXT mirror canonical-bakes them too,
+  //       so without a GLOBAL strip they would appear three times in AGENTS.md.
+  // Each regex is anchored to its exact CK marker pair so nothing beyond the block is removed.
+  // The catalog appears once (m); the two protocol blocks appear twice each (g, top + bottom).
   const claudeInstructionsDeduped =
     typeof claudeInstructionsRaw === "string"
-      ? claudeInstructionsRaw.replace(
-          new RegExp(`${CK_SKILLS_START}[\\s\\S]*?${CK_SKILLS_END}\\n?`, "m"),
-          ""
-        )
+      ? claudeInstructionsRaw
+          .replace(new RegExp(`${CK_SKILLS_START}[\\s\\S]*?${CK_SKILLS_END}\\n?`, "m"), "")
+          .replace(new RegExp(`${CK_CRIT_START}[\\s\\S]*?${CK_CRIT_END}\\n?`, "g"), "")
+          .replace(new RegExp(`${CK_AIMP_START}[\\s\\S]*?${CK_AIMP_END}\\n?`, "g"), "")
       : claudeInstructionsRaw;
   const claudeInstructionsMd = claudeInstructionsDeduped
     ? rewriteClaudeToolTermsForCodex(

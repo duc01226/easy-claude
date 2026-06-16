@@ -50,7 +50,14 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Ensure changes preserve architecture boundaries, ownership, message flow, and generated artifact integrity before handoff — validating changed code against layers, service boundaries, message flow, CQRS, repositories, entity events, frontend architecture, generated artifacts, and quality tooling.
+**Goal:** Ensure changes preserve architecture boundaries, ownership, message flow, and generated artifact integrity before handoff — validating changed code against layers, service boundaries, message flow, CQRS, repositories, entity events, frontend architecture, generated artifacts, recorded architecture decisions (ADRs), and quality tooling.
+
+**Summary:**
+
+- Phase 0 is non-negotiable and first: load the project architecture docs (`backend-patterns-reference.md`, `project-structure-reference.md`, `frontend-patterns-reference.md`, `code-review-rules.md`) — every rule and base-class/symbol name comes from those docs, NEVER general knowledge; the framework names in Categories 2–8 are illustrative only.
+- Review serially, one category at a time (Cat 0 tooling baseline → Cat 9 ADR conformance): doc rule → source evidence → `file:line` proof + grep 3+ counterexamples → PASS/WARN/BLOCKED. Never scan categories in parallel; codebase convention wins over a suspected violation.
+- Stay in lane: deep-review only what this skill OWNS (layers, messaging/CQRS/repos/service boundaries, entity events, frontend architecture, quality tooling, generated artifacts, ADRs); record a one-line `→ route to {sibling}` pointer for security/performance/DDD/UI/test findings instead of expanding them.
+- Read-only until validated: after producing any finding, run the Phase 5 `$why-review` self-validation gate before handoff; fixes happen only in the validated fix loop, and every fix restarts a full review from Phase 0. Write findings to `plans/reports/arch-review-{date}-{slug}.md`.
 
 **Default scope:** All uncommitted changes (staged + unstaged). Override: specify files, directories, services, or full codebase.
 
@@ -71,13 +78,14 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 4. **Phase 3: Architecture Review** — Check each file against all applicable categories
 5. **Phase 4: Finalize** — Generate compliance report with PASS/BLOCKED/WARN verdicts
 
-**Key Rules:**
+**Key Rules (top 3 critical first):**
 
-- Write findings to `plans/reports/arch-review-{date}-{slug}.md`
-- BLOCKED = must fix before merge | WARN = review and decide | PASS = compliant
-- Every violation needs `file:line` proof + grep 3+ counterexamples before flagging
-- MUST ATTENTION review one category at a time: doc rule → source evidence → verdict
-- Review is read-only until `$why-review --validate-findings` confirms findings; fixes may happen only in the validated fix loop or downstream plan/feature-implement, and every fix restarts a full architecture review from Phase 0 with a fresh task breakdown.
+- MUST ATTENTION read project architecture docs in Phase 0 BEFORE reviewing — rules come from docs, NEVER general knowledge.
+- Every violation needs `file:line` proof + grep 3+ counterexamples before flagging — NEVER speculate.
+- MUST ATTENTION review one category at a time: doc rule → source evidence → verdict — NEVER scan categories simultaneously.
+- Write findings to `plans/reports/arch-review-{date}-{slug}.md`.
+- BLOCKED = must fix before merge | WARN = review and decide | PASS = compliant.
+- Review is read-only until `$why-review --validate-findings` confirms findings; fixes happen only in the validated fix loop or downstream plan/feature-implement, and every fix restarts a full architecture review from Phase 0 with a fresh task breakdown.
 
 ## Your Mission
 
@@ -91,9 +99,9 @@ $ARGUMENTS
 
 Before applying any rule, ask: **does this lower or raise future change cost?**
 
-- Reject "best practices" raising cost: premature abstraction, speculative generality, leaky indirection, ceremony without payoff.
+- Reject "best practices" raising cost: premature abstraction, speculative generality, leaky indirection, ceremony without payoff. — why: cost added now with no payoff is debt, not quality.
 - Name real enemies: **coupling, hidden state, duplicated knowledge, unclear intent, irreversible decisions exposed too early**.
-- Prefer simple reversible design over sophisticated rigid design.
+- Prefer simple reversible design over sophisticated rigid design. — why: reversible decisions cost less to undo when wrong.
 - If downstream rule raises change cost, this principle wins.
 
 ---
@@ -105,10 +113,10 @@ Before applying any rule, ask: **does this lower or raise future change cost?**
 Evaluate detected stacks, not fixed tool list:
 
 - Detect stacks from project-reference docs, manifests, lock files, build files, CI before recommending tools.
-- For each production stack, verify formatter/style config, linter/code analyzer, compiler/type-check strictness, dependency/vulnerability scanning, tests/coverage, CI/pre-commit enforcement.
-- Prefer official or ecosystem-standard tooling; if local docs absent/stale, check current official docs before recommending setup.
+- Per production stack, verify formatter/style config, linter/code analyzer, compiler/type-check strictness, dependency/vulnerability scanning, tests/coverage, CI/pre-commit enforcement.
+- Prefer official or ecosystem-standard tooling; local docs absent/stale → check current official docs before recommending setup.
 - MUST ATTENTION recommend enforceable best practice only: installed but unwired tool = WARN; production source with no relevant automated quality gate = BLOCKED.
-- Identify missing capability first; map to local equivalent before prescribing new tooling.
+- Identify missing capability first; map to local equivalent before prescribing new tooling. — why: prescribing a tool that duplicates an existing gate adds noise, not coverage.
 
 ---
 
@@ -116,19 +124,37 @@ Evaluate detected stacks, not fixed tool list:
 
 Skeptical. Every claim needs traced proof, confidence >80%.
 
-- NEVER flag violations without reading actual code + tracing the dependency
-- Every finding MUST include `file:line` evidence
-- Before flagging pattern violation: grep 3+ existing examples — codebase convention wins
-- Question: "Is this actually a violation, or an established exception?"
+- NEVER flag violations without reading actual code + tracing dependency — READ the code, trace the import chain, then flag.
+- Every finding MUST include `file:line` evidence.
+- Before flagging pattern violation: grep 3+ existing examples — codebase convention wins.
+- Question: "Actually a violation, or an established exception?"
+
+## Ownership & Handoff (own vs delegate)
+
+This skill = one reviewer in a multi-reviewer pipeline — `workflow-review-changes` runs it beside the siblings below. Review ONLY what this skill owns; route the rest so findings are not double-reported across reviewers.
+
+| This skill OWNS (deep-review here)                                                                                            | Delegate to sibling (one-line pointer only — do NOT deep-review)         |
+| ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Layer boundaries, dependency direction, business-logic placement                                                            | —                                                                         |
+| Messaging patterns, CQRS structure, repository patterns, service-pattern era, entity event handlers, service boundaries     | —                                                                         |
+| Frontend ARCHITECTURE (base classes, store/effect, API-service base, subscription teardown, CSS-class presence)             | Visual/SCSS/responsive/z-index quality → `review-ui`                      |
+| Quality-tooling baseline, generated-artifact integrity, ADR / recorded-decision conformance                                 | —                                                                         |
+| Architecture-level auth PLACEMENT (a gate exists at the boundary)                                                           | OWASP, secrets, dependency/supply-chain, authz-matrix depth → `security-review` |
+| Structural soundness of a hot path (no obvious N+1 introduced by the diff)                                                  | Query plans, indexing depth, latency/throughput budgets → `performance-review` |
+| —                                                                                                                          | Domain entity / value-object DDD design quality → `review-domain-entities` |
+| —                                                                                                                          | Integration-test assertion quality, coverage, traceability → `integration-test-review` |
+| —                                                                                                                          | Runtime production-readiness of service/API changes (observability wiring, rollback) → `production-readiness-review` |
+
+When a finding clearly belongs to a sibling, record one-line `→ route to {skill}` pointer and move on — NEVER expand it. — why: duplicated findings across reviewers inflate severity counts and bury issues each reviewer uniquely owns.
 
 ## Phase 0: Load Architecture Rules (MANDATORY FIRST)
 
-> **MUST ATTENTION:** Read project docs BEFORE reviewing. Rules come from docs, not general knowledge.
+> **MUST ATTENTION:** Read project docs BEFORE reviewing. Rules come from docs, NEVER general knowledge.
 
 - read `docs/project-reference/backend-patterns-reference.md` — extract messaging naming, layer rules, CQRS patterns, repo rules, entity event handler patterns, validation patterns
 - read `docs/project-reference/project-structure-reference.md` — extract service map, layer structure, DB ownership
-- If frontend files in scope: read `docs/project-reference/frontend-patterns-reference.md`
-- read `docs/project-reference/code-review-rules.md` — extract anti-patterns and review rules directly
+- frontend files in scope → read `docs/project-reference/frontend-patterns-reference.md`
+- read `docs/project-reference/code-review-rules.md` — extract anti-patterns + review rules directly
 
 ## Phase 1: Determine Scope
 
@@ -140,18 +166,18 @@ git diff            # Staged + unstaged changes
 git diff --cached   # Staged only
 ```
 
-- Collect file list to review
-- Categorize: backend (.cs), frontend (.ts/.html), config, docs, other
-- Filter to architecture-relevant files (skip pure docs, configs, tests unless architecture-relevant)
+- Collect file list to review.
+- Categorize: backend (.cs), frontend (.ts/.html), config, docs, other.
+- Filter to architecture-relevant files (skip pure docs, configs, tests unless architecture-relevant).
 
 ## Phase 2: Blast Radius (if graph.db exists)
 
-- If `.code-graph/graph.db` exists: call `$graph-blast-radius` skill
-- Record: impacted file count, cross-service impact, risk level
-- Prioritize review by highest-impact files first
-- Graph unavailable: note "Graph not available — skipping blast radius" and proceed
+- `.code-graph/graph.db` exists → call `$graph-blast-radius` skill.
+- Record: impacted file count, cross-service impact, risk level.
+- Prioritize review by highest-impact files first.
+- Graph unavailable → note "Graph not available — skipping blast radius" and proceed.
 
-For each changed file with downstream impact:
+Per changed file with downstream impact:
 
 ```bash
 python .claude/scripts/code_graph trace <changed-file> --direction downstream --json
@@ -163,23 +189,24 @@ Flag MESSAGE_BUS consumers or event handlers impacted by changes.
 
 Create report: `plans/reports/arch-review-{date}-{slug}.md`
 
-For EACH file in scope, evaluate against ALL applicable categories. Skip categories not applicable to the file type.
+Per file in scope, evaluate against ALL applicable categories. Skip categories not applicable to file type.
 
-MUST ATTENTION review serially. For each applicable category: read docs/source evidence → derive risk with `Think:` → grep 3+ examples/counterexamples → record PASS/WARN/BLOCKED. NEVER scan categories simultaneously.
+MUST ATTENTION review serially. Per applicable category: read docs/source evidence → derive risk with `Think:` → grep 3+ examples/counterexamples → record PASS/WARN/BLOCKED. NEVER scan categories simultaneously — why: parallel scanning collapses per-category evidence into one undifferentiated pass and drops findings.
 
-> **Portability note (MUST ATTENTION):** Concrete framework symbols, base-class names, directory conventions in Categories 2–8 below are **illustrative examples** — authoritative form for the repository under review sourced from Phase 0 reference docs (`backend-patterns-reference.md`, `frontend-patterns-reference.md`, `project-structure-reference.md`), so verify code against those docs. On any stack, map each example to project's equivalent as named in its own reference docs, flag deviations from project's **actual** convention — never from these literal names. Same discipline as Category 5: read project docs at review time; never treat hardcoded name as universal.
+> **Portability note (MUST ATTENTION):** Concrete framework symbols, base-class names, directory conventions in Categories 2–8 below are **illustrative examples** — authoritative form for repository under review sourced from Phase 0 reference docs (`backend-patterns-reference.md`, `frontend-patterns-reference.md`, `project-structure-reference.md`), so verify code against those docs. On any stack, map each example to project's equivalent as named in its own reference docs, flag deviations from project's **actual** convention — NEVER from these literal names. Same discipline as Category 5: read project docs at review time; NEVER treat hardcoded name as universal.
 
 ---
 
 ### Category 0: Quality Tooling Baseline — Severity: BLOCKED/WARN
 
-**Think:** Can the project automatically catch style, type, complexity, security, dependency, and boundary regressions for detected stacks?
+**Think:** Can project automatically catch style, type, complexity, security, dependency, boundary regressions for detected stacks?
 
-- Detect production stacks via `docs/project-config.json`, relevant docs, manifests, lock files, build files, and CI.
+- Detect production stacks via `docs/project-config.json`, relevant docs, manifests, lock files, build files, CI.
 - Inventory gates: formatter, linter, code/static analyzer, compiler/type checker, dependency audit/SCA/SBOM, SAST, test/coverage, architecture/dependency-boundary checks, pre-commit, CI/build.
 - Verify stack-appropriate coverage: `.editorconfig`/language analyzers, JavaScript/TypeScript linting, UI template linting when supported, formatter config, dependency vulnerability scans, semantic security analysis.
-- BLOCKED when production stack lacks runnable lint/static-analysis/type-check command and equivalent enforced gate, or CI/build references a missing/broken quality command.
-- WARN when tooling is local-only, not wired into CI/build/pre-commit, partial for active production code, broadly/unexplainedly suppressed, unclear on generated-code exclusions, or stale for the stack.
+- BLOCKED when production stack lacks runnable lint/static-analysis/type-check command and equivalent enforced gate, or CI/build references missing/broken quality command.
+- WARN when tooling local-only, not wired into CI/build/pre-commit, partial for active production code, broadly/unexplainedly suppressed, unclear on generated-code exclusions, or stale for stack.
+- **Scope to the change (MUST ATTENTION):** On normal change-level review, *pre-existing* tooling gap unrelated to diff is WARN with single note — NEVER BLOCK whole review on standing, change-unrelated condition. Reserve BLOCKED for: new stack/service introduced by this change with no gate, change itself removing/breaking existing gate, or explicit full-codebase/greenfield audit scope. — why: change review that BLOCKs on unrelated standing gap produces noise that buries regression the diff actually introduced.
 - Before recommending tools, find current official/ecosystem setup and cite it; recommend capabilities first, tools second.
 
 **Violation format:**
@@ -192,14 +219,14 @@ BLOCKED: {stack} has no enforced lint/static-analysis/type-check quality gate ({
 
 ### Category 1: Clean Architecture Layers — Severity: BLOCKED
 
-**Think:** What layer is this file in? What layers can it legally import from? Does any import break the inward-only flow (Service/API → Application → Domain ← Persistence)?
+**Think:** What layer is this file in? What layers can it legally import from? Does any import break inward-only flow (Service/API → Application → Domain ← Persistence)?
 
-- Read `docs/project-config.json` → `architectureRules.layerBoundaries` for project-specific rules
-- Determine layer from file path: Domain/, Application/, Persistence/, Service/
-- Scan the configured language's import/include statements — flag imports from forbidden layers
-- MUST ATTENTION verify business logic in correct layer: Entity/Domain > Service/Application > Controller/Component
-- NEVER allow direct infrastructure access from Domain (repo interfaces in Domain, implementations in Persistence)
-- NEVER allow business logic in API/Controller layer
+- Read `docs/project-config.json` → `architectureRules.layerBoundaries` for project-specific rules.
+- Determine layer from file path: Domain/, Application/, Persistence/, Service/.
+- Scan configured language's import/include statements — flag imports from forbidden layers.
+- MUST ATTENTION verify business logic in correct layer: Entity/Domain > Service/Application > Controller/Component.
+- NEVER allow direct infrastructure access from Domain — keep repo interfaces in Domain, implementations in Persistence. — why: Domain depending on infrastructure inverts the dependency rule and couples core logic to a swappable detail.
+- NEVER allow business logic in API/Controller layer — push it down to Entity/Domain or Application.
 
 **Violation format:**
 
@@ -211,36 +238,36 @@ BLOCKED: {layer} layer file {filePath}:{line} imports from {forbiddenLayer} laye
 
 ### Category 2: Message Bus Patterns — Severity: BLOCKED/WARN
 
-**Think:** Does this message correctly name its type (event vs request)? Does it extend the right base class? Is the producer/consumer relationship correctly oriented — does the leader service own the event?
+**Think:** Does this message correctly name its type (event vs request)? Does it extend the right base class? Is producer/consumer relationship correctly oriented — does the leader service own the event?
 
 **Naming (BLOCKED):**
 
-- Event messages and request messages MUST follow the project's bus-message naming convention — encode owning service + feature + action, with a distinct suffix distinguishing event-kind from request-kind messages. Resolve the exact convention and suffixes from `backend-patterns-reference.md`.
-- Grep existing examples in the source for the current stack's message-naming pattern before flagging — codebase convention wins.
+- Event messages + request messages MUST follow project's bus-message naming convention — encode owning service + feature + action, with distinct suffix distinguishing event-kind from request-kind messages. Resolve exact convention + suffixes from `backend-patterns-reference.md`.
+- Grep existing examples in source for current stack's message-naming pattern before flagging — codebase convention wins.
 
-**Base classes (BLOCKED):** Verify against the bus base types named in `backend-patterns-reference.md` (Phase 0); concrete names are illustrative examples.
+**Base classes (BLOCKED):** Verify against bus base types named in `backend-patterns-reference.md` (Phase 0); concrete names are illustrative examples.
 
-- Bus messages MUST extend the project's trackable/payload bus-message base — see `backend-patterns-reference.md`
-- Consumers MUST extend the project's message-bus consumer base — see `backend-patterns-reference.md`
-- Producers MUST extend the project's event-bus-message producer base — see `backend-patterns-reference.md`
+- Bus messages MUST extend project's trackable/payload bus-message base — see `backend-patterns-reference.md`.
+- Consumers MUST extend project's message-bus consumer base — see `backend-patterns-reference.md`.
+- Producers MUST extend project's event-bus-message producer base — see `backend-patterns-reference.md`.
 
 **Upstream/Downstream (BLOCKED):**
 
-- Leader service owns entity data → defines the event message for it
-- Follower services consume events — NEVER produce events about data they don't own
-- NO circular listening: A→B + B→A for same data = boundary violation
-- Consumers MUST implement the project's cross-message dependency-wait primitive for cross-message data dependencies — see `backend-patterns-reference.md`
+- Leader service owns entity data → defines event message for it.
+- Follower services consume events — NEVER produce events about data they don't own. — why: producing events about non-owned data forks the source of truth across services.
+- NO circular listening: A→B + B→A for same data = boundary violation.
+- Consumers MUST implement project's cross-message dependency-wait primitive for cross-message data dependencies — see `backend-patterns-reference.md`.
 
 **Ordered delivery (WARN):**
 
-- Messages requiring ordered processing MUST set the project's ordered-delivery / sub-queue partition key to a meaningful value (resolve the concrete API from `backend-patterns-reference.md`)
-- Unordered messages leave it unset / null
+- Messages requiring ordered processing MUST set project's ordered-delivery / sub-queue partition key to meaningful value (resolve concrete API from `backend-patterns-reference.md`).
+- Unordered messages leave it unset / null.
 
 **Also verify:**
 
-- NEVER direct cross-service DB access — MUST use message bus
-- A last-sync-timestamp field on the message is used for conflict resolution in consumers (resolve the concrete field from `backend-patterns-reference.md`)
-- Inbox/Outbox pattern for reliable delivery (verify the project's inbox/outbox enablement config — see `backend-patterns-reference.md`)
+- NEVER direct cross-service DB access — MUST use message bus. — why: direct DB reach couples services and bypasses ownership boundaries.
+- last-sync-timestamp field on message used for conflict resolution in consumers (resolve concrete field from `backend-patterns-reference.md`).
+- Inbox/Outbox pattern for reliable delivery (verify project's inbox/outbox enablement config — see `backend-patterns-reference.md`).
 
 ---
 
@@ -250,23 +277,23 @@ BLOCKED: {layer} layer file {filePath}:{line} imports from {forbiddenLayer} laye
 
 **File organization (BLOCKED):**
 
-- Command + Result + Handler MUST be in ONE file under the command folder for the feature _(resolve the concrete folder from the project's structure reference / `docs/project-config.json`; e.g. `{command-folder}/{Feature}/`)_
-- Query + Result + Handler MUST be in ONE file under the query folder for the feature _(resolve the concrete folder from the project's structure reference / `docs/project-config.json`; e.g. `{query-folder}/{Feature}/`)_
+- Command + Result + Handler MUST be in ONE file under the command folder for the feature _(resolve concrete folder from project's structure reference / `docs/project-config.json`; e.g. `{command-folder}/{Feature}/`)_
+- Query + Result + Handler MUST be in ONE file under the query folder for the feature _(resolve concrete folder from project's structure reference / `docs/project-config.json`; e.g. `{query-folder}/{Feature}/`)_
 
 **Validation (BLOCKED):**
 
-- MUST use the project's validation-result fluent API — NEVER thrown exceptions for validation; return a validation result — verify the exact type and method names in `backend-patterns-reference.md`
-- Sync validation in the command's validate hook, async in the request-validation hook — see `backend-patterns-reference.md` for hook names
+- MUST use project's validation-result fluent API — NEVER throw exceptions for validation; return validation result instead — verify exact type + method names in `backend-patterns-reference.md`. — why: exceptions for expected-invalid input conflate control flow with errors and skip the validation pipeline.
+- Sync validation in command's validate hook, async in request-validation hook — see `backend-patterns-reference.md` for hook names.
 
 **DTO mapping (BLOCKED):**
 
-- DTOs MUST own entity mapping via the project's DTO base mapping methods — NEVER map in command handlers; see `backend-patterns-reference.md` for the method names
+- DTOs MUST own entity mapping via project's DTO base mapping methods — NEVER map in command handlers; map in the DTO instead — see `backend-patterns-reference.md` for method names.
 
 **Side effects (BLOCKED):**
 
-- NEVER put side effects (notifications, sync, cascade updates) in command handlers
-- Side effects go in Entity Event Handlers under the project's event-handler folder _(resolve from the project's structure reference / `docs/project-config.json`; e.g. `{event-handler-folder}/`)_
-- Each handler = one independent concern (failures don't cascade)
+- NEVER put side effects (notifications, sync, cascade updates) in command handlers — place them in Entity Event Handlers instead. — why: side effects in the handler couple the command to downstream concerns and cascade failures.
+- Side effects go in Entity Event Handlers under project's event-handler folder _(resolve from project's structure reference / `docs/project-config.json`; e.g. `{event-handler-folder}/`)_
+- Each handler = one independent concern (failures don't cascade).
 
 ---
 
@@ -274,9 +301,9 @@ BLOCKED: {layer} layer file {filePath}:{line} imports from {forbiddenLayer} laye
 
 **Think:** Is this using a service-specific repo interface, not the generic one? Are complex queries extracted to RepositoryExtensions?
 
-- MUST use the project's service-specific repository abstraction — NEVER the generic root-repository base directly; the per-service naming scheme is defined in `backend-patterns-reference.md`
-- Complex queries MUST use the project's repository-extension pattern with static expressions _(e.g. `RepositoryExtensions`)_
-- All query filter/FK/sort columns MUST have database indexes
+- MUST use project's service-specific repository abstraction — NEVER the generic root-repository base directly; per-service naming scheme defined in `backend-patterns-reference.md`. — why: the generic base leaks unbounded query surface and erases per-service boundaries.
+- Complex queries MUST use project's repository-extension pattern with static expressions _(e.g. `RepositoryExtensions`)_
+- All query filter/FK/sort columns MUST have database indexes.
 
 **Violation format:**
 
@@ -288,40 +315,40 @@ BLOCKED: {filePath}:{line} uses the generic root-repository base instead of the 
 
 ### Category 5: Service Pattern Era (Legacy vs Modern Split) — Severity: BLOCKED (new services) / WARN (existing)
 
-**Think:** When a project distinguishes legacy vs modern service patterns (e.g., auth scheme, telemetry stack, permission model, language-version syntax), is this a new service (must follow modern) or an existing legacy service (expect legacy patterns)? Is the modern pattern being partially mixed into a legacy service without a full migration?
+**Think:** When project distinguishes legacy vs modern service patterns (e.g., auth scheme, telemetry stack, permission model, language-version syntax), is this a new service (must follow modern) or an existing legacy service (expect legacy patterns)? Is the modern pattern partially mixed into a legacy service without full migration?
 
-**New services — BLOCKED if any legacy-only pattern is used.** Identify the project's modern-pattern checklist from injected reference docs (e.g., `project-structure-reference.md`, ADRs, scaffolding templates) and verify every item.
+**New services — BLOCKED if any legacy-only pattern used.** Identify project's modern-pattern checklist from injected reference docs (e.g., `project-structure-reference.md`, ADRs, scaffolding templates) and verify every item.
 
-**Existing legacy services — WARN if modern patterns are partially mixed without full migration.** Flag legacy patterns only when partial mixing creates inconsistency; in their own consistent context they are expected, not violations.
+**Existing legacy services — WARN if modern patterns partially mixed without full migration.** Flag legacy patterns only when partial mixing creates inconsistency; in their own consistent context they are expected, NOT violations.
 
-**Determining era:** Read the project's reference docs at review time — service-pattern era assignments are project-specific and listed authoritatively there. Do NOT hardcode service names in this skill.
+**Determining era:** Read project's reference docs at review time — service-pattern era assignments are project-specific and listed authoritatively there. NEVER hardcode service names in this skill. — why: hardcoded service names rot the moment the project renames or adds a service, and break portability to other repos.
 
 ---
 
 ### Category 6: Entity Event Handlers — Severity: BLOCKED/WARN
 
-**Think:** Are side effects defined inline in command handlers (wrong) or in the project's event-handler folder (correct)? Does each handler have a single concern?
+**Think:** Are side effects defined inline in command handlers (wrong) or in project's event-handler folder (correct)? Does each handler have a single concern?
 
 **Location (BLOCKED):**
 
-- Entity event handlers MUST be in the project's event-handler folder _(resolve from the project's structure reference / `docs/project-config.json`; e.g. `{event-handler-folder}/`)_
-- NEVER inline side effects in command handlers
+- Entity event handlers MUST be in project's event-handler folder _(resolve from project's structure reference / `docs/project-config.json`; e.g. `{event-handler-folder}/`)_
+- NEVER inline side effects in command handlers — move them to a dedicated entity event handler. — why: inline side effects couple the command to downstream concerns and cascade failures.
 
 **Implementation (BLOCKED):**
 
-- MUST extend the project's entity-event application-handler base — see `backend-patterns-reference.md`
-- MUST implement the CRUD-action filter hook — see `backend-patterns-reference.md` for the hook name
-- One handler = one independent concern
+- MUST extend project's entity-event application-handler base — see `backend-patterns-reference.md`.
+- MUST implement CRUD-action filter hook — see `backend-patterns-reference.md` for hook name.
+- One handler = one independent concern.
 
 **Naming (WARN):**
 
 - Convention: `{Action}On{Trigger}EntityEventHandler`
-- Grep existing examples before flagging
+- Grep existing examples before flagging.
 
 **Producer patterns (BLOCKED):**
 
-- Bus message producers MUST extend the project's event-bus-message producer base — see `backend-patterns-reference.md`
-- MUST implement the message-build and action-filter hooks — see `backend-patterns-reference.md` for hook names
+- Bus message producers MUST extend project's event-bus-message producer base — see `backend-patterns-reference.md`.
+- MUST implement message-build + action-filter hooks — see `backend-patterns-reference.md` for hook names.
 
 ---
 
@@ -329,11 +356,11 @@ BLOCKED: {filePath}:{line} uses the generic root-repository base instead of the 
 
 **Think:** Does any code reach directly into another service's database or project reference? All cross-service data flow MUST go through the message bus.
 
-- NEVER direct DB access to another service's database
-- NEVER `using` reference to another service's domain/persistence project
-- Cross-service communication via message bus only (event bus or request bus)
-- Shared data through shared message projects, not direct references
-- Verify service-to-DB mapping from `project-structure-reference.md`
+- NEVER direct DB access to another service's database — route through the message bus. — why: direct DB reach couples services and bypasses ownership boundaries.
+- NEVER `using` reference to another service's domain/persistence project — depend on shared message contracts instead.
+- Cross-service communication via message bus only (event bus or request bus).
+- Shared data through shared message projects, NOT direct references.
+- Verify service-to-DB mapping from `project-structure-reference.md`.
 
 **Violation format:**
 
@@ -349,14 +376,35 @@ BLOCKED: {filePath}:{line} references {otherService} domain/persistence directly
 
 Verify against `frontend-patterns-reference.md` (Phase 0, frontend files); concrete names are illustrative examples.
 
-- Components MUST extend the project's component base classes (BLOCKED) — see `frontend-patterns-reference.md`
-- State MUST use the project's view-model store + reactive-effect pattern — NEVER manual signals or a direct HTTP client (BLOCKED) — see `frontend-patterns-reference.md`
-- API services MUST extend the project's API-service base (BLOCKED) — see `frontend-patterns-reference.md`
-- All subscriptions MUST use the project's auto-teardown operator — NEVER manual unsubscribe (BLOCKED) — see `frontend-patterns-reference.md`
-- All template elements MUST carry the project's CSS-naming-convention classes (WARN) — see `frontend-patterns-reference.md`
-- Logic in lowest layer: Model > Service > Component (WARN)
+- Components MUST extend project's component base classes (BLOCKED) — see `frontend-patterns-reference.md`.
+- State MUST use project's view-model store + reactive-effect pattern — NEVER manual signals or direct HTTP client (BLOCKED); route state through the store — see `frontend-patterns-reference.md`.
+- API services MUST extend project's API-service base (BLOCKED) — see `frontend-patterns-reference.md`.
+- All subscriptions MUST use project's auto-teardown operator — NEVER manual unsubscribe (BLOCKED). — why: manual unsubscribe is forgotten on early-return paths and leaks subscriptions — see `frontend-patterns-reference.md`.
+- All template elements MUST carry project's CSS-naming-convention classes (WARN) — see `frontend-patterns-reference.md`.
+- Logic in lowest layer: Model > Service > Component (WARN).
 
-> **Boundary with `$review-ui`:** This category owns frontend ARCHITECTURE — base classes, the view-model store / reactive-effect pattern, the API-service base, subscription teardown, layer placement, CSS-naming-class presence. VISUAL/styling quality — long-content overflow, responsive multi-screen flex, flex-vs-fixed sizing, z-index discipline, and SCSS/CSS detail — is owned by `$review-ui`, which `$review-changes` invokes as its UI dimension when frontend changes are present. Flag missing base classes / store / teardown here; defer SCSS-quality depth and visual-layout findings to review-ui to avoid double-reporting.
+> **Boundary with `$review-ui`:** This category owns frontend ARCHITECTURE — base classes, view-model store / reactive-effect pattern, API-service base, subscription teardown, layer placement, CSS-naming-class presence. VISUAL/styling quality — long-content overflow, responsive multi-screen flex, flex-vs-fixed sizing, z-index discipline, SCSS/CSS detail — owned by `$review-ui`, which `$review-changes` invokes as its UI dimension when frontend changes present. Flag missing base classes / store / teardown here; defer SCSS-quality depth + visual-layout findings to review-ui to avoid double-reporting.
+
+---
+
+### Category 9: ADR / Recorded-Decision Conformance (if `docs/adr/**` or recorded ADRs exist) — Severity: BLOCKED/WARN
+
+**Think:** Does any changed file contradict a binding decision recorded in an *accepted* ADR — a rejected library/technology, a forbidden dependency direction, a recorded quality-attribute/NFR budget, a banned pattern — without a superseding ADR?
+
+> This category closes design→review loop: `$architecture-design` emits ADRs + fitness-function choices; this category verifies changed code still conforms to them. Checks CONFORMANCE only — NEVER re-runs deep performance or security analysis (those route to siblings in the Ownership & Handoff matrix).
+
+- Locate recorded decisions: `docs/adr/**` (or ADR location named in project's reference docs). Read only ADRs with `Status: Accepted` — skip `Superseded`/`Proposed`/`Rejected`.
+- Extract each accepted ADR's binding constraints: chosen vs rejected options, layer/dependency rules, NFR targets (latency/throughput/availability/RPO-RTO), banned patterns.
+- Per changed file, check conformance against those constraints — grep the diff for reintroduced rejected options or forbidden references; cite `file:line`.
+- **BLOCKED** when change contradicts an accepted ADR's binding decision and no superseding ADR exists. Correct way to change a recorded decision = new superseding ADR (per `docs/adr/0001` lifecycle), NEVER a silent violation in the diff. — why: silent ADR violations erode the decision record and let rejected options creep back unreviewed.
+- **WARN** when change drifts from a recorded guideline, or is NFR-impacting against a recorded budget — flag it and route depth check to `performance-review`/`security-review`.
+- No ADRs exist → record "No recorded ADRs — conformance N/A" and skip (this category NEVER blocks a project that has chosen not to keep ADRs).
+
+**Violation format:**
+
+```
+BLOCKED: {filePath}:{line} contradicts {adr-id} ("{decision}") with no superseding ADR
+```
 
 ---
 
@@ -418,31 +466,32 @@ Update report with final sections:
 - Entity Event Handlers: {PASS/WARN/BLOCKED}
 - Service Boundaries: {PASS/WARN/BLOCKED}
 - Frontend Architecture: {PASS/WARN/BLOCKED/N/A}
+- ADR / Recorded-Decision Conformance: {PASS/WARN/BLOCKED/N/A}
 ```
 
 ---
 
 ## Architecture Boundary Check (Automated)
 
-For each changed file:
+Per changed file:
 
 1. Read `docs/project-config.json` → `architectureRules.layerBoundaries`
 2. Determine layer — match file path against each rule's `paths` glob patterns
-3. Scan imports — grep for the configured language's import/include statements
+3. Scan imports — grep for configured language's import/include statements
 4. Check violations — import path contains layer name in `cannotImportFrom` = violation
 5. Exclude framework — skip files matching `architectureRules.excludePatterns`
 6. BLOCK on violation: `"BLOCKED: {layer} layer file {filePath} imports from {forbiddenLayer} layer ({importStatement})"`
 
-If `architectureRules` absent from project-config.json: skip silently.
+`architectureRules` absent from project-config.json → skip silently.
 
 ---
 
 ## Systematic Review Protocol (10+ changed files)
 
-1. **Categorize** — Group files by service/layer/concern
-2. **Parallel Sub-Agents** — Launch one `architect` sub-agent per category with architecture-specific checklist
-3. **Synchronize** — Collect findings, cross-reference service boundaries
-4. **Consolidate** — Single holistic report with per-category verdicts
+1. **Categorize** — Group files by service/layer/concern.
+2. **Parallel Sub-Agents** — Launch one `architect` sub-agent per category with architecture-specific checklist.
+3. **Synchronize** — Collect findings, cross-reference service boundaries.
+4. **Consolidate** — Single holistic report with per-category verdicts.
 
 ---
 
@@ -450,20 +499,20 @@ If `architectureRules` absent from project-config.json: skip silently.
 
 > **Purpose:** Adversarial validation of own findings BEFORE handoff. Catches over-flagged Highs, false positives, severity inflation at source rather than letting them propagate downstream.
 
-**Trigger:** Any finding produced (Critical, High, Medium, OR Low). Skip ONLY when the report's verdict is unconditional PASS with literally zero findings.
+**Trigger:** Any finding produced (Critical, High, Medium, OR Low). Skip ONLY when report's verdict is unconditional PASS with literally zero findings.
 
 **Protocol:**
 
 1. Read own finalized report from `plans/reports/{skill}-{date}-{slug}.md`
 2. Invoke `$why-review` skill with arg: `validate findings in plans/reports/{skill}-{date}-{slug}.md — verify each finding has file:line proof, steel-man each rejected interpretation, and stress-test severity classifications`
-3. Read the validation verdict path returned by why-review, expected as `plans/reports/why-review-validate-{date}.md`
-4. **If why-review demotes/removes any finding:** UPDATE own finalized report with revised severities, remove false positives, and add a `## Why-Review Validation Notes` section citing what changed and why
-5. **If why-review confirms all findings:** Append `## Why-Review Validation` line to own report stating "All N findings re-validated against actual code; no severity changes."
+3. Read validation verdict path returned by why-review, expected as `plans/reports/why-review-validate-{date}.md`
+4. **why-review demotes/removes any finding →** UPDATE own finalized report with revised severities, remove false positives, add `## Why-Review Validation Notes` section citing what changed + why.
+5. **why-review confirms all findings →** Append `## Why-Review Validation` line to own report stating "All N findings re-validated against actual code; no severity changes."
 
 **Skip conditions (record explicit reason if skipping):**
 
-- Verdict is unconditional PASS with zero findings → log "Skipped — no findings to validate"
-- Why-review skill itself is the active context (avoid recursion)
+- Verdict unconditional PASS with zero findings → log "Skipped — no findings to validate".
+- Why-review skill itself is active context (avoid recursion).
 
 **Why this exists:** AI sub-agent reports inherit confirmation bias — orchestrator absorbs severity claims as ground truth. The 2026-05-09 review incident produced 5 Highs; adversarial validation demoted 3 of them. Codify as standard practice.
 
@@ -481,11 +530,11 @@ If `architectureRules` absent from project-config.json: skip silently.
 
 Before reporting ANY work done:
 
-1. **Grep every removed name.** Extraction/rename/delete → grep confirms 0 dangling refs across ALL file types
-2. **Ask WHY before changing.** Existing values intentional until proven otherwise — no "fix" without traced rationale
-3. **Verify ALL outputs.** One build passing ≠ all builds passing — check every affected stack
-4. **Evaluate pattern fit.** Copying nearby code? Verify preconditions match — same scope, lifetime, base class, constraints
-5. **New artifact = wired artifact.** Created something? Prove registered, imported, reachable by all consumers
+1. **Grep every removed name.** Extraction/rename/delete → grep confirms 0 dangling refs across ALL file types.
+2. **Ask WHY before changing.** Existing values intentional until proven otherwise — NEVER "fix" without traced rationale.
+3. **Verify ALL outputs.** One build passing ≠ all builds passing — check every affected stack.
+4. **Evaluate pattern fit.** Copying nearby code? Verify preconditions match — same scope, lifetime, base class, constraints.
+5. **New artifact = wired artifact.** Created something? Prove registered, imported, reachable by all consumers.
 
 > **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting. Simple tasks: ask user whether to skip.
 
@@ -518,8 +567,8 @@ Before reporting ANY work done:
 ## Sub-Agent Type Override
 
 > **MANDATORY:** Architecture reviews spawn `architect` sub-agent, NOT `code-reviewer`.
-> Keep `agent_type: "architect"` from the canonical template below, never revert to `code-reviewer`.
-> **Rationale:** `architect` carries cross-service impact analysis, ADR creation, and comprehensive multi-service security/performance context that `code-reviewer` lacks for architecture-level decisions.
+> Keep `agent_type: "architect"` from canonical template below; NEVER revert to `code-reviewer`.
+> **Rationale:** `architect` carries cross-service impact analysis, ADR creation, multi-service security/performance context that `code-reviewer` lacks for architecture-level decisions.
 
 <!-- OVERRIDE:review-protocol-injection -->
 
@@ -1046,7 +1095,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Ensure changes preserve architecture boundaries, ownership, message flow, and generated artifact integrity before handoff.
+**IMPORTANT MUST ATTENTION Goal:** Ensure changes preserve architecture boundaries, ownership, message flow, and generated artifact integrity before handoff — validating changed code against layers, service boundaries, message flow, CQRS, repositories, entity events, frontend architecture, generated artifacts, recorded architecture decisions (ADRs), and quality tooling.
 **MUST ATTENTION** break work into small tasks using task tracking BEFORE starting
 **MUST ATTENTION** read project architecture docs BEFORE reviewing — rules come from docs, not general knowledge
 **MUST ATTENTION** every violation requires `file:line` proof — NEVER speculate

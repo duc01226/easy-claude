@@ -12,6 +12,11 @@
  *   TC-CP-001 — CLAUDE.md carries the workflow routing gate + the
  *               path→reference-doc pointer table (backend/frontend/integration/
  *               e2e/spec/scss rows). Replaces the deleted workflow-router injection.
+ *   TC-CP-008 — CLAUDE.md carries the full workflow SELECTION catalog (Workflows Index
+ *               listing every workflow id from workflows.json) so a hookless read picks
+ *               the right workflow WITHOUT the workflow-router.cjs hook. This is the
+ *               static-bake half of "Claude has no hooks"; the mirrors (AGENTS.md, Copilot)
+ *               bake the same catalog from the same source.
  *   TC-CP-002 — the universal subagent-bootstrap phrases are present in a
  *               representative sample of agents (one code, one non-code).
  *   TC-CP-003 — agent-code-standards (dev-rules + pattern docs) is present in a
@@ -77,6 +82,28 @@ module.exports = {
                 }
                 assertTrue(missing.length === 0,
                     `CLAUDE.md missing relocated routing guidance:\n  ${missing.join('\n  ')}`);
+            },
+        },
+        {
+            name: '[content-presence] TC-CP-008 CLAUDE.md carries the full workflow selection catalog (hook-independent)',
+            fn: () => {
+                const claudeMd = readFile(path.resolve(PROJECT_DIR, 'CLAUDE.md'));
+                const workflowsDoc = JSON.parse(
+                    readFile(path.resolve(PROJECT_DIR, '.claude', 'workflows.json'))
+                );
+                const ids = Object.keys(workflowsDoc.workflows || {});
+                const missing = [];
+                // The Workflows Index heading — proves the selection catalog (not just the
+                // skills-only table) is statically baked into CLAUDE.md.
+                if (!/###\s+Workflows Index \(\d+\)/.test(claudeMd)) {
+                    missing.push('Workflows Index heading (### Workflows Index (N))');
+                }
+                // Every workflow id must be selectable from the file alone — no hook required.
+                for (const id of ids) {
+                    if (!claudeMd.includes(`\`${id}\``)) missing.push(`workflow row for ${id}`);
+                }
+                assertTrue(missing.length === 0,
+                    `CLAUDE.md missing the hook-independent workflow selection catalog:\n  ${missing.join('\n  ')}`);
             },
         },
         {

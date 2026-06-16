@@ -17,6 +17,13 @@ description: '[Planning] Use when you need to validate a plan with critical ques
 
 **Goal:** Force every assumption-laden plan decision and every preservation-critical behavior through explicit user confirmation BEFORE implementation — by interviewing the user with critical questions that validate assumptions and surface issues — so no unstated assumption silently reaches code.
 
+**Summary:**
+
+- Classify the plan first (Phase 0: bugfix/feature/migration/refactor/other) — the type weights which question categories fire, and any fix/bug/regression/broken/defect keyword makes the Preservation question BLOCKING (never skip it).
+- The output is a real `AskUserQuestion` interview, not a self-answer: honor the `questions` MIN-MAX range from `## Plan Context`, give 2-4 concrete options per question, and treat the Preservation "Unsure" answer as BLOCKED → route to `/plan`.
+- If the plan introduces new tech/packages, you MUST probe whether alternatives were evaluated before accepting the choice.
+- Persist results by adding only a `## Validation Summary` (confirmed decisions + action items) to `plan.md` — NEVER edit phase files; close by offering implement/refine/skip via `AskUserQuestion`.
+
 **Workflow:**
 
 1. **Detect Plan Type** — Classify plan (bugfix/feature/migration/refactor) to weight question categories

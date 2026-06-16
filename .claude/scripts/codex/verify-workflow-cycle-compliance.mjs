@@ -109,7 +109,6 @@ const GOAL_CONTRACT_REVIEW_SKILL_IDS = [
   "why-review",
   "plan-review",
   "code-review",
-  "review-post-task",
 ];
 
 // Workflow wrappers + verification/audit surfaces (Phases 05-06). The planned

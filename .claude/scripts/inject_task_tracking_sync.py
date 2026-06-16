@@ -33,7 +33,6 @@ SKILL_NAMES = [
     "review-artifact",
     "review-changes",
     "review-domain-entities",
-    "review-post-task",
     "production-readiness-review",
     "why-review",
     "workflow-review-changes",

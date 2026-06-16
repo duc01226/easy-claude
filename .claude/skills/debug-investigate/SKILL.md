@@ -17,6 +17,13 @@ description: '[Fix & Debug] Use when investigating a bug''s root cause — repro
 
 **Goal:** Deliver a `/why-review`-validated root cause pinned to `file:line` at the invariant-owning layer — investigation-only, so `/fix` corrects the cause, not the symptom — or an honest "hypothesis, not confirmed" naming the evidence gaps.
 
+**Summary:**
+
+- This is investigation-ONLY — never patch here; classify the bug type FIRST (Phase 0, BLOCKING) to route to the right agent and decide which evidence matters before tracing anything.
+- Trace end-to-start: name Frame 0 (observed final state), walk backward reader → storage/projection → writer → consumer/job → producer, and enumerate ALL feeder paths — the bug enters where bad state is WRITTEN, not where it crashes.
+- Every root-cause claim carries `Confidence: X%` + `file:line` proof; below 60% you report "hypothesis, not confirmed" with named evidence gaps, never a guess.
+- The `/why-review` gate is non-negotiable: run it in the SAME session/main agent before declaring confirmed; 2 rounds without passing → STOP and escalate via `AskUserQuestion`. Run a graph trace when `graph.db` exists — it surfaces bus/event consumers grep cannot see.
+
 **Workflow:**
 
 1. **Classify** — Detect bug scenario type (Phase 0) → route to specialized agent

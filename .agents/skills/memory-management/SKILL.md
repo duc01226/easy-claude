@@ -1,6 +1,6 @@
 ---
 name: memory-management
-description: '[Utilities] Use when saving or retrieving important patterns, decisions, and learnings across sessions.'
+description: '[Utilities] Use when saving or recovering task progress across sessions via file checkpoints — especially before context compaction.'
 disable-model-invocation: true
 ---
 
@@ -42,38 +42,28 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Persist patterns, decisions, and task progress across sessions using two complementary memory systems.
+**Goal:** Persist task progress across sessions using file-based checkpoints so work survives context loss and compaction.
 
 **Workflow:**
 
 1. **File Checkpoints** — Save task-specific context to `plans/reports/checkpoint-*.md` every 30-60 min
-2. **MCP Memory Graph** — Store reusable knowledge (patterns, decisions, bug fixes) as typed entities with relations
-3. **Recovery** — On context loss, find latest checkpoint via Glob, read it, resume from documented next steps
+2. **Recovery** — On context loss, find latest checkpoint via Glob, read it, resume from documented next steps
 
 **Key Rules:**
 
-- Use file checkpoints for task-specific progress; MCP memory for cross-session knowledge
 - Create checkpoints before expected context compaction and at key milestones
 - Always include Recovery Instructions in checkpoint files
+- Checkpoints are file-based and permanent; create them with `$checkpoint`, restore with `$recover`
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
-# Memory Management & Knowledge Persistence
+# Memory Management & Task Continuity
 
-Build and maintain a knowledge graph of patterns, decisions, and learnings across sessions. Also provides external file-based checkpoints for long-running tasks.
-
-## Two Memory Systems
-
-| System               | Storage                  | Use Case                       | Persistence     |
-| -------------------- | ------------------------ | ------------------------------ | --------------- |
-| **MCP Memory Graph** | In-memory graph database | Patterns, decisions, learnings | Cross-session   |
-| **File Checkpoints** | `plans/reports/*.md`     | Task progress, analysis        | Permanent files |
-
-Use MCP Memory for **reusable knowledge**. Use File Checkpoints for **task-specific context**.
+Provide external file-based checkpoints for long-running tasks so progress, findings, and next steps survive context loss and compaction.
 
 ---
 
-## Part 1: File-Based External Memory (Checkpoints)
+## File-Based External Memory (Checkpoints)
 
 ### When to Create File Checkpoints
 
@@ -143,301 +133,13 @@ When recovering from a checkpoint:
 5. Continue from documented Next Steps
 6. Create new checkpoint after resuming
 
-### Auto-Checkpoint (PreCompact Hook)
+### Checkpoint Before Compaction (manual — no auto hook)
 
-The system automatically creates checkpoints before context compaction. These auto-checkpoints are minimal - for better context preservation, create manual checkpoints using `$checkpoint`.
-
----
-
-## Part 2: MCP Memory Graph (Knowledge Persistence)
+There is **no** automatic PreCompact checkpoint hook. Before a long task that risks compaction, create a checkpoint manually with `$checkpoint`. On resume, static `CLAUDE.md` / `SKILL.md` re-read plus `$recover` over the on-disk checkpoint restores context.
 
 ---
 
-## Memory Entity Types
-
-| Entity Type       | Purpose                                | Examples                       |
-| ----------------- | -------------------------------------- | ------------------------------ |
-| `Pattern`         | Recurring code patterns                | CQRS, Validation, Repository   |
-| `Decision`        | Architectural/design decisions         | Why we chose X over Y          |
-| `BugFix`          | Bug solutions for future reference     | Race condition fixes           |
-| `ServiceBoundary` | Service ownership and responsibilities | Sales owns Orders              |
-| `SessionSummary`  | End-of-session progress snapshots      | Task progress, next steps      |
-| `Dependency`      | Cross-service dependencies             | Sales depends on Identity      |
-| `AntiPattern`     | Patterns to avoid                      | Don't call side effects in cmd |
-
----
-
-## Memory Operations
-
-### Create New Entity
-
-```javascript
-mcp__memory__create_entities([
-    {
-        name: 'OrderValidationPattern',
-        entityType: 'Pattern',
-        observations: [
-            'Use project validation fluent API (see docs/project-reference/backend-patterns-reference.md)',
-            'Chain with .And() and .AndAsync()',
-            "Return validation result, don't throw",
-            'Location: the application-layer command folder (per project structure reference)'
-        ]
-    }
-]);
-```
-
-### Create Relationships
-
-```javascript
-mcp__memory__create_relations([
-    {
-        from: 'ServiceA',
-        to: 'ServiceB',
-        relationType: 'depends_on'
-    },
-    {
-        from: 'OrderEntity',
-        to: 'UserEntity',
-        relationType: 'syncs_from'
-    }
-]);
-```
-
-### Add Observations
-
-```javascript
-mcp__memory__add_observations([
-    {
-        entityName: 'OrderValidationPattern',
-        contents: [
-            'Also supports .AndNot() for negative validation',
-            'Use .Of<ICqrsRequest>() for type conversion (see docs/project-reference/backend-patterns-reference.md)'
-        ]
-    }
-]);
-```
-
-### Search Knowledge
-
-```javascript
-// Search by query
-mcp__memory__search_nodes({ query: 'validation pattern' });
-
-// Open specific entities
-mcp__memory__open_nodes({
-    names: ['OrderValidationPattern', 'ServiceAModule']
-});
-
-// Read entire graph
-mcp__memory__read_graph();
-```
-
-### Delete Outdated Knowledge
-
-```javascript
-// Delete entities
-mcp__memory__delete_entities({ entityNames: ['OutdatedPattern'] });
-
-// Delete specific observations
-mcp__memory__delete_observations([
-    {
-        entityName: 'OrderValidationPattern',
-        observations: ['Outdated observation text']
-    }
-]);
-
-// Delete relations
-mcp__memory__delete_relations([
-    {
-        from: 'OldService',
-        to: 'NewService',
-        relationType: 'depends_on'
-    }
-]);
-```
-
----
-
-## When to Save to Memory
-
-### Always Save
-
-1. **Discovered Patterns**: New code patterns not in documentation
-2. **Bug Solutions**: Complex bugs with non-obvious solutions
-3. **Service Boundaries**: Which service owns what
-4. **Architectural Decisions**: Why a particular approach was chosen
-5. **Anti-Patterns**: Mistakes to avoid
-
-### Save at Session End
-
-```javascript
-// Session summary template
-mcp__memory__create_entities([
-    {
-        name: `Session_${taskName}_${date}`,
-        entityType: 'SessionSummary',
-        observations: [
-            `Task: ${taskDescription}`,
-            `Completed: ${completedItems.join(', ')}`,
-            `Remaining: ${remainingItems.join(', ')}`,
-            `Key Files: ${keyFiles.join(', ')}`,
-            `Discoveries: ${discoveries.join(', ')}`,
-            `Next Steps: ${nextSteps.join(', ')}`
-        ]
-    }
-]);
-```
-
----
-
-## Memory Retrieval Patterns
-
-### Session Start Protocol
-
-```javascript
-// 1. Search for related context
-const results = mcp__memory__search_nodes({
-    query: 'current feature or task keywords'
-});
-
-// 2. Load relevant entities
-mcp__memory__open_nodes({
-    names: results.entities.map(e => e.name)
-});
-
-// 3. Check for incomplete sessions
-mcp__memory__search_nodes({ query: 'SessionSummary Remaining' });
-```
-
-### Before Implementation
-
-```javascript
-// Check for existing patterns
-mcp__memory__search_nodes({ query: 'CQRS command pattern' });
-
-// Check for anti-patterns
-mcp__memory__search_nodes({ query: 'AntiPattern command' });
-
-// Check for related decisions
-mcp__memory__search_nodes({ query: 'Decision validation' });
-```
-
-### After Bug Fix
-
-```javascript
-// Save the fix
-mcp__memory__create_entities([
-    {
-        name: `BugFix_${bugName}`,
-        entityType: 'BugFix',
-        observations: [
-            `Symptom: ${symptomDescription}`,
-            `Root Cause: ${rootCause}`,
-            `Solution: ${solution}`,
-            `Files: ${affectedFiles.join(', ')}`,
-            `Prevention: ${preventionTip}`
-        ]
-    }
-]);
-```
-
----
-
-## Knowledge Graph Structure
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     Project Knowledge                       │
-├─────────────────────────────────────────────────────────────┤
-│  Services                                                   │
-│  ├── ServiceA ──depends_on──> AccountsService               │
-│  ├── ServiceB ──depends_on──> AccountsService               │
-│  └── ServiceC ──depends_on──> AccountsService               │
-│                                                             │
-│  Patterns                                                   │
-│  ├── CQRSCommandPattern                                     │
-│  ├── CQRSQueryPattern                                       │
-│  ├── EntityEventPattern                                     │
-│  └── ValidationPattern                                      │
-│                                                             │
-│  Entities                                                   │
-│  ├── Order ──syncs_from──> User                             │
-│  ├── Customer ──syncs_from──> Account                       │
-│  └── Return ──owned_by──> ServiceA                          │
-│                                                             │
-│  Sessions                                                   │
-│  ├── Session_Return_2025-01-15                              │
-│  └── Session_OrderImport_2025-01-14                         │
-└─────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Importance Scoring
-
-When saving observations, prioritize:
-
-| Score | Criteria                                    |
-| ----- | ------------------------------------------- |
-| 10    | Critical bug fixes, security issues         |
-| 8-9   | Architectural decisions, service boundaries |
-| 6-7   | Code patterns, best practices               |
-| 4-5   | Session summaries, progress notes           |
-| 1-3   | Temporary notes, exploration results        |
-
----
-
-## Memory Maintenance
-
-### Weekly Cleanup
-
-```javascript
-// Find old session summaries (> 30 days)
-mcp__memory__search_nodes({ query: 'SessionSummary' });
-
-// Delete outdated sessions
-mcp__memory__delete_entities({
-    entityNames: ['Session_OldTask_2024-12-01']
-});
-```
-
-### Consolidation
-
-When multiple observations cover same topic:
-
-```javascript
-// 1. Read existing entity
-mcp__memory__open_nodes({ names: ['PatternName'] });
-
-// 2. Delete fragmented observations
-mcp__memory__delete_observations([
-    {
-        entityName: 'PatternName',
-        observations: ['Fragment 1', 'Fragment 2']
-    }
-]);
-
-// 3. Add consolidated observation
-mcp__memory__add_observations([
-    {
-        entityName: 'PatternName',
-        contents: ['Consolidated comprehensive observation']
-    }
-]);
-```
-
----
-
-## Quick Reference
-
-**Create**: `mcp__memory__create_entities` / `mcp__memory__create_relations`
-**Read**: `mcp__memory__read_graph` / `mcp__memory__open_nodes` / `mcp__memory__search_nodes`
-**Update**: `mcp__memory__add_observations`
-**Delete**: `mcp__memory__delete_entities` / `mcp__memory__delete_observations` / `mcp__memory__delete_relations`
-
----
-
-## Part 3: Integration with Workflows
+## Integration with Workflows
 
 ### Long-Running Task Memory Pattern
 
@@ -455,19 +157,16 @@ All long-running workflows should follow this pattern:
 │                                                          │
 │ MILESTONE REACHED                                         │
 │   └── Create detailed checkpoint                         │
-│   └── Save key findings to MCP memory (if reusable)      │
 │                                                          │
-│ BEFORE COMPACTION (auto via PreCompact hook)             │
-│   └── Auto-checkpoint created by system                  │
+│ BEFORE COMPACTION (no auto hook - $checkpoint)           │
+│   └── Create a checkpoint manually                       │
 │                                                          │
 │ AFTER COMPACTION / SESSION RESUME                        │
 │   └── Read latest checkpoint                             │
-│   └── Search MCP memory for relevant context             │
 │   └── Continue from documented Next Steps                │
 │                                                          │
 │ TASK COMPLETE                                             │
 │   └── Final checkpoint with summary                      │
-│   └── Save reusable patterns to MCP memory               │
 │   └── Clean up temporary checkpoints                     │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -481,7 +180,7 @@ All long-running workflows should follow this pattern:
 | Analysis notes    | `{type}-{date}-{slug}.md`                   | `analysis-250106-payment-flow.md`      |
 | Task notes        | `.ai/workspace/analysis/{slug}.analysis.md` | Used by feature                        |
 
-> **Legacy back-read:** checkpoints written before grammar unification — `memory-checkpoint-*.md`, or `checkpoint-{YYMMDD}-{HHMM}-{slug}.md` without seconds — are still discovered by `$recover` and the resume hooks (`session-resume.cjs`, `post-compact-recovery.cjs`). No on-disk checkpoint is orphaned by the rename.
+> **Legacy back-read:** checkpoints written before grammar unification — `memory-checkpoint-*.md`, or `checkpoint-{YYMMDD}-{HHMM}-{slug}.md` without seconds — are still discovered by `$recover`. No on-disk checkpoint is orphaned by the rename. (`$recover` is the sole discoverer — recovery is skill-driven.)
 
 ### Related Commands & Skills
 
@@ -494,17 +193,6 @@ All long-running workflows should follow this pattern:
 | `workflow-feature`                | Uses task analysis notes pattern    |
 | `debug-investigate`      | Uses investigation logs             |
 | `investigate`  | Uses analysis report pattern        |
-
-### Memory Decision Matrix
-
-| Context Type            | Storage         | Why                      |
-| ----------------------- | --------------- | ------------------------ |
-| Task progress           | File checkpoint | Specific to current task |
-| Code patterns           | MCP memory      | Reusable across sessions |
-| Bug solutions           | MCP memory      | Helps future debugging   |
-| Service boundaries      | MCP memory      | Architectural knowledge  |
-| Investigation findings  | File checkpoint | Task-specific analysis   |
-| Architectural decisions | MCP memory      | Long-term knowledge      |
 
 ## Related
 

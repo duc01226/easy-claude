@@ -17,6 +17,13 @@ description: '[Research] Use when starting a web research task — discover, gat
 
 **Goal:** Execute broad web search on a topic, collect and classify sources, and produce a tiered, deduplicated source map plus a gap list — the triaged candidate-source feedstock that `deep-research` dives into next — NOT a final research report.
 
+**Summary:**
+
+- Hard-cap fan-out at 10 `WebSearch` calls per invocation — generate 5-10 angle-varied queries (overview, current-state, comparison, data, expert, criticism) and stop searching at the cap; this is breadth-then-triage, not deep-dive.
+- Classify every result into Tier 1-4 (.gov/.edu/official > industry reports > established blogs/Wikipedia > forums/social) and dedupe by URL/syndicated content before it counts as a source.
+- The deliverable is the intermediate source map at `.claude/tmp/_sources-{slug}.md` (sources table + Gaps Identified), NOT a synthesized report — hand it off to `deep-research`.
+- Mine the source set for gaps (missing perspectives, missing quantitative data, stale recency) so the next step knows what to dig deeper on.
+
 **Workflow:**
 
 1. **Define scope** — Parse topic, generate 5-10 search queries from varied angles

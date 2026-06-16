@@ -43,6 +43,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Ensure knowledge artifacts are evidence-backed, complete, protocol-compliant, and safe to use for decisions — reviewing for quality, completeness, citation accuracy, and template compliance.
 
+**Summary:**
+
+- READ-ONLY audit across 7 checklists (template compliance, citation audit, confidence accuracy, source quality, knowledge gaps, cross-validation, actionability) — verify presence AND quality depth, never just that a section exists.
+- Default to SKEPTIC: run the Anti-Bias Gate before any verdict — find a contradicting source per major claim, stress-test every score ≥80%, state the strongest alternative conclusion, check supporting-vs-contradicting source ratio, run a pre-mortem, and argue the opposite verdict in 2+ sentences.
+- Calibrate confidence to evidence: a single source ≠ 80%, scores >80% need 2+ independent sources with contradicting evidence addressed, single-source claims marked unverified must be <60%, and findings <60% must be flagged prominently.
+- Emit PASS/WARN/FAIL with per-check status and a verdict (APPROVED/REVISE/BLOCKED); a clean Round 1 ENDS the review, while any finding triggers validate → fix → full re-review until zero issues.
+
 **Workflow:**
 
 1. **Read artifact** — Load the knowledge report/course/strategy

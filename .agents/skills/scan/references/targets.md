@@ -2,7 +2,7 @@
 
 > The `$scan --target=<key>` host (`../SKILL.md`) loads ONE entry from this file per run. Each entry is the single source of truth for that scan: doc path, sub-agent count + roles, Phase-0 detection tables, verbatim sub-agent Think scopes, output Target Sections, Content-Rule exceptions, target-unique Special slivers, and the target-specific Anti-Rationalization rows. The shared 4-phase engine + SYNC blocks live ONCE in the host body — this manifest carries only the per-target DATA.
 
-**Valid keys:** `project-structure` · `backend-patterns` · `frontend-patterns` · `scss-styling` · `design-system` · `code-review-rules` · `domain-entities` · `feature-spec` · `docs-index` · `e2e-tests` · `integration-tests`
+**Valid keys:** `project-structure` · `backend-patterns` · `frontend-patterns` · `scss-styling` · `design-system` · `code-review-rules` · `domain-entities` · `feature-spec` · `docs-index` · `e2e-tests` · `integration-tests` · `seed-test-data` · `ui-system`
 
 **Confidence vocab note:** most targets use sub-agent confidence tiers `>80% document / 60-80% "observed (unverified)" / <60% omit`. `code-review-rules` instead classifies rules HIGH / MEDIUM / LOW. `domain-entities` uses %-based thresholds. Honor the per-entry vocab.
 

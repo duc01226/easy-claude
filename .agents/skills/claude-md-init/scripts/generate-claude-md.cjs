@@ -26,6 +26,21 @@ const GATE_BLOCK_RE = /<!-- CK:WORKFLOW-GATE -->[\s\S]*?<!-- \/CK:WORKFLOW-GATE 
 // Stamped right after the gate so CLAUDE.md carries the same workflow/skill catalog the
 // hookless Codex/Copilot mirrors get. The block is idempotently strip-and-restamped.
 const SKILLS_BLOCK_RE = /<!-- CK:WORKFLOW-SKILLS -->[\s\S]*?<!-- \/CK:WORKFLOW-SKILLS -->/g;
+// Full always-on protocol blocks (critical-thinking + ai-mistake-prevention) baked into CLAUDE.md
+// at BOTH top (after the catalog — strong primacy) and bottom (recency anchor) so a hookless
+// read of CLAUDE.md reaches the same protocol the Claude post-compact hook injects. Build-source
+// is the canonical markdown (sync-inline-versions.md `:full`), read via the shared parser — the
+// generator never couples to hooks/lib. Marker-wrapped so the bake is idempotently strip-and-restamped
+// here, deduped from the AGENTS.md CLAUDE-mirror by sync-context-workflows.mjs, and located by the
+// Phase 04 freshness verifiers.
+const SYNC_INLINE_PATH = path.join(__dirname, '..', '..', 'shared', 'sync-inline-versions.md');
+const CK_CRIT_OPEN = '<!-- CK:CRITICAL-THINKING -->';
+const CK_CRIT_CLOSE = '<!-- /CK:CRITICAL-THINKING -->';
+const CK_AIMP_OPEN = '<!-- CK:AI-MISTAKE-PREVENTION -->';
+const CK_AIMP_CLOSE = '<!-- /CK:AI-MISTAKE-PREVENTION -->';
+const CK_CRIT_BLOCK_RE = /<!-- CK:CRITICAL-THINKING -->[\s\S]*?<!-- \/CK:CRITICAL-THINKING -->/g;
+const CK_AIMP_BLOCK_RE = /<!-- CK:AI-MISTAKE-PREVENTION -->[\s\S]*?<!-- \/CK:AI-MISTAKE-PREVENTION -->/g;
+
 // Inline fallback keeps the generator portable if the shared file is absent in a partial install.
 const WORKFLOW_GATE_FALLBACK = `${GATE_OPEN}
 
@@ -67,25 +82,68 @@ function loadWorkflowGate() {
 }
 
 /**
- * Build the CK:WORKFLOW-SKILLS block (composable step-skills index only) from
+ * Build the CK:WORKFLOW-SKILLS block (Workflows Index + composable step-skills index) from
  * workflows.json. Returns '' if the shared builder is unavailable so CLAUDE.md generation
  * never fails on a partial install (the gate alone still stamps).
  *
- * Skills-only by design: Claude receives the full 17-workflow catalog LIVE on every prompt
- * via the workflow-router.cjs hook (richer — adds "Not for" + detection instructions +
- * active-workflow state, recency-managed). Re-stamping that same workflows index statically
- * here is pure duplication for the one runtime (Claude) that reads CLAUDE.md. The composable
- * step-skills table is NOT hook-injected, so it stays. The hookless mirrors derive their own
- * catalogs independently from workflows.json (AGENTS.md via sync-context-workflows.mjs which
- * strips this CK block and regenerates; Copilot via sync-copilot-workflows.cjs), so this
- * narrowing does not touch them.
+ * Hook-independent by design: CLAUDE.md is authored AS IF Claude has no hooks, so the full
+ * workflow SELECTION catalog is baked statically here — the Workflows Index (id, when-to-use,
+ * steps for every workflow) plus the composable step-skills table. No runtime hook
+ * re-injects this catalog at runtime — this static bake is the sole, self-contained source:
+ * the ability to pick the right workflow from this file ALONE never depends on any hook. This
+ * keeps CLAUDE.md at information parity with the hookless mirrors, which bake the same
+ * selection catalog independently from workflows.json (AGENTS.md via sync-context-workflows.mjs,
+ * which strips this CK block from the CLAUDE mirror and regenerates its own Codex-native copy;
+ * Copilot via sync-copilot-workflows.cjs). Per-workflow EXECUTION protocol is intentionally NOT
+ * baked here — it is loaded on demand by the start-workflow skill (available to every harness),
+ * keeping the always-on context lean. Single source of truth for all three surfaces:
+ * .claude/scripts/lib/workflow-skills-catalog.cjs over .claude/workflows.json.
  */
 function loadWorkflowSkillsCatalog() {
     try {
         const { buildWorkflowSkillsCatalog, CK_SKILLS_START, CK_SKILLS_END } = require('../../../scripts/lib/workflow-skills-catalog.cjs');
-        const body = buildWorkflowSkillsCatalog({ rootDir: PROJECT_DIR, sections: ['skills'] });
+        const body = buildWorkflowSkillsCatalog({ rootDir: PROJECT_DIR, sections: ['workflows', 'skills'] });
         return `${CK_SKILLS_START}\n${body}\n${CK_SKILLS_END}`;
     } catch {
+        return '';
+    }
+}
+
+/**
+ * Build the marker-wrapped full-protocol blocks (critical-thinking + ai-mistake-prevention)
+ * from the canonical source via the shared SYNC parser. Returns ONE string carrying both
+ * marker-wrapped blocks (used identically at top and bottom), or '' when the source/blocks are
+ * unavailable so CLAUDE.md generation never fails on a partial install (gate + catalog still stamp).
+ *
+ * Approach C: the generator reads canonical `:full` markdown — it does NOT import hooks/lib.
+ * `prompt-injections.cjs` stays the runtime-only emitter for Claude's post-compact hook, pinned
+ * to this same canonical text by the Phase 04 verifier (P1/P2). The shared parser normalizes CRLF,
+ * so the bake is correct regardless of the working-tree checkout's line endings.
+ */
+function loadFullProtocolBlocks() {
+    try {
+        const { extractSyncBody } = require('../../../scripts/lib/extract-sync-block.cjs');
+        const md = fs.readFileSync(SYNC_INLINE_PATH, 'utf-8');
+        const crit = extractSyncBody(md, 'critical-thinking-mindset:full');
+        const aimp = extractSyncBody(md, 'ai-mistake-prevention:full');
+        if (!crit || !aimp) {
+            // Fail LOUD, not silent: a missing/partial canonical source must not let the
+            // generator ship a protocol-less file as "complete" (the sentinel is gated on
+            // protocol availability via sentinelJustified()). Warn so the gap is visible.
+            console.error(
+                '[WARN] Shared protocol source incomplete — critical-thinking/ai-mistake-prevention :full block(s) ' +
+                    `not found in ${SYNC_INLINE_PATH}. CLAUDE.md will NOT be stamped complete until this is restored.`
+            );
+            return '';
+        }
+        const critBlock = `${CK_CRIT_OPEN}\n\n${crit}\n\n${CK_CRIT_CLOSE}`;
+        const aimpBlock = `${CK_AIMP_OPEN}\n\n${aimp}\n\n${CK_AIMP_CLOSE}`;
+        return `${critBlock}\n\n${aimpBlock}`;
+    } catch (err) {
+        console.error(
+            `[WARN] Shared protocol source unavailable (${err && err.message ? err.message : err}). ` +
+                'CLAUDE.md will NOT be stamped complete until the canonical :full blocks are readable.'
+        );
         return '';
     }
 }
@@ -97,7 +155,7 @@ const SECTION_CLOSE = /^<!-- \/SECTION:(\S+) -->$/;
 // The agent-files bootstrap gate reads this to tell a complete file from a project-only
 // one. MUST match agent-files-state.cjs UNIVERSAL_GUIDES_VERSION / SENTINEL_RE — the
 // agent-files-gate.test.cjs sync test enforces the lockstep.
-const UNIVERSAL_GUIDES_VERSION = 3;
+const UNIVERSAL_GUIDES_VERSION = 4;
 const SENTINEL = `<!-- CK:UNIVERSAL-GUIDES v${UNIVERSAL_GUIDES_VERSION} -->`;
 const SENTINEL_RE = /<!--\s*CK:UNIVERSAL-GUIDES\s+v(\d+)\s*-->/i;
 // Static portable-guide headings the universal section always ships. MUST match
@@ -117,19 +175,38 @@ function hasGuides(text) {
     return REQUIRED_ANCHORS.every(re => re.test(text));
 }
 
+// Markers wrapping the baked shared-protocol blocks. The sentinel (v4+) is a promise that
+// BOTH the prose guides AND the shared hookless protocol are present, so it may only be
+// stamped when the protocol blocks are actually in the file — mirrors the agent-files gate
+// completeness contract (agent-files-state.cjs hasClaudeProtocol) so generator and gate agree.
+const CK_PROTOCOL_PRESENT_RES = [/<!--\s*CK:CRITICAL-THINKING\s*-->/i, /<!--\s*CK:AI-MISTAKE-PREVENTION\s*-->/i];
+
+function hasProtocolBlocks(text) {
+    return CK_PROTOCOL_PRESENT_RES.every(re => re.test(text));
+}
+
+// True only when the universal-guides sentinel is justified: prose guides present AND the
+// shared protocol either already baked into `text` OR available to be baked now. Binding the
+// sentinel to protocol availability is what stops a protocol-less file from shipping as
+// "complete" when the canonical `:full` source failed to load (loadFullProtocolBlocks → '').
+function sentinelJustified(text) {
+    if (!hasGuides(text)) return false;
+    return hasProtocolBlocks(text) || loadFullProtocolBlocks() !== '';
+}
+
 /**
  * Ensure the sentinel state matches the actual content (idempotent).
- * The sentinel asserts "universal guides present", so it is stamped ONLY when the
- * guides are really in `content`; when they are absent the sentinel is stripped
- * (never stamped) so the bootstrap gate keeps flagging the file as incomplete
- * instead of being fooled by a promise the content does not keep.
- *   - guides present + no/old sentinel  → stamp current-version sentinel at the top
- *   - guides present + current sentinel → normalize in place (idempotent)
- *   - guides absent                     → strip any stale/false sentinel, no stamp
+ * The sentinel asserts "universal guides AND shared protocol present", so it is stamped ONLY
+ * when sentinelJustified() holds; otherwise any stale/false sentinel is stripped so the
+ * bootstrap gate keeps flagging the file incomplete instead of being fooled by a promise the
+ * content does not keep.
+ *   - justified + no/old sentinel  → stamp current-version sentinel at the top
+ *   - justified + current sentinel → normalize in place (idempotent)
+ *   - not justified                → strip any stale/false sentinel, no stamp
  */
 function ensureSentinel(content) {
     const text = content.replace(/^﻿/, '');
-    if (!hasGuides(text)) {
+    if (!sentinelJustified(text)) {
         return text.replace(SENTINEL_RE, '').replace(/^\n+/, '');
     }
     if (SENTINEL_RE.test(text)) {
@@ -147,21 +224,42 @@ function ensureSentinel(content) {
  */
 function stampHeader(content) {
     let text = ensureSentinel(content);
+    // Strip every managed block (gate, skills catalog, AND both protocol blocks — top + bottom
+    // copies via the global regexes) so re-stamping is idempotent and the EOF footer copy is
+    // removed here before stampFooter() re-appends a single fresh one.
     text = text
         .replace(GATE_BLOCK_RE, '')
         .replace(SKILLS_BLOCK_RE, '')
+        .replace(CK_CRIT_BLOCK_RE, '')
+        .replace(CK_AIMP_BLOCK_RE, '')
         .replace(/^\n+/, '')
         .replace(/\n{3,}/g, '\n\n');
     if (!hasGuides(text)) return text;
     const gate = loadWorkflowGate();
     const skills = loadWorkflowSkillsCatalog();
-    const header = skills ? `${gate}\n\n${skills}` : gate;
+    const protocol = loadFullProtocolBlocks();
+    // Order: gate (#1 primacy) → workflow/skills catalog → full protocol (still within the first
+    // screenful). The route-gate must stay the first stamped block; protocol never precedes it.
+    let header = skills ? `${gate}\n\n${skills}` : gate;
+    if (protocol) header = `${header}\n\n${protocol}`;
     const m = text.match(SENTINEL_RE);
     if (m) {
         const at = text.indexOf(m[0]) + m[0].length;
         return `${text.slice(0, at)}\n\n${header}\n\n${text.slice(at).replace(/^\n+/, '')}`;
     }
     return `${header}\n\n${text}`;
+}
+
+/**
+ * Append the full-protocol blocks at EOF as the recency anchor (Primacy-Recency: the same
+ * critical rules at top AND bottom survive long context windows). Composed as
+ * `stampFooter(stampHeader(content))` at the write sites — stampHeader has already stripped any
+ * prior footer copy, so this appends exactly one. No-op when the protocol source is unavailable.
+ */
+function stampFooter(content) {
+    const protocol = loadFullProtocolBlocks();
+    if (!protocol) return content;
+    return `${content.replace(/\s+$/, '')}\n\n${protocol}\n`;
 }
 
 /**
@@ -352,11 +450,33 @@ function populateTemplate(template, sections) {
     return output.join('\n');
 }
 
-function updateMarkedSections(existing, sections) {
+// A curated prose callout: a line carrying a **bold** span (e.g. "**Platform (Windows):** …").
+// These are hand-added annotations the data-driven builders do NOT reproduce; silently losing one
+// on `--mode update` is the single drift no mirror verifier catches. Table/command/code lines have
+// no standalone bold span, so this keys on genuine callouts only — low noise, high signal.
+const CURATED_CALLOUT = /\*\*[^*\n]+\*\*/;
+
+// Normalize markdown backslash-escapes before the drop comparison. The committed CLAUDE.md is
+// prettier-managed, so prettier escapes characters with markdown meaning (`_SharedCommon` →
+// `\_SharedCommon`, `*` → `\*`). The data-driven builders emit the raw, unescaped form, so a
+// byte-literal `includes` would report a curated line as "dropped" when only the escaping differs
+// and the content is in fact reproduced. Stripping `\` before a punctuation char on BOTH sides
+// makes the comparison escape-insensitive — eliminating that false positive while still catching
+// genuinely dropped callouts.
+function normalizeMdEscapes(s) {
+    return s.replace(/\\([\\`*_{}\[\]()#+\-.!~|<>])/g, '$1');
+}
+
+// `--mode update` REPLACES each managed section's body with its builder output, discarding whatever
+// was there. updateMarkedSections surfaces (advisory, never throws) any curated callout that lived
+// in the old body but is absent from the new builder output — converting the silent content-loss
+// that dropped the Windows/Design notes this session into a visible WARN that names the durable home.
+function updateMarkedSections(existing, sections, onWarn = msg => console.warn(msg)) {
     const lines = existing.split('\n');
     const output = [];
     let inSection = false;
     let currentKey = null;
+    let oldBody = [];
 
     for (const line of lines) {
         const trimmed = line.trim();
@@ -372,18 +492,38 @@ function updateMarkedSections(existing, sections) {
                 output.push('');
             }
             inSection = true;
+            oldBody = [];
             continue;
         }
 
         if (closeMatch) {
+            if (currentKey && sections[currentKey]) {
+                const newContent = sections[currentKey];
+                const newNormalized = normalizeMdEscapes(newContent);
+                const dropped = oldBody
+                    .map(l => l.trim())
+                    .filter(l => CURATED_CALLOUT.test(l) && !newContent.includes(l) && !newNormalized.includes(normalizeMdEscapes(l)));
+                if (dropped.length > 0) {
+                    onWarn(
+                        `[WARN] SECTION:${currentKey} — --mode update dropped ${dropped.length} curated callout line(s) ` +
+                            `the builder does not reproduce:\n` +
+                            dropped.map(l => `    - ${l}`).join('\n') +
+                            `\n  If intentional, ignore. Otherwise move the content into docs/project-config.json ` +
+                            `(config-sourced) or the claude-md template static prose so regeneration preserves it.`
+                    );
+                }
+            }
             output.push(line); // keep close marker
             inSection = false;
             currentKey = null;
+            oldBody = [];
             continue;
         }
 
         if (!inSection) {
             output.push(line);
+        } else {
+            oldBody.push(line); // buffer old body for the content-loss guard above
         }
         // Skip old content inside sections — replaced above
     }
@@ -435,7 +575,7 @@ function main() {
         const projectName = config.project?.name || 'Project';
         const finalOutput = output.replace(/\{project-name\}/g, projectName).replace(/\{project-description\}/g, config.project?.description || '');
 
-        fs.writeFileSync(CLAUDE_MD_PATH, stampHeader(finalOutput), 'utf-8');
+        fs.writeFileSync(CLAUDE_MD_PATH, stampFooter(stampHeader(finalOutput)), 'utf-8');
         console.log(`[OK] CLAUDE.md created (init mode)`);
     } else if (mode === 'update') {
         if (!fs.existsSync(CLAUDE_MD_PATH)) {
@@ -460,7 +600,7 @@ function main() {
             }
         }
 
-        fs.writeFileSync(CLAUDE_MD_PATH, stampHeader(output), 'utf-8');
+        fs.writeFileSync(CLAUDE_MD_PATH, stampFooter(stampHeader(output)), 'utf-8');
         console.log(`[OK] CLAUDE.md updated (${generated.length} sections synced)`);
     } else if (mode === 'smart-merge') {
         console.log('[INFO] Smart-merge: CLAUDE.md has no markers. AI should handle migration.');
@@ -480,4 +620,10 @@ function main() {
     console.log(`[STATS] ${lines} lines, ${(stats.size / 1024).toFixed(1)}KB`);
 }
 
-main();
+// Run only as a CLI. Importing the module (e.g. the content-loss-guard unit test) must NOT
+// trigger a real CLAUDE.md regeneration off the test runner's argv.
+if (require.main === module) {
+    main();
+}
+
+module.exports = { updateMarkedSections, SECTION_OPEN, SECTION_CLOSE, CURATED_CALLOUT };

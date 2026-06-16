@@ -81,21 +81,32 @@ function buildKeyLocations(config) {
 
 function buildDevCommands(config) {
     const commands = config.testing?.commands;
-    if (!commands || Object.keys(commands).length === 0) return null;
-
     const lines = [];
-    for (const [key, cmd] of Object.entries(commands)) {
-        if (typeof cmd === 'string') {
-            lines.push(`${cmd.padEnd(45)} # ${key}`);
-        } else if (typeof cmd === 'object') {
-            for (const [subkey, subcmd] of Object.entries(cmd)) {
-                lines.push(`${subcmd.padEnd(45)} # ${key}: ${subkey}`);
+    if (commands && typeof commands === 'object') {
+        for (const [key, cmd] of Object.entries(commands)) {
+            if (typeof cmd === 'string') {
+                lines.push(`${cmd.padEnd(45)} # ${key}`);
+            } else if (typeof cmd === 'object') {
+                for (const [subkey, subcmd] of Object.entries(cmd)) {
+                    lines.push(`${subcmd.padEnd(45)} # ${key}: ${subkey}`);
+                }
             }
         }
     }
 
-    if (lines.length === 0) return null;
-    return '```bash\n' + lines.join('\n') + '\n```';
+    // Optional freetext caveat rendered below the command block (e.g. platform-specific
+    // invocation rules). Config-sourced so it survives every regeneration instead of
+    // being a hand-edit the next `--mode update` silently wipes. Rendered independently of
+    // the command block so a note configured WITHOUT commands is not silently dropped.
+    const note = config.testing?.commandsNote;
+    const hasNote = typeof note === 'string' && note.trim().length > 0;
+
+    if (lines.length === 0 && !hasNote) return null;
+
+    const parts = [];
+    if (lines.length > 0) parts.push('```bash\n' + lines.join('\n') + '\n```');
+    if (hasNote) parts.push(note.trim());
+    return parts.join('\n\n');
 }
 
 function buildInfraPorts(config) {
@@ -164,7 +175,7 @@ function buildSkillActivation(config) {
         });
 
     if (rows.length === 0) return null;
-    return `These skills auto-activate before file edits in their path patterns:\n\n| Path Pattern | Skill / Auto-Context | Pre-Read Files |\n|---|---|---|\n${rows.join('\n')}`;
+    return `When editing files matching these path patterns, pre-read the listed context first:\n\n| Path Pattern | Skill / Auto-Context | Pre-Read Files |\n|---|---|---|\n${rows.join('\n')}`;
 }
 
 function buildDocIndex(config, projectDir) {

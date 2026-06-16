@@ -9,18 +9,18 @@
 
 ## Component Architecture
 
-| Component      | Count                                                                                         | Location                      | Format                                                                                      |
-| -------------- | --------------------------------------------------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------- |
-| Hooks          | <!-- COUNT:hooks -->29<!-- /COUNT -->                                                         | `.claude/hooks/*.cjs`         | Top-level CommonJS Node.js hook scripts counted by ADR-0002                                 |
-| Hook Libraries | <!-- COUNT:lib-modules -->28<!-- /COUNT -->                                                   | `.claude/hooks/lib/*.cjs`     | CommonJS utility modules                                                                    |
-| Skills         | <!-- COUNT:skills -->155<!-- /COUNT -->                                                       | `.claude/skills/*/SKILL.md`   | Markdown + YAML frontmatter                                                                 |
-| Agents         | <!-- COUNT:agents -->29<!-- /COUNT -->                                                        | `.claude/agents/*.md`         | Markdown definitions                                                                        |
-| Workflows      | <!-- COUNT:workflows -->17<!-- /COUNT -->                                                     | `.claude/workflows.json`      | JSON workflow definitions                                                                   |
-| Output Styles  | 6                                                                                             | `.claude/output-styles/*.md`  | Coding level presets (ELI5→God)                                                             |
-| Scripts        | 28                                                                                            | `.claude/scripts/*`           | CJS + Python utilities (top-level; excludes code_graph package internals + tests/)          |
-| Codex Scripts  | 10                                                                                            | `.claude/scripts/codex/*.mjs` | ESM sync, migration, notification, and verification tools                                   |
-| Hook Tests     | 15 suites + 15 `test-*` files                                                                 | `.claude/hooks/tests/`        | CJS/JS test files; 15 `test-*` files (incl. primary runner) + `run-all-tests.cjs` aggregate |
-| Codex Mirrors  | <!-- COUNT:skills -->155<!-- /COUNT --> skills, <!-- COUNT:agents -->29<!-- /COUNT --> agents | `.agents/`, `.codex/`         | Generated Codex-compatible copy                                                             |
+| Component      | Count                                                                                         | Location                      | Format                                                                                     |
+| -------------- | --------------------------------------------------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------ |
+| Hooks          | <!-- COUNT:hooks -->15<!-- /COUNT -->                                                         | `.claude/hooks/*.cjs`         | Top-level CommonJS Node.js hook scripts counted by ADR-0002                                |
+| Hook Libraries | <!-- COUNT:lib-modules -->25<!-- /COUNT -->                                                   | `.claude/hooks/lib/*.cjs`     | CommonJS utility modules                                                                   |
+| Skills         | <!-- COUNT:skills -->154<!-- /COUNT -->                                                       | `.claude/skills/*/SKILL.md`   | Markdown + YAML frontmatter                                                                |
+| Agents         | <!-- COUNT:agents -->29<!-- /COUNT -->                                                        | `.claude/agents/*.md`         | Markdown definitions                                                                       |
+| Workflows      | <!-- COUNT:workflows -->17<!-- /COUNT -->                                                     | `.claude/workflows.json`      | JSON workflow definitions                                                                  |
+| Output Styles  | 6                                                                                             | `.claude/output-styles/*.md`  | Coding level presets (ELI5→God)                                                            |
+| Scripts        | 28                                                                                            | `.claude/scripts/*`           | CJS + Python utilities (top-level; excludes code_graph package internals + tests/)         |
+| Codex Scripts  | 10                                                                                            | `.claude/scripts/codex/*.mjs` | ESM sync, migration, notification, and verification tools                                  |
+| Hook Tests     | 14 suites + 9 `test-*` files                                                                  | `.claude/hooks/tests/`        | CJS/JS test files; 9 `test-*` files (incl. primary runner) + `run-all-tests.cjs` aggregate |
+| Codex Mirrors  | <!-- COUNT:skills -->154<!-- /COUNT --> skills, <!-- COUNT:agents -->29<!-- /COUNT --> agents | `.agents/`, `.codex/`         | Generated Codex-compatible copy                                                            |
 
 ## Project Directory Tree
 
@@ -87,12 +87,12 @@ easy-claude/
 │   │   ├── hooks/                    # Hook documentation
 │   │   ├── skills/                   # Skill documentation
 │   │   └── team-artifacts/           # Templates for PBIs, stories, specs
-│   ├── hooks/                        # 29 top-level .cjs runtime hook files (+ notify-waiting.js)
+│   ├── hooks/                        # 15 top-level .cjs runtime hook files
 │   │   ├── config/                   # Hook configuration
 │   │   │   └── swap-config.json
 │   │   ├── docs/                     # Hook documentation
 │   │   │   └── README.md
-│   │   ├── lib/                      # 28 shared utility modules
+│   │   ├── lib/                      # 26 shared utility modules
 │   │   │   ├── __tests__/            # Lib unit tests
 │   │   │   ├── ck-config-loader.cjs
 │   │   │   ├── ck-config-utils.cjs
@@ -102,10 +102,8 @@ easy-claude/
 │   │   │   ├── ck-paths.cjs
 │   │   │   ├── ck-plan-resolver.cjs
 │   │   │   ├── ck-session-state.cjs
-│   │   │   ├── context-tracker.cjs
 │   │   │   ├── debug-log.cjs
 │   │   │   ├── dedup-constants.cjs
-│   │   │   ├── edit-state.cjs
 │   │   │   ├── hook-runner.cjs
 │   │   │   ├── notify-windows.ps1
 │   │   │   ├── project-config-loader.cjs
@@ -117,8 +115,7 @@ easy-claude/
 │   │   │   ├── temp-file-cleanup.cjs
 │   │   │   ├── test-fixture-generator.cjs
 │   │   │   ├── todo-state.cjs
-│   │   │   ├── workflow-state.cjs
-│   │   │   └── wr-config.cjs
+│   │   │   └── workflow-state.cjs
 │   │   ├── notifications/            # Multi-channel notifications
 │   │   │   ├── notify.cjs
 │   │   │   ├── lib/
@@ -142,36 +139,21 @@ easy-claude/
 │   │   │   └── 16 standalone files   # 15 test-* files (incl. primary runner) + run-all-tests.cjs
 │   │   │   # Runtime context-injection hooks removed in the de-hooking refactor — no
 │   │   │   # *-context / *-injector / prompt-context-assembler / subagent-init / pretooluse-ctx-* hooks.
-│   │   ├── agent-files-skill-gate.cjs
-│   │   ├── bash-cleanup.cjs
 │   │   ├── doc-sync-gate.cjs
-│   │   ├── edit-enforcement.cjs
 │   │   ├── git-commit-block.cjs
 │   │   ├── graph-auto-update.cjs
 │   │   ├── graph-session-init.cjs
 │   │   ├── init-prompt-gate.cjs
-│   │   ├── notify-waiting.js          # Cross-platform notification hook (.js)
 │   │   ├── npm-auto-install.cjs
 │   │   ├── path-boundary-block.cjs
-│   │   ├── post-agent-validator.cjs
-│   │   ├── post-compact-recovery.cjs
 │   │   ├── post-edit-prettier.cjs
-│   │   ├── pre-compact-snapshot.cjs
 │   │   ├── privacy-block.cjs
 │   │   ├── scout-block.cjs
 │   │   ├── session-end.cjs
 │   │   ├── session-init-docs.cjs
 │   │   ├── session-init.cjs
-│   │   ├── session-resume.cjs
-│   │   ├── skill-enforcement.cjs
-│   │   ├── todo-tracker.cjs
-│   │   ├── tool-output-swap.cjs
 │   │   ├── verify-install.cjs
-│   │   ├── windows-command-detector.cjs
-│   │   ├── workflow-router.cjs
-│   │   ├── workflow-step-tracker.cjs
-│   │   ├── workflow-task-guard.cjs
-│   │   └── write-compact-marker.cjs
+│   │   └── windows-command-detector.cjs
 │   ├── output-styles/                # 6 coding level presets
 │   │   ├── coding-level-0-eli5.md
 │   │   ├── coding-level-1-junior.md
@@ -187,6 +169,7 @@ easy-claude/
 │   │   ├── win_compat.py             # Windows compatibility
 │   │   ├── sync-hooks-to-skills.py   # SYNC-block propagation across skills
 │   │   ├── set-active-plan.cjs       # Active plan state for plan-* skills
+│   │   ├── statusline-project.cjs    # Project root folder name for statusline widget
 │   │   ├── statusline-tps.cjs        # Tokens-per-second estimator for statusline widget
 │   │   ├── worktree.cjs              # Git worktree management
 │   │   ├── worktree.test.cjs         # Worktree tests
@@ -233,7 +216,6 @@ easy-claude/
 │       ├── design-system/
 │       ├── domain-entities-reference.md
 │       ├── e2e-test-reference.md
-│       ├── feature-docs-reference.md
 │       └── lessons.md
 ├── .vscode/                         # VS Code workspace settings
 │   ├── extensions.json
@@ -267,9 +249,9 @@ easy-claude/
 
 | Code | Module         | Location                       | Description                                                                                                                 |
 | ---- | -------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
-| HK   | Hooks          | `.claude/hooks/`               | <!-- COUNT:hooks -->29<!-- /COUNT --> top-level `.cjs` runtime enforcement & context injection hook files                   |
-| HL   | Hook Libraries | `.claude/hooks/lib/`           | <!-- COUNT:lib-modules -->28<!-- /COUNT --> shared utility modules for hooks                                                |
-| SK   | Skills         | `.claude/skills/`              | <!-- COUNT:skills -->155<!-- /COUNT --> task automation skill definitions                                                   |
+| HK   | Hooks          | `.claude/hooks/`               | <!-- COUNT:hooks -->15<!-- /COUNT --> top-level `.cjs` runtime hook files (session init, safety gates, graph, formatting)   |
+| HL   | Hook Libraries | `.claude/hooks/lib/`           | <!-- COUNT:lib-modules -->25<!-- /COUNT --> shared utility modules for hooks                                                |
+| SK   | Skills         | `.claude/skills/`              | <!-- COUNT:skills -->154<!-- /COUNT --> task automation skill definitions                                                   |
 | AG   | Agents         | `.claude/agents/`              | <!-- COUNT:agents -->29<!-- /COUNT --> specialized subagent role definitions                                                |
 | WF   | Workflows      | `.claude/workflows.json`       | <!-- COUNT:workflows -->17<!-- /COUNT --> end-to-end process orchestrations                                                 |
 | SC   | Scripts        | `.claude/scripts/`             | 28 top-level utility scripts (catalog gen, audit, worktree, statusline-tps); excludes code_graph package internals + tests/ |
@@ -278,9 +260,9 @@ easy-claude/
 | OS   | Output Styles  | `.claude/output-styles/`       | 6 coding level presets                                                                                                      |
 | NT   | Notifications  | `.claude/hooks/notifications/` | Multi-channel notification providers (5)                                                                                    |
 | SB   | Scout Block    | `.claude/hooks/scout-block/`   | Broad search prevention subsystem (4 modules)                                                                               |
-| HT   | Hook Tests     | `.claude/hooks/tests/`         | 15 test suites + 15 `test-*` files (incl. primary runner) + `run-all-tests.cjs` aggregate                                   |
+| HT   | Hook Tests     | `.claude/hooks/tests/`         | 14 test suites + 9 `test-*` files (incl. primary runner) + `run-all-tests.cjs` aggregate                                    |
 
-## Hooks (<!-- COUNT:hooks -->29<!-- /COUNT --> top-level `.cjs` files)
+## Hooks (<!-- COUNT:hooks -->15<!-- /COUNT --> top-level `.cjs` files)
 
 ### Safety Hooks
 
@@ -292,15 +274,13 @@ easy-claude/
 
 ### Quality Hooks
 
-| Hook                     | Event            | Purpose                                     |
-| ------------------------ | ---------------- | ------------------------------------------- |
-| `edit-enforcement`       | PreToolUse       | Gate edits on task existence                |
-| `skill-enforcement`      | PreToolUse       | Enforce skill usage for specific operations |
-| `init-prompt-gate`       | UserPromptSubmit | Gate initial prompt processing              |
-| `agent-files-skill-gate` | PreToolUse       | Route agent/skill file edits to docs        |
-| `doc-sync-gate`          | PreToolUse       | Gate edits that require doc sync            |
-| `git-commit-block`       | PreToolUse       | Block unauthorized commit/stage/push        |
-| `workflow-task-guard`    | PostToolUse      | Guard workflow task-list integrity          |
+| Hook               | Event            | Purpose                              |
+| ------------------ | ---------------- | ------------------------------------ |
+| `init-prompt-gate` | UserPromptSubmit | Gate initial prompt processing       |
+| `doc-sync-gate`    | PreToolUse       | Gate edits that require doc sync     |
+| `git-commit-block` | PreToolUse       | Block unauthorized commit/stage/push |
+
+> **De-hooked enforcement.** Task/skill/edit gating (`edit-enforcement`, `skill-enforcement`, `workflow-task-guard`) and agent/skill-file routing (`agent-files-skill-gate`) were **removed** in the de-hooking refactor. The discipline they enforced — TaskCreate-before-edit, skill activation, workflow task-list integrity — is now a static rule set in `CLAUDE.md` / `SKILL.md`, read identically by hookless harnesses.
 
 ### Context Injection Hooks (REMOVED — de-hooking refactor)
 
@@ -315,36 +295,29 @@ easy-claude/
 
 ### Session Management Hooks
 
-| Hook                    | Event        | Purpose                                |
-| ----------------------- | ------------ | -------------------------------------- |
-| `session-init`          | SessionStart | Initialize session state, load config  |
-| `session-init-docs`     | SessionStart | Check/create reference docs            |
-| `session-end`           | SessionEnd   | Persist state, cleanup                 |
-| `session-resume`        | SessionStart | Resume after compaction                |
-| `post-compact-recovery` | SessionStart | Recover state after context compaction |
-| `pre-compact-snapshot`  | PreCompact   | Snapshot transcript before compaction  |
-| `write-compact-marker`  | PreCompact   | Save state before compaction           |
-| `verify-install`        | SessionStart | Verify framework install integrity     |
+| Hook                | Event        | Purpose                               |
+| ------------------- | ------------ | ------------------------------------- |
+| `session-init`      | SessionStart | Initialize session state, load config |
+| `session-init-docs` | SessionStart | Check/create reference docs           |
+| `session-end`       | SessionEnd   | Persist state, cleanup                |
+| `verify-install`    | SessionStart | Verify framework install integrity    |
+
+> **De-hooked compaction recovery.** Compaction snapshot/restore hooks (`pre-compact-snapshot`, `write-compact-marker`, `post-compact-recovery`, `session-resume`) were **removed**. There is no live `PreCompact` hook; recovery is now static re-anchoring — re-reading `CLAUDE.md` / `SKILL.md` and the persisted task list (`TaskList`) restores rules, lessons, and progress after compaction.
 
 ### Workflow Hooks
 
-| Hook                    | Event            | Purpose                      |
-| ----------------------- | ---------------- | ---------------------------- |
-| `workflow-router`       | UserPromptSubmit | Match intent to workflow     |
-| `workflow-step-tracker` | PostToolUse      | Track workflow step progress |
-| `todo-tracker`          | PostToolUse      | Track todo/task completion   |
+> **De-hooked workflow tracking.** Todo/task-completion and workflow-step tracking (`todo-tracker`) was **removed**. Workflow progression is now model-driven — Claude advances steps by judgment against the static catalog in `CLAUDE.md` and the persisted `TaskList`, with no step-tracking hook.
 
 ### Utility Hooks
 
-| Hook                       | Event             | Purpose                              |
-| -------------------------- | ----------------- | ------------------------------------ |
-| `tool-output-swap`         | PostToolUse       | Compress large tool outputs          |
-| `post-edit-prettier`       | PostToolUse       | Run prettier after edits             |
-| `npm-auto-install`         | SessionStart      | Auto-install npm deps on startup     |
-| `bash-cleanup`             | PostToolUse       | Clean bash output                    |
-| `windows-command-detector` | PreToolUse        | Detect Windows-specific commands     |
-| `post-agent-validator`     | PostToolUse       | Validate sub-agent task output       |
-| `notify-waiting`           | Stop/Notification | Cross-platform desktop notifications |
+| Hook                       | Event             | Purpose                                                        |
+| -------------------------- | ----------------- | -------------------------------------------------------------- |
+| `post-edit-prettier`       | PostToolUse       | Run prettier after edits                                       |
+| `npm-auto-install`         | SessionStart      | Auto-install npm deps on startup                               |
+| `windows-command-detector` | PreToolUse        | Detect Windows-specific commands                               |
+| `notifications/notify.cjs` | Stop/Notification | Unified notification router (desktop + Telegram/Discord/Slack) |
+
+> **De-hooked post-processing.** Large-output externalization (`tool-output-swap`), sub-agent validation (`post-agent-validator`), and bash temp cleanup (`bash-cleanup`) were **removed** in the de-hooking refactor.
 
 > **No `SubagentStart` hooks.** The former `subagent-init-*` dispatcher/builder layer was removed in the de-hooking refactor; sub-agent context is now carried statically in each agent's `.claude/agents/*.md` definition (read identically by hookless harnesses).
 
@@ -399,16 +372,15 @@ easy-claude/
 
 ## Key Entry Points
 
-| Entry Point                               | Purpose                                                            |
-| ----------------------------------------- | ------------------------------------------------------------------ |
-| `.claude/settings.json`                   | Hook registration, permissions, features                           |
-| `.claude/hooks/session-init.cjs`          | Session startup — loads config, sets state                         |
-| `.claude/hooks/workflow-router.cjs`       | Intent matching — routes to workflows, re-injects workflow catalog |
-| `.claude/hooks/post-compact-recovery.cjs` | Restores rules/lessons/workflow state after compaction             |
-| `.claude/workflows.json`                  | All <!-- COUNT:workflows -->17<!-- /COUNT --> workflow definitions |
-| `docs/project-config.json`                | Project-specific runtime configuration                             |
-| `.claude/hooks/tests/test-all-hooks.cjs`  | Main test runner                                                   |
-| `CLAUDE.md`                               | Project instructions for Claude                                    |
+| Entry Point                              | Purpose                                                              |
+| ---------------------------------------- | -------------------------------------------------------------------- |
+| `.claude/settings.json`                  | Hook registration, permissions, features                             |
+| `.claude/hooks/session-init.cjs`         | Session startup — loads config, sets state                           |
+| `CLAUDE.md` / `SKILL.md`                 | Static rules/lessons re-anchored after compaction (no recovery hook) |
+| `.claude/workflows.json`                 | All <!-- COUNT:workflows -->17<!-- /COUNT --> workflow definitions   |
+| `docs/project-config.json`               | Project-specific runtime configuration                               |
+| `.claude/hooks/tests/test-all-hooks.cjs` | Main test runner                                                     |
+| `CLAUDE.md`                              | Project instructions for Claude                                      |
 
 ## Scan Targets (13)
 

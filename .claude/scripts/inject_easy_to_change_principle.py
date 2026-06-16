@@ -68,7 +68,6 @@ TARGETS: list[tuple[str, list[str]]] = [
     ("review-changes", [r"^## Core Principles \(ENFORCE ALL\)"]),
     ("review-architecture", [r"^## Review Mindset \(NON-NEGOTIABLE\)"]),
     ("review-domain-entities", [r"^## Phase 0: "]),
-    ("review-post-task", [r"^## Core Principles \(ENFORCE ALL\)"]),
     ("review-artifact", [r"^## Adversarial Review Mindset \(NON-NEGOTIABLE\)"]),
     ("why-review", [r"^## Adversarial Review Mindset \(NON-NEGOTIABLE\)"]),
     ("plan-review", [r"^## Adversarial Review Mindset \(NON-NEGOTIABLE\)"]),

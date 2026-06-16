@@ -7,9 +7,9 @@
 | Goal                         | Document                                                                                        |
 | ---------------------------- | ----------------------------------------------------------------------------------------------- |
 | **New to Claude Code?**      | [quick-start.md](./quick-start.md) - 5-minute onboarding                                        |
-| **Need a skill?**            | [skills/README.md](./skills/README.md) - 155 skills catalog                                     |
+| **Need a skill?**            | [skills/README.md](./skills/README.md) - 154 skills catalog                                     |
 | **Building a feature?**      | [skills/README.md](./skills/README.md) + `docs/project-reference/` patterns                     |
-| **Understanding hooks?**     | [hooks/README.md](./hooks/README.md) - 29 top-level hook files deep-dive                        |
+| **Understanding hooks?**     | [hooks/README.md](./hooks/README.md) - 15 top-level hook files deep-dive                        |
 | **Understanding workflows?** | `CLAUDE.md` workflow catalog (project root) - 17 workflows                                      |
 | **Configuring Claude?**      | [configuration/README.md](./configuration/README.md)                                            |
 | **Team collaboration?**      | [team-collaboration-guide.md](./team-collaboration-guide.md) - PO, BA, QA, QC, UX, PM workflows |
@@ -23,11 +23,11 @@
 |-- README.md                 <- You are here (Navigation hub)
 |-- quick-start.md            5-minute onboarding guide
 |
-|-- skills/                   155 skills across 15+ domains
+|-- skills/                   154 skills across 15+ domains
 |   |-- README.md             Skills overview + full catalog
 |   +-- (patterns)           → docs/project-reference/
 |
-|-- hooks/                    29 top-level hook files, 28 lib modules
+|-- hooks/                    15 top-level hook files, 25 lib modules
 |   |-- README.md             Hooks overview, lessons system, session lifecycle
 |   +-- extending-hooks.md    How to create custom hooks
 |
@@ -54,10 +54,10 @@
 
 | Task                     | Command                    | Skill                     |
 | ------------------------ | -------------------------- | ------------------------- |
-| Implement a feature      | `/feature-implement`                    | `feature`                 |
+| Implement a feature      | `/feature-implement`       | `feature`                 |
 | Fix a bug                | `/fix`                     | `debug-investigate`       |
 | Create a PR              | `/commit --push`           | `commit`                  |
-| Understand code          | `/scout`                   | `investigate`   |
+| Understand code          | `/scout`                   | `investigate`             |
 | Plan implementation      | `/plan`                    | `plan`                    |
 | Run tests                | `/test`                    | `test`                    |
 | Review code              | `/review`                  | `code-review`             |
@@ -65,7 +65,7 @@
 | Create user story        | `/story`                   | `business-analyst`        |
 | Prioritize backlog       | `/prioritize`              | `product-owner`           |
 | Create test cases        | `/spec [mode=tests]`       | `spec [mode=tests]`       |
-| Quality checkpoint       | `/quality-gate-review`           | `quality-gate-review`           |
+| Quality checkpoint       | `/quality-gate-review`     | `quality-gate-review`     |
 | Create design spec       | `/design-spec`             | `design-spec`             |
 | Analyze blast radius     | `/graph-blast-radius`      | `graph-blast-radius`      |
 | Build code graph         | `/graph-build`             | `graph-build`             |
@@ -76,19 +76,19 @@
 
 ### "I want to learn about..."
 
-| Topic                                       | Start Here                                                                    |
-| ------------------------------------------- | ----------------------------------------------------------------------------- |
-| How skills work                             | [skills/README.md](./skills/README.md)                                        |
-| How skills are activated                    | [skills/README.md](./skills/README.md)                                        |
-| How lessons system works                    | [hooks/README.md](./hooks/README.md) — `/learn` skill + `post-compact-recovery.cjs` re-injection |
-| How hooks intercept events                  | [hooks/README.md](./hooks/README.md) — hook catalog + lifecycle               |
-| Hook execution order by event               | [hooks/README.md](./hooks/README.md) — hook catalog + execution order         |
-| Session lifecycle (init → compact → resume) | [hooks/README.md#session-lifecycle](./hooks/README.md#session-lifecycle)      |
-| Workflow detection and routing              | `CLAUDE.md` workflow catalog (project root)                                   |
-| How to create custom hooks                  | [hooks/extending-hooks.md](./hooks/extending-hooks.md)                        |
-| How to configure output                     | [configuration/output-styles.md](./configuration/output-styles.md)            |
-| How team collaboration works                | [team-collaboration-guide.md](./team-collaboration-guide.md)                  |
-| How to update code review rules             | [hooks/README.md#code-review-rules](./hooks/README.md#code-review-rules)      |
+| Topic                                       | Start Here                                                                                                      |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| How skills work                             | [skills/README.md](./skills/README.md)                                                                          |
+| How skills are activated                    | [skills/README.md](./skills/README.md)                                                                          |
+| How lessons system works                    | [hooks/README.md](./hooks/README.md) — `/learn` skill + static lessons re-anchoring in `CLAUDE.md` / `SKILL.md` |
+| How hooks intercept events                  | [hooks/README.md](./hooks/README.md) — hook catalog + lifecycle                                                 |
+| Hook execution order by event               | [hooks/README.md](./hooks/README.md) — hook catalog + execution order                                           |
+| Session lifecycle (init → compact → resume) | [hooks/README.md#session-lifecycle](./hooks/README.md#session-lifecycle)                                        |
+| Workflow detection and routing              | `CLAUDE.md` workflow catalog (project root)                                                                     |
+| How to create custom hooks                  | [hooks/extending-hooks.md](./hooks/extending-hooks.md)                                                          |
+| How to configure output                     | [configuration/output-styles.md](./configuration/output-styles.md)                                              |
+| How team collaboration works                | [team-collaboration-guide.md](./team-collaboration-guide.md)                                                    |
+| How to update code review rules             | [hooks/README.md#code-review-rules](./hooks/README.md#code-review-rules)                                        |
 
 ## Document Sizes (for context planning)
 
@@ -143,13 +143,13 @@
 
 | Category               | Count |
 | ---------------------- | ----- |
-| Skills                 | 155   |
-| Hook files (top-level) | 29    |
-| Lib Modules            | 28    |
+| Skills                 | 154   |
+| Hook files (top-level) | 15    |
+| Lib Modules            | 26    |
 | Hook Events            | 8     |
 | Agents                 | 29    |
 | Workflows              | 17    |
-| Hook Tests             | 303   |
+| Hook Tests             | 213   |
 | Documentation Files    | 28    |
 
 ---

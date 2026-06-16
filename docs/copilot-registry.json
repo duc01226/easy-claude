@@ -36,7 +36,7 @@
     "keyFileLocations": [
       {
         "path": ".claude/hooks/",
-        "description": "Runtime hooks for context injection, enforcement, and session management"
+        "description": "Runtime hooks for session initialization, safety gates, graph maintenance, and code formatting"
       },
       {
         "path": ".claude/hooks/lib/",
@@ -81,15 +81,8 @@
         "node .claude/hooks/tests/run-all-tests.cjs",
         "node --test .claude/scripts/codex/tests/*.test.mjs"
       ],
-      "sync": [
-        "node .claude/scripts/sync-copilot-workflows.cjs",
-        "npm run codex:sync"
-      ],
-      "verify": [
-        "npm run copilot:verify:divergence",
-        "npm run codex:verify:sync-divergence",
-        "npm run codex:verify:sdd"
-      ]
+      "sync": ["node .claude/scripts/sync-copilot-workflows.cjs", "npm run codex:sync"],
+      "verify": ["npm run copilot:verify:divergence", "npm run codex:verify:sync-divergence", "npm run codex:verify:sdd"]
     }
   },
   "instructionFileConfig": {
@@ -130,6 +123,13 @@
       "group": "backend-csharp"
     },
     {
+      "file": "seed-test-data-reference.md",
+      "title": "Seed Test Data Reference",
+      "summary": "Idempotent seeder architecture, DI scope safety, application-layer command dispatch, and config-driven counts for test-data seeding.",
+      "whenToRead": "implementing or reviewing test-data seeders, idempotent seeding, DI scope safety, or config-driven seed counts",
+      "group": "project-reference"
+    },
+    {
       "file": "frontend-patterns-reference.md",
       "title": "Frontend Patterns Reference",
       "summary": "Frontend pattern status for this framework repository and guidance for target projects that define product UI conventions.",
@@ -142,13 +142,6 @@
       "summary": "Hook test architecture, suite organization, standalone test files, and local commands for running integration-style tests.",
       "whenToRead": "adding, reviewing, or verifying hook integration tests, test suites, fixtures, or coverage gates",
       "group": "testing"
-    },
-    {
-      "file": "feature-docs-reference.md",
-      "title": "Feature Docs Reference",
-      "summary": "Legacy feature documentation structure, category organization, and conventions for adding feature docs.",
-      "whenToRead": "checking feature documentation availability, legacy feature-doc routing, or feature doc organization",
-      "group": "project-reference"
     },
     {
       "file": "feature-spec-reference.md",

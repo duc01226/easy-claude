@@ -52,6 +52,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Ensure service/API changes are production-ready for observability, reliability, data integrity, and database performance — scoring each of these dimensions on service-layer and API changes.
 
+**Summary:**
+
+- Score 12 criteria 0-2 across four dimensions (Observability/8, Reliability/8, Data Integrity/4, DB Performance/4) for a /24 PASS (19-24) / NEEDS WORK (13-18) / NOT READY (0-12) verdict — every score needs `file:line` evidence or it is 0.
+- The DB Performance Protocol is MANDATORY and non-advisory: ALL list queries must paginate (no unbounded GetAll/ToList) and ALL filter fields, foreign keys, and sort columns must have matching indexes.
+- VERDICT is advisory only; the graph gate, validated-fix full re-review, and DB Performance Protocol are NEVER skippable regardless of change size — and when batched (≥10 files), re-score all 12 criteria holistically from combined cross-batch evidence, never by averaging per-batch scores.
+- After applying any fix, validate findings first, then rerun the FULL review (fresh sub-agent with zero prior-round memory); a clean pass ENDS the loop.
+
 **When to use:** After implementing backend service or API changes, before committing. Frontend-only changes exempt.
 
 **Why:** Working code that can't be debugged, monitored, or rolled back is technical debt in disguise.

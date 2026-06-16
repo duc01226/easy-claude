@@ -52,6 +52,14 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Land the selected plan phase as working, fully-tested, reviewed, user-approved code — executing it phase-by-phase through testing, code review, and approval gates — committed only after every quality gate (100% tests, 0 critical issues, explicit approval) passes — NEVER bypass a gate to declare done.
 
+**Summary:**
+
+- Consumes an EXISTING plan (Step 0 detects `plans/*.md`, selects the next incomplete phase, one phase per run) — use `$feature-implement` instead when no plan exists yet.
+- Drives the 7-step spine with three BLOCKING gates that cannot be faked-green: Step 3 tests 100% pass (loop `tester`→`debugger`), Step 4 zero critical issues (`code-reviewer`), Step 5 explicit user approval before Step 6 Finalize/auto-commit.
+- The Pre-Implementation Granularity Gate and bugfix Trace Gate STOP the run before coding — refuse phases with planning verbs / unnamed files / unresolved decisions, and require the End→Start debugger trace for bug/regression plans.
+- Mode flags only add/remove a single step, never relax a running gate: `--approval=off` (auto/trust, skip Step 5, optional `$ALL_PHASES` loop), `--tests=off` (skip Step 3), `--parallel` (dispatch `fullstack-developer` subagents per file-owned phase).
+- Standalone (no parent workflow via the current task list) → wrap in the plan → plan-review → proceed → `$review-changes` → `$why-review` quality loop.
+
 > **Renamed:** formerly `code` — now `$plan-execute`. Also folds the former `/code-auto` (→ `--approval=off`), `/code-no-test` (→ `--tests=off`), and `/code-parallel` (→ `--parallel`) skills — those legacy names no longer resolve as slash commands; use `$plan-execute` with the matching flag.
 
 **Workflow:**

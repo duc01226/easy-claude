@@ -23,18 +23,18 @@ disable-model-invocation: true
 - MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
 - NEVER skip mandatory workflow or skill gates.
 
-**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /plan -> /plan-review -> /plan-validate -> /why-review -> /docs-update -> /workflow-review-changes -> /review-post-task -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /plan -> /plan-review -> /plan-validate -> /why-review -> /docs-update -> /workflow-review-changes -> /workflow-end -> /watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 > **[BLOCKING]** Read `docs/project-reference/spec-principles.md` before starting this workflow — baseline for completeness, TC quality, and **tech-agnostic output (§3)**: generated prose/headings name no framework/product/language/design-pattern; source paths and class names appear ONLY in evidence fields (`**Evidence**`, `[Source:]`), frontmatter, and Mermaid.
 
 Activate the `workflow-feature-spec` workflow. Run `/start-workflow workflow-feature-spec` with the user's prompt as context.
 
-**Steps:** /scout → /investigate → /plan → /plan-review → /plan-validate → /why-review → /docs-update → /workflow-review-changes → /review-post-task → /workflow-end → /watzup _(this workflow is differentiated by its injectContext domain: **tech-free 8-section Feature Spec** template enforcement + `TC-{FEATURE}-{NNN}` GIVEN/WHEN/THEN test cases + `[Source: namespace/service/id]` abstract evidence anchors — see `workflows.json` `workflow-feature-spec.injectContext`)._
+**Steps:** /scout → /investigate → /plan → /plan-review → /plan-validate → /why-review → /docs-update → /workflow-review-changes → /workflow-end → /watzup _(this workflow is differentiated by its injectContext domain: **tech-free 8-section Feature Spec** template enforcement + `TC-{FEATURE}-{NNN}` GIVEN/WHEN/THEN test cases + `[Source: namespace/service/id]` abstract evidence anchors — see `workflows.json` `workflow-feature-spec.injectContext`)._
 
 ---
 
-**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /plan -> /plan-review -> /plan-validate -> /why-review -> /docs-update -> /workflow-review-changes -> /review-post-task -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /plan -> /plan-review -> /plan-validate -> /why-review -> /docs-update -> /workflow-review-changes -> /workflow-end -> /watzup
 
 <!-- SYNC:ai-mistake-prevention -->
 

@@ -2,9 +2,11 @@
 /**
  * Shared prompt injection helpers for UserPromptSubmit and PreToolUse hooks.
  *
- * Live consumer (after the de-hooking refactor):
- *   injectCriticalContext / injectAiMistakePrevention → post-compact-recovery.cjs
- *     (re-anchors AI principles after compaction on SessionStart).
+ * injectCriticalContext / injectAiMistakePrevention have no runtime hook consumer after the
+ * de-hooking refactor (the post-compact-recovery SessionStart hook that re-anchored them was
+ * removed). They are retained as the canonical runtime-text source, verified against the
+ * SYNC:* blocks by tests/suites/protocol-text-parity.test.cjs; AI principles now re-anchor
+ * via static CLAUDE.md re-read each prompt.
  * The remaining exports (injectLessons / injectWorkflowProtocol / injectLessonReminder)
  * fed the former prompt-context-assembler / lessons-injector / mindset-injector hooks,
  * which were removed — that guidance now lives statically in CLAUDE.md / agent / skill files.

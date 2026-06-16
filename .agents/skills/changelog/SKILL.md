@@ -52,6 +52,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Produce a Keep-a-Changelog entry under `[Unreleased]` by systematically reviewing file changes — telling users, in business terms citing affected logical IDs and flagging breaking changes, what changed and why it matters, NEVER what files/classes were touched.
 
+**Summary:**
+
+- Translate every diff into business impact: name the user-facing capability, never the class/file/enum/migration (the "Business Focus" table is the lens — e.g. "Fixed pipeline loading error", not "Fixed null ref in GetById").
+- Drive the review through a throwaway `.ai/workspace/changelog-notes-*.md` notes file (categorize Added/Changed/Fixed/Deprecated/Removed/Security), then DELETE it in the final cleanup step — a leftover notes file is an anti-pattern.
+- Always write the entry under `[Unreleased]` (create the section if absent), grouped by module/feature rather than per-file, preserving existing entries.
+- Cite affected logical IDs (`FR-`/`BR-`/`TC-`) in `**Refs**` and prefix any breaking change with `**BREAKING:**` plus a one-line migration/impact note; omit the Breaking block when there is none.
+
 **Workflow:**
 
 1. **Gather Changes** — Get changed files via `git diff` (PR, commit, or range mode)

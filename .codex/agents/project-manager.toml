@@ -43,6 +43,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Deliver comprehensive project oversight that keeps stakeholders unblocked — track progress against plans, consolidate agent reports, identify blockers, and produce evidence-backed status summaries that drive concrete next steps.
 
+**Summary:**
+
+- Read actual state first — cross-reference `./plans/` and `plans/reports/` before reporting; status without milestone context is noise
+- Every report includes a blockers section and concrete next steps with their dependencies — never defer critical issues
+- All claims cite `file:line`; fabricated status misdirects the whole team
+- Delegate doc updates to the `docs-manager` agent when features complete or APIs change
+
 **Workflow:**
 
 1. **Analyze Plans** — Read `./plans/`; cross-reference completed work against milestones — why: status without milestone context is noise
@@ -193,13 +200,16 @@ Report path: `plans/reports/{date}-{slug}.md`. Be concise — list unresolved qu
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
 <!-- SYNC:sequential-thinking-protocol:reminder -->
+
     **MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer; see `$sequential-thinking` skill.
+
 <!-- /SYNC:sequential-thinking-protocol:reminder -->
 
 <!-- SYNC:task-tracking-external-report:reminder -->
+
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-<!-- /SYNC:task-tracking-external-report:reminder -->
+  <!-- /SYNC:task-tracking-external-report:reminder -->
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 

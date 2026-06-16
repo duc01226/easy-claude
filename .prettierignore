@@ -4,6 +4,24 @@
 /coverage
 /.nx/cache
 
+# Generated cross-surface mirrors — written ONLY by the sync pipeline
+# (codex:sync / copilot:sync). These are byte-compared against their canonical
+# sources by the mirror-equality verifiers (verify-skill-protocol-compliance,
+# verify-sync-divergence, verify-copilot-divergence). If prettier reformats them
+# they drift out of byte-equality with their source and the verifiers FAIL — the
+# exact drift that broke this repo when `prettier --write AGENTS.md` ran standalone.
+# The sync is the SOLE writer of these bytes; never hand-edit or prettier them.
+# (CLAUDE.md is intentionally NOT here — it is prettier-managed source. The generator
+#  does NOT run prettier itself: the .claude pipeline stays node_modules-free / portable,
+#  so it emits raw markdown (un-padded tables). Run `prettier --write CLAUDE.md` after any
+#  `claude-md` regen and BEFORE `codex:sync`, or AGENTS.md embeds the un-padded body and
+#  later drifts from a prettier pass — the exact byte-drift the divergence verifiers catch.)
+/AGENTS.md
+/.codex/
+/.agents/
+/.github/copilot-instructions.md
+/.github/instructions/
+
 # C# files - use dotnet format instead (respects .editorconfig)
 *.cs
 *.csx

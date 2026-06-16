@@ -52,6 +52,14 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Produce sprint-ready, INVEST-valid user stories — tech-agnostic, testable GWT criteria, evidence-cited estimates, dependency-mapped — by breaking Product Backlog Items into implementable stories via vertical slicing and SPIDR splitting, so a team with zero codebase knowledge can implement on any stack.
 
+**Summary:**
+
+- Slice VERTICALLY (thin end-to-end), never horizontally (backend/frontend split) — apply SPIDR (Spike/Paths/Interfaces/Data/Rules) to break anything SP >8 (MUST) or >5 (SHOULD) until each story is INVEST-valid.
+- Every story is tech-agnostic and rebuild-from-scratch (AI-SDD M1-M5): no framework/class/file names in prose, carry the inherited `FR-`/`BR-` logical ID plus a `[Source: namespace/service/id]` abstract anchor — reject and rework on any STOP condition.
+- Write min 3 GIVEN/WHEN/THEN scenarios (happy + edge + error) PLUS a mandatory authorization scenario per story; every criterion has exactly one observable interpretation.
+- Estimate bottom-up (phase-hours → days × productivity factor; SP DERIVED, never the driver) with explicit test_count and blast-radius pass; emit the full `man_days_*` / `risk_*` / `blast_radius` frontmatter.
+- Always emit a Story Dependencies table (no orphan stories) and run the MANDATORY a direct user question validation interview before handoff.
+
 > **MANDATORY IMPORTANT MUST ATTENTION** Plan ToDo Task to READ the following project-specific reference docs:
 >
 > - `project-structure-reference.md` -- project patterns and structure

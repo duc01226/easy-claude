@@ -12,6 +12,13 @@ memory: project
 
 **Goal:** Systematically investigate and diagnose issues via evidence-based debugging — pinpoint root cause with `file:line` proof and produce an actionable diagnostic report a developer can act on without re-investigating.
 
+**Summary:**
+
+- Never guess — every root-cause claim carries `file:line` evidence or a log excerpt; unproven claims are stated as "hypothesis, not confirmed."
+- Trace the actual code path by systematic elimination; correlate logs, traces, and recent changes before concluding.
+- After grep finds key files, run the code graph to surface callers, importers, and event consumers grep cannot see.
+- Issues span services — check message-bus consumers, entity events, and cross-service boundaries before closing the investigation.
+
 **Workflow:**
 
 1. **Assess** — Gather symptoms, error messages, affected components; check recent changes/deployments
@@ -250,6 +257,89 @@ Name report files under `plans/reports/` via `{date}-{slug}` convention. Concise
 
 <!-- /SYNC:ai-mistake-prevention -->
 
+<!-- SYNC:end-to-start-debugger-trace -->
+
+> **End-to-Start Debugger Trace** — For non-trivial bugs, failed verification, regression fixes, behavior-changing code, or unclear code flow, start from the observed final state and walk backward before proposing a fix.
+>
+> 1. **Frame 0: observed end state** — Name the exact user-visible output, failing assertion, log line, persisted value, API response, rendered UI, or aggregate bucket. Record the reader/query/renderer that produced it with `file:line` evidence.
+> 2. **Walk backward one hop at a time** — Trace final reader -> projection/cache/storage -> writer -> consumer/handler/job -> producer/caller -> original trigger. At every hop record: input, transformation, output, owner, and evidence.
+> 3. **Enumerate all feeder paths** — Find every upstream producer/caller/event/job that can write into the final path, including retry, async, cache, background, and alternate UI/API paths. Mark each path verified, ruled out, or still unknown.
+> 4. **Build the hypothesis matrix** — For each plausible cause, list evidence for, evidence against, how to reproduce/verify, blast radius, and status (`primary`, `contributing`, `ruled out`, `latent`). Do not fix until competing causes are explicitly resolved or bounded.
+> 5. **Choose the owning fix layer** — Identify the invariant owner and the lowest shared point that protects all downstream consumers. A fix at the symptom site is rejected unless the symptom site owns the invariant.
+> 6. **Prove convergence forward** — After choosing the fix, walk start -> end again and show how the corrected state reaches the observed final output. Map each root cause to a fix part and each fix part to a test/proof.
+>
+> **BLOCKED until:** final state named · backward trace written · all feeder paths enumerated · hypothesis matrix completed · owning fix layer justified · forward convergence proof mapped to tests.
+>
+> **NEVER:** Start at the first suspicious code path. Collapse multiple producers into one "flow". Treat duplicate symptoms as duplicate records without proving the read model. Skip ruled-out hypotheses.
+
+<!-- /SYNC:end-to-start-debugger-trace -->
+
+<!-- SYNC:root-cause-debugging -->
+
+> **Root Cause Debugging** — Systematic approach, never guess-and-check.
+>
+> 1. **Reproduce** — Confirm the issue exists with evidence (error message, stack trace, screenshot)
+> 2. **Isolate** — Narrow to specific file/function/line using binary search + graph trace
+> 3. **Trace** — Follow data flow from input to failure point. Read actual code, don't infer.
+> 4. **Hypothesize** — Form theory with confidence %. State what evidence supports/contradicts it
+> 5. **Verify** — Test hypothesis with targeted grep/read. One variable at a time.
+> 6. **Fix** — Address root cause, not symptoms. Verify fix doesn't break callers via graph `connections`
+>
+> **NEVER:** Guess without evidence. Fix symptoms instead of cause. Skip reproduction step.
+
+<!-- /SYNC:root-cause-debugging -->
+
+<!-- SYNC:red-flag-stop-conditions -->
+
+> **Red Flag Stop Conditions** — STOP and escalate to user via AskUserQuestion when:
+>
+> 1. Confidence drops below 60% on any critical decision
+> 2. Changes would affect >20 files (blast radius too large)
+> 3. Cross-service boundary is being crossed
+> 4. Security-sensitive code (auth, crypto, PII handling)
+> 5. Breaking change detected (interface, API contract, DB schema)
+> 6. Test coverage would decrease after changes
+> 7. Approach requires technology/pattern not in the project
+>
+> **NEVER proceed past a red flag without explicit user approval.**
+
+<!-- /SYNC:red-flag-stop-conditions -->
+
+<!-- SYNC:graph-assisted-investigation -->
+
+> **Graph-Assisted Investigation** — MANDATORY when `.code-graph/graph.db` exists.
+>
+> **HARD-GATE:** MUST ATTENTION run at least ONE graph command on key files before concluding any investigation.
+>
+> **Pattern:** Grep finds files → `trace --direction both` reveals full system flow → Grep verifies details
+>
+> | Task                | Minimum Graph Action                         |
+> | ------------------- | -------------------------------------------- |
+> | Investigation/Scout | `trace --direction both` on 2-3 entry files  |
+> | Fix/Debug           | `callers_of` on buggy function + `tests_for` |
+> | Feature/Enhancement | `connections` on files to be modified        |
+> | Code Review         | `tests_for` on changed functions             |
+> | Blast Radius        | `trace --direction downstream`               |
+>
+> **CLI:** `python .claude/scripts/code_graph {command} --json`. Use `--node-mode file` first (10-30x less noise), then `--node-mode function` for detail.
+
+<!-- /SYNC:graph-assisted-investigation -->
+
+<!-- SYNC:incremental-persistence -->
+
+> **Incremental Result Persistence** — MANDATORY for all sub-agents or heavy inline steps processing >3 files.
+>
+> 1. **Before starting:** Create report file `plans/reports/{skill}-{date}-{slug}.md`
+> 2. **After each file/section reviewed:** Append findings to report immediately — never hold in memory
+> 3. **Return to main agent:** Summary only (per SYNC:subagent-return-contract) with `Full report:` path
+> 4. **Main agent:** Reads report file only when resolving specific blockers
+>
+> **Why:** Context cutoff mid-execution loses ALL in-memory findings. Each disk write survives compaction. Partial results are better than no results.
+>
+> **Report naming:** `plans/reports/{skill-name}-{YYMMDD}-{HHmm}-{slug}.md`
+
+<!-- /SYNC:incremental-persistence -->
+
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
@@ -272,7 +362,7 @@ Name report files under `plans/reports/` via `{date}-{slug}` convention. Concise
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-<!-- /SYNC:task-tracking-external-report:reminder -->
+  <!-- /SYNC:task-tracking-external-report:reminder -->
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 
@@ -288,9 +378,15 @@ Name report files under `plans/reports/` via `{date}-{slug}` convention. Concise
 
 <!-- /SYNC:cross-service-check:reminder -->
 
+<!-- SYNC:end-to-start-debugger-trace:reminder -->
+
+**IMPORTANT MUST ATTENTION** debugger trace gate: for non-trivial bug/fix/investigation/review work, start at the observed final output and trace backward through reader -> storage/projection -> writer -> consumer/job -> producer/trigger. Enumerate all feeder paths and hypotheses before fixing. **BLOCKED until** trace, hypothesis matrix, owning fix layer, and forward convergence proof exist.
+
+<!-- /SYNC:end-to-start-debugger-trace:reminder -->
+
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Pinpoint root cause with `file:line` proof and produce an actionable diagnostic report a developer can act on without re-investigating.
+**IMPORTANT MUST ATTENTION Goal:** Systematically investigate and diagnose issues via evidence-based debugging — pinpoint root cause with `file:line` proof and produce an actionable diagnostic report a developer can act on without re-investigating.
 **IMPORTANT MUST ATTENTION** NEVER guess root cause — trace the actual code path with `file:line` evidence — why: a guessed cause sends the fix to the wrong layer
 **IMPORTANT MUST ATTENTION** NEVER recommend a fix without evidence it addresses root cause, not symptom
 **IMPORTANT MUST ATTENTION** write intermediate findings to `plans/reports/` after each step — never batch at the end — why: long investigations lose context before the summary

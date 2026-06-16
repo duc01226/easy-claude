@@ -17,6 +17,13 @@ description: '[Research] Use when deeply researching top sources from web-resear
 
 **Goal:** Deep-dive into top sources to produce a cross-validated, source-cited evidence base (`_evidence-{slug}.md`) where every finding carries a confidence score, traces to specific sources, and flags discrepancies — never an unverified single-source claim presented as fact.
 
+**Summary:**
+
+- This skill is the deep-dive stage that consumes the prior web-research source map (`.claude/tmp/_sources-{slug}.md`) and turns prioritized Tier 1-2 sources into structured findings — it is not a fresh search.
+- Discipline is everything: cap WebFetch at 8 calls, prioritize authoritative sources covering gaps, and capture date/author/methodology per source so confidence can be defended later.
+- Cross-validation drives the confidence score — agreement across 2+ sources is high confidence, disagreement is flagged as a discrepancy with both positions, and a lone source is explicitly marked "single source, unverified".
+- The deliverable is the evidence base at `.claude/tmp/_evidence-{slug}.md` with inline citations, an Unresolved Discrepancies section, and a Gaps Remaining section — never collapse conflicts or hide what couldn't be verified.
+
 **Workflow:**
 
 1. **Read source map** — Load output from web-research step

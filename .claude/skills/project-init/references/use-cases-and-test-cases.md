@@ -32,6 +32,10 @@ Use this matrix when planning, implementing, or reviewing portable project initi
 | UC-PI-024 | Fixed Feature Spec root | `/project-init` | Use `docs/specs/` for all Feature Specs; do not read a project-config spec-root override. |
 | UC-PI-025 | Post-config parallel context build | `/project-init` after `/project-config` | Create sibling tasks `Call /scan-all` and `Call /workflow-code-to-spec`, allow parallel execution, and wait for both outcomes before root/mirror/final review. |
 | UC-PI-026 | Final background graph refresh | Any `/project-init` run | After setup/review/verification is otherwise done, create `Spawn background /graph-build sub-agent`, run `/graph-build` in that background sub-agent, and record outcome or blocker. |
+| UC-PI-027 | Config `referenceDocs` carries a legacy filename (e.g. `feature-docs-reference.md`) | `/project-init` Phase 0 probe reports `changed:true` | Phase 2 step 1a normalizes to the canonical floor: alias-resolve legacy → canonical, `git mv` (or `git rm` a stale duplicate), migrate downstream refs (`docs-index-reference.md`, `project-structure-reference.md`, `docs/copilot-registry.json`, `.github/*` mirrors), ask the user to re-run `/sync-codex` + Copilot sync. |
+| UC-PI-028 | Config `referenceDocs` missing canonical entries (partial set) | `/project-init` | Merge restores the full canonical floor; SessionStart `session-init-docs.cjs` creates the missing docs from `DEFAULT_REFERENCE_DOCS` + `templatePath`; a partial config never suppresses a canonical doc. |
+| UC-PI-029 | Wrong-standard / non-canonical extra docs present in config | `/project-init` | Canonical floor enforced first (canonical order); genuine project-specific extras preserved as appended entries; canonical entries are never deleted or renamed by normalization. |
+| UC-PI-030 | Already-canonical config re-run (idempotency) | Re-run `/project-init` | Phase 0 normalize probe reports `changed:false` with empty `renames`/`added`/`removedLegacy`; no `git mv`/rewrite churn. |
 
 ## Test Cases
 
@@ -44,7 +48,7 @@ Use this matrix when planning, implementing, or reviewing portable project initi
 | TC-PI-005 | Config populated check | Config has `project.name` plus substantive section | `isConfigPopulated()` returns true. |
 | TC-PI-006 | Config schema validation | Malformed or wrong-field config | Validation reports errors before scans/generation continue. |
 | TC-PI-007 | Reference docs fallback | Config has no `referenceDocs` | Defaults from `session-init-helpers.cjs` are used. |
-| TC-PI-008 | Reference docs custom list | Config declares custom `referenceDocs` | Only configured docs are created under configured docs directory. |
+| TC-PI-008 | Reference docs canonical-floor merge | Config declares extra/custom `referenceDocs` (optionally with a legacy alias) | Merged set = canonical floor + extras: every canonical doc present (canonical order), legacy alias absorbed into its canonical entry, extras appended last; config can never suppress a canonical doc. |
 | TC-PI-009 | Placeholder detection markdown | Generated `.md` stub | `isPlaceholderFile()` returns true. |
 | TC-PI-010 | Placeholder detection CSS/SCSS | Generated token stubs | CSS/SCSS sentinel is detected without invalid comments. |
 | TC-PI-011 | Placeholder false-positive defense | Real doc mentions placeholder text in prose | `isPlaceholderFile()` returns false. |
@@ -74,6 +78,11 @@ Use this matrix when planning, implementing, or reviewing portable project initi
 | TC-PI-035 | Large grown project split | Scout finds >10 capabilities | Spec finalization requires grouped `/workflow-code-to-spec init-full` runs; 4-10 capabilities require sub-agents. |
 | TC-PI-036 | Post-config parallel context build | Content-bearing temp project after `/project-config` init | Task plan includes sibling `Call /scan-all` and `Call /workflow-code-to-spec`; `/project-init` does not proceed to root/mirror/final review until both have outcomes. |
 | TC-PI-037 | Final background graph task | Any `/project-init` run after final review/verification | Task plan includes `Spawn background /graph-build sub-agent`; `/graph-build` is invoked in a background sub-agent and its outcome or blocker appears in the report. |
+| TC-PI-038 | Canonical-floor merge enforced | Drifted config: extras + legacy alias, missing canonical entries | `mergeReferenceDocs()` returns all canonical docs first (canonical order, canonical `templatePath` preserved) then extras; legacy alias absorbed; override `purpose`/`sections` honored without dropping the canonical entry. |
+| TC-PI-039 | Legacy alias rename report | Config has `feature-docs-reference.md` | `normalizeReferenceDocs()` reports `renames:[{from:'feature-docs-reference.md',to:'feature-spec-reference.md'}]` and `removedLegacy` includes the legacy name. |
+| TC-PI-040 | Missing-canonical additions report | Partial config missing canonical docs (e.g. `seed-test-data-reference.md`) | `normalizeReferenceDocs().added` lists each missing canonical filename; the merged set still includes them. |
+| TC-PI-041 | Normalize idempotency | Config already equals the canonical floor | `normalizeReferenceDocs().changed === false`; `renames`/`added`/`removedLegacy` all empty. |
+| TC-PI-042 | Downstream ref migration on rename | Legacy doc plus refs in `docs-index-reference.md`, `docs/copilot-registry.json`, `.github/*` mirrors | After Phase 2 step 1a, repo grep finds no legacy filename outside the alias map + these test assertions; `docs/copilot-registry.json` remains valid JSON. |
 
 ## Verification Commands
 

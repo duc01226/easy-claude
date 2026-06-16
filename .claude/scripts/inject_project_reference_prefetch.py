@@ -40,7 +40,7 @@ SKILL_NAMES = [
     "security-review", "code-review", "integration-test-review",
     "knowledge-review", "review-architecture",
     "review-artifact", "review-changes", "review-domain-entities",
-    "review-post-task", "production-readiness-review",
+    "production-readiness-review",
     "why-review", "workflow-review-changes",
     # Workflow step skills
     # NOTE: `spec` (merged feature-spec router) is intentionally NOT a target —

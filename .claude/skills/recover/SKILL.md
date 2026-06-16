@@ -110,11 +110,11 @@ Resume from the `currentStep` identified in the metadata. Execute the remaining 
 - [ ] Identified current workflow step
 - [ ] Ready to continue from interrupted step
 
-## Automatic vs Manual Recovery
+## Recovery (skill-driven)
 
 | Scenario                      | Recovery Type | Trigger                          |
 | ----------------------------- | ------------- | -------------------------------- |
-| Session resume after compact  | Automatic     | `post-compact-recovery.cjs` hook |
+| Session resume after compact  | Manual        | This `/recover` command — static `CLAUDE.md` re-read re-anchors protocol; recovery is skill-driven |
 | New session in same directory | Manual        | This `/recover` command          |
 | Explicit user request         | Manual        | This `/recover` command          |
 | No workflow state found       | Manual        | This `/recover` command          |

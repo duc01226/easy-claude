@@ -52,6 +52,12 @@ const PROMPT_INJECTIONS_PATH = path.join(ROOT, '.claude', 'hooks', 'lib', 'promp
 // Canonical hook-independent Workflow-First Gate — baked at the top of copilot-instructions.md so
 // Copilot (no hooks, no runtime injection) gets the same routing rule as Claude/Codex.
 const WORKFLOW_GATE_PATH = path.join(ROOT, '.claude', 'skills', 'shared', 'workflow-first-gate.md');
+// Canonical SYNC source + shared parser. Critical-thinking + ai-mistake-prevention bake from the
+// canonical `:full` blocks here (approach C) — the SAME source CLAUDE.md/AGENTS.md bake — so every
+// static mirror shares one source. AI-SDD markers also source from here (researcher-02 GAP 2).
+const { extractSyncBody, extractSyncBlock } = require('./lib/extract-sync-block.cjs');
+const SHARED_SYNC_INLINE_PATH = path.join(ROOT, '.claude', 'skills', 'shared', 'sync-inline-versions.md');
+const SHARED_AI_SDD_SYNC_TAGS = ['ai-sdd-artifact-contract', 'ai-sdd-artifact-contract:reminder'];
 
 /**
  * Load the marker-delimited Workflow-First Gate block from the shared canonical file.
@@ -269,28 +275,128 @@ function buildDevRulesContent() {
 }
 
 /**
- * Bake the universal rules the Claude hooks inject at runtime — critical-thinking mindset,
- * AI-mistake-prevention system lessons, and learned lessons. Copilot has no hooks, so these
- * must be statically baked into the common protocol. skipDedup=true forces the full block;
- * the transcript-dedup argument is irrelevant at sync time.
- * @returns {string|null} Markdown block, or null if the injector module is unavailable.
+ * Read a SYNC block body (heading stripped) from the canonical source. Tag-agnostic — works for
+ * both `:full` tags (e.g. `critical-thinking-mindset:full`) and condensed base tags
+ * (e.g. `critical-thinking-mindset`). The SAME single source every static mirror bakes.
+ * @param {string} tag
+ * @returns {string|null}
+ */
+function readCanonicalBlockBody(tag) {
+    try {
+        const content = fs.readFileSync(SHARED_SYNC_INLINE_PATH, 'utf8');
+        return extractSyncBody(content, tag);
+    } catch (e) {
+        console.warn(`Warning: canonical block "${tag}" not loadable from ${SHARED_SYNC_INLINE_PATH} (${e.message}); dropping it`);
+        return null;
+    }
+}
+
+/**
+ * Bake the CONDENSED critical-thinking + ai-mistake-prevention blocks (canonical base tier) as an
+ * always-on primacy anchor for copilot-instructions.md, with a pointer to the FULL protocol in
+ * common-protocol.instructions.md. Copilot's repo-wide custom-instructions file is loaded more
+ * reliably than an `applyTo` glob file, so the protocol gist must be reachable here too — not only
+ * the glob file (goal C4). Sources from canonical — the SAME single source every mirror bakes.
+ * @returns {string|null}
+ */
+function buildCriticalReachabilitySection() {
+    const mindset = readCanonicalBlockBody('critical-thinking-mindset');
+    const aiMistakes = readCanonicalBlockBody('ai-mistake-prevention');
+    const parts = [mindset, aiMistakes].map((p) => (p ? p.trim() : null)).filter(Boolean);
+    if (parts.length === 0) return null;
+    return [
+        '## Critical Thinking & Anti-Hallucination (Always-On)',
+        '',
+        '> Full protocol (5-line critical-thinking + 27-item AI-mistake-prevention + system lessons) lives in `.github/instructions/common-protocol.instructions.md`. The condensed anchor below is repeated here because this repo-wide instructions file is the most reliably loaded.',
+        '',
+        parts.join('\n\n'),
+    ].join('\n');
+}
+
+/**
+ * Bake the shared AI-SDD artifact-contract markers from the canonical SYNC source — parity with
+ * the Codex context mirror's buildSharedAiSddMarkerSection (sync-context-workflows.mjs). Copilot
+ * previously omitted these (researcher-02 GAP 2).
+ * @returns {string|null}
+ */
+function buildSharedAiSddMarkerSection() {
+    try {
+        const content = fs.readFileSync(SHARED_SYNC_INLINE_PATH, 'utf8');
+        const blocks = SHARED_AI_SDD_SYNC_TAGS.map((tag) => extractSyncBlock(content, tag)).filter(Boolean);
+        if (blocks.length === 0) return null;
+        return [
+            '## Shared AI-SDD Protocol Markers',
+            '',
+            'Source: `.claude/skills/shared/sync-inline-versions.md`',
+            '',
+            blocks.join('\n\n---\n\n'),
+        ].join('\n');
+    } catch (e) {
+        console.warn(`Warning: shared AI-SDD markers not loadable from ${SHARED_SYNC_INLINE_PATH} (${e.message}); dropping the section`);
+        return null;
+    }
+}
+
+/**
+ * Strict-execution contract — semantic parity with the 6 strict-exec snippets the Codex
+ * compatibility note carries (compat-rewrite.mjs COMPATIBILITY_NOTE_LINES), adapted to Copilot
+ * idiom (slash commands, sub-agents). Copilot previously omitted these (researcher-02 GAP 2).
+ * @returns {string}
+ */
+function buildStrictExecutionContract() {
+    return [
+        '## Strict Execution Contract (MANDATORY)',
+        '',
+        '- **Task tracker mandate:** BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.',
+        '- **Explicit invocation:** when a user explicitly invokes a skill, execute that skill protocol as written.',
+        '- **Sub-agent authorization:** when a skill is user-invoked or AI-detected and its protocol requires sub-agents, that skill activation authorizes the required sub-agent(s) for that task.',
+        '- **No skip/reorder/merge:** do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.',
+        '- **Workflow skills:** execute each listed child-skill step explicitly and report step-by-step evidence.',
+        '- **Stop and ask:** if a required step or tool cannot run in this environment, stop and ask the user before adapting.',
+    ].join('\n');
+}
+
+/**
+ * Bake the universal rules Claude hooks inject at runtime. Copilot has no hooks, so these are
+ * statically baked into the common protocol. Critical-thinking + ai-mistake-prevention now source
+ * from the canonical `:full` markdown (approach C) — the SAME source CLAUDE.md/AGENTS.md bake — so
+ * every static mirror shares one source. `injectLessons` stays hook-sourced (lessons.md content
+ * has no canonical SYNC home); skipDedup=true forces its full block.
+ * @returns {string|null} Markdown block, or null if no content resolves.
  */
 function buildUniversalRulesContent() {
     let injectors;
     try {
         injectors = require(PROMPT_INJECTIONS_PATH);
     } catch (e) {
-        console.warn(`Warning: prompt-injections not loadable (${e.message}); skipping universal-rule bake`);
-        return null;
+        console.warn(`Warning: prompt-injections not loadable (${e.message}); baking canonical blocks only`);
+        injectors = {};
     }
     const blocks = [];
-    const mindset = injectors.injectCriticalContext?.(null, true);
+    const mindset = readCanonicalBlockBody('critical-thinking-mindset:full');
     if (mindset) blocks.push(['## Critical Thinking & Anti-Hallucination', '', mindset.trim()].join('\n'));
-    const aiMistakes = injectors.injectAiMistakePrevention?.(null, true);
+    const aiMistakes = readCanonicalBlockBody('ai-mistake-prevention:full');
     if (aiMistakes) blocks.push(aiMistakes.trim()); // already starts with its own ## heading
     const lessons = injectors.injectLessons?.(null, true);
     if (lessons) blocks.push(lessons.trim()); // already starts with its own ## heading
     return blocks.length ? blocks.join('\n\n---\n\n') : null;
+}
+
+/**
+ * Bake the short lesson-learned task-planning reminder the Claude lesson-reminder hook injects
+ * per-prompt. Copilot has no hooks, so it is baked statically (researcher-02 GAP 2). The hook's
+ * transcript-dedup is irrelevant at sync time — passing null forces emission.
+ * @returns {string|null}
+ */
+function buildLessonReminder() {
+    try {
+        const injectors = require(PROMPT_INJECTIONS_PATH);
+        const reminder = injectors.injectLessonReminder?.(null);
+        return reminder ? reminder.trim() : null;
+    } catch (e) {
+        console.warn(`Warning: prompt-injections not loadable (${e.message}); dropping the lesson reminder`);
+        return null;
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -329,6 +435,16 @@ function generateProjectSpecificFile(registry, projectInstructions, projectConfi
     const workflowGate = loadWorkflowGate();
     if (workflowGate) {
         lines.push(workflowGate);
+        lines.push('');
+    }
+
+    // Critical-thinking + AI-mistake anchor (condensed, canonical) — primacy, right after the gate.
+    // Makes the protocol reachable from this repo-wide file, not only the applyTo glob file (C4).
+    const criticalAnchor = buildCriticalReachabilitySection();
+    if (criticalAnchor) {
+        lines.push('---');
+        lines.push('');
+        lines.push(criticalAnchor);
         lines.push('');
     }
 
@@ -436,6 +552,18 @@ function generateProjectSpecificFile(registry, projectInstructions, projectConfi
         lines.push('```');
     }
 
+    // Recency anchor — repeat the condensed critical-thinking gist at EOF (primacy + recency, per
+    // prompt-enhance). Short by design; the full protocol is in common-protocol.instructions.md.
+    const recencyMindset = readCanonicalBlockBody('critical-thinking-mindset');
+    if (recencyMindset) {
+        lines.push('');
+        lines.push('---');
+        lines.push('');
+        lines.push('## Critical Thinking — Recency Anchor');
+        lines.push('');
+        lines.push(recencyMindset.trim());
+    }
+
     lines.push('');
 
     return lines.join('\n');
@@ -458,7 +586,7 @@ function generateCommonProtocolFile(workflowConfig) {
         '---',
         '',
         '<!-- AUTO-GENERATED by .claude/scripts/sync-copilot-workflows.cjs — DO NOT EDIT MANUALLY -->',
-        '<!-- Sources: .claude/workflows.json, .claude/docs/development-rules.md, .claude/hooks/lib/prompt-injections.cjs -->',
+        '<!-- Sources: .claude/workflows.json, .claude/docs/development-rules.md, .claude/skills/shared/sync-inline-versions.md (`:full` + AI-SDD blocks), .claude/hooks/lib/prompt-injections.cjs (lessons) -->',
         '',
         '# Common Development Protocol',
         '',
@@ -534,6 +662,33 @@ function generateCommonProtocolFile(workflowConfig) {
     if (universalRules) {
         lines.push('');
         lines.push(universalRules);
+        lines.push('');
+        lines.push('---');
+    }
+
+    // Strict Execution Contract — semantic parity with the 6 strict-exec snippets the Codex
+    // compatibility note carries (researcher-02 GAP 2). Copilot previously omitted these.
+    lines.push('');
+    lines.push(buildStrictExecutionContract());
+    lines.push('');
+    lines.push('---');
+
+    // Shared AI-SDD artifact-contract markers — parity with the Codex context mirror (GAP 2),
+    // sourced from canonical sync-inline-versions.md via the shared CRLF-safe parser.
+    const aiSddSection = buildSharedAiSddMarkerSection();
+    if (aiSddSection) {
+        lines.push('');
+        lines.push(aiSddSection);
+        lines.push('');
+        lines.push('---');
+    }
+
+    // Lesson-learned reminder — the short recency nudge the Claude lesson-reminder hook injects
+    // per-prompt (GAP 2). Anchored last for recency (prompt-engineering: important at bottom).
+    const lessonReminder = buildLessonReminder();
+    if (lessonReminder) {
+        lines.push('');
+        lines.push(lessonReminder);
         lines.push('');
         lines.push('---');
     }

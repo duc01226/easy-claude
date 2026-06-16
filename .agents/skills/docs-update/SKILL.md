@@ -52,6 +52,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Detect impacted docs from code changes and orchestrate updates across all doc types so every code/spec/test change leaves documentation in sync — impacted Feature Specs, §8 TCs, test-code links, and derived indexes all reflect the shipped behavior, with zero drift left silent.
 
+**Summary:**
+
+- This skill is a ROUTER, not an author — start with Phase 0 triage (git diff → categorize → dedup modules) and delegate each doc type to its owner (`$spec`, `$spec [mode=tests]`, `$spec [mode=sync]`, `$spec-index`); NEVER write §8 or `docs/specs/` content directly.
+- Create ALL 8 tasks via task tracking before touching any file; run the fixed phase order `0 → 1 → 2 → 2.5 → 3 → 4 → 5 → final review` and mark every skipped phase `completed` with a reason — fast-exit is a decision, never a silent omission.
+- The final pass (Step 2.4) is the workflow's last gate: per touched module verify the shipped code against §3 ACs, §4 BRs, and §8 TCs — a removed/weakened [HARD] BR is a code-vs-spec contradiction that BLOCKS completion.
+- Output is tech-agnostic prose (no framework/product names outside evidence fields) and traceability-first (update `FR-`/`BR-`/`OP-`/`TC-` logical IDs before prose); ALWAYS write the Phase 5 summary report as the audit trail.
+
 **Orchestration Model:**
 
 ```

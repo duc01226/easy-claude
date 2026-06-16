@@ -22,6 +22,13 @@ triggers: 'feature spec, feature documentation, create feature doc, update featu
 
 **Goal:** Own the entire Feature Spec lifecycle in one skill — author/maintain tech-free 8-section business Feature Specs (code evidence carried only in Section 8 test-case anchors, never prose), generate Section 8 test specifications, and reconcile those TCs with integration test code — producing a tech-free, AI-implementable Feature Spec whose Section 8 TC registry stays the single source of truth, traceable to integration test code, so any team can rebuild the feature on any stack from the spec alone. The mode you run determines which `references/` body drives work; the shared §8 contract, M1-M6 mandates, and quality philosophy below apply every mode.
 
+**Summary:**
+
+- Resolve the mode FIRST (draft/init/update/audit/amend/tests/sync) — an explicit `[mode=<x>]` wins, else infer from request + repo state; when ambiguous ask via `AskUserQuestion` before any mutating mode, then read the matching `references/{author,tests,sync}.md` body and never run a mode from memory.
+- §1-7 prose is STRICTLY tech-free (no framework/product/language/persistence/auth names per `spec-principles.md` §3.2); technical identifiers live ONLY in evidence carriers — Section 8 is the canonical TC registry (`TC-{FEATURE}-{NNN}`) and must never be overwritten during `update`.
+- Every TC carries verifiable `[Source: namespace/service/id]` evidence — the sole exception is `mode=draft`, where idea-sourced specs use `Evidence: TBD` + provisional flag, upgraded to real anchors on the first code-sourced run.
+- Honor the M1-M6 mandates (`sdd-artifact-contract.md`) and canonical TC format (`shared/tc-format.md`); `INDEX.md`/ERD are derived artifacts — flag refresh need in `update` but never trigger `/spec-index` here.
+
 > **Renamed:** formerly `/feature-spec` (and earlier `/feature-docs`); the former `/spec-tests` skill is now folded in as `mode=tests` / `mode=sync`. Those names no longer resolve as slash commands — use `/spec` with the matching mode.
 
 ### Modes (resolve mode FIRST — BLOCKING)

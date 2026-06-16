@@ -75,10 +75,10 @@ module.exports = {
 
 ### Exit Code Rules
 
-| Code | Meaning                              | Use Case                                                                                                                |
-| ---- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| `0`  | Success / allow / non-critical error | Default for all hooks                                                                                                   |
-| `2`  | Block operation                      | Safety hooks only (`privacy-block`, `path-boundary-block`, `scout-block`, `init-prompt-gate`, `agent-files-skill-gate`) |
+| Code | Meaning                              | Use Case                                                                                                                                      |
+| ---- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `0`  | Success / allow / non-critical error | Default for all hooks                                                                                                                         |
+| `2`  | Block operation                      | Safety hooks only (`privacy-block`, `path-boundary-block`, `scout-block`, `init-prompt-gate`, `git-commit-block`, `windows-command-detector`) |
 
 **Rule:** Always exit `0` on errors unless the hook is explicitly a safety blocker. Hooks must be non-blocking by default.
 
@@ -232,7 +232,6 @@ maxTurns: 30
 | Core lib tests            | `node .claude/hooks/tests/test-lib-modules.cjs`                                                                                                                                                                                | After lib module changes      |
 | Extended lib tests        | `node .claude/hooks/tests/test-lib-modules-extended.cjs`                                                                                                                                                                       | After lib module changes      |
 | Swap engine               | `node .claude/hooks/tests/test-swap-engine.cjs`                                                                                                                                                                                | After swap-engine changes     |
-| Context tracker           | `node .claude/hooks/tests/test-context-tracker.cjs`                                                                                                                                                                            | After context-tracker changes |
 | Project config validation | `node -e "const {validateConfig,formatResult}=require('./.claude/hooks/lib/project-config-schema.cjs');console.log(formatResult(validateConfig(JSON.parse(require('fs').readFileSync('docs/project-config.json','utf-8')))))"` | After config schema changes   |
 
 ### Manual Hook Testing

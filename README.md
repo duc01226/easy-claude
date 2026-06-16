@@ -4,7 +4,7 @@
 
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **29 top-level hook files**, **155 skills**, **17 workflows**, and **29 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`, with Copilot instruction generation available through sync skills and scripts.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **15 top-level hook files**, **154 skills**, **17 workflows**, and **29 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`, with Copilot instruction generation available through sync skills and scripts.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -137,34 +137,35 @@ npm run codex:sync                                          # same via package.j
 
 ## What's Inside
 
-### Hooks (29 top-level `.cjs` files + 1 `.js` helper, 28 lib modules)
+### Hooks (15 top-level `.cjs` files + 1 `.js` helper, 25 lib modules)
 
 Runtime Node.js scripts that fire on Claude Code lifecycle events.
 
-| Category               | Hooks                                                                                                                                                     | Purpose                                                                         |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| **Safety**             | `path-boundary-block`, `privacy-block`, `scout-block`, `git-commit-block`, `windows-command-detector`                                                     | Prevent out-of-scope access, block secrets, limit broad searches, guard git/CMD |
-| **Quality**            | `edit-enforcement`, `skill-enforcement`, `workflow-task-guard`, `doc-sync-gate`, `agent-files-skill-gate`                                                 | Force task tracking, enforce skill usage, warn on doc⇄code drift                |
-| **Session Management** | `verify-install`, `session-init`, `session-init-docs`, `session-end`, `session-resume`, `post-compact-recovery`, `npm-auto-install`, `graph-session-init` | Initialize state, persist across compactions, recover after memory loss         |
-| **Workflow**           | `workflow-router`, `workflow-step-tracker`, `todo-tracker`                                                                                                | Detect intent, route to workflows, track step progress                          |
-| **Post-processing**    | `tool-output-swap`, `post-edit-prettier`, `bash-cleanup`, `graph-auto-update`, `post-agent-validator`                                                     | Externalize large outputs, format, clean temp, update graph, validate subagents |
-| **Compaction**         | `pre-compact-snapshot`, `write-compact-marker`                                                                                                            | Snapshot transcript and write recovery markers before context compaction        |
+| Category               | Hooks                                                                                                          | Purpose                                                                                                     |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| **Safety**             | `path-boundary-block`, `privacy-block`, `scout-block`, `git-commit-block`, `windows-command-detector`          | Prevent out-of-scope access, block secrets, limit broad searches, guard git/CMD                             |
+| **Quality**            | `doc-sync-gate`                                                                                                | Warn on doc⇄code drift                                                                                      |
+| **Session Management** | `verify-install`, `session-init`, `session-init-docs`, `session-end`, `npm-auto-install`, `graph-session-init` | Initialize state, load config, auto-install deps, seed the graph                                            |
+| **Routing**            | `init-prompt-gate`                                                                                             | Gate prompts until project config is ready (routing is model-driven from the static catalog in `CLAUDE.md`) |
+| **Post-processing**    | `post-edit-prettier`, `graph-auto-update`                                                                      | Format after edits, keep the code graph current                                                             |
 
-> **De-hooked context injection.** Earlier versions ran a runtime per-edit/per-prompt
-> inject layer (`pretooluse-ctx-*` dispatchers, `prompt-context-assembler*`,
-> `subagent-init*`, the `workflow-router-p2/-p3` part-files, and the standalone
-> `ba-refinement-context` / `figma-context-extractor` / `design-system-canonical-guide` /
-> `graph-grep-suggester` hooks). Those hooks were **removed**; the guidance they injected
-> now lives **statically** in `CLAUDE.md`, agent `.md`, and skill `SKILL.md` files, so a
-> hookless harness (Codex / Copilot) reads identical instructions.
+> **De-hooked enforcement & context injection.** Earlier versions ran runtime
+> enforcement/lifecycle hooks — per-edit/per-prompt inject dispatchers plus task/skill/edit
+> gating (`edit-enforcement`, `skill-enforcement`, `workflow-task-guard`,
+> `agent-files-skill-gate`), todo persistence (`todo-tracker`), compaction snapshot/restore
+> (`pre-compact-snapshot`, `write-compact-marker`, `post-compact-recovery`, `session-resume`),
+> large-output externalization (`tool-output-swap`), sub-agent validation
+> (`post-agent-validator`), and temp cleanup (`bash-cleanup`). Those hooks were **removed**;
+> the discipline they enforced and the guidance they injected now live **statically** in
+> `CLAUDE.md`, agent `.md`, and skill `SKILL.md` files, so a hookless harness (Codex /
+> Copilot) reads identical instructions.
 
-**Context re-injection:** Critical rules are carried as static SYNC-tagged invariants in
-`CLAUDE.md` / agent / skill bodies; `workflow-router.cjs` re-injects the workflow catalog at
-every `UserPromptSubmit`, and `post-compact-recovery.cjs` restores rules and lessons after
+**Context re-anchoring:** Critical rules are carried as static SYNC-tagged invariants in
+`CLAUDE.md` / agent / skill bodies; the workflow catalog is baked statically into `CLAUDE.md`
+(and the `AGENTS.md` mirror). Re-reading these static files restores rules and lessons after
 compaction. This stateless-per-turn design prevents context drift over long sessions.
-`lib/dedup-constants.cjs` ensures hook-emitted injections fire at most once per session.
 
-### Skills (155 definitions)
+### Skills (154 definitions)
 
 Markdown-based prompts with YAML frontmatter that guide AI behavior.
 
@@ -248,12 +249,12 @@ easy-claude/
 ├── .codex/                   # Codex agents, hooks, and context parity files
 ├── .claude/                  # <-- The framework template (copy this to your project)
 │   ├── agents/               # 29 specialized agent definitions
-│   ├── hooks/                # 29 top-level hook files + lib/ utilities
+│   ├── hooks/                # 15 top-level hook files + lib/ utilities
 │   │   ├── lib/              # Shared hook libraries
 │   │   ├── notifications/    # Multi-channel notification system
 │   │   ├── scout-block/      # Broad search prevention
 │   │   └── tests/            # Hook test suites
-│   ├── skills/               # 155 skill definitions
+│   ├── skills/               # 154 skill definitions
 │   │   ├── <skill>/          # Each skill directory contains:
 │   │   │   ├── SKILL.md      # Entry point (prompt + frontmatter)
 │   │   │   ├── scripts/      # Optional automation scripts
@@ -285,7 +286,7 @@ The entire framework is **project-agnostic**. All project-specific knowledge liv
 ```
 ┌─────────────────────────────────────┐
 │     Generic Framework (reusable)    │
-│ 29 Hook Files + 155 Skills + 17 Flows │
+│ 15 Hook Files + 154 Skills + 17 Flows │
 └──────────────┬──────────────────────┘
                │
         ┌──────┴──────┐
@@ -302,18 +303,17 @@ The entire framework is **project-agnostic**. All project-specific knowledge liv
 
 ### Hook Lifecycle
 
-Hooks are registered on 8 Claude Code events (there is no `SubagentStart` hook — agent context is now static in the agent `.md` files):
+Hooks register on these Claude Code events (there is no `SubagentStart` hook — agent context is static in the agent `.md` files; `PreCompact` has no live hook, recovery is static re-anchoring):
 
-| Event              | When                      | Example Hook                                     |
-| ------------------ | ------------------------- | ------------------------------------------------ |
-| `SessionStart`     | Claude Code starts        | `session-init.cjs` — load config, inject context |
-| `SessionEnd`       | Claude Code exits         | `session-end.cjs` — persist final state          |
-| `UserPromptSubmit` | Before each user message  | `init-prompt-gate.cjs` — gate until config ready |
-| `PreToolUse`       | Before tool execution     | `privacy-block.cjs` — block secrets access       |
-| `PostToolUse`      | After tool execution      | `tool-output-swap.cjs` — compress large outputs  |
-| `PreCompact`       | Before context compaction | `write-compact-marker.cjs` — save state          |
-| `Notification`     | Desktop notify event      | `notify-waiting.js` — send system notification   |
-| `Stop`             | Response complete         | `notify-waiting.js` — desktop notification       |
+| Event              | When                     | Example Hook                                       |
+| ------------------ | ------------------------ | -------------------------------------------------- |
+| `SessionStart`     | Claude Code starts       | `session-init.cjs` — load config, inject context   |
+| `SessionEnd`       | Claude Code exits        | `session-end.cjs` — persist final state            |
+| `UserPromptSubmit` | Before each user message | `init-prompt-gate.cjs` — gate until config ready   |
+| `PreToolUse`       | Before tool execution    | `privacy-block.cjs` — block secrets access         |
+| `PostToolUse`      | After tool execution     | `post-edit-prettier.cjs` — format edited files     |
+| `Notification`     | Desktop notify event     | `notifications/notify.cjs` — unified notify router |
+| `Stop`             | Response complete        | `notifications/notify.cjs` — desktop notification  |
 
 ### Workflow Detection
 

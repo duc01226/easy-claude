@@ -48,6 +48,12 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
 
+> **[TOP REMINDER — WHY-REVIEW FINDINGS-VALIDATION GATE IS NON-NEGOTIABLE]**
+>
+> If this review produces **ANY** finding (Critical / High / Medium / Low) in standalone mode, you **MUST invoke the `$why-review` skill** through the skill invocation with `--validate-findings <report-path>` **before** any fix, docs-update, commit, or handoff. An actual skill call is the ONLY way to pass this gate — re-reading the cited `file:line`s yourself, "self-validating," or any inline/manual substitute does **NOT** count.
+>
+> **Create the todo the moment the first finding is recorded — never rely on memory:** call task tracking → `[Review Phase 6] Why-review findings validation gate — invoke $why-review` so the gate is tracked and cannot be skipped. Inside `$workflow-review-changes`, stop after the report; parent step 2 owns validation. Full protocol in **Phase 6**; mirrored in the **Closing Reminders** at the bottom.
+
 ## Quick Summary
 
 **Goal:** Review current working-tree, staged, branch, or commit diffs across code, docs, config, infra, and non-code artifacts — finding correctness bugs, flaws, missing updates, stale docs, and convention drift with evidence — so every reviewed change is defect-free, evidence-backed, convention-aligned, and synchronized with required tests/docs before handoff; when code files changed, also prove the code stays easy to change.
@@ -69,7 +75,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 9. **Phase 3.7: Integration-Test-Review Coverage Gate (MANDATORY when behavior-bearing code changed)** — Invoke `$integration-test-review` over the full diff; its 7 quality gates audit changed tests AND its Gate 7 (Change Coverage) maps every behavior-changing production file to a covering test (integration-first; unit fallback needs justification) and a spec TC. GAP/SPEC-GAP results become findings for the same validation/fix loop (skip docs-only diffs; deferred to the parent's dedicated step inside `$workflow-review-changes`)
 10. **Phase 4: Finalize** — Generate critical issues, recommendations, suggested commit message
 11. **Phase 5: Docs Triage** — Record stale-doc findings for validation/fix loop
-12. **Phase 6: Why-Review Findings Validation (standalone-only; REQUIRED before any standalone fix)** — Invoke `$why-review --validate-findings` to verify every finding is correct, proof-backed, reasonable, and best-practice before fixing. When this skill is step 1 inside `$workflow-review-changes`, stop after the report; parent step 2 owns findings validation.
+12. **Phase 6: Why-Review Findings Validation (standalone-only; REQUIRED before any standalone fix)** — Whenever the report contains one or more findings, you MUST invoke the `$why-review` skill (an actual skill invocation-tool call) with `--validate-findings` to verify every finding is correct, proof-backed, reasonable, and best-practice before fixing. This is a genuine skill invocation — re-reading the cited lines yourself, "self-validating," or any inline/manual substitute does NOT satisfy this gate. When this skill is step 1 inside `$workflow-review-changes`, stop after the report; parent step 2 owns findings validation.
 13. **Phase 7: Recursive Fix + Full Re-Review Loop (standalone-only)** — If validated findings remain in standalone mode, auto-fix them, then re-invoke `$review-changes` from Phase 0 with a fresh task breakdown over the full current diff; repeat until an entire review pass has zero findings. When inside `$workflow-review-changes`, parent steps 10-15 own plan/feature-implement/restart.
 14. **Phase 8: Mandatory Final Docs-Update Gate (MANDATORY — runs once the review/fix loop converges clean)** — After the review reaches zero findings and all fixes are applied, ALWAYS invoke `$docs-update` over the full changeset as the terminal step so no stale docs survive. This is unconditional (not gated on a flagged finding) — `$docs-update` independently detects impacted docs the review may not have surfaced. When inside `$workflow-review-changes`, the parent workflow's `$docs-update` step owns this; do not run it locally.
 
@@ -356,11 +362,14 @@ For EACH identified category:
 | Category Nature                        | `agent_type`         |
 | -------------------------------------- | ----------------------- |
 | Code logic (any stack)                 | `code-reviewer`         |
+| Implements a documented spec/PBI       | `spec-compliance-reviewer` (pre-pass, before `code-reviewer`) |
 | Security, auth, permissions            | `security-auditor`      |
 | Performance, query efficiency, latency | `performance-optimizer` |
 | Documentation, plans, specs, ADRs      | `general-purpose`       |
 | Infrastructure, CI/CD, config          | `general-purpose`       |
 | Mixed or default                       | `code-reviewer`         |
+
+> **Spec-compliance pre-pass (when the changeset implements a documented `docs/specs/**` capability or a PBI/story):** spawn `spec-compliance-reviewer` FIRST — it verifies the implementation matches the spec (catches spec drift, missing requirements, extra features) BEFORE the `code-reviewer` quality pass runs. Skip when no spec/PBI governs the change (then `code-reviewer` is the sole code pass). This is the one wired dispatch site for `spec-compliance-reviewer` (`sub-agent-selection-guide.md` "Spec compliance" row).
 
 > **UI/frontend dimension (OWNED by this skill):** When a _Client-side logic_ or _Styles/Assets_ category surfaces frontend files matching the project's configured frontend/UI file patterns, `$review-changes` owns the UI review and invokes `$review-ui` as its UI dimension — preferably as a dedicated `ui-ux-designer` sub-agent spawned in the same parallel batch as the other dimensional agents (inline-fold its checklist only when sub-agent spawning is unavailable). The checklist: long-content overflow (wrap vs ellipsis+tooltip), responsive multi-screen via flex, flex-grow vs fixed sizing (prefer min/max + flex over fixed px), z-index scale discipline (no raw numbers, no `!important`), and SCSS/BEM quality. This is the SAME behavior in both standalone and workflow contexts — `$review-ui` is NOT a separate workflow step; it always runs here. Skip entirely if no frontend files changed.
 
@@ -786,12 +795,14 @@ If `architectureRules` not present in project-config.json, skip silently.
 
 **Trigger:** Any finding produced (Critical, High, Medium, OR Low). Skip ONLY when report verdict is unconditional PASS with literally zero findings.
 
+> **UNCONDITIONAL INVOCATION:** If even one finding exists, the `$why-review` skill MUST be invoked via the skill invocation before any fix, docs-update, commit, or handoff. There is NO inline alternative — manually re-reading the cited `file:line`s, re-tracing in your head, or declaring the findings "already validated" does NOT count. The only way to pass this gate is an actual `$why-review --validate-findings` skill call that returns a verdict.
+
 **Parent workflow boundary:** When this skill is invoked as step 1 inside `$workflow-review-changes`, do NOT run this Phase 6 locally. Stop after the review report and hand it to parent workflow step 2; the parent runs `$why-review --validate-findings` before any parallel reviewers or fixes.
 
 **Protocol (capped re-do loop):**
 
 1. Read own finalized report from `plans/reports/{skill}-{date}-{slug}.md`
-2. **Invoke `$why-review --validate-findings`** (terminal validate mode — runs in the SAME main-agent session, never spawns a sub-agent, never recurses) with arg: `--validate-findings plans/reports/{skill}-{date}-{slug}.md — for EACH finding verify (a) file:line proof exists and is accurate, (b) the finding is correct (re-trace the cited code), (c) severity is reasonable and not inflated, (d) it reflects project best practices/conventions; steel-man each rejected interpretation; and surface any MISSED finding or enhancement opportunity the review overlooked`
+2. **Invoke the `$why-review` skill via the skill invocation** (terminal `--validate-findings` mode — runs in the SAME main-agent session, never spawns a sub-agent, never recurses). "Same session" means the why-review skill executes in this conversation — it does NOT mean you may substitute your own inline re-reading for the skill call. The skill MUST actually run. Pass arg: `--validate-findings plans/reports/{skill}-{date}-{slug}.md — for EACH finding verify (a) file:line proof exists and is accurate, (b) the finding is correct (re-trace the cited code), (c) severity is reasonable and not inflated, (d) it reflects project best practices/conventions; steel-man each rejected interpretation; and surface any MISSED finding or enhancement opportunity the review overlooked`
 3. Read the validation verdict path returned by why-review, expected as `plans/reports/why-review-validate-{date}.md`
 4. **Classify the why-review verdict:**
     - **CLEAN** — all findings confirmed correct / proof-backed / reasonable / best-practice, AND no new finding issue or enhancement opportunity surfaced → append `## Why-Review Validation` line to own report ("All N findings re-validated against actual code; no changes."), gate PASSES; if N > 0, proceed immediately to Phase 7.
@@ -1763,9 +1774,13 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **MANDATORY** run the **Phase 3.5 Code-Simplifier Optimization gate** whenever the diff includes code files — invoke `$code-simplifier` (report mode) over the changed code files, record its clarity/consistency/maintainability findings in the report, and route them through Phase 6 validation → Phase 7 fix; skip ONLY for docs-only diffs (record the skip reason) — why: correctness review proves it works, the simplifier gate proves it stays cheap to change, and the step is silently dropped without an anchored reminder
 - **MANDATORY** run the **Phase 3.7 Integration-Test-Review Coverage Gate** whenever the diff includes behavior-bearing code — invoke `$integration-test-review` over the FULL change set (production code AND tests); its Gate 7 must map every behavior change to a covering test (integration-first; unit fallback justified) and a spec TC, and every GAP/SPEC-GAP becomes a finding for Phase 6 validation → Phase 7 fix (GAP fix = write the missing test); skip ONLY for docs-only diffs with recorded reason, and defer to the parent's dedicated `$integration-test-review` step inside `$workflow-review-changes` — why: a correct-looking change with no covering test or stale spec ships unprotected behavior; the pairing check alone proves file names, not coverage
 - **MANDATORY** missing tests for changed business logic MUST surface to user via a direct user question — NOT silently logged
-- **MANDATORY** run the **Phase 6 Why-Review Findings Validation Gate** whenever findings exist in standalone mode — invoke `$why-review --validate-findings` (terminal mode, same session) to verify every finding is correct, proof-backed, reasonable, and best-practice; RE-DO it ONLY if it surfaces finding issues or enhancement opportunities (max 2 re-dos, then escalate via a direct user question); then Phase 7 fixes validated findings and restarts this skill. Inside `$workflow-review-changes`, do not run Phase 6/7 locally; parent step 2 and steps 10-15 own those gates.
+- **MANDATORY** run the **Phase 6 Why-Review Findings Validation Gate** whenever ANY finding exists in standalone mode — invoke the `$why-review` skill through the skill invocation with `--validate-findings` (terminal mode, same session; an ACTUAL skill call — re-reading the cited lines yourself or any inline/manual self-validation does NOT satisfy this gate). The moment the first finding is recorded, register `[Review Phase 6] Why-review findings validation gate — invoke $why-review` via task tracking so it is never forgotten. Verify every finding is correct, proof-backed, reasonable, and best-practice; RE-DO it ONLY if it surfaces finding issues or enhancement opportunities (max 2 re-dos, then escalate via a direct user question); then Phase 7 fixes validated findings and restarts this skill. Inside `$workflow-review-changes`, do not run Phase 6/7 locally; parent step 2 and steps 10-15 own those gates.
 - **MANDATORY** follow declared step order; NEVER skip, reorder, or merge steps without explicit user approval
 - **MANDATORY** every skipped step includes explicit reason; every completed step includes concise evidence
+
+> **[BOTTOM REMINDER — WHY-REVIEW FINDINGS-VALIDATION GATE IS NON-NEGOTIABLE]**
+>
+> Same rule as the **Top Reminder**, repeated so it survives long contexts: ANY finding in standalone mode → you **MUST invoke the `$why-review` skill** (skill invocation, `--validate-findings <report-path>`) before any fix, docs-update, commit, or handoff. No inline/manual self-validation substitutes for the actual skill call. **task tracking the `[Review Phase 6]` gate the moment the first finding lands** so it can never be forgotten. Inside `$workflow-review-changes`, defer to parent step 2.
 
 **Anti-Rationalization:**
 
@@ -1773,7 +1788,8 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 | -------------------------------------- | ---------------------------------------------------------------------------------------- |
 | "Too simple for graph blast-radius"    | Phase 0 graph check sets risk order; run it or record graph unavailable.                 |
 | "No findings, skip docs/tests"         | Clean verdict still needs proof that docs/tests were checked or explicitly not relevant.              |
-| "Finding is obvious, fix now"          | Validate the finding with `$why-review --validate-findings` first; unvalidated findings are not fixes. |
+| "Finding is obvious, fix now"          | Invoke the `$why-review` skill (`--validate-findings`) first — an actual skill call, not inline self-validation; unvalidated findings are not fixes. |
+| "I already re-checked the lines myself" | Inline re-reading does NOT pass Phase 6. The gate requires a real `$why-review` skill invocation that returns a verdict. |
 | "Only re-check fixed files"            | Fixes can interact with earlier changes; restart `$review-changes` from Phase 0 on the full diff.     |
 | "Sub-agent already reviewed"           | Main report must integrate raw findings and not override or filter them.                              |
 | "Already searched project conventions" | Show 3+ `file:line` examples. No evidence means no search.                                            |

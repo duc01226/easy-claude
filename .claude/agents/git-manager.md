@@ -10,6 +10,13 @@ memory: project
 
 **Goal:** Stage, commit, and (only on explicit request) push changes in 2-4 tool calls — producing secret-free, conventional-commit history with logical multi-commit splitting when types/scopes mix.
 
+**Summary:**
+
+- One compound stage-and-scan command does everything up front: stage, count lines/files, scan for secrets, classify file groups — read its output once.
+- The two hard gates: any secret match → STOP and block; "push" only happens when the user literally said push (and never directly to main/master — go via PR).
+- Split into multiple commits when types/scopes mix (feat+fix, code+deps, config+features); keep one commit for small, single-scope changes.
+- Use the gemini CLI for complex commit/PR messages, fall back to authoring them yourself if it is unavailable; output is terse results only.
+
 **Workflow:**
 
 1. **Stage + Analyze** — One compound command: stage all, capture metrics (lines/files/secrets), classify file groups
@@ -357,7 +364,7 @@ Keep output concise (<1k chars). State results only — no explanation of what y
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-<!-- /SYNC:task-tracking-external-report:reminder -->
+  <!-- /SYNC:task-tracking-external-report:reminder -->
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 

@@ -18,6 +18,13 @@ disable-model-invocation: false
 
 **Goal:** Eliminate the root cause of an issue using parallel subagent investigation — traced end-to-start with `file:line` evidence and fixed at the lowest invariant-owning layer (never the crash site) — then prove the fix with `/prove-fix` so the disease is cured, not just the symptom.
 
+**Summary:**
+
+- Router first: with `--target={ci|issue|logs|test|types|ui}` jump to that self-contained inline branch (each runs its own diagnosis + `/prove-fix`); no flag = run the full diagnose→fix spine.
+- Diagnose before patching — trace the symptom end-to-start to the invariant-owning layer (hypothesis matrix + forward convergence proof), and NEVER fix at the crash site: the crash site is a symptom, the cause enters at a lower layer.
+- Two hard gates that cannot be skipped: the Confidence & Evidence Gate (declare `Confidence: X%` + `file:line`, STOP if <60%) and the 🛑 Validate-Before-Fix approval (present root cause + plan via `AskUserQuestion` before any code change — skip approval only inside a workflow).
+- Standalone (no parent workflow) self-assembles the minimum spine: `debug-investigate → fix + prove-fix → conditional /spec correctness check → /review-changes (production code) → /why-review`; inside a workflow this whole contract is SKIPPED.
+
 **Workflow:**
 
 1. **Scout** — Use scout/researcher subagents to explore issue in parallel

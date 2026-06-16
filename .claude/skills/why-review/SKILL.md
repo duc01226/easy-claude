@@ -21,6 +21,13 @@ description: '[Code Quality] Use when reviewing rationale and change quality for
 
 **Goal:** Resolve the requested review target and apply the matching adversarial review path (plan/PBI rationale, code changes, docs/spec/report, findings, or explicit artifact) so decisions, findings, and plans survive adversarial rationale review before downstream work proceeds.
 
+**Summary:**
+
+- DETECT MODE FIRST: `--validate-findings` is TERMINAL — it never re-invokes `/why-review`, never runs the gate, never spawns a sub-agent; full mode may call itself ONCE in validate-findings mode. This recursion guard is non-negotiable.
+- Resolve the target type BEFORE reviewing — a commit/PR/diff defaults to code-change review, a PBI/spec/doc to artifact review; "no active plan" is valid ONLY for an unresolved plan-rationale request. Never silently convert target types.
+- Default stance is SKEPTIC not validator: complete every box of the Anti-Bias Gate (steel-man rejected alt, unseen alternative, args against, stressed assumptions, pre-mortem, pros/cons symmetry); presence of a section is never a pass — quality depth is.
+- Judge by Easy-to-Change (does this lower future change cost?) and gate every finding on `file:line`, severity, and confidence; in full mode the Findings Validation Gate on your OWN findings is the mandatory closing task when any finding exists.
+
 **Workflow:** Detect mode/target → route path/docs/graph/sub-agent focus → review dimensions/adversarial gates/Easy-to-Change → validate findings via terminal `--validate-findings` → ask next step in full mode.
 
 **Key Rules:** MUST ATTENTION resolve target type BEFORE review. MUST ATTENTION every finding needs `file:line`, severity, confidence, best-practice rationale. NEVER say "No active plan" except unresolved plan-rationale request. NEVER call `/why-review` from `validate-findings`. MUST ATTENTION judge by Easy-to-Change: lower future change cost or reject.

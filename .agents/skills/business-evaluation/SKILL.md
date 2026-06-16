@@ -52,6 +52,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Evaluate business idea viability to deliver an evidence-backed viability verdict — score + confidence + Pursue/Pivot/Pause/Pass recommendation — grounded in a complete 9-block BMC, 3-year financials with stated assumptions, 5+ risks with mitigation, and a phased execution + GTM plan, so the go/no-go decision rests on traced evidence, never optimism.
 
+**Summary:**
+
+- Runs after market-analysis: pull its market data in as evidence rather than re-deriving market sizing here — this skill judges viability, it does not research the market.
+- Every artifact is evidence-gated — all 9 BMC blocks cite proof, every financial number carries an assumption + source, and each of the 5+ risks needs mitigation AND a residual-risk entry; an unbacked number or block fails the gate.
+- The verdict is the load-bearing output: a 1-10 viability score, an explicit confidence tier (95/80/60/<60%) with its evidence basis, a Pursue/Pivot/Pause/Pass call, and the single key condition that must hold to succeed — bias toward skepticism, never optimism.
+- Write the result to `docs/knowledge/strategy/business/{slug}.md` via the enforced `.claude/templates/business-evaluation-template.md`, then use a direct user question to route next (domain-analysis recommended) — never auto-decide.
+
 **Workflow:**
 
 1. **Capture idea** — Problem, solution, target customer

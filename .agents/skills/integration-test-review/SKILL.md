@@ -52,6 +52,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Ensure the review target (changed production code) is covered by tests that protect real business behavior with correct data assertions, infinite repeatability, and spec alignment — verifying every behavior change has test coverage (integration-first, unit fallback) so that specs ↔ tests ↔ code stay aligned (spec-driven development).
 
+**Summary:**
+
+- The review target is the CHANGE, not the test files: collect BOTH changed production code AND changed test files — Gates 1-6 judge test quality, Gate 7 maps every behavior-changing production file to a covering test (integration-first; unit only with recorded justification) and a spec TC. An uncovered changed behavior is a HIGH finding minimum.
+- Read the handler/service source (and feature docs) BEFORE judging any assertion. FAIL smoke-only, existence-only (not-null), dead (always-true), copy-paste, and DI-resolution-only tests; require unique IDs + async polling + 3 consecutive green runs to call tests repeatable/verified.
+- Gate 6 three-way sync uses the source-of-truth hierarchy (feature docs > test-spec docs > impl code > test code): NEVER fix a test to match broken code, NEVER self-resolve a three-way conflict — escalate via a direct user question.
+- Don't just report gaps — Phase 5 WRITES the missing test (and runs `$spec [mode=tests]` for SPEC-GAPs), then a full fresh re-review runs after every validated fix cycle until a clean pass returns 0 CRITICAL/0 HIGH.
+
 **Scope:** The FULL change set — changed production code AND changed test files — from uncommitted changes (default), user-specified files, or a user-specified diff (branch/PR). The review target is never "just the test files".
 
 **Workflow:** Phase 0 Detect → Collect → Coverage Map (Gate 7) → 7-Gate Review → Spec Cross-Check → Report → validate findings → fix validated issues (including writing missing tests) → full re-review after fixes → Build & verify → If fail: investigate + fix plan
@@ -317,10 +324,10 @@ For each behavior-changing production file in the review target (reverse directi
 
 **Phase 6 — Validated Fix + Full Re-Review (MANDATORY when fixes are applied):**
 
-Do not spawn a fresh reviewer to re-review the same findings before validation/fix. After Phase 5 applies validated fixes, run a full fresh review over the current test scope. When that review uses sub-agents, spawn fresh `code-reviewer` sub-agents (parallel by module for 10+ files; single agent otherwise) using canonical Agent template from `SYNC:review-protocol-injection`. Each sub-agent re-reads ALL target test files from scratch with ZERO memory of Phase 2/5. When constructing Agent call prompt:
+Do not spawn a fresh reviewer to re-review the same findings before validation/fix. After Phase 5 applies validated fixes, run a full fresh review over the current test scope. When that review uses sub-agents, spawn fresh `integration-tester` sub-agents (parallel by module for 10+ files; single agent otherwise) using canonical Agent template from `SYNC:review-protocol-injection`. Each sub-agent re-reads ALL target test files from scratch with ZERO memory of Phase 2/5. When constructing Agent call prompt:
 
 1. Copy Agent call shape from `SYNC:review-protocol-injection` template verbatim
-2. Set `agent_type: "code-reviewer"`
+2. Set `agent_type: "integration-tester"`
 3. Embed full verbatim body of 9 SYNC blocks (all present inline in this skill file): `SYNC:evidence-based-reasoning`, `SYNC:bug-detection`, `SYNC:design-patterns-quality`, `SYNC:logic-and-intention-review`, `SYNC:test-spec-verification`, `SYNC:fix-layer-accountability`, `SYNC:rationalization-prevention`, `SYNC:graph-assisted-investigation`, `SYNC:understand-code-first`
 4. Task field: `"Run a full fresh integration-test review pass over {file-list} after validated fixes were applied. Review against 7 quality gates: assertion value, data state, infinite repeatability, domain logic, test-spec traceability, three-way sync, change coverage. Read handler source AND feature docs before judging assertions. Flag smoke-only, existence-only, dead assertions, and repository-created invalid test data as FAIL. Gate 7: map every behavior-changing production file in {changed-production-file-list} to a covering test (integration-first; unit fallback requires justification) AND a spec TC — uncovered behavior is a HIGH finding minimum, missing/stale TC is a SPEC-GAP finding. Source-of-truth hierarchy: feature docs > test-spec docs > implementation code > test code. Classify every disagreement as: wrong test, code bug, stale docs, or escalate (three-way conflict)."`
 5. Target Files: explicit file list (never pass inline contents)
@@ -488,67 +495,7 @@ integration-test-review (you are here)
 > **A test that cannot fail is not a test — it is decoration.** Every test MUST earn existence by proving it would FAIL if the protected business rule/invariant changed or the bug it guards were reintroduced.
 > Every finding requires `file:line` proof with confidence >80%.
 
-<!-- SYNC:critical-thinking-mindset -->
-
-> **Critical Thinking Mindset** — Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
-> **Anti-hallucination:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
-
-<!-- /SYNC:critical-thinking-mindset -->
-
-<!-- SYNC:evidence-based-reasoning -->
-
-> **Evidence-Based Reasoning** — Speculation is FORBIDDEN. Every claim needs proof.
->
-> 1. Cite `file:line`, grep results, or framework docs for EVERY claim
-> 2. Declare confidence: >80% act freely, 60-80% verify first, <60% DO NOT recommend
-> 3. Cross-service validation required for architectural changes
-> 4. "I don't have enough evidence" is valid and expected output
->
-> **BLOCKED until:** `- [ ]` Evidence file path (`file:line`) `- [ ]` Grep search performed `- [ ]` 3+ similar patterns found `- [ ]` Confidence level stated
->
-> **Forbidden without proof:** "obviously", "I think", "should be", "probably", "this is because"
-> **If incomplete →** output: `"Insufficient evidence. Verified: [...]. Not verified: [...]."`
-
-<!-- /SYNC:evidence-based-reasoning -->
-
-<!-- SYNC:double-round-trip-review -->
-
-> **Validated-Finding Fix + Full Re-Review Loop** — Re-review is triggered by a validated finding fix cycle, not by a round number. Review purpose: `review → validate findings → fix validated findings → full re-review` until a complete review pass finds no issues. **A clean review ENDS the loop — no further rounds required.**
->
-> **Round 1:** Main-session review. Read target files, build understanding, note issues. Output findings + verdict (PASS / FAIL).
->
-> **Decision after Round 1:**
->
-> - **No issues found (PASS, zero findings)** → review ENDS. Do NOT spawn a fresh sub-agent for confirmation.
-> - **Issues found (FAIL, or any non-zero findings)** → run the active review skill's findings-validation gate first; for review skills the default gate is `$why-review --validate-findings <report-path>`. Fix only validated findings, then restart the full review protocol from the beginning with a fresh task breakdown.
->
-> **Fresh full re-review after every fix cycle:** Re-run the whole review protocol over the current full target. When sub-agents are part of that protocol, spawn NEW `spawn_agent` calls — never reuse prior agents. Reviewers re-read ALL files from scratch with ZERO memory of prior rounds. See `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. Each fresh full review must catch:
->
-> - Cross-cutting concerns missed in the prior round
-> - Interaction bugs between changed files
-> - Convention drift (new code vs existing patterns)
-> - Missing pieces that should exist but don't
-> - Subtle edge cases the prior round rationalized away
-> - Regressions introduced by the fixes themselves
->
-> **Loop termination:** After each full re-review, repeat the same decision: clean → END; issues → validate findings → fix → restart from the first review phase. Continue until a complete review pass finds zero issues. If the same validated finding repeats for 3 full invocations with no progress, or a fix requires product/owner input, escalate via a direct user question.
->
-> **Rules:**
->
-> - A clean Round 1 ENDS the review — no mandatory Round 2
-> - NEVER fix unvalidated findings; validate first using the caller's validation gate
-> - NEVER skip the full re-review after a fix cycle (every fix invalidates the prior verdict)
-> - NEVER reuse a sub-agent across rounds — every iteration that uses sub-agents spawns NEW Agent calls
-> - Main agent READS sub-agent reports but MUST NOT filter, reinterpret, or override findings
-> - No arbitrary sub-agent-round cap replaces the clean-review requirement; use the 3 repeated-no-progress blocker rule only to avoid infinite spinning
-> - Track recursive invocation count and repeated blockers in conversation context (session-scoped)
-> - Final verdict must incorporate ALL rounds executed
->
-> **Report must include `## Round N Findings (Fresh Sub-Agent)` for every round N≥2 that was executed.**
-
-<!-- /SYNC:double-round-trip-review -->
-
-<!-- SYNC:fresh-context-review -->
+<!-- OVERRIDE:fresh-context-review -->
 
 > **Fresh Context Re-Review** — Eliminate orchestrator confirmation bias after fixes by restarting the full review with isolated sub-agents where applicable.
 >
@@ -558,7 +505,7 @@ integration-test-review (you are here)
 >
 > **How:**
 >
-> 1. Start a NEW full review invocation/task breakdown; when that protocol calls for agents, spawn NEW `spawn_agent` tool calls — use `code-reviewer` agent_type for code reviews, `general-purpose` for plan/doc/artifact reviews
+> 1. Start a NEW full review invocation/task breakdown; when that protocol calls for agents, spawn NEW `spawn_agent` tool calls — use `integration-tester` agent_type (integration-test reviews ALWAYS spawn `integration-tester`, NOT `code-reviewer`)
 > 2. Inject ALL required review protocols VERBATIM into the prompt — see `SYNC:review-protocol-injection` for the full list and template. Never reference protocols by file path; AI compliance drops behind file-read indirection (see `SYNC:shared-protocol-duplication-policy`)
 > 3. Sub-agent re-reads ALL target files from scratch via its own tool calls — never pass file contents inline in the prompt
 > 4. Sub-agent writes structured report to `plans/reports/{review-type}-round{N}-{date}.md`
@@ -572,9 +519,15 @@ integration-test-review (you are here)
 > - Continue until a complete full review pass has zero findings; if the same blocker repeats 3 times with no progress, escalate via a direct user question
 > - Track iteration count and repeated blockers in conversation context (session-scoped, no persistent files)
 
-<!-- /SYNC:fresh-context-review -->
+<!-- /OVERRIDE:fresh-context-review -->
 
-<!-- SYNC:review-protocol-injection -->
+## Sub-Agent Type Override
+
+> **MANDATORY:** Integration-test reviews spawn the `integration-tester` sub-agent, NOT `code-reviewer`.
+> Keep `agent_type: "integration-tester"` from the canonical template below; NEVER revert to `code-reviewer`.
+> **Rationale:** `integration-tester` specializes in test-spec generation, TC traceability, CQRS test patterns, async-polling / eventual-consistency assertion correctness, and cross-service integration context — areas `code-reviewer` does not cover at depth.
+
+<!-- OVERRIDE:review-protocol-injection -->
 
 > **Review Protocol Injection** — Every fresh sub-agent review prompt MUST embed 10 protocol blocks VERBATIM. The template below has ALL 10 bodies already expanded inline. Copy the template wholesale into the Agent call's `prompt` field at runtime, replacing only the `{placeholders}` in Task / Round / Reference Docs / Target Files / Output sections with context-specific values. Do NOT touch the embedded protocol sections.
 >
@@ -582,15 +535,15 @@ integration-test-review (you are here)
 
 ### Subagent Type Selection
 
-- `code-reviewer` — for code reviews (reviewing source files, git diffs, implementation)
-- `general-purpose` — for plan / doc / artifact reviews (reviewing markdown plans, docs, specs)
+- `integration-tester` — ALWAYS for integration-test reviews (test files, TC traceability, CQRS/async assertion correctness)
+- `code-reviewer` — for general code-quality reviews only (NOT integration tests)
 
 ### Canonical Agent Call Template (Copy Verbatim)
 
 ```
 spawn_agent({
   description: "Fresh Round {N} review",
-  agent_type: "code-reviewer",
+  agent_type: "integration-tester",
   prompt: `
 ## Task
 {review-specific task — e.g., "Review all uncommitted changes for code quality" | "Review plan files under {plan-dir}" | "Review integration tests in {path}"}
@@ -730,13 +683,73 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 - DO copy the template wholesale — including all 10 embedded protocol sections
 - DO replace only the `{placeholders}` in Task / Round / Reference Docs / Target Files / Output sections with context-specific content
-- DO choose `code-reviewer` agent_type for code reviews and `general-purpose` for plan / doc / artifact reviews
+- DO choose `integration-tester` agent_type — integration-test reviews ALWAYS use `integration-tester`, never `code-reviewer`
 - DO NOT paraphrase, summarize, or skip any protocol section
 - DO NOT pass file contents inline — the sub-agent reads via its own tool calls so it has a fresh context
 - DO NOT reference protocols by file path or tag name — the bodies are already embedded above
 - DO NOT introduce placeholder markers for the protocols — they must stay literally expanded
 
-<!-- /SYNC:review-protocol-injection -->
+<!-- /OVERRIDE:review-protocol-injection -->
+
+<!-- SYNC:critical-thinking-mindset -->
+
+> **Critical Thinking Mindset** — Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
+> **Anti-hallucination:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
+
+<!-- /SYNC:critical-thinking-mindset -->
+
+<!-- SYNC:evidence-based-reasoning -->
+
+> **Evidence-Based Reasoning** — Speculation is FORBIDDEN. Every claim needs proof.
+>
+> 1. Cite `file:line`, grep results, or framework docs for EVERY claim
+> 2. Declare confidence: >80% act freely, 60-80% verify first, <60% DO NOT recommend
+> 3. Cross-service validation required for architectural changes
+> 4. "I don't have enough evidence" is valid and expected output
+>
+> **BLOCKED until:** `- [ ]` Evidence file path (`file:line`) `- [ ]` Grep search performed `- [ ]` 3+ similar patterns found `- [ ]` Confidence level stated
+>
+> **Forbidden without proof:** "obviously", "I think", "should be", "probably", "this is because"
+> **If incomplete →** output: `"Insufficient evidence. Verified: [...]. Not verified: [...]."`
+
+<!-- /SYNC:evidence-based-reasoning -->
+
+<!-- SYNC:double-round-trip-review -->
+
+> **Validated-Finding Fix + Full Re-Review Loop** — Re-review is triggered by a validated finding fix cycle, not by a round number. Review purpose: `review → validate findings → fix validated findings → full re-review` until a complete review pass finds no issues. **A clean review ENDS the loop — no further rounds required.**
+>
+> **Round 1:** Main-session review. Read target files, build understanding, note issues. Output findings + verdict (PASS / FAIL).
+>
+> **Decision after Round 1:**
+>
+> - **No issues found (PASS, zero findings)** → review ENDS. Do NOT spawn a fresh sub-agent for confirmation.
+> - **Issues found (FAIL, or any non-zero findings)** → run the active review skill's findings-validation gate first; for review skills the default gate is `$why-review --validate-findings <report-path>`. Fix only validated findings, then restart the full review protocol from the beginning with a fresh task breakdown.
+>
+> **Fresh full re-review after every fix cycle:** Re-run the whole review protocol over the current full target. When sub-agents are part of that protocol, spawn NEW `spawn_agent` calls — never reuse prior agents. Reviewers re-read ALL files from scratch with ZERO memory of prior rounds. See `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. Each fresh full review must catch:
+>
+> - Cross-cutting concerns missed in the prior round
+> - Interaction bugs between changed files
+> - Convention drift (new code vs existing patterns)
+> - Missing pieces that should exist but don't
+> - Subtle edge cases the prior round rationalized away
+> - Regressions introduced by the fixes themselves
+>
+> **Loop termination:** After each full re-review, repeat the same decision: clean → END; issues → validate findings → fix → restart from the first review phase. Continue until a complete review pass finds zero issues. If the same validated finding repeats for 3 full invocations with no progress, or a fix requires product/owner input, escalate via a direct user question.
+>
+> **Rules:**
+>
+> - A clean Round 1 ENDS the review — no mandatory Round 2
+> - NEVER fix unvalidated findings; validate first using the caller's validation gate
+> - NEVER skip the full re-review after a fix cycle (every fix invalidates the prior verdict)
+> - NEVER reuse a sub-agent across rounds — every iteration that uses sub-agents spawns NEW Agent calls
+> - Main agent READS sub-agent reports but MUST NOT filter, reinterpret, or override findings
+> - No arbitrary sub-agent-round cap replaces the clean-review requirement; use the 3 repeated-no-progress blocker rule only to avoid infinite spinning
+> - Track recursive invocation count and repeated blockers in conversation context (session-scoped)
+> - Final verdict must incorporate ALL rounds executed
+>
+> **Report must include `## Round N Findings (Fresh Sub-Agent)` for every round N≥2 that was executed.**
+
+<!-- /SYNC:double-round-trip-review -->
 
 <!-- SYNC:repeatable-test-principle -->
 
@@ -955,17 +968,6 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:nested-task-creation:reminder -->
 
-<!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
-
-## Prompt-Enhance Closing Anchors
-
-**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
-**IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
-**IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
-**IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses
-
-<!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
-
 <!-- SYNC:systematic-review-batching:reminder -->
 
 - **MANDATORY** Large changeset → batch by size cap (≤8 files OR ≤2000 diff-lines), one parallel sub-agent per batch; never review many files one-by-one.
@@ -986,6 +988,17 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **MANDATORY** Derive each category's concerns from first principles with `file:line` evidence — never a fixed checklist.
 
 <!-- /SYNC:category-review-thinking:reminder -->
+
+<!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
+
+## Prompt-Enhance Closing Anchors
+
+**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
+**IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
+**IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
+**IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses
+
+<!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 
 ## Closing Reminders (MUST ATTENTION)
 

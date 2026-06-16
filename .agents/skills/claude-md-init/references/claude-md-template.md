@@ -1,8 +1,18 @@
-<!-- CK:UNIVERSAL-GUIDES v3 -->
+<!-- CK:UNIVERSAL-GUIDES v4 -->
 
-<!-- The hook-independent Workflow-First Gate (CK:WORKFLOW-GATE block) is stamped here automatically
-     by generate-claude-md.cjs `stampHeader()`, sourced from .claude/skills/shared/workflow-first-gate.md,
-     on every init/update — it is intentionally NOT inlined in this template to avoid drift. -->
+<!-- The hook-independent Workflow-First Gate (CK:WORKFLOW-GATE block) AND the Workflow & Skills
+     Catalog (CK:WORKFLOW-SKILLS block — Workflows Index + composable step-skills, derived from
+     .claude/workflows.json) are stamped here automatically by generate-claude-md.cjs `stampHeader()`,
+     sourced from .claude/skills/shared/workflow-first-gate.md + .claude/scripts/lib/workflow-skills-catalog.cjs,
+     on every init/update — intentionally NOT inlined in this template to avoid drift. The catalog is
+     baked statically so a hookless read of CLAUDE.md can still pick the right workflow.
+
+     The FULL always-on protocol — critical-thinking (CK:CRITICAL-THINKING block) and AI-mistake-prevention
+     (CK:AI-MISTAKE-PREVENTION block) — is likewise STAMPED, not inlined: `stampHeader()` bakes it right
+     after the catalog (primacy) and `stampFooter()` re-bakes it at EOF (recency), both read from the
+     canonical .claude/skills/shared/sync-inline-versions.md `:full` sections via
+     .claude/scripts/lib/extract-sync-block.cjs. This gives a hookless CLAUDE.md the same protocol the
+     Claude post-compact hook injects. Do not inline these blocks here — they would drift from canonical. -->
 
 # {project-name} - Code Instructions
 
@@ -42,7 +52,9 @@
 4. **Operational Awareness** — Code that works but can't be debugged, monitored, or rolled back is technical debt in disguise.
 5. **Depth Over Breadth** — One well-understood solution beats ten AI-generated variants.
 
-> **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
+<!-- The skeptic / critical-thinking callout that used to sit here is now STAMPED as the
+     CK:CRITICAL-THINKING block (top after the catalog + bottom at EOF) from canonical
+     sync-inline-versions.md `:full` — removed from this template to avoid a partial duplicate. -->
 
 <!-- SECTION:decision-quick-ref -->
 
@@ -87,7 +99,7 @@ Workflow progression is **model-driven** — your responsibility, not a tool/hoo
 1. **Advancement.** A step is complete when its work returns — whether run **inline** (a skill/step call) OR dispatched as a **sub-agent** (Agent / Task tool). A sub-agent completion advances the step **identically** to an inline call. Do not wait for any hook or tool event to advance; advance by judgment and your task list.
 2. **Parallel phase = all-return barrier.** When steps are declared a parallel-phase group, spawn **ALL** members together (one message), then advance **only after EVERY member returns**. Never start the next step — and never start any code-mutating step (e.g. `code-simplifier`) — until the whole group has returned. A conditional member whose trigger is absent counts as "returned."
 3. **Workflow-in-workflow → sub-agent.** A step that itself activates a multi-step workflow MUST run as a sub-agent; it returns only a summary and writes full findings to `plans/reports/`. This preserves context containment.
-4. **Hooks/trackers are accelerators only.** Any step-tracking hook (e.g. Claude's `workflow-step-tracker.cjs`) is an optimization that may emit "next step" hints; correctness MUST NOT depend on it. Codex and Copilot run with no hooks and advance entirely by this rule.
+4. **Hooks/trackers are accelerators only.** Any step-tracking hook is an optimization that may emit "next step" hints; correctness MUST NOT depend on it. Claude, Codex, and Copilot all run without a step-tracking hook and advance entirely by this rule.
 
 ---
 
@@ -237,7 +249,7 @@ python .claude/scripts/code_graph search <keyword> --kind Function --json       
 
 <!-- SECTION:skill-activation -->
 
-These skills auto-activate before file edits in their path patterns:
+When editing files matching these path patterns, pre-read the listed context first:
 
 | Path Pattern   | Skill / Auto-Context | Pre-Read Files   |
 | -------------- | -------------------- | ---------------- |

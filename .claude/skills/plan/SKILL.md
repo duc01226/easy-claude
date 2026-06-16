@@ -18,6 +18,13 @@ disable-model-invocation: false
 
 **Goal:** Research the codebase and collaborate with the user to deliver a validated, implementation-ready phased plan — every phase startable immediately (exact file paths, zero open decisions, mapped TC IDs) — so coding proceeds without rework at minimum future change cost.
 
+**Summary:**
+
+- PLANNING ONLY — never implement or execute code; this skill produces `plan.md` + per-phase files plus a `goal.md` Goal Contract, then hands off.
+- Default mode is HARD (full rigor: parallel researcher subagents, project-reference docs, 3-round `/plan-review`); opt to fast mode ONLY when every trivial-task condition holds.
+- Every phase must pass the 5-point granularity check ("Can I start coding RIGHT NOW?"), carry `## Test Specifications` with TC IDs, and use bottom-up estimation (phase-hours drive man-days; SP derived).
+- Two mandatory gates: detect any new tech/lib and create a validation task before approval, and ALWAYS run `/plan-review` after creation — confirm with the user via `AskUserQuestion` before any next step.
+
 **Workflow:**
 
 1. **Pre-Check** — Detect active/suggested plan or create new directory

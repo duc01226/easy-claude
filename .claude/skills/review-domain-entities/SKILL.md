@@ -17,6 +17,13 @@ description: '[DDD Quality] Use when you need to review domain entities and valu
 
 **Goal:** Detect DDD design quality violations in domain entities and value objects across any technology stack — adapting to project-specific patterns via config/reference docs discovery — so domain entities and value objects preserve invariants, aggregate boundaries, and discovered DDD conventions.
 
+**Summary:**
+
+- Phase 0 is the gate: discover the project's real entity/VO base classes, validation API, and domain exception type FIRST — discovered conventions override every generic DDD rule, and wrong base classes mean the wrong checklist.
+- Run the mandatory high-signal grep patterns (hidden `validate()` overrides, leaked persistence/business logic, missing identity markers) BEFORE reading individual files, and write every grep result to the report immediately.
+- Apply the per-file checklist A–L (entity-vs-VO classification, VO immutability/structural equality, anemic-model detection, aggregate-by-ID, navigation serialization safety, ubiquitous language) — append findings per file, never batch.
+- Findings drive a validation-first loop: validate via why-review (Phase 5 gate) before any fix, then restart a full review after validated fixes; a clean pass ENDS the review and every finding needs `file:line` evidence at confidence >80%.
+
 **Workflow:**
 
 1. **Phase 0** — Discover project stack + entity patterns + blast radius **(MANDATORY FIRST)**

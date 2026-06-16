@@ -52,6 +52,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Deliver a complete, prioritized map of every file relevant to the task via fast, parallel codebase discovery — grep + graph combined — so downstream work starts with full coverage and zero blind spots.
 
+**Summary:**
+
+- Classify scope FIRST (Phase 0: backend/frontend/full-stack) so you spawn only the agents you need — never the default 3 when the prompt names one layer.
+- Sub-agents do the parallel grep/glob; only YOU (main agent) run the graph commands afterward — graph expansion on 2-3 key files is MANDATORY when `.code-graph/graph.db` exists and is the step that finds what grep can't.
+- This is discovery, not analysis: return prioritized file paths fast (3-5 min), no content deep-dives — that's `investigate`'s job.
+- If <5 files surface, re-examine keywords and run a second pass with broader synonyms before synthesizing.
+
 **Workflow:**
 
 1. **Phase 0: Classify** — Detect search scope (backend/frontend/both) + keyword type

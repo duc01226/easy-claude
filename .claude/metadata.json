@@ -143,12 +143,6 @@
           "installedVersion": "v2.1.0"
         },
         {
-          "path": "hooks/lib/context-tracker.cjs",
-          "checksum": "b9d4b343ad3af91a50929a025d6f876b0aac9bc3db9f1acf27eabebc6ebfeb1b",
-          "ownership": "user",
-          "installedVersion": "v2.1.0"
-        },
-        {
           "path": "hooks/notifications/.env.example",
           "checksum": "cae84dd26379eb81960e95acfc84b4e08097c71c872a07a14ef573e1b5e68998",
           "ownership": "user",
@@ -329,12 +323,6 @@
           "installedVersion": "v2.1.0"
         },
         {
-          "path": "hooks/tests/test-context-tracker.cjs",
-          "checksum": "52691daa4dac6ad99762259985d19b07911e11e86352bf07a11ba39f7c1037ce",
-          "ownership": "user",
-          "installedVersion": "v2.1.0"
-        },
-        {
           "path": "hooks/tests/test-modularization-hook.js",
           "checksum": "bb2243f5a1ae4b1518d3f5a2ad16376297b35623cae56582aa489c1044e6e70c",
           "ownership": "user",
@@ -349,12 +337,6 @@
         {
           "path": "hooks/tests/test-scout-block.js",
           "checksum": "da46367372b822dfd67c34dff0ed515e483cbd85332668974b5defe2c5f0b8ef",
-          "ownership": "user",
-          "installedVersion": "v2.1.0"
-        },
-        {
-          "path": "hooks/write-compact-marker.cjs",
-          "checksum": "52db84db87e9d087069afc44eeda162dfc8233b22cc562f02b286b52fefad3fd",
           "ownership": "user",
           "installedVersion": "v2.1.0"
         },
@@ -2675,12 +2657,5 @@
   "name": "ClaudeKit Engineer",
   "version": "v2.1.0",
   "installedAt": "2025-12-29T14:43:42.885Z",
-  "userConfigFiles": [
-    ".gitignore",
-    ".repomixignore",
-    ".mcp.json",
-    ".ckignore",
-    ".ck.json",
-    "CLAUDE.md"
-  ]
+  "userConfigFiles": [".gitignore", ".repomixignore", ".mcp.json", ".ckignore", ".ck.json", "CLAUDE.md"]
 }

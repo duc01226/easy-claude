@@ -20,11 +20,6 @@
       "command": "cmd",
       "description": "GitHub API operations (issues, PRs, repos)"
     },
-    "memory": {
-      "args": ["/c", "npx", "-y", "@modelcontextprotocol/server-memory"],
-      "command": "cmd",
-      "description": "Persistent memory for cross-session knowledge"
-    },
     "mongodb": {
       "args": ["/c", "npx", "-y", "dotenv-cli", "-e", ".env", "--", "npx", "-y", "mongodb-mcp-server", "--readOnly"],
       "command": "cmd",

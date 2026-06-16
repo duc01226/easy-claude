@@ -39,9 +39,9 @@ easy-claude/
 │   ├── project-reference/                  # (16 files)
 │   │   ├── project-structure-reference.md   # Service architecture, directory tree, tech stack
 │   │   ├── backend-patterns-reference.md    # CQRS, repositories, entities, validation
+│   │   ├── seed-test-data-reference.md       # Idempotent seeders, DI scope, command dispatch
 │   │   ├── frontend-patterns-reference.md   # Component base classes, state mgmt, API services
 │   │   ├── integration-test-reference.md    # Test base classes, fixtures, helpers
-│   │   ├── feature-docs-reference.md        # Legacy feature documentation index
 │   │   ├── feature-spec-reference.md        # Feature Spec structure, TC format, evidence rules
 │   │   ├── spec-system-reference.md         # Spec routing, canonical artifact, derived aid rules
 │   │   ├── spec-principles.md               # Local spec/test/documentation extension rules
@@ -141,10 +141,10 @@ CLAUDE.md
 | -------------------------------------- | ------------------------------------------------------------------- |
 | project structure, tech stack          | `docs/project-reference/project-structure-reference.md`             |
 | backend, CQRS, repository, entity      | `docs/project-reference/backend-patterns-reference.md`              |
+| seed test data, seeders, dev data      | `docs/project-reference/seed-test-data-reference.md`                |
 | frontend, component, state mgmt        | `docs/project-reference/frontend-patterns-reference.md`             |
 | integration test, fixtures             | `docs/project-reference/integration-test-reference.md`              |
-| feature docs, app-to-service           | `docs/project-reference/feature-docs-reference.md`                  |
-| feature specs, TC format               | `docs/project-reference/feature-spec-reference.md`                  |
+| feature docs, app-to-service, specs    | `docs/project-reference/feature-spec-reference.md`                  |
 | spec system, canonical artifacts       | `docs/project-reference/spec-system-reference.md`                   |
 | spec principles, local SDD rules       | `docs/project-reference/spec-principles.md`                         |
 | workflow spec test code cycle          | `docs/project-reference/workflow-spec-test-code-cycle-reference.md` |

@@ -50,7 +50,7 @@
     },
     "StepMeta": {
       "additionalProperties": false,
-      "description": "Optional runtime hints for a specific workflow step. Read by workflow-step-tracker.cjs to decide sub-agent vs inline execution. Overrides values in the skill's SKILL.md front matter.",
+      "description": "Optional runtime hints for a specific workflow step. Read by the model (per the model-driven advancement rule) to decide sub-agent vs inline execution. Overrides values in the skill's SKILL.md front matter.",
       "properties": {
         "contextBudget": {
           "description": "Expected context consumption of this step. 'critical' = always run as sub-agent. 'high' = recommend sub-agent. 'medium' = optional sub-agent. 'low' = inline safe.",
@@ -146,7 +146,7 @@
           "additionalProperties": {
             "$ref": "#/definitions/StepMeta"
           },
-          "description": "Optional per-step metadata overrides keyed by command key (must match a value in sequence). Overrides execution-mode or context-budget from the skill's SKILL.md front matter. workflow-step-tracker.cjs reads this at runtime.",
+          "description": "Optional per-step metadata overrides keyed by command key (must match a value in sequence). Overrides execution-mode or context-budget from the skill's SKILL.md front matter. The model reads this when advancing workflow steps.",
           "title": "Step Metadata Overrides",
           "type": "object"
         },

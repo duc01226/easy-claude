@@ -121,11 +121,11 @@ These are defined in the init schema and auto-create in any project on first `gr
 
 The graph maintains itself through 2 automatic hooks (plus a manual rebuild):
 
-| Trigger                  | Hook                                      | What happens                                                                                                         |
-| ------------------------ | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| **Claude edits a file**  | `graph-auto-update.cjs` (PostToolUse)     | Re-parses the edited file, updates nodes/edges. 3s debounce + atomic lock prevents duplicates.                       |
-| **New session starts**   | `graph-session-init.cjs` (SessionStart)   | Diffs `last_synced_commit` vs current HEAD. Re-parses all files changed since last sync (git pull, checkout, merge). |
-| **Manual rebuild**       | `/graph-build`                            | Full rebuild from scratch. Safety net if graph gets out of sync.                                                     |
+| Trigger                 | Hook                                    | What happens                                                                                                         |
+| ----------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **Claude edits a file** | `graph-auto-update.cjs` (PostToolUse)   | Re-parses the edited file, updates nodes/edges. 3s debounce + atomic lock prevents duplicates.                       |
+| **New session starts**  | `graph-session-init.cjs` (SessionStart) | Diffs `last_synced_commit` vs current HEAD. Re-parses all files changed since last sync (git pull, checkout, merge). |
+| **Manual rebuild**      | `/graph-build`                          | Full rebuild from scratch. Safety net if graph gets out of sync.                                                     |
 
 > Blast radius, trace CLI hints, and grep-to-graph suggestions are pulled on demand by the `graph-*` skills and the Graph Intelligence gate in `CLAUDE.md` — not injected by a hook.
 

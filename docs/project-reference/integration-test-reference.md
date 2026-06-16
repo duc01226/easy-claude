@@ -20,12 +20,12 @@ Both layers can run independently; `test-all-hooks.cjs` delegates to `run-all-te
 | --------------------- | ------------------------------------------- | ----------------------- |
 | Main test runner      | `.claude/hooks/tests/test-all-hooks.cjs`    | Direct `node` execution |
 | Suite runner          | `.claude/hooks/tests/run-all-tests.cjs`     | Direct `node` execution |
-| Test suites (16)      | `.claude/hooks/tests/suites/*.test.cjs`     | `run-all-tests.cjs`     |
+| Test suites (14)      | `.claude/hooks/tests/suites/*.test.cjs`     | `run-all-tests.cjs`     |
 | Standalone tests (13) | `.claude/hooks/tests/test-*.cjs/.js`        | Direct `node` execution |
 | Lib unit tests        | `.claude/hooks/lib/__tests__/*.test.cjs`    | Direct `node` execution |
 | Scout-block tests (7) | `.claude/hooks/scout-block/tests/test-*.js` | Direct `node` execution |
 
-## Test Suites (15)
+## Test Suites (14)
 
 Suites export `module.exports = { name: string, tests: Array<{ name, fn, skip? }> }`.
 
@@ -36,7 +36,6 @@ Suites export `module.exports = { name: string, tests: Array<{ name, fn, skip? }
 | Agent Files Gate      | `suites/agent-files-gate.test.cjs`      | Agent-files / skill gate behavior                            |
 | Agent Universal Rules | `suites/agent-universal-rules.test.cjs` | Universal rule blocks present in agents                      |
 | Bugfix Regression     | `suites/bugfix-regression.test.cjs`     | Regression tests for fixed bugs                              |
-| Catalog Dedup Markers | `suites/catalog-dedup-markers.test.cjs` | Catalog/dedup marker integrity                               |
 | Content Presence      | `suites/content-presence.test.cjs`      | Relocated static guidance is present (de-hooking parity net) |
 | Count Drift           | `suites/count-drift.test.cjs`           | Generated count/catalog drift                                |
 | Doc Sync Gate         | `suites/doc-sync-gate.test.cjs`         | Doc sync gate behavior                                       |
@@ -44,7 +43,7 @@ Suites export `module.exports = { name: string, tests: Array<{ name, fn, skip? }
 | Integration           | `suites/integration.test.cjs`           | Cross-hook integration                                       |
 | Lifecycle             | `suites/lifecycle.test.cjs`             | Session lifecycle events                                     |
 | Notification          | `suites/notification.test.cjs`          | Notification providers                                       |
-| Pre-Compact Snapshot  | `suites/pre-compact-snapshot.test.cjs`  | Transcript snapshot capture                                  |
+| Protocol Text Parity  | `suites/protocol-text-parity.test.cjs`  | Runtime injection text matches canonical `SYNC:*` blocks     |
 | Security              | `suites/security.test.cjs`              | Security hooks                                               |
 | Swap Engine           | `suites/swap-engine.test.cjs`           | Output compression                                           |
 | Workflow              | `suites/workflow.test.cjs`              | Workflow routing/tracking                                    |
@@ -53,21 +52,20 @@ Suites export `module.exports = { name: string, tests: Array<{ name, fn, skip? }
 
 Standalone files in `.claude/hooks/tests/` run directly with `node`. They use the `helpers/test-utils.cjs` `TestGroup`/`TestSuite` classes or inline test/assert patterns.
 
-| File                            | What It Tests                                        |
-| ------------------------------- | ---------------------------------------------------- |
-| `test-ckignore.js`              | `.ckignore` pattern matching                         |
-| `test-context-tracker.cjs`      | Context tracking state                               |
-| `test-git-commit-block.cjs`     | Git commit blocking behavior                         |
-| `test-init-reference-docs.cjs`  | Reference doc initialization                         |
-| `test-lib-modules.cjs`          | Lib modules (workflow-state, edit-state, todo-state) |
-| `test-lib-modules-extended.cjs` | Extended lib module coverage                         |
-| `test-modularization-hook.js`   | Modularization hook logic                            |
-| `test-path-boundary-block.js`   | Path boundary blocking                               |
-| `test-privacy-block.js`         | Privacy/secrets blocking                             |
-| `test-scout-block.js`           | Scout-block entry point                              |
-| `test-shared-utilities.cjs`     | Shared utils (debug-log, stdin-parser, hook-runner)  |
-| `test-swap-engine.cjs`          | Swap engine compression                              |
-| `test-workflow-task-guard.cjs`  | Workflow task guard behavior                         |
+| File                            | What It Tests                                       |
+| ------------------------------- | --------------------------------------------------- |
+| `test-ckignore.js`              | `.ckignore` pattern matching                        |
+| `test-doc-sync-gate.cjs`        | Doc-sync gate behavior                              |
+| `test-git-commit-block.cjs`     | Git commit blocking behavior                        |
+| `test-init-reference-docs.cjs`  | Reference doc initialization                        |
+| `test-lib-modules.cjs`          | Lib modules (workflow-state, todo-state)            |
+| `test-lib-modules-extended.cjs` | Extended lib module coverage                        |
+| `test-modularization-hook.js`   | Modularization hook logic                           |
+| `test-path-boundary-block.js`   | Path boundary blocking                              |
+| `test-privacy-block.js`         | Privacy/secrets blocking                            |
+| `test-scout-block.js`           | Scout-block entry point                             |
+| `test-shared-utilities.cjs`     | Shared utils (debug-log, stdin-parser, hook-runner) |
+| `test-swap-engine.cjs`          | Swap engine compression                             |
 
 ## Running Tests
 

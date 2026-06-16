@@ -52,6 +52,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Hand the developer a complete, evidence-backed wrap-up — by reviewing current branch changes and summarizing impact/quality — with a change summary, doc/spec staleness flags, root-cause lessons, and a `$understand` explanation, WITHOUT mutating any file, so they decide the next step from full context.
 
+**Summary:**
+
+- This is a strictly READ-ONLY wrap-up — review/summarize current branch commits and flag findings; NEVER edit, fix, or implement, including never editing the docs/specs you flag.
+- Three required gates after the change summary: doc-staleness check (path→doc mapping table), spec-driven health check (only when business code changed), and root-cause lesson extraction (name the failure mode, not the symptom; universal rule, not project-specific).
+- Lessons go to `$learn` only after user confirmation; surface-level "always check file X" notes are noise, not lessons.
+- `$understand` is the mandatory final handoff and MUST run before the a direct user question Next Steps prompt — if `$understand` is unavailable, stop and report the blocker rather than skipping.
+
 **Workflow:**
 
 1. **Review** — Analyze recent commits: what was modified, added, removed

@@ -10,7 +10,7 @@
 
 ## 1. Hook
 
-A CJS module that intercepts Claude Code lifecycle events. Hooks read JSON from stdin, perform processing (context injection, enforcement, tracking), and write to stdout (injected context) or stderr (diagnostics).
+A CJS module that intercepts Claude Code lifecycle events. Hooks read JSON from stdin, perform processing (session/graph init, safety gating, formatting, tracking), and write to stdout (injected context) or stderr (diagnostics).
 
 **Location:** `.claude/hooks/<name>.cjs`
 **Shared libraries:** `.claude/hooks/lib/<name>.cjs`
@@ -18,16 +18,16 @@ A CJS module that intercepts Claude Code lifecycle events. Hooks read JSON from 
 
 ### Hook Event Types
 
-| Event              | When it fires                                   | Typical use                                                  |
-| ------------------ | ----------------------------------------------- | ------------------------------------------------------------ |
-| `SessionStart`     | Session begins (`startup`, `resume`, `compact`) | Initialize state, inject CLAUDE.md, recover after compaction |
-| `SessionEnd`       | Session ends (`clear`, `exit`, `compact`)       | Persist state, cleanup                                       |
-| `PreToolUse`       | Before a tool executes (matched by tool name)   | Context injection, enforcement blocks, path boundary checks  |
-| `PostToolUse`      | After a tool executes (matched by tool name)    | Output processing, task tracking, formatting                 |
-| `PreCompact`       | Before context compaction                       | Write recovery markers                                       |
-| `UserPromptSubmit` | When user submits a prompt                      | Prompt gating, workflow routing                              |
-| `Notification`     | Idle/waiting events                             | Desktop notifications                                        |
-| `Stop`             | Agent stops                                     | Notifications                                                |
+| Event              | When it fires                                   | Typical use                                                                       |
+| ------------------ | ----------------------------------------------- | --------------------------------------------------------------------------------- |
+| `SessionStart`     | Session begins (`startup`, `resume`, `compact`) | Initialize state, inject CLAUDE.md, recover after compaction                      |
+| `SessionEnd`       | Session ends (`clear`, `exit`, `compact`)       | Persist state, cleanup                                                            |
+| `PreToolUse`       | Before a tool executes (matched by tool name)   | Block sensitive ops, guard path boundaries, command-syntax guard                  |
+| `PostToolUse`      | After a tool executes (matched by tool name)    | Output processing, task tracking, formatting                                      |
+| `PreCompact`       | Before context compaction                       | _No hook registered — compaction recovery is static (re-read CLAUDE.md/SKILL.md)_ |
+| `UserPromptSubmit` | When user submits a prompt                      | Prompt gating, workflow routing                                                   |
+| `Notification`     | Idle/waiting events                             | Desktop notifications                                                             |
+| `Stop`             | Agent stops                                     | Notifications                                                                     |
 
 ### Key Properties
 
@@ -39,7 +39,7 @@ A CJS module that intercepts Claude Code lifecycle events. Hooks read JSON from 
 ### Relationships
 
 - Hooks read configuration from **Context Groups** and **Modules** via `project-config-loader.cjs`
-- Hooks may reference **Skills** (e.g., `skill-enforcement.cjs` validates skill activation)
+- Hooks historically referenced **Skills** for enforcement (e.g., the former `skill-enforcement.cjs` validated skill activation); that enforcement was removed in the de-hooking refactor and skill-activation rules are now carried statically in `CLAUDE.md`
 - There is no `SubagentStart` hook — the former `subagent-init-*.cjs` injectors were removed in the de-hooking refactor; **Agents** now carry project context statically in their `.claude/agents/*.md` definition
 
 ---
@@ -80,7 +80,7 @@ A reusable task automation capability. Each skill is a directory with a `SKILL.m
 - Skills reference **Agents** as subagents (e.g., `/plan-execute` calls `tester`, `code-reviewer`, `git-manager`)
 - Skills reference shared protocols in `.claude/skills/shared/`
 - Skills are orchestrated in sequence by **Workflows**
-- Hooks enforce skill rules (e.g., `skill-enforcement.cjs`); skill-specific rules/patterns are read statically from `docs/project-reference/*` per the `CLAUDE.md` gate (the former per-skill inject hooks were removed in the de-hooking refactor)
+- Hooks formerly enforced skill rules (e.g., the removed `skill-enforcement.cjs`); skill-specific rules/patterns are now read statically from `docs/project-reference/*` per the `CLAUDE.md` gate (the former per-skill inject hooks were removed in the de-hooking refactor)
 
 ---
 
@@ -142,8 +142,8 @@ A named sequence of skill steps that orchestrates a multi-step process (feature 
 
 - Workflows orchestrate **Skills** in a defined sequence
 - Skills within workflows spawn **Agents** as subagents
-- `workflow-router.cjs` and `workflow-step-tracker.cjs` **Hooks** manage workflow state and routing
-- Workflow state is persisted in `.claude/workflow-state.json`
+- Workflow **routing and advancement** are model-driven (static catalog in `CLAUDE.md`); no router/tracker hooks
+- Residual workflow state may persist to `.claude/.ck-workflow-state.json` (recovery artifact; cleared on `/clear`)
 
 ---
 
@@ -198,7 +198,7 @@ A registry entry in `docs/project-config.json` that describes a project componen
     "name": "hooks",
     "kind": "library",
     "pathRegex": "\\\\.claude\\\\/hooks\\\\/",
-    "description": "Runtime hooks for context injection, enforcement, and session management",
+    "description": "Runtime hooks for session initialization, safety gates, graph maintenance, and code formatting",
     "tags": ["core", "cjs"],
     "meta": {}
 }
@@ -215,15 +215,15 @@ A registry entry in `docs/project-config.json` that describes a project componen
 
 ### Current Modules
 
-| Module           | Kind    | Description                                            |
-| ---------------- | ------- | ------------------------------------------------------ |
-| `hooks`          | library | Runtime hooks for context injection and enforcement    |
-| `hooks-lib`      | library | Shared utility modules consumed by hooks               |
-| `skills`         | library | Skill definitions for task automation                  |
-| `agents`         | library | Agent definitions for specialized subagent roles       |
-| `scripts`        | library | Utility scripts for catalog generation and management  |
-| `workflows`      | library | Workflow definitions for multi-step task orchestration |
-| `docs-framework` | library | Framework documentation                                |
+| Module           | Kind    | Description                                               |
+| ---------------- | ------- | --------------------------------------------------------- |
+| `hooks`          | library | Runtime hooks for session init, safety gates & formatting |
+| `hooks-lib`      | library | Shared utility modules consumed by hooks                  |
+| `skills`         | library | Skill definitions for task automation                     |
+| `agents`         | library | Agent definitions for specialized subagent roles          |
+| `scripts`        | library | Utility scripts for catalog generation and management     |
+| `workflows`      | library | Workflow definitions for multi-step task orchestration    |
+| `docs-framework` | library | Framework documentation                                   |
 
 ### Relationships
 

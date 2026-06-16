@@ -26,12 +26,12 @@ description: '[Documentation] Use when you need initialize, update, or refactor 
 
 This skill is the **AI-runnable** route the agent-files bootstrap gate offers when a portable
 `.claude` install lands in a project without a root `CLAUDE.md` — or with one that carries only
-project-specific knowledge and is missing the universal portable guides. Two hooks detect the gap
-and route here (shared detection lib: `.claude/hooks/lib/agent-files-state.cjs`):
+project-specific knowledge and is missing the universal portable guides. A single hook detects the gap
+and routes here (shared detection lib: `.claude/hooks/lib/agent-files-state.cjs`):
 
 - `init-prompt-gate.cjs` (UserPromptSubmit) — blocks the first prompt once `project-config.json`
-  is populated but `CLAUDE.md` / `AGENTS.md` is missing **or incomplete**.
-- `agent-files-skill-gate.cjs` (PreToolUse: Skill) — blocks non-meta skills under the same condition.
+  is populated but `CLAUDE.md` / `AGENTS.md` is missing **or incomplete**. This UserPromptSubmit
+  gate is the sole agent-files bootstrap router.
 
 **Three-state detection** per root file: `missing` → routes to `--mode init` (fresh from template);
 `incomplete` → routes to `--mode update` (smart-merge — preserves your project content, injects the

@@ -33,8 +33,14 @@
     "codex:verify:skill-protocol": "node .claude/scripts/codex/verify-skill-protocol-compliance.mjs",
     "codex:verify:sync-divergence": "node .claude/scripts/codex/verify-sync-divergence.mjs",
     "codex:verify:workflow-cycle": "node .claude/scripts/codex/verify-workflow-cycle-compliance.mjs",
+    "copilot:sync": "node .claude/scripts/sync-copilot-workflows.cjs",
     "copilot:test:tooling": "node --test .claude/scripts/tests/*.test.mjs",
-    "copilot:verify:divergence": "node .claude/scripts/verify-copilot-divergence.cjs"
+    "copilot:verify:divergence": "node .claude/scripts/verify-copilot-divergence.cjs",
+    "sync:all": "node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --copy-skills",
+    "test": "npm run test:hooks && npm run test:suites",
+    "test:hooks": "node .claude/hooks/tests/test-all-hooks.cjs",
+    "test:suites": "node .claude/hooks/tests/run-all-tests.cjs",
+    "verify:all": "node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --only=tests,copilot-tests,wf-cycle,sk-proto,residue,sdd,sync-divergence,copilot-divergence"
   },
   "version": "1.0.0"
 }

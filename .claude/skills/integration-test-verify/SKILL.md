@@ -16,6 +16,13 @@ description: '[Testing] Use when you need to verify integration tests pass after
 
 **Goal:** Prove the reviewed integration tests (written by `/integration-test`, reviewed by `/integration-test-review`) pass repeatably — 3 consecutive green runs without DB reset, using project-configured run commands — with every pass/fail claim backed by actual test-runner output, never assumption.
 
+**Summary:**
+
+- Read `docs/project-config.json` → `integrationTestVerify` FIRST and obey its `quickRunCommand` / reference docs — this skill is language-agnostic, so NEVER hardcode `dotnet test`; missing section → Fallback Mode.
+- Gate on a healthy system before running: run `systemCheckCommand`, and STOP (point user at `startupScript`) when infrastructure/services aren't ready — unreliable system means unreliable results.
+- Pass requires 3 consecutive green runs of each relevant suite WITHOUT DB reset; any failure restarts the sequence from run 1, and only actual runner output (Passed/Failed/Skipped counts + names) proves the result.
+- On failure, diagnose test-bug vs service-bug and fix at the root layer — NEVER weaken assertions, add skip annotations, or mutate domain data to make red go green.
+
 **Workflow:**
 
 1. **Read Config** — Load `docs/project-config.json` → `integrationTestVerify` section for project-specific run guidance

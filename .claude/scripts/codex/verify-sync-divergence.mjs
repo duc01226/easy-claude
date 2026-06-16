@@ -113,7 +113,9 @@ async function main() {
         }
 
         console.error('[codex-verify-sync-divergence] FAIL — .agents/skills is out of sync with .claude/skills');
-        console.error('Remediation: run `npm run codex:sync` (never hand-edit the .agents/.codex mirror).');
+        console.error('Remediation: run `npm run codex:sync` — or, without npm/package.json, the standalone');
+        console.error('orchestrator it delegates to: `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs`');
+        console.error('(never hand-edit the .agents/.codex mirror).');
         for (const diff of diffs.slice(0, MAX_REPORTED_DIFFS)) {
             console.error(`- [${diff.kind}] .agents/skills/${diff.relPath}`);
         }

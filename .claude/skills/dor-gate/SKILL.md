@@ -17,6 +17,13 @@ description: '[Code Quality] Use when you need to validate a PBI against Definit
 
 **Goal:** Validate a PBI artifact against the Definition of Ready (DoR/M1-M6) checklist so that only grooming-ready PBIs pass the gate — every failure is caught with its concrete section/line citation, blocking ambiguous, untestable, or unimplementable stories from reaching the team.
 
+**Summary:**
+
+- This is an automated quality gate, NOT a collaborative review — it runs two checklists: the 7 Required DoR criteria (story template, testable AC, wireframes, UI design, AI pre-review, story points, dependencies) AND the M1-M6 compliance gate; ANY single failure across either set returns FAIL.
+- The DoR is self-contained here (BA Refinement Context section) — no external protocol file is needed; every verdict must cite the concrete PBI section + line/AC, and a PASS over any M1-M5 violation is itself defective.
+- Verify story-point estimation frontmatter (Fibonacci 1-21 + complexity, man-days range, blast-radius) per the SYNC estimation framework; story points >13 trigger a SHOULD-SPLIT WARN (not a FAIL).
+- Emit the DoR Gate Result template (checklist table + Blocking Items + Verdict), then route via `AskUserQuestion` — never auto-decide the next step.
+
 **Key distinction:** Automated quality gate (not collaborative review — use `/pbi-challenge` for that).
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**

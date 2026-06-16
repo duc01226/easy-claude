@@ -17,6 +17,13 @@ description: '[Code Quality] Use when you need an AI-assisted Dev BA PIC review 
 
 **Goal:** Break drafter confirmation bias before grooming — by helping **Dev BA PIC** (Person In Charge — development Business Analyst responsible for technical review sign-off per squad) review BA drafters' PBI drafts with specific, actionable challenge prompts, surface every architectural-feasibility, vague-AC, missing-auth, cross-service, and M1-M6 gap so an INFEASIBLE or under-specified PBI never reaches grooming with a false APPROVE. AI provides analysis; human makes decision.
 
+**Summary:**
+
+- This is a CROSS-PERSON review, not self-review: a *different* reviewer (Dev BA PIC) challenges the BA drafter's PBI — never run on your own draft (use `/review-artifact --type=pbi` for that). The whole value is external skepticism that breaks the drafter's blind spots.
+- Confirm the auto-detected module via `AskUserQuestion` BEFORE loading domain docs (Step 2) — wrong module = wrong entity context = false APPROVE; then load domain-entities-reference + relevant `docs/specs/{App}/` feature docs.
+- The M1-M6 Compliance Gate is BLOCKING and drives the verdict: any M1-M5 mandate failure forces REQUEST_REVISION with a challenge prompt naming the violated mandate ID + exact section/line/AC citation; an APPROVE over an M1-M5 violation is itself defective.
+- Order matters to fight automation bias: present Challenge Prompts FIRST so the Dev BA PIC forms their own view, THEN the AI Verdict (APPROVE / REQUEST_REVISION / ESCALATE_TO_LEAD); challenges must be SPECIFIC with suggested answers, and the human records the final decision via `AskUserQuestion`.
+
 **Key distinction:** Collaborative review tool (drafter → reviewer flow), NOT self-review (use `/review-artifact --type=pbi` for AI self-review).
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**

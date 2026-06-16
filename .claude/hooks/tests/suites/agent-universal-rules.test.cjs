@@ -138,8 +138,15 @@ module.exports = {
                 const unbalanced = [];
                 for (const name of diskAgents) {
                     const body = read(name);
-                    const opens = (body.match(/<!-- SYNC:/g) || []).length;
-                    const closes = (body.match(/<!-- \/SYNC:/g) || []).length;
+                    // Count ONLY real fences at column 0 (multiline-anchored). A block
+                    // body may document the fence syntax inline — e.g. the
+                    // shared-protocol-duplication-policy body contains a backtick-wrapped
+                    // `<!-- SYNC:tag -->` example mid-line. That is prose, not a fence, and
+                    // must not skew the balance. Every authored fence is emitted at
+                    // line-start by sync-hooks-to-skills.py / the agent injector, so `^`
+                    // is exact — a genuinely missing close at column 0 is still caught.
+                    const opens = (body.match(/^<!-- SYNC:/gm) || []).length;
+                    const closes = (body.match(/^<!-- \/SYNC:/gm) || []).length;
                     if (opens !== closes) unbalanced.push(`${name}: ${opens} open / ${closes} close`);
                 }
                 assertTrue(unbalanced.length === 0, `unbalanced SYNC tags:\n  ${unbalanced.join('\n  ')}`);

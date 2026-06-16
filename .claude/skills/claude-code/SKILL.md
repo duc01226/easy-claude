@@ -103,8 +103,8 @@ Help users install, configure, troubleshoot, and extend Claude Code CLI -- Anthr
 1. Check current context usage (Claude will report when near limit)
 2. IF approaching limit: suggest `/compact` command
 3. Review if large files are being read unnecessarily
-4. Check for recovery files in `/tmp/ck/swap/` after compaction
-5. Verify `post-compact-recovery` hook is configured for session continuity
+4. After compaction, re-read `CLAUDE.md` (re-injected each prompt) to re-anchor protocol + workflow catalog
+5. Run `/recover` to resume from on-disk state (active plan, todos) — recovery is skill-driven, not a hook
 
 ### Step 2E: Extensibility
 

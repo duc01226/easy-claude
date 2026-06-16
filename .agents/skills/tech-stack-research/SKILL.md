@@ -52,6 +52,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Deliver a user-confirmed, per-layer tech stack — each choice backed by 3+ researched options, weighted scoring, cited evidence, and a confidence % — by acting as a solution architect who derives technical requirements from business analysis, researches the current market, and produces a detailed comparison report, so the team commits to a stack fit for scale, budget, skills, and timeline, not familiarity.
 
+**Summary:**
+
+- Requirements come BEFORE research: load prior business/domain/PBI artifacts, map business signals to technical requirements, and gate on user confirmation (a direct user question) before any WebSearch.
+- Evaluate every stack layer (backend, frontend, database, messaging, infra, auth) independently — minimum 3 WebSearched options per layer, each with cited evidence (URL, benchmark, case study), never familiarity.
+- Score with the weighted 8-criteria matrix (High=3x / Medium=2x / Low=1x), then rank each layer with a confidence %; capped <=200-line report goes to `{plan-dir}/research/tech-stack-comparison.md`.
+- The end-of-skill user validation interview (5-8 questions) is mandatory and never skipped — only confirmed decisions get written to `phase-02-tech-stack.md` as `status: confirmed`.
+
 **Workflow:**
 
 1. **Load Business Context** — Read business evaluation, domain model, refined PBI artifacts

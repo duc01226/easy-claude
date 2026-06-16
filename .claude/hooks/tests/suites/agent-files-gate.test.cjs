@@ -5,23 +5,23 @@
  * agent-instruction file (CLAUDE.md / AGENTS.md) is missing:
  *
  *   - lib/agent-files-state.cjs    — shared detection + dismiss-flag + offer message
- *   - agent-files-skill-gate.cjs   — PreToolUse Skill router (allowlist + guidance path)
  *   - init-prompt-gate.cjs         — UserPromptSubmit handleAgentFilesGate (guidance + dismiss)
+ *
+ * (The PreToolUse agent-files-skill-gate.cjs router was removed with that hook; the
+ *  UserPromptSubmit prompt gate + shared state lib now own all bootstrap routing.)
  *
  * Design invariants under test:
  *   - Dormant in empty projects (hasProjectContent guard) and before config is populated.
- *   - Meta / init-route skills are never blocked (would deadlock the fix).
- *   - "skip init" dismisses both gates for the TTL window via a shared flag.
+ *   - "skip init" dismisses the prompt gate for the TTL window via a shared flag.
  */
 
 const path = require('path');
 const fs = require('fs');
 const { execFileSync } = require('child_process');
-const { runHook, getHookPath, createPreToolUseInput, createUserPromptInput } = require('../lib/hook-runner.cjs');
+const { runHook, getHookPath, createUserPromptInput } = require('../lib/hook-runner.cjs');
 const { assertEqual, assertTrue, assertContains, assertAllowed } = require('../lib/assertions.cjs');
 const { createTempDir, cleanupTempDir } = require('../lib/test-utils.cjs');
 
-const SKILL_GATE_PATH = getHookPath('agent-files-skill-gate.cjs');
 const PROMPT_GATE_PATH = getHookPath('init-prompt-gate.cjs');
 
 // Lib + its path/loader deps — cleared together so CLAUDE_PROJECT_DIR re-resolves per test.
@@ -29,7 +29,6 @@ const PROMPT_GATE_PATH = getHookPath('init-prompt-gate.cjs');
 // so isUniversalGuidesRequired() reads a stale project dir unless they are cleared too.
 const STATE_PATH = path.resolve(__dirname, '../../lib/agent-files-state.cjs');
 const CKPATHS_PATH = path.resolve(__dirname, '../../lib/ck-paths.cjs');
-const GATE_PATH = path.resolve(__dirname, '../../agent-files-skill-gate.cjs');
 const CONFIG_LOADER_PATH = path.resolve(__dirname, '../../lib/project-config-loader.cjs');
 const CKCONFIG_LOADER_PATH = path.resolve(__dirname, '../../lib/ck-config-loader.cjs');
 
@@ -37,7 +36,7 @@ const CKCONFIG_LOADER_PATH = path.resolve(__dirname, '../../lib/ck-config-loader
 const GENERATOR_PATH = path.resolve(__dirname, '../../../skills/claude-md-init/scripts/generate-claude-md.cjs');
 const TEMPLATE_PATH = path.resolve(__dirname, '../../../skills/claude-md-init/references/claude-md-template.md');
 
-const STATE_DEP_PATHS = [STATE_PATH, CKPATHS_PATH, GATE_PATH, CONFIG_LOADER_PATH, CKCONFIG_LOADER_PATH];
+const STATE_DEP_PATHS = [STATE_PATH, CKPATHS_PATH, CONFIG_LOADER_PATH, CKCONFIG_LOADER_PATH];
 
 function freshState(tmpDir) {
     for (const p of STATE_DEP_PATHS) delete require.cache[p];
@@ -45,27 +44,34 @@ function freshState(tmpDir) {
     return require(STATE_PATH);
 }
 
-function freshGate(tmpDir) {
-    for (const p of STATE_DEP_PATHS) delete require.cache[p];
-    process.env.CLAUDE_PROJECT_DIR = tmpDir;
-    return require(GATE_PATH);
-}
-
 function clearStateCache() {
     for (const p of STATE_DEP_PATHS) delete require.cache[p];
 }
 
-// Minimal complete file: just the current sentinel (hasUniversalGuides → true via sentinel branch).
-const COMPLETE_FILE = '<!-- CK:UNIVERSAL-GUIDES v3 -->\n# Project\n';
-// Legacy complete file: no sentinel, but every required anchor heading present.
+// Current universal-guides sentinel string (kept in one place so a version bump touches one line).
+const CURRENT_SENTINEL = '<!-- CK:UNIVERSAL-GUIDES v4 -->';
+// Shared-protocol blocks in BOTH surface representations so one fixture satisfies the per-file
+// probe for CLAUDE.md (CK: markers) AND AGENTS.md (canonical `:full` phrase) — getAgentFileIssues
+// applies each file's own probe, so a complete fixture written to both must carry both forms.
+const PROTOCOL_CK_MARKERS = ['<!-- CK:CRITICAL-THINKING -->', 'body', '<!-- /CK:CRITICAL-THINKING -->', '<!-- CK:AI-MISTAKE-PREVENTION -->', 'body', '<!-- /CK:AI-MISTAKE-PREVENTION -->'].join('\n');
+const PROTOCOL_CANONICAL = ['**[CRITICAL-THINKING-MINDSET]** ...', '## Common AI Mistake Prevention (System Lessons)', '- ...'].join('\n');
+const PROTOCOL_BOTH = `${PROTOCOL_CK_MARKERS}\n\n${PROTOCOL_CANONICAL}`;
+// Minimal complete file: current sentinel (hasUniversalGuides → true) PLUS the shared protocol
+// in both surface forms (getAgentFileIssues completeness now also requires the protocol).
+const COMPLETE_FILE = `${CURRENT_SENTINEL}\n# Project\n\n${PROTOCOL_BOTH}\n`;
+// Legacy complete file: no sentinel, but every required anchor heading present + the protocol.
 const LEGACY_COMPLETE_FILE = [
     '# Project',
     '## First Action Decision', '...',
     '## Workflow Step Advancement & Parallel Phases', '...',
     '## Task Planning Rules', '...',
     '## Code Responsibility Hierarchy', '...',
-    '## Evidence-Based Reasoning & Investigation', '...'
+    '## Evidence-Based Reasoning & Investigation', '...',
+    PROTOCOL_BOTH
 ].join('\n');
+// Sentinel present but protocol ABSENT — the exact stale-CLAUDE.md defect: hasUniversalGuides()
+// reads it "complete" yet getAgentFileIssues() must flag it incomplete (no protocol bake).
+const SENTINEL_NO_PROTOCOL_FILE = `${CURRENT_SENTINEL}\n# Project\n`;
 // Project-only file: real content, but none of the universal guides → incomplete.
 const PROJECT_ONLY_FILE = '# Acme App\n\nOur internal build/deploy notes and module map.\n';
 
@@ -264,207 +270,6 @@ const libTests = [
 ];
 
 // ============================================================================
-// Unit Tests: agent-files-skill-gate isAllowedSkill
-// ============================================================================
-
-const allowlistTests = [
-    {
-        name: '[agent-files-gate] isAllowedSkill permits meta + init-route + scan-* skills',
-        fn: async () => {
-            const tmpDir = createTempDir();
-            try {
-                withEnv(tmpDir, () => {
-                    const { isAllowedSkill } = freshGate(tmpDir);
-                    assertTrue(isAllowedSkill('project-init'), 'Unified project init coordinator allowed');
-                    assertTrue(isAllowedSkill('/init-project'), 'Unified project init alias allowed');
-                    assertTrue(isAllowedSkill('claude-md-init'), 'CLAUDE.md generator allowed');
-                    assertTrue(isAllowedSkill('/sync-codex'), 'AGENTS.md generator allowed (leading slash)');
-                    assertTrue(isAllowedSkill('project-config'), 'config skill allowed');
-                    assertTrue(isAllowedSkill('scan-all'), 'scan-* orchestrator family allowed');
-                    assertTrue(isAllowedSkill('scan'), 'bare scan host allowed');
-                    assertTrue(isAllowedSkill('scan --target=backend-patterns'), 'parameterized scan host allowed');
-                    assertTrue(isAllowedSkill('help:detail'), 'base name before colon allowed');
-                    assertTrue(isAllowedSkill(''), 'empty skill name fails open (allowed)');
-                });
-            } finally {
-                cleanupTempDir(tmpDir);
-            }
-        }
-    },
-    {
-        name: '[agent-files-gate] isAllowedSkill blocks ordinary feature skills',
-        fn: async () => {
-            const tmpDir = createTempDir();
-            try {
-                withEnv(tmpDir, () => {
-                    const { isAllowedSkill } = freshGate(tmpDir);
-                    assertTrue(!isAllowedSkill('commit'), 'commit not in allowlist');
-                    assertTrue(!isAllowedSkill('workflow-feature'), 'workflow skill not in allowlist');
-                    assertTrue(!isAllowedSkill('understand'), 'understand not in allowlist');
-                });
-            } finally {
-                cleanupTempDir(tmpDir);
-            }
-        }
-    }
-];
-
-// ============================================================================
-// Integration Tests: agent-files-skill-gate.cjs via stdin
-// ============================================================================
-
-const skillGateIntegration = [
-    {
-        name: '[agent-files-gate] skill-gate WARNS and allows a feature skill when root files missing (content + config)',
-        fn: async () => {
-            const tmpDir = createTempProjectDir();
-            try {
-                writePopulatedConfig(tmpDir);
-                const result = await runHook(SKILL_GATE_PATH, createPreToolUseInput('Skill', { skill: 'commit' }), {
-                    cwd: tmpDir,
-                    env: { CLAUDE_PROJECT_DIR: tmpDir }
-                });
-                assertAllowed(result.code, 'Allows feature skill while surfacing missing root files');
-                assertContains(result.stdout, '/project-init', 'Routes to unified project init coordinator');
-                assertContains(result.stdout, '/claude-md-init', 'Routes to CLAUDE.md generator');
-                assertContains(result.stdout, 'AGENTS.md', 'Mentions missing AGENTS.md');
-            } finally {
-                cleanupTempDir(tmpDir);
-            }
-        }
-    },
-    {
-        name: '[agent-files-gate] skill-gate ALLOWS the init-route skill itself (no deadlock)',
-        fn: async () => {
-            const tmpDir = createTempProjectDir();
-            try {
-                writePopulatedConfig(tmpDir);
-                const result = await runHook(SKILL_GATE_PATH, createPreToolUseInput('Skill', { skill: 'claude-md-init' }), {
-                    cwd: tmpDir,
-                    env: { CLAUDE_PROJECT_DIR: tmpDir }
-                });
-                assertAllowed(result.code);
-            } finally {
-                cleanupTempDir(tmpDir);
-            }
-        }
-    },
-    {
-        name: '[agent-files-gate] skill-gate is DORMANT in an empty project (no content dirs)',
-        fn: async () => {
-            const tmpDir = createTempDir(); // no content dirs → hasProjectContent() false
-            try {
-                // Intentionally no config/docs dir — any directory would register as content.
-                const result = await runHook(SKILL_GATE_PATH, createPreToolUseInput('Skill', { skill: 'commit' }), {
-                    cwd: tmpDir,
-                    env: { CLAUDE_PROJECT_DIR: tmpDir }
-                });
-                assertAllowed(result.code, 'Empty project → gate dormant');
-            } finally {
-                cleanupTempDir(tmpDir);
-            }
-        }
-    },
-    {
-        name: '[agent-files-gate] skill-gate ALLOWS when config not yet populated (init-prompt-gate owns that)',
-        fn: async () => {
-            const tmpDir = createTempProjectDir();
-            try {
-                // No project-config.json written → isConfigPopulated() false
-                const result = await runHook(SKILL_GATE_PATH, createPreToolUseInput('Skill', { skill: 'commit' }), {
-                    cwd: tmpDir,
-                    env: { CLAUDE_PROJECT_DIR: tmpDir }
-                });
-                assertAllowed(result.code, 'Unpopulated config → defer to prompt gate');
-            } finally {
-                cleanupTempDir(tmpDir);
-            }
-        }
-    },
-    {
-        name: '[agent-files-gate] skill-gate ALLOWS when both root files already exist (and complete)',
-        fn: async () => {
-            const tmpDir = createTempProjectDir();
-            try {
-                writePopulatedConfig(tmpDir);
-                // Complete fixtures — present AND carrying the universal-guides sentinel.
-                fs.writeFileSync(path.join(tmpDir, 'CLAUDE.md'), COMPLETE_FILE);
-                fs.writeFileSync(path.join(tmpDir, 'AGENTS.md'), COMPLETE_FILE);
-                const result = await runHook(SKILL_GATE_PATH, createPreToolUseInput('Skill', { skill: 'commit' }), {
-                    cwd: tmpDir,
-                    env: { CLAUDE_PROJECT_DIR: tmpDir }
-                });
-                assertAllowed(result.code, 'Both files present + complete → nothing to gate');
-            } finally {
-                cleanupTempDir(tmpDir);
-            }
-        }
-    },
-    {
-        name: '[agent-files-gate] skill-gate ALLOWS after dismiss flag is set',
-        fn: async () => {
-            const tmpDir = createTempProjectDir();
-            try {
-                writePopulatedConfig(tmpDir);
-                const flagDir = path.join(tmpDir, 'tmp', 'claude-temp');
-                fs.mkdirSync(flagDir, { recursive: true });
-                fs.writeFileSync(path.join(flagDir, '.agent-files-dismissed'), new Date().toISOString() + '\n');
-                const result = await runHook(SKILL_GATE_PATH, createPreToolUseInput('Skill', { skill: 'commit' }), {
-                    cwd: tmpDir,
-                    env: { CLAUDE_PROJECT_DIR: tmpDir }
-                });
-                assertAllowed(result.code, 'Dismissed → gate silent');
-            } finally {
-                cleanupTempDir(tmpDir);
-            }
-        }
-    },
-    {
-        name: '[agent-files-gate] skill-gate RE-WARNS after dismiss flag expires past TTL',
-        fn: async () => {
-            const tmpDir = createTempProjectDir();
-            try {
-                writePopulatedConfig(tmpDir);
-                const flagDir = path.join(tmpDir, 'tmp', 'claude-temp');
-                fs.mkdirSync(flagDir, { recursive: true });
-                const flagPath = path.join(flagDir, '.agent-files-dismissed');
-                fs.writeFileSync(flagPath, new Date().toISOString() + '\n');
-                // Age the flag far past any reasonable TTL (24h) so the dismiss lapses and
-                // enforcement returns — proves expiry is wired through the real hook process,
-                // not just the unit-level isAgentFilesDismissed() check.
-                const longExpired = new Date('2000-01-01T00:00:00Z');
-                fs.utimesSync(flagPath, longExpired, longExpired);
-                const result = await runHook(SKILL_GATE_PATH, createPreToolUseInput('Skill', { skill: 'commit' }), {
-                    cwd: tmpDir,
-                    env: { CLAUDE_PROJECT_DIR: tmpDir }
-                });
-                assertAllowed(result.code, 'Expired dismiss → warning is emitted but skill is allowed');
-                assertContains(result.stdout, '/project-init', 'Routes to unified project init coordinator after expiry');
-                assertContains(result.stdout, '/claude-md-init', 'Routes to CLAUDE.md generator after expiry');
-            } finally {
-                cleanupTempDir(tmpDir);
-            }
-        }
-    },
-    {
-        name: '[agent-files-gate] skill-gate ignores non-Skill tool calls',
-        fn: async () => {
-            const tmpDir = createTempProjectDir();
-            try {
-                writePopulatedConfig(tmpDir);
-                const result = await runHook(SKILL_GATE_PATH, createPreToolUseInput('Bash', { command: 'ls' }), {
-                    cwd: tmpDir,
-                    env: { CLAUDE_PROJECT_DIR: tmpDir }
-                });
-                assertAllowed(result.code, 'Non-Skill tool → not this gate concern');
-            } finally {
-                cleanupTempDir(tmpDir);
-            }
-        }
-    }
-];
-
-// ============================================================================
 // Integration Tests: init-prompt-gate.cjs handleAgentFilesGate via stdin
 // ============================================================================
 
@@ -521,7 +326,7 @@ const universalGuidesTests = [
             try {
                 withEnv(tmpDir, () => {
                     const { hasUniversalGuides } = freshState(tmpDir);
-                    assertTrue(hasUniversalGuides('<!-- CK:UNIVERSAL-GUIDES v3 -->\n# x'), 'v3 (current) sentinel passes');
+                    assertTrue(hasUniversalGuides('<!-- CK:UNIVERSAL-GUIDES v4 -->\n# x'), 'v4 (current) sentinel passes');
                 });
             } finally { cleanupTempDir(tmpDir); }
         }
@@ -533,7 +338,7 @@ const universalGuidesTests = [
             try {
                 withEnv(tmpDir, () => {
                     const { hasUniversalGuides } = freshState(tmpDir);
-                    assertTrue(hasUniversalGuides('<!-- CK:UNIVERSAL-GUIDES v4 -->\n# x'), 'v4 >= v3 passes');
+                    assertTrue(hasUniversalGuides('<!-- CK:UNIVERSAL-GUIDES v5 -->\n# x'), 'v5 >= v4 passes');
                 });
             } finally { cleanupTempDir(tmpDir); }
         }
@@ -545,7 +350,7 @@ const universalGuidesTests = [
             try {
                 withEnv(tmpDir, () => {
                     const { hasUniversalGuides } = freshState(tmpDir);
-                    assertTrue(!hasUniversalGuides('<!-- CK:UNIVERSAL-GUIDES v2 -->\n# x'), 'v2 < v3 flagged (bump re-offers update)');
+                    assertTrue(!hasUniversalGuides('<!-- CK:UNIVERSAL-GUIDES v3 -->\n# x'), 'v3 < v4 flagged (bump re-offers update)');
                 });
             } finally { cleanupTempDir(tmpDir); }
         }
@@ -637,6 +442,50 @@ const universalGuidesTests = [
         }
     },
     {
+        // Core defect regression: a file with the CURRENT sentinel but WITHOUT the shared
+        // protocol blocks reads "complete" via the sentinel branch of hasUniversalGuides(), yet
+        // the completeness decision (getAgentFileIssues) MUST flag it incomplete → update so it
+        // self-heals. This is exactly how a stale CLAUDE.md (sentinel present, protocol absent)
+        // slipped past the gate before the protocol-presence requirement.
+        name: '[agent-files-gate] getAgentFileIssues: sentinel present but protocol ABSENT → incomplete/update',
+        fn: async () => {
+            const tmpDir = createTempDir();
+            try {
+                writePopulatedConfig(tmpDir);
+                fs.writeFileSync(path.join(tmpDir, 'CLAUDE.md'), SENTINEL_NO_PROTOCOL_FILE);
+                fs.writeFileSync(path.join(tmpDir, 'AGENTS.md'), SENTINEL_NO_PROTOCOL_FILE);
+                withEnv(tmpDir, () => {
+                    const { getAgentFileIssues, hasUniversalGuides } = freshState(tmpDir);
+                    // Guides alone read complete — proves the new requirement is the protocol, not the sentinel.
+                    assertTrue(hasUniversalGuides(SENTINEL_NO_PROTOCOL_FILE), 'sentinel branch alone reads complete');
+                    const issues = getAgentFileIssues();
+                    assertEqual(issues.length, 2, 'Both flagged despite the current sentinel');
+                    assertTrue(issues.every(i => i.reason === 'incomplete' && i.mode === 'update'), 'routed to update to re-bake protocol');
+                });
+            } finally { cleanupTempDir(tmpDir); }
+        }
+    },
+    {
+        // Per-file probe correctness: CLAUDE.md is satisfied by CK: markers; AGENTS.md by the
+        // canonical `:full` phrase. A file carrying ONLY the OTHER surface's form must still be
+        // flagged for its own file so the two generators' outputs are each validated correctly.
+        name: '[agent-files-gate] protocol probes are per-file (CK markers vs canonical phrase)',
+        fn: async () => {
+            const tmpDir = createTempDir();
+            try {
+                withEnv(tmpDir, () => {
+                    const { hasClaudeProtocol, hasAgentsProtocol } = freshState(tmpDir);
+                    const ckOnly = '<!-- CK:CRITICAL-THINKING -->\nx\n<!-- /CK:CRITICAL-THINKING -->\n<!-- CK:AI-MISTAKE-PREVENTION -->\ny\n<!-- /CK:AI-MISTAKE-PREVENTION -->';
+                    const canonicalOnly = '**[CRITICAL-THINKING-MINDSET]** x\n## Common AI Mistake Prevention (System Lessons)\n- y';
+                    assertTrue(hasClaudeProtocol(ckOnly), 'CLAUDE.md probe matches CK: markers');
+                    assertTrue(!hasClaudeProtocol(canonicalOnly), 'CLAUDE.md probe rejects canonical-only (no CK: markers)');
+                    assertTrue(hasAgentsProtocol(canonicalOnly), 'AGENTS.md probe matches canonical phrase');
+                    assertTrue(!hasAgentsProtocol(ckOnly), 'AGENTS.md probe rejects CK-only (no canonical phrase)');
+                });
+            } finally { cleanupTempDir(tmpDir); }
+        }
+    },
+    {
         name: '[agent-files-gate] getAgentFileIssues: complete CLAUDE.md + missing AGENTS.md → one missing issue',
         fn: async () => {
             const tmpDir = createTempDir();
@@ -678,39 +527,6 @@ const universalGuidesTests = [
 // ============================================================================
 
 const incompleteFileIntegration = [
-    {
-        name: '[agent-files-gate] skill-gate WARNS and allows when root files exist but are project-only (incomplete)',
-        fn: async () => {
-            const tmpDir = createTempProjectDir();
-            try {
-                writePopulatedConfig(tmpDir);
-                fs.writeFileSync(path.join(tmpDir, 'CLAUDE.md'), PROJECT_ONLY_FILE);
-                fs.writeFileSync(path.join(tmpDir, 'AGENTS.md'), PROJECT_ONLY_FILE);
-                const result = await runHook(SKILL_GATE_PATH, createPreToolUseInput('Skill', { skill: 'commit' }), {
-                    cwd: tmpDir,
-                    env: { CLAUDE_PROJECT_DIR: tmpDir }
-                });
-                assertAllowed(result.code, 'Project-only files → warning emitted for universal-guides update');
-                assertContains(result.stdout, 'smart-merge', 'Routes to non-destructive update');
-            } finally { cleanupTempDir(tmpDir); }
-        }
-    },
-    {
-        name: '[agent-files-gate] skill-gate ALLOWS project-only files when opt-out flag is set',
-        fn: async () => {
-            const tmpDir = createTempProjectDir();
-            try {
-                writeOptOutConfig(tmpDir);
-                fs.writeFileSync(path.join(tmpDir, 'CLAUDE.md'), PROJECT_ONLY_FILE);
-                fs.writeFileSync(path.join(tmpDir, 'AGENTS.md'), PROJECT_ONLY_FILE);
-                const result = await runHook(SKILL_GATE_PATH, createPreToolUseInput('Skill', { skill: 'commit' }), {
-                    cwd: tmpDir,
-                    env: { CLAUDE_PROJECT_DIR: tmpDir }
-                });
-                assertAllowed(result.code, 'Opt-out → completeness not enforced, project-only files accepted');
-            } finally { cleanupTempDir(tmpDir); }
-        }
-    },
     {
         name: '[agent-files-gate] prompt-gate WARNS and allows an ordinary prompt when root files are incomplete',
         fn: async () => {
@@ -877,6 +693,59 @@ const sentinelSyncTests = [
         }
     },
     {
+        // Protocol-presence regression: a marker-managed file WITH all guides but WITHOUT the
+        // shared protocol blocks must, on `--mode update`, get the protocol baked AND the sentinel
+        // stamped — and the gate must then read it complete. Proves the fix self-heals a file that
+        // the OLD generator stamped before protocol baking existed.
+        name: '[agent-files-gate] generator update bakes protocol into a guides-only marker file → gate reads complete',
+        fn: async () => {
+            const tmpDir = createTempDir();
+            try {
+                writePopulatedConfig(tmpDir);
+                const claudeMd = path.join(tmpDir, 'CLAUDE.md');
+                // Marker-managed + all 5 anchors but ZERO protocol blocks (the stale shape).
+                const guidesNoProtocol = [
+                    '# Project',
+                    '',
+                    '<!-- SECTION:tldr -->',
+                    '> **Project:** Test',
+                    '<!-- /SECTION:tldr -->',
+                    '',
+                    '## First Action Decision', '...',
+                    '## Workflow Step Advancement & Parallel Phases', '...',
+                    '## Task Planning Rules', '...',
+                    '## Code Responsibility Hierarchy', '...',
+                    '## Evidence-Based Reasoning & Investigation', '...'
+                ].join('\n');
+                fs.writeFileSync(claudeMd, guidesNoProtocol);
+
+                execFileSync('node', [GENERATOR_PATH, '--mode', 'update'], {
+                    cwd: tmpDir,
+                    env: { ...process.env, CLAUDE_PROJECT_DIR: tmpDir },
+                    stdio: 'pipe'
+                });
+                const after = fs.readFileSync(claudeMd, 'utf-8');
+
+                withEnv(tmpDir, () => {
+                    const { hasClaudeProtocol, SENTINEL_RE, getAgentFileIssues } = freshState(tmpDir);
+                    assertTrue(hasClaudeProtocol(after), 'Shared protocol blocks baked on update');
+                    assertTrue(SENTINEL_RE.test(after), 'Sentinel stamped once protocol present');
+                    const claude = getAgentFileIssues().find(i => i.file === 'CLAUDE.md');
+                    assertTrue(!claude, 'Gate no longer flags CLAUDE.md after the protocol bake');
+                });
+
+                // Idempotency: a second update produces byte-identical output (no oscillation).
+                execFileSync('node', [GENERATOR_PATH, '--mode', 'update'], {
+                    cwd: tmpDir,
+                    env: { ...process.env, CLAUDE_PROJECT_DIR: tmpDir },
+                    stdio: 'pipe'
+                });
+                const after2 = fs.readFileSync(claudeMd, 'utf-8');
+                assertEqual(after2, after, 'Second --mode update is a no-op (idempotent protocol bake)');
+            } finally { cleanupTempDir(tmpDir); }
+        }
+    },
+    {
         // Init mode still stamps: the template ships the guides, so a fresh generate must
         // produce a sentinel the detector accepts (the fix must not regress the happy path).
         name: '[agent-files-gate] generator init still stamps a recognized sentinel',
@@ -907,8 +776,6 @@ module.exports = {
     tests: [
         ...libTests,
         ...universalGuidesTests,
-        ...allowlistTests,
-        ...skillGateIntegration,
         ...incompleteFileIntegration,
         ...promptGateIntegration,
         ...sentinelSyncTests

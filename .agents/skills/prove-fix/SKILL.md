@@ -52,6 +52,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Block shipping an unproven fix — build a code proof trace (like a debugger stack trace) for each fix change with confidence percentages, so every code change carries a `file:line` evidence chain and confidence score and a fix ships only when its correctness is proven (≥80%), not assumed.
 
+**Summary:**
+
+- Runs AFTER `$fix` (never before) as the non-negotiable verification gate between `$fix` and `$code-simplifier`; build a stack-trace-style proof chain (symptom → trigger path → root cause → fix mechanism → why-correct → edge cases → side effects) per change, every arrow carrying `file:line`.
+- Score each change with the points rubric (root cause +25, fix mechanism +20, pattern precedent +15, framework +10, edge cases +5 each, side effects +10, no regressions +5) → ≥80% ship, 60-79% flag, <60% BLOCK; pattern precedent (1+ working example) and edge cases (error/null/concurrent) are required, not optional.
+- Map every fix part to a primary/contributing/latent root cause from the hypothesis matrix and prove ALL feeder paths are closed; finish with cross-change checks (interaction, completeness, regression, dependency, performance incl. paging/index DB protocol) and a final verdict.
+- After the verdict, resolve the active Goal Contract: map each proof trace to its success criterion, update the Goal Satisfaction matrix — a SHIP verdict does NOT close work while any required criterion remains FAIL.
+
 **Workflow:**
 
 1. **Inventory** — List every code change made by the fix (file:line, before/after)

@@ -170,6 +170,9 @@ npm run copilot:verify:divergence
 npm run codex:verify:sync-divergence
 ```
 
+> **No npm / no root `package.json`** (e.g. a project that only copied `.claude`): both oracles are stages of the standalone orchestrator the npm scripts delegate to — run them with no package.json via
+> `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --only=sync-divergence,copilot-divergence`.
+
 **Exit gate:** Step 1, Step 2, and both Step 3 oracles must exit `0`. Any non-zero → stop and fix before treating the mirrors as synced.
 
 > **Underlying commands (for debugging or non-skill contexts):** `$sync-to-copilot --fast` wraps `node .claude/scripts/sync-copilot-workflows.cjs` (preview with `--dry-run`); `$sync-codex` wraps `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs` (debug a stage with `--only=<stage> --verbose`). Part B invokes the **skills**, not the raw scripts — the scripts are listed only so a human can reproduce a single step in isolation.

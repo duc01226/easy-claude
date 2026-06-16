@@ -17,6 +17,13 @@ description: '[Workflow] Use when activating the Review Current Changes workflow
 
 **Goal:** Ensure changed work reaches clean review through validated findings, verified fixes, full re-review, and synchronized docs/tests — review all uncommitted changes, validate findings, fix only validated findings, then re-run `/review-changes` INLINE (only when `/plan-execute` actually changed files), repeating the plan→plan-execute→review-changes loop until a complete pass is clean.
 
+**Summary:**
+
+- Step 1 `/review-changes` runs FIRST and owns the baseline (surface analysis, integration-test/translation-sync gaps, UI review via internal `/review-ui`); step 2 `/why-review` validates those findings to drop false positives BEFORE the parallel batch fires — so steps 3–7 act only on warranted findings.
+- Steps 3–7 (`/review-architecture`, `/review-domain-entities` [if entity files], `/performance-review`, `/integration-test-review`, `/security-review`) are read-only sub-agents: spawn ALL in ONE message and advance ONLY after every member returns (all-return barrier); the mutating `/code-simplifier` (step 8) waits until the barrier clears and self-reviews its own changes via `/code-review`.
+- Fix cycle (steps 9–12 `/plan`→`/plan-review`→`/plan-execute`→`/review-changes`) runs ONLY when validated findings exist; the step-12 re-review runs ONLY if `/plan-execute` changed files, re-reading the full diff from scratch INLINE to counter orchestrator confirmation bias, and loops until a clean zero-finding pass (cap at 3 no-progress repeats of the same blocker → escalate via `AskUserQuestion`).
+- `/docs-update` (step 13) ALWAYS runs and triages internally; SPEC-STALE drift verdicts from step 1 flow here to update the Feature Spec first — the workflow is NOT clean while any behavior-vs-spec divergence stays unadjudicated (green tests do not normalize drift).
+
 **Sequence:** /review-changes (owns UI review — invokes /review-ui internally when frontend changes) → /why-review (validate findings) → **[parallel batch]** /review-architecture + /review-domain-entities (if entity changes) + /performance-review + /integration-test-review + /security-review → /code-simplifier (self-reviews its own changes via /code-review) → /plan → /plan-review → /plan-execute → **/review-changes (conditional inline re-review — only if /plan-execute changed files; loops /plan→/plan-execute→/review-changes until clean)** → /docs-update → /workflow-end → /watzup
 
 **Key Rules:**
@@ -107,7 +114,7 @@ Steps 3–7 (`/review-architecture`, `/review-domain-entities`, `/performance-re
 
 ### Why parallel?
 
-Each reviewer reads the git diff independently and analyzes one concern. Sequential execution would burn 50K+ tokens in the main session absorbing all five inline. The `stepMeta` in `workflows.json` marks all five as `executionMode: subagent, contextBudget: high` — the `workflow-step-tracker.cjs` hook outputs `💡 [SUB-AGENT RECOMMENDED]` as each step becomes active.
+Each reviewer reads the git diff independently and analyzes one concern. Sequential execution would burn 50K+ tokens in the main session absorbing all five inline. The `stepMeta` in `workflows.json` marks all five as `executionMode: subagent, contextBudget: high` — dispatch each as a sub-agent per the model-driven advancement rule (no hook emits a `💡 [SUB-AGENT RECOMMENDED]` hint).
 
 > **UI review runs inside step 1, not here.** `/review-changes` invokes `/review-ui` (ui-ux-designer sub-agent) as part of its own internal dimensional batch when frontend files changed — do NOT spawn a separate `review-ui` agent in this parallel phase.
 
@@ -143,7 +150,7 @@ Advancement here is **model-driven** — your responsibility against the task li
 6. Read all sub-agent report files; synthesize findings into a combined review summary
 7. Proceed to step 8 (`/code-simplifier`) sequentially — only after the barrier above (it is a code-mutating step and must see the complete review snapshot)
 
-> **`workflow-step-tracker.cjs` is an optional accelerator only.** It fires on `Skill` completions, not `Agent` tool calls, so it cannot and need not advance this sub-agent batch. Advance by the model-driven rule above; if the hook emits a `💡 [SUB-AGENT RECOMMENDED]` hint, treat it as a non-authoritative optimization. Codex and Copilot have no such hook and rely entirely on this rule.
+> **Advancement here is model-driven.** This sub-agent batch advances only after every member returns (the all-return barrier) — no step-tracking hook advances it. Claude, Codex, and Copilot all rely entirely on this rule.
 
 ### Consolidation before /code-simplifier
 

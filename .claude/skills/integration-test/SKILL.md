@@ -19,6 +19,13 @@ context-budget: high
 
 **Goal:** Generate/review integration tests using real DI (no mocks) across 5 modes (from-changes · from-prompt · review · diagnose · verify-traceability) that exercise real production paths and assert specific DB field values — so every test protects a traceable business behavior (TC), survives repeated runs without reset, and fails only when the protected intent actually breaks.
 
+**Summary:**
+
+- Three things make or break a test here: read handler/entity/event source first and assert specific changed fields (never smoke/DI-resolution-only), wrap EVERY DB assertion in async polling (not just async handlers), and drive state through real command/query/seeder paths — never direct repository writes that fabricate invalid state.
+- TC traceability is the spine: each test method carries a `TC-{FEATURE}-{NNN}` test-spec annotation; one business TC maps to MANY tests (1:N, integration + unit), so cover with as many tests as needed — never split a TC to force 1:1, and auto-create a TC in feature-doc Section 8 only for genuinely uncovered business behavior.
+- Always search existing tests in the SAME service and read `references/integration-test-patterns.md` before writing; match local conventions (collection, base class, helpers, unique-name generators) and organize files by domain feature, never by `Queries/`/`Commands/` CQRS type.
+- Done means repeatable, not green-once: the suite must pass 3 consecutive `/integration-test-verify` runs WITHOUT a DB reset; the in-skill `review`/`verify` modes are lightweight inline passes, distinct from the heavier standalone `/integration-test-review` and `/integration-test-verify` skills.
+
 **Workflow:** Detect mode → Find targets → Gather context → Execute → Report
 
 **Key Rules:**

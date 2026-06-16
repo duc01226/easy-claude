@@ -70,7 +70,7 @@ Trigger this skill when:
 - **Regular maintenance** — Quarterly sync to ensure Copilot parity
 - **Copilot setup** — First-time Copilot instructions creation
 
-**NOT for**: Claude Code workflow issues (Claude gets the catalog auto-injected on every prompt via the `workflow-router.cjs` hook).
+**NOT for**: Claude Code workflow issues (Claude reads the catalog from the static `## Workflow & Skills Catalog` baked into `CLAUDE.md`).
 
 ---
 
@@ -157,7 +157,7 @@ Check that:
 
 **Copilot can't enforce protocols like Claude Code hooks:**
 
-- No blocking operations (edit-enforcement)
+- No blocking operations (e.g. the `path-boundary-block` / `git-commit-block` PreToolUse gates)
 - Relies on LLM instruction-following (not guaranteed)
 - Protocols are advisory, not enforced
 - No runtime context injection — all context must be in instruction files

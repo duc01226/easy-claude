@@ -52,6 +52,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Produce a defensible ranked ordering of 3+ backlog items using RICE, MoSCoW, or Value-Effort frameworks so the team works highest-value items first — every rank backed by a score and tech-agnostic rationale (value/effort/risk/impact).
 
+**Summary:**
+
+- Require 3+ items first; pick the framework by the decision tree — RICE when quantitative data exists, MoSCoW for stakeholder must/should/could alignment, Value-Effort 2x2 for a quick call — default RICE when unsure.
+- Score with the exact framework formula (RICE = Reach×Impact×Confidence ÷ Effort using the fixed Impact/Confidence scales and story-point Effort), then rank descending (RICE), by band (MoSCoW), or by quadrant (V-E).
+- Keep every rationale tech-agnostic per M1: justify by value/effort/risk/business impact, never by named stack, framework, or design pattern.
+- On a near-tie (top-2 RICE within 15%, same-band MoSCoW overlap, or flagged stakeholder disagreement), the gate fires — use a direct user question to offer `$llm-council` escalation vs. accepting the ranking; otherwise end without prompting.
+
 **Workflow:**
 
 1. **Collect Items** — Read from files or parse inline list (minimum 3 items)

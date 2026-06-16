@@ -1,10 +1,10 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-06-14'
-  total_skills: 155
+  last_updated: '2026-06-16'
+  total_skills: 154
   total_by_status:
-    active: 154
+    active: 153
     deprecated: 1
     experimental: 0
 categories:
@@ -823,8 +823,8 @@ skills:
       removal_after: null
     - name: memory-management
       path: memory-management/SKILL.md
-      description: '[Utilities] Use when saving or retrieving important patterns,
-        decisions, and learnings across sessions.'
+      description: '[Utilities] Use when saving or recovering task progress across
+        sessions via file checkpoints — especially before context compaction.'
       category: other
       has_scripts: false
       has_references: false
@@ -881,7 +881,8 @@ skills:
       path: performance-review/SKILL.md
       description: '[Debugging] Use when analyzing or optimizing performance bottlenecks:
         database queries, N+1 fan-out, indexing, API latency, memory, concurrency,
-        frontend rendering, caching, and distributed paths.'
+        algorithmic complexity (O(n²)), frontend rendering, caching, and distributed
+        paths.'
       category: other
       has_scripts: false
       has_references: false
@@ -1114,17 +1115,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: review-post-task
-      path: review-post-task/SKILL.md
-      description: '[Code Quality] Use when you need two-pass code review for task
-        completion.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
     - name: scaffold
       path: scaffold/SKILL.md
       description: '[Architecture] Use when scaffolding reusable OOP/SOLID project
@@ -1263,8 +1253,9 @@ skills:
       removal_after: null
     - name: sync-codex
       path: sync-codex/SKILL.md
-      description: '[Codex] Use when you need to run full Codex mirror sync (migrate
-        → hooks → context → verify) standalone, no npm/package JSON needed.'
+      description: '[Codex] Use when you need to run the full cross-surface mirror
+        sync + verify pipeline (migrate → hooks → context → copilot → verify) standalone,
+        no npm/package JSON needed.'
       category: other
       has_scripts: true
       has_references: false

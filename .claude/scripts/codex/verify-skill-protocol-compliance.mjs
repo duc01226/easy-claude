@@ -11,6 +11,8 @@ const claudeAgentsRoot = path.join(rootDir, '.claude', 'agents');
 const agentsRoot = path.join(rootDir, '.codex', 'agents');
 const contextPath = path.join(rootDir, '.codex', 'CODEX_CONTEXT.md');
 const projectAgentsPath = path.join(rootDir, 'AGENTS.md');
+const canonicalSyncPath = path.join(rootDir, '.claude', 'skills', 'shared', 'sync-inline-versions.md');
+const commonProtocolPath = path.join(rootDir, '.github', 'instructions', 'common-protocol.instructions.md');
 const SKILL_PROTOCOL_MARKER = 'CODEX:SYNC-PROMPT-PROTOCOLS:START';
 const SKILL_PROTOCOL_END_MARKER = 'CODEX:SYNC-PROMPT-PROTOCOLS:END';
 const CONTEXT_PROTOCOL_TOP_MARKER = 'PROMPT-PROTOCOLS:START';
@@ -59,6 +61,18 @@ const REQUIRED_CONTRACT_SNIPPETS = [
     'Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.',
     'For workflow skills, execute each listed child-skill step explicitly and report step-by-step evidence.',
     'If a required step/tool cannot run in this environment, stop and ask the user before adapting.'
+];
+
+// P6/P7 — canonical protocol-body parity in the auto-loaded mirrors (AGENTS.md = Codex project
+// context; common-protocol.instructions.md = Copilot always-applied instructions). The mirrors
+// term-rewrite tool nouns (Agent->spawn_agent, "Skill tool"->lowercased, etc.), so byte-equality
+// vs the raw canonical :full block is INVALID and would false-fail. Instead anchor on each block's
+// rewrite-invariant signature (a line that contains no tool term) and assert it appears EXACTLY
+// ONCE — proving the protocol is both PRESENT (reachability) and DEDUPED (the CK-marked CLAUDE.md
+// copies were stripped during mirroring; the body is baked once via the prompt-protocol section).
+const PROTOCOL_BODY_SIGNATURES = [
+    { tag: 'critical-thinking-mindset:full', signature: '[CRITICAL-THINKING-MINDSET]' },
+    { tag: 'ai-mistake-prevention:full', signature: '## Common AI Mistake Prevention (System Lessons)' }
 ];
 
 const FORBIDDEN_SKILL_PROTOCOL_PATTERNS = [
@@ -323,6 +337,79 @@ export function checkDebuggerTraceCoverage(content, relativePath) {
     return `${relativePath} missing end-to-start debugger trace gate snippet(s): ${missing.join(' | ')}`;
 }
 
+// Actionable remediation for a FAILing run. Every failure this gate raises is a generated-mirror
+// integrity problem, and the recurring cause is a stray writer (a standalone `prettier --write` on
+// AGENTS.md / .codex, or a hand-edit) drifting a mirror off its canonical source. The sync is the
+// SOLE writer of these bytes, so the fix is always "regenerate, never hand-format". Pure + exported
+// so it is unit-testable without spawning the verifier or inducing a real drift.
+export function formatMirrorRemediation(failures) {
+    const lines = [
+        'Remediation: regenerate the Codex mirrors with `npm run codex:sync` (or `npm run sync:all`',
+        'for all three surfaces), then re-run this gate. Without npm / a root package.json (e.g. a',
+        'project that only copied `.claude`), run the standalone orchestrator directly — it is the',
+        'single source of truth the npm scripts delegate to, no package.json required:',
+        '  node .claude/skills/sync-codex/scripts/run-codex-sync.mjs',
+        'NEVER hand-edit or `prettier --write` the generated mirrors (AGENTS.md, .codex/**, .agents/**)',
+        '— they are .prettierignore-d so the sync stays their only writer.'
+    ];
+    if (Array.isArray(failures) && failures.some(f => /mirror|drift/i.test(String(f)))) {
+        lines.push('A "context mirror content drifted" failure almost always means a mirror file was reformatted');
+        lines.push('or edited after the last sync; `npm run codex:sync` rewrites it byte-for-byte from the source.');
+    }
+    return lines.join('\n');
+}
+
+// Count non-overlapping occurrences of `needle` in `haystack` (CRLF-normalized). Pure + exported so
+// the parity logic is unit-testable without inducing a real mirror drift or spawning the verifier.
+export function countOccurrences(haystack, needle) {
+    if (!needle) return 0;
+    const text = String(haystack).replace(/\r\n/g, '\n');
+    let count = 0;
+    let idx = text.indexOf(needle);
+    while (idx !== -1) {
+        count++;
+        idx = text.indexOf(needle, idx + needle.length);
+    }
+    return count;
+}
+
+// P6 (AGENTS.md) + P7 (common-protocol.instructions.md): each canonical :full block's rewrite-invariant
+// signature must appear EXACTLY ONCE in every auto-loaded mirror. Fail-closed at every gap — a missing
+// canonical source, missing mirror, stale signature, or wrong occurrence count is a FAILURE, never a skip.
+async function checkCanonicalProtocolBodySignatures(failures) {
+    if (!(await exists(canonicalSyncPath))) {
+        failures.push(`Missing canonical protocol source: ${path.relative(rootDir, canonicalSyncPath)} (cannot verify mirror protocol-body parity)`);
+        return;
+    }
+    const canonicalText = (await fs.readFile(canonicalSyncPath, 'utf8')).replace(/\r\n/g, '\n');
+
+    // Anchor: each signature MUST still live in the canonical :full block, else it is stale and the
+    // count check below would silently drift. This ties the check to canonical, not to a hardcoded string.
+    for (const { tag, signature } of PROTOCOL_BODY_SIGNATURES) {
+        if (!canonicalText.includes(signature)) {
+            failures.push(`Canonical SYNC:${tag} no longer contains body signature "${signature}" — update PROTOCOL_BODY_SIGNATURES in .claude/scripts/codex/verify-skill-protocol-compliance.mjs`);
+        }
+    }
+
+    const targets = [
+        { label: 'AGENTS.md', filePath: projectAgentsPath }, // P6 — Codex project context
+        { label: 'common-protocol.instructions.md', filePath: commonProtocolPath } // P7 — Copilot always-applied
+    ];
+    for (const { label, filePath } of targets) {
+        if (!(await exists(filePath))) {
+            failures.push(`Missing protocol mirror ${label}: ${path.relative(rootDir, filePath)} (fail-closed — protocol reachability unverifiable)`);
+            continue;
+        }
+        const content = await fs.readFile(filePath, 'utf8');
+        for (const { tag, signature } of PROTOCOL_BODY_SIGNATURES) {
+            const n = countOccurrences(content, signature);
+            if (n !== 1) {
+                failures.push(`${label}: canonical SYNC:${tag} body signature "${signature}" found ${n}× (expected exactly 1 — a single deduped copy of the :full block)`);
+            }
+        }
+    }
+}
+
 async function checkRequiredDebuggerTraceFiles(relativePaths, failures) {
     for (const relPath of relativePaths) {
         const fullPath = path.join(rootDir, ...relPath.split('/'));
@@ -546,11 +633,15 @@ async function main() {
     await checkRequiredDebuggerTraceFiles(DEBUGGER_TRACE_REQUIRED_SOURCE_PATHS, failures);
     await checkRequiredDebuggerTraceFiles(DEBUGGER_TRACE_REQUIRED_GENERATED_SKILLS, failures);
 
+    await checkCanonicalProtocolBodySignatures(failures);
+
     if (failures.length > 0) {
         console.error('[codex-skill-compliance] FAIL');
         for (const failure of failures) {
             console.error(` - ${failure}`);
         }
+        console.error('');
+        console.error(formatMirrorRemediation(failures));
         process.exit(1);
     }
 

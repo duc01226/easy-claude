@@ -8,18 +8,20 @@
  * IMPORTANT: Changing a marker string affects dedup behavior across all hooks.
  * Run tests after any change: node .claude/hooks/tests/test-all-hooks.cjs
  *
- * Live consumers (after the de-hooking refactor):
- *   WORKFLOW_CATALOG → workflow-router.cjs (drives workflow SELECTION on every prompt; the full
- *     catalog is emitted inline as one block so selection needs no tool call). _P2 / _P3 are legacy
- *     markers from the removed 3-part paging — retained but no longer wired (see marker block below).
- *   LESSONS / CRITICAL_THINKING / AI_MISTAKE_PREVENTION → via lib/prompt-injections,
- *     consumed by post-compact-recovery.cjs (re-anchor after compaction).
+ * Consumers (after the de-hooking refactor):
+ *   LESSONS / CRITICAL_THINKING / AI_MISTAKE_PREVENTION → via lib/prompt-injections, whose
+ *     critical-context output is verified against the canonical SYNC:* blocks by
+ *     tests/suites/protocol-text-parity.test.cjs (the post-compact-recovery SessionStart
+ *     consumer was removed in the de-hooking refactor).
  *
- * The remaining markers (CODE_PATTERNS, BACKEND/FRONTEND/STYLING/KNOWLEDGE/DESIGN_SYSTEM
- * context, CODE_REVIEW_RULES, DEV_RULES, PROJECT_STRUCTURE, CLAUDE_MD, PYTHON_GUIDE, …)
- * fed the per-context PreToolUse inject hooks and the prompt-context-assembler family,
- * which were removed — that guidance now lives statically in CLAUDE.md / agent / skill files.
- * Constants are retained as the single source of truth for any future re-use.
+ * The remaining markers (WORKFLOW_CATALOG / _P2 / _P3, CODE_PATTERNS,
+ * BACKEND/FRONTEND/STYLING/KNOWLEDGE/DESIGN_SYSTEM context, CODE_REVIEW_RULES, DEV_RULES,
+ * PROJECT_STRUCTURE, CLAUDE_MD, PYTHON_GUIDE, …) fed hooks that have since been removed —
+ * the WORKFLOW_CATALOG markers drove the deleted workflow-router.cjs (the workflow catalog is
+ * now static in CLAUDE.md `## Workflow & Skills Catalog`); the per-context PreToolUse inject
+ * hooks and the prompt-context-assembler family are likewise gone. That guidance now lives
+ * statically in CLAUDE.md / agent / skill files. Constants are retained as the single source
+ * of truth for any future re-use.
  *
  * DEDUP_LINES — dynamically calculated transcript line counts for each marker.
  * Values are computed at runtime based on actual injection content sizes.
@@ -241,16 +243,9 @@ const DEDUP_LINES = computeDedupLines();
 /** Number of leading transcript lines to check for primacy dedup (top-of-context) */
 const TOP_DEDUP_LINES = 50;
 
-/**
- * Minimum transcript line count before context-recovery injections fire.
- * Fresh sessions already have project instructions at maximum recency — skip.
- */
-const FRESH_SESSION_THRESHOLD = 200;
-
 module.exports = {
     DEDUP_LINES,
     TOP_DEDUP_LINES,
-    FRESH_SESSION_THRESHOLD,
     // Expose internals for testing
     computeDedupLines,
     CONTENT_SOURCES,
@@ -305,19 +300,15 @@ module.exports = {
     LESSONS: '## Learned Lessons',
 
     /**
-     * Workflow catalog dedup marker — single source of truth for the catalog injection.
+     * Workflow catalog dedup markers — LEGACY, retained as stable string constants.
      *
-     * The catalog is emitted as ONE block from workflow-router.cjs on UserPromptSubmit and dedups
-     * on WORKFLOW_CATALOG with a computed bottom window (DEDUP_LINES.WORKFLOW_CATALOG). The harness
-     * imposes no per-hook size limit on UserPromptSubmit, so the whole catalog ships from one hook.
-     *
-     * WORKFLOW_CATALOG_P2 / _P3 are LEGACY markers from the former 3-part paging across
-     * workflow-router-p2.cjs / workflow-router-p3.cjs. Those part-file hooks were deleted in the
-     * de-hooking refactor, so neither marker is wired to any hook anymore; they are retained here
-     * (and drift-locked by tests/suites/catalog-dedup-markers.test.cjs) only to keep the string constants stable
-     * for any future re-use.
+     * These drove the dynamic catalog injection emitted by workflow-router.cjs (and the former
+     * 3-part paging across workflow-router-p2/-p3.cjs). All three router hooks have since been
+     * deleted in the de-hooking refactor — the workflow catalog is now STATIC in CLAUDE.md
+     * `## Workflow & Skills Catalog`, so no hook emits or dedups on these markers anymore.
+     * Retained only to keep the string constants stable for any future re-use.
      */
-    /** Marker for workflow catalog injection */
+    /** Legacy marker (former dynamic catalog) — retained, no longer wired to any hook */
     WORKFLOW_CATALOG: '## Workflow Catalog',
 
     /** Legacy marker (former part 2) — retained, no longer wired to any hook */

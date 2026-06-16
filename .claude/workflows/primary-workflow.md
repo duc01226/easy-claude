@@ -97,30 +97,30 @@ All workflows are defined in `.claude/workflows.json` — the canonical catalog 
 
 ### Core Development Workflows
 
-| Workflow                   | Phases Used                     | When To Use                                                                 |
-| -------------------------- | ------------------------------- | --------------------------------------------------------------------------- |
-| **feature**                | 0→1→2→3→4→5→6                   | Well-defined feature implementation (spec-driven, test specs before code)   |
-| **bugfix**                 | 0→7→1→2→3→4→5→6                 | Bug reports, debugging, troubleshooting with end-to-start trace + RED/GREEN |
-| **refactor**               | 0→1→2→3→4→5→6                   | Code restructuring without behavior change, technical debt                  |
-| **big-feature**            | Full lifecycle with research    | Large/ambiguous features needing market research, domain modeling           |
-| **review-changes**         | 5→3→5→6                         | Pre-commit review of uncommitted changes (recursive fix loop)               |
-| **feature-spec**           | 0→1→2→6                         | Business feature docs (tech-free 8-section template, TCs in Section 8)      |
-| **greenfield-init**        | Full inception + implementation | New project from scratch                                                    |
+| Workflow            | Phases Used                     | When To Use                                                                 |
+| ------------------- | ------------------------------- | --------------------------------------------------------------------------- |
+| **feature**         | 0→1→2→3→4→5→6                   | Well-defined feature implementation (spec-driven, test specs before code)   |
+| **bugfix**          | 0→7→1→2→3→4→5→6                 | Bug reports, debugging, troubleshooting with end-to-start trace + RED/GREEN |
+| **refactor**        | 0→1→2→3→4→5→6                   | Code restructuring without behavior change, technical debt                  |
+| **big-feature**     | Full lifecycle with research    | Large/ambiguous features needing market research, domain modeling           |
+| **review-changes**  | 5→3→5→6                         | Pre-commit review of uncommitted changes (recursive fix loop)               |
+| **feature-spec**    | 0→1→2→6                         | Business feature docs (tech-free 8-section template, TCs in Section 8)      |
+| **greenfield-init** | Full inception + implementation | New project from scratch                                                    |
 
 ### PBI & Discovery Workflows
 
-| Workflow              | Flow                                                                                                           |
-| --------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Workflow              | Flow                                                                                                                                  |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | **idea-to-pbi**       | PO/BA: idea (or PO artifact) → review → refine → stories → spec [mode=tests] (specs) → domain-analysis → plan → DoR gate → prioritize |
-| **product-discovery** | Raw vision/problem → brainstorm → N PBIs with stories, challenge review, DoR gate, wireframes → ranked backlog |
-| **spec-to-pbi**       | Existing Feature Specs → dependency-aware PBI backlog with stories, DoR gate, prioritization                   |
+| **product-discovery** | Raw vision/problem → brainstorm → N PBIs with stories, challenge review, DoR gate, wireframes → ranked backlog                        |
+| **spec-to-pbi**       | Existing Feature Specs → dependency-aware PBI backlog with stories, DoR gate, prioritization                                          |
 
 ### Spec-Driven Workflows
 
-| Workflow            | Purpose                                                                                                                |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| **build-specs**     | Author/maintain the canonical tech-free 8-section Feature Spec — initial generation, sync after changes, health audits |
-| **spec-sync**       | Update test specs and feature docs after code changes, bug fixes, or PR reviews                                        |
+| Workflow        | Purpose                                                                                                                |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **build-specs** | Author/maintain the canonical tech-free 8-section Feature Spec — initial generation, sync after changes, health audits |
+| **spec-sync**   | Update test specs and feature docs after code changes, bug fixes, or PR reviews                                        |
 
 ### Test & Data Workflows
 
@@ -132,9 +132,9 @@ All workflows are defined in `.claude/workflows.json` — the canonical catalog 
 
 ### Design & Visualization Workflows
 
-| Workflow            | Purpose                                          |
-| ------------------- | ------------------------------------------------ |
-| **visualize**       | Codebase or knowledge → Excalidraw diagrams      |
+| Workflow      | Purpose                                     |
+| ------------- | ------------------------------------------- |
+| **visualize** | Codebase or knowledge → Excalidraw diagrams |
 
 ### Research & Content Workflows
 

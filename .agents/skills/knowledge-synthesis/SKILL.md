@@ -43,6 +43,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Produce a fully-cited, template-compliant research report by synthesizing the evidence base using the enforced template — whose confidence scores and gaps are honest enough to trust for decisions.
 
+**Summary:**
+
+- Synthesizes a report FROM an existing evidence base (`.claude/tmp/_evidence-{slug}.md` + `_sources-{slug}.md` from deep-research) — this skill does not gather sources, it consolidates them into `docs/knowledge/research/{slug}.md`.
+- The enforced template (`.claude/templates/research-report-template.md`) is non-negotiable: every section MUST appear, and the Knowledge Gaps section can never be omitted — a missing gaps section manufactures false confidence.
+- Citation discipline is the core gate: every factual claim carries an inline `[N]`, every Sources-table entry is referenced at least once, and there are zero orphan citations or orphan sources.
+- Close with an honest confidence rollup (weighted average of finding scores) that prominently flags any <60% finding, then clean up `.claude/tmp/` working files.
+
 **Workflow:**
 
 1. **Load evidence** — Read evidence base from deep-research

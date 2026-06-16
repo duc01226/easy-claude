@@ -43,6 +43,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Detect docs impacted by code changes, update the right docs (project + business-feature) accurately and surgically, then report checked/updated/skipped — so docs stay synchronized with code without fabrication or scratch-creation.
 
+**Summary:**
+
+- Triage from `git diff` → map changed files to impacted doc types via the section-impact mapping; only `.claude`/config changes → fast-exit "no docs impacted."
+- Never create business-feature docs from scratch (recommend `$spec`); update only the impacted sections, surgically.
+- Verify the code change before fixing any stale doc; map downstream references before removing a section.
+- No meta-log in AI-facing docs — write current actionable state only; history goes to git / `CHANGELOG.md` / `docs/adr/**`.
+
 **Workflow:**
 
 1. **Triage** — `git diff --name-only` → categorize changed files → determine impacted doc types
@@ -189,6 +196,21 @@ Concise — sacrifice grammar for brevity. List unresolved questions at end.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
+<!-- SYNC:incremental-persistence -->
+
+> **Incremental Result Persistence** — MANDATORY for all sub-agents or heavy inline steps processing >3 files.
+>
+> 1. **Before starting:** Create report file `plans/reports/{skill}-{date}-{slug}.md`
+> 2. **After each file/section reviewed:** Append findings to report immediately — never hold in memory
+> 3. **Return to main agent:** Summary only (per SYNC:subagent-return-contract) with `Full report:` path
+> 4. **Main agent:** Reads report file only when resolving specific blockers
+>
+> **Why:** Context cutoff mid-execution loses ALL in-memory findings. Each disk write survives compaction. Partial results are better than no results.
+>
+> **Report naming:** `plans/reports/{skill-name}-{YYMMDD}-{HHmm}-{slug}.md`
+
+<!-- /SYNC:incremental-persistence -->
+
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
@@ -211,7 +233,7 @@ Concise — sacrifice grammar for brevity. List unresolved questions at end.
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-<!-- /SYNC:task-tracking-external-report:reminder -->
+  <!-- /SYNC:task-tracking-external-report:reminder -->
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 

@@ -15,11 +15,11 @@ applyTo: "**/*"
 
 > **READ** `docs/project-reference/project-structure-reference.md` when: changing framework layout, module ownership, inventory counts, generated mirrors, or onboarding docs
 
-## [Feature Docs Reference](../../docs/project-reference/feature-docs-reference.md)
+## [Seed Test Data Reference](../../docs/project-reference/seed-test-data-reference.md)
 
-**Summary:** Legacy feature documentation structure, category organization, and conventions for adding feature docs.
+**Summary:** Idempotent seeder architecture, DI scope safety, application-layer command dispatch, and config-driven counts for test-data seeding.
 
-> **READ** `docs/project-reference/feature-docs-reference.md` when: checking feature documentation availability, legacy feature-doc routing, or feature doc organization
+> **READ** `docs/project-reference/seed-test-data-reference.md` when: implementing or reviewing test-data seeders, idempotent seeding, DI scope safety, or config-driven seed counts
 
 ## [Feature Documentation Reference](../../docs/project-reference/feature-spec-reference.md)
 

@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Hooks: Final De-hooking Pass — Remove Enforcement, Lifecycle & Swap Hooks
+
+**Refactor**: Completes the de-hooking effort by removing the remaining enforcement, session-lifecycle, and tool-output hooks, taking the inventory from **27 → 15** top-level hooks and **28 → 25** lib modules. The guidance these hooks enforced at runtime is now model-driven from static `CLAUDE.md` / `agents/*.md` / `SKILL.md` content re-read every prompt, giving Claude Code, Codex, and Copilot identical instructions with no runtime layer.
+
+#### Removed
+
+- **12 hooks deleted:** `agent-files-skill-gate.cjs`, `bash-cleanup.cjs`, `edit-enforcement.cjs`, `post-agent-validator.cjs`, `post-compact-recovery.cjs`, `pre-compact-snapshot.cjs`, `session-resume.cjs`, `skill-enforcement.cjs`, `todo-tracker.cjs`, `tool-output-swap.cjs`, `workflow-task-guard.cjs`, `write-compact-marker.cjs`. Skill/workflow routing and step advancement are now wholly model-driven per the `[WORKFLOW-GATE]` and "Workflow Step Advancement" rules in `CLAUDE.md`; edit/skill enforcement and post-agent validation become static review-gate guidance.
+- **3 lib modules deleted:** `lib/edit-state.cjs` (consumed only by the removed `edit-enforcement` hook), `lib/wr-config.cjs` (orphaned once its sole consumer `workflow-task-guard.cjs` was removed in this pass — superseding the "retained" note in the Router & Step-Tracker entry below), and `lib/context-tracker.cjs` (the compaction-marker tracker, orphaned once `write-compact-marker.cjs`/`post-compact-recovery.cjs` were removed and `session-end.cjs` dropped its `deleteMarker` call; its `tests/test-context-tracker.cjs` suite was deleted with it).
+- **`settings.json` registrations for all 12 hooks removed** — the Claude runtime no longer references any deleted hook.
+
+#### Changed
+
+- **Hook inventory reduced to 15 top-level `.cjs` hooks (+ 1 `notify-waiting.js`) and 25 lib modules.** Counts reconciled across `README.md`, `CLAUDE.md`, `AGENTS.md`, `docs/project-reference/project-structure-reference.md`, `.claude/docs/README.md`, `.claude/docs/quick-start.md`, `.claude/docs/hooks/README.md`, and `.claude/docs/claude-ai-agent-framework-guide.md`, with the `COUNT:` markers regenerated via `generate_catalogs.py --inject-counts`. The Codex/Copilot mirrors (`.codex/hooks.json`, `AGENTS.md`, `.codex/CODEX_CONTEXT.md`) are regenerated from the cleaned sources.
+
+#### Test Coverage
+
+- Orphan suites that exercised the deleted hooks were removed/updated (`pre-compact-snapshot.test.cjs`, `test-workflow-task-guard.cjs`, `test-context-tracker.cjs` deleted; `lib/test-utils.cjs` dropped the `setupEditState`/`setupCompactMarker` helpers). Primary runner (`test-all-hooks.cjs`) green at **213** tests; aggregate (`run-all-tests.cjs`) green at **283** tests.
+
 ### Skills & Workflows: Consolidation
 
 **Refactor**: Pruned dead skills/workflows and namespaced every workflow id under a `workflow-` prefix, so a workflow invocation is unambiguous against a same-named step-skill.
@@ -44,3 +62,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Added `content-presence.test.cjs` — a static-parity safety net asserting the relocated guidance is present in `CLAUDE.md` (TC-CP-001), the agent files (TC-CP-002/003), and the four per-context skill migrations: design-system-canonical→`design` (TC-CP-004), figma→`figma-design` (TC-CP-005), ba-refinement→`refine` (TC-CP-006), graph-grep→`scout` (TC-CP-007). Each TC keys on a verbatim load-bearing phrase from the deleted hook, so a future skill edit that drops a relocated block fails loudly.
 - Removed the orphaned dispatcher/inject test suites that exec'd now-deleted hook files (`pretooluse-dispatchers.test.cjs`, `ba-refinement-context.test.cjs`, `code-patterns-injector.test.cjs`, `dev-rules-injector.test.cjs`, `context.test.cjs`, `subagent-concurrency.test.cjs`) and the frozen `fixtures/pretooluse-legacy-goldens.json` oracle. Primary runner (`test-all-hooks.cjs`) green at 303 tests with the count guard agreeing; aggregate (`run-all-tests.cjs`) green at 410 (incl. content-presence TC-CP-001..007).
+
+### Hooks: Remove Workflow Router & Step-Tracker — Model-Driven Routing
+
+**Refactor**: Continuing the de-hooking pass above, the two remaining workflow-orchestration hooks — `workflow-router.cjs` (SessionStart + UserPromptSubmit) and `workflow-step-tracker.cjs` (PostToolUse) — are removed, taking the inventory from **29 → 27** top-level hooks. Workflow **routing and step advancement are now model-driven**: the `## Workflow & Skills Catalog` is baked statically into `CLAUDE.md` (and the `AGENTS.md` / Copilot mirrors) and re-read by the model every prompt, while step progression rides on the todo list (`todo-tracker.cjs` → `.claude/.ck-todo-state.json`). Both hooks were accelerators only — per the standing `CLAUDE.md` rule _"Hooks/trackers are accelerators only … correctness MUST NOT depend on it"_ — so their removal changes nothing about how Claude, Codex, or Copilot route or advance a workflow.
+
+#### Removed
+
+- **`workflow-router.cjs`** — formerly injected the workflow catalog on every `UserPromptSubmit` and auto-selected a route. The catalog is now static context in `CLAUDE.md`; the model classifies and routes per the `[WORKFLOW-GATE]` rule with no per-prompt injection.
+- **`workflow-step-tracker.cjs`** — formerly wrote `.claude/.ck-workflow-state.json` and emitted "next step" / workflow-in-workflow hints on `PostToolUse`. Step advancement is the model's responsibility (`CLAUDE.md` "Workflow Step Advancement & Parallel Phases"); todo progress already survives compaction via `todo-tracker.cjs`. The `.ck-workflow-state.json` file is now an inert residual artifact (no hook writes it; cleared on `/clear`).
+- Both `settings.json` registrations removed — **`UserPromptSubmit` now runs `init-prompt-gate.cjs` + `pre-compact-snapshot.cjs` only**, and `PostToolUse` no longer runs the step-tracker. The shared `lib/wr-config.cjs` loader was retained at this point — its then-surviving consumer was `workflow-task-guard.cjs` (its log prefix was corrected `[workflow-router]` → `[wr-config]`); both were subsequently removed in the Final De-hooking Pass above.
+
+#### Changed
+
+- **Hook inventory reduced to 27 top-level `.cjs` hooks (+ 1 `notify-waiting.js`); 28 lib modules unchanged.** Counts reconciled across `README.md`, `CLAUDE.md`, `AGENTS.md`, `docs/project-reference/project-structure-reference.md`, `docs/project-reference/domain-entities-reference.md`, `docs/project-reference/backend-patterns-reference.md`, `.claude/docs/hooks/README.md`, `.claude/docs/hooks/architecture.md`, and `.claude/docs/claude-ai-agent-framework-guide.md`.
+
+#### Test Coverage
+
+- Removed the `catalog-dedup-markers` suite (it asserted the router's `## Workflow Catalog` dedup markers) and the step-tracker `resolveCmd` / `mapSkillToStepId` unit tests; the workflow suite's router-dependent guards (`buildWorkflowCatalog` / `getStepDescription`) were dropped with the hook. Primary runner (`test-all-hooks.cjs`) green at **273** tests (303 → 273) with the count guard agreeing; aggregate (`run-all-tests.cjs`) green at **403** (410 → 403).

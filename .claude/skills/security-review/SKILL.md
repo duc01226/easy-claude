@@ -22,6 +22,13 @@ context-budget: high
 
 **Goal:** Ensure the reviewed scope resists credible security failures — exploitable authorization, injection, data, dependency, supply-chain, configuration, pipeline, and host-level risks — via a comprehensive review against OWASP Top 10 (2025), supply-chain/malware threats, secrets exposure, infrastructure misconfiguration, and host compromise indicators, proven with evidence before handoff.
 
+**Summary:**
+
+- Code being clean is not the verdict — security spans ten domains (D1 OWASP app code, D2 secrets ALWAYS, D3 dependencies, D4 third-party vetting, D5 host/VPS, D6 frontend, D7 API boundaries, D8 infra, D9 CI/CD, D10 AI/agent); resolve the scope mode first (`changes`/`full`/`deps`/`vet`/`host`), then run the matching domain checklists.
+- Every finding needs `file:line` or exact command+output evidence with severity and confidence; if you cannot prove exploitability with a trace, say "potential risk, not confirmed" — never "looks secure" without proof.
+- D4 third-party vetting is a hard gate BEFORE the first install/clone/run (install-time is infection-time), and D2 secrets runs in every mode regardless — automation does not bypass either.
+- Findings are not fix-eligible until `/why-review --validate-findings` confirms them; after any validated fix, restart the FULL review from Scope (fresh `security-auditor` sub-agent, not `code-reviewer`), never a targeted re-check of only the changed files.
+
 > **Renamed:** consolidates the former `/security` and `/arch-security-review` skills — those names no longer resolve as slash commands; use `/security-review`.
 
 **Workflow:**

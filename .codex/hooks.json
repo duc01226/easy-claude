@@ -4,24 +4,6 @@
       "hooks": [
         {
           "type": "command",
-          "command": "node ./.claude/hooks/tool-output-swap.cjs"
-        }
-      ],
-      "matcher": "Read|Grep|Glob"
-    },
-    {
-      "hooks": [
-        {
-          "type": "command",
-          "command": "node ./.claude/hooks/bash-cleanup.cjs"
-        }
-      ],
-      "matcher": "Bash"
-    },
-    {
-      "hooks": [
-        {
-          "type": "command",
           "command": "node ./.claude/hooks/post-edit-prettier.cjs"
         }
       ],
@@ -35,33 +17,6 @@
         }
       ],
       "matcher": "Edit|Write|MultiEdit"
-    },
-    {
-      "hooks": [
-        {
-          "type": "command",
-          "command": "node ./.claude/hooks/todo-tracker.cjs"
-        }
-      ],
-      "matcher": "TaskCreate|TaskUpdate"
-    },
-    {
-      "hooks": [
-        {
-          "type": "command",
-          "command": "node ./.claude/hooks/workflow-step-tracker.cjs"
-        }
-      ],
-      "matcher": "Skill"
-    },
-    {
-      "hooks": [
-        {
-          "type": "command",
-          "command": "node ./.claude/hooks/post-agent-validator.cjs"
-        }
-      ],
-      "matcher": "Agent"
     }
   ],
   "PreToolUse": [
@@ -69,7 +24,7 @@
       "hooks": [
         {
           "type": "command",
-          "command": "node ./.claude/hooks/notify-waiting.js"
+          "command": "node ./.claude/hooks/notifications/notify.cjs"
         }
       ],
       "matcher": "AskUserQuestion"
@@ -117,37 +72,6 @@
       "hooks": [
         {
           "type": "command",
-          "command": "node ./.claude/hooks/edit-enforcement.cjs"
-        }
-      ],
-      "matcher": "Edit|Write|MultiEdit|NotebookEdit"
-    },
-    {
-      "hooks": [
-        {
-          "type": "command",
-          "command": "node ./.claude/hooks/skill-enforcement.cjs"
-        },
-        {
-          "type": "command",
-          "command": "node ./.claude/hooks/agent-files-skill-gate.cjs"
-        }
-      ],
-      "matcher": "Skill"
-    },
-    {
-      "hooks": [
-        {
-          "type": "command",
-          "command": "node ./.claude/hooks/workflow-task-guard.cjs"
-        }
-      ],
-      "matcher": "TaskUpdate"
-    },
-    {
-      "hooks": [
-        {
-          "type": "command",
           "command": "node ./.claude/hooks/doc-sync-gate.cjs"
         }
       ],
@@ -186,24 +110,6 @@
       "hooks": [
         {
           "type": "command",
-          "command": "node ./.claude/hooks/post-compact-recovery.cjs"
-        }
-      ],
-      "matcher": "startup|resume"
-    },
-    {
-      "hooks": [
-        {
-          "type": "command",
-          "command": "node ./.claude/hooks/session-resume.cjs"
-        }
-      ],
-      "matcher": "startup|resume"
-    },
-    {
-      "hooks": [
-        {
-          "type": "command",
           "command": "node ./.claude/hooks/session-init-docs.cjs"
         }
       ],
@@ -217,15 +123,6 @@
         }
       ],
       "matcher": "startup|resume"
-    },
-    {
-      "hooks": [
-        {
-          "type": "command",
-          "command": "node ./.claude/hooks/workflow-router.cjs"
-        }
-      ],
-      "matcher": "startup|resume"
     }
   ],
   "Stop": [
@@ -233,7 +130,7 @@
       "hooks": [
         {
           "type": "command",
-          "command": "node ./.claude/hooks/notify-waiting.js"
+          "command": "node ./.claude/hooks/notifications/notify.cjs"
         }
       ]
     }
@@ -244,14 +141,6 @@
         {
           "type": "command",
           "command": "node ./.claude/hooks/init-prompt-gate.cjs"
-        }
-      ]
-    },
-    {
-      "hooks": [
-        {
-          "type": "command",
-          "command": "node ./.claude/hooks/pre-compact-snapshot.cjs"
         }
       ]
     }

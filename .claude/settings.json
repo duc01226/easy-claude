@@ -15,15 +15,7 @@
   },
   "includeCoAuthoredBy": false,
   "permissions": {
-    "allow": [
-      "Edit(.claude/**)",
-      "Write(.claude/**)",
-      "Bash(tmp/**)",
-      "Edit(tmp/**)",
-      "Read(tmp/**)",
-      "Write(tmp/**)",
-      "Glob(tmp/**)"
-    ],
+    "allow": ["Edit(.claude/**)", "Write(.claude/**)", "Bash(tmp/**)", "Edit(tmp/**)", "Read(tmp/**)", "Write(tmp/**)", "Glob(tmp/**)"],
     "deny": [
       "Bash(rm -rf /*)",
       "Bash(rm -rf ~/*)",
@@ -86,30 +78,16 @@
       "Write(**/dist/**)",
       "Write(**/node_modules/**)"
     ],
-    "ask": [
-      "Bash(git push:*)",
-      "Bash(npm publish:*)",
-      "Bash(docker push:*)"
-    ],
+    "ask": ["Bash(git push:*)", "Bash(npm publish:*)", "Bash(docker push:*)"],
     "defaultMode": "bypassPermissions"
   },
   "enableAllProjectMcpServers": false,
-  "enabledMcpjsonServers": [
-    "context7",
-    "github",
-    "mongodb",
-    "postgres"
-  ],
-  "disabledMcpjsonServers": [
-    "chrome-devtools",
-    "figma",
-    "memory",
-    "sequential-thinking"
-  ],
+  "enabledMcpjsonServers": ["context7", "github", "mongodb", "postgres"],
+  "disabledMcpjsonServers": ["chrome-devtools", "figma", "sequential-thinking"],
   "hooks": {
     "Notification": [
       {
-        "matcher": "idle_prompt|AskUserPrompt|permission_prompt",
+        "matcher": "AskUserPrompt|permission_prompt",
         "hooks": [
           {
             "type": "command",
@@ -119,24 +97,6 @@
       }
     ],
     "PostToolUse": [
-      {
-        "matcher": "Read|Grep|Glob",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tool-output-swap.cjs"
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/bash-cleanup.cjs"
-          }
-        ]
-      },
       {
         "matcher": "Edit|Write|MultiEdit",
         "hooks": [
@@ -154,44 +114,6 @@
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/graph-auto-update.cjs"
           }
         ]
-      },
-      {
-        "matcher": "TaskCreate|TaskUpdate",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/todo-tracker.cjs"
-          }
-        ]
-      },
-      {
-        "matcher": "Skill",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/workflow-step-tracker.cjs"
-          }
-        ]
-      },
-      {
-        "matcher": "Agent",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/post-agent-validator.cjs"
-          }
-        ]
-      }
-    ],
-    "PreCompact": [
-      {
-        "matcher": "manual|auto",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/write-compact-marker.cjs"
-          }
-        ]
       }
     ],
     "PreToolUse": [
@@ -200,7 +122,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/notify-waiting.js"
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/notifications/notify.cjs"
           }
         ]
       },
@@ -244,37 +166,6 @@
         ]
       },
       {
-        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/edit-enforcement.cjs"
-          }
-        ]
-      },
-      {
-        "matcher": "Skill",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/skill-enforcement.cjs"
-          },
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/agent-files-skill-gate.cjs"
-          }
-        ]
-      },
-      {
-        "matcher": "TaskUpdate",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/workflow-task-guard.cjs"
-          }
-        ]
-      },
-      {
         "matcher": "Write|Edit|MultiEdit",
         "hooks": [
           {
@@ -300,10 +191,6 @@
           {
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-end.cjs"
-          },
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/notify-waiting.js"
           }
         ]
       }
@@ -324,24 +211,6 @@
           {
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-init.cjs"
-          }
-        ]
-      },
-      {
-        "matcher": "resume|compact",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/post-compact-recovery.cjs"
-          }
-        ]
-      },
-      {
-        "matcher": "resume",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-resume.cjs"
           }
         ]
       },
@@ -371,15 +240,6 @@
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/graph-session-init.cjs"
           }
         ]
-      },
-      {
-        "matcher": "startup|resume|clear|compact",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/workflow-router.cjs"
-          }
-        ]
       }
     ],
     "Stop": [
@@ -387,7 +247,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/notify-waiting.js"
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/notifications/notify.cjs"
           }
         ]
       }
@@ -398,14 +258,6 @@
           {
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/init-prompt-gate.cjs"
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pre-compact-snapshot.cjs"
           }
         ]
       }

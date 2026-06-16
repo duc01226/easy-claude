@@ -52,6 +52,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Wire every feedforward guide and feedback sensor into the greenfield project so all later AI coding agents operate with maximum guidance and self-correct against quality gates BEFORE human review — raising first-attempt quality and catching defects at the earliest, cheapest stage.
 
+**Summary:**
+
+- BLOCK on the `$linter-setup` prerequisite first — computational sensors (linters, hooks, CI gates) MUST exist before any phase runs; this skill never installs them itself.
+- Walk phases A→F as a hard barrier sequence: detect stack → author feedforward guides (CLAUDE.md conventions, anti-patterns, pattern catalog) → confirm computational sensors → wire inferential review skills to lifecycle gates → define behaviour/test strategy → emit inventory.
+- Treat every feedforward-guide and sensor choice as a direct user question-gated — never auto-decide content, because harness conventions bind every future agent and silent choices propagate.
+- Write `.ai/workspace/harness/harness-inventory.md` incrementally (append per phase, not held in memory), keeping it a living document updated as new sensors are added.
+
 **Produces:**
 
 - Feedforward guides: CLAUDE.md/AGENTS.md conventions, architecture docs, pattern catalogs, skill activation rules

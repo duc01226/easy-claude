@@ -43,11 +43,18 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Two-phase optimization — (1) Caveman Compression strips stop words + grammatical scaffolding while preserving semantic meaning; (2) Prompt Enhancement applies AI attention anchoring so AI reads and follows all instructions — producing a prompt/skill that states its objective and ultimate outcome (one consolidated Goal) in both top summary and bottom reminders so AI optimizes for the right result.
 
+**Summary:**
+
+- Two phases, in order: caveman-compress prose FIRST, then attention-anchor structure — NEVER skip or reorder.
+- Enhance derives BOTH a **Goal** (the outcome to optimize for) AND a **Summary** (key things + steps to notice) for the target, and places both in its Quick Summary.
+- Protect content: NEVER compress code/YAML/tables/SYNC tags, NEVER delete rules or `file:line` evidence; post rule-density MUST be ≥ pre.
+- Route on `--op` (default `enhance`): `compress` = token-strip only, `expand` = reconstruct compressed text.
+
 **Workflow:**
 
-1. **Detect** — Classify target: skill file, protocol file, or general doc
+1. **Detect** — Classify target: skill file, sub-agent file (`.claude/agents/*.md`), protocol file, or general doc
 2. **Read** — Read target file completely
-3. **Goal** — Derive the target's one-sentence Goal (what it achieves + the ultimate outcome it must cause) from the target's task, constraints, and success criteria
+3. **Goal + Summary** — Derive the target's one-sentence Goal (what it achieves + the ultimate outcome it must cause) AND its Summary (2-4 bullets of the key important things + the steps AI must notice) from the target's task, constraints, and success criteria
 4. **Compress** — Apply caveman compression (Phase 1)
 5. **Enhance** — Apply AI attention anchoring transforms (Phase 2)
 6. **Verify** — No content loss, rule density ≥ pre-optimization, Goal anchored top and bottom
@@ -58,6 +65,8 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - NEVER skip Phase 1 (compress) before Phase 2 (enhance) — compression removes noise, enhancement structures signal
 - NEVER remove meaningful rules, constraints, code examples, or `file:line` evidence
 - MUST ATTENTION derive the target's Goal and add it to both `## Quick Summary` and `## Closing Reminders`
+- MUST ATTENTION derive the target's Summary (key important things + steps AI must notice) and place it in `## Quick Summary` immediately after the Goal — a condensing digest at a different altitude than Workflow/Key Rules, NEVER a verbatim re-listing of them
+- MUST ATTENTION skill AND sub-agent (`.claude/agents/*.md`) targets require the SAME Goal + Summary + Closing-Reminders structure (see [When Target is a Sub-Agent File](#when-target-is-a-sub-agent-file)) — anchored top and bottom; NEVER alter SYNC blocks when enhancing an agent
 - Post-optimization rule density (MUST ATTENTION/NEVER/ALWAYS per 100 lines) MUST be ≥ pre-optimization
 - Caveman compression applies to prose only — NEVER compress code blocks, YAML, or structured tables
 - Prompt quality > token count, but verbose prompts degrade quality — optimize clarity-per-token
@@ -111,6 +120,7 @@ Verify (expand): no semantic loss (all facts/numbers/paths present), rule densit
 | Target type        | Detection                                | Action                                                  |
 | ------------------ | ---------------------------------------- | ------------------------------------------------------- |
 | Skill file         | Path matches `.claude/skills/**/*.md`    | Apply Universal Skill-Building Principles after Phase 1 |
+| Sub-agent file     | Path matches `.claude/agents/*.md`       | Apply Sub-Agent Required Structure after Phase 1        |
 | Protocol file      | Path matches `.claude/protocols/**/*.md` | Standard 2-phase optimization only                      |
 | General doc/prompt | Any other `.md` file                     | Standard 2-phase optimization only                      |
 | Raw text           | No file path provided                    | Apply caveman compression only, output result           |
@@ -137,6 +147,26 @@ After caveman compression, evaluate skill against each principle, add missing st
 | Dimensions > Checklists      | Named dimensions with `Think:` prompts?  | Convert checklist to dimension framework               |
 | Recursive Quality Loop       | Fix → re-review → max 3 rounds defined?  | Add recursive review loop                              |
 | Anti-Rationalization Anchors | Closing reminders include evasion table? | Add evasion → rebuttal table                           |
+
+---
+
+## When Target is a Sub-Agent File
+
+Target `.claude/agents/*.md` (a custom sub-agent definition — the shape a creator skill like `custom-agent` emits)? Apply the **Sub-Agent Required Structure** AFTER caveman compression, BEFORE writing enhanced output. Same Goal + Summary + Closing-Reminders contract as a skill file — anchored top and bottom so the isolated, zero-history sub-agent optimizes for the right outcome — mapped onto the agent body (`## Role → ## Workflow → ## Key Rules → ## Output`).
+
+### Sub-Agent Required Structure
+
+| Block                          | Location                                              | Requirement                                                                                                                              |
+| ------------------------------ | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `## Quick Summary`             | first section after frontmatter                      | Present — holds Goal + Summary + Workflow + Key Rules                                                                                     |
+| `**Goal:**`                    | inside Quick Summary                                 | One consolidated sentence — what the agent achieves AND the ultimate outcome it must cause                                                |
+| `**Summary:**`                 | inside Quick Summary, immediately after Goal         | 2-4 bullets — the read-this-if-nothing-else digest (key things + steps to notice); distinct altitude from Workflow/Key Rules, NEVER a verbatim re-listing |
+| `**Workflow:**` / `**Key Rules:**` | inside Quick Summary                             | Keep existing                                                                                                                             |
+| `## Closing Reminders`         | end of file, after the `:reminder` SYNC blocks       | Present — first line `**IMPORTANT MUST ATTENTION Goal:**` echoes the same Goal                                                            |
+
+- MUST ATTENTION add the missing `**Summary:**` and the Closing-Reminders Goal echo; lightly tighten Role/Workflow prose only — why: the structure must match a skill so creator skills emit one consistent shape.
+- NEVER alter `<!-- SYNC:... -->` blocks or their `:reminder` variants — they are canonical-sync content; edit the canonical source (`.claude/skills/shared/sync-inline-versions.md`) instead — why: a divergent SYNC copy fails the `verify-sync-divergence` oracle.
+- NEVER delete the agent body sections (`## Role`, `## Workflow`, `## Key Rules`, `## Output`) — preserve them; only restructure the summary/closing anchors.
 
 ---
 
@@ -252,7 +282,8 @@ Prompt quality FIRST. Verbose prompts degrade quality — AI attention dilutes a
 2. Record: current line count, rule density (MUST ATTENTION/NEVER/ALWAYS count)
 3. List all READ references → classify as `.claude/` (needs inline summary) or `docs/` (skip)
 4. Derive the one-sentence **Goal** (what it achieves + ultimate outcome it must cause) from target task/outcomes/guardrails; cite source lines or mark inferred with confidence
-5. Identify: missing Quick Summary, missing Goal, missing Closing Reminders, prose-heavy sections
+5. Derive the **Summary** (2-4 bullets of the key important things + the steps AI must notice) — the read-this-if-nothing-else digest at a different altitude than Workflow/Key Rules; cite source lines or mark inferred with confidence — why: the Summary condenses what matters most, it does not re-list every step/rule
+6. Identify: missing Quick Summary, missing Goal, missing Summary, missing Closing Reminders, prose-heavy sections
 
 ### Step 2: Caveman Compression Pass
 
@@ -275,6 +306,7 @@ For each `.claude/` protocol reference:
 - Missing Quick Summary → create from file content
 - Present but weak → strengthen with Goal, Workflow, Key Rules
 - Ensure `**Goal:**` states what the skill achieves AND the ultimate outcome it must cause — a single consolidated line (never split the objective and outcome into two separate lines)
+- Ensure `**Summary:**` is present in Quick Summary immediately after the Goal — create if missing, strengthen if weak; it condenses the key important things + the steps AI must notice at a different altitude than Workflow/Key Rules (NEVER a verbatim re-listing of them) — why: the Goal gives the outcome, the Summary gives the read-this-if-nothing-else digest
 - Protocol summaries appear before Quick Summary
 
 ### Step 5: Add/Fix Bottom Section
@@ -292,6 +324,7 @@ For each `.claude/` protocol reference:
 | No content loss     | All rules, code, paths present                 |
 | Rule density        | Post ≥ pre (count MUST ATTENTION/NEVER/ALWAYS) |
 | Goal                | Present in Quick Summary and Closing Reminders |
+| Summary             | Present in Quick Summary (key things + steps digest) |
 | Line count          | Reduced (compression worked)                   |
 | Formatting          | Blank lines between sections, headers correct  |
 | READ classification | `.claude/` → inline summary, `docs/` → skipped |
@@ -415,6 +448,8 @@ For each `.claude/` protocol reference:
 >
 > **Goal:** [One sentence — what this skill achieves AND the ultimate outcome it must cause]
 >
+> **Summary:** [2-4 bullets/sentences — the key important things + the steps AI must notice; the read-this-if-nothing-else digest, distinct altitude from the enumerated Workflow/Key Rules below]
+>
 > **Workflow:**
 >
 > 1. **[Step]** — [description]
@@ -494,6 +529,8 @@ For each `.claude/` protocol reference:
 **IMPORTANT MUST ATTENTION** NEVER compress code blocks, YAML frontmatter, structured tables, or SYNC tags
 **IMPORTANT MUST ATTENTION** read target file completely before any changes
 **IMPORTANT MUST ATTENTION** derive the target's one-sentence Goal (what it achieves + ultimate outcome), then place it in both `## Quick Summary` and `## Closing Reminders` — why: AI must know the ultimate outcome after enhancement
+**IMPORTANT MUST ATTENTION** enhance derives BOTH the target's Goal AND its Summary (key important things + steps AI must notice) and places both in `## Quick Summary`, the Summary at a different altitude than Workflow/Key Rules — why: the Goal tells AI the outcome to optimize for; the Summary tells AI the key things/steps to notice up front
+**IMPORTANT MUST ATTENTION** skill AND sub-agent (`.claude/agents/*.md`) targets share ONE required structure — Goal + Summary in `## Quick Summary`, Goal echoed in `## Closing Reminders` — so creator skills (e.g. `custom-agent`) emit a consistent shape; when enhancing an agent NEVER alter `<!-- SYNC:... -->` blocks or delete `## Role`/`## Workflow`/`## Key Rules`/`## Output` — why: SYNC copies are canonical-synced and divergence fails the build
 **IMPORTANT MUST ATTENTION** read each referenced protocol file to write accurate inline summaries — NEVER guess content
 **IMPORTANT MUST ATTENTION** apply primacy-recency anchoring — 3 critical rules in first 5 AND last 5 lines of every enhanced file
 **IMPORTANT MUST ATTENTION** verify rule density: count MUST ATTENTION/NEVER/ALWAYS before and after — post ≥ pre
