@@ -580,8 +580,21 @@ Update report with final sections (**MUST ATTENTION** — include every section 
 - Architecture Recommendations
 - Documentation Staleness (list stale docs with what changed, or "No doc updates needed")
 - Spec Drift Adjudication (per behavior-changing file: CODE-WRONG / SPEC-STALE / AMBIGUOUS / `Spec in sync`, with the routed fix; or "No behavior change — N/A")
+- Dual-Feedback Ledger (REQUIRED — see below; or "No behavior change — N/A")
 - Positive Observations
 - Suggested commit message (based on changes)
+
+> **Dual-Feedback Ledger (REQUIRED for every behavior-changing finding).** A behavior gap must feed back into BOTH the spec AND the tests — not merely fix the code. The Spec Drift Adjudication row above and the Phase 3.7 Gate 7 coverage row each cover only ONE axis; this ledger unifies them into a single "update BOTH" assertion so neither is silently skipped. For each behavior-changing finding, emit one row with two cells:
+>
+> | Finding (`file:line`) | Spec feedback | Test feedback |
+> | --- | --- | --- |
+> | `{cite}` | `{the §8 spec/Feature-Spec update needed — e.g. $spec [update] then $spec [mode=tests], OR N/A-because-CODE-WRONG-spec-already-correct}` | `{the TC/regression test needed — e.g. new §8 regression TC via $spec [mode=tests], or covering integration test via $integration-test}` |
+>
+> - **A blank cell on EITHER axis = FAIL.** "N/A" alone is not allowed — every N/A must carry its reason inline (e.g. `N/A — CODE-WRONG: canonical spec already describes the correct behavior, so no spec edit; only the regression TC is owed`).
+> - **CODE-WRONG** finding → Spec feedback is typically `N/A — spec correct`, Test feedback is REQUIRED (`regression TC first`, per `SYNC:spec-drift-adjudication`).
+> - **SPEC-STALE** finding → BOTH cells are non-N/A: Spec feedback = `$spec [update]` then `$spec [mode=tests]`; Test feedback = the new/updated TC + guarding test.
+> - **Covered-but-stale TC** (Gate 7 SPEC-GAP routed by `$integration-test-review` — its Gate 7 classifies a TC that exists but no longer describes current behavior as a SPEC-GAP, not a satisfied coverage row): Spec feedback = correct the stale §8 TC via `$spec [mode=tests] [update]`; Test feedback = update the guarding test to the corrected TC.
+> - This ledger is itself an ordinary finding set: it consolidates here (Phase 4), is validated in Phase 6 (`$why-review --validate-findings` confirms BOTH axes are present for each behavior change), and its owed spec/test actions are applied in Phase 7. A ledger row with a blank axis that survives to Phase 7 = the review is INCOMPLETE.
 
 ## Phase 5: Docs-Update Triage (CONDITIONAL)
 
@@ -1627,6 +1640,11 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE any modification. Run graph trace when graph.db exists.
 
 <!-- /SYNC:understand-code-first:reminder -->
+
+<!-- SYNC:evidence-based-reasoning:reminder -->
+
+- **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% = do NOT recommend.
+<!-- /SYNC:evidence-based-reasoning:reminder -->
 
 <!-- SYNC:design-patterns-quality:reminder -->
 

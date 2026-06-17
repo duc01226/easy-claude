@@ -1,6 +1,6 @@
 ---
 name: security-review
-version: 2.0.0
+version: 2.1.0
 description: '[Code Quality] Use when you need to perform a security review or audit on any scope — application code (OWASP Top 10 2025), secrets exposure, dependency/supply-chain malware, third-party repository vetting before install, infrastructure/config, CI/CD pipeline, AI-agent risks, and host/VPS compromise detection.'
 disable-model-invocation: false
 execution-mode: subagent
@@ -373,6 +373,8 @@ docker ps -a; docker images                     # unknown containers/images, pri
 | **Low** | Defense-in-depth improvement | Logging gaps, missing SRI, doc/process gaps |
 
 Every finding: `[severity] [confidence %] [file:line OR command+output] [finding] [remediation]`. Confirmed vs "potential risk, not confirmed" must be explicit. Findings report: `plans/reports/security-review-{YYMMDD}-{HHmm}-{slug}.md`.
+
+> **Spec-Loop Discipline (Dual-Feedback half — tailored).** Security is **orthogonal** to functional correctness, so the property/metamorphic generation and the MUTATION-SCORE assertion gate are scoped to functional core-logic and do **NOT** apply here — N/A. Apply only the **dual-feedback half**: every confirmed security finding that changes intended behavior (a new authz/tenant-scope rule, an input-validation boundary, a fail-closed requirement, a rate limit) feeds BOTH (a) the **spec** — record the security rule / trust boundary as a §4/§5 invariant so it is documented intent, not tribal knowledge — AND (b) a **guarding test** — a negative test that proves the unauthorized/abusive path is rejected. A fix that patches code but leaves the rule undocumented OR untested is **INCOMPLETE**, never a code-only fix.
 
 ---
 

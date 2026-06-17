@@ -1,6 +1,6 @@
 ---
 name: review-domain-entities
-version: 1.0.0
+version: 1.1.0
 description: '[DDD Quality] Use when you need to review domain entities and value objects for DDD design quality.'
 ---
 
@@ -233,6 +233,16 @@ For EACH entity/VO file: read file → append findings to report IMMEDIATELY. NE
 - CRITICAL: `validate()` MUST NOT be hidden by same-name method without calling `super` → silent validation dead zone.
 
 **Detection signal:** Search for `validate()` override not calling `super.validate()` or framework base validation.
+
+#### E2. Spec-Loop Discipline — Invariant → Property-TC Mapping (MUST ATTENTION)
+
+> Every §5 invariant you verify is a property the spec should name and a test should guard universally — an enforced invariant with no property test is one refactor away from silent regression.
+
+- verify each entity/VO invariant maps to a **universally-quantified property TC** (holds for ALL valid inputs) plus a **boundary counter-case** — NEVER accept a single happy-path example as coverage for an invariant.
+- flag any invariant with no guarding property TC as a **Dual-Feedback finding**: the spec must NAME the invariant AND a test must GUARD it — blank either axis = INCOMPLETE, NEVER report a behavior-affecting invariant finding as code-only.
+- review the whole package (spec + tests + entity code), not the entity diff alone; loop until zero new invariant→property-TC gaps remain — each cycle enriches the spec.
+
+**Detection signal:** an invariant enforced in the entity (constructor/`validate()`/`ensureCan*()`) with no corresponding property TC in the spec's Section 8 or test suite → Dual-Feedback gap.
 
 #### F. Aggregate Design (MUST ATTENTION)
 
@@ -903,6 +913,11 @@ If no domain entity files match in changes mode → announce "No domain entity c
 **MUST ATTENTION** discover project conventions (base classes, validation API, exception types) BEFORE applying checklist. Run graph trace when graph.db exists.
 
 <!-- /SYNC:understand-code-first:reminder -->
+
+<!-- SYNC:evidence-based-reasoning:reminder -->
+
+- **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% = do NOT recommend.
+<!-- /SYNC:evidence-based-reasoning:reminder -->
 
 <!-- SYNC:graph-assisted-investigation:reminder -->
 

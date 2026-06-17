@@ -375,6 +375,8 @@ Before code changes (MUST ATTENTION):
 - NEVER change query semantics only to improve speed unless user approves changed behavior.
 - NEVER add broad indexes/caches without write-cost, storage-cost, invalidation, and privacy analysis.
 
+> **Spec-Loop Discipline (Dual-Feedback half — tailored).** Performance is **orthogonal** to functional correctness, so the property/metamorphic generation and the MUTATION-SCORE assertion gate are scoped to functional core-logic and do **NOT** apply here — N/A. Apply only the **dual-feedback half**: when a finding establishes or moves a behavior-defining boundary — an SLA/latency budget (p95/p99 target), a result-set bound, a max-rows/page-size limit, a pool-size assumption — feed it BOTH (a) the **spec** — record the SLA/limit as a §5 invariant / documented constraint so the budget is intended contract, not an undocumented tuning value — AND (b) a **guarding test** — a benchmark/assertion that fails when the budget or bound regresses. A fix that improves the number but leaves the boundary undocumented OR unguarded is **INCOMPLETE**, never a code-only change.
+
 ---
 
 ## Sub-Agent Routing

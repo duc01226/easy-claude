@@ -185,6 +185,7 @@ CONFIDENCE: [X%]
 5. **Pattern precedent is REQUIRED** — find at least 1 working example of the same pattern elsewhere in the codebase
 6. **Edge cases MUST ATTENTION be enumerated** — at minimum: error path, null/empty input, concurrent access
 7. **Side effects MUST ATTENTION be assessed** — what else could this change affect?
+8. **Spec-loop evidence is REQUIRED for a complete proof** (canonical: `SYNC:spec-loop-discipline`) — the proof MUST carry, with `file:line`: (a) the **regression property TC** guarding the fixed invariant — a universally-quantified property ("for ALL inputs in {domain}, {invariant} holds") + boundary counter-case, not just the reproduction example; (b) **mutation-kill evidence** for the fixed core-logic line — show a surviving mutant on that line is now killed (MUTATION-SCORE bar, not line-coverage %); (c) a **Dual-Feedback entry** — the spec rule restored/added AND the guarding test that feeds it back. A proof trace missing any of (a)/(b)/(c) is INCOMPLETE — cap its confidence below the 80% ship threshold until the spec-loop evidence is supplied.
 
 ---
 
@@ -508,6 +509,11 @@ This skill is the **mandatory verification gate** between `$fix` and `$code-simp
 **IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE any modification. Run graph trace when graph.db exists.
 
 <!-- /SYNC:understand-code-first:reminder -->
+
+<!-- SYNC:evidence-based-reasoning:reminder -->
+
+- **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% = do NOT recommend.
+<!-- /SYNC:evidence-based-reasoning:reminder -->
 
 <!-- SYNC:ui-system-context:reminder -->
 

@@ -1,6 +1,6 @@
 ---
 name: review-artifact
-version: 2.0.0
+version: 2.1.0
 description: '[Code Quality] Use when you need to review artifact quality (PBI, user story, test spec, design spec) before handoff. Supports --type={pbi|story|spec-tests|design}.'
 ---
 
@@ -22,7 +22,7 @@ description: '[Code Quality] Use when you need to review artifact quality (PBI, 
 - Dispatch on `--type={pbi|story|spec-tests|design}` (infer if omitted) — each type has its own Required/Recommended checklist and output template; verdict = PASS (all Required + ≥50% Recommended), WARN (all Required, <50% Recommended), FAIL (any Required fails).
 - Be a SKEPTIC, not a presence-checker: sections that exist but hold weak/untestable content are worse than missing ones. Run the full Adversarial Mindset (steel-man alternatives, stress-test 3 assumptions, AC-testability, pre-mortem, contrarian pass) and clear the Anti-Bias Gate before any verdict.
 - Enforce the BLOCKING M1-M6 compliance gate on ALL types — any M1-M5 violation forces NEEDS WORK citing the mandate ID + exact section/line; exempt source identifiers inside evidence carriers (`[Source:]`, `**Evidence**`, `IntegrationTest`, frontmatter, mermaid).
-- After fixes are applied, do not confirm-in-place: fix only validated findings, then restart the FULL review (fresh `general-purpose` sub-agent for artifacts) and loop until a clean pass — clean review ENDS the loop.
+- Before fixing, run the findings-validation gate: invoke `/why-review --validate-findings <report-path>` on the review report FIRST (recursive validate-before-fix discipline, at parity with `/plan-review`) — NEVER edit the artifact to resolve findings before this gate returns CLEAN. Then fix only validated findings, do not confirm-in-place, restart the FULL review (fresh `general-purpose` sub-agent for artifacts), and loop until a clean pass — clean review ENDS the loop.
 
 **Workflow:**
 
@@ -166,6 +166,9 @@ Select the checklist + output template by artifact type. Pass `--type={pbi|story
 | 9   | **Authorization TCs** — At least 1 TC per story verifying unauthorized access is rejected                                          | Is an authorization TC present per story?                                         | Does the authorization TC test a realistic access scenario, not just "wrong role → 403 without body check"? |
 | 10  | **TC format completeness** — Every TC has Related Behaviors anchor table and IntegrationTest field                                  | Does every TC include a Related Behaviors anchor table and `IntegrationTest:` field? | For Tested-status TCs, is `IntegrationTest` populated with **≥1** covering test link `{TestFile}::{MethodName}` (or a test-filter expression) — not `Untested`? A TC may list several covering tests; never require exactly one. |
 | 11  | **Preservation Tests (bugfix context)** — When fixing a bug, at least 1 TC verifies the pre-fix behavior is no longer reproducible | If this is a bugfix: is there a TC that would have CAUGHT the bug before the fix? | Does the preservation TC assert the exact broken behavior (not just "no exception")?                        |
+| 12  | **Invariant / Property TCs (Spec-Loop rule 1)** — an Invariant/Property TC category exists, and EACH `[HARD]` §4 rule / §5 invariant has ≥1 universally-quantified property TC plus a boundary counter-case | Is there a property/invariant TC category, and does every `[HARD]`/§5 rule appear in it? | Are properties universally quantified ("for ALL inputs in range X, Y holds") with a boundary counter-case that would FAIL if the invariant breaks — not a single happy example? |
+
+> **[BLOCKING] Spec-Loop property coverage (`--type=spec-tests`):** The reviewer MUST verify the Invariant/Property TC category exists and that every `[HARD]` §4 rule / §5 invariant maps to ≥1 universally-quantified property TC plus a boundary counter-case (example-only coverage is a finding). A missing property category — or any `[HARD]`/§5 rule with only example TCs and no property TC — is a **blocking artifact finding** (Required check #12 FAIL → NEEDS WORK).
 
 #### Recommended (≥50% should pass)
 

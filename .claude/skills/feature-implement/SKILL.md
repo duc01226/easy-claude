@@ -400,6 +400,11 @@ mistakes compound through later tasks.
 - **MANDATORY IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE any modification. Run graph trace when graph.db exists.
 <!-- /SYNC:understand-code-first:reminder -->
 
+<!-- SYNC:evidence-based-reasoning:reminder -->
+
+- **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% = do NOT recommend.
+<!-- /SYNC:evidence-based-reasoning:reminder -->
+
 <!-- SYNC:plan-quality:reminder -->
 
 - **MANDATORY IMPORTANT MUST ATTENTION** include `## Test Specifications` with TC IDs per phase. Call `TaskList` before creating new tasks.

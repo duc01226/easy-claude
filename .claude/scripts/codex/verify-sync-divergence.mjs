@@ -85,6 +85,23 @@ export function diffTrees(expected, actual) {
     return diffs.sort((a, b) => a.relPath.localeCompare(b.relPath) || a.kind.localeCompare(b.kind));
 }
 
+// STRUCTURAL guard the content-equality diff above is blind to: a malformed SYNC
+// fence (e.g. an indented or dropped close) present IDENTICALLY in source and
+// mirror is "in sync" by equality yet still broken — exactly the symmetric defect
+// class that slips past an oracle which only compares bytes. Count ONLY column-0
+// fences (`^<!-- /?SYNC:`, line-anchored) — same invariant as the hook suite's
+// TC-UAR-006/008; backtick-wrapped fence examples in prose sit mid-line and are
+// correctly ignored. Returns one entry per file whose open/close counts differ.
+export function findFenceImbalances(files) {
+    const problems = [];
+    for (const [rel, content] of files) {
+        const opens = (content.match(/^<!-- SYNC:/gm) || []).length;
+        const closes = (content.match(/^<!-- \/SYNC:/gm) || []).length;
+        if (opens !== closes) problems.push({ relPath: rel, opens, closes });
+    }
+    return problems.sort((a, b) => a.relPath.localeCompare(b.relPath));
+}
+
 async function main() {
     if (!(await pathExists(claudeSkillsDir))) {
         console.log('[codex-verify-sync-divergence] PASS (no .claude/skills source to mirror)');
@@ -106,21 +123,38 @@ async function main() {
         const expected = await readTreeFiles(staging);
         const actual = await readTreeFiles(agentsSkillsDir);
         const diffs = diffTrees(expected, actual);
+        // Validate the committed mirror's fence structure. Equality cannot vouch for
+        // structure: a symmetric malformed fence passes the diff but fails here.
+        const fenceProblems = findFenceImbalances(actual);
 
-        if (diffs.length === 0) {
+        if (diffs.length === 0 && fenceProblems.length === 0) {
             console.log(`[codex-verify-sync-divergence] PASS (${expected.size} mirror file(s) in sync)`);
             return;
         }
 
-        console.error('[codex-verify-sync-divergence] FAIL — .agents/skills is out of sync with .claude/skills');
-        console.error('Remediation: run `npm run codex:sync` — or, without npm/package.json, the standalone');
-        console.error('orchestrator it delegates to: `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs`');
-        console.error('(never hand-edit the .agents/.codex mirror).');
-        for (const diff of diffs.slice(0, MAX_REPORTED_DIFFS)) {
-            console.error(`- [${diff.kind}] .agents/skills/${diff.relPath}`);
+        if (diffs.length > 0) {
+            console.error('[codex-verify-sync-divergence] FAIL — .agents/skills is out of sync with .claude/skills');
+            console.error('Remediation: run `npm run codex:sync` — or, without npm/package.json, the standalone');
+            console.error('orchestrator it delegates to: `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs`');
+            console.error('(never hand-edit the .agents/.codex mirror).');
+            for (const diff of diffs.slice(0, MAX_REPORTED_DIFFS)) {
+                console.error(`- [${diff.kind}] .agents/skills/${diff.relPath}`);
+            }
+            if (diffs.length > MAX_REPORTED_DIFFS) {
+                console.error(`- ... and ${diffs.length - MAX_REPORTED_DIFFS} more`);
+            }
         }
-        if (diffs.length > MAX_REPORTED_DIFFS) {
-            console.error(`- ... and ${diffs.length - MAX_REPORTED_DIFFS} more`);
+
+        if (fenceProblems.length > 0) {
+            console.error('[codex-verify-sync-divergence] FAIL — malformed SYNC fences in .agents/skills (structural; equality-blind)');
+            console.error('Remediation: fix the column-0 SYNC fence balance in the SOURCE .claude/skills SKILL.md');
+            console.error('(an indented/dropped `<!-- /SYNC:tag -->` close), then re-run `npm run codex:sync`.');
+            for (const problem of fenceProblems.slice(0, MAX_REPORTED_DIFFS)) {
+                console.error(`- [fence-imbalance] .agents/skills/${problem.relPath}: ${problem.opens} open / ${problem.closes} close`);
+            }
+            if (fenceProblems.length > MAX_REPORTED_DIFFS) {
+                console.error(`- ... and ${fenceProblems.length - MAX_REPORTED_DIFFS} more`);
+            }
         }
         process.exitCode = 1;
     } finally {

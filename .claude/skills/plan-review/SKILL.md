@@ -1,6 +1,6 @@
 ---
 name: plan-review
-version: 1.1.0
+version: 1.2.0
 description: '[Planning] Use when you need to auto-review a plan for validity, correctness, and best practices — recursive: review, validate findings with why-review, fix validated findings, full re-review until no findings.'
 ---
 
@@ -189,6 +189,7 @@ After plan-type detection (Phase 0), evaluate each dimension below using this re
 - Are there behaviors that are only observable via logs/traces (not unit tests)?
 - Which phase introduces the risk? Does a test exist in that phase?
 - "Tests pass" is NOT a success criterion — name the specific behaviors being tested.
+- **Spec-Loop scheduling (test-quality gate).** The plan MUST schedule the spec-loop, not just "add tests": (1) every `[HARD]` §4 rule / §5 invariant gets a universally-quantified **property test spec** plus a boundary counter-case — not example tests only; (2) changed core logic is gated by a **MUTATION-SCORE** quality bar (a surviving mutant = a missing invariant ⇒ a killing test owed), NOT a line-coverage % target; (3) a **dual-feedback + re-review step** exists so each behavior-changing finding enriches BOTH the spec AND the tests and the package is re-reviewed to zero new gaps. **FAIL** a plan that targets a line-coverage % instead of a mutation-score bar, or that omits property/invariant test specs for its `[HARD]`/§5 rules.
 
 ### Dimension 6: Knowledge Prerequisites
 
@@ -949,6 +950,11 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE any modification. Run graph trace when graph.db exists.
 
 <!-- /SYNC:understand-code-first:reminder -->
+
+<!-- SYNC:evidence-based-reasoning:reminder -->
+
+- **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% = do NOT recommend.
+<!-- /SYNC:evidence-based-reasoning:reminder -->
 
 <!-- SYNC:double-round-trip-review:reminder -->
 - **MANDATORY IMPORTANT MUST ATTENTION** execute the review loop: review → validate findings → fix validated findings → full re-review. A complete review pass with zero findings ENDS the review.

@@ -119,9 +119,29 @@ When no matching integration-test suite exists:
 4. Reuse the configured test runner, manifest, fixture, and shared utilities.
 5. Run the smallest focused test command first, then the relevant suite command.
 
+## Pattern 9: Property / Metamorphic Test
+
+Use when an invariant must hold across an INPUT SPACE, not just one hand-picked example — the strongest defense against over-fitted, fakeable assertions. An example-based test asserting 3 fixed field values can mirror the implementation and pass while protecting no generalizable rule; a property test forces the invariant to survive generated inputs.
+
+1. **Discover the project's property-based testing library** from `docs/project-config.json`, dependency manifests (`package.json`, `*.csproj`, `requirements.txt`/`pyproject.toml`, `pom.xml`/`build.gradle`), and existing tests. Common per stack: **fast-check** (JS/TS), **Hypothesis** (Python), **jqwik** (Java), **FsCheck** (.NET). If none is present, name the stack-appropriate library as the recommended add and state confidence; do NOT hand-roll a random-input loop when a real generator/shrinker library is available.
+2. **Define the input domain** with the library's generators (arbitraries/strategies): the full realistic range of valid inputs for the behavior under test — bounded by the same constraints the production validation enforces. Cite the local generator/builder pattern if the suite already has one.
+3. **Assert a named invariant or metamorphic relation** that must hold for EVERY generated input — not a fixed expected value. Common metamorphic relations:
+   - **Round-trip:** `decode(encode(x)) == x`; `fromDto(toDto(e))` preserves all business fields.
+   - **Commutativity / order-independence:** reordering inputs yields the same aggregate (e.g. total, set, projection).
+   - **Idempotency:** applying the operation twice equals applying it once (re-running a sync/upsert/state transition leaves identical state).
+   - **Invariance / preservation:** a conserved quantity (sum, count, balance) is unchanged across a transformation that should not alter it.
+   - **Monotonicity / ordering:** a larger input never produces a smaller ranked/sorted output.
+4. **Let the library shrink on failure** — record the minimal failing counterexample it reports; that counterexample is the exact missing-invariant case to add as a regression example test.
+5. **Exercise the real application boundary** for state-changing properties (drive each generated input through the same command/handler path as the other patterns), then assert the invariant on persisted/observable state — wrap in the configured async wait/poll helper when writes are delayed.
+6. **Tie the property back to a §8 Invariant/Property TC.** Each property test carries the `TestSpec` annotation linking to its TC-{FEATURE}-{NNN} (the spec's Invariant/Property TC category). One Invariant/Property TC may map to one property test that internally covers the whole space — do NOT split it into one TC per generated input.
+
+Prefer a property test over a hand-picked example whenever the behavior owns a universally-quantified rule (a conservation law, a round-trip, an ordering, an idempotent transition). Keep example-based tests for concrete acceptance scenarios and specific edge cases; use property tests to guard the invariant across the space the examples cannot enumerate.
+
 ## Anti-Patterns
 
 - Smoke-only tests that assert only no exception or non-null result.
+- Property tests that re-derive the expected value with the SAME computation the handler uses (mirrors implementation — the property is vacuous; assert an independent invariant/metamorphic relation instead).
+- Hand-rolled random-input loops with no shrinker when a real property-based library is available in or addable to the stack.
 - Tests that duplicate handler implementation instead of asserting externally observable behavior.
 - Shared static test data that makes repeat runs flaky.
 - Direct data writes that bypass the behavior under test when the invariant belongs to the command/application pipeline.
@@ -136,4 +156,5 @@ When no matching integration-test suite exists:
 - Test data is unique and repeatable.
 - Data-state assertions verify specific fields.
 - Async side effects use the configured wait/poll helper.
+- Behaviors owning a universally-quantified rule (round-trip, commutativity, idempotency, conservation, ordering) carry a Pattern 9 property test tied to a §8 Invariant/Property TC, using the discovered property-based library and its shrinker.
 - Focused test command was run or an explicit blocker was recorded.

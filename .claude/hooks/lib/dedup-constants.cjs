@@ -1,11 +1,12 @@
 'use strict';
 /**
- * Centralized dedup markers for context injection hooks.
+ * Centralized dedup markers — legacy of the context-injection hooks, most of which were removed
+ * in the de-hooking refactor (see "Consumers" below).
  *
- * All hooks that check the transcript for recent injection MUST import from here.
- * Never define marker strings inline in hook files.
+ * Any remaining consumer that references an injection marker MUST import from here.
+ * Never define marker strings inline.
  *
- * IMPORTANT: Changing a marker string affects dedup behavior across all hooks.
+ * IMPORTANT: Changing a marker string affects dedup/parity behavior across all consumers.
  * Run tests after any change: node .claude/hooks/tests/test-all-hooks.cjs
  *
  * Consumers (after the de-hooking refactor):

@@ -116,9 +116,10 @@ function loadWorkflowSkillsCatalog() {
  * unavailable so CLAUDE.md generation never fails on a partial install (gate + catalog still stamp).
  *
  * Approach C: the generator reads canonical `:full` markdown — it does NOT import hooks/lib.
- * `prompt-injections.cjs` stays the runtime-only emitter for Claude's post-compact hook, pinned
- * to this same canonical text by the Phase 04 verifier (P1/P2). The shared parser normalizes CRLF,
- * so the bake is correct regardless of the working-tree checkout's line endings.
+ * `prompt-injections.cjs` is now a build-time-only emitter (Codex/Copilot mirror generators) with
+ * no runtime hook consumer after the de-hooking refactor; it stays pinned to this same canonical
+ * text by the Phase 04 verifier (P1/P2). The shared parser normalizes CRLF, so the bake is correct
+ * regardless of the working-tree checkout's line endings.
  */
 function loadFullProtocolBlocks() {
     try {

@@ -8,7 +8,7 @@
 
 **Workflow:** (1) Mode Detection → (2) Investigation → (3) TC Generation → (4) Write Section 8 → (5) Test-Code Sync → (6) Next Steps
 
-**Key Rules:** Unified `TC-{FEATURE}-{NNN}` format · Section 8 = source of truth · Evidence required on every TC · Minimum 4 categories (positive, negative, authorization, edge cases) · Interactive review via `AskUserQuestion` mandatory
+**Key Rules:** Unified `TC-{FEATURE}-{NNN}` format · Section 8 = source of truth · Evidence required on every TC · Minimum 5 categories (positive, negative, authorization, edge cases, invariant/property) · Properties not just examples — every [HARD] rule / §5 invariant gets a universally-quantified property TC · Interactive review via `AskUserQuestion` mandatory
 
 > **[M5 — Rebuild-from-scratch signal]** A competent team with zero codebase knowledge MUST be able to derive and execute every TC from the spec text alone, on ANY stack — without reading source. If a TC's intent is only understandable by opening the implementation, it fails M5: rewrite the objective/Given-When-Then in business-observable terms. See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6)" for BLOCKING criteria.
 
@@ -45,11 +45,15 @@
 - **Unified format:** `TC-{FEATURE}-{NNN}` — feature codes in `docs/project-reference/feature-spec-reference.md`
 - **Source of truth:** Feature docs Section 8 — canonical TC registry. NEVER write TCs to `docs/specs/` as primary destination.
 - **Evidence required:** Every TC MUST have `Evidence: [Source: {namespace}/{service}/{id}]` (stack-portable abstract anchor — never physical code coordinates or repository-root paths) or `TBD (pre-implementation)` for TDD-first. Canonical format + anchor taxonomy: `shared/tc-format.md`
-- **Minimum 4 categories:** Positive (happy path) · Negative (error handling) · **Authorization** (role-based access — MANDATORY) · Edge cases
+- **Minimum 5 categories:** Positive (happy path) · Negative (error handling) · **Authorization** (role-based access — MANDATORY) · Edge cases · **Invariant / Property** (MANDATORY — see below)
+    - **Invariant / Property TCs (MANDATORY):** For each **[HARD] business rule (§4)** and each **§5 entity invariant**, derive ≥1 **universally-quantified property TC** — phrase the objective/GWT as "for ALL inputs in {domain}, {invariant} holds" — PLUS ≥1 **boundary counter-case** (the input just outside the domain where the invariant must fail-closed). A property TC names the input **domain**, not a single point; this distinguishes it from an example TC (one fixed GIVEN/WHEN/THEN). Walk the 6 invariant classes (idempotency · round-trip/inverse · commutativity · monotonicity · conservation · state-transition) in `.claude/skills/shared/tc-format.md` → "Invariant Categories to Probe" as the discovery prompt. Naming an invariant in the per-TC field is NOT enough — the TC must ASSERT the property across its domain.
     - **Bugfix specs:** MANDATORY Preservation Tests — see `references/spec-tests-template.md#preservation-tests-mandatory-for-bugfix-specs`
-    - **Query-Only exception:** Read-only, no auth boundaries, no events → validation + authorization + edge cases minimum
+    - **Query-Only exception:** Read-only, no auth boundaries, no events → validation + authorization + edge cases + invariant/property minimum
     - **Config-Only exception:** Flag-toggle features, no entity changes → authorization + edge cases minimum
+
+> **[BLOCKING] Import the Test-Complete Gate.** This mode MUST enforce `.claude/skills/shared/sdd-artifact-contract.md` → **Test-Complete Gate** (state-transition + integration-event coverage), not just the operation/actor floor below. From that gate: **every state transition** maps to ≥1 **valid AND ≥1 invalid** transition TC where applicable; **every integration event** maps to a publish/consume/**idempotency** TC where applicable; **every test names the business intent or invariant it protects and would fail if that intent breaks**. A spec is NOT test-complete until these hold — generating only positive/validation/auth example TCs leaves the gate FAILED even when the operation floor passes.
 - **Cross-cutting TC categories (when applicable):**
+    - **Invariant / Property TCs (MANDATORY):** Per [HARD] §4 rule + §5 invariant — universally-quantified property ("for ALL inputs in {domain}, {invariant} holds") + boundary counter-case; covers state-transition (valid + invalid) and integration-event idempotency per the imported Test-Complete Gate
     - **Authorization TCs (MANDATORY):** Authorized succeeds, unauthorized rejected, role visibility verified
     - **Seed Data TCs:** Reference data exists, seeder runs correctly
     - **Performance TCs:** Feature within SLA under production-like volume
@@ -301,15 +305,19 @@ TC Blast Radius Analysis:
 
 **[BLOCKING]** Do NOT start Phase 3 until all rows in this table show PASS:
 
-| Gate                | Check                                 | Required                       | Actual | Status    |
-| ------------------- | ------------------------------------- | ------------------------------ | ------ | --------- |
-| Write-op coverage   | TC count for CRUD/write ops           | ≥ N (write ops from inventory) | {n}    | PASS/FAIL |
-| Read-op coverage    | TC count for query/view ops           | ≥ M (read ops from inventory)  | {n}    | PASS/FAIL |
-| Event/job coverage  | TC count for events + background jobs | ≥ K (event/job count)          | {n}    | PASS/FAIL |
-| Permission coverage | TC count for authorization            | ≥ actor_count × 2              | {n}    | PASS/FAIL |
-| Total floor         | Total planned TCs                     | ≥ N + M + K (Grand Total)      | {n}    | PASS/FAIL |
+| Gate                | Check                                                         | Required                                       | Actual | Status    |
+| ------------------- | ------------------------------------------------------------- | ---------------------------------------------- | ------ | --------- |
+| Write-op coverage   | TC count for CRUD/write ops                                   | ≥ N (write ops from inventory)                 | {n}    | PASS/FAIL |
+| Read-op coverage    | TC count for query/view ops                                   | ≥ M (read ops from inventory)                  | {n}    | PASS/FAIL |
+| Event/job coverage  | TC count for events + background jobs                         | ≥ K (event/job count)                          | {n}    | PASS/FAIL |
+| Permission coverage | TC count for authorization                                    | ≥ actor_count × 2                              | {n}    | PASS/FAIL |
+| Invariant coverage  | **Property TC** count guarding §4 [HARD] rules + §5 invariants | ≥ count([HARD] BR) + count(§5 entity invariants) | {n}    | PASS/FAIL |
+| Transition coverage | Valid + invalid transition TCs for each §5 lifecycle state     | ≥ 2 per stateful entity (≥1 valid, ≥1 invalid) | {n}    | PASS/FAIL |
+| Total floor         | Total planned TCs                                             | ≥ N + M + K (Grand Total)                      | {n}    | PASS/FAIL |
 
-**FAIL action:** TaskCreate for each FAIL row — list specific missing TC categories. NEVER proceed to Phase 3 until all gates PASS.
+> **Count properties, not operations.** The Invariant-coverage row counts TCs that ASSERT a universally-quantified property (per the imported Test-Complete Gate), NOT TCs that merely name an invariant in the per-TC field. A §4 [HARD] rule or §5 invariant with zero property TC = FAIL even when every operation/actor row passes. The Transition-coverage row operationalizes `sdd-artifact-contract.md` → Test-Complete Gate ("every state transition maps to ≥1 valid AND ≥1 invalid transition TC"); also confirm every integration event has an idempotency TC (covered under Event/job coverage).
+
+**FAIL action:** TaskCreate for each FAIL row — list specific missing TC categories (and, for Invariant/Transition rows, the exact §4 rule / §5 invariant / lifecycle state left uncovered). NEVER proceed to Phase 3 until all gates PASS.
 
 **Operation group decomposition:** If Grand Total > 20, split TC generation into batches of ≤20 related operations:
 
@@ -319,6 +327,7 @@ TaskCreate: "Generate Read TCs for {feature} — ops {1-M}: {QueryA}, {QueryB}"
 TaskCreate: "Generate Event TCs for {feature} — ops {1-K}: {EventConsumerA}, {BackgroundJobA}"
 TaskCreate: "Generate Permission TCs for {feature} — actors: {Role1}, {Role2}"
 TaskCreate: "Generate Edge Case TCs for {feature} — boundary conditions from inventory"
+TaskCreate: "Generate Invariant/Property TCs for {feature} — per [HARD] §4 rule + §5 invariant: universally-quantified property + boundary counter-case (probe idempotency/round-trip/commutativity/monotonicity/conservation/state-transition)"
 ```
 
 Each batch task completes before starting the next. Final AskUserQuestion review covers all batches together.
@@ -339,7 +348,7 @@ Each batch task completes before starting the next. Final AskUserQuestion review
 
 ```
 Question: "These {N} test cases cover {feature}. Review the list:
-[Coverage context: Use Case Inventory found {total_ops} total operations ({write_ops} write, {read_ops} read, {event_ops} event/background). {N} TCs planned = {coverage_pct}% operation coverage.]"
+[Coverage context (diagnostic only — not a gate): Use Case Inventory found {total_ops} total operations ({write_ops} write, {read_ops} read, {event_ops} event/background). {N} TCs planned = {coverage_pct}% operation coverage. Invariant/property TCs: {p} guarding {hard_rule_count} [HARD] rules + {invariant_count} §5 invariants.]"
 Options:
 - "Approve as-is (Recommended)" — Proceed to writing
 - "Add missing scenario" — Describe what's missing
@@ -347,7 +356,7 @@ Options:
 - "Regenerate" — Re-analyze and try again
 ```
 
-**Coverage context calculation:** `coverage_pct = (N / total_ops) × 100`. If `coverage_pct < 80%`: flag `⚠️ Coverage below 80% threshold` and suggest adding TCs before approving.
+**Coverage context calculation:** `coverage_pct = (N / total_ops) × 100`. Treat this as a **diagnostic, not a quality gate** — do NOT gate approval on hitting any line-/operation-coverage percentage. **Low coverage is a useful negative signal:** a low `coverage_pct` flags an under-probed area worth investigating (`ℹ️ {coverage_pct}% operation coverage — likely untested operations; list which ops have zero TCs`). **High coverage is NOT a quality signal:** a high `coverage_pct` can still leave every [HARD] rule / §5 invariant unguarded, so it never implies the spec is test-complete. The real gates are the **Invariant-coverage and Transition-coverage rows** above (does each property hold across its domain?), not the operation-coverage percentage.
 
 3. Iterate until user approves.
 
@@ -484,7 +493,8 @@ Based on mode, suggest via `AskUserQuestion`:
 | 041–049   | Cross-service / Integration (P1-P2) — run the cross-service boundary scan (producers/consumers/sagas/contracts) before writing these TCs |
 | 051–059   | Edge cases / Error scenarios (P2-P3)                                                                                                 |
 | 061–069   | UI / User journey flows (P2-P3)                                                                                                      |
-| 071–099   | Reserved for feature-specific groups                                                                                                 |
+| 071–079   | Invariant / Property TCs (P0-P2) — universally-quantified properties + boundary counter-cases per [HARD] §4 rule / §5 invariant      |
+| 081–099   | Reserved for feature-specific groups                                                                                                 |
 
 **Collision prevention:**
 

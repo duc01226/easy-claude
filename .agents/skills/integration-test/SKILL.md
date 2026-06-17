@@ -93,6 +93,8 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 > **For test specifications and test case generation from PBIs, use `$spec [mode=tests]` skill instead.**
 
+> **Spec-Loop Discipline (property + mutation bar).** Where a rule is universal — a `[HARD]` §4 rule or a §5 invariant that holds for ALL inputs, not just one example — generate a **property/metamorphic test** (see `references/integration-test-patterns.md` → Pattern 9) plus a **boundary counter-case**, and trace each to a §8 **Invariant/Property TC** (not just an example-scenario TC). The assertion-quality bar is **MUTATION-KILL, not line-coverage %**: a mutant that survives on the covered core-logic = a missing invariant → write the killing test. (Example-only scenarios stay valid for non-universal behaviors; this is additive for the universal ones.)
+
 > **External Memory:** Complex/lengthy work → write findings to `plans/reports/` — prevents context loss.
 
 > **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION — every claim requires `file:line` proof or traced evidence with confidence percentage (>80% act, <80% verify first).
@@ -935,6 +937,11 @@ integration-test (you are here)
 
 - **MANDATORY IMPORTANT MUST ATTENTION** run graph trace when graph.db exists. Grep 3+ patterns, cite `file:line`.
 <!-- /SYNC:understand-code-first:reminder -->
+
+<!-- SYNC:evidence-based-reasoning:reminder -->
+
+- **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% = do NOT recommend.
+<!-- /SYNC:evidence-based-reasoning:reminder -->
 
 <!-- SYNC:graph-impact-analysis:reminder -->
 

@@ -62,6 +62,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - Resolve the target type BEFORE reviewing — a commit/PR/diff defaults to code-change review, a PBI/spec/doc to artifact review; "no active plan" is valid ONLY for an unresolved plan-rationale request. Never silently convert target types.
 - Default stance is SKEPTIC not validator: complete every box of the Anti-Bias Gate (steel-man rejected alt, unseen alternative, args against, stressed assumptions, pre-mortem, pros/cons symmetry); presence of a section is never a pass — quality depth is.
 - Judge by Easy-to-Change (does this lower future change cost?) and gate every finding on `file:line`, severity, and confidence; in full mode the Findings Validation Gate on your OWN findings is the mandatory closing task when any finding exists.
+- Dual-feedback validation: when validating findings, a behavior-changing finding MUST carry BOTH a spec-drift verdict (CODE-WRONG / SPEC-STALE / AMBIGUOUS / in-sync) AND a concrete test-feedback action — a missing axis is a HAS-ISSUES flag, not a clean finding.
 
 **Workflow:** Detect mode/target → route path/docs/graph/sub-agent focus → review dimensions/adversarial gates/Easy-to-Change → validate findings via terminal `--validate-findings` → ask next step in full mode.
 
@@ -367,6 +368,7 @@ Read supplied findings/report (path from `$ARGUMENTS`). For EACH finding, weakne
 - **Proof-backed** — concrete `file:line` or quoted plan/report section present; reject "probably / should be / I think".
 - **Reasonable** — severity/weight proportionate, not inflated; steel-man of opposing view does not dissolve it.
 - **Best-practice** — recommendation reflects project conventions and Easy-to-Change metric (lowers future change cost), not preference or speculative generality.
+- **Dual-feedback (behavior-changing findings only)** — if ANY finding changes observable behavior, confirm that BOTH halves of the feedback are present for it: (1) a spec-drift verdict — CODE-WRONG / SPEC-STALE / AMBIGUOUS / in-sync (per `SYNC:spec-drift-adjudication`) — AND (2) a concrete test-feedback action (regression/preservation TC via `$spec [mode=tests]`, or covering test via `$integration-test`). A behavior-changing finding missing EITHER half is a validation FAIL — flag it as HAS-ISSUES and name the missing axis (`spec verdict absent` or `test feedback absent`). A code-only fix with no spec verdict and no owed TC is an incomplete finding, not a clean one.
 
 Then **sweep for misses** — apply Adversarial Techniques once more: unexamined alternative, hidden assumption, enhancement opportunity?
 

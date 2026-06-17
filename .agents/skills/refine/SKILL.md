@@ -507,7 +507,7 @@ Then error "{message}"
 | Error handling setup   | Yes/No/Existing | {pattern: toast/inline/error-page}      |
 | Loading indicators     | Yes/No/Existing | {pattern: spinner/skeleton/progress}    |
 | Docker integration     | Yes/No/Existing | {scope: infra-only/full/none}           |
-| CI/CD quality gates    | Yes/No/Existing | {coverage threshold, lint enforcement}  |
+| CI/CD quality gates    | Yes/No/Existing | {mutation-score gate (line-coverage diagnostic only), lint enforcement} |
 | Security scanning      | Yes/No/Existing | {dependency audit, SAST}                |
 
 ## Authorization & Access Control

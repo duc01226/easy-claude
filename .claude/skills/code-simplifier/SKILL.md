@@ -1,6 +1,6 @@
 ---
 name: code-simplifier
-version: 2.2.0
+version: 2.3.0
 description: '[Code Quality] Use when you need to simplify and refine code for clarity, consistency, and maintainability while preserving all functionality.'
 context-budget: critical
 ---
@@ -215,6 +215,7 @@ function getData() {
 - **Tests passing** — verify after every change
 - **Follow patterns** — use the project's conventions, never invent
 - **Doc staleness** — cross-ref changed files against feature docs, test specs, READMEs; flag updates needed
+- **Preserve ALL invariants; never weaken a property/mutation test** — a refactor MUST keep every `[HARD]` §4 rule / §5 invariant intact and MUST NOT delete, relax, or trivialize any property test or mutation test that guards them. If a simplification changes observable behavior, that is NOT a silent change — it is a **Dual-Feedback finding** (feed the spec AND the tests, then re-review), report it and stop, never ship it. After simplifying, the package MUST still pass the SAME property/mutation bar it passed before — green tests on a weakened bar are not a pass.
 
 ---
 
@@ -400,6 +401,11 @@ Rules:
 > **BLOCKED until:** `- [ ]` Read target files `- [ ]` Grep 3+ patterns `- [ ]` Graph trace (if graph.db exists) `- [ ]` Assumptions verified with evidence
 
 <!-- /SYNC:understand-code-first -->
+
+<!-- SYNC:evidence-based-reasoning:reminder -->
+
+- **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% = do NOT recommend.
+<!-- /SYNC:evidence-based-reasoning:reminder -->
 
 <!-- SYNC:design-patterns-quality -->
 

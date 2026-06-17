@@ -87,7 +87,7 @@ Define pass/fail criteria at each stage:
 #### Gate: Development → QA
 
 - [ ] Code review approved
-- [ ] Unit tests >80% coverage
+- [ ] Mutation score meets target; surviving mutants triaged (line-coverage diagnostic only — not a gate)
 - [ ] No P1/P2 linting errors
 - [ ] Documentation updated
 
@@ -154,7 +154,7 @@ Track artifact lifecycle:
 #### Code Quality
 
 - Cyclomatic complexity
-- Code coverage %
+- Mutation score (line-coverage diagnostic only — not a gate)
 - Technical debt ratio
 - Duplication %
 
@@ -249,7 +249,7 @@ Track artifact lifecycle:
 ### Code Quality
 
 - [ ] Code review approved
-- [ ] Coverage > 80%
+- [ ] Mutation score meets target; surviving mutants triaged (line-coverage reported as a diagnostic only, no threshold)
 - [ ] No security vulnerabilities
 - [ ] Performance benchmarks met
 
@@ -294,12 +294,13 @@ When user runs `$quality-gate {artifact-or-pr}`:
 
 ### Code Quality
 
-| Metric      | Target | Actual | Trend |
-| ----------- | ------ | ------ | ----- |
-| Coverage    | >80%   |        | ↑↓→   |
-| Complexity  | <15    |        |       |
-| Duplication | <5%    |        |       |
-| Debt Ratio  | <10%   |        |       |
+| Metric         | Target          | Actual | Trend |
+| -------------- | --------------- | ------ | ----- |
+| Mutation score | meets target    |        | ↑↓→   |
+| Line coverage  | diagnostic only |        | ↑↓→   |
+| Complexity     | <15             |        |       |
+| Duplication    | <5%             |        |       |
+| Debt Ratio     | <10%            |        |       |
 
 ### Process Quality
 

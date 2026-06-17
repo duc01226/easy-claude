@@ -6,7 +6,7 @@
 This block is auto-generated from `CLAUDE.md` by `npm run codex:sync:context`.
 Do not edit manually; update `CLAUDE.md` and re-sync.
 
-<!-- CK:UNIVERSAL-GUIDES v3 -->
+<!-- CK:UNIVERSAL-GUIDES v4 -->
 
 <!-- CK:WORKFLOW-GATE -->
 
@@ -439,18 +439,6 @@ Source: `.claude/skills/shared/sync-inline-versions.md`
 - [2026-06-09] **Adding a hook or lib module drifts canonical inventory counts — regenerate, don't hand-edit.** New `agent-files-skill-gate.cjs` (+1 hook) and `agent-files-state.cjs` (+1 lib) failed `count-drift` across CLAUDE.md, the structure reference, SKILLS.yaml, and the docs README. Fix is the documented reconcile: `generate_catalogs.py --inject-counts <file>` per marker file + `--skills --output .claude/SKILLS.yaml`, then update the manual README table. Distinguish drift you caused (hooks/lib) from incidental drift already in the working tree (e.g. an unrelated skill add) — regenerating reconciles both to filesystem truth.
 <!-- PROMPT-PROTOCOLS:END -->
 
-# Codex Context (Hookless Parity)
-
-Purpose: give Codex the same core principles and lessons that Claude carries statically in CLAUDE.md, agent, and skill files.
-
-Source:
-
-- `.claude/hooks/lib/prompt-injections.cjs` — the injector library whose exports the mirror generators read to emit this parity content.
-- `docs/project-reference/lessons.md`
-
-Last synced: 2026-06-14
-
-
 ## Codex Hookless Project Reference Gate
 
 Codex does not receive Claude hook-injected project docs or project config summaries. Before coding, planning, debugging, testing, or reviewing:
@@ -461,20 +449,6 @@ Codex does not receive Claude hook-injected project docs or project config summa
 - For spec, test-case, `docs/specs/`, behavior-change, or public-contract work, read the spec routing set named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized.
 - If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.
 - For situation-specific work, open the referenced project doc directly; do not rely on prior conversation text as proof that the doc is loaded.
-
-## Root Cause Principle
-
-- Never patch symptoms.
-- Trace full call chain to find who is responsible.
-- Fix at the correct layer (Entity > Service > Handler).
-- If a fix feels like a workaround, it is likely not the root cause.
-
-## Workflow and Learning Protocol
-
-- Break substantial work into small tasks before execution.
-- Maintain evidence-first decisions and report unresolved questions explicitly.
-- At end of tasks, extract reusable failure-mode lessons (root-cause level, not symptom level).
-- Only retain lessons that are broadly reusable and likely to recur without reminders.
 
 <!-- WORKFLOWS:START -->
 > Codex compatibility note:
@@ -601,6 +575,7 @@ MANDATORY SPEC-DRIVEN BIG-FEATURE GATES:
 UNIVERSAL RULES:
 - Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
 - Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks.
+- Spec-Loop Discipline (spec→code→tests→review loop): §8 must derive universally-quantified Invariant/Property TCs (for-ALL-inputs rules + boundary counter-cases) for every [HARD] §4 rule and §5 invariant — not just example scenarios — and back them with property/metamorphic tests whose quality bar is the MUTATION-SCORE gate (a surviving mutant on changed core-logic = a missing invariant → write the killing test), NOT line-coverage %. Every behavior-changing finding feeds the Dual-Feedback Ledger into BOTH the spec AND the tests (a blank Spec-feedback OR Test-feedback cell = INCOMPLETE), never a code-only fix. Re-review the whole package (spec + tests + code, not just the diff) and loop until a complete review pass surfaces zero new gap or hidden rule — each cycle enriches the spec.
 ```
 
 ### workflow-bugfix — Bug Fix
@@ -652,6 +627,7 @@ MANDATORY INVARIANT-PRESERVING BUGFIX LOOP:
 UNIVERSAL RULES:
 - Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
 - Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks.
+- Spec-Loop Discipline (spec→fix→tests→review loop): the regression §8 TCs must include universally-quantified Invariant/Property TCs (for-ALL-inputs rules + boundary counter-cases) for every [HARD] §4 rule and §5 invariant the bug touched — not just the single reproduction example — backed by property/metamorphic tests whose quality bar is the MUTATION-SCORE gate (a surviving mutant on the fixed core-logic = a missing invariant → write the killing test), NOT line-coverage %. Every behavior-changing finding feeds the Dual-Feedback Ledger into BOTH the spec AND the tests (a blank Spec-feedback OR Test-feedback cell = INCOMPLETE), never a code-only patch. Re-review the whole package (spec + tests + fix, not just the diff) and loop until a complete review pass surfaces zero new gap or hidden rule — each cycle enriches the spec.
 ```
 
 ### workflow-code-to-spec — Code to Feature Spec
@@ -676,6 +652,7 @@ MANDATORY SPEC-DRIVEN SYNC GATES:
 UNIVERSAL RULES:
 - Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
 - Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks.
+- Spec-Loop Discipline (extract spec→derive properties→sync tests→re-review loop): when generating §8 from code, derive universally-quantified Invariant/Property TCs (for-ALL-inputs rules + boundary counter-cases) for every [HARD] §4 rule and §5 invariant the code enforces — not just example scenarios; the test-quality bar for the synced tests is the MUTATION-SCORE gate (a surviving mutant on the spec'd core-logic = a missing invariant → write the killing test), NOT line-coverage %. Any behavior the spec and tests do not jointly cover feeds the Dual-Feedback Ledger into BOTH the spec AND the tests (a blank Spec-feedback OR Test-feedback cell = INCOMPLETE). Re-review the whole package (spec + tests + code, not just the diff) and loop until a complete pass surfaces zero new gap or hidden rule — each cycle enriches the spec.
 ```
 
 ### workflow-e2e — E2E Testing
@@ -693,6 +670,7 @@ Resolve --source={changes|recording|update-ui} and follow the matching protocol 
 UNIVERSAL RULES:
 - Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
 - Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks.
+- Spec-Loop Discipline (E2E tier — tailored): trace each E2E scenario to the §8 invariant/behavior it guards (name the protected rule, not just the click path) so a scenario fails only when that intended behavior breaks. Property/metamorphic generation and the MUTATION-SCORE assertion gate are scoped to unit/integration core-logic and are N/A at the E2E tier — do NOT force them here. Any coverage gap found feeds the Dual-Feedback Ledger into BOTH the spec (the missing/changed behavior) AND the tests (a blank Spec-feedback OR Test-feedback cell = INCOMPLETE), never a test-only fix.
 ```
 
 ### workflow-feature — Feature Implementation
@@ -742,6 +720,7 @@ MANDATORY SPEC-DRIVEN + INVARIANT + TEST HARNESS LOOP:
 UNIVERSAL RULES:
 - Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
 - Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks.
+- Spec-Loop Discipline (spec→code→tests→review loop): §8 must derive universally-quantified Invariant/Property TCs (for-ALL-inputs rules + boundary counter-cases) for every [HARD] §4 rule and §5 invariant — not just example scenarios — and back them with property/metamorphic tests whose quality bar is the MUTATION-SCORE gate (a surviving mutant on changed core-logic = a missing invariant → write the killing test), NOT line-coverage %. Every behavior-changing finding feeds the Dual-Feedback Ledger into BOTH the spec AND the tests (a blank Spec-feedback OR Test-feedback cell = INCOMPLETE), never a code-only fix. Re-review the whole package (spec + tests + code, not just the diff) and loop until a complete review pass surfaces zero new gap or hidden rule — each cycle enriches the spec.
 ```
 
 ### workflow-feature-spec — Business Feature Documentation
@@ -843,6 +822,7 @@ This ensures greenfield projects ship with integration test coverage from day on
 UNIVERSAL RULES:
 - Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
 - Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks.
+- Spec-Loop Discipline (spec→code→tests→review loop): §8 must derive universally-quantified Invariant/Property TCs (for-ALL-inputs rules + boundary counter-cases) for every [HARD] §4 rule and §5 invariant — not just example scenarios — and back them with property/metamorphic tests whose quality bar is the MUTATION-SCORE gate (a surviving mutant on changed core-logic = a missing invariant → write the killing test), NOT line-coverage %. Every behavior-changing finding feeds the Dual-Feedback Ledger into BOTH the spec AND the tests (a blank Spec-feedback OR Test-feedback cell = INCOMPLETE), never a code-only fix. Re-review the whole package (spec + tests + code, not just the diff) and loop until a complete review pass surfaces zero new gap or hidden rule — each cycle enriches the spec.
 ```
 
 ### workflow-idea-to-pbi — Idea to PBI
@@ -1078,6 +1058,7 @@ MANDATORY REFACTOR INVARIANT SAFETY GATES:
 UNIVERSAL RULES:
 - Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
 - Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks.
+- Spec-Loop Discipline (spec→refactor→tests→review loop): §8 must carry universally-quantified Invariant/Property TCs (for-ALL-inputs rules + boundary counter-cases) for every [HARD] §4 rule and §5 invariant the refactor must PRESERVE — not just example scenarios — backed by property/metamorphic tests whose quality bar is the MUTATION-SCORE gate (a surviving mutant on the restructured core-logic = a preserved invariant left unguarded → write the killing test), NOT line-coverage %. Every behavior-affecting finding feeds the Dual-Feedback Ledger into BOTH the spec AND the tests (a blank Spec-feedback OR Test-feedback cell = INCOMPLETE), never a code-only change. Re-review the whole package (spec + tests + code, not just the diff) and loop until a complete review pass surfaces zero new gap or hidden rule — each cycle enriches the spec.
 ```
 
 ### workflow-research — Research & Synthesis
@@ -1150,6 +1131,7 @@ MANDATORY REVIEW-CHANGES GATES:
 UNIVERSAL RULES:
 - Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
 - Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks.
+- Spec-Loop Discipline (review = the spec→code→tests loop's closing pass): the test-quality bar for changed core-logic is the MUTATION-SCORE gate (Gate 1 — a surviving mutant on a changed line = a missing invariant → write the killing test), NOT line-coverage %; flag any [HARD] §4 rule or §5 invariant lacking a universally-quantified Invariant/Property TC (for-ALL-inputs + boundary counter-case). Every behavior-changing finding MUST emit a Dual-Feedback Ledger row that feeds BOTH the spec AND the tests — a blank Spec-feedback OR Test-feedback cell that survives to the fix phase = the review is INCOMPLETE, never a code-only fix. Re-review the whole package (spec + tests + code, not just the diff) and loop until a complete review pass surfaces zero new gap or hidden rule — each cycle enriches the spec.
 ```
 
 ### workflow-seed-test-data — Seed Test Data
@@ -1176,6 +1158,7 @@ PROJECT-SPECIFIC CONTEXT:
 UNIVERSAL RULES:
 - Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
 - Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks.
+- Spec-Loop Discipline (seeder tier — tailored): seeders are orchestration, not business logic, so property/metamorphic generation and the MUTATION-SCORE gate are N/A here — do NOT force them. Apply the dual-feedback half: every seeded scenario MUST stay consistent with the §5 invariants (commands own validation; a seeder that produces state violating an invariant is a bug), and any DOMAIN RULE a seeder encodes (a required precondition, a status/relationship the scenario assumes) belongs in the spec — feed it into BOTH the spec (the rule) AND, where that rule is testable, the tests, never a seeder-only fix.
 ```
 
 ### workflow-spec-sync — Spec Sync (Post-Change)
@@ -1200,6 +1183,7 @@ MANDATORY TEST-SPEC UPDATE GATES:
 UNIVERSAL RULES:
 - Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
 - Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks.
+- Spec-Loop Discipline (sync = the spec→tests loop, re-reviewed to zero): for every changed/added [HARD] §4 rule and §5 invariant, sync a universally-quantified Invariant/Property TC (for-ALL-inputs rule + boundary counter-case) — not just example scenarios — and back it with property/metamorphic tests whose quality bar is the MUTATION-SCORE gate (a surviving mutant on the changed core-logic = a missing invariant → write the killing test), NOT line-coverage %. Every behavior-changing finding feeds the Dual-Feedback Ledger into BOTH the spec AND the tests (a blank Spec-feedback OR Test-feedback cell = INCOMPLETE), never a test-only or spec-only edit. Re-review the whole package (spec + tests + code, not just the diff) and loop until a complete pass surfaces zero new gap or hidden rule — each cycle enriches the spec.
 ```
 
 ### workflow-spec-to-pbi — Spec to PBI Backlog
@@ -1304,6 +1288,7 @@ MANDATORY WRITE-INTEGRATION-TEST GATES:
 UNIVERSAL RULES:
 - Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
 - Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks.
+- Spec-Loop Discipline (spec→tests→review loop): §8 must derive universally-quantified Invariant/Property TCs (for-ALL-inputs rules + boundary counter-cases) for every [HARD] §4 rule and §5 invariant the target code enforces — not just example scenarios — and the generated tests must be property/metamorphic where the rule is universal; the assertion-quality bar is the MUTATION-SCORE gate (a surviving mutant on the covered core-logic = a missing invariant → write the killing test), NOT line-coverage %. Every coverage/behavior finding feeds the Dual-Feedback Ledger into BOTH the spec AND the tests (a blank Spec-feedback OR Test-feedback cell = INCOMPLETE), never a test-only fix. Re-review the whole package (spec + tests + code, not just the diff) and loop until a complete pass surfaces zero new gap or hidden rule — each cycle enriches the spec.
 ```
 
 <!-- CK:WORKFLOW-SKILLS -->

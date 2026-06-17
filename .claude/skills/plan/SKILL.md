@@ -693,6 +693,11 @@ After creating all phase files, run **recursive decomposition loop**:
 
 <!-- /SYNC:understand-code-first:reminder -->
 
+<!-- SYNC:evidence-based-reasoning:reminder -->
+
+- **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% = do NOT recommend.
+<!-- /SYNC:evidence-based-reasoning:reminder -->
+
 <!-- SYNC:iterative-phase-quality:reminder -->
 
 **IMPORTANT MUST ATTENTION** score complexity first. Score >=6 → decompose. Each phase: plan → implement → review → fix → verify. No skipping.

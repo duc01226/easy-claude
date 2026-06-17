@@ -280,7 +280,7 @@ QC:                              /quality-gate-review ──→ [PASS/FAIL repor
 **Quality gate criteria (pre-QA):**
 
 - All test cases have `TC-{FEATURE}-{NNN}` IDs
-- At least 3 categories: positive, negative, edge
+- At least 5 categories: positive, negative, edge, authorization, and invariant/property (≥1 universally-quantified property TC + boundary counter-case per [HARD] rule / §5 invariant — see `.claude/skills/shared/tc-format.md`)
 - Evidence fields use `[Source: namespace/service/id]` abstract anchors (stack-portable — never `file:line`)
 
 ---

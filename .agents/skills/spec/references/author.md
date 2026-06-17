@@ -601,6 +601,8 @@ Generate at `docs/specs/{Bucket}/README.{FeatureName}.md`.
 
 **Objective:** {One sentence: what behavior this TC verifies}
 
+**Business Intent / Invariant Guarded:** {the always-true rule this TC protects — name the [HARD] business rule (§4) or §5 invariant; for an Invariant/Property TC, state it as "for ALL {inputs in domain}, {invariant} holds"}
+
 **Preconditions:**
 
 - {Required system state}

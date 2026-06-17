@@ -35,6 +35,7 @@ description: '[Process] Use when you need to end the active workflow and clear s
 
 - MUST ATTENTION when the workflow produced a diff, print the comprehension recap (what changed / purpose / how it works / why) — depth throttled by `codingLevel`, but NEVER fully skip when changes exist.
 - MUST ATTENTION the recap is one-way — NO quiz, NO teach-back, NEVER blocks. Deeper comprehension is handled by the standalone `/understand` skill, which `/watzup` invokes as its final handoff and which the developer can also invoke directly for any target.
+- MUST ATTENTION run the spec ↔ TDD-test sync gate (`spec-tdd-test-sync-gate`) BEFORE task-completion verification when behavior-changing files are in the diff — the workflow MUST NOT report completed while a behavior-vs-spec divergence is unadjudicated; surface unsynced drift via `AskUserQuestion`, never silent-close.
 - MUST ATTENTION keep claims evidence-based (`file:line`) with confidence >80% to act.
 - MUST ATTENTION keep task tracking updated as each step starts/completes.
 - MUST ATTENTION define success criteria before execution and loop until observable verification passes.
@@ -59,14 +60,26 @@ This skill is the **workflow state-closure step**. In workflows including `/watz
 
 (The second command lists untracked files not yet staged — catches brand-new handler files before first git add) - Scan changed files for those likely requiring integration test coverage: **business logic files** such as handlers, commands, queries, services, controllers, resolvers, event processors. Naming varies by stack — infer from the project's existing file patterns (e.g., `*Service.*`, `*Handler.*`, `*Controller.*`, `*Command.*`, `*Query.*`). - For each identified file → search for a corresponding test file. Infer the project's test naming convention from existing tests (e.g., `*.test.ts`, `*Tests.java`, `*_test.py`, `*.spec.js`, `*Tests.cs`). Check standard test directories (`tests/`, `spec/`, `__tests__/`, or adjacent test projects). - If ANY identified file lacks a corresponding test → **MANDATORY**: use `AskUserQuestion`: - Option A: "Run `/integration-test` now" (Recommended) - Option B: "Tests already written/updated — proceed" - **No silent skip.** Business logic changes without test coverage MUST be surfaced to the user. - If no business logic files changed, or all have matching tests → skip silently
 
-2. **Sync knowledge graph** (skip if `.code-graph/` dir doesn't exist):
+2. **Spec ↔ TDD-test sync gate** (`spec-tdd-test-sync-gate` — runs BEFORE task-completion verification; skip with reason only if the workflow is docs/design/investigation/e2e-only OR the diff has no behavior-changing files):
+
+    The feedback half of the loop closes HERE — a workflow MUST NOT report completed while the spec still diverges from the code that just changed. Green tests do NOT normalize that drift.
+
+    - Scope to the behavior-changing files in the diff (same surface the coverage check above scanned — handlers/commands/queries/services/controllers/entities/event processors and behavior-bearing frontend logic).
+    - Run `/spec [mode=sync]` over the §8 TCs ↔ integration tests for those files: reconcile every §8 TC against its covering test, and surface any §8 TC with no covering test or any test guarding behavior with no §8 TC.
+    - Re-check for **unadjudicated spec-vs-code drift**: any behavior-changing file whose divergence from the canonical Feature Spec was never classified CODE-WRONG / SPEC-STALE / AMBIGUOUS / in-sync (per `SYNC:spec-drift-adjudication`).
+    - If `/spec [mode=sync]` finds an unsynced §8 TC, OR any behavior-vs-spec divergence is unadjudicated → **MANDATORY**: surface via `AskUserQuestion`:
+        - Option A: "Reconcile now — run `/spec [mode=sync]` / `/spec [update]` to close the drift" (Recommended)
+        - Option B: "Accept as-is — I will record the reason" (the user's accept-as-is reason is captured in the recap)
+    - **No silent skip, no silent close.** **Workflow MUST NOT report `completed` while a behavior-vs-spec divergence is unadjudicated** — record the gate outcome (synced / accepted-as-is-with-reason) before proceeding.
+
+3. **Sync knowledge graph** (skip if `.code-graph/` dir doesn't exist):
     ```bash
     if [ -d ".code-graph" ]; then python .claude/scripts/code_graph sync --json && python .claude/scripts/code_graph update --json; fi
     ```
     Report results briefly.
-3. Mark this task as `completed` via `TaskUpdate`
+4. Mark this task as `completed` via `TaskUpdate`
 
-4. **Explain the changes — developer comprehension recap** (the final teaching step; runs after everything else is done):
+5. **Explain the changes — developer comprehension recap** (the final teaching step; runs after everything else is done):
 
     Scope what this workflow changed:
 
@@ -94,8 +107,8 @@ This skill is the **workflow state-closure step**. In workflows including `/watz
     3. **How it works** — mechanism, key logic, invariants relied on, edge cases preserved; focus the **non-obvious**.
     4. **Why this way** — rationale and trade-offs; why over the obvious alternative.
 
-5. Announce to the user: "Workflow **[name]** completed. Next prompt will trigger fresh workflow detection."
-6. Workflow end is model-driven — it completes once this skill's TaskList items are all marked done. No hook clears persisted state on completion; any residual `.claude/.ck-workflow-state.json` is cleared by `session-init` on an explicit `/clear`.
+6. Announce to the user: "Workflow **[name]** completed. Next prompt will trigger fresh workflow detection."
+7. Workflow end is model-driven — it completes once this skill's TaskList items are all marked done, AND the spec ↔ TDD-test sync gate (step 2) recorded synced-or-accepted-as-is. No hook clears persisted state on completion; any residual `.claude/.ck-workflow-state.json` is cleared by `session-init` on an explicit `/clear`.
 
 ---
 
@@ -193,6 +206,7 @@ Finalize and close the active workflow, clearing state so the next user prompt t
 **IMPORTANT MUST ATTENTION Goal:** Close the active workflow cleanly — leave the developer understanding what changed (via the diff-gated recap) and the next prompt free to trigger fresh workflow detection.
 **IMPORTANT MUST ATTENTION** when the workflow changed code (diff present), print the comprehension recap — what changed / purpose / how it works / why — optimized for easiest learning; depth throttled by `codingLevel`, NEVER fully skip when changes exist
 **IMPORTANT MUST ATTENTION** the recap is one-way and NEVER blocks — no quiz, no teach-back; deeper comprehension is the standalone `/understand` skill
+**IMPORTANT MUST ATTENTION** the spec ↔ TDD-test sync gate runs BEFORE task-completion verification — NEVER report the workflow completed while a behavior-vs-spec divergence is unadjudicated; reconcile via `/spec [mode=sync]` or capture an explicit accept-as-is reason
 **IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
 **IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)

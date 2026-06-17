@@ -671,14 +671,16 @@
 > | ----------- | ------------- | ----------------------------------------------------------------------------- | ---------------- |
 > | Feedforward | Computational | `.editorconfig`, strict compiler flags, enforced module boundaries            | Always-on        |
 > | Feedforward | Inferential   | `CLAUDE.md` conventions, skill prompts, architecture notes, pattern catalogs  | Always-on        |
-> | Feedback    | Computational | Linters, type checks, pre-commit hooks, ArchUnit/arch-fitness tests, CI gates | Pre-commit → CI  |
+> | Feedback    | Computational | Linters, type checks, pre-commit hooks, ArchUnit/arch-fitness tests, mutation-score gate, CI gates | Pre-commit → CI  |
 > | Feedback    | Inferential   | `/code-review` skill, `/production-readiness-review`, `/security-review`, LLM-as-judge passes         | Post-commit → CI |
+>
+> **Test-strength sensor — gate on mutation score, NOT line coverage.** Line coverage is a DIAGNOSTIC only: low coverage is a useful NEGATIVE signal (something is untested); high coverage is NOT evidence of quality (tests can execute lines without asserting intent) — NEVER fail a build on a line-coverage %. The real test-strength metric is **mutation score** (inject faults into changed code; surviving mutant = a missing/weak assertion = write the killing test); gate the build on it where a mutation tool exists. Optionally add **property coverage** as a second sensor (each named invariant guarded by ≥1 property/metamorphic test). Keep **behavior/change-coverage** (does each behavior-changing file have a test that asserts the changed outcome) — that notion is meaningful and stays.
 >
 > **Three harness types:**
 >
-> 1. **Maintainability** — Complexity, duplication, coverage, style. Easiest: rich deterministic tooling.
+> 1. **Maintainability** — Complexity, duplication, line-coverage (diagnostic only — never a gate), style. Easiest: rich deterministic tooling.
 > 2. **Architecture fitness** — Module boundaries, dependency direction, performance budgets, observability conventions.
-> 3. **Behaviour** — Functional correctness. Hardest: requires approved fixtures or strong spec-first discipline.
+> 3. **Behaviour** — Functional correctness. Hardest: gate on mutation score + property coverage; line coverage stays a diagnostic.
 >
 > **Keep quality left:** pre-commit sensors fire first (cheap), CI sensors fire second, post-review last (expensive).
 >
@@ -1494,6 +1496,19 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > 3. **Never normalize drift just because code/tests are green** — green can encode the drift itself. Reconcile to canonical intent, never to whichever side currently passes.
 >
 > A behavior-changing review/implementation that leaves a spec divergence unadjudicated is INCOMPLETE.
+
+---
+
+## SYNC:spec-loop-discipline
+
+<!-- Canonical home of the Spec-Loop Discipline. Tailored instances live in: the 9 `workflow-*` injectContext blocks (`.claude/workflows.json`) and the code-mutating / review skills (e.g. `plan-execute`, `fix`, `prove-fix`, `spec`, `integration-test`, review skills). Those instances are TAILORED to each consumer's job, not verbatim copies, so they are NOT `<!-- SYNC:spec-loop-discipline -->`-marked. Edit this canonical first, then propagate the tailored wording. -->
+
+> **Spec-Loop Discipline (spec→code→tests→review→re-review).** When changing or reviewing behavior-bearing code, specs, or tests, enforce the loop:
+>
+> 1. **Properties, not just examples** — every [HARD] business rule (§4) and §5 entity invariant is captured as a universally-quantified property ("for ALL inputs in {domain}, {invariant} holds") plus a boundary counter-case, not only example scenarios.
+> 2. **Hard-to-fake tests** — back each property with a property/metamorphic test; the test-quality bar for changed core logic is the MUTATION-SCORE gate (a surviving mutant on a changed line = a missing invariant → write the killing test), NOT line-coverage %.
+> 3. **Dual feedback** — every behavior-changing finding feeds BOTH the spec AND the tests (Dual-Feedback Ledger: a blank Spec-feedback OR Test-feedback cell = INCOMPLETE), never a code-only change.
+> 4. **Re-review to zero** — review the whole package (spec + tests + code, not just the diff) and loop until a complete pass surfaces zero new gap or hidden rule; each cycle enriches the spec.
 
 ---
 

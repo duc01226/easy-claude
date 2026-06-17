@@ -1,6 +1,6 @@
 ---
 name: code-review
-version: 2.3.0
+version: 2.4.0
 description: '[Code Quality] Use when evaluating review feedback, requesting targeted code-quality review, or verifying completion claims.'
 execution-mode: subagent
 context-budget: critical
@@ -224,6 +224,8 @@ After all files reviewed, re-read accumulated report:
 - **Test Sync**: Business logic changes have corresponding tests or explicit user-facing gap
 - **Translation Sync**: Multilingual UI text changes have translation updates or explicit risk acceptance
 - **Bugfix Trace Completeness**: If the diff is a bugfix or behavior-changing fix, the review report must state whether final-state trace, feeder paths, hypothesis matrix, owning fix layer, forward convergence proof, and tests/proof mapping are complete
+
+**MUST ATTENTION CHECK — Spec-Loop Test Discipline (changed core logic):** Beyond the happy/error path traces above, hold changed core logic to a hard-to-fake bar. Apply a **MUTATION-SCORE** bar — a surviving mutant means a missing invariant, so demand the killing test — and do NOT accept a line-coverage % as proof of test strength. Flag any `[HARD]`/§5 invariant whose only coverage is example tests with no universally-quantified **property TC** (plus boundary counter-case) as a HIGH finding. Every behavior-changing finding requires a **Dual-Feedback row** (does it feed the spec? does it feed the tests? a blank axis = INCOMPLETE) — record it in the report. Review the **whole package** (spec + tests + code), not just the diff, so the spec is enriched, not just patched.
 
 **MUST ATTENTION CHECK — Clean Code:** YAGNI (unused params, speculative interfaces)? KISS (simpler exists)? Methods >30 lines or nesting >3?
 

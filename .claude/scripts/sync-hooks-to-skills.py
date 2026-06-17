@@ -38,6 +38,7 @@ variants. Canonical layout: ...main body... -> SYNC main -> SYNC reminders ->
 """
 
 import os
+import re
 import sys
 import glob as glob_module
 
@@ -388,13 +389,32 @@ def block_present(content, block_name):
     return f"<!-- SYNC:{block_name} -->" in content or f"<!-- SYNC:{block_name}:reminder -->" in content
 
 
+# Idempotent fence repair: a real SYNC fence must sit at column 0 (the balance
+# guard TC-UAR-006 counts only `^<!-- /?SYNC:`). A standalone fence line that got
+# whitespace-indented is a malformed fence — flush it back to column 0. This is
+# the present-but-malformed class process_file's missing-block check would skip
+# (block_present() is True), so without this repair such a defect is "stuck".
+# Scope is deliberately narrow: ONLY lines that are whitespace + a single fence
+# marker. Blockquote (`>`-prefixed) and inline/backtick fence examples are left
+# untouched — they are documentation, not real fences, and never counted.
+FENCE_FLUSH_RE = re.compile(r"^[ \t]+(<!-- /?SYNC:[^\n]*?-->)[ \t]*$", re.MULTILINE)
+
+
+def normalize_fences(text):
+    """Flush whitespace-indented standalone SYNC fence lines to column 0."""
+    return FENCE_FLUSH_RE.sub(r"\1", text)
+
+
 def process_file(path, block_order, dry_run=False):
     with open(path, "r", encoding="utf-8") as f:
         original = f.read()
 
-    lines = original.splitlines()
+    # Repair malformed (indented) fences first so the work is idempotent even when
+    # no block is missing — covers present-but-malformed blocks (see TC-UAR-006).
+    content = normalize_fences(original)
+    lines = content.splitlines()
 
-    missing_blocks = [name for name in block_order if not block_present(original, name)]
+    missing_blocks = [name for name in block_order if not block_present(content, name)]
     # Reminder backfill is deliberately coupled to fresh main-block insertion.
     # A block qualifies only if (a) it HAS a reminder variant — the code blocks
     # beyond cross-service-check have none, KeyError otherwise — AND (b) its MAIN
@@ -406,10 +426,16 @@ def process_file(path, block_order, dry_run=False):
     # removing it retrofits 32 reminders across 16 workflow/setup skills.
     missing_reminders = [name for name in block_order
                          if name in REMINDERS
-                         and f"<!-- SYNC:{name}:reminder -->" not in original
-                         and f"<!-- SYNC:{name} -->" not in original]
+                         and f"<!-- SYNC:{name}:reminder -->" not in content
+                         and f"<!-- SYNC:{name} -->" not in content]
 
     if not missing_blocks and not missing_reminders:
+        # Nothing to insert — but a fence repair may still have changed content.
+        if content != original:
+            if not dry_run:
+                with open(path, "w", encoding="utf-8", newline="\n") as f:
+                    f.write(content)
+            return "updated"
         return "skip"
 
     # Canonical layout: all SYNC blocks live in the bottom zone — main blocks
@@ -421,7 +447,7 @@ def process_file(path, block_order, dry_run=False):
 
     insert_idx = find_closing_reminders_start(lines)
     if insert_idx == -1:
-        new_content = original.rstrip("\n") + "\n\n" + block_text + "\n"
+        new_content = content.rstrip("\n") + "\n\n" + block_text + "\n"
     else:
         before = "\n".join(lines[:insert_idx]).rstrip("\n")
         after = "\n".join(lines[insert_idx:]).rstrip("\n")

@@ -158,6 +158,8 @@ test('TC-RT-E2E-001: Submit return request', async () => { ... });
 
 Use repository's configured test-case annotation mechanism for non-TypeScript E2E tests; NEVER invent a framework-specific marker.
 
+> **Spec-Loop Discipline (E2E tier — tailored).** Trace each E2E scenario to the **§8 invariant/behavior it guards** — name the protected business rule, not just the click path — so the scenario fails only when that intended behavior breaks (not on cosmetic UI churn). Any coverage gap you find (an §8 behavior with no E2E scenario, or an E2E flow guarding no documented behavior) feeds the **Dual-Feedback** half into BOTH the spec (the missing/changed behavior) AND the tests — never a test-only fix. **Scoped N/A:** property/metamorphic generation and the MUTATION-SCORE assertion gate are scoped to unit/integration core-logic; they do NOT apply at the E2E tier — do not force them here.
+
 ### 2. Page Object Model
 
 All frameworks use Page Object pattern:

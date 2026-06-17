@@ -12,12 +12,13 @@
 
 1. **Header** — Create priority summary for generated/manual test coverage.
 2. **TC Entry** — Capture objective, business intent/invariant, GWT steps, acceptance criteria, data, edge cases, evidence, and related files.
-3. **Categories** — Group TCs by CRUD, validation, permissions, workflows, edge cases, preservation, and integration concerns.
+3. **Categories** — Group TCs by CRUD, validation, permissions, workflows, edge cases, **invariant/property**, preservation, and integration concerns.
 4. **Evidence** — Start with `TBD (pre-implementation)` only in TDD-first mode; update after implementation.
 
 **Key Rules:**
 
 - MUST ATTENTION each TC names `Business Intent / Invariant Guarded`.
+- MUST ATTENTION derive **properties, not just examples** — for each [HARD] §4 rule + §5 invariant, write ≥1 universally-quantified property TC ("for ALL inputs in {domain}, {invariant} holds") + ≥1 boundary counter-case; probe the 6 invariant classes in `.claude/skills/shared/tc-format.md` → "Invariant Categories to Probe".
 - MUST ATTENTION preservation tests assert old healthy behavior before and after bugfixes.
 - MUST ATTENTION evidence changes from `TBD` to `[Source: namespace/service/id]` (stack-portable abstract anchor — never physical code coordinates or repository-root paths) after implementation.
 - NEVER let generated tests mirror implementation mechanics without guarding behavior.
@@ -72,6 +73,8 @@ And {additional verification}
 - ❌ {Expected failure behavior — what MUST ATTENTION NOT happen}
 
 **Test Data:**
+
+_Example TC (single point) — one fixed input/output pair:_
 \`\`\`json
 {
 "field": "validValue",
@@ -79,11 +82,23 @@ And {additional verification}
 }
 \`\`\`
 
+_Property TC — a generator spec, not one example (declare the input DOMAIN + the invariant that must hold across it):_
+\`\`\`yaml
+inputDomain: "any valid order with 1..N line items and any non-negative amounts"
+invariant: "sum(lineItem.amount) == order.total — for ALL inputs in the domain"
+boundaryCounterCase: "amounts summing past the credit limit → order rejected, total unchanged"
+\`\`\`
+
 **Edge Cases:**
 
 - {Boundary: empty collection, max length, null values}
 - {Concurrency: simultaneous updates}
 - {Cross-service: message bus timing}
+
+**Transition Invariants (when the entity has lifecycle states — §5):**
+
+- {for ALL legal transitions of {Entity}} → assert exact post-state field values (`Status = X`) + no orphan/side-effect downstream
+- {for ALL illegal transitions of {Entity}} → assert the transition is rejected with the named failure + pre-state field values unchanged
 
 **Evidence:** `[Source: namespace/service/id]` or `TBD (pre-implementation)`
 
@@ -102,7 +117,7 @@ And {additional verification}
 
 ## Category Sections
 
-Organize TCs into categories. Minimum 3 categories:
+Organize TCs into categories. Minimum 5 categories (positive, negative/validation, permission, edge case, invariant/property):
 
 ````markdown
 ### CRUD Tests
@@ -124,6 +139,10 @@ Organize TCs into categories. Minimum 3 categories:
 ### Edge Case Tests
 
 (Boundary conditions, concurrent operations, data migration scenarios)
+
+### Invariant / Property Tests (MANDATORY)
+
+(Universally-quantified properties — "for ALL inputs in {domain}, {invariant} holds" — derived per [HARD] §4 rule + §5 invariant, each paired with a boundary counter-case. Probe the 6 classes — idempotency, round-trip/inverse, commutativity, monotonicity, conservation, state-transition — in `.claude/skills/shared/tc-format.md` → "Invariant Categories to Probe". A property TC names the input **domain**, not a single point; that is what separates it from an example TC.)
 
 ### Preservation Tests (MANDATORY for bugfix specs)
 
@@ -168,11 +187,13 @@ When generating TCs before implementation:
 - Set `Evidence: TBD (pre-implementation)` — will be updated after coding
 - Use descriptive command/entity names as placeholders in Related Files
 - Focus on WHAT the behavior should be, not HOW it's implemented
+- Prefer **properties over examples**: when a rule is universal ("for ALL valid amounts…"), write it as a property TC with a generator spec (input domain + invariant) rather than one hand-picked input
 - After implementation, run `$spec [mode=tests]` to fill in evidence
 
 ## Closing Reminders
 
 - MUST ATTENTION Section 8 TCs protect behavior and invariants, not implementation shape.
+- MUST ATTENTION derive properties not just examples — each [HARD] §4 rule / §5 invariant gets a universally-quantified property TC (generator spec: input domain + invariant) plus a boundary counter-case; probe the 6 invariant classes in `tc-format.md`.
 - MUST ATTENTION bugfix specs include preservation tests for pre-existing good behavior.
 - MUST ATTENTION replace `TBD (pre-implementation)` with concrete evidence after implementation.
 - NEVER ship Section 8 with untraceable TC intent or smoke-only acceptance criteria.

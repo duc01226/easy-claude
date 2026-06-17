@@ -355,10 +355,10 @@ Research best testing tools, strategy for confirmed tech stack:
 - **Integration (20%):** {framework} — {what to test}
 - **E2E (10%):** {framework} — {what to test}
 
-### Coverage Targets
+### Test-Strength Targets
 
-- Unit: {X}% | Integration: {X}% | E2E: critical paths only
-- Enforcement: {tool} in CI pipeline, fail build below threshold
+- Line coverage (diagnostic only — NEVER fail the build on a coverage %): Unit: {X}% | Integration: {X}% | E2E: critical paths only
+- Gate: mutation score ({tool}) in CI pipeline — fail build on surviving mutants / mutation-score regression, not on a line-coverage %
 ```
 
 ---
@@ -443,7 +443,7 @@ Research, recommend tooling for automated code quality:
 | Gate        | Tool   | Trigger        | Fail Criteria         |
 | ----------- | ------ | -------------- | --------------------- |
 | Pre-commit  | {tool} | git commit     | Lint errors, format   |
-| PR Check    | {tool} | Pull request   | Coverage < X%, issues |
+| PR Check    | {tool} | Pull request   | Surviving mutants / mutation-score regression, issues (line-coverage diagnostic only) |
 | CI Pipeline | {tool} | Push to branch | Build fail, test fail |
 | Scheduled   | {tool} | Weekly/nightly | Security vulns, debt  |
 ```

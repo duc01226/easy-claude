@@ -1,6 +1,6 @@
 ---
 name: harness-setup
-version: 1.0.0
+version: 1.1.0
 description: '[Quality] Use when setting up an agent quality harness with feedforward guides and feedback sensors.'
 ---
 
@@ -173,10 +173,12 @@ Define the project's behaviour harness plan:
 - Pre-seed reference/lookup data as approved snapshots
 - Integration tests are additive (never delete/reset data)
 
-**Coverage threshold:**
+**Test-strength sensors (NOT a line-coverage gate):**
 
-- `AskUserQuestion`: "Minimum test coverage threshold for CI gate?" (Recommended: 80% line coverage)
-- Add threshold to CI configuration (computational sensor)
+- **Line coverage is a diagnostic only — NEVER gate a build on it.** Low coverage is a useful NEGATIVE signal (an area is untested → investigate); high coverage is NOT evidence of quality (lines can execute with no meaningful assertion). Report it as a diagnostic; do not fail CI on a coverage %.
+- **Mutation score is the real test-strength metric — gate on this.** `AskUserQuestion`: "Configure a mutation-testing tool (e.g. Stryker / PITest / mutmut, per stack) as the CI test-quality gate?" A surviving mutant = a fault your tests did not catch = a missing/weak assertion. Add a minimum mutation-score threshold to CI as the computational test-strength sensor.
+- **Property coverage (optional second sensor):** each named business invariant guarded by ≥1 property/metamorphic test. Track which invariants have a property test; an unguarded invariant is a gap to fill.
+- **Keep behavior/change-coverage (meaningful, not a %):** every behavior-changing file must have a test that asserts the changed outcome — see `/integration-test-review` Gate 7. This is the right notion of "coverage"; the line-% is not.
 
 Document agreed test strategy to `docs/architecture/test-strategy.md`.
 
@@ -203,12 +205,14 @@ Stack: {detected stack from Phase A}
 
 ## Feedback Sensors — Computational
 
-| Stage      | Tool/Hook         | What it catches                 |
-| ---------- | ----------------- | ------------------------------- |
-| Pre-commit | {linter}          | Style violations, common errors |
-| Pre-commit | {formatter}       | Code formatting drift           |
-| CI         | {type-checker}    | Type errors                     |
-| CI         | {static-analyzer} | Security, complexity, dead code |
+| Stage      | Tool/Hook          | What it catches                                |
+| ---------- | ------------------ | ---------------------------------------------- |
+| Pre-commit | {linter}           | Style violations, common errors                |
+| Pre-commit | {formatter}        | Code formatting drift                          |
+| CI         | {type-checker}     | Type errors                                    |
+| CI         | {static-analyzer}  | Security, complexity, dead code                |
+| CI         | {mutation-tool}    | Weak/missing assertions (test-strength GATE)   |
+| CI         | {coverage-tool}    | Untested areas (DIAGNOSTIC only — never gated) |
 
 ## Feedback Sensors — Inferential
 
@@ -278,14 +282,16 @@ Present inventory to user for review via `AskUserQuestion`.
 > | ----------- | ------------- | ----------------------------------------------------------------------------- | ---------------- |
 > | Feedforward | Computational | `.editorconfig`, strict compiler flags, enforced module boundaries            | Always-on        |
 > | Feedforward | Inferential   | `CLAUDE.md` conventions, skill prompts, architecture notes, pattern catalogs  | Always-on        |
-> | Feedback    | Computational | Linters, type checks, pre-commit hooks, ArchUnit/arch-fitness tests, CI gates | Pre-commit → CI  |
+> | Feedback    | Computational | Linters, type checks, pre-commit hooks, ArchUnit/arch-fitness tests, mutation-score gate, CI gates | Pre-commit → CI  |
 > | Feedback    | Inferential   | `/code-review` skill, `/production-readiness-review`, `/security-review`, LLM-as-judge passes         | Post-commit → CI |
+>
+> **Test-strength sensor — gate on mutation score, NOT line coverage.** Line coverage is a DIAGNOSTIC only: low coverage is a useful NEGATIVE signal (something is untested); high coverage is NOT evidence of quality (tests can execute lines without asserting intent) — NEVER fail a build on a line-coverage %. The real test-strength metric is **mutation score** (inject faults into changed code; surviving mutant = a missing/weak assertion = write the killing test); gate the build on it where a mutation tool exists. Optionally add **property coverage** as a second sensor (each named invariant guarded by ≥1 property/metamorphic test). Keep **behavior/change-coverage** (does each behavior-changing file have a test that asserts the changed outcome) — that notion is meaningful and stays.
 >
 > **Three harness types:**
 >
-> 1. **Maintainability** — Complexity, duplication, coverage, style. Easiest: rich deterministic tooling.
+> 1. **Maintainability** — Complexity, duplication, line-coverage (diagnostic only — never a gate), style. Easiest: rich deterministic tooling.
 > 2. **Architecture fitness** — Module boundaries, dependency direction, performance budgets, observability conventions.
-> 3. **Behaviour** — Functional correctness. Hardest: requires approved fixtures or strong spec-first discipline.
+> 3. **Behaviour** — Functional correctness. Hardest: gate on mutation score + property coverage; line coverage stays a diagnostic.
 >
 > **Keep quality left:** pre-commit sensors fire first (cheap), CI sensors fire second, post-review last (expensive).
 >

@@ -204,6 +204,11 @@ Goal status: PASS | FAIL | BLOCKED — {escalation reason for any BLOCKED criter
 
 <!-- /SYNC:understand-code-first:reminder -->
 
+<!-- SYNC:evidence-based-reasoning:reminder -->
+
+- **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% = do NOT recommend.
+<!-- /SYNC:evidence-based-reasoning:reminder -->
+
 <!-- SYNC:graph-impact-analysis:reminder -->
 
 **IMPORTANT MUST ATTENTION** run graph impact analysis on changed files. Compute gap: impacted minus changed = potentially stale.

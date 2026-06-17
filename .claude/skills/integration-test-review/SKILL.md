@@ -91,22 +91,32 @@ Classify BEFORE any gate review. Route wrong → waste all effort.
 
 > Gates 1-6 apply per changed/target TEST file. Gate 7 applies to the CHANGE SET — every behavior-changing production file must map to a covering test and a spec TC.
 
-### Gate 1: Assertion Value — "Would this catch the bug?"
+### Gate 1: Assertion Value — "Would this catch the bug?" (MUTATION-SCORE gate)
 
-> **Think:** If I deleted the core logic from this handler, which assertions would fail? If NONE → FAIL.
+> **Think:** If a single line of the handler's core logic were changed (a `>` flipped to `>=`, a field assignment removed, a boolean negated), would at least one assertion FAIL? If NONE → FAIL. This is the mutation-testing question, made automatic.
 
 **#1 AI failure:** hallucination assertions — look real, verify nothing.
 
-**PASS:** At least one assertion per test FAILS if core logic breaks.
+**Operationalized — run the project's mutation tool (PRIMARY).** "Would this catch the bug?" is exactly the mutation-score question. Mechanize it instead of eyeballing it:
+
+1. **Discover the configured mutation tool** from `docs/project-config.json`, dependency manifests, and CI config. Common per stack: **Stryker** (JS/TS, .NET — StrykerNet), **PITest** (Java/JVM), **mutmut** or **cosmic-ray** (Python). Cite the local config or command if one exists.
+2. **Run it scoped to the CHANGED handler/service** (mutate only the production files in the review target — never the whole repo) against the covering tests from Gate 7.
+3. **Read the surviving-mutant report.** Each **surviving mutant = a missing invariant = an assertion gap** → a **HIGH finding minimum** (CRITICAL when the mutated line touches authorization, money, or data integrity).
+4. **Fix in Phase 5 by WRITING the killing test** — the assertion or property that fails on that mutant. Re-run until the changed code's mutants are killed (or each survivor has a recorded justification, e.g. equivalent mutant). Raising the line-coverage number is NOT a fix — coverage that executes a line without asserting its effect leaves the mutant alive.
+
+**Manual fallback (when NO mutation tool is configured or addable).** Apply the single-mutation thought experiment by hand: read the handler source, then for each core-logic line ask "if I deleted or inverted this, which assertion fails?" If the answer is NONE for any business-critical line → FAIL. Prefer recommending the stack-appropriate mutation tool as a harness add so the gate becomes automatic next time.
+
+**PASS:** Every changed core-logic line is killed by ≥1 assertion — no surviving mutant on the changed code (mutation tool), or the manual single-mutation check finds a failing assertion for each (fallback).
 
 **FAIL:**
 
+- A surviving mutant on a changed core-logic line with no killing test (or no recorded equivalent-mutant justification)
 - No-exception as ONLY assertion
 - Not-null without content check
 - Assertions on fields handler doesn't modify
 - Dead assertions: `x >= 0` where x always >= 0, `count >= 0`, string not-empty on required fields
 
-**Verify:** Read handler source → list fields it changes → check test asserts those fields.
+**Verify:** Run the mutation tool on the changed handler → list surviving mutants → each survivor is a missing assertion to write. When no tool is available: read handler source → list fields/branches it changes → check at least one assertion would fail if each were mutated.
 
 ### Gate 2: Data State — "Does it check the database?"
 
@@ -214,7 +224,7 @@ This gate makes the skill verify the REVIEW TARGET has coverage — not merely r
 2. **Filter to behavior-changing files.** Exclude: migrations (one-time execution paths), generated code, pure renames/formatting, config-only, DI registration-only changes. Record each exclusion with reason.
 3. **Find covering tests** per changed behavior — use graph (`query tests_for <fn>`, `trace <file> --direction both`) plus grep for the handler/class name under test directories. A test COVERS a change only if it exercises the changed path and asserts the changed outcome — read the test; name match alone is NOT coverage.
 4. **Apply test-type priority:** integration test FIRST (subcutaneous CQRS through real DI, data-state assertions). Unit test is an acceptable fallback ONLY when integration coverage is infeasible (pure function/calculation logic, no observable data state, no DI path) — record the justification per fallback.
-5. **Check spec alignment for the change:** each changed behavior must map to a TC in spec docs (feature doc Section 8 / test-spec docs). New behavior with no TC, or changed behavior whose TC still describes the OLD behavior → spec gap (spec-driven development violation).
+5. **Check spec alignment for the change — existence AND correctness.** Each changed behavior must map to a TC in spec docs (feature doc Section 8 / test-spec docs). Finding a TC is NOT enough: READ the mapped TC and confirm it describes the CURRENT behavior. New behavior with no TC, or a TC that exists but still describes the OLD/superseded behavior → spec gap (spec-driven development violation). A behavior is only fully covered when a covering test exercises it AND a non-stale §8 TC documents it — so this correctness re-check applies to COVERED rows too, never just to GAP rows.
 
 **Coverage Mapping Table (MANDATORY output):**
 
@@ -226,10 +236,10 @@ This gate makes the skill verify the REVIEW TARGET has coverage — not merely r
 
 **Verdicts:**
 
-- **COVERED** — integration test exercises the changed path with data-state assertions
-- **COVERED-UNIT** — unit test covers it, integration infeasible, justification recorded
+- **COVERED** — integration test exercises the changed path with data-state assertions AND the mapped §8 TC describes the CURRENT behavior. A covering test whose mapped TC is stale is NOT COVERED — record it as SPEC-GAP.
+- **COVERED-UNIT** — unit test covers it, integration infeasible, justification recorded, and the mapped §8 TC is current (same stale-TC rule applies).
 - **GAP (FAIL)** — no test would fail if the change broke. Severity: HIGH minimum; CRITICAL when the change touches authorization, money, or data integrity. Fix in Phase 5 by WRITING the missing test (integration-first) — reporting alone does not clear this gate
-- **SPEC-GAP (FAIL)** — behavior has no TC or a stale TC in spec docs. Fix via `/spec [mode=tests]` UPDATE (and `/spec` when business rules changed)
+- **SPEC-GAP (FAIL)** — behavior has no TC, OR a covering test exists but its mapped TC still describes OLD/superseded behavior (stale TC ≠ covered). Both the missing-TC and the stale-but-covered case are SPEC-GAP. Fix via `/spec [mode=tests]` UPDATE (and `/spec` when business rules changed)
 
 **FAIL:**
 
@@ -237,6 +247,7 @@ This gate makes the skill verify the REVIEW TARGET has coverage — not merely r
 - Unit test substituted where an integration test is feasible, with no justification
 - Test exists but does not assert the changed outcome (stale coverage counted as coverage)
 - New/changed behavior absent from spec docs, or TC describing superseded behavior
+- A COVERED row marked COVERED without reading its mapped §8 TC — TC existence assumed instead of its CURRENT-behavior correctness verified (a stale-but-covered TC silently passes as covered)
 
 **Explicit user waiver** (recorded verbatim in the report with the user's reason) is the ONLY alternative to closing a GAP.
 
@@ -273,7 +284,7 @@ For each TC ID in code:
 
 For each behavior-changing production file in the review target (reverse direction — spec-driven development check):
 
-7. Verify a TC exists describing the changed behavior; if the TC still describes the OLD behavior, flag it as stale (route to `/spec [mode=tests]` UPDATE)
+7. Verify a TC exists describing the changed behavior AND read it to confirm it describes the CURRENT behavior — run this even when a covering test was already found and the row is otherwise COVERED. If the TC still describes the OLD behavior, downgrade the row from COVERED to SPEC-GAP and flag it stale (route to `/spec [mode=tests]` UPDATE). Finding a covering test never excuses re-checking the TC's correctness.
 8. New behavior with no TC anywhere → SPEC-GAP finding (Gate 7); recommend `/spec [mode=tests]` (and `/spec` when business rules changed)
 
 **Phase 4 — Initial Report:** Write to `plans/reports/integration-test-review-{date}-{slug}.md`
@@ -349,6 +360,8 @@ After sub-agents return:
 | **Name-match counted as coverage** (test never reads changed path)   | Stale coverage — test passes while change is broken  |
 | **Unjustified unit-test substitution**                               | Skips DI/data-state verification integration gives   |
 | **Spec-less change** (no TC for new/changed behavior)                | Breaks spec-driven development — specs drift silently |
+| **Stale-TC counted as covered** (covering test found, mapped TC never re-read)  | TC documents OLD behavior — coverage path passes a spec gap silently; must downgrade to SPEC-GAP |
+| **Surviving mutant left unkilled** (Gate 1 mutation tool not run, or survivor ignored) | A changed line whose mutation no assertion catches = a fakeable, over-fitted test that protects no invariant |
 | **1:1 TC↔test demanded** (one test per TC, method-name=TC, or many-tests-per-TC flagged as duplicate) | Forces splitting/technicalizing business TCs — breaks §8's business/user-story orientation (M1/M5). One TC → many tests is correct |
 
 ---

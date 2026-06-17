@@ -1,6 +1,6 @@
 ---
 name: seed-test-data
-version: 2.0.0
+version: 2.1.0
 description: '[Dev Data] Use when you need to implement or enhance test data seeders that simulate QC happy-path scenarios via application-layer commands.'
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob, TaskCreate, Agent
 ---
@@ -67,6 +67,7 @@ rg "{Feature}Seeder|{Feature}SeedData|{Feature}TestData" {configured-source-root
 4. **Idempotency** — Check existing count → calculate remaining → seed only difference. Running N times converges to target.
 5. **Count-Configurable** — Reads project config key (discovered Step 1). NEVER hardcode count.
 6. **Restart-Safe** — Idempotency handles restarts: existing count found → seeds only missing remainder.
+7. **Spec-Consistent (Spec-Loop Discipline — tailored)** — Seeders are orchestration, NOT business logic, so property/metamorphic generation and the MUTATION-SCORE gate are **N/A here** — do not force them. Apply the dual-feedback half: every seeded scenario MUST stay consistent with the **§5 invariants** (commands own validation; a seeder that produces state violating an invariant is a bug, not a fixture). If a seeder encodes a **domain rule** — a required precondition, a status/relationship the scenario assumes, a business default — that rule belongs in the **spec**, not silently in the seeder: feed it into BOTH the spec (the rule) AND, where it is testable, the tests — never a seeder-only fix.
 
 ## Protocol
 

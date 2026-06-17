@@ -25,6 +25,20 @@
  *   D (TC-UAR-006) — SYNC open/close balance per agent.
  *   E (TC-UAR-007) — agent-code-standards present iff agent ∈ CODE_STANDARDS_AGENTS
  *                    (present in every code-standards agent, ABSENT from every other).
+ *   F (TC-UAR-008) — SYNC open/close balance per skill (every .claude/skills SKILL.md).
+ *                    Same col-0 fence invariant as D — skills inject the same shared
+ *                    SYNC blocks, but no generator owns every skill block, so this
+ *                    test suite is the only guard against a malformed/unbalanced fence
+ *                    (e.g. a blockquote-indented open) silently shipping in a skill.
+ *   G (TC-UAR-009) — code-rule pairing per skill: any SKILL.md carrying
+ *                    understand-code-first (full OR :reminder) MUST also carry
+ *                    evidence-based-reasoning (full OR :reminder). Code-investigation
+ *                    skills hand-curate these two blocks together (the propagator caps
+ *                    skills at 2 managed blocks), so this is the only guard against the
+ *                    pair drifting apart on edit.
+ *   H (TC-UAR-010) — web-research domain block: web-research/SKILL.md MUST carry its
+ *                    own SYNC:web-research block (regression guard — the skill's
+ *                    primary-behavior protocol must not silently drop on edit).
  */
 
 const fs = require('fs');
@@ -32,6 +46,7 @@ const path = require('path');
 const { assertEqual, assertTrue } = require('../lib/assertions.cjs');
 
 const AGENTS_DIR = path.resolve(process.env.CLAUDE_PROJECT_DIR, '.claude', 'agents');
+const SKILLS_DIR = path.resolve(process.env.CLAUDE_PROJECT_DIR, '.claude', 'skills');
 
 // ── Tier constants — mirror sync-hooks-to-skills.py:235-267 verbatim ──────────
 const CORE_TAGS = [
@@ -77,6 +92,24 @@ const diskAgents = fs
 const read = name => fs.readFileSync(path.join(AGENTS_DIR, `${name}.md`), 'utf8');
 const hasBlock = (body, tag) =>
     body.includes(`<!-- SYNC:${tag} -->`) && body.includes(`<!-- /SYNC:${tag} -->`);
+
+// Skills carrying a SKILL.md (a subdir like `shared/` without one is excluded).
+const skillNames = fs
+    .readdirSync(SKILLS_DIR, { withFileTypes: true })
+    .filter(d => d.isDirectory() && fs.existsSync(path.join(SKILLS_DIR, d.name, 'SKILL.md')))
+    .map(d => d.name);
+const readSkill = name => fs.readFileSync(path.join(SKILLS_DIR, name, 'SKILL.md'), 'utf8');
+
+// Count ONLY real fences at column 0 (multiline-anchored). A block body may
+// document the fence syntax inline — e.g. the shared-protocol-duplication-policy
+// body contains a backtick-wrapped `<!-- SYNC:tag -->` example mid-line. That is
+// prose, not a fence, and must not skew the balance. Every authored fence is
+// emitted at line-start by sync-hooks-to-skills.py / the skill+agent injectors,
+// so `^` is exact — a genuinely missing or indented close is still caught.
+const fenceBalance = body => ({
+    opens: (body.match(/^<!-- SYNC:/gm) || []).length,
+    closes: (body.match(/^<!-- \/SYNC:/gm) || []).length,
+});
 
 module.exports = {
     name: 'agent-universal-rules',
@@ -137,19 +170,22 @@ module.exports = {
             fn: () => {
                 const unbalanced = [];
                 for (const name of diskAgents) {
-                    const body = read(name);
-                    // Count ONLY real fences at column 0 (multiline-anchored). A block
-                    // body may document the fence syntax inline — e.g. the
-                    // shared-protocol-duplication-policy body contains a backtick-wrapped
-                    // `<!-- SYNC:tag -->` example mid-line. That is prose, not a fence, and
-                    // must not skew the balance. Every authored fence is emitted at
-                    // line-start by sync-hooks-to-skills.py / the agent injector, so `^`
-                    // is exact — a genuinely missing close at column 0 is still caught.
-                    const opens = (body.match(/^<!-- SYNC:/gm) || []).length;
-                    const closes = (body.match(/^<!-- \/SYNC:/gm) || []).length;
+                    const { opens, closes } = fenceBalance(read(name));
                     if (opens !== closes) unbalanced.push(`${name}: ${opens} open / ${closes} close`);
                 }
                 assertTrue(unbalanced.length === 0, `unbalanced SYNC tags:\n  ${unbalanced.join('\n  ')}`);
+            },
+        },
+        {
+            name: '[agent-universal-rules] TC-UAR-008 SYNC open/close tags balance per skill',
+            fn: () => {
+                assertTrue(skillNames.length > 0, `no SKILL.md files found under ${SKILLS_DIR}`);
+                const unbalanced = [];
+                for (const name of skillNames) {
+                    const { opens, closes } = fenceBalance(readSkill(name));
+                    if (opens !== closes) unbalanced.push(`${name}: ${opens} open / ${closes} close`);
+                }
+                assertTrue(unbalanced.length === 0, `unbalanced SYNC tags in skills:\n  ${unbalanced.join('\n  ')}`);
             },
         },
         {
@@ -168,6 +204,36 @@ module.exports = {
                 const onDisk = new Set(diskAgents);
                 const ghosts = [...CODE_STANDARDS_AGENTS].filter(a => !onDisk.has(a));
                 assertEqual(ghosts.length, 0, `CODE_STANDARDS_AGENTS not on disk: ${ghosts.join(', ')}`);
+            },
+        },
+        {
+            name: '[agent-universal-rules] TC-UAR-009 skills with understand-code-first also carry evidence-based-reasoning',
+            fn: () => {
+                // Prefix match catches both the full block (`<!-- SYNC:tag -->`) and the
+                // condensed reminder (`<!-- SYNC:tag:reminder -->`). A code-investigation
+                // skill that demands code reading must also demand evidence discipline.
+                const missing = [];
+                for (const name of skillNames) {
+                    const body = readSkill(name);
+                    const hasUnderstand = body.includes('<!-- SYNC:understand-code-first');
+                    if (!hasUnderstand) continue;
+                    const hasEvidence = body.includes('<!-- SYNC:evidence-based-reasoning');
+                    if (!hasEvidence) missing.push(name);
+                }
+                assertEqual(
+                    missing.length, 0,
+                    `skill(s) carry understand-code-first but NOT evidence-based-reasoning (add the EBR block — full or :reminder):\n  ${missing.join('\n  ')}`,
+                );
+            },
+        },
+        {
+            name: '[agent-universal-rules] TC-UAR-010 web-research carries its own SYNC:web-research domain block',
+            fn: () => {
+                const body = readSkill('web-research');
+                assertTrue(
+                    body.includes('<!-- SYNC:web-research'),
+                    'web-research/SKILL.md is missing its own SYNC:web-research domain block',
+                );
             },
         },
     ],

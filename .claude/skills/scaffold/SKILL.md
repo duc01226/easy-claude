@@ -1,6 +1,6 @@
 ---
 name: scaffold
-version: 1.0.0
+version: 1.1.0
 description: '[Architecture] Use when scaffolding reusable OOP/SOLID project foundations before feature implementation.'
 ---
 
@@ -152,7 +152,7 @@ AI must self-investigate the chosen tech stack and produce a checklist covering 
 ### Static Analysis & Linting
 
 - [ ] **MANDATORY MUST ATTENTION** configure language-appropriate linter with strict ruleset (zero warnings policy on new code)
-- [ ] **MANDATORY MUST ATTENTION** configure static code analyzer with quality gate thresholds (complexity, duplication, coverage)
+- [ ] **MANDATORY MUST ATTENTION** configure static code analyzer with quality gate thresholds (complexity, duplication) — treat line-coverage as a reported DIAGNOSTIC, NOT a build-failing threshold
 - [ ] **MANDATORY MUST ATTENTION** enable compiler/transpiler strict mode and treat warnings as errors on build
 - [ ] **MANDATORY MUST ATTENTION** add code style formatter with shared config (enforce consistent formatting across team)
 
@@ -160,7 +160,7 @@ AI must self-investigate the chosen tech stack and produce a checklist covering 
 
 - [ ] **MANDATORY MUST ATTENTION** configure pre-commit hooks to run linter + formatter automatically
 - [ ] **MANDATORY MUST ATTENTION** configure CI pipeline to fail on any linter violation, analyzer warning, or test failure
-- [ ] **MANDATORY MUST ATTENTION** set minimum test coverage threshold in CI (fail build if below)
+- [ ] **MANDATORY MUST ATTENTION** do NOT gate the build on a line-coverage %; report line-coverage as a diagnostic only (low = useful untested-area signal, high ≠ quality). If a test-strength gate is wanted, gate on mutation score (surviving mutant = missing/weak assertion) with line-coverage as the diagnostic. Keep behavior/change-coverage (each behavior-changing file has a test asserting the changed outcome) as the meaningful coverage notion
 - [ ] **MANDATORY MUST ATTENTION** enable security vulnerability scanning in dependency management
 
 ### Code Rules & Standards
@@ -361,14 +361,16 @@ Run ALL verification checklists from the production readiness protocol:
 > | ----------- | ------------- | ----------------------------------------------------------------------------- | ---------------- |
 > | Feedforward | Computational | `.editorconfig`, strict compiler flags, enforced module boundaries            | Always-on        |
 > | Feedforward | Inferential   | `CLAUDE.md` conventions, skill prompts, architecture notes, pattern catalogs  | Always-on        |
-> | Feedback    | Computational | Linters, type checks, pre-commit hooks, ArchUnit/arch-fitness tests, CI gates | Pre-commit → CI  |
+> | Feedback    | Computational | Linters, type checks, pre-commit hooks, ArchUnit/arch-fitness tests, mutation-score gate, CI gates | Pre-commit → CI  |
 > | Feedback    | Inferential   | `/code-review` skill, `/production-readiness-review`, `/security-review`, LLM-as-judge passes         | Post-commit → CI |
+>
+> **Test-strength sensor — gate on mutation score, NOT line coverage.** Line coverage is a DIAGNOSTIC only: low coverage is a useful NEGATIVE signal (something is untested); high coverage is NOT evidence of quality (tests can execute lines without asserting intent) — NEVER fail a build on a line-coverage %. The real test-strength metric is **mutation score** (inject faults into changed code; surviving mutant = a missing/weak assertion = write the killing test); gate the build on it where a mutation tool exists. Optionally add **property coverage** as a second sensor (each named invariant guarded by ≥1 property/metamorphic test). Keep **behavior/change-coverage** (does each behavior-changing file have a test that asserts the changed outcome) — that notion is meaningful and stays.
 >
 > **Three harness types:**
 >
-> 1. **Maintainability** — Complexity, duplication, coverage, style. Easiest: rich deterministic tooling.
+> 1. **Maintainability** — Complexity, duplication, line-coverage (diagnostic only — never a gate), style. Easiest: rich deterministic tooling.
 > 2. **Architecture fitness** — Module boundaries, dependency direction, performance budgets, observability conventions.
-> 3. **Behaviour** — Functional correctness. Hardest: requires approved fixtures or strong spec-first discipline.
+> 3. **Behaviour** — Functional correctness. Hardest: gate on mutation score + property coverage; line coverage stays a diagnostic.
 >
 > **Keep quality left:** pre-commit sensors fire first (cheap), CI sensors fire second, post-review last (expensive).
 >
@@ -401,6 +403,11 @@ Run ALL verification checklists from the production readiness protocol:
 **IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE any modification. Run graph trace when graph.db exists.
 
 <!-- /SYNC:understand-code-first:reminder -->
+
+<!-- SYNC:evidence-based-reasoning:reminder -->
+
+- **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% = do NOT recommend.
+<!-- /SYNC:evidence-based-reasoning:reminder -->
 
 <!-- SYNC:scaffold-production-readiness:reminder -->
 

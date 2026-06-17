@@ -1,6 +1,6 @@
 ---
 name: review-architecture
-version: 1.3.0
+version: 1.4.0
 description: '[Code Quality] Use when reviewing architecture compliance for layers, messaging, service boundaries, CQRS, repos, and entity events.'
 ---
 
@@ -373,6 +373,22 @@ BLOCKED: {filePath}:{line} contradicts {adr-id} ("{decision}") with no supersedi
 
 ---
 
+### Category 10: Spec-Loop Discipline (applies across all categories) — Severity: BLOCKED/WARN
+
+**Think:** Does each behavior-affecting architecture finding feed BOTH the spec and a guarding test, or only the code? Does any [HARD] rule or cross-boundary invariant ship with no property TC?
+
+- BLOCKED when a `[HARD]` architecture rule or cross-boundary invariant (layer contract, message-ownership rule, CQRS/repo invariant, service-boundary guarantee) has **no universally-quantified property TC + boundary counter-case** — an example-only test does not guard a rule that must hold for ALL inputs.
+- Every behavior-affecting architecture finding MUST carry a **Dual-Feedback row** (spec axis + test axis): the spec NAMES the changed contract/invariant AND a test GUARDS it — blank either axis = INCOMPLETE; NEVER record an architecture finding as code-only.
+- Review the whole package — spec + tests + structural diff — NOT the structural diff alone; loop until zero new spec-loop gaps remain, each cycle enriching the spec. — why: a boundary change that compiles but is never asserted regresses silently the next time a sibling service is touched.
+
+**Violation format:**
+
+```
+BLOCKED: {filePath}:{line} [HARD] {rule/invariant} has no property TC (spec axis: {present/blank} | test axis: {present/blank})
+```
+
+---
+
 ## Phase 4: Finalize — Architecture Compliance Report
 
 Update report with final sections:
@@ -432,6 +448,7 @@ Update report with final sections:
 - Service Boundaries: {PASS/WARN/BLOCKED}
 - Frontend Architecture: {PASS/WARN/BLOCKED/N/A}
 - ADR / Recorded-Decision Conformance: {PASS/WARN/BLOCKED/N/A}
+- Spec-Loop Discipline (property-TC + dual-feedback): {PASS/WARN/BLOCKED}
 ```
 
 ---

@@ -1,6 +1,6 @@
 ---
 name: linter-setup
-version: 1.0.0
+version: 1.0.1
 description: '[Quality] Use when you need to research and configure code quality tooling for any tech stack — linters, formatters, static analysis, pre-commit hooks, and CI gates.'
 ---
 
@@ -171,7 +171,7 @@ Generate CI job/step that:
 4. Runs type checker (fail on any error)
 5. Runs static analyzer (fail on threshold: configurable complexity and duplication)
 6. Runs dependency vulnerability scanner (fail on HIGH/CRITICAL CVEs)
-7. Reports test coverage (fail if below threshold — `AskUserQuestion` to confirm threshold, recommended: 80%)
+7. Reports line-coverage as a DIAGNOSTIC only — NEVER fail the build on a coverage %. Low coverage is a useful untested-area signal; high coverage is not evidence of quality. If a test-strength gate is wanted, `AskUserQuestion`: "Configure a mutation-testing tool (e.g. Stryker / PITest / mutmut, per stack) as the CI test-quality gate?" — gate on mutation score (surviving mutant = missing/weak assertion), with line-coverage reported but ungated. Keep behavior/change-coverage (each behavior-changing file has a test asserting the changed outcome) as the meaningful coverage notion.
 
 **MANDATORY:** CI gate must match pre-commit hooks. If a check runs locally, it runs in CI. No divergence.
 

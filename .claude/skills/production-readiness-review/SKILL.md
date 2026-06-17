@@ -1,6 +1,6 @@
 ---
 name: production-readiness-review
-version: 1.4.0
+version: 1.5.0
 description: '[Code Quality] Use when reviewing service-layer and API changes for production readiness.'
 ---
 
@@ -109,6 +109,11 @@ Score each criterion 0-2: **0** = not addressed, **1** = partially, **2** = full
 | --- | -------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | 11  | **Pagination**       | List/collection queries use pagination (Skip/Take, cursor). No unbounded GetAll/ToList loading all records into memory |
 | 12  | **Database Indexes** | Query filter fields, foreign keys, and sort columns have matching database indexes. Migrations include index creation  |
+
+> **Spec-Loop Discipline for changed core logic (MANDATORY — gates the verdict, not a scored criterion):**
+>
+> 1. **Mutation bar, not coverage %** — for changed service/API core logic the bar is the **MUTATION-SCORE gate**: a surviving mutant on a changed line is a release blocker (it proves an invariant the tests do not assert), NEVER a line-coverage-% question. A green coverage number over un-asserted behavior does not clear this gate.
+> 2. **Dual feedback** — every production-readiness finding that changes behavior feeds BOTH the spec (NAME the contract/invariant in Section 8) AND a guarding test; a code-only fix is INCOMPLETE. A surviving mutant → add the killing test AND record the invariant it protects in the spec.
 
 ## Scoring
 
