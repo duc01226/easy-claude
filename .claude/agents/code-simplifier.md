@@ -389,12 +389,12 @@ Summary of changes made:
 
 > **Severity Rubric** — Classify every finding by consequence, not by how easy it is to fix. One scale across all reviews so a "High" means the same thing everywhere.
 >
-> | Severity | Action      | Definition                                                                |
-> | -------- | ----------- | ------------------------------------------------------------------------- |
+> | Severity | Action | Definition |
+> | --- | --- | --- |
 > | CRITICAL | Block merge | Silent runtime failure, data corruption, validation bypass, security hole |
-> | HIGH     | Must fix    | Incorrect behavior, invariant gap, architectural violation                |
-> | MEDIUM   | Should fix  | Design debt, maintainability, likely future bug                           |
-> | LOW      | Nice to fix | Convention, documentation, minor clarity                                  |
+> | HIGH | Must fix | Incorrect behavior, invariant gap, architectural violation |
+> | MEDIUM | Should fix | Design debt, maintainability, likely future bug |
+> | LOW | Nice to fix | Convention, documentation, minor clarity |
 >
 > **Score-based skills** map their numeric scale onto these tiers — do not invent a parallel vocabulary:
 >

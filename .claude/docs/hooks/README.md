@@ -183,7 +183,7 @@ SESSION START (5 hooks)                         DURING SESSION
 
 ## Lib Modules
 
-26 modules under `.claude/hooks/lib/`.
+25 modules under `.claude/hooks/lib/`.
 
 ### State Management
 
@@ -315,12 +315,12 @@ Hooks are registered in `settings.json` under `hooks.{EventName}[].hooks[]`. Eac
 
 ## Testing
 
-Primary hook test status: `test-all-hooks.cjs` passes with 213 tests, 0 failures (live run 2026-06-16; the in-suite count guard confirms docs agree at 213). The aggregate runner `run-all-tests.cjs` passes 277 tests across all discoverable suites (live run 2026-06-16).
+Primary hook test status: `test-all-hooks.cjs` passes with 213 tests, 0 failures (live run 2026-06-17; the in-suite count guard confirms docs agree at 213). The aggregate runner `run-all-tests.cjs` passes 289 tests across all discoverable suites (live run 2026-06-17).
 
 | Test Surface          | Count | File/Location                                                     |
 | --------------------- | ----- | ----------------------------------------------------------------- |
 | Primary hook runner   | 213   | `tests/test-all-hooks.cjs`                                        |
-| Aggregate runner      | 277   | `tests/run-all-tests.cjs` (all suites)                            |
+| Aggregate runner      | 289   | `tests/run-all-tests.cjs` (all suites)                            |
 | Standalone test files | TODO  | `tests/test-*.cjs/.js` excluding runner (re-verify before citing) |
 | Scout-block tests     | TODO  | `scout-block/tests/test-*.js` (re-verify before citing)           |
 | Lib unit tests        | TODO  | `lib/__tests__/*.test.cjs` (re-verify before citing)              |

@@ -40,12 +40,12 @@ When the prompt doesn't cleanly match a single catalog workflow — or combining
 
 ### When to propose
 
-| Condition                                    | Example                                                                     |
-| -------------------------------------------- | --------------------------------------------------------------------------- |
-| No catalog workflow matches well             | "Review hook changes and update skill docs" — spans review + docs           |
+| Condition                                    | Example                                                                              |
+| -------------------------------------------- | ------------------------------------------------------------------------------------ |
+| No catalog workflow matches well             | "Review hook changes and update skill docs" — spans review + docs                    |
 | Best-match has significant unnecessary steps | Quick investigate + fix, but `workflow-bugfix` includes full TDD + integration cycle |
-| Prompt combines 2+ workflow domains          | "Audit performance and write integration tests for the slow query"          |
-| User explicitly requests a step sequence     | "Just run scout, plan, and feature-implement — nothing else"                             |
+| Prompt combines 2+ workflow domains          | "Audit performance and write integration tests for the slow query"                   |
+| User explicitly requests a step sequence     | "Just run scout, plan, and feature-implement — nothing else"                         |
 
 **Do NOT propose** when a catalog workflow is a strong match (>80% of its steps are relevant). Catalog workflows encode validated best-practice sequences — prefer them.
 
@@ -158,12 +158,12 @@ slashCmd = "/" + stepId                     // "scout" → "/scout"
 
 **WorkflowEntry fields:**
 
-| Field                        | Type     | Notes                                   |
-| ---------------------------- | -------- | --------------------------------------- |
-| `name`                       | string   | Display name                            |
-| `sequence`                   | string[] | Ordered step IDs — SOLE source of truth |
-| `whenToUse`                  | string   | Natural language intent matching        |
-| `preActions`                 | object   | Optional `injectContext` / `readFiles`  |
+| Field        | Type     | Notes                                   |
+| ------------ | -------- | --------------------------------------- |
+| `name`       | string   | Display name                            |
+| `sequence`   | string[] | Ordered step IDs — SOLE source of truth |
+| `whenToUse`  | string   | Natural language intent matching        |
+| `preActions` | object   | Optional `injectContext` / `readFiles`  |
 
 **FORBIDDEN (common mistakes):**
 
@@ -218,9 +218,9 @@ Some workflow steps ARE themselves full workflows. Running them inline causes th
 
 **Steps requiring sub-agent delegation (hard gate):**
 
-| Step                       | Workflow activated | Step count source                           | Agent type      |
-| -------------------------- | ------------------ | ------------------------------------------- | --------------- |
-| `/workflow-review-changes` | `workflow-review-changes`   | `len(workflows["workflow-review-changes"].sequence)` | `code-reviewer` |
+| Step                       | Workflow activated        | Step count source                                    | Agent type      |
+| -------------------------- | ------------------------- | ---------------------------------------------------- | --------------- |
+| `/workflow-review-changes` | `workflow-review-changes` | `len(workflows["workflow-review-changes"].sequence)` | `code-reviewer` |
 
 **Protocol when these steps appear in the active workflow sequence:**
 

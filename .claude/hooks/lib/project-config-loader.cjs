@@ -94,7 +94,6 @@ function resolvePortabilityTokens(text, config) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const SPEC_DOCS_PATH = 'docs/specs/';
-const DEFAULT_FEATURE_DOC_TEMPLATE = 'docs/templates/detailed-feature-spec-template.md';
 
 function ensureTrailingSlash(p) {
     return p.endsWith('/') ? p : p + '/';
@@ -106,28 +105,6 @@ function ensureTrailingSlash(p) {
  */
 function getSpecDocsPath() {
     return ensureTrailingSlash(SPEC_DOCS_PATH);
-}
-
-/**
- * Configured master feature-doc template path (relative repo path).
- * @returns {string}
- */
-function getFeatureDocTemplate() {
-    const wp = loadProjectConfig().workflowPatterns || {};
-    return (typeof wp.featureDocTemplate === 'string' && wp.featureDocTemplate.trim()) || DEFAULT_FEATURE_DOC_TEMPLATE;
-}
-
-/**
- * Case-insensitive RegExp matching the fixed spec root with EITHER path
- * separator (Windows '\\' or POSIX '/').
- * @returns {RegExp}
- */
-function getSpecDocsPathRegex() {
-    const root = getSpecDocsPath().replace(/\/+$/, '');             // 'docs/specs'
-    const escaped = root
-        .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')                     // escape regex metachars (no '/' among them)
-        .replace(/\//g, '[\\\\/]');                                 // each '/' matches either separator
-    return new RegExp(escaped + '[\\\\/]', 'i');
 }
 
 /**
@@ -547,7 +524,5 @@ module.exports = {
     isKnowledgePath,
     generateProjectSummary,
     resolvePortabilityTokens,
-    getSpecDocsPath,
-    getFeatureDocTemplate,
-    getSpecDocsPathRegex
+    getSpecDocsPath
 };

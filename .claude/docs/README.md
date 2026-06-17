@@ -54,7 +54,7 @@
 
 | Task                     | Command                    | Skill                     |
 | ------------------------ | -------------------------- | ------------------------- |
-| Implement a feature      | `/feature-implement`       | `feature`                 |
+| Implement a feature      | `/feature-implement`       | `feature-implement`       |
 | Fix a bug                | `/fix`                     | `debug-investigate`       |
 | Create a PR              | `/commit --push`           | `commit`                  |
 | Understand code          | `/scout`                   | `investigate`             |
@@ -145,7 +145,7 @@
 | ---------------------- | ----- |
 | Skills                 | 154   |
 | Hook files (top-level) | 15    |
-| Lib Modules            | 26    |
+| Lib Modules            | 25    |
 | Hook Events            | 8     |
 | Agents                 | 29    |
 | Workflows              | 17    |

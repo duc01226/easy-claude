@@ -141,7 +141,7 @@ Classify BEFORE any gate review. Route wrong → waste all effort.
 
 **Manual fallback (when NO mutation tool is configured or addable).** Apply the single-mutation thought experiment by hand: read the handler source, then for each core-logic line ask "if I deleted or inverted this, which assertion fails?" If the answer is NONE for any business-critical line → FAIL. Prefer recommending the stack-appropriate mutation tool as a harness add so the gate becomes automatic next time.
 
-**PASS:** Every changed core-logic line is killed by ≥1 assertion — no surviving mutant on the changed code (mutation tool), or the manual single-mutation check finds a failing assertion for each (fallback).
+**PASS:** Every changed core-logic line is killed by ≥1 assertion — no surviving mutant on the changed code (mutation tool), or the manual single-mutation check finds a failing assertion for each (fallback) — **AND the Mutation Probe Ledger (below) is recorded in the report** with a KILLED/SURVIVOR verdict per changed core-logic line. No ledger → no PASS, regardless of how clean the eyeball check felt.
 
 **FAIL:**
 
@@ -152,6 +152,15 @@ Classify BEFORE any gate review. Route wrong → waste all effort.
 - Dead assertions: `x >= 0` where x always >= 0, `count >= 0`, string not-empty on required fields
 
 **Verify:** Run the mutation tool on the changed handler → list surviving mutants → each survivor is a missing assertion to write. When no tool is available: read handler source → list fields/branches it changes → check at least one assertion would fail if each were mutated.
+
+**Recorded artifact — Mutation Probe Ledger (REQUIRED, non-skippable, BOTH paths).** "I checked it mentally" is not evidence. Gate 1 cannot be marked PASS without this ledger written into the review report — it is the proof the probe ran, identical in obligation whether a tool ran or the manual fallback did:
+
+| Changed core-logic line (`file:line`, abstract) | Mutation applied (`>`→`>=`, assignment dropped, boolean negated, branch removed) | Killing assertion / test (`TC-…` + `file:line`) | Verdict |
+| --- | --- | --- | --- |
+| {the line} | {the mutant} | {the assertion that fails on it} | KILLED |
+| {the line} | {the mutant} | — none — | **SURVIVOR → finding** (or recorded equivalent-mutant justification) |
+
+Rules: (1) every changed core-logic line gets a row — no sampling, no "representative subset". (2) Tool path: rows come from the surviving-mutant report; manual fallback: rows come from the line-by-line thought experiment — same table, same columns. (3) A `SURVIVOR` row with no killing assertion is a HIGH finding minimum (CRITICAL on auth/money/data-integrity lines) UNLESS it carries a written equivalent-mutant justification. (4) An empty or absent ledger = Gate 1 **FAIL** (not "skipped") — the gate is unproven, so it cannot pass.
 
 ### Gate 2: Data State — "Does it check the database?"
 
@@ -542,9 +551,9 @@ integration-test-review (you are here)
 
 <!-- OVERRIDE:review-protocol-injection -->
 
-> **Review Protocol Injection** — Every fresh sub-agent review prompt MUST embed 10 protocol blocks VERBATIM. The template below has ALL 10 bodies already expanded inline. Copy the template wholesale into the Agent call's `prompt` field at runtime, replacing only the `{placeholders}` in Task / Round / Reference Docs / Target Files / Output sections with context-specific values. Do NOT touch the embedded protocol sections.
+> **Review Protocol Injection** — Every fresh sub-agent review prompt MUST embed 11 protocol blocks VERBATIM. The template below has ALL 11 bodies already expanded inline. Copy the template wholesale into the Agent call's `prompt` field at runtime, replacing only the `{placeholders}` in Task / Round / Reference Docs / Target Files / Output sections with context-specific values. Do NOT touch the embedded protocol sections.
 >
-> **Why inline expansion:** Placeholder markers would force file-read indirection at runtime. AI compliance drops significantly behind indirection (see `SYNC:shared-protocol-duplication-policy`). Therefore the template carries all 10 protocol bodies pre-embedded.
+> **Why inline expansion:** Placeholder markers would force file-read indirection at runtime. AI compliance drops significantly behind indirection (see `SYNC:shared-protocol-duplication-policy`). Therefore the template carries all 11 protocol bodies pre-embedded.
 
 ### Subagent Type Selection
 
@@ -565,6 +574,17 @@ spawn_agent({
 Round {N}. You have ZERO memory of prior rounds. Re-read all target files from scratch via your own tool calls. Do NOT trust anything from the main agent beyond this prompt.
 
 ## Protocols (follow VERBATIM — these are non-negotiable)
+
+### Spec ↔ Tests ↔ Code Triangulation
+DO THIS FIRST — before any per-protocol check below. The review target is the WHOLE PACKAGE, not the diff alone: load the behavior's spec (§3 ACs / §4 BRs / §8 TCs), its tests, and the changed code TOGETHER, and reason about their mutual consistency BEFORE judging any one in isolation.
+1. Locate all three faces: the Feature Spec section(s) governing the changed behavior, the tests that guard it, and the production code that implements it. A missing face is itself a finding (SPEC-GAP / TEST-GAP / DEAD-SPEC).
+2. Triangulate pairwise — every disagreement is a finding; classify which face is wrong:
+   - code vs spec: behavior the code does that no §3/§4/§8 rule describes → CODE-EXTRA or SPEC-STALE; a [HARD] §4 rule or §5 invariant with no enforcing code path → CODE-WRONG.
+   - tests vs spec: a §8 TC with no test, or a test asserting behavior no TC/rule names → TEST-GAP or SPEC-SILENT.
+   - tests vs code: a changed code path with no covering test → TEST-GAP; a test that still passes against a deliberately broken invariant → WEAK-TEST (apply the mutation thinking in Bug Detection).
+3. Hidden-rule capture: any invariant the code enforces but the spec never states (SPEC-SILENT) MUST be surfaced as a finding to add into §3/§4/§8 AND guarded with a test — the enrichment loop, never a silent pass.
+4. Only after the three faces agree — or every disagreement is logged as a finding — proceed to the per-protocol checks below; when enrichment adds spec/test content, re-review the package against the enriched spec.
+NEVER mark review PASS while any spec/test/code face disagrees without a logged finding. The diff is the entry point; the package is the unit of judgment.
 
 ### Evidence-Based Reasoning
 Speculation is FORBIDDEN. Every claim needs proof.
@@ -694,7 +714,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 ### Rules
 
-- DO copy the template wholesale — including all 10 embedded protocol sections
+- DO copy the template wholesale — including all 11 embedded protocol sections
 - DO replace only the `{placeholders}` in Task / Round / Reference Docs / Target Files / Output sections with context-specific content
 - DO choose `integration-tester` agent_type — integration-test reviews ALWAYS use `integration-tester`, never `code-reviewer`
 - DO NOT paraphrase, summarize, or skip any protocol section

@@ -8,6 +8,8 @@ description: '[Project Management] Use when you need to enforce quality gates, v
 
 **Goal:** Enforce quality gates, verify compliance with standards, and track quality metrics across the development lifecycle.
 
+> **Renamed:** formerly `/qc-specialist` — that name no longer resolves as a slash command; use `/quality-gate-review`.
+
 **Workflow:**
 
 1. **Identify Gate** — Determine which quality gate applies (Idea>PBI, PBI>Dev, Dev>QA, QA>Release)
@@ -23,9 +25,9 @@ description: '[Project Management] Use when you need to enforce quality gates, v
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
-# QC Specialist Assistant
+# Quality Gate Review
 
-Help QC Specialists enforce quality gates, verify compliance with standards, and track quality metrics across the development lifecycle.
+Enforce quality gates, verify compliance with standards, track quality metrics, and generate audit trails across the development lifecycle.
 
 ---
 

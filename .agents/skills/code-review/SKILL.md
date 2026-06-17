@@ -258,7 +258,7 @@ After all files reviewed, re-read accumulated report:
 - **Translation Sync**: Multilingual UI text changes have translation updates or explicit risk acceptance
 - **Bugfix Trace Completeness**: If the diff is a bugfix or behavior-changing fix, the review report must state whether final-state trace, feeder paths, hypothesis matrix, owning fix layer, forward convergence proof, and tests/proof mapping are complete
 
-**MUST ATTENTION CHECK — Spec-Loop Test Discipline (changed core logic):** Beyond the happy/error path traces above, hold changed core logic to a hard-to-fake bar. Apply a **MUTATION-SCORE** bar — a surviving mutant means a missing invariant, so demand the killing test — and do NOT accept a line-coverage % as proof of test strength. Flag any `[HARD]`/§5 invariant whose only coverage is example tests with no universally-quantified **property TC** (plus boundary counter-case) as a HIGH finding. Every behavior-changing finding requires a **Dual-Feedback row** (does it feed the spec? does it feed the tests? a blank axis = INCOMPLETE) — record it in the report. Review the **whole package** (spec + tests + code), not just the diff, so the spec is enriched, not just patched.
+**MUST ATTENTION CHECK — Spec-Loop Test Discipline (changed core logic):** Beyond the happy/error path traces above, hold changed core logic to a hard-to-fake bar. Apply a **MUTATION-SCORE** bar — a surviving mutant means a missing invariant, so demand the killing test — and do NOT accept a line-coverage % as proof of test strength. Flag any `[HARD]`/§5 invariant whose only coverage is example tests with no universally-quantified **property TC** (plus boundary counter-case) as a HIGH finding. Every behavior-changing finding requires a **Dual-Feedback row** (does it feed the spec? does it feed the tests? a blank axis = INCOMPLETE) — record it in the report. Adjudicate any spec divergence per `SYNC:spec-drift-adjudication` (CODE-WRONG / SPEC-STALE / AMBIGUOUS / **SPEC-SILENT**); a **SPEC-SILENT** finding — the code correctly enforces an invariant NO spec artifact states — has BOTH axes non-N/A: Spec feedback = add the missing §4 BR / §3 AC (+ §5 invariant if applicable) and a §8 TC via `$spec [update]` + `$spec [mode=tests]`; Test feedback = the new property/regression test guarding the now-written invariant — never leave a discovered invariant only in code or only in tests. Review the **whole package** (spec + tests + code), not just the diff, so the spec is enriched, not just patched.
 
 **MUST ATTENTION CHECK — Clean Code:** YAGNI (unused params, speculative interfaces)? KISS (simpler exists)? Methods >30 lines or nesting >3?
 
@@ -281,7 +281,7 @@ If documentation staleness is detected, recommend `docs-update` and list exact s
 After Phase 3, do not spawn a fresh reviewer just to re-review the same finding set. First validate findings, then fix only validated findings. Because fixes change the review target, restart the full review after the fix cycle. If that restarted protocol uses sub-agents, construct each Agent call with the canonical template from `SYNC:review-protocol-injection`:
 
 1. Copy Agent call shape from `SYNC:review-protocol-injection` verbatim
-2. Embed full verbatim body of all 10 SYNC blocks: `SYNC:evidence-based-reasoning`, `SYNC:bug-detection`, `SYNC:design-patterns-quality`, `SYNC:complexity-prevention`, `SYNC:logic-and-intention-review`, `SYNC:test-spec-verification`, `SYNC:fix-layer-accountability`, `SYNC:rationalization-prevention`, `SYNC:graph-assisted-investigation`, `SYNC:understand-code-first`
+2. Embed full verbatim body of all 11 SYNC blocks: `SYNC:spec-tests-code-triangulation`, `SYNC:evidence-based-reasoning`, `SYNC:bug-detection`, `SYNC:design-patterns-quality`, `SYNC:complexity-prevention`, `SYNC:logic-and-intention-review`, `SYNC:test-spec-verification`, `SYNC:fix-layer-accountability`, `SYNC:rationalization-prevention`, `SYNC:graph-assisted-investigation`, `SYNC:understand-code-first`
 3. Task: `"Run a full fresh code-review pass over the current assigned scope after validated fixes were applied. Focus: cross-cutting concerns, interaction bugs, convention drift, missing pieces, subtle edge cases, logic errors, test spec gaps, and regressions introduced by the fixes."`
 4. Target Files: `"use the explicit files, plan scope, or reviewer-provided target range"`
 5. Report: `plans/reports/code-review-rerun{N}-{date}.md`
@@ -872,9 +872,9 @@ If `architectureRules` absent in project-config.json → skip silently.
 
 <!-- SYNC:review-protocol-injection -->
 
-> **Review Protocol Injection** — Every fresh sub-agent review prompt MUST embed 10 protocol blocks VERBATIM. The template below has ALL 10 bodies already expanded inline. Copy the template wholesale into the Agent call's `prompt` field at runtime, replacing only the `{placeholders}` in Task / Round / Reference Docs / Target Files / Output sections with context-specific values. Do NOT touch the embedded protocol sections.
+> **Review Protocol Injection** — Every fresh sub-agent review prompt MUST embed 11 protocol blocks VERBATIM. The template below has ALL 11 bodies already expanded inline. Copy the template wholesale into the Agent call's `prompt` field at runtime, replacing only the `{placeholders}` in Task / Round / Reference Docs / Target Files / Output sections with context-specific values. Do NOT touch the embedded protocol sections.
 >
-> **Why inline expansion:** Placeholder markers would force file-read indirection at runtime. AI compliance drops significantly behind indirection (see `SYNC:shared-protocol-duplication-policy`). Therefore the template carries all 10 protocol bodies pre-embedded.
+> **Why inline expansion:** Placeholder markers would force file-read indirection at runtime. AI compliance drops significantly behind indirection (see `SYNC:shared-protocol-duplication-policy`). Therefore the template carries all 11 protocol bodies pre-embedded.
 
 ### Subagent Type Selection
 
@@ -895,6 +895,17 @@ spawn_agent({
 Round {N}. You have ZERO memory of prior rounds. Re-read all target files from scratch via your own tool calls. Do NOT trust anything from the main agent beyond this prompt.
 
 ## Protocols (follow VERBATIM — these are non-negotiable)
+
+### Spec ↔ Tests ↔ Code Triangulation
+DO THIS FIRST — before any per-protocol check below. The review target is the WHOLE PACKAGE, not the diff alone: load the behavior's spec (§3 ACs / §4 BRs / §8 TCs), its tests, and the changed code TOGETHER, and reason about their mutual consistency BEFORE judging any one in isolation.
+1. Locate all three faces: the Feature Spec section(s) governing the changed behavior, the tests that guard it, and the production code that implements it. A missing face is itself a finding (SPEC-GAP / TEST-GAP / DEAD-SPEC).
+2. Triangulate pairwise — every disagreement is a finding; classify which face is wrong:
+   - code vs spec: behavior the code does that no §3/§4/§8 rule describes → CODE-EXTRA or SPEC-STALE; a [HARD] §4 rule or §5 invariant with no enforcing code path → CODE-WRONG.
+   - tests vs spec: a §8 TC with no test, or a test asserting behavior no TC/rule names → TEST-GAP or SPEC-SILENT.
+   - tests vs code: a changed code path with no covering test → TEST-GAP; a test that still passes against a deliberately broken invariant → WEAK-TEST (apply the mutation thinking in Bug Detection).
+3. Hidden-rule capture: any invariant the code enforces but the spec never states (SPEC-SILENT) MUST be surfaced as a finding to add into §3/§4/§8 AND guarded with a test — the enrichment loop, never a silent pass.
+4. Only after the three faces agree — or every disagreement is logged as a finding — proceed to the per-protocol checks below; when enrichment adds spec/test content, re-review the package against the enriched spec.
+NEVER mark review PASS while any spec/test/code face disagrees without a logged finding. The diff is the entry point; the package is the unit of judgment.
 
 ### Evidence-Based Reasoning
 Speculation is FORBIDDEN. Every claim needs proof.
@@ -1025,7 +1036,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 ### Rules
 
-- DO copy the template wholesale — including all 10 embedded protocol sections
+- DO copy the template wholesale — including all 11 embedded protocol sections
 - DO replace only the `{placeholders}` in Task / Round / Reference Docs / Target Files / Output sections with context-specific content
 - DO choose `code-reviewer` agent_type for code reviews and `general-purpose` for plan / doc / artifact reviews
 - DO NOT paraphrase, summarize, or skip any protocol section

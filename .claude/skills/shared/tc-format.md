@@ -77,12 +77,24 @@ And {additional verification}
 
 **Test Data:**
 
+_Example TC (single point) — one fixed input/output pair:_
+
 ```json
 {
     "field": "validValue",
     "invalidField": null
 }
 ```
+
+_Property TC — a generator spec, not one example. MANDATORY for any TC guarding a [HARD] §4 rule or §5 invariant. Declare the input **domain** + the invariant that must hold across it + the boundary just outside the domain where it must fail-closed — three machine-readable fields, not prose:_
+
+```yaml
+inputDomain: "any valid order with 1..N line items and any non-negative amounts" # the generated space, NOT one point
+invariant: "sum(lineItem.amount) == order.total — for ALL inputs in the domain" # the universally-quantified rule
+boundaryCounterCase: "amounts summing past the credit limit → order rejected, total unchanged" # fail-closed edge
+```
+
+> The three keys (`inputDomain`, `invariant`, `boundaryCounterCase`) are the canonical machine-readable property contract — a `[HARD]`/§5 TC's universality lives in these fields, never only in prose. `inputDomain` names a space (a generator), not a constant; `invariant` is "for ALL …"; `boundaryCounterCase` is the input just outside the domain that must be rejected. This block maps 1:1 to the Pattern 9 property test (`integration-test` → Required patterns per command type → invariant-owning branch).
 
 **Edge Cases:**
 

@@ -235,6 +235,7 @@ Reconcile every spec/code/test disagreement to canonical intent using the gates 
 - If code is wrong, write/update regression TCs against intended behavior before implementation.
 - If tests are stale, update tests to protect intended behavior, not just current behavior.
 - If a dashboard differs from the canonical TC source, forward-sync from the canonical source unless an explicit recovery workflow is approved.
+- If code correctly enforces a rule the spec never states (spec-silent), add the missing rule and its TC to the spec, then a guarding test — never leave a discovered invariant unwritten. — why: an unwritten invariant is one refactor away from being silently deleted.
 
 ## Security And Governance Checklist
 

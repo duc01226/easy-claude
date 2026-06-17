@@ -348,7 +348,7 @@ Find working reference → compare implementations → identify differences → 
 
 > **Root Cause Debugging** — Systematic approach, never guess-and-check.
 >
-> 1. **Reproduce** — Confirm issue exists with evidence (error message, stack trace, screenshot)
+> 1. **Reproduce** — Confirm the issue exists with evidence (error message, stack trace, screenshot)
 > 2. **Isolate** — Narrow to specific file/function/line using binary search + graph trace
 > 3. **Trace** — Follow data flow from input to failure point. Read actual code, don't infer.
 > 4. **Hypothesize** — Form theory with confidence %. State what evidence supports/contradicts it

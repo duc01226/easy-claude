@@ -49,7 +49,7 @@ function clearStateCache() {
 }
 
 // Current universal-guides sentinel string (kept in one place so a version bump touches one line).
-const CURRENT_SENTINEL = '<!-- CK:UNIVERSAL-GUIDES v4 -->';
+const CURRENT_SENTINEL = '<!-- CK:UNIVERSAL-GUIDES v6 -->';
 // Shared-protocol blocks in BOTH surface representations so one fixture satisfies the per-file
 // probe for CLAUDE.md (CK: markers) AND AGENTS.md (canonical `:full` phrase) — getAgentFileIssues
 // applies each file's own probe, so a complete fixture written to both must carry both forms.
@@ -67,6 +67,8 @@ const LEGACY_COMPLETE_FILE = [
     '## Task Planning Rules', '...',
     '## Code Responsibility Hierarchy', '...',
     '## Evidence-Based Reasoning & Investigation', '...',
+    '## Continuous Improvement — Lesson Extraction Gate', '...',
+    '## Git & Version-Control Discipline', '...',
     PROTOCOL_BOTH
 ].join('\n');
 // Sentinel present but protocol ABSENT — the exact stale-CLAUDE.md defect: hasUniversalGuides()
@@ -326,7 +328,7 @@ const universalGuidesTests = [
             try {
                 withEnv(tmpDir, () => {
                     const { hasUniversalGuides } = freshState(tmpDir);
-                    assertTrue(hasUniversalGuides('<!-- CK:UNIVERSAL-GUIDES v4 -->\n# x'), 'v4 (current) sentinel passes');
+                    assertTrue(hasUniversalGuides('<!-- CK:UNIVERSAL-GUIDES v6 -->\n# x'), 'v6 (current) sentinel passes');
                 });
             } finally { cleanupTempDir(tmpDir); }
         }
@@ -338,7 +340,7 @@ const universalGuidesTests = [
             try {
                 withEnv(tmpDir, () => {
                     const { hasUniversalGuides } = freshState(tmpDir);
-                    assertTrue(hasUniversalGuides('<!-- CK:UNIVERSAL-GUIDES v5 -->\n# x'), 'v5 >= v4 passes');
+                    assertTrue(hasUniversalGuides('<!-- CK:UNIVERSAL-GUIDES v7 -->\n# x'), 'v7 >= v6 passes');
                 });
             } finally { cleanupTempDir(tmpDir); }
         }
@@ -350,7 +352,7 @@ const universalGuidesTests = [
             try {
                 withEnv(tmpDir, () => {
                     const { hasUniversalGuides } = freshState(tmpDir);
-                    assertTrue(!hasUniversalGuides('<!-- CK:UNIVERSAL-GUIDES v3 -->\n# x'), 'v3 < v4 flagged (bump re-offers update)');
+                    assertTrue(!hasUniversalGuides('<!-- CK:UNIVERSAL-GUIDES v5 -->\n# x'), 'v5 < v6 flagged (bump re-offers update to already-managed brownfield files)');
                 });
             } finally { cleanupTempDir(tmpDir); }
         }

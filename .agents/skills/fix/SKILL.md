@@ -270,10 +270,10 @@ The Debug Mindset, Confidence & Evidence Gate, and all SYNC gates below apply to
 **FIRST** — run `ui-ux-pro-max` searches to understand context and common issues:
 
 ```bash
-python3 $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "<product-type>" --domain product
-python3 $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "<style-keywords>" --domain style
-python3 $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "accessibility" --domain ux
-python3 $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "z-index animation" --domain ux
+python $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "<product-type>" --domain product
+python $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "<style-keywords>" --domain style
+python $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "accessibility" --domain ux
+python $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "z-index animation" --domain ux
 ```
 
 If the user provides screenshots/videos, use the `visual analysis tooling` skill to describe the issue in detail so developers can predict the root causes.

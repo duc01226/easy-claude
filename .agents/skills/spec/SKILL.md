@@ -75,7 +75,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 | `audit`  | `--audit` flag or user asks — staleness report per section (never mutates docs) | `references/author.md` |
 | `amend`  | `[mode=amend]` from the bugfix workflow — minimal regression-scoped §3/§4/§8 touch only | `references/author.md` |
 | `tests`  | Generate or update Section 8 `TC-{FEATURE}-{NNN}` test specifications | `references/tests.md`  |
-| `sync`   | Reconcile §8 TCs ↔ integration test code (forward/reverse, orphan, staleness) | `references/sync.md`   |
+| `sync`   | Reconcile §8 TCs ↔ integration test code (forward/reverse/harvest, orphan, staleness); `harvest` captures a SPEC-SILENT invariant into §4/§5/§8 | `references/sync.md`   |
 
 **Mode resolution (do this before any work):**
 
@@ -85,7 +85,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Key Rules (all modes):**
 
-- **[BLOCKING]** Read `docs/project-reference/spec-principles.md` — spec quality standards, AI-implementability criteria, tech-agnostic rules (§3 surface scope + §3.2 banned prose-token list).
+- **[BLOCKING]** Read `docs/project-reference/spec-principles.md` — repo-local prose/evidence rules (§3 prose scope + §3.2 banned prose-token list). For the AI-implementability criteria + tech-agnostic mandates, read `.claude/skills/shared/sdd-artifact-contract.md` ("AI-Implementability Gate" + mandates M1-M6) — those are the canonical authority, not the local stub.
 - **[BLOCKING]** EVERY test case MUST carry verifiable code evidence as a `[Source: namespace/service/id]` abstract anchor in its Section 8 hidden carrier — physical `file:line` lives only in the provenance sidecar.
   > **Exception (`mode=draft`):** an idea-sourced spec has no code yet — its §8 TCs carry `Evidence: TBD` (reference-only) and the spec is flagged provisional (`provisional: true` frontmatter + a "DRAFT — unverified until code lands" header banner). The first `update`/`init` run against real code MUST upgrade every `TBD` to a real `[Source:]` anchor and clear the provisional flag. This mirrors existing TDD-first handling — it relaxes evidence ONLY for draft, never for code-sourced modes.
 - **[BLOCKING]** Section 8 is the **canonical TC registry** — §8 TCs are the source of truth; integration test code implements them. The `tests` mode owns generation; `sync` mode reconciles drift; the author modes (`draft`/`init`) populate §8 at authoring time (`draft` with `Evidence: TBD`, `init` with real `[Source:]`) and MUST NOT overwrite existing TCs during UPDATE.

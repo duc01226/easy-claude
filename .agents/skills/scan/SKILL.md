@@ -170,15 +170,15 @@ Read the full report. Apply the fresh-eyes protocol:
 
 <!-- SYNC:scan-and-update-reference-doc -->
 
-> **Scan & Update Reference Doc** — Surgical updates only, NEVER full rewrite.
+> **Scan & Update Reference Doc** — Surgical updates only, never full rewrite.
 >
-> 1. **Read existing doc** first — understand structure and manual annotations
-> 2. **Detect mode:** Placeholder (headings only) → Init. Has content → Sync.
-> 3. **Scan codebase** (grep/glob) for current patterns
-> 4. **Diff** findings vs doc — identify stale sections only
-> 5. **Update ONLY** diverged sections. Preserve manual annotations.
-> 6. **Update metadata** (date, version) in frontmatter/header
-> 7. **NEVER** rewrite entire doc. **NEVER** remove sections without evidence obsolete.
+> 1. **Read existing doc** first — understand current structure and manual annotations
+> 2. **Detect mode:** Placeholder (only headings, no content) → Init mode. Has content → Sync mode.
+> 3. **Scan codebase** for current state (grep/glob for patterns, counts, file paths)
+> 4. **Diff** findings vs doc content — identify stale sections only
+> 5. **Update ONLY** sections where code diverged from doc. Preserve manual annotations.
+> 6. **Update metadata** (date, counts, version) in frontmatter or header
+> 7. **NEVER** rewrite entire doc. NEVER remove sections without evidence they're obsolete.
 
 <!-- /SYNC:scan-and-update-reference-doc -->
 
@@ -186,13 +186,13 @@ Read the full report. Apply the fresh-eyes protocol:
 
 > **Output Quality** — Token efficiency without sacrificing quality.
 >
-> 1. No inventories/counts — stale instantly
-> 2. No directory trees — use 1-line path conventions
-> 3. No TOCs — AI reads linearly
-> 4. One example per pattern — only if non-obvious
-> 5. Lead with answer, not reasoning
+> 1. No inventories/counts — AI can `grep | wc -l`. Counts go stale instantly
+> 2. No directory trees — AI can `glob`/`ls`. Use 1-line path conventions
+> 3. No TOCs — AI reads linearly. TOC wastes tokens
+> 4. No examples that repeat what rules say — one example only if non-obvious
+> 5. Lead with answer, not reasoning. Skip filler words and preamble
 > 6. Sacrifice grammar for concision in reports
-> 7. Unresolved questions at end
+> 7. Unresolved questions at end, if any
 
 <!-- /SYNC:output-quality-principles -->
 

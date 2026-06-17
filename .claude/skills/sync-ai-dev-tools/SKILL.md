@@ -154,7 +154,7 @@ The two skills are **equal peers**, but they CANNOT run as a true parallel phase
 
 - **Part A owns:** source-authoring judgment (research → gap analysis → edit `.claude/**` + `CLAUDE.md`).
 - **Part B owns ONLY:** the skill-step ordering + the fail-fast seam between the two skills + the two-oracle gate. It adds NO generation logic.
-- **Part B delegates to (unchanged):** `/sync-to-copilot --fast` (which wraps `.claude/scripts/sync-copilot-workflows.cjs`, the copilot generator) and `/sync-codex` (which wraps `.claude/skills/sync-codex/scripts/run-codex-sync.mjs`, the codex generator's 9 fail-fast stages).
+- **Part B delegates to (unchanged):** `/sync-to-copilot --fast` (which wraps `.claude/scripts/sync-copilot-workflows.cjs`, the copilot generator) and `/sync-codex` (which wraps `.claude/skills/sync-codex/scripts/run-codex-sync.mjs`, the codex generator's 12 fail-fast stages).
 - **No `workflows.json` entry** — this is a standalone utility skill (like `/sync-codex`), not part of any workflow sequence.
 - **Delegated dependency:** the `/sync-codex` and `/sync-to-copilot` skills are load-bearing-retained (`/sync-codex` is DO-NOT-REMOVE infra; `/sync-to-copilot --fast` is the sole script-only copilot regen path — the former `/sync-copilot-workflows` skill was absorbed into `/sync-to-copilot --fast`, the underlying script keeps its name). Any future plan that removes or renames either skill MUST repoint or retire this skill's Part B first.
 
@@ -199,7 +199,7 @@ The two skills are **equal peers**, but they CANNOT run as a true parallel phase
 | "Skip the oracles, the skills succeeded"      | Skills mutating ≠ surfaces in parity. Both divergence oracles must exit 0.                         |
 
 > **[USER-INVOKED ONLY]** Manually triggered via `$sync-ai-dev-tools`. Claude MUST NOT auto-invoke — `disable-model-invocation: true` enforces this (inherited transitively from the wrapped `/sync-codex` guard).
-> **[FAILS FAST]** In Part B, a non-zero `/sync-to-copilot --fast` exit aborts before `/sync-codex`. `/sync-codex` is itself fail-fast across its 9 stages.
+> **[FAILS FAST]** In Part B, a non-zero `/sync-to-copilot --fast` exit aborts before `/sync-codex`. `/sync-codex` is itself fail-fast across its 12 stages.
 > **[ORDERED, NOT PARALLEL]** Part B invokes `/sync-to-copilot --fast` FIRST, `/sync-codex` SECOND — two equal skills in a MANDATORY sequence. They are NOT a parallel phase: BOTH write `.github/**` (Step 1 directly; `/sync-codex` via its `copilot` stage, which TC-WFPROTO-006 then byte-checks), so concurrent execution would race on those files. Sequential order avoids the write race — note `/sync-codex` no longer *depends* on Step 1's output (it regenerates the copilot mirror itself), so the order is now race-avoidance, not a correctness dependency.
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.

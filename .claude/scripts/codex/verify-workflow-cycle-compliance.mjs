@@ -524,7 +524,7 @@ function checkParallelGroupsStructure(workflowId, workflow, rawSequence, failure
 // W5(b)+(c) — cross-mirror proof. (b) the expected barrier token is byte-identical across the
 // rendered Codex and Copilot mirrors; (c) the advancement clause reached all three carriers.
 // Reads each carrier once. Mirror files are optional (portability); injectWorkflowProtocol is a
-// framework file and is always exercised. injectWorkflowProtocol(null, …) short-circuits its dedup
+// framework file and is always exercised. injectWorkflowProtocol(null) short-circuits its dedup
 // guard with zero file I/O, so calling it here has no side effects.
 async function checkParallelGroupsMirrorParity(workflows, rootDir, failures) {
   const grouped = Object.entries(workflows).filter(
@@ -540,7 +540,7 @@ async function checkParallelGroupsMirrorParity(workflows, rootDir, failures) {
   let injectedProtocol = null;
   try {
     const { injectWorkflowProtocol } = require(path.join(rootDir, PROMPT_INJECTIONS));
-    injectedProtocol = injectWorkflowProtocol(null, "never");
+    injectedProtocol = injectWorkflowProtocol(null);
   } catch (error) {
     failures.push(`parallelGroups carrier check: unable to load injectWorkflowProtocol from ${PROMPT_INJECTIONS} (${error.message})`);
   }

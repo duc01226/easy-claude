@@ -2943,17 +2943,17 @@ Every workflow that touches code benefits from the graph automatically:
 sequenceDiagram
     participant Dev as Developer
     participant WF as Workflow
-    participant GH as Graph Hooks
+    participant GH as Graph subsystem
     participant DB as graph.db
 
     Dev->>WF: Start bugfix workflow
 
     rect rgb(240, 248, 255)
         Note over WF,DB: /scout step
-        WF->>GH: context-injector fires
+        WF->>GH: /scout runs graph CLI
         GH->>DB: Structural overview query
         DB-->>GH: 94 files, 875 nodes
-        GH-->>WF: Inject codebase map
+        GH-->>WF: Return codebase map
     end
 
     rect rgb(255, 248, 240)
@@ -2965,10 +2965,10 @@ sequenceDiagram
 
     rect rgb(240, 255, 240)
         Note over WF,DB: /code-review step
-        WF->>GH: context-injector fires
+        WF->>GH: /code-review runs graph CLI
         GH->>DB: BFS blast radius
         DB-->>GH: MEDIUM risk, 5 impacted files
-        GH-->>WF: Inject review context
+        GH-->>WF: Return review context
         Note over WF: Claude flags untested<br/>functions + broken callers
     end
 ```
@@ -3347,12 +3347,12 @@ sequenceDiagram
 
 | Runner                               | Tests   | Scope                                                                                      |
 | ------------------------------------ | ------- | ------------------------------------------------------------------------------------------ |
-| `test-all-hooks.cjs` (primary gate)  | **212** | All 15 hook behaviors + bridged suites + count-drift guard                                 |
-| `run-all-tests.cjs` (full aggregate) | **277** | Primary + extended lib, swap-engine, shared-utilities, and every `tests/suites/*.test.cjs` |
+| `test-all-hooks.cjs` (primary gate)  | **213** | All 15 hook behaviors + bridged suites + count-drift guard                                 |
+| `run-all-tests.cjs` (full aggregate) | **289** | Primary + extended lib, swap-engine, shared-utilities, and every `tests/suites/*.test.cjs` |
 
-> Counts are live-verified (`test-all-hooks.cjs` = 212, `run-all-tests.cjs` = 277; 2026-06-16). The former per-suite breakdown was hand-maintained and drifted — derive counts from a live run, not a static table.
+> Counts are live-verified (`test-all-hooks.cjs` = 213, `run-all-tests.cjs` = 289; 2026-06-17). The former per-suite breakdown was hand-maintained and drifted — derive counts from a live run, not a static table.
 
-Suites under `tests/suites/` (14): agent-files-gate, agent-universal-rules, bugfix-regression, content-presence, count-drift, doc-sync-gate, init-reference-docs, integration, lifecycle, notification, protocol-text-parity, security, swap-engine, workflow.
+Suites under `tests/suites/` (15): agent-files-gate, agent-universal-rules, bugfix-regression, check-subagent-routing, content-presence, count-drift, doc-sync-gate, init-reference-docs, integration, lifecycle, notification, protocol-text-parity, security, swap-engine, workflow.
 
 Run the primary gate with `node .claude/hooks/tests/test-all-hooks.cjs`; the full aggregate with `node .claude/hooks/tests/run-all-tests.cjs`. See CLAUDE.md "Development Commands" for the full list.
 
@@ -3677,11 +3677,11 @@ The **Copilot mirror** (`.github/copilot-instructions.md` + `.github/instruction
 
 ### 13.5 The SYNC-Tag Mechanism — One Protocol, Identical Everywhere
 
-The framework's protocols (evidence-based reasoning, critical-thinking mindset, AI-SDD contract, end-to-start debugger trace, …) must read **identically** across ~200 skills _and_ across three tools. They are kept identical by **inlining, not referencing**:
+The framework's protocols (evidence-based reasoning, critical-thinking mindset, AI-SDD contract, end-to-start debugger trace, …) must read **identically** across ~150 skills _and_ across three tools. They are kept identical by **inlining, not referencing**:
 
-1. Each shared protocol is authored **once** under a `## SYNC:{tag}` heading in `.claude/skills/shared/sync-inline-versions.md` (~55 tagged protocols).
+1. Each shared protocol is authored **once** under a `## SYNC:{tag}` heading in `.claude/skills/shared/sync-inline-versions.md` (~67 tagged protocols).
 2. In every consuming skill the content is inlined **verbatim** between `<!-- SYNC:{tag} -->` … `<!-- /SYNC:{tag} -->` fences.
-3. The **`sync-skills-shared-protocols`** skill propagates a canonical edit: find every file carrying the tag, replace the text between its fences, verify fence balance. Bulk inserts across all ~286 skill/agent files go through `sync-hooks-to-skills.py`, never by hand.
+3. The **`sync-skills-shared-protocols`** skill propagates a canonical edit: find every file carrying the tag, replace the text between its fences, verify fence balance. Bulk inserts across all ~183 skill/agent files go through `sync-hooks-to-skills.py`, never by hand.
 4. The Codex context stage re-emits the same SYNC blocks into `CODEX_CONTEXT.md` / `AGENTS.md`.
 
 **Why inline instead of reference?** The explicit policy (`SYNC:shared-protocol-duplication-policy`): _"Inline protocol content … is INTENTIONAL duplication. Do NOT extract, deduplicate, or replace with file references. AI compliance drops significantly when protocols are behind file-read indirection."_ This is a deliberate trade — storage/duplication cost for adherence. An LLM follows a rule in front of it far more reliably than a rule it must choose to go read. The verifiers (13.4) make the duplication safe by failing the build the moment copies diverge.

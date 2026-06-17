@@ -92,10 +92,10 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **FIRST**, run `ui-ux-pro-max` searches to gather design intelligence:
 
 ```bash
-python3 $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "<product-type>" --domain product
-python3 $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "<style-keywords>" --domain style
-python3 $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "<mood>" --domain typography
-python3 $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "<industry>" --domain color
+python $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "<product-type>" --domain product
+python $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "<style-keywords>" --domain style
+python $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "<mood>" --domain typography
+python $HOME/.claude/skills/ui-ux-pro-max/scripts/search.py "<industry>" --domain color
 ```
 
 ## Mode Branches

@@ -587,6 +587,8 @@ async function testInitPromptGate() {
         '## IMPORTANT: Task Planning Rules',
         '## Code Responsibility Hierarchy',
         '## Evidence-Based Reasoning',
+        '## Continuous Improvement — Lesson Extraction Gate',
+        '## Git & Version-Control Discipline',
         ''
     ].join('\n');
 

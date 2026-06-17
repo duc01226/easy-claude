@@ -156,7 +156,7 @@ const SECTION_CLOSE = /^<!-- \/SECTION:(\S+) -->$/;
 // The agent-files bootstrap gate reads this to tell a complete file from a project-only
 // one. MUST match agent-files-state.cjs UNIVERSAL_GUIDES_VERSION / SENTINEL_RE — the
 // agent-files-gate.test.cjs sync test enforces the lockstep.
-const UNIVERSAL_GUIDES_VERSION = 4;
+const UNIVERSAL_GUIDES_VERSION = 6;
 const SENTINEL = `<!-- CK:UNIVERSAL-GUIDES v${UNIVERSAL_GUIDES_VERSION} -->`;
 const SENTINEL_RE = /<!--\s*CK:UNIVERSAL-GUIDES\s+v(\d+)\s*-->/i;
 // Static portable-guide headings the universal section always ships. MUST match
@@ -169,7 +169,9 @@ const REQUIRED_ANCHORS = [
     /workflow step advancement/i,
     /task planning rules/i,
     /code responsibility hierarchy/i,
-    /evidence-based reasoning/i
+    /evidence-based reasoning/i,
+    /lesson extraction/i,
+    /version-control discipline/i
 ];
 
 function hasGuides(text) {

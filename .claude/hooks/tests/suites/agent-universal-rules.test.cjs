@@ -8,20 +8,28 @@
  *
  * Tiers (MUST mirror the inserter's constants exactly — single invariant, two
  * enforcers: sync-hooks-to-skills.py and this suite):
- *   - CORE  : 6 blocks — every agent.
- *   - CODE  : CORE + 4 code-investigation blocks — agents that read/review code.
+ *   - CORE          : 6 blocks — every agent.
+ *   - READONLY_CODE : CORE + 2 reading-discipline blocks (understand-code-first,
+ *                     evidence-based-reasoning) — read-only/design agents that
+ *                     locate/read/design code but never fix a layer or cross a
+ *                     service boundary. EXCLUDES cross-service-check +
+ *                     fix-layer-accountability.
+ *   - CODE          : CORE + 4 code-investigation blocks (READONLY_CODE's 2 PLUS
+ *                     cross-service-check + fix-layer-accountability) — agents
+ *                     that read/review AND fix code.
  *   - CODE_STANDARDS : agent-code-standards (dev-rules + pattern pointers) — gated
- *                    on a SEPARATE axis (CODE_STANDARDS_AGENTS) from CODE_AGENTS.
- *                    An agent may be CODE (reads/locates code) yet NOT code-standards
- *                    (researcher/scout/ui-ux-designer don't author/review code).
+ *                    on a SEPARATE axis (CODE_STANDARDS_AGENTS) from the tier sets.
+ *                    An agent may be READONLY_CODE (reads/locates code) yet NOT
+ *                    code-standards (researcher/scout/ui-ux-designer don't author/review code).
  *
  * Tests:
  *   A (TC-UAR-003) — every agent carries all Core-6 open+close tags.
- *   B (TC-UAR-004) — each code agent carries all 4 code tags; each core-only
- *                    agent carries NONE of them.
- *   C (TC-UAR-005) — disk agent set == CODE_AGENTS ∪ CORE_ONLY_AGENTS, disjoint
- *                    (a new/renamed agent fails until classified — same fail-loud
- *                    rule as the inserter).
+ *   B (TC-UAR-004) — each CODE agent carries all 4 code tags; each READONLY_CODE
+ *                    agent carries the 2 reading-discipline tags but NEITHER
+ *                    mutation tag; each core-only agent carries NONE of the 4.
+ *   C (TC-UAR-005) — disk agent set == CODE_AGENTS ∪ READONLY_CODE_AGENTS ∪
+ *                    CORE_ONLY_AGENTS, pairwise disjoint (a new/renamed agent fails
+ *                    until classified — same fail-loud rule as the inserter).
  *   D (TC-UAR-006) — SYNC open/close balance per agent.
  *   E (TC-UAR-007) — agent-code-standards present iff agent ∈ CODE_STANDARDS_AGENTS
  *                    (present in every code-standards agent, ABSENT from every other).
@@ -48,7 +56,7 @@ const { assertEqual, assertTrue } = require('../lib/assertions.cjs');
 const AGENTS_DIR = path.resolve(process.env.CLAUDE_PROJECT_DIR, '.claude', 'agents');
 const SKILLS_DIR = path.resolve(process.env.CLAUDE_PROJECT_DIR, '.claude', 'skills');
 
-// ── Tier constants — mirror sync-hooks-to-skills.py:235-267 verbatim ──────────
+// ── Tier constants — mirror sync-hooks-to-skills.py tier sets verbatim ────────
 const CORE_TAGS = [
     'critical-thinking-mindset',
     'ai-mistake-prevention',
@@ -57,18 +65,28 @@ const CORE_TAGS = [
     'project-reference-docs-guide',
     'agent-bootstrap',
 ];
-const CODE_TAGS = [
+// CODE_TAGS splits into two axes for the readonly-code sub-tier:
+//   READONLY_CODE_TAGS — shared by CODE and READONLY_CODE agents (reading discipline).
+//   MUTATION_CODE_TAGS — CODE agents ONLY; readonly-code agents must NOT carry them.
+const READONLY_CODE_TAGS = [
     'understand-code-first',
     'evidence-based-reasoning',
+];
+const MUTATION_CODE_TAGS = [
     'cross-service-check',
     'fix-layer-accountability',
 ];
+const CODE_TAGS = [...READONLY_CODE_TAGS, ...MUTATION_CODE_TAGS];
 const CODE_AGENTS = new Set([
     'architect', 'backend-developer', 'code-reviewer', 'code-simplifier',
     'database-admin', 'debugger', 'e2e-runner', 'framework-maintainer', 'frontend-developer',
     'fullstack-developer', 'integration-tester', 'performance-optimizer',
-    'planner', 'researcher', 'scout', 'scout-external', 'security-auditor',
-    'solution-architect', 'spec-compliance-reviewer', 'tester', 'ui-ux-designer',
+    'planner', 'security-auditor',
+    'solution-architect', 'spec-compliance-reviewer', 'tester',
+]);
+// Read-only/design agents: READONLY_CODE_TAGS only, NOT MUTATION_CODE_TAGS.
+const READONLY_CODE_AGENTS = new Set([
+    'researcher', 'scout', 'scout-external', 'ui-ux-designer',
 ]);
 const CORE_ONLY_AGENTS = new Set([
     'business-analyst', 'docs-manager', 'git-manager', 'journal-writer',
@@ -128,33 +146,49 @@ module.exports = {
             },
         },
         {
-            name: '[agent-universal-rules] TC-UAR-004 code agents carry all code tags; core-only carry none',
+            name: '[agent-universal-rules] TC-UAR-004 code agents carry all 4 code tags; readonly-code carry 2 reading tags but not the 2 mutation tags; core-only carry none',
             fn: () => {
                 const problems = [];
                 for (const name of diskAgents) {
-                    if (!CODE_AGENTS.has(name) && !CORE_ONLY_AGENTS.has(name)) continue; // Test C owns this
-                    const body = read(name);
                     const isCode = CODE_AGENTS.has(name);
-                    for (const tag of CODE_TAGS) {
+                    const isReadonly = READONLY_CODE_AGENTS.has(name);
+                    const isCore = CORE_ONLY_AGENTS.has(name);
+                    if (!isCode && !isReadonly && !isCore) continue; // Test C owns this
+                    const body = read(name);
+                    // Reading-discipline tags: CODE + READONLY_CODE must carry; core-only must not.
+                    for (const tag of READONLY_CODE_TAGS) {
+                        const present = hasBlock(body, tag);
+                        if ((isCode || isReadonly) && !present) problems.push(`${isCode ? 'code' : 'readonly-code'} agent ${name} MISSING ${tag}`);
+                        if (isCore && present) problems.push(`core-only agent ${name} LEAKS ${tag}`);
+                    }
+                    // Mutation tags: CODE only; readonly-code AND core-only must NOT carry.
+                    for (const tag of MUTATION_CODE_TAGS) {
                         const present = hasBlock(body, tag);
                         if (isCode && !present) problems.push(`code agent ${name} MISSING ${tag}`);
-                        if (!isCode && present) problems.push(`core-only agent ${name} LEAKS ${tag}`);
+                        if (isReadonly && present) problems.push(`readonly-code agent ${name} LEAKS mutation tag ${tag}`);
+                        if (isCore && present) problems.push(`core-only agent ${name} LEAKS ${tag}`);
                     }
                 }
                 assertEqual(problems.length, 0, `code-tier violations:\n  ${problems.join('\n  ')}`);
             },
         },
         {
-            name: '[agent-universal-rules] TC-UAR-005 disk agent set == classified set, disjoint (new-agent guard)',
+            name: '[agent-universal-rules] TC-UAR-005 disk agent set == classified set, pairwise disjoint (new-agent guard)',
             fn: () => {
-                const both = [...CODE_AGENTS].filter(a => CORE_ONLY_AGENTS.has(a));
-                assertEqual(both.length, 0, `agents in BOTH tier sets: ${both.join(', ')}`);
+                // Pairwise disjointness across all three tier sets.
+                const overlap = (a, b) => [...a].filter(x => b.has(x));
+                const codeReadonly = overlap(CODE_AGENTS, READONLY_CODE_AGENTS);
+                const codeCore = overlap(CODE_AGENTS, CORE_ONLY_AGENTS);
+                const readonlyCore = overlap(READONLY_CODE_AGENTS, CORE_ONLY_AGENTS);
+                assertEqual(codeReadonly.length, 0, `agents in BOTH CODE and READONLY_CODE: ${codeReadonly.join(', ')}`);
+                assertEqual(codeCore.length, 0, `agents in BOTH CODE and CORE_ONLY: ${codeCore.join(', ')}`);
+                assertEqual(readonlyCore.length, 0, `agents in BOTH READONLY_CODE and CORE_ONLY: ${readonlyCore.join(', ')}`);
 
-                const classified = new Set([...CODE_AGENTS, ...CORE_ONLY_AGENTS]);
+                const classified = new Set([...CODE_AGENTS, ...READONLY_CODE_AGENTS, ...CORE_ONLY_AGENTS]);
                 const unclassified = diskAgents.filter(a => !classified.has(a));
                 assertEqual(
                     unclassified.length, 0,
-                    `unclassified agent(s) on disk — add to CODE_AGENTS or CORE_ONLY_AGENTS in this suite AND sync-hooks-to-skills.py: ${unclassified.join(', ')}`,
+                    `unclassified agent(s) on disk — add to CODE_AGENTS, READONLY_CODE_AGENTS, or CORE_ONLY_AGENTS in this suite AND sync-hooks-to-skills.py: ${unclassified.join(', ')}`,
                 );
 
                 const onDisk = new Set(diskAgents);

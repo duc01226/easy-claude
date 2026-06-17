@@ -14,8 +14,11 @@
 | "sync test specs" / "sync tests" / `direction=sync` / `direction=forward`  | Forward   | §8 TCs → test code (flag TCs with no covering test) |
 | "reverse sync" / "back-fill TCs" / `direction=reverse`                     | Reverse   | Test code → §8 (back-fill TCs for orphan tests)     |
 | "full sync" / "bidirectional" / `direction=full`                           | Full      | Both directions sequentially                        |
+| "harvest invariants" / "harvest" / `direction=harvest`                     | Harvest   | Code/tests/review → §4·§5·§8 (capture a SPEC-SILENT invariant the spec never states — the rule layer, not just a TC) |
 
 **Default** (no direction specified): `forward`.
+
+> **Harvest is the operational home of the SPEC-SILENT class** (`shared/sync-inline-versions.md` → `SYNC:spec-drift-adjudication`). The whole-package review loop (`SYNC:spec-loop-discipline`, step 7 of the local cycle reference) DISCOVERS the unwritten-but-enforced rule; Harvest is the procedure that lands it in the spec. `full` sync runs Harvest after the forward/reverse passes when the review handed in (or the scan finds) any SPEC-SILENT candidate.
 
 ### Quality Gate (Before Any Sync)
 
@@ -64,6 +67,30 @@ Reverse sync is **emergency recovery only** — back-fill §8 for tests that exi
 4. **[BLOCKING]** a direct user question — present inserted TCs for user review before saving
 5. Write a recovery report naming recovered TC IDs, the source test methods, and why reverse sync was required.
 
+### Invariant Harvest Algorithm (Code / Tests / Review → §4·§5·§8)
+
+> **Purpose — the home for "the rule nobody wrote down".** Reverse sync recovers a missing **§8 TC** for a test that already exists. Harvest is different: it captures a **SPEC-SILENT invariant** — a constraint the code correctly enforces that NO canonical artifact (§3 AC, §4 BR, §5 invariant, §8 TC) states — into the **rule layer** (§4/§5) AND a guarding §8 TC. The primary missing home of a SPEC-SILENT rule is the business rule, not the test case; a discovered invariant left only in code (or only in a test) is INCOMPLETE. This closes the feedback half of the loop: the spec is enriched by *discoveries*, not only by code *changes*.
+
+**Trigger:** the whole-package review loop hands in a SPEC-SILENT finding; OR `direction=harvest`/`direction=full`; OR a scan of changed code/tests surfaces an enforced constraint (guard clause, validation, assertion, invariant check) with no matching §3/§4/§5/§8 entry.
+
+1. **Collect candidates.** For each enforced constraint with no spec home, record: the enforcement site(s) as an abstract anchor (`[Source: {namespace}/{service}/{id}]`, never physical coordinates), the observable rule it imposes, and how it was found (review finding vs scan).
+2. **Prove it is an invariant, not an example.** A candidate qualifies ONLY if it is genuinely always-true — trace **≥2 enforcement points**, or a single guard clause that rejects every violating input. A behavior seen in one example path is NOT a harvested invariant — discard it. (Anti-fabrication: never promote a sample case to a universal rule.)
+3. **Express as a property.** Write the rule as a universally-quantified property — "for ALL inputs in {domain}, {invariant} holds" — plus one boundary counter-case (the input that must be rejected). Example-only phrasing fails this gate (`SYNC:spec-loop-discipline` #1).
+4. **Choose the home + strength:**
+   - Entity/aggregate always-true constraint → **§5 invariant**.
+   - Cross-field / business validation or guard → **§4 BR**; tag **[HARD]** when the code rejects/blocks on violation (an enforced guard is HARD by definition), **[SOFT]** only when advisory. Default-challenge any SOFT candidate: "the code enforces this — should it be [HARD]?"
+   - User-observable behavior → **§3 AC**.
+   - ALWAYS also a **§8 TC** (the property + its boundary counter-case).
+5. **Enrich via the owning modes** (Harvest never writes §1–§7 prose or §8 directly — it routes):
+   - Rule into §3/§4/§5 → `$spec [mode=update]`
+   - §8 TC for the property → `$spec [mode=tests]`
+   - Guarding property/boundary test if absent → `$integration-test`
+6. **[BLOCKING] confirm intent changes only.** A pure SPEC-SILENT capture (code already enforces it; the spec was merely silent) is enrichment — add it. a direct user question ONLY when the capture would change documented interpretation, promote SOFT→HARD, or the "always-true" claim is uncertain (drops below the act threshold). Never weaken, rename, or renumber an existing rule — Harvest only ADDS.
+7. **Re-review (forced loop, not terminal).** Hand the enriched §3/§4/§5/§8 back to the whole-package review for ONE bounded, module-scoped re-review against the enriched spec (`review-changes` SPEC-CONTENT re-entry) — confirm the newly-written rule is enforced in code AND guarded by a test, and surface any further hidden rule. **Harvest converges when a full review pass discovers no new unwritten invariant** (mirrors `plan-review` recursion; each cycle enriches the spec).
+8. **Report.** Name each harvested rule, its new logical ID (`BR-`/`§5 invariant`/`AC-`/`TC-`), the source anchor, the strength decision ([HARD]/[SOFT] + why), and the re-review verdict.
+
+> **[M2/M3 — keep §8 stack-portable]** Harvested TCs carry the abstract `[Source: ...]` anchor only — never expand to physical coordinates. The sole physical reference is the operational `IntegrationTest:` field.
+
 ### Orphan Detection
 
 Two orphan classes after sync:
@@ -107,7 +134,10 @@ Based on the reconciliation outcome, suggest via a direct user question:
 1. "$integration-test — Generate tests for any §8 TCs flagged with no covering integration test (Recommended)"
 2. "$test — Run tests to verify all documented TCs pass"
 3. "spec [mode=tests] — Author/update §8 TCs first if the quality gate surfaced gaps"
-4. "Done for now"
+4. "spec [mode=update] — Promote a harvested SPEC-SILENT invariant into §4/§5 (run when Harvest surfaced an unwritten enforced rule)"
+5. "Done for now"
 ```
+
+When Harvest captured any SPEC-SILENT invariant, the loop is NOT done until the enriched package passes one bounded re-review with no new unwritten rule discovered (see Invariant Harvest Algorithm step 7).
 
 For TC authoring (CREATE/UPDATE of §8 entries), switch back to `[mode=tests]` (`tests.md`).

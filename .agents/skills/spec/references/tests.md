@@ -127,7 +127,7 @@ Skip confirmation only when mode explicit in `$ARGUMENTS` AND feature name unamb
 
 1. `docs/project-reference/feature-spec-reference.md` — correct `{FEATURE}` code for TC IDs
 2. Target feature doc — Section 8 exists? Read existing TCs to avoid ID collisions
-3. `docs/project-reference/spec-principles.md` — Section 7 (TC Coverage Mapping), minimum categories and depth
+3. `.claude/skills/shared/sdd-artifact-contract.md` — "Test-Complete Gate" (TC coverage mapping: minimum categories — positive / negative / unauthorized-access / state-transition / event — and depth). `docs/project-reference/spec-principles.md` adds only repo-local test-mapping conventions (§5).
 
 **Spec Readiness Gate (BLOCKING — implement-first and update modes only):**
 
@@ -400,6 +400,8 @@ And {additional verification}
 \`\`\`json
 { "field": "value" }
 \`\`\`
+
+> For a TC guarding a [HARD] §4 rule or §5 invariant, use the **Property TC** variant instead of a single example — the structured `inputDomain` / `invariant` / `boundaryCounterCase` generator-spec block (canonical: `.claude/skills/shared/tc-format.md` → TC Entry Format → "Property TC"). The property's universality must be machine-readable in those three fields, not buried in prose.
 
 **Edge Cases:**
 

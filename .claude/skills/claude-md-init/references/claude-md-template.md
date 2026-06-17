@@ -1,4 +1,4 @@
-<!-- CK:UNIVERSAL-GUIDES v4 -->
+<!-- CK:UNIVERSAL-GUIDES v6 -->
 
 <!-- The hook-independent Workflow-First Gate (CK:WORKFLOW-GATE block) AND the Workflow & Skills
      Catalog (CK:WORKFLOW-SKILLS block — Workflows Index + composable step-skills, derived from
@@ -220,6 +220,35 @@ Don't speculate. Every claim about code behavior — and every recommendation fo
 | **80-94%**  | Main paths verified, some edge cases unverified | Recommend with caveats |
 | **60-79%**  | Implementation found, usage partially traced    | Recommend cautiously   |
 | **<60%**    | Insufficient evidence                           | **DO NOT RECOMMEND**   |
+
+---
+
+## Continuous Improvement — Lesson Extraction Gate
+
+> **[BLOCKING] Self-improvement loop — runs at the end of every non-trivial task.** This is the static, hook-independent home of the `/learn` gate: it binds Claude, Codex, and Copilot equally, with or without any hook firing.
+
+Add a final task — "Analyze AI mistakes & lessons learned" — to every non-trivial task list (see [Task Planning Rules](#task-planning-rules)). At task end, extract lessons by **ROOT CAUSE, not symptom**:
+
+1. Name the **failure mode** (the reasoning/assumption failure), not the symptom — "assumed an API existed without reading the source", not "used the wrong enum value".
+2. **Generality test:** does this failure mode apply to ≥3 contexts/codebases? If not, abstract one level up.
+3. Write it as a **universal rule** — strip project-specific names/paths/classes so it is useful on any codebase.
+4. **Consolidate:** multiple mistakes sharing one failure mode → ONE lesson.
+5. **Recurrence gate:** "Would this recur in a future session WITHOUT this reminder?" — No → skip `/learn`.
+6. **Auto-fix gate:** "Could `/code-review` / `/simplify` / `/security-review` / `/lint` catch this mechanically?" — Yes → improve that review skill instead of writing a lesson.
+7. **Both gates pass → ask the user to run `/learn`** to capture the lesson durably. Never silently self-edit instruction files.
+
+---
+
+## Git & Version-Control Discipline
+
+> **[BLOCKING] Hook-independent guardrail — binds Claude, Codex, and Copilot equally.** Where hooks run, `git-commit-block.cjs` enforces this as a hard PreToolUse block; on a hookless host (Codex/Copilot) or an un-wired project this section is the ONLY guardrail — obey it without the block.
+
+1. **Never commit, push, or stage (`git add`) unless the user explicitly asks for it.** "Implement X" / "fix the bug" is NOT permission to commit — finish the work, report what changed, and wait. Only an explicit "commit"/"push" (or an invoked commit skill / git-manager) authorizes it.
+2. **Never `git commit --amend`.** Amending rewrites history and can corrupt commits once HEAD has moved — always create a NEW commit. No bypass.
+3. **Branch before committing on the default branch.** If asked to commit while on `main`/`master`, create a feature branch first.
+4. **Read-only git needs no permission** — `status`, `diff`, `log`, `show`, `branch`, `fetch`, `restore`, `reset HEAD` are always allowed.
+
+**Why:** auto-committing/pushing unprompted publishes unreviewed work and can rewrite shared history — the highest-blast-radius irreversible action an agent can take — so it stays gated on explicit human intent on every host, not only where a hook fires.
 
 ---
 

@@ -300,6 +300,9 @@ public class {CommandName}IntegrationTests : {Service}ServiceIntegrationTestBase
 | Update       | Create-then-update + verify updated fields in DB   |
 | Delete       | Create-then-delete + `AssertEntityDeletedAsync`    |
 | Query        | Filter returns results + pagination + empty result |
+| **Owns a [HARD] §4 rule or §5 invariant** (orthogonal to the rows above — applies to the same command/query) | **+ Pattern 9 property/metamorphic test** tied to a §8 Invariant/Property TC: the example tests above guard fixed points; the property test guards the rule across its whole input domain (see `references/integration-test-patterns.md` → Pattern 9). FORCED, not optional — a `>`/`>=` flip on the invariant line must fail an assertion. |
+
+> **[FORCED BRANCH — property apparatus]** Pattern 9 is not a "nice-to-have reference". For ANY command/query whose handler enforces a `[HARD]` §4 business rule or a §5 entity invariant, the example-based rows are NOT sufficient on their own — generate the Pattern 9 property test alongside them, carrying the `TestSpec` annotation of the §8 Invariant/Property TC (decade `071–079`). This is the test-side mirror of the spec-side invariant-coverage gate (`spec [mode=tests]` → property TC count ≥ count([HARD] BR) + count(§5 invariants)). Skipping it = a fakeable, over-fitted suite that passes while the rule can be broken across the unenumerated space.
 
 ## Step 4: Verify
 
@@ -807,15 +810,15 @@ integration-test (you are here)
 
 <!-- SYNC:red-flag-stop-conditions -->
 
-> **Red Flag Stop Conditions** — STOP and escalate via ask the user directly when:
+> **Red Flag Stop Conditions** — STOP and escalate to user via ask the user directly when:
 >
 > 1. Confidence drops below 60% on any critical decision
-> 2. Changes affect >20 files
-> 3. Cross-service boundary crossed
-> 4. Security-sensitive code (auth, crypto, PII)
+> 2. Changes would affect >20 files (blast radius too large)
+> 3. Cross-service boundary is being crossed
+> 4. Security-sensitive code (auth, crypto, PII handling)
 > 5. Breaking change detected (interface, API contract, DB schema)
-> 6. Test coverage would decrease
-> 7. Approach requires technology/pattern not in project
+> 6. Test coverage would decrease after changes
+> 7. Approach requires technology/pattern not in the project
 >
 > **NEVER proceed past a red flag without explicit user approval.**
 
@@ -846,7 +849,7 @@ integration-test (you are here)
 > 3. **Return to main agent:** Summary only (per SYNC:subagent-return-contract) with `Full report:` path
 > 4. **Main agent:** Reads report file only when resolving specific blockers
 >
-> **Why:** Context cutoff mid-execution loses ALL in-memory findings. Each disk write survives compaction.
+> **Why:** Context cutoff mid-execution loses ALL in-memory findings. Each disk write survives compaction. Partial results are better than no results.
 >
 > **Report naming:** `plans/reports/{skill-name}-{YYMMDD}-{HHmm}-{slug}.md`
 

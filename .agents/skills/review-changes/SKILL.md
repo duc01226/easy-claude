@@ -453,7 +453,7 @@ Spawn a **Synthesis Agent** as Round 2. Purpose: catch cross-boundary issues ind
 When constructing Agent call prompt:
 
 1. Copy Agent call shape from `SYNC:review-protocol-injection` template verbatim, `agent_type: "code-reviewer"`
-2. Embed all 10 universal SYNC blocks verbatim
+2. Embed all 11 universal SYNC blocks verbatim
 3. Set Task as:
 
     ```
@@ -520,7 +520,7 @@ For each changed file, identify related documentation:
 - Flag missing docs for new features or components that should be documented
 - **Flag in the report** with the specific stale section and what changed. Do not fix yet; Phase 6 must validate the finding before Phase 7 invokes `$docs-update` or applies doc edits.
 
-**Spec Drift Adjudication (REQUIRED when behavior changed):** Apply `SYNC:spec-drift-adjudication`. For every behavior-bearing change, compare it against the canonical Feature Spec under `docs/specs/` and classify any divergence as **CODE-WRONG** (change violates an intended spec rule/AC/invariant → BLOCKING finding, fix code/test), **SPEC-STALE** (intentional behavior change the spec no longer reflects → route to `$spec [update]` + `$spec [mode=tests] [update]`), or **AMBIGUOUS** (a direct user question before editing either side). Record the verdict per changed behavior (`Spec in sync` when no divergence). Do not normalize drift just because code/tests pass. This is the bidirectional generalization of the post-bugfix "Was spec wrong?" check — it runs for ALL behavior-changing reviews, not only post-bugfix. Flag findings here; Phase 6 validates and Phase 7 fixes (CODE-WRONG fixes route through the fix loop; SPEC-STALE fixes route to the canonical spec updater before `$docs-update`).
+**Spec Drift Adjudication (REQUIRED when behavior changed):** Apply `SYNC:spec-drift-adjudication`. For every behavior-bearing change, compare it against the canonical Feature Spec under `docs/specs/` and classify any divergence as **CODE-WRONG** (change violates an intended spec rule/AC/invariant → BLOCKING finding, fix code/test), **SPEC-STALE** (intentional behavior change the spec no longer reflects → route to `$spec [update]` + `$spec [mode=tests] [update]`), **AMBIGUOUS** (a direct user question before editing either side), or **SPEC-SILENT** (code correctly enforces an invariant no spec artifact states → ENRICH: add the §4 BR/§3 AC + a §8 TC via `$spec [update]` + `$spec [mode=tests]`, then a guarding test). Record the verdict per changed behavior (`Spec in sync` when no divergence). Do not normalize drift just because code/tests pass. This is the bidirectional generalization of the post-bugfix "Was spec wrong?" check — it runs for ALL behavior-changing reviews, not only post-bugfix. Flag findings here; Phase 6 validates and Phase 7 fixes (CODE-WRONG fixes route through the fix loop; SPEC-STALE and SPEC-SILENT fixes route to the canonical spec updater before `$docs-update`).
 
 **Correctness & Bug Detection:** Apply `SYNC:bug-detection` — null safety, boundaries, error handling, resource cleanup, concurrency.
 
@@ -579,7 +579,7 @@ Update report with final sections (**MUST ATTENTION** — include every section 
 - High Priority (should fix)
 - Architecture Recommendations
 - Documentation Staleness (list stale docs with what changed, or "No doc updates needed")
-- Spec Drift Adjudication (per behavior-changing file: CODE-WRONG / SPEC-STALE / AMBIGUOUS / `Spec in sync`, with the routed fix; or "No behavior change — N/A")
+- Spec Drift Adjudication (per behavior-changing file: CODE-WRONG / SPEC-STALE / AMBIGUOUS / SPEC-SILENT / `Spec in sync`, with the routed fix; or "No behavior change — N/A")
 - Dual-Feedback Ledger (REQUIRED — see below; or "No behavior change — N/A")
 - Positive Observations
 - Suggested commit message (based on changes)
@@ -593,6 +593,7 @@ Update report with final sections (**MUST ATTENTION** — include every section 
 > - **A blank cell on EITHER axis = FAIL.** "N/A" alone is not allowed — every N/A must carry its reason inline (e.g. `N/A — CODE-WRONG: canonical spec already describes the correct behavior, so no spec edit; only the regression TC is owed`).
 > - **CODE-WRONG** finding → Spec feedback is typically `N/A — spec correct`, Test feedback is REQUIRED (`regression TC first`, per `SYNC:spec-drift-adjudication`).
 > - **SPEC-STALE** finding → BOTH cells are non-N/A: Spec feedback = `$spec [update]` then `$spec [mode=tests]`; Test feedback = the new/updated TC + guarding test.
+> - **SPEC-SILENT** finding (code correctly enforces an invariant the spec never states) → BOTH cells are non-N/A: Spec feedback = add the missing §4 BR / §3 AC (+ §5 invariant if applicable) and a §8 TC via `$spec [update]` + `$spec [mode=tests]`; Test feedback = the new property/regression test guarding the now-written invariant. The highest-value capture — never leave a discovered invariant only in code or only in tests.
 > - **Covered-but-stale TC** (Gate 7 SPEC-GAP routed by `$integration-test-review` — its Gate 7 classifies a TC that exists but no longer describes current behavior as a SPEC-GAP, not a satisfied coverage row): Spec feedback = correct the stale §8 TC via `$spec [mode=tests] [update]`; Test feedback = update the guarding test to the corrected TC.
 > - This ledger is itself an ordinary finding set: it consolidates here (Phase 4), is validated in Phase 6 (`$why-review --validate-findings` confirms BOTH axes are present for each behavior change), and its owed spec/test actions are applied in Phase 7. A ledger row with a blank axis that survives to Phase 7 = the review is INCOMPLETE.
 
@@ -694,7 +695,7 @@ For bugfix, failed-verification, stale/incorrect final output, regression, or be
 - New feature/component added → flag if corresponding doc missing
 - Test specs reflect current behavior after changes
 - API changes reflected in relevant API docs or specs
-- **Spec-drift adjudication** (`SYNC:spec-drift-adjudication`): for every behavior-changing file, decide whether a divergence from the canonical Feature Spec is CODE-WRONG (change is the defect — BLOCKING, fix code/test), SPEC-STALE (change is intended — update spec via `$spec [update]` first), or AMBIGUOUS (intended behavior unclear — a direct user question before editing either side). Do not flag a divergence as a one-directional "stale doc" without naming which side is canonical. Unadjudicated behavior-vs-spec divergence is a FAIL.
+- **Spec-drift adjudication** (`SYNC:spec-drift-adjudication`): for every behavior-changing file, decide whether a divergence from the canonical Feature Spec is CODE-WRONG (change is the defect — BLOCKING, fix code/test), SPEC-STALE (change is intended — update spec via `$spec [update]` first), AMBIGUOUS (intended behavior unclear — a direct user question before editing either side), or SPEC-SILENT (code correctly enforces an invariant no spec artifact states — enrich: add §4 BR/§3 AC + §8 TC + guarding test). Do not flag a divergence as a one-directional "stale doc" without naming which side is canonical. Unadjudicated behavior-vs-spec divergence is a FAIL; an unwritten-but-enforced invariant left uncaptured is equally a FAIL.
 
 ### 8. M1-M6 Compliance Gate — Code-to-Spec Drift (BLOCKING, MUST ATTENTION)
 
@@ -735,7 +736,7 @@ Provide feedback in this format:
 
 **Spec Drift Adjudication:** (Behavior-changing changes only — per `SYNC:spec-drift-adjudication`)
 
-- `<behavior/file>` → CODE-WRONG | SPEC-STALE | AMBIGUOUS — verdict + routed fix (`$spec [update]`, regression TC, or a direct user question)
+- `<behavior/file>` → CODE-WRONG | SPEC-STALE | AMBIGUOUS | SPEC-SILENT — verdict + routed fix (`$spec [update]`, regression TC, a direct user question, or enrich-spec: add §4 BR/§3 AC + §8 TC + guarding test)
 - `Spec in sync` — if changed behavior matches the canonical Feature Spec
 - `No behavior change — N/A` — if the diff is docs/tooling/style only
 
@@ -882,11 +883,11 @@ If `architectureRules` not present in project-config.json, skip silently.
 
 1. Set the `[Review Phase 8]` task to `in_progress`.
 2. **Invoke `$docs-update`** over the FULL changeset (the Phase 1 diff source plus any Phase 7 fixes). Let it detect impacted docs from the changes — feature docs, architecture references, READMEs, API docs, test specs, setup/getting-started guides.
-3. If the Phase 4 Spec Drift Adjudication (`SYNC:spec-drift-adjudication`) returned any **SPEC-STALE** verdict — the canonical Feature Spec no longer reflects the intended behavior (includes the post-bugfix case where the spec documents the bug as correct behavior) — run `$spec [update]` BEFORE `$docs-update` so the spec is corrected to intended behavior first. Never let `$docs-update` codify broken or superseded behavior. CODE-WRONG verdicts are NOT a spec edit — they were already fixed in the Phase 7 code-fix loop.
+3. If the Phase 4 Spec Drift Adjudication (`SYNC:spec-drift-adjudication`) returned any **SPEC-STALE** verdict — the canonical Feature Spec no longer reflects the intended behavior (includes the post-bugfix case where the spec documents the bug as correct behavior) — run `$spec [update]` BEFORE `$docs-update` so the spec is corrected to intended behavior first. Never let `$docs-update` codify broken or superseded behavior. CODE-WRONG verdicts are NOT a spec edit — they were already fixed in the Phase 7 code-fix loop. Any **SPEC-SILENT** verdict — an invariant the code already enforces but no spec artifact states — is an ENRICHMENT: run `$spec [update]` (add the §4 BR/§3 AC) + `$spec [mode=tests]` (add the §8 TC) BEFORE `$docs-update`, then ensure a guarding test exists; never leave the discovered invariant unwritten.
 4. Record applied doc updates (or `No impacted docs — verified N changed files against related docs`) under `## Phase 8 Docs-Update` in the review report.
 5. Set the `[Review Phase 8]` task to `completed`.
 
-**Termination guarantee:** Phase 8 doc edits are docs-only and do NOT re-trigger the full Phase 0 code-review loop (no code behavior changed). They ARE subject to the M1-M6 spec-drift check (Review Checklist §8) and a final read-back. This keeps the skill terminating instead of looping review↔docs forever.
+**Termination guarantee:** Distinguish two edit kinds in Phase 8. **Docs PROSE edits** (narrative/reference doc text, no new spec rule) do NOT re-trigger the loop (no code behavior changed); they ARE subject to the M1-M6 spec-drift check (Review Checklist §8) and a final read-back — termination preserved. **SPEC-CONTENT edits** — a newly WRITTEN spec rule (a SPEC-SILENT invariant promoted to §3/§4/§8, or a SPEC-STALE correction that changes documented intent) — trigger exactly ONE bounded, module-scoped re-review of the whole package (spec + tests + code for the affected module) against the enriched spec, to confirm the newly-written rule is actually enforced in code and guarded by a test, and to surface any further hidden rule. That single bounded pass terminates unless it itself produces a new validated finding (which then enters the normal loop). Termination stays guaranteed: the bounded pass is module-scoped and runs at most once per enrichment — not a full Phase-0 restart — and a clean bounded pass ends the skill. This converts enrichment from "fires once at the end, never rechecked" into "fires, then gets one convergence pass," instead of looping review↔docs forever.
 
 > **MANDATORY:** Never declare the review complete or hand off until Phase 8 has run (or been explicitly deferred to the parent workflow). A passing review with skipped docs-update is an INCOMPLETE review.
 
@@ -957,6 +958,7 @@ review-changes (you are here)
   │    → CODE-WRONG (change violates an intended spec rule/AC/invariant) → [REQUIRED] BLOCKING finding; fix code/test (regression TC first)
   │    → SPEC-STALE (intentional new behavior the spec no longer reflects) → [REQUIRED] $spec [update] BEFORE $docs-update, then $spec [mode=tests] [update]
   │    → AMBIGUOUS → [REQUIRED] ask the user directly (or canonical spec owner) before editing either side
+  │    → SPEC-SILENT (code enforces a correct invariant the spec never states) → [REQUIRED] enrich: $spec [update] add §4 BR/§3 AC + $spec [mode=tests] add §8 TC, then guarding test
   │    Bugfix sub-case: if post-bugfix AND spec documents the bug as expected behavior → SPEC-STALE; never let $docs-update codify broken behavior.
   │    Never normalize drift just because code/tests are green.
   │
@@ -967,7 +969,8 @@ review-changes (you are here)
   │
   ├─ Phase 8: [MANDATORY FINAL after zero findings] → $docs-update over the full changeset
   │    → ALWAYS runs (unconditional) — syncs every impacted doc so none stay stale
-  │    → docs-only edits; M1-M6 check + read-back, NO full code re-review (guarantees termination)
+  │    → docs PROSE edits (no new spec rule); M1-M6 check + read-back, NO full code re-review (guarantees termination)
+  │    → SPEC-CONTENT edits (a newly written spec rule — SPEC-SILENT promoted to §3/§4/§8, or a SPEC-STALE correction changing documented intent) → exactly ONE bounded, module-scoped re-review of the affected module's package (spec + tests + code) to confirm the new rule is enforced in code + guarded by a test; that single pass terminates unless it itself yields a new validated finding (then normal loop). At most once per enrichment, never a full Phase-0 restart.
   │    → A passing review with skipped docs-update is an INCOMPLETE review
   │
   └─ [RECOMMENDED after Phase 8] → $watzup
@@ -1239,9 +1242,9 @@ review-changes (you are here)
 
 <!-- SYNC:review-protocol-injection -->
 
-> **Review Protocol Injection** — Every fresh sub-agent review prompt MUST embed 10 protocol blocks VERBATIM. The template below has ALL 10 bodies already expanded inline. Copy the template wholesale into the Agent call's `prompt` field at runtime, replacing only the `{placeholders}` in Task / Round / Reference Docs / Target Files / Output sections with context-specific values. Do NOT touch the embedded protocol sections.
+> **Review Protocol Injection** — Every fresh sub-agent review prompt MUST embed 11 protocol blocks VERBATIM. The template below has ALL 11 bodies already expanded inline. Copy the template wholesale into the Agent call's `prompt` field at runtime, replacing only the `{placeholders}` in Task / Round / Reference Docs / Target Files / Output sections with context-specific values. Do NOT touch the embedded protocol sections.
 >
-> **Why inline expansion:** Placeholder markers would force file-read indirection at runtime. AI compliance drops significantly behind indirection (see `SYNC:shared-protocol-duplication-policy`). Therefore the template carries all 10 protocol bodies pre-embedded.
+> **Why inline expansion:** Placeholder markers would force file-read indirection at runtime. AI compliance drops significantly behind indirection (see `SYNC:shared-protocol-duplication-policy`). Therefore the template carries all 11 protocol bodies pre-embedded.
 
 ### Subagent Type Selection
 
@@ -1262,6 +1265,17 @@ spawn_agent({
 Round {N}. You have ZERO memory of prior rounds. Re-read all target files from scratch via your own tool calls. Do NOT trust anything from the main agent beyond this prompt.
 
 ## Protocols (follow VERBATIM — these are non-negotiable)
+
+### Spec ↔ Tests ↔ Code Triangulation
+DO THIS FIRST — before any per-protocol check below. The review target is the WHOLE PACKAGE, not the diff alone: load the behavior's spec (§3 ACs / §4 BRs / §8 TCs), its tests, and the changed code TOGETHER, and reason about their mutual consistency BEFORE judging any one in isolation.
+1. Locate all three faces: the Feature Spec section(s) governing the changed behavior, the tests that guard it, and the production code that implements it. A missing face is itself a finding (SPEC-GAP / TEST-GAP / DEAD-SPEC).
+2. Triangulate pairwise — every disagreement is a finding; classify which face is wrong:
+   - code vs spec: behavior the code does that no §3/§4/§8 rule describes → CODE-EXTRA or SPEC-STALE; a [HARD] §4 rule or §5 invariant with no enforcing code path → CODE-WRONG.
+   - tests vs spec: a §8 TC with no test, or a test asserting behavior no TC/rule names → TEST-GAP or SPEC-SILENT.
+   - tests vs code: a changed code path with no covering test → TEST-GAP; a test that still passes against a deliberately broken invariant → WEAK-TEST (apply the mutation thinking in Bug Detection).
+3. Hidden-rule capture: any invariant the code enforces but the spec never states (SPEC-SILENT) MUST be surfaced as a finding to add into §3/§4/§8 AND guarded with a test — the enrichment loop, never a silent pass.
+4. Only after the three faces agree — or every disagreement is logged as a finding — proceed to the per-protocol checks below; when enrichment adds spec/test content, re-review the package against the enriched spec.
+NEVER mark review PASS while any spec/test/code face disagrees without a logged finding. The diff is the entry point; the package is the unit of judgment.
 
 ### Evidence-Based Reasoning
 Speculation is FORBIDDEN. Every claim needs proof.
@@ -1392,7 +1406,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 ### Rules
 
-- DO copy the template wholesale — including all 10 embedded protocol sections
+- DO copy the template wholesale — including all 11 embedded protocol sections
 - DO replace only the `{placeholders}` in Task / Round / Reference Docs / Target Files / Output sections with context-specific content
 - DO choose `code-reviewer` agent_type for code reviews and `general-purpose` for plan / doc / artifact reviews
 - DO NOT paraphrase, summarize, or skip any protocol section
@@ -1591,9 +1605,10 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 >    - **CODE-WRONG** — the spec correctly states intended behavior and the change violates it → BLOCKING finding; fix the code/test against intended behavior (write/adjust a regression TC first).
 >    - **SPEC-STALE** — the change is the new intended behavior and the spec now documents the old/wrong behavior → update the spec FIRST via `$spec [mode=update]`, then sync `$spec [mode=tests]` + `$spec [mode=sync]`.
 >    - **AMBIGUOUS** — intended behavior is unclear → a direct user question (or the canonical spec owner) before editing either side.
+>    - **SPEC-SILENT** — the code correctly enforces an invariant/behavior that NO canonical spec artifact (§3 AC, §4 BR, §5 invariant, §8 TC) states → not drift but an UNWRITTEN rule discovered by review. ENRICH the spec via the **Invariant Harvest** pass (`$spec [mode=sync] direction=harvest` → `spec/references/sync.md`): prove it is always-true (≥2 enforcement points or a rejecting guard), express it as a universally-quantified property, then add the rule to §4 (or §3/§5) AND a §8 TC via `$spec [update]` + `$spec [mode=tests]` and add the guarding test. A discovered invariant left only in code (or only in tests) is INCOMPLETE — this is the highest-value capture (the rule nobody wrote down).
 > 3. **Never normalize drift just because code/tests are green** — green can encode the drift itself. Reconcile to canonical intent, never to whichever side currently passes.
 >
-> A behavior-changing review/implementation that leaves a spec divergence unadjudicated is INCOMPLETE.
+> A behavior-changing review/implementation that leaves a spec divergence unadjudicated is INCOMPLETE; an unwritten-but-enforced invariant left uncaptured (no §4/§8 entry) is equally INCOMPLETE.
 
 <!-- /SYNC:spec-drift-adjudication -->
 

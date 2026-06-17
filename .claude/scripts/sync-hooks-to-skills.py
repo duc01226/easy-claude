@@ -17,14 +17,21 @@ Tiered blocks (agents):
     - SYNC:evidence-based-reasoning
     - SYNC:cross-service-check
     - SYNC:fix-layer-accountability
+  Readonly-Code-8 (Core-6 + 2, for read-only/design agents in READONLY_CODE_AGENTS):
+    - SYNC:understand-code-first
+    - SYNC:evidence-based-reasoning
+    (EXCLUDES cross-service-check + fix-layer-accountability — those two are
+    mutation-oriented and waste tokens on agents that only locate/read/design
+    code and never fix at a layer or cross a service boundary.)
   agent-code-standards (gated INDEPENDENTLY by CODE_STANDARDS_AGENTS — NOT the
   same set as CODE_AGENTS): dev-rules + coding-pattern pointers for agents that
   write/modify/review/debug/optimize/test code. Appended on top of whichever tier
   (Core or Code) the agent already has. Non-code-standards agents never receive it.
 Skills keep the original 2-block SKILL_BLOCK_ORDER (no skills regression).
 
-Agent tier is set by explicit CODE_AGENTS / CORE_ONLY_AGENTS membership; an
-unclassified or double-classified agent raises (no silent default).
+Agent tier is set by explicit CODE_AGENTS / READONLY_CODE_AGENTS /
+CORE_ONLY_AGENTS membership; an agent in none of the three sets (or in more than
+one) raises (no silent default).
 agent-code-standards membership (CODE_STANDARDS_AGENTS) is a SEPARATE axis: an
 agent can be in CODE_AGENTS (code-investigation tier) yet NOT in
 CODE_STANDARDS_AGENTS (e.g. researcher/scout/ui-ux-designer read or locate code
@@ -294,15 +301,32 @@ CODE_BLOCK_ORDER = CORE_BLOCK_ORDER + [
     "fix-layer-accountability",
 ]
 
+# Readonly-Code-8: Core-6 + understand-code-first + evidence-based-reasoning for
+# read-only/design agents that locate/read/design code but never fix a layer or
+# cross a service boundary. EXCLUDES cross-service-check + fix-layer-accountability
+# (mutation-oriented — over-propagating them to these agents wastes tokens).
+READONLY_CODE_BLOCK_ORDER = CORE_BLOCK_ORDER + [
+    "understand-code-first",
+    "evidence-based-reasoning",
+]
+
 # Explicit tier membership by agent basename. find_target_files() raises on any
-# agent in neither set (or both) — no silent default. Mirrors the regression
-# test's completeness assertion so tooling + test enforce one invariant.
+# agent in none of the three sets (or in more than one) — no silent default.
+# Mirrors the regression test's completeness assertion so tooling + test enforce
+# one invariant.
 CODE_AGENTS = {
     "architect", "backend-developer", "code-reviewer", "code-simplifier",
     "database-admin", "debugger", "e2e-runner", "framework-maintainer", "frontend-developer",
     "fullstack-developer", "integration-tester", "performance-optimizer",
-    "planner", "researcher", "scout", "scout-external", "security-auditor",
-    "solution-architect", "spec-compliance-reviewer", "tester", "ui-ux-designer",
+    "planner", "security-auditor",
+    "solution-architect", "spec-compliance-reviewer", "tester",
+}
+# Read-only/design agents: full code-investigation reading discipline
+# (understand-code-first + evidence-based-reasoning) but NOT the mutation-oriented
+# cross-service-check + fix-layer-accountability blocks — they locate/read/design
+# code, they do not fix at a layer or evaluate a service-boundary change.
+READONLY_CODE_AGENTS = {
+    "researcher", "scout", "scout-external", "ui-ux-designer",
 }
 CORE_ONLY_AGENTS = {
     "business-analyst", "docs-manager", "git-manager", "journal-writer",
@@ -341,21 +365,31 @@ def find_target_files(agents_only=False):
     for path in sorted(glob_module.glob(agents_pattern)):
         name = os.path.splitext(os.path.basename(path))[0]
         in_code = name in CODE_AGENTS
+        in_readonly = name in READONLY_CODE_AGENTS
         in_core = name in CORE_ONLY_AGENTS
-        if in_code and in_core:
+        # Exactly one tier per agent — no silent default, no double-classify.
+        tier_count = in_code + in_readonly + in_core
+        if tier_count > 1:
             raise SystemExit(
-                f"Agent '{name}' is in BOTH CODE_AGENTS and CORE_ONLY_AGENTS - "
+                f"Agent '{name}' is in MORE THAN ONE tier set "
+                f"(CODE_AGENTS / READONLY_CODE_AGENTS / CORE_ONLY_AGENTS) - "
                 f"put it in exactly one (edit {os.path.basename(__file__)})."
             )
-        if not in_code and not in_core:
+        if tier_count == 0:
             raise SystemExit(
-                f"Unclassified agent: '{name}' - add it to CODE_AGENTS or "
-                f"CORE_ONLY_AGENTS (edit {os.path.basename(__file__)})."
+                f"Unclassified agent: '{name}' - add it to CODE_AGENTS, "
+                f"READONLY_CODE_AGENTS, or CORE_ONLY_AGENTS "
+                f"(edit {os.path.basename(__file__)})."
             )
         # Build a fresh list per agent (never mutate the shared *_BLOCK_ORDER
         # constants). agent-code-standards is gated on the SEPARATE
         # CODE_STANDARDS_AGENTS axis and appended for code-standards agents only.
-        order = list(CODE_BLOCK_ORDER if in_code else CORE_BLOCK_ORDER)
+        if in_code:
+            order = list(CODE_BLOCK_ORDER)
+        elif in_readonly:
+            order = list(READONLY_CODE_BLOCK_ORDER)
+        else:
+            order = list(CORE_BLOCK_ORDER)
         if name in CODE_STANDARDS_AGENTS:
             order.append("agent-code-standards")
         targets.append((path, order))

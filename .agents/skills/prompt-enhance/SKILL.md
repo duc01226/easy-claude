@@ -433,7 +433,7 @@ For each `.claude/` protocol reference:
 > **Scope rules:**
 >
 > - `.claude/` protocol files → always add an inline summary (stable, belongs to framework)
-> - `docs/project-reference/` files → NO inline summary (project-specific).
+> - `docs/project-reference/` files → NO inline summary (project-specific). Add: `(Claude may inject this via hooks; Codex must open this file directly using docs-index routing)`
 >
 > ### Transform 2: Top Summary Section
 >

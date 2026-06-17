@@ -8,6 +8,8 @@ description: '[Skill Management] Use when shared protocol checklists change and 
 
 **Goal:** Two operations — (A) propagate updated content for existing SYNC: blocks across all skills, or (B) add a new SYNC: block to all skill/agent files that don't have it yet.
 
+> **Renamed:** formerly `/sync-protocols` — that name no longer resolves as a slash command; use `/sync-skills-shared-protocols`.
+
 **Canonical source:** `.claude/skills/shared/sync-inline-versions.md`
 
 ## Workflow
@@ -73,7 +75,7 @@ Report:
 
 ### Operation B: Add a New Block to All Files
 
-Use when a NEW SYNC: block needs to be inserted into all 288 skill/agent files that don't have it yet. This is a bulk-insert operation — not a content-update.
+Use when a NEW SYNC: block needs to be inserted into all 183 skill/agent files that don't have it yet. This is a bulk-insert operation — not a content-update.
 
 **When to use:** A new protocol rule is added to hooks (`prompt-injections.cjs`) and should also appear in all skills/agents as a fallback for hook-less environments.
 
@@ -128,19 +130,32 @@ REMINDERS = {
 # Skills keep the original 2-block set — do NOT add agent-only rules here.
 SKILL_BLOCK_ORDER = ["critical-thinking-mindset", "ai-mistake-prevention"]
 
-# Core-5: every agent (skills/SKILL.md is unaffected).
+# Core-6: every agent (skills/SKILL.md is unaffected).
 CORE_BLOCK_ORDER = ["critical-thinking-mindset", "ai-mistake-prevention",
                     "sequential-thinking-protocol", "task-tracking-external-report",
-                    "project-reference-docs-guide"]
+                    "project-reference-docs-guide", "agent-bootstrap"]
 
-# Code-9: Core-5 + code-investigation blocks, for agents that read/review code.
+# Code-10: Core-6 + code-investigation blocks, for agents that read/review AND fix code.
 CODE_BLOCK_ORDER = CORE_BLOCK_ORDER + ["understand-code-first", "evidence-based-reasoning",
                                        "cross-service-check", "fix-layer-accountability"]
+
+# Readonly-Code-8: Core-6 + reading-discipline blocks only, for read-only/design
+# agents that locate/read/design code but never fix a layer or cross a service
+# boundary (excludes the two mutation-oriented blocks).
+READONLY_CODE_BLOCK_ORDER = CORE_BLOCK_ORDER + ["understand-code-first", "evidence-based-reasoning"]
 ```
 
-**Agent tiering (added 2026-06):** agents no longer share one block list. `find_target_files()` classifies each `.claude/agents/*.md` by explicit membership in `CODE_AGENTS` (20 code/review agents → `CODE_BLOCK_ORDER`) or `CORE_ONLY_AGENTS` (8 non-code agents → `CORE_BLOCK_ORDER`). An agent in **neither set (or both)** raises `SystemExit` — no silent default; classify it before the script will run. Skills always use `SKILL_BLOCK_ORDER`. Pass `--agents-only` to scope a run to agents (skip skills).
+**Agent tiering:** agents no longer share one block list. `find_target_files()` classifies each `.claude/agents/*.md` by explicit membership in one of three sets:
 
-> **Adding a new agent:** add its basename to exactly one of `CODE_AGENTS` / `CORE_ONLY_AGENTS` in `sync-hooks-to-skills.py` **and** in the regression suite `.claude/hooks/tests/suites/agent-universal-rules.test.cjs` (TC-UAR-005 fails until both agree). The two enforce one invariant.
+- `CODE_AGENTS` (17 code/review/fix agents → `CODE_BLOCK_ORDER`, Code-10).
+- `READONLY_CODE_AGENTS` (4 read-only/design agents — `researcher`, `scout`, `scout-external`, `ui-ux-designer` → `READONLY_CODE_BLOCK_ORDER`, Core-6 + understand-code-first + evidence-based-reasoning; the mutation-oriented `cross-service-check` + `fix-layer-accountability` are deliberately excluded to save tokens on agents that only locate/read/design code).
+- `CORE_ONLY_AGENTS` (8 non-code agents → `CORE_BLOCK_ORDER`, Core-6).
+
+An agent in **none of the three sets (or in more than one)** raises `SystemExit` — no silent default; classify it before the script will run. Skills always use `SKILL_BLOCK_ORDER`. Pass `--agents-only` to scope a run to agents (skip skills).
+
+> **Adding a new agent:** add its basename to exactly one of `CODE_AGENTS` / `READONLY_CODE_AGENTS` / `CORE_ONLY_AGENTS` in `sync-hooks-to-skills.py` **and** in the regression suite `.claude/hooks/tests/suites/agent-universal-rules.test.cjs` (TC-UAR-005 fails until both agree). The two enforce one invariant.
+>
+> **Note — the inserter is insert-only.** Moving an agent from CODE to READONLY_CODE (or otherwise dropping a block from its tier) does NOT remove the now-excess SYNC block from its `.md` on disk — `process_file` only inserts missing blocks. Strip the excess block(s) from the agent `.md` source by hand (or a scoped one-off) so the regression suite's tier assertions pass.
 
 #### Step B3: Run the script (dry-run first)
 
@@ -149,20 +164,21 @@ python .claude/scripts/sync-hooks-to-skills.py --dry-run --verbose
 # Verify: expected N updated, 0 errors
 
 python .claude/scripts/sync-hooks-to-skills.py --verbose
-# Verify: 288 updated (or close — some may already have it → skip)
+# Verify: 183 updated (or close — some may already have it → skip)
 ```
 
 #### Step B4: Verify
 
 ```bash
 # Confirm target files now contain the new block. Expected count is TIER-AWARE:
-#   - block in SKILL_BLOCK_ORDER  → all skills + all agents
-#   - block in CORE_BLOCK_ORDER   → all 28 agents (skills excluded)
-#   - block in CODE_BLOCK_ORDER   → 21 code agents only
+#   - block in SKILL_BLOCK_ORDER          → all skills + all agents
+#   - block in CORE_BLOCK_ORDER           → all 29 agents (skills excluded)
+#   - block in READONLY_CODE_BLOCK_ORDER  → 21 agents (17 code + 4 readonly-code)
+#   - block in CODE_BLOCK_ORDER           → 17 code agents only
 grep -rl "SYNC:new-block-name" .claude/skills/*/SKILL.md .claude/agents/*.md | wc -l
 
 # Then run the agent-coverage regression suite — it asserts tier membership,
-# disjointness, and SYNC tag balance across all 28 agents.
+# disjointness, and SYNC tag balance across all 29 agents.
 node .claude/hooks/tests/run-all-tests.cjs --filter=agent-universal
 ```
 

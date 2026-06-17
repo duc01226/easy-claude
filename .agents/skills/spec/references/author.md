@@ -669,12 +669,18 @@ Each rule group MUST include `[Source: rule/{service}/{RuleName}]`:
 ```markdown
 ### BR-{MOD}-01: {Rule Group Name}
 
-| Field/Operation | Rule         | Error Condition | Error Message      |
-| --------------- | ------------ | --------------- | ------------------ |
-| {field}         | {constraint} | {when violated} | {message constant} |
+| Field/Operation | Rule         | Error Condition | Error Message      | Strength |
+| --------------- | ------------ | --------------- | ------------------ | -------- |
+| {field}         | {constraint} | {when violated} | {message constant} | [HARD]/[SOFT] |
+
+**Invariant (universal form):** for ALL {inputs in domain}, {the rule holds} — e.g. "for ALL line items, amount ≥ 0".
 
 [Source: rule/{service}/{RuleName}]
 ```
+
+> **[Universal-quantification — author rules as properties, not just rows]** The field→rule→error table records a rule at a *point* (one field, one violation). For every **[HARD]** rule, ALSO state it once in universal form — "for ALL {inputs in domain}, {invariant} holds" — directly under the table. This is not ceremony: the §8 Invariant/Property TC (`spec [mode=tests]`) and the Pattern 9 property test (`integration-test`) are derived **verbatim** from this universal statement (it becomes the TC's `inputDomain` + `invariant`). A rule with no universal form forces the test author to re-derive it (or skip it), which is exactly how a [HARD] rule ends up guarded by two hand-picked examples instead of a property.
+
+> **[SOFT→HARD challenge — run for EVERY [SOFT] tag before finalizing §4]** Strength is not free-choice. For each rule you are tempted to tag `[SOFT]`, ask: *does violating it corrupt data, breach authorization/tenant isolation, lose money, or break a §5 entity invariant?* If **yes to any → it is `[HARD]`.** Under-tagging is silent and dangerous: the invariant-coverage gate counts `[HARD]` rules (`spec [mode=tests]` → property-TC count ≥ count([HARD] BR) + count(§5 invariants)), so a mis-tagged `[SOFT]` rule passes the gate with **zero** property TCs and ships unguarded across its input space. When a [SOFT] tag survives the challenge, that is a deliberate decision — record the one-line reason it cannot corrupt state.
 
 ---
 
@@ -769,7 +775,7 @@ Flag items requiring implementation assumptions:
 
 If >3 INCOMPLETE items → HALT, present gap list via ask the user directly before completing.
 
-_Reference: `docs/project-reference/spec-principles.md` Section 4 (AI-Implementability Checklist)._
+_Reference: `.claude/skills/shared/sdd-artifact-contract.md` → "AI-Implementability Gate" (and mandate M4) for the AI-implementability criteria. `docs/project-reference/spec-principles.md` carries only repo-local prose/evidence rules._
 
 ### M5 — Rebuild-From-Scratch Test
 
