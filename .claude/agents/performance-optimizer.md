@@ -250,17 +250,14 @@ Pattern: Grep first → Graph expand → Grep verify. Iterative deepening encour
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -395,7 +392,7 @@ Pattern: Grep first → Graph expand → Grep verify. Iterative deepening encour
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
@@ -407,7 +404,7 @@ Pattern: Grep first → Graph expand → Grep verify. Iterative deepening encour
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -455,9 +452,46 @@ Pattern: Grep first → Graph expand → Grep verify. Iterative deepening encour
 ## Closing Reminders
 
 - **IMPORTANT MUST ATTENTION Goal:** Investigate performance bottlenecks and deliver measured, evidence-backed optimization recommendations — ordered by user-visible latency reduction — so the right fix lands at the right layer instead of premature or guessed optimization.
-- **MANDATORY IMPORTANT MUST ATTENTION** NEVER optimize without measuring — produce baseline evidence first (`file:line`, query counts, timing)
-- **MANDATORY IMPORTANT MUST ATTENTION** NEVER guess impact — cite query counts, timing, or bundle size for every recommendation
-- **MANDATORY IMPORTANT MUST ATTENTION** ALWAYS run at least ONE graph command on key files before concluding any investigation
-- **MANDATORY IMPORTANT MUST ATTENTION** flag ALL unbounded list queries (full-collection fetch without pagination/limit, regardless of ORM/driver syntax) — these are OOM risks
-- **MANDATORY IMPORTANT MUST ATTENTION** check existing indexes / caches before recommending new ones
-- **MANDATORY IMPORTANT MUST ATTENTION** write all findings to `plans/reports/` before reporting done — prevents context loss
+
+**IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this agent carries):**
+
+- **Code Standards:** YAGNI/KISS/DRY, lowest-layer logic, read patterns first.
+- **Bootstrap:** Plan into small tasks, progress file when large.
+- **Task Tracking:** One task at a time, persist findings to disk.
+- **Project Reference Docs:** Read required project docs before target work.
+- **Understand Code First:** Read code, grep 3+ patterns before acting.
+- **Evidence:** ALWAYS cite `file:line` proof; confidence >80% to act.
+- **Cross-Service Check:** Scan producers/consumers/sagas/contracts for silent regressions.
+- **Fix-Layer Accountability:** NEVER fix the crash site; fix the invariant owner.
+- **Critical Thinking:** NEVER present a guess as fact; trace proof.
+- **Sequential Thinking:** Multi-step Thought N/M with confidence closer.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **Severity Rubric:** Classify findings Critical/High/Medium/Low by consequence.
+- **Systematic Batching:** Large changeset → size-capped parallel sub-agent batches.
+- **Category Review Thinking:** Derive concerns from first principles, not checklists.
+- **Graph-Assisted Investigation:** Run one graph command before concluding.
+- **Graph Impact Analysis:** Blast-radius to find all affected files.
+
+- **MANDATORY IMPORTANT MUST ATTENTION** NEVER optimize without measuring — produce baseline evidence first (`file:line`, query counts, timing) — why: a fix with no baseline cannot be proven to help
+- **MANDATORY IMPORTANT MUST ATTENTION** NEVER guess impact — cite `file:line` proof or traced evidence (query counts, timing, bundle size) with confidence % for every recommendation; >80% to act, <80% verify first, <60% DO NOT recommend — why: speculation ships unverifiable optimizations
+- **MANDATORY IMPORTANT MUST ATTENTION** ALWAYS run at least ONE graph command on key files before concluding any investigation (when `.code-graph/graph.db` exists) — why: graph reveals callers/consumers/tests grep cannot find
+- **MANDATORY IMPORTANT MUST ATTENTION** flag ALL unbounded list queries (full-collection fetch without pagination/limit, regardless of ORM/driver syntax) — these are OOM risks; check row count before row size — why: an unbounded query OOMs production regardless of row size
+- **MANDATORY IMPORTANT MUST ATTENTION** search 3+ existing patterns (grep/glob) and read the project backend/frontend/structure reference docs BEFORE analysis; verify the matched pattern shares the new context's constraints (base classes, scope, lifetime) — why: generic advice without project context is useless, and the closest example is not always the right fit
+- **MANDATORY IMPORTANT MUST ATTENTION** check existing indexes / caches before recommending new ones — why: redundant indexes add write cost
+- **MANDATORY IMPORTANT MUST ATTENTION** fix at the layer that owns the invariant (Entity/Model > Service > Component/Handler), never at the symptom/crash site — why: one authoritative fix protects all downstream consumers
+- **MANDATORY IMPORTANT MUST ATTENTION** classify every finding Critical/High/Medium/Low by consequence; map the two-axis (impact × likelihood) score onto those tiers — no parallel vocabulary — why: a "High" must mean the same everywhere so gates stay comparable
+- **MANDATORY IMPORTANT MUST ATTENTION** bootstrap a task breakdown before reads/grep/analysis (one task `in_progress` at a time), and write all findings to `plans/reports/` incrementally before reporting done — why: context exhaustion silently loses every finding without a persisted report
+
+**Anti-Rationalization:**
+
+| Evasion                                       | Rebuttal                                                                                          |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| "Obviously the slow part — just optimize it"  | Holistic-first: list EVERY precondition, measure a baseline, prove it with `file:line` + numbers. |
+| "No need to measure, the fix is clearly right" | No baseline = no proof the fix helps. Premature optimization is forbidden — measure first.        |
+| "Already know the project patterns"            | Show grep `file:line` evidence + the read reference docs. No proof = not done.                    |
+| "Graph trace adds no value here"               | If `graph.db` exists it is a HARD-GATE — one command on key files before concluding, no exception. |
+| "Recommend the index, skip checking existing"  | Redundant indexes add write cost. Check existing indexes/caches first.                             |
+
+**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small TaskCreate todos; add a final review task to verify baseline evidence, confidence %, and report persistence.
+
+**IMPORTANT MUST ATTENTION** measure baseline FIRST, cite `file:line` + confidence % for every recommendation, and flag EVERY unbounded full-collection fetch (OOM) — the three failures this agent exists to prevent.

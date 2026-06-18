@@ -175,17 +175,14 @@ This skill owns the **canonical** Feature Spec (§1-8) and its §8 TC registry. 
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -197,26 +194,51 @@ This skill owns the **canonical** Feature Spec (§1-8) and its §8 TC registry. 
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
 ## Closing Reminders
 
 - **IMPORTANT MUST ATTENTION Goal:** Produce a tech-free, AI-implementable Feature Spec whose Section 8 TC registry stays the single source of truth, traceable to integration test code — so any team can rebuild the feature on any stack from the spec alone
-- **IMPORTANT MUST ATTENTION [BLOCKING]** Resolve the mode FIRST and read its `references/` body — never run `draft`/`init`/`update`/`audit`/`amend`/`tests`/`sync` from memory
-- **IMPORTANT MUST ATTENTION [BLOCKING]** Break work into small `TaskCreate` tasks BEFORE starting — do NOT write a single line of output without a task list
-- **IMPORTANT MUST ATTENTION [BLOCKING]** EVERY test case MUST carry verifiable code evidence as a `[Source: namespace/service/id]` abstract anchor in its Section 8 hidden carrier — physical `file:line` → provenance sidecar only
-- **IMPORTANT MUST ATTENTION [BLOCKING]** Section 8 is the canonical TC registry — existing TCs MUST NOT be overwritten during `update`; `tests` mode owns generation, `sync` mode reconciles drift
-- **IMPORTANT MUST ATTENTION [REQUIRED]** Authored docs: 8 tech-free sections in exact order, zero technical terms in prose (code is the technical source of truth), size caps enforced
-- **IMPORTANT MUST ATTENTION [REQUIRED]** Search codebase for 3+ similar patterns before creating new content; add a final review task to verify work quality
+
+**Protocols in force (concise digest of the SYNC/shared blocks this skill carries — MUST ATTENTION honor each canonical body):**
+
+- **Cross-Service Check:** ALWAYS scan producers, consumers, sagas, contracts before concluding; missing consumer = silent regression.
+- **Evidence:** cite `file:line` for every claim; confidence >80% to act, <60% NEVER recommend.
+- **Critical Thinking:** apply critical + sequential thinking; NEVER present a guess as fact.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+
+- **IMPORTANT MUST ATTENTION [BLOCKING]** Resolve the mode FIRST and read its `references/{author,tests,sync}.md` body — NEVER run `draft`/`init`/`update`/`audit`/`amend`/`tests`/`sync` from memory; ambiguous → `AskUserQuestion` before any mutating mode — why: each mode's gates + output contract live in its body, not in this entry skill
+- **IMPORTANT MUST ATTENTION [BLOCKING]** EVERY test case MUST carry verifiable code evidence as a `[Source: namespace/service/id]` abstract anchor in its Section 8 hidden carrier — physical `file:line` → provenance sidecar only; sole exception `mode=draft` (`Evidence: TBD` + provisional flag, upgraded to real anchor on first code-sourced run) — why: a TC without evidence is unverifiable and silently rots
+- **IMPORTANT MUST ATTENTION [BLOCKING]** Section 8 is the canonical TC registry — existing TCs MUST NOT be overwritten during `update`; `tests` mode owns generation, `sync` mode reconciles drift — why: integration test code implements §8, so overwriting it orphans real tests
+- **IMPORTANT MUST ATTENTION [BLOCKING]** §1-7 prose is STRICTLY tech-free — no framework/product/language/persistence/messaging/auth names (banned tokens → `spec-principles.md` §3.2); technical identifiers live ONLY in evidence carriers, frontmatter, and mermaid blocks — why: M1/M5 require rebuild-from-scratch on any stack
+- **IMPORTANT MUST ATTENTION [BLOCKING]** Honor M1-M6 mandates (`.claude/skills/shared/sdd-artifact-contract.md`) + canonical TC format (`.claude/skills/shared/tc-format.md`) — any violation FAILS the artifact; size caps: body ≤1200, file ≤1800, split the capability when exceeded
+- **IMPORTANT MUST ATTENTION** `INDEX.md`/ERD are DERIVED — flag refresh need in `update`, NEVER trigger `/spec-index` here — why: separation of concerns keeps the canonical spec the only source of truth
+- **IMPORTANT MUST ATTENTION** evidence gate — cite `file:line`/grep for every claim, confidence >80% to act, <60% do NOT recommend; verify AI-generated TC/source anchors against ACTUAL code (grep to confirm) before authoring — why: hallucinated `[Source:]` anchors break traceability
+- **IMPORTANT MUST ATTENTION** cross-service check before concluding any spec/§8 work — scan producers, consumers, sagas, contracts; per touchpoint owner · message · risk (NONE/ADDITIVE/BREAKING) — why: a missing downstream consumer is a silent regression
+- **IMPORTANT MUST ATTENTION [BLOCKING]** Break work into small `TaskCreate` tasks BEFORE starting (one per file read) + a final review task; on context loss `TaskList` first, never duplicate — why: long spec files exhaust context and lose un-tracked progress
+- **IMPORTANT MUST ATTENTION** Search codebase for 3+ similar patterns and read existing spec siblings before authoring new content — match local conventions over generic defaults
+
+**Anti-Rationalization:**
+
+| Evasion                                          | Rebuttal                                                                                           |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| "Mode is obvious, skip the `references/` body"   | The body owns gates + output contract — running from memory drifts. Read it every time.            |
+| "This TC's source is clear, skip the anchor"     | No `[Source:]` carrier (or `Evidence: TBD` for non-draft) = unverifiable TC. Add the anchor.        |
+| "`update` — just regenerate Section 8"           | §8 is canonical; integration tests implement it. NEVER overwrite — `sync` reconciles drift.        |
+| "One tech name in prose is harmless"             | One banned token fails M1 and breaks rebuild-on-any-stack. Move it to an evidence carrier.          |
+| "Small spec, skip task tracking"                 | Skip depth, NEVER skip tracking — context loss wipes un-tracked progress.                           |
+| "Index looks stale, I'll just run `/spec-index`" | Not this skill's job — flag the refresh need; derived artifacts regenerate separately.              |
 
 **[TASK-PLANNING]** MUST ATTENTION analyze task scope and break into small todo tasks/sub-tasks via TaskCreate before acting.
+
+**IMPORTANT MUST ATTENTION** Resolve the mode FIRST + read its `references/` body · EVERY §8 TC carries a `[Source:]` evidence anchor (except `mode=draft`) · §1-7 prose STRICTLY tech-free — the three rules this skill must never skip.
 
 ---

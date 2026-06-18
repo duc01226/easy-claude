@@ -261,17 +261,14 @@ After `/understand` completes, MUST ATTENTION use `AskUserQuestion` to present t
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -283,13 +280,13 @@ After `/understand` completes, MUST ATTENTION use `AskUserQuestion` to present t
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -329,15 +326,36 @@ After `/understand` completes, MUST ATTENTION use `AskUserQuestion` to present t
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Hand the developer a complete, evidence-backed wrap-up — change summary, doc/spec staleness flags, root-cause lessons, and a `/understand` explanation — WITHOUT mutating any file, so they decide the next step from full context.
-**MANDATORY IMPORTANT MUST ATTENTION** stay READ-ONLY — only flag findings, NEVER implement or fix anything during watzup — why: watzup is a review/handoff, not an edit pass.
-**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting.
-**MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — never auto-decide.
-**MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.
-**MANDATORY IMPORTANT MUST ATTENTION** invoke `/understand` as the final watzup handoff before asking the Next Steps question.
-**MANDATORY IMPORTANT MUST ATTENTION** READ the following files before starting:
 
-**IMPORTANT MUST ATTENTION** READ `CLAUDE.md` before starting
+**Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
+- **Nested Task Creation:** Expand child phases, link parent, one task in_progress.
+- **Project Reference Docs Guide:** Read required project-reference docs (always lessons.md) before work.
+- **Task Tracking External Report:** Bootstrap task tracking; persist findings to plans/reports/ incrementally.
+- **Critical Thinking:** Critical + sequential thinking; traced proof, no guess-as-fact.
+- **Evidence:** Cite file:line for every claim; never speculate.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 
-> **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
+**IMPORTANT MUST ATTENTION** stay READ-ONLY — only FLAG findings; NEVER edit, fix, implement, or update the docs/specs you flag — why: watzup is a review/handoff, not an edit pass; flagging-then-fixing silently breaks the read-only contract.
+**IMPORTANT MUST ATTENTION** run ALL three required gates after the change summary — doc-staleness (path→doc table), spec-driven health check (only when business code changed), root-cause lesson extraction — NEVER skip a gate because the change "looks small" — why: stale docs and missed lessons compound silently across sessions.
+**IMPORTANT MUST ATTENTION** invoke `/understand` as the FINAL mandatory handoff BEFORE the `AskUserQuestion` Next Steps prompt; if `/understand` is unavailable, STOP and report the blocker — NEVER silently skip the handoff — why: the developer's exit context is the explanation, not the raw diff.
+
+**IMPORTANT MUST ATTENTION** extract lessons by ROOT CAUSE (the reasoning/assumption failure), NOT the symptom; write each as a universal rule that holds on ≥3 codebases; surface-level "always check file X" notes are noise — why: only root-cause prevention compounds across sessions.
+**IMPORTANT MUST ATTENTION** send lessons to `/learn` ONLY after explicit user confirmation — NEVER auto-persist or self-edit instruction files — why: lesson capture is a durable instruction change the user must own.
+**IMPORTANT MUST ATTENTION** use `AskUserQuestion` for the Next Steps decision — NEVER auto-decide the route even when it "seems obvious" — why: the user owns the workflow-end / commit / continue choice.
+**IMPORTANT MUST ATTENTION** break work into small todo tasks with `TaskCreate` BEFORE starting (one task per file read), keep exactly one `in_progress`, and add a final review todo to verify work quality — why: long files exhaust context; granular tasks survive compaction.
+**IMPORTANT MUST ATTENTION** cite `file:line` proof or traced evidence with a confidence % for every claim/finding (>80% to act, <80% verify first) — NEVER present a guess as fact — why: an unverified staleness/lesson flag misleads the developer's next decision.
+**IMPORTANT MUST ATTENTION** grep/glob to verify any referenced doc, path, or API actually exists before flagging it — NEVER hallucinate a doc mapping or count — why: AI invents file paths and method names; the change summary must match the real diff.
+**IMPORTANT MUST ATTENTION** read `CLAUDE.md` and the project-reference docs gate (`lessons.md` always) before the wrap-up — why: project conventions override generic staleness assumptions.
+
+**Anti-Rationalization:**
+
+| Evasion                                          | Rebuttal                                                                                      |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| "Doc looks fine, skip the staleness gate"        | Run the path→doc table anyway — staleness is silent; flag or output `No doc updates needed`.   |
+| "No real mistakes this session, skip lessons"    | Still run the gate — output `No AI mistakes identified` only after honest self-review.         |
+| "It's obvious next they want a commit, just do it" | NEVER auto-decide — present the `AskUserQuestion` options; the user owns the route.           |
+| "I can just fix this stale doc while I'm here"    | READ-ONLY — flag only. Fixing here breaks the contract; the user decides.                      |
+| "Small change, skip `/understand`"               | `/understand` is the mandatory handoff — run it or report the blocker; never skip.             |
+
+**IMPORTANT MUST ATTENTION Goal echo:** evidence-backed READ-ONLY wrap-up — change summary + doc/spec staleness flags + root-cause lessons + mandatory `/understand` handoff, mutating NOTHING, so the user decides the next step.

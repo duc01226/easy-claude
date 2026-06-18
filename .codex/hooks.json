@@ -1,148 +1,150 @@
 {
-  "PostToolUse": [
-    {
-      "hooks": [
-        {
-          "type": "command",
-          "command": "node ./.claude/hooks/post-edit-prettier.cjs"
-        }
-      ],
-      "matcher": "Edit|Write|MultiEdit"
-    },
-    {
-      "hooks": [
-        {
-          "type": "command",
-          "command": "node ./.claude/hooks/graph-auto-update.cjs"
-        }
-      ],
-      "matcher": "Edit|Write|MultiEdit"
-    }
-  ],
-  "PreToolUse": [
-    {
-      "hooks": [
-        {
-          "type": "command",
-          "command": "node ./.claude/hooks/notifications/notify.cjs"
-        }
-      ],
-      "matcher": "AskUserQuestion"
-    },
-    {
-      "hooks": [
-        {
-          "type": "command",
-          "command": "node ./.claude/hooks/windows-command-detector.cjs"
-        },
-        {
-          "type": "command",
-          "command": "node ./.claude/hooks/git-commit-block.cjs"
-        },
-        {
-          "type": "command",
-          "command": "node ./.claude/hooks/doc-sync-gate.cjs"
-        }
-      ],
-      "matcher": "Bash"
-    },
-    {
-      "hooks": [
-        {
-          "type": "command",
-          "command": "node ./.claude/hooks/scout-block.cjs"
-        },
-        {
-          "type": "command",
-          "command": "node ./.claude/hooks/privacy-block.cjs"
-        }
-      ],
-      "matcher": "Bash|Glob|Grep|Read|Edit|Write|NotebookEdit"
-    },
-    {
-      "hooks": [
-        {
-          "type": "command",
-          "command": "node ./.claude/hooks/path-boundary-block.cjs"
-        }
-      ],
-      "matcher": "Bash|Edit|Write|MultiEdit|NotebookEdit"
-    },
-    {
-      "hooks": [
-        {
-          "type": "command",
-          "command": "node ./.claude/hooks/doc-sync-gate.cjs"
-        }
-      ],
-      "matcher": "Write|Edit|MultiEdit"
-    },
-    {
-      "hooks": [
-        {
-          "type": "command",
-          "command": "node ./.claude/hooks/path-boundary-block.cjs"
-        }
-      ],
-      "matcher": "mcp__filesystem__*"
-    }
-  ],
-  "SessionStart": [
-    {
-      "hooks": [
-        {
-          "type": "command",
-          "command": "node ./.claude/hooks/verify-install.cjs"
-        }
-      ],
-      "matcher": "startup|resume"
-    },
-    {
-      "hooks": [
-        {
-          "type": "command",
-          "command": "node ./.claude/hooks/session-init.cjs"
-        }
-      ],
-      "matcher": "startup|resume"
-    },
-    {
-      "hooks": [
-        {
-          "type": "command",
-          "command": "node ./.claude/hooks/session-init-docs.cjs"
-        }
-      ],
-      "matcher": "startup|resume"
-    },
-    {
-      "hooks": [
-        {
-          "type": "command",
-          "command": "node ./.claude/hooks/graph-session-init.cjs"
-        }
-      ],
-      "matcher": "startup|resume"
-    }
-  ],
-  "Stop": [
-    {
-      "hooks": [
-        {
-          "type": "command",
-          "command": "node ./.claude/hooks/notifications/notify.cjs"
-        }
-      ]
-    }
-  ],
-  "UserPromptSubmit": [
-    {
-      "hooks": [
-        {
-          "type": "command",
-          "command": "node ./.claude/hooks/init-prompt-gate.cjs"
-        }
-      ]
-    }
-  ]
+  "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./.claude/hooks/post-edit-prettier.cjs"
+          }
+        ],
+        "matcher": "Edit|Write|MultiEdit"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./.claude/hooks/graph-auto-update.cjs"
+          }
+        ],
+        "matcher": "Edit|Write|MultiEdit"
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./.claude/hooks/notifications/notify.cjs"
+          }
+        ],
+        "matcher": "AskUserQuestion"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./.claude/hooks/windows-command-detector.cjs"
+          },
+          {
+            "type": "command",
+            "command": "node ./.claude/hooks/git-commit-block.cjs"
+          },
+          {
+            "type": "command",
+            "command": "node ./.claude/hooks/doc-sync-gate.cjs"
+          }
+        ],
+        "matcher": "Bash"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./.claude/hooks/scout-block.cjs"
+          },
+          {
+            "type": "command",
+            "command": "node ./.claude/hooks/privacy-block.cjs"
+          }
+        ],
+        "matcher": "Bash|Glob|Grep|Read|Edit|Write|NotebookEdit"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./.claude/hooks/path-boundary-block.cjs"
+          }
+        ],
+        "matcher": "Bash|Edit|Write|MultiEdit|NotebookEdit"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./.claude/hooks/doc-sync-gate.cjs"
+          }
+        ],
+        "matcher": "Write|Edit|MultiEdit"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./.claude/hooks/path-boundary-block.cjs"
+          }
+        ],
+        "matcher": "mcp__filesystem__*"
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./.claude/hooks/verify-install.cjs"
+          }
+        ],
+        "matcher": "startup|resume"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./.claude/hooks/session-init.cjs"
+          }
+        ],
+        "matcher": "startup|resume"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./.claude/hooks/session-init-docs.cjs"
+          }
+        ],
+        "matcher": "startup|resume"
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./.claude/hooks/graph-session-init.cjs"
+          }
+        ],
+        "matcher": "startup|resume"
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./.claude/hooks/notifications/notify.cjs"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./.claude/hooks/init-prompt-gate.cjs"
+          }
+        ]
+      }
+    ]
+  }
 }

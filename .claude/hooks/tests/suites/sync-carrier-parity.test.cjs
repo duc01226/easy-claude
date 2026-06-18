@@ -222,10 +222,10 @@ module.exports = {
             },
         },
         {
-            name: 'COVERAGE: review-protocol-injection reaches all 13 carriers and carries the Triangulation protocol (post-P1)',
+            name: 'COVERAGE: review-protocol-injection reaches all 12 carriers and carries the Triangulation protocol (post-P1)',
             fn() {
                 const carriers = PAIRS.filter((p) => p.tag === 'review-protocol-injection');
-                assertEqual(carriers.length, 13, `expected 13 review-protocol-injection carriers, found ${carriers.length}`);
+                assertEqual(carriers.length, 12, `expected 12 review-protocol-injection carriers, found ${carriers.length}`);
                 const canon = CANON_BODY.get('review-protocol-injection');
                 assertTrue(
                     canon != null && /Spec ↔ Tests ↔ Code Triangulation/.test(canon),

@@ -301,17 +301,14 @@ After `/fix` applies changes, `/prove-fix` MUST be run — builds code proof tra
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -644,7 +641,7 @@ After `/fix` applies changes, `/prove-fix` MUST be run — builds code proof tra
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
@@ -656,7 +653,7 @@ After `/fix` applies changes, `/prove-fix` MUST be run — builds code proof tra
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -701,22 +698,54 @@ After `/fix` applies changes, `/prove-fix` MUST be run — builds code proof tra
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Deliver a `/why-review`-validated root cause pinned to `file:line` at the invariant-owning layer — so `/fix` corrects the cause, not the symptom — or an honest "hypothesis, not confirmed" naming the evidence gaps.
-**MUST ATTENTION** Phase 0 FIRST — classify bug type, route to specialized agent (`performance-optimizer` / `security-auditor`) before any investigation
-**MUST ATTENTION** NEVER fix at crash site — trace full data flow, fix at invariant-owning layer
-**MUST ATTENTION** NEVER report root cause without `file:line` evidence; Confidence <60% = DO NOT recommend
-**MUST ATTENTION** NEVER declare confirmed root cause without passing the `/why-review` validation gate (same session, same main agent)
-**MUST ATTENTION** run graph trace when graph.db exists — reveals bus consumers and event handlers grep cannot see
-**MUST ATTENTION** OOM → check row COUNT before row SIZE; 3+ failed fixes → STOP, escalate to user
-**MUST ATTENTION** `TaskCreate` before starting; `/prove-fix` MUST run after `/fix` applies changes
+**IMPORTANT MUST ATTENTION Goal:** Deliver a `/why-review`-validated root cause pinned to `file:line` at the invariant-owning layer — investigation-ONLY, so `/fix` corrects the cause, not the symptom — or an honest "hypothesis, not confirmed" naming the evidence gaps.
+
+**Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
+
+- **End-to-Start Debugger Trace:** MUST ATTENTION trace backward from final state.
+- **Root Cause Debugging:** reproduce, isolate, trace — NEVER guess-and-check.
+- **Incremental Persistence:** append findings to report per file.
+- **Sub-Agent Return Contract:** return summary only, full report on disk.
+- **Source/Test Drift Check:** changed behavior — reconcile affected tests from evidence.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **Nested Task Creation:** expand child phases, link parent when nested.
+- **Project Reference Docs:** ALWAYS read required project docs, cite them.
+- **Task Tracking & External Report:** bootstrap tasks, persist findings incrementally.
+- **Critical Thinking:** traced proof per claim, confidence >80%.
+- **Sequential Thinking:** multi-step Thought N/M with confidence closer.
+- **Understand Code First:** read code, grep 3+ patterns before concluding.
+- **Evidence:** cite `file:line`, declare confidence — NEVER speculate.
+- **Cross-Service Check:** scan producers/consumers/sagas/contracts for silent regressions.
+- **Estimation Framework:** bottom-up hours, derived SP, min-max range.
+- **Red Flag Stop Conditions:** escalate on confidence/blast/boundary/security flags.
+- **Fix-Layer Accountability:** fix lowest invariant-owning layer — NEVER crash site.
+
+**IMPORTANT MUST ATTENTION** investigation-ONLY — NEVER patch here; hand confirmed cause to `/fix` — why: a fix from un-validated findings patches the symptom and masks the real defect.
+**IMPORTANT MUST ATTENTION** Phase 0 FIRST (BLOCKING) — classify bug type, route to the specialized agent (`debugger` / `performance-optimizer` / `security-auditor`) before any investigation — why: classification decides which evidence matters and which agent has the right checklist.
+**IMPORTANT MUST ATTENTION** NEVER fix at the crash site — trace full data flow origin → crash, fix at the lowest invariant-owning layer that protects ALL downstream consumers — why: the crash site is a symptom; scattered guards at consumers signal nobody owns the invariant.
+**MUST ATTENTION** trace END-to-START — name Frame 0 (observed final state), walk reader → storage/projection → writer → consumer/job → producer, enumerate ALL feeder paths, build the hypothesis matrix BEFORE proposing any fix — why: the bug enters where bad state is WRITTEN, not where it crashes.
+**MUST ATTENTION** every root-cause claim carries `Confidence: X%` + `file:line` proof; <60% → report "hypothesis, not confirmed" with named evidence gaps, NEVER a guess — why: self-confirmed findings rationalize their own gaps.
+**MUST ATTENTION** NEVER declare a confirmed root cause without passing the `/why-review` gate (SAME session, SAME main agent, NO sub-agent); 2 rounds without passing → STOP, escalate via `AskUserQuestion`.
+**MUST ATTENTION** search 3+ existing patterns and READ the actual code before concluding — cite `file:line`; inference alone is insufficient — why: trial-and-error and assumed APIs hallucinate causes.
+**MUST ATTENTION** run a graph trace when `graph.db` exists — `callers_of` / `importers_of` / `tests_for` / `trace` reveal MESSAGE_BUS consumers and event handlers grep cannot see — why: cross-service chains are invisible to text search.
+**MUST ATTENTION** prove convergence FORWARD after choosing the fix layer — walk start → end, map each root cause to a fix part and each fix part to a test/proof; `/prove-fix` MUST run after `/fix` applies changes.
+**MUST ATTENTION** OOM/memory → check row COUNT before row SIZE (unbounded query > large row); 3+ failed fixes → STOP, question the architecture, escalate to user.
+**MUST ATTENTION** bootstrap `TaskCreate` task tracking BEFORE first file read; persist findings incrementally to `plans/reports/`; standalone (outside workflow) → add a `/review-changes` task as the LAST task — why: context cutoff loses in-memory findings.
 
 **Anti-Rationalization:**
 
-| Evasion                            | Rebuttal                                                                       |
-| ---------------------------------- | ------------------------------------------------------------------------------ |
-| "Too simple for Phase 0"           | Root cause assumptions waste more time than classification. Apply anyway.      |
-| "Already traced, no graph needed"  | Show `file:line` evidence. No proof = no trace.                                |
-| "Skip `/why-review`, wastes time"  | Self-confirmed findings rationalize their own gaps. The `/why-review` gate is non-negotiable. |
-| "This is a frontend bug, no graph" | Frontend → backend → bus chains exist. Run trace first.                        |
+| Evasion                                  | Rebuttal                                                                                       |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------- |
+| "I see the problem, let me fix it"       | Symptom ≠ root cause. This skill is investigation-ONLY — trace end-to-start first.             |
+| "Too simple for Phase 0"                 | Root-cause assumptions waste more time than classification. Apply Phase 0 anyway.             |
+| "Already traced, no graph needed"        | Show `file:line` evidence. No proof = no trace. Run graph trace if `graph.db` exists.          |
+| "Skip `/why-review`, findings look solid"| Self-confirmed findings rationalize their own gaps. The `/why-review` gate is non-negotiable.  |
+| "This is a frontend bug, no graph"       | Frontend → backend → bus chains exist. Run trace first.                                        |
+| "It's OOM, must be a large object"       | Check row COUNT before row SIZE. Unbounded query > large single row.                           |
+| "Just try changing X and see"            | One hypothesis at a time. Scientific method, not trial and error.                             |
+
+**IMPORTANT MUST ATTENTION** investigation-ONLY: trace end-to-start to the invariant-owning layer, NEVER patch here.
+**IMPORTANT MUST ATTENTION** every root-cause claim needs `Confidence: X%` + `file:line` proof; <60% = "hypothesis, not confirmed", NEVER a guess.
+**IMPORTANT MUST ATTENTION** NEVER declare confirmed without the `/why-review` gate; `TaskCreate` before starting.
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.

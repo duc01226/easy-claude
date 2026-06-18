@@ -170,7 +170,7 @@ async function main() {
   }
 
   await fs.mkdir(codexDir, { recursive: true });
-  await fs.writeFile(codexHooksPath, `${JSON.stringify(codexHooks, null, 2)}\n`, "utf8");
+  await fs.writeFile(codexHooksPath, `${JSON.stringify({ hooks: codexHooks }, null, 2)}\n`, "utf8");
   await fs.writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
 
   console.log(

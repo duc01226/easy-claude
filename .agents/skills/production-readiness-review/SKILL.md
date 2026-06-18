@@ -637,17 +637,14 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -772,13 +769,13 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -838,26 +835,57 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 ## Closing Reminders
 
-**Goal:** Ensure service/API changes are production-ready for observability, reliability, data integrity, and database performance.
+**IMPORTANT MUST ATTENTION Goal:** Ensure service/API changes are production-ready for observability, reliability, data integrity, and database performance — score each dimension on service/API changes so working code that can be debugged, monitored, and rolled back ships, and operational technical debt does not.
+
+**IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries; each is a signpost — the canonical body above governs, NEVER skip one):**
+
+- **Graph-Assisted Investigation:** Run one graph command on key files before concluding.
+- **Sub-Agent Return Contract:** Sub-agents return only the summary; full report on disk.
+- **Nested Task Creation:** Child skills still create visible phase tasks under the parent.
+- **Project Reference Docs Guide:** Read required project docs first; `lessons.md` always.
+- **Task Tracking & External Report:** Bootstrap tasks; persist review findings to `plans/reports/`.
+- **Critical Thinking Mindset:** Apply critical + sequential thinking; no guess as fact.
+- **Evidence-Based Reasoning:** Cite `file:line` for every claim; confidence >80% to act.
+- **Double Round-Trip Review:** Review → validate → fix → full re-review; clean pass ends.
+- **Fresh Context Review:** Spawn fresh zero-memory sub-agent after fixes; never reuse.
+- **Review Protocol Injection:** Embed all 11 protocol bodies verbatim in sub-agent prompts.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **Systematic Batching:** ≥10 files → size-capped parallel batches, then reduce.
+- **Severity Rubric:** Classify Critical/High/Medium/Low by consequence; map 0-2 scores onto it.
+- **Category Review Thinking:** Derive each category's concerns from first principles, not a checklist.
+
+**IMPORTANT MUST ATTENTION** every score requires `file:line` evidence — unprovable score = 0; assume the worst without proof — why: an unverified "looks fine" is how silent operational gaps reach production.
+**IMPORTANT MUST ATTENTION** the DB Performance Protocol, graph gate, and validated-fix full re-review are NEVER skippable regardless of change size — VERDICT is advisory, these process steps are not — why: small changes are exactly where unbounded queries and missing re-reviews slip through.
+**IMPORTANT MUST ATTENTION** validate findings BEFORE any fix, then rerun the FULL review (fresh sub-agent, zero prior-round memory) before declaring PASS — a clean pass ENDS the loop — why: every fix invalidates the prior verdict.
 
 The following are all MANDATORY:
 
-- **MANDATORY** break work into small todo tasks via task tracking BEFORE starting
-- validate findings before fixes; after validated fixes, rerun the full review before declaring PASS. A clean review pass ENDS the review.
-- every score requires `file:line` evidence — unprovable score = 0
-- ALL list queries MUST use pagination; ALL filter fields MUST have indexes
-- run at least ONE graph command on key files before concluding (when graph.db exists)
-- validate decisions with user via a direct user question — never auto-decide
+- **MANDATORY** break work into small todo tasks via task tracking BEFORE starting; mark one `in_progress`, complete it immediately after evidence — why: untracked review steps get silently merged or skipped.
+- **MANDATORY** read required project-reference docs first (`code-review-rules.md`, `backend-patterns-reference.md`, `domain-entities-reference.md`, always `lessons.md`) and cite `Reference docs read: ...` — why: project conventions override generic SRE assumptions.
+- **MANDATORY** grep 3+ existing patterns for the changed area (base handlers, base-controller error handling, paging/index helpers) and verify pattern fit before scoring — why: closest example ≠ matching preconditions; a paging helper may not apply to this query's lifetime/scope.
+- **MANDATORY** every score, finding, and recommendation carries `file:line` proof + confidence (>80% to act, <80% verify first) — NEVER score from inference — why: scoring without trace is the #1 false-PASS source.
+- **MANDATORY** ALL list queries MUST paginate (no unbounded `GetAll`/`ToList`/`Find` without `Skip/Take` or cursor); ALL filter fields, foreign keys, and sort columns MUST have matching indexes — score `0` until each is proven.
+- **MANDATORY** run at least ONE graph command on key files before concluding when `.code-graph/graph.db` exists (blast-radius, `tests_for`, downstream trace) — why: the HARD-GATE catches cross-service consumers grep alone misses.
+- **MANDATORY** when batched (≥10 files), RE-SCORE all 12 criteria holistically from combined cross-batch evidence — NEVER average per-batch scores — why: a cross-file criterion (query in one batch, migration in another) false-flags `0` per-batch.
+- **MANDATORY** changed core logic clears the MUTATION-SCORE gate, not a coverage %; every behavior-changing finding feeds BOTH the spec (name the contract/invariant in §8) AND a guarding test — a code-only fix is INCOMPLETE.
+- **MANDATORY** validate decisions with the user via a direct user question for workflow/next-step routing — never auto-decide.
 
 **Anti-Rationalization:**
 
-| Evasion                                       | Rebuttal                                                                     |
-| --------------------------------------------- | ---------------------------------------------------------------------------- |
-| "Fix was small, skip re-review"              | NEVER — fixes changed the target; rerun the full review before PASS          |
-| "Small change, skip graph gate"               | HARD-GATE applies regardless of size — run one command                       |
-| "No explicit paging but it looks fine"        | Score 0 until proven with `file:line`. Assume worst without evidence         |
-| "Already checked observability"               | Show `file:line` proof. No proof = no check                                  |
+| Evasion                                       | Rebuttal                                                                                      |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| "Fix was small, skip re-review"               | NEVER — fixes changed the target; validate findings, then rerun the FULL review before PASS  |
+| "Small change, skip graph gate"               | HARD-GATE applies regardless of size — run one graph command before concluding               |
+| "No explicit paging but it looks fine"        | Score 0 until proven with `file:line`. Assume worst without evidence                         |
+| "Already checked observability"               | Show `file:line` proof. No proof = no check                                                  |
 | "VERDICT is advisory so skip MANDATORY steps" | Advisory = VERDICT only. Graph gate, validated-fix re-review, DB Protocol are NEVER advisory |
+| "Score it from what I remember of the code"   | Re-read and cite `file:line`; inference is not evidence — unprovable = 0                      |
+| "Batched, so average the per-batch scores"    | Re-score all 12 holistically from combined evidence; per-batch sees ≤8 files and false-flags |
+| "Tests pass, mutation gate is covered"        | Green coverage over un-asserted behavior fails the gate; a surviving mutant is a blocker     |
+
+**IMPORTANT MUST ATTENTION** every score needs `file:line` evidence or it is `0`; assume worst without proof.
+**IMPORTANT MUST ATTENTION** DB Performance Protocol + graph gate + validated-fix full re-review are NEVER skippable regardless of change size.
+**IMPORTANT MUST ATTENTION** validate findings before fixing, then rerun the FULL review before PASS — a clean pass ENDS the loop.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Hookless Prompt Protocol Mirror (Auto-Synced)

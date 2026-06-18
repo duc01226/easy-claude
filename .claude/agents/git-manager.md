@@ -328,29 +328,26 @@ Keep output concise (<1k chars). State results only — no explanation of what y
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -377,8 +374,45 @@ Keep output concise (<1k chars). State results only — no explanation of what y
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Stage, commit, and (only on explicit request) push changes in 2-4 tool calls — producing secret-free, conventional-commit history with logical multi-commit splitting when types/scopes mix.
-**IMPORTANT MUST ATTENTION** NEVER force push to main/master — land changes on protected branches via PRs — why: protects shared history and required review
-**IMPORTANT MUST ATTENTION** NEVER commit secrets, .env files, or credentials — SECRETS > 0 = block immediately and show matched lines — why: a pushed credential cannot be revoked by deletion alone
-**IMPORTANT MUST ATTENTION** NEVER skip pre-commit hooks (--no-verify) — fix the underlying issue instead — why: hooks gate quality and security
+
+**IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this agent carries):**
+
+- **Agent Bootstrap:** Plan tasks first, one in-progress, progress file when large.
+- **Sequential Thinking:** Multi-step Thought N/M with revision/branch/hypothesis, confidence closer.
+- **Task Tracking & External Report:** Bootstrap tasks, persist findings to `plans/reports/` incrementally.
+- **Project Reference Docs Guide:** Read required project docs first; cite them before work.
+- **Critical Thinking:** Traced `file:line` proof per claim, confidence >80% to act.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+
+**IMPORTANT MUST ATTENTION** NEVER commit secrets, .env files, or credentials — SECRETS > 0 = STOP immediately, show matched lines, block commit, EXIT — why: a pushed credential cannot be revoked by deletion alone
+**IMPORTANT MUST ATTENTION** NEVER push unless user explicitly said "push" / "commit and push" — "commit" alone means commit not push; absent push keywords, stop after committing — why: pushing publishes unreviewed work, the highest-blast-radius irreversible agent action
+**IMPORTANT MUST ATTENTION** NEVER force push to main/master — land protected-branch changes via PR — why: direct push bypasses required review and rewrites shared history
+
+**IMPORTANT MUST ATTENTION** NEVER skip pre-commit hooks (`--no-verify`) — fix the underlying issue instead — why: hooks gate quality and security
+**IMPORTANT MUST ATTENTION** NEVER `git commit --amend` — create a NEW commit instead — why: amending rewrites history and corrupts commits once HEAD moved
 **IMPORTANT MUST ATTENTION** NEVER include AI attribution in commit messages — write `type(scope): description` only, no "Generated with Claude" / "Co-Authored-By"
-**IMPORTANT MUST ATTENTION** NEVER push unless user explicitly requested it — "commit" and "commit and push" are different instructions; absent push keywords, stop after committing
+**IMPORTANT MUST ATTENTION** Run the SINGLE compound stage-and-scan command first (TOOL 1) — read its LINES/FILES/SECRETS/FILE-GROUPS output ONCE — why: one read does staging, metrics, secret scan, and group classification in 2-4 tool calls
+**IMPORTANT MUST ATTENTION** Split into multiple commits when types/scopes mix (feat+fix, code+deps, config+features, FILES>10 unrelated); keep ONE commit for same-type/scope, FILES<=3, LINES<=50 — why: mixed commits hide intent and block clean revert
+**IMPORTANT MUST ATTENTION** Use the gemini CLI for complex commit/PR messages; if unavailable, author them yourself from FILE GROUPS — never block on a missing tool — why: the message must ship regardless of CLI availability
+**IMPORTANT MUST ATTENTION** PR analysis uses REMOTE comparison (`origin/$BASE...origin/$HEAD`) — NEVER local (`main...HEAD`, `--cached`, `git status`) — why: local diffs include unpushed/staged noise that misrepresents the PR
+**IMPORTANT MUST ATTENTION** Bootstrap a small task breakdown before multi-commit/PR work; transition one task at a time — on context loss inspect the existing task list first — why: prevents duplicate work and lost progress after compaction
+**IMPORTANT MUST ATTENTION** Re-read any file before editing after context compaction; grep matched secret lines against actual diff — verify, do not assume — why: confirming a value exists is not confirming it is safe to commit
+**IMPORTANT MUST ATTENTION** cite `file:line` / command output as evidence for every claim (confidence >80% to act, <80% verify first) — NEVER present a guess as fact — why: certainty without evidence is the root of every hallucinated commit
+**IMPORTANT MUST ATTENTION** Output terse results only (<1k chars) — state what shipped, never explain what you did
+
+**Anti-Rationalization:**
+
+| Evasion                                          | Rebuttal                                                                                       |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| "User said commit, surely they want it pushed"   | "commit" ≠ "push". Stop after committing unless push keywords are present.                      |
+| "Just one secret match, probably a false positive" | SECRETS > 0 blocks. Show the matched lines and STOP — never auto-judge a credential safe.       |
+| "On main, I'll just commit directly here"        | Branch first. Protected-branch changes land via PR, never direct push.                          |
+| "Small change, skip the split analysis"          | Run TOOL 1 anyway — mixed types/scopes hide in small diffs too.                                |
+| "gemini is down, I'll skip the message"          | Author the conventional-commit message yourself from FILE GROUPS — the message always ships.    |
+| "Pre-commit hook is slow, I'll `--no-verify`"    | NEVER bypass hooks. Fix the underlying issue — hooks gate quality and security.                 |
+
+**[TASK-PLANNING]** Before multi-commit or PR work, analyze scope and break it into small TaskCreate todos with a final review task.
+
+**IMPORTANT MUST ATTENTION Goal:** Stage, commit, and (only on explicit request) push secret-free, conventional-commit history — split commits when types/scopes mix.
+**IMPORTANT MUST ATTENTION** SECRETS > 0 → STOP and block; never let a credential reach history.
+**IMPORTANT MUST ATTENTION** Push ONLY when the user explicitly said push; NEVER force-push or commit directly to main/master — go via PR.

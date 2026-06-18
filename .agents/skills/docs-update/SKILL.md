@@ -554,17 +554,14 @@ $ARGUMENTS
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -612,13 +609,13 @@ $ARGUMENTS
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -658,19 +655,32 @@ $ARGUMENTS
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Every code/spec/test change leaves documentation in sync — impacted Feature Specs, §8 TCs, test-code links, and derived indexes all reflect the shipped behavior, with zero drift left silent.
-**MUST ATTENTION** Nested Task Expansion Contract — when invoked inside a workflow, STILL expand internal phases via task tracking with `[N.M] $skill-name — phase` prefix and `TaskUpdate(parentTaskId, addBlockedBy: [childIds])` linkage. Workflow row is container, not substitute.
-**MUST ATTENTION** create ALL 8 tasks via task tracking BEFORE any action — see Mandatory Task Creation table
-**MUST ATTENTION** follow fixed step-skill order: `0 -> 1 -> 2 -> 2.5 -> 3 -> 4 -> 5 -> final review` — NEVER reorder without explicit user approval
-**MUST ATTENTION** for EVERY step: set task `in_progress` BEFORE execution, set `completed` AFTER execution with evidence or skip reason
-**MUST ATTENTION** if task tooling unavailable, use equivalent 8-step plan tracker and keep statuses synced per step
-**MUST ATTENTION** `docs-update` is a router ONLY — NEVER write §8, edit Feature Spec / derived-index files, or duplicate sub-skill logic
-**MUST ATTENTION** validate decisions with user via a direct user question — NEVER auto-decide
-**MUST ATTENTION** dedup module list before passing to sub-skills — same module backend + frontend = ONE entry
-**MUST ATTENTION** skip phases with no impact but ALWAYS mark task `completed` with reason — NEVER silently omit
-**MUST ATTENTION** Phase 2.5 runs `$spec-index [mode=index]` — OPTIONAL refresh of the derived bucket INDEX/ERD from Feature Specs (never re-extracts an A-E tree)
-**MUST ATTENTION** Phase 3 runs `$spec [mode=tests]` — syncs test case specs in Feature Spec §8 Test Specifications
-**MUST ATTENTION** Phase 4 runs `$spec [mode=sync]` — syncs §8 TCs ↔ integration test code (no QA dashboard exists)
-**MUST ATTENTION** final review task (#8) verifies all impacted docs updated, no phases skipped without justification
+
+**Protocols in force (concise digest of the SYNC/shared blocks this skill carries) — MUST ATTENTION honor every block below:**
+
+- **Critical Thinking:** Apply critical + sequential thinking; every claim needs `file:line` proof, confidence >80%.
+- **Sub-Agent Return:** Spawned sub-agents return ONLY the summary contract; full detail to disk.
+- **Cross-Service Check:** Scan producers/consumers/sagas/contracts; missing consumer = silent regression.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **Nested Task Creation:** When nested, still expand child phase tasks and link the parent workflow row.
+- **Project Reference Docs:** Read required project-reference docs (always `lessons.md`) before target work.
+- **Task Tracking:** Bootstrap tasks, one active, persist findings to `plans/reports/` incrementally.
+
+**IMPORTANT MUST ATTENTION** create ALL 8 tasks via task tracking BEFORE any action, then run the FIXED order `0 -> 1 -> 2 -> 2.5 -> 3 -> 4 -> 5 -> final review` — NEVER reorder, merge, or skip without explicit user approval — why: phase order is the gate that catches drift; a skipped phase ships silent staleness
+**IMPORTANT MUST ATTENTION** `docs-update` is a ROUTER ONLY — delegate to `$spec`, `$spec [mode=tests]`, `$spec [mode=sync]`, `$spec-index`; NEVER write §8 content, edit Feature Spec / derived-index files, or duplicate sub-skill logic — why: dual authorship causes the two sources to diverge
+**IMPORTANT MUST ATTENTION** every skip is a DECISION with evidence — mark the task `completed` with a `file:line`-backed reason; NEVER silently omit a phase — why: an unjustified skip is indistinguishable from a missed update
+**MUST ATTENTION** Nested Task Expansion Contract — when invoked inside a workflow, STILL expand internal phases via task tracking with `[N.M] $skill-name — phase` prefix and `TaskUpdate(parentTaskId, addBlockedBy: [childIds])` linkage — why: the workflow row is a container, not a substitute for phase tracking
+**MUST ATTENTION** for EVERY step: set task `in_progress` BEFORE execution, set `completed` AFTER execution with evidence or skip reason — never batch transitions, keep exactly one active
+**MUST ATTENTION** if task tooling unavailable, use an equivalent 8-step plan tracker and keep statuses synced per step
+**MUST ATTENTION** evidence gate — every claim, detected module, and impact mapping needs `file:line` / git-diff proof, confidence >80% to act, <60% DO NOT act; "Module unchanged" without proof is NOT a valid skip — why: speculation routes the wrong docs and misses real drift
+**MUST ATTENTION** search-existing-patterns BEFORE asserting a doc shape — read the bucket's existing Feature Spec / INDEX layout and project-reference docs; build the module map from `docs/project-config.json`, NEVER from hard-coded skill paths — why: local doc conventions override generic assumptions
+**MUST ATTENTION** evaluate fit before reusing a nearby pattern — a module with backend + frontend changes is ONE deduped entry, not two; verify the change actually alters behavior before routing to `$spec` — why: duplicate or behavior-free invocations waste passes and corrupt the audit
+**MUST ATTENTION** validate ambiguous routing decisions with the user via a direct user question — surface the options, NEVER silently auto-decide which phases run
+**MUST ATTENTION** tech-agnostic output — when updating spec/specs/README/INDEX, introduce NO framework/product/language/pattern names in prose or headings; update logical IDs (`FR-`/`BR-`/`OP-`/`TC-`) FIRST, then prose; preserve the evidence-field exception — why: prose is the portable contract, evidence carriers hold the physical coords (spec-principles §3)
+**MUST ATTENTION** Step 2.4 final code↔spec sync-verify per touched module — a removed/weakened [HARD] BR is a code-vs-spec contradiction that BLOCKS completion until resolved or owner-accepted; AC drift re-invokes `$spec`, TC drift routes to `$spec [mode=sync]`
+**MUST ATTENTION** Phase 2.5 `$spec-index [mode=index]` OPTIONALLY refreshes the derived bucket INDEX/ERD from Feature Specs (never re-extracts an A-E tree); Phase 3 `$spec [mode=tests]` syncs §8 TCs; Phase 4 `$spec [mode=sync]` syncs §8 TCs ↔ integration test code (no QA dashboard exists)
+**MUST ATTENTION** for `.claude` skills/hooks/workflows/sync-tooling changes, flag generated-mirror sync status (`npm run codex:sync` completed or explicit N/A) — `docs-update` routes/reports this check, NEVER edits generated mirrors directly
+**MUST ATTENTION** ALWAYS write the Phase 5 summary report to `plans/reports/docs-update-{YYMMDD}-{HHMM}.md` and the final review task (#8) — the report is the audit trail, the review verifies all impacted docs updated with no unjustified skips
 
 **Anti-Rationalization:**
 
@@ -683,8 +693,12 @@ $ARGUMENTS
 | "Phase 5 report not needed"                  | ALWAYS write summary report — it's the audit trail                     |
 | "I will update tasks later"                  | Invalid. Task status must change before/after each step in real time.  |
 | "I'll run skills first then create tasks"    | Invalid. Create/track tasks first, then execute step-skill calls.      |
+| "I'll write the §8 TC myself, faster"        | Invalid. Router only — delegate to `$spec [mode=tests]`; dual authors diverge. |
+| "[HARD] BR weakened but tests pass"          | BLOCK — code-vs-spec contradiction; resolve or owner-accept, never wave through. |
 
-**[BLOCKING]** Create ALL 8 tasks via task tracking (or equivalent 8-step plan tracker) BEFORE any action. Track each step state live.
+**IMPORTANT MUST ATTENTION** create ALL 8 tasks via task tracking (or equivalent tracker) BEFORE any action and track each step live — `in_progress` before, `completed` after with evidence.
+**IMPORTANT MUST ATTENTION** router ONLY — delegate every §8 / Feature Spec / derived-index write; NEVER author them here — why: dual authorship diverges the spec from its index.
+**IMPORTANT MUST ATTENTION** every skip needs `file:line` evidence and a `completed` task with reason; run the fixed phase order — NEVER silently omit a phase.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Hookless Prompt Protocol Mirror (Auto-Synced)

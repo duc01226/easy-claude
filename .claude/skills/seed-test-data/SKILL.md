@@ -46,7 +46,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob, TaskCreate, Agent
 
 ## Phase 0: Detect Seeder Task Type
 
-Before any other step, classify request:
+Before any other step, classify the request:
 
 | Task Type        | Detection                                      | Action                                         |
 | ---------------- | ---------------------------------------------- | ---------------------------------------------- |
@@ -257,17 +257,14 @@ NEVER fix unvalidated findings. Do not spawn a fresh sub-agent only to re-review
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -285,13 +282,13 @@ NEVER fix unvalidated findings. Do not spawn a fresh sub-agent only to re-review
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -308,23 +305,42 @@ NEVER fix unvalidated findings. Do not spawn a fresh sub-agent only to re-review
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Ensure seeders create realistic, idempotent, valid test data through application paths without corrupting domain state.
-**IMPORTANT MUST ATTENTION** `TaskCreate` — break all work into tasks BEFORE starting
-**IMPORTANT MUST ATTENTION** NEVER call repo/DB directly — use application-layer commands
-**IMPORTANT MUST ATTENTION** ALWAYS gate by environment FIRST; ALWAYS check count before seeding
-**IMPORTANT MUST ATTENTION** loop from `existing_count` to `target_count` — NEVER from 0
-**IMPORTANT MUST ATTENTION** scoped DI per iteration — shared DI scope = silent DbContext corruption
-**IMPORTANT MUST ATTENTION** full re-review is required ONLY after a validated fix cycle. A clean review pass ENDS the review.
+**IMPORTANT MUST ATTENTION Goal:** Implement/enhance seeders creating realistic, idempotent, valid test data through application-layer commands (NEVER direct DB writes) — simulate QC happy-path scenarios without corrupting domain state.
+
+**Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
+
+- **Critical Thinking:** MUST ATTENTION apply critical+sequential thinking; traced proof, confidence >80%.
+- **Understand Code First:** ALWAYS search 3+ patterns and read code before writing.
+- **Evidence:** MUST ATTENTION cite `file:line` per claim; declare confidence; "insufficient evidence" valid.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+
+**IMPORTANT MUST ATTENTION** NEVER call repo/DB directly for domain data — use application-layer commands — why: bypassing the command pipeline skips validation, domain logic, and event side-effects, producing invalid state that passes silently
+**IMPORTANT MUST ATTENTION** ALWAYS gate by environment FIRST, then ALWAYS check count before seeding — why: env gate prevents prod corruption; count gate is the idempotency guarantee
+**IMPORTANT MUST ATTENTION** loop from `existing_count` to `target_count` — NEVER from 0 — why: looping from 0 re-seeds on every restart and breaks restart-safety
+**IMPORTANT MUST ATTENTION** scoped DI per iteration — shared DI scope = silent DbContext/session corruption
+**IMPORTANT MUST ATTENTION** ALWAYS read count multiplier from the discovered config key — NEVER hardcode (zero → no-op, never unbounded loop)
+**IMPORTANT MUST ATTENTION** NEVER duplicate command logic in the seeder — seeder provides realistic inputs, commands own validation/domain/events
+**IMPORTANT MUST ATTENTION** every seeded scenario MUST stay consistent with the §5 universal invariants; if a seeder encodes a domain rule (precondition, status, default) feed it into the spec — and tests where testable — NEVER a seeder-only fix — why: a hidden rule in a seeder drifts from the spec and breaks future readers
+
+**IMPORTANT MUST ATTENTION Evidence gate:** cite `file:line` for the env gate, count gate, loop start, DI scope, and seeder registration — confidence >80% to act, <60% DO NOT recommend; "Insufficient evidence" is valid output
+**IMPORTANT MUST ATTENTION** search 3+ existing seeder patterns and READ them before writing — match the discovered base class / env-gate / count-key conventions exactly; verify the copied pattern shares the same preconditions (base class, scope, lifetime) before reuse
+**IMPORTANT MUST ATTENTION** read `docs/project-reference/seed-test-data-reference.md` + `docs/project-config.json` (`Data Seeders` group) BEFORE any seeder change — project conventions override generic defaults
+**IMPORTANT MUST ATTENTION** `TaskCreate` — break all work into tasks BEFORE starting; transition one task at a time, evidence per completed step
+**IMPORTANT MUST ATTENTION** close with a fresh zero-memory `code-reviewer` round; full re-review is required ONLY after a validated fix cycle — a clean review pass ENDS the review; NEVER fix unvalidated findings
 
 **Anti-Rationalization:**
 
-| Evasion                                      | Rebuttal                                                     |
-| -------------------------------------------- | ------------------------------------------------------------ |
-| "Simple seeder, skip review loop"            | Idempotency bugs are silent. Run Round 1 always.             |
-| "Already know the base class"                | Show `file:line`. No proof = no knowledge.                   |
-| "Environment gate is obvious"                | Verify it's FIRST check with `file:line` evidence.           |
-| "Just hardcode count for now"                | NEVER — config key required. Find it in Step 1.              |
-| "No graph.db, skip trace"                    | Use grep-only trace. Still run 3+ pattern search.            |
-| "Existing scenarios look fine, skip enhance" | Read all scenarios; enhancement may conflict — verify first. |
+| Evasion                                      | Rebuttal                                                       |
+| -------------------------------------------- | ------------------------------------------------------------- |
+| "Simple seeder, skip review loop"            | Idempotency bugs are silent. Run Round 1 always.              |
+| "Already know the base class"                | Show `file:line`. No proof = no knowledge.                    |
+| "Environment gate is obvious"                | Verify it's FIRST check with `file:line` evidence.            |
+| "Just hardcode count for now"                | NEVER — config key required. Find it in Step 1.               |
+| "Seeder can validate this quickly"           | NEVER duplicate logic — command owns validation; seeder feeds inputs. |
+| "Skip the reference docs, I know seeders"    | Project conventions override generic patterns. Read them first. |
+| "No graph.db, skip trace"                    | Use grep-only trace. Still run 3+ pattern search.             |
+| "Existing scenarios look fine, skip enhance" | Read all scenarios; enhancement may conflict — verify first.  |
 
 **[TASK-PLANNING]** Before acting, break task into small todo tasks using `TaskCreate`.
+
+**IMPORTANT MUST ATTENTION** NEVER direct repo/DB writes for domain data · ALWAYS env-gate FIRST then count-gate · `file:line` evidence for every gate (confidence >80%).

@@ -718,17 +718,14 @@ integration-test (you are here)
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -930,13 +927,13 @@ integration-test (you are here)
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -977,15 +974,37 @@ integration-test (you are here)
 
 **IMPORTANT MUST ATTENTION Goal:** Produce integration tests that exercise real production paths and assert specific DB field values — so every test protects a traceable business behavior (TC), survives repeated runs without reset, and fails only when the protected intent actually breaks.
 
-- **MANDATORY IMPORTANT MUST ATTENTION** NEVER write smoke-only tests — read handler/entity/event source, assert specific field values
-- **MANDATORY IMPORTANT MUST ATTENTION** ALWAYS use async polling for ALL DB assertions — no exceptions
-- **MANDATORY IMPORTANT MUST ATTENTION** `TaskCreate` — break ALL work into small tasks BEFORE starting
-- **MANDATORY IMPORTANT MUST ATTENTION** `AskUserQuestion` — validate decisions with user. NEVER auto-decide.
-- **MANDATORY IMPORTANT MUST ATTENTION** READ `references/integration-test-patterns.md` BEFORE writing any test
-- **MANDATORY IMPORTANT MUST ATTENTION** NEVER create `Queries/` or `Commands/` folders — organize by domain feature
-- **MANDATORY IMPORTANT MUST ATTENTION** NEVER generate tests without TC annotation — auto-create in Section 8 if missing
-- **MANDATORY IMPORTANT MUST ATTENTION** NEVER mark done until tests pass via `/integration-test-verify`
-- **MANDATORY IMPORTANT MUST ATTENTION** search 3+ existing patterns, cite `file:line` before modifying anything
+**Protocols in force (concise digest of the SYNC/shared blocks this skill carries) — MUST ATTENTION each canonical body below is in force; this digest is the signpost, NEVER the substitute:**
+
+- **Source/Test Drift Check:** on source change, adjudicate whether tests or source is wrong.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **Critical Thinking:** every claim needs traced proof; never present a guess as fact.
+- **Understand Code First:** read existing code and grep 3+ patterns before writing.
+- **Graph Impact Analysis:** run blast-radius when graph.db exists; flag stale impacted files.
+- **Repeatable Test Principle:** unique data, additive-only, no reset — pass 3 consecutive runs.
+- **Red Flag Stop Conditions:** escalate on low confidence, large blast radius, breaking change.
+- **Rationalization Prevention:** reject step-skipping evasions; show grep evidence, plan anyway.
+- **Incremental Persistence:** persist findings to `plans/reports/` after each file, never in memory.
+- **Sub-Agent Return Contract:** sub-agents return only the summary shape, detail on disk.
+- **Sub-Agent Selection:** route specialized domains to matching specialists, never `code-reviewer`.
+- **Nested Task Creation:** child skills expand visible phase tasks and link the parent.
+- **Project Reference Docs Guide:** read required project-reference docs (always `lessons.md`) before target work.
+- **Task Tracking & External Report:** bootstrap task breakdown, transition one task at a time.
+
+- **MANDATORY IMPORTANT MUST ATTENTION** NEVER write smoke-only tests — instead read handler/entity/event source, assert specific changed field values — why: DI-resolution / exception-null-only tests pass while the behavior is broken
+- **MANDATORY IMPORTANT MUST ATTENTION** ALWAYS use async polling for EVERY DB assertion — no exceptions, not just async handlers — why: event handlers, message-bus consumers, background jobs, write latency delay persistence
+- **MANDATORY IMPORTANT MUST ATTENTION** NEVER fabricate state by direct repository writes — instead drive state through real command/query/seeder paths or valid seeded fixtures — why: shortcut data creates invalid state the suite then certifies
+- **MANDATORY IMPORTANT MUST ATTENTION** search 3+ existing tests in the SAME service and READ `references/integration-test-patterns.md` BEFORE writing — match collection, base class, helpers, unique-name generators — why: local conventions override generic templates
+- **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence (confidence >80% to act, <60% do NOT recommend) for every claim about field changes, entities, or handler behavior — why: AI hallucinates APIs/signatures; grep to confirm before asserting
+- **MANDATORY IMPORTANT MUST ATTENTION** `TaskCreate` — break ALL work into small tasks BEFORE starting; transition one task at a time, add a final review task — why: tracking survives context loss/compaction
+- **MANDATORY IMPORTANT MUST ATTENTION** every test method carries a `TC-{FEATURE}-{NNN}` test-spec annotation — auto-create in Section 8 ONLY for genuinely uncovered business behavior — why: the annotation is the join key for traceability
+- **MANDATORY IMPORTANT MUST ATTENTION** one business TC maps to MANY tests (1:N, integration + unit) — NEVER split or technicalize a TC to force 1:1 — why: 1:1 splitting breaks the spec's business/user-story orientation (M1/M5)
+- **MANDATORY IMPORTANT MUST ATTENTION** for any handler enforcing a `[HARD]` §4 rule or §5 invariant, generate a Pattern 9 property/metamorphic test + boundary counter-case tied to a §8 Invariant/Property TC — why: example tests guard fixed points; the rule must fail across its whole input domain (mutation-kill, not line-coverage)
+- **MANDATORY IMPORTANT MUST ATTENTION** NEVER create `Queries/` or `Commands/` folders — instead organize by domain feature — why: CQRS-type folders fragment a domain across directories
+- **MANDATORY IMPORTANT MUST ATTENTION** NEVER mark done after one green run — verification requires 3 consecutive `/integration-test-verify` passes WITHOUT a DB reset — why: one run proves only the current run, not repeatability
+- **MANDATORY IMPORTANT MUST ATTENTION** `review`/`verify` are lightweight in-skill MODES — invoke the standalone `/integration-test-review` and `/integration-test-verify` skills for the heavier workflow gates — why: name-collision; modes are not the sibling skills
+- **MANDATORY IMPORTANT MUST ATTENTION** `AskUserQuestion` — validate workflow/route decisions with the user. NEVER auto-decide complexity.
+- **MANDATORY IMPORTANT MUST ATTENTION** passing code/tests NEVER outrank canonical spec intent — instead reach adjudication-required with evidence before changing spec/test/code on a behavior mismatch — why: a green test can encode a regression
 
 **Anti-Rationalization:**
 
@@ -999,6 +1018,9 @@ integration-test (you are here)
 | "One green run is enough"          | Verification requires 3 consecutive passing runs without DB reset.                                   |
 | "REVIEW: one pass is enough"       | Low confidence → spawn fresh sub-agent. Never declare PASS after Round 1.                            |
 | "Skip task creation, it's obvious" | TaskCreate is non-negotiable. Tracking prevents context loss.                                        |
+| "Split this TC so tests map 1:1"   | One business TC → MANY tests is the expected shape. Splitting breaks spec business orientation (M1/M5). |
+| "Example tests cover the rule"     | A `[HARD]` §4 rule / §5 invariant needs a Pattern 9 property test — examples guard fixed points only. |
+| "Run `review` mode, it's the gate" | `review`/`verify` modes are inline passes; the workflow gates are the standalone `/integration-test-review` + `/integration-test-verify` skills. |
 
 ---
 

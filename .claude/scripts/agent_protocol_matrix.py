@@ -16,9 +16,11 @@ POLICY: QUALITY propagates, ORCHESTRATION does not
 Skill protocol blocks split into two classes (research/agent-skill-mapping.md
 section 3). Only the first propagates to a headless leaf sub-agent:
 
-  * QUALITY / RIGOR  -> adopt into agents (severity-rubric, fresh-context-review,
+  * QUALITY / RIGOR  -> adopt into agents (severity-rubric,
     root-cause-debugging, estimation-framework, ...). These raise the craft of
-    the agent's own output and are role-appropriate regardless of who invoked it.
+    the agent's own output when the block matches the agent's role.
+    Review-cycle quality blocks are additionally constrained by
+    ``REVIEW_CYCLE_AGENTS`` below.
   * ORCHESTRATION / INTERACTION  -> do NOT blanket-copy (``EXCLUDED_ORCHESTRATION``
     below). A sub-agent runs headless under a caller: it does not expand workflow
     steps, does not choose/return-contract its own sub-agents, and does not drive
@@ -105,6 +107,24 @@ SPAWN_INSTRUCTING_BLOCKS = {
     "review-protocol-injection",
 }
 
+# Review-cycle blocks are only relevant to agents whose primary job includes
+# adversarial review, fix-cycle validation, or review-gate orchestration.
+REVIEW_CYCLE_TAGS = {
+    "fresh-context-review",
+    "double-round-trip-review",
+    "review-protocol-injection",
+}
+REVIEW_CYCLE_AGENTS = {
+    "architect",
+    "code-reviewer",
+    "integration-tester",
+    "planner",
+    "quality-gate-review",
+    "security-auditor",
+    "spec-compliance-reviewer",
+    "ui-ux-designer",
+}
+
 # Code-investigation tags that may live ONLY on code-touching agents. A CORE_ONLY
 # agent (research/docs/product/governance role) carrying any of these is a tier
 # leak the framework rejects (TC-UAR-004). Kept in sync with
@@ -158,11 +178,11 @@ AGENT_QUALITY_BLOCKS = {
         "graph-assisted-investigation", "incremental-persistence",
     ],
     "scout": [
-        "end-to-start-debugger-trace", "graph-assisted-investigation",
+        "graph-assisted-investigation",
         "incremental-persistence", "rationalization-prevention",
     ],
     "scout-external": [
-        "end-to-start-debugger-trace", "graph-assisted-investigation",
+        "graph-assisted-investigation",
         "incremental-persistence", "rationalization-prevention",
     ],
     "researcher": [
@@ -170,8 +190,7 @@ AGENT_QUALITY_BLOCKS = {
     ],
     "knowledge-worker": [
         "web-research", "incremental-persistence", "output-quality-principles",
-        "severity-rubric", "fresh-context-review", "double-round-trip-review",
-        "review-protocol-injection",
+        "severity-rubric",
     ],
 
     # --- planning / product / architecture family ------------------------
@@ -183,8 +202,8 @@ AGENT_QUALITY_BLOCKS = {
     ],
     "architect": [
         "severity-rubric", "systematic-review-batching", "category-review-thinking",
-        "double-round-trip-review", "graph-assisted-investigation", "source-test-drift-check",
-        "design-patterns-quality", "scaffold-production-readiness",
+        "double-round-trip-review", "graph-assisted-investigation",
+        "design-patterns-quality",
     ],
     "solution-architect": [
         "design-patterns-quality", "scaffold-production-readiness",
@@ -192,8 +211,7 @@ AGENT_QUALITY_BLOCKS = {
     ],
     "business-analyst": [
         "estimation-framework", "refinement-dor-checklist", "ba-team-decision-model",
-        "ai-sdd-artifact-contract", "cross-cutting-quality", "scaffold-production-readiness",
-        "ui-system-context", "ui-wireframe",
+        "ai-sdd-artifact-contract", "ui-wireframe",
     ],
     "product-owner": [
         "estimation-framework", "refinement-dor-checklist", "ui-wireframe",
@@ -399,6 +417,16 @@ def validate() -> tuple[list[str], list[str]]:
                     f"(TC-UAR-004 forbids CODE_TAGS on core-only agents)"
                 )
 
+    # (f) review-cycle relevance -- HARD FAIL. Research/synthesis agents should
+    # not inherit fix-cycle re-review or review-prompt-template mechanics.
+    for agent, blocks in AGENT_QUALITY_BLOCKS.items():
+        leaked = sorted(set(blocks) & REVIEW_CYCLE_TAGS)
+        if leaked and agent not in REVIEW_CYCLE_AGENTS:
+            errors.append(
+                f"(f) agent '{agent}' assigns review-cycle tag(s) {leaked} "
+                f"but is not in REVIEW_CYCLE_AGENTS"
+            )
+
     return errors, warnings
 
 
@@ -426,7 +454,8 @@ def _main(argv: list[str]) -> int:
     print(
         f"OK: {n_agents} agents, {n_blocks} block insertions, "
         f"{len(FAMILIES)} families. All tags canonical; no orchestration leak; "
-        f"partition clean; spawn-capability guard clear; tier policy clear."
+        f"partition clean; spawn-capability guard clear; tier policy clear; "
+        "review-cycle relevance clear."
         + (f" ({len(warnings)} additive warning(s))" if warnings else "")
     )
     return 0

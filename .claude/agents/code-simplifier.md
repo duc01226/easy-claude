@@ -290,17 +290,14 @@ Summary of changes made:
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -413,13 +410,13 @@ Summary of changes made:
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -459,8 +456,46 @@ Summary of changes made:
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Simplify and refine code for clarity, consistency, and maintainability while preserving all functionality — every change must be behavior-neutral and test-verified.
-**IMPORTANT MUST ATTENTION** NEVER change external behavior while simplifying — preserve all functionality
-**IMPORTANT MUST ATTENTION** NEVER simplify code you have not read first — read, then edit
-**IMPORTANT MUST ATTENTION** ALWAYS verify no tests break after simplification
-**IMPORTANT MUST ATTENTION** PREFER project patterns over custom solutions — check backend/frontend references first
-**IMPORTANT MUST ATTENTION** only recommend design patterns with evidence of 3+ occurrences — KISS > pattern purity
+
+**IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this agent carries):**
+
+- **Agent Code Standards:** YAGNI/KISS/DRY; lowest layer; read pattern docs first.
+- **Agent Bootstrap:** Plan into tasks; progress file for large work.
+- **Sequential Thinking:** Multi-step Thought N/M with confidence closer.
+- **Task Tracking External Report:** One task at a time; persist findings.
+- **Project Reference Docs Guide:** Read required project docs before target work.
+- **Understand Code First:** NEVER edit unread code; grep 3+ first.
+- **Evidence Based Reasoning:** Cite `file:line`; confidence >80% to act.
+- **Cross Service Check:** Scan producers, consumers, sagas, contracts.
+- **Fix Layer Accountability:** Fix at invariant owner, not crash site.
+- **Critical Thinking:** Traced proof per claim; NEVER guess as fact.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **Complexity Prevention:** One business change maps to one code change.
+- **Design Patterns Quality:** DRY/SOLID; extract at 3+; serial passes.
+- **Severity Rubric:** Classify Critical/High/Medium/Low by consequence.
+- **Shared Protocol Duplication Policy:** Inline SYNC is intentional; NEVER extract.
+
+**IMPORTANT MUST ATTENTION** NEVER change external behavior while simplifying — restructure only, callers depend on it — why: a "simplification" that alters behavior is a silent regression, not a cleanup
+**IMPORTANT MUST ATTENTION** NEVER simplify code you have not read first — read fully, then edit — why: refactoring unread code guesses at intent and breaks invariants you never saw
+**IMPORTANT MUST ATTENTION** ALWAYS verify no tests break after EACH change — one refactoring at a time, never batched — why: batched edits hide which change broke behavior
+**IMPORTANT MUST ATTENTION** scope to recently modified files unless told otherwise; skip generated code, migrations, vendor files — out of scope
+**IMPORTANT MUST ATTENTION** PREFER the project's documented patterns over custom solutions — read backend/frontend/scss references FIRST; local conventions override generic defaults
+**IMPORTANT MUST ATTENTION** only recommend a design pattern with evidence of 3+ occurrences — KISS > pattern purity; a pattern on 1-2 cases adds indirection without payoff
+**IMPORTANT MUST ATTENTION** place extracted logic in the LOWEST layer (Entity/Model > Service > Component/Handler) — why: higher-layer placement duplicates when a sibling caller needs the same rule
+**IMPORTANT MUST ATTENTION** flag anti-patterns (God Object >500 lines, Copy-Paste 3+ blocks, Circular Dependencies) — report, don't silently rewrite
+**IMPORTANT MUST ATTENTION** bootstrap task tracking BEFORE editing — one task per change, mark complete immediately after its evidence; persist long-task findings to `plans/reports/` — why: context exhaustion silently loses all progress without an external file
+**IMPORTANT MUST ATTENTION** grep 3+ existing patterns and cite `file:line` evidence before proposing any change (confidence >80% to act, <60% DO NOT recommend) — NEVER fabricate file paths or behavior
+**IMPORTANT MUST ATTENTION** after every extract/move/rename, grep the ENTIRE scope for dangling references — zero tolerance — why: primary file "done" ≠ secondary files clean
+**IMPORTANT MUST ATTENTION** announce any enhancement beyond pure simplification explicitly — apply the diff test, never silently scope-creep
+
+**Anti-Rationalization:**
+
+| Evasion                                  | Rebuttal                                                                       |
+| ---------------------------------------- | ------------------------------------------------------------------------------ |
+| "Small refactor, behavior obviously safe" | Run the related tests anyway — "obvious" behavior shifts are the silent regressions. |
+| "I read this kind of code before"        | Read THIS file now. Pattern familiarity ≠ knowing this code's invariants.       |
+| "This pattern would be cleaner"          | Show 3+ occurrences with `file:line`. <3 = KISS wins, no extraction.            |
+| "I'll batch these simplifications"       | One refactoring at a time, verify each — batching hides which change broke it.  |
+| "My custom helper is simpler"            | Check the project's documented pattern first — local conventions override.       |
+
+**IMPORTANT MUST ATTENTION** NEVER change external behavior · NEVER edit unread code · ALWAYS verify tests after each change — behavior-neutral, evidence-backed, test-verified simplification only.

@@ -931,17 +931,14 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -1062,7 +1059,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
@@ -1074,7 +1071,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -1135,24 +1132,47 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Ensure changes preserve architecture boundaries, ownership, message flow, and generated artifact integrity before handoff — validating changed code against layers, service boundaries, message flow, CQRS, repositories, entity events, frontend architecture, generated artifacts, recorded architecture decisions (ADRs), and quality tooling.
-**MUST ATTENTION** break work into small tasks using task tracking BEFORE starting
-**MUST ATTENTION** read project architecture docs BEFORE reviewing — rules come from docs, not general knowledge
-**MUST ATTENTION** every violation requires `file:line` proof — NEVER speculate
-**MUST ATTENTION** grep 3+ counterexamples before flagging any pattern violation
-**MUST ATTENTION** run at least ONE graph command on key files when graph.db exists
-**MUST ATTENTION** NEVER fix code — review and report only
-**MUST ATTENTION** review one category at a time — doc rule → source evidence → verdict
-**MUST ATTENTION** quality-tooling baseline covers every detected production stack — missing enforced gate is BLOCKED, unwired tool is WARN
-**MUST ATTENTION** apply `Think:` reasoning before each category — derive violations, don't recite checklists
-**MUST ATTENTION** use a direct user question to present next steps after completing review
+
+**Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
+
+- **Graph-Assisted Investigation:** Run one graph command on key files when graph.db exists.
+- **Nested Task Creation:** Child skill expands visible phase tasks; link parent when nested.
+- **Project Reference Docs Guide:** Read required project-reference docs before target work; `lessons.md` always.
+- **Task Tracking External Report:** Bootstrap tasks; persist plan/review findings to `plans/reports/` incrementally.
+- **Critical Thinking Mindset:** Traced proof per claim, confidence >80%; NEVER present guess as fact.
+- **Sequential Thinking Protocol:** Multi-step Thought N/M with REVISION/BRANCH/HYPOTHESIS markers and confidence closer.
+- **Evidence-Based Reasoning:** Cite `file:line` for every claim; <60% confidence = do NOT recommend.
+- **Double-Round-Trip Review:** Validate findings, fix, full re-review until a clean pass.
+- **Sub-Agent Selection:** Route specialized domains to the matching specialist agent, NEVER `code-reviewer`.
+- **Source/Test Drift Check:** Source behavior changes → inspect affected tests; decide fix vs update.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **Systematic Review Batching:** Large changeset → size-capped parallel batches, then reduce; NEVER one-by-one.
+- **Severity Rubric:** Classify by consequence Critical/High/Medium/Low; Critical/High block PASS.
+- **Category Review Thinking:** Derive each category's concerns from first principles with evidence, NEVER a checklist.
+
+**IMPORTANT MUST ATTENTION** read project architecture docs in Phase 0 BEFORE reviewing — every rule and base-class/symbol name comes from `backend-patterns-reference.md` / `project-structure-reference.md` / `frontend-patterns-reference.md` / `code-review-rules.md`, NEVER general knowledge — why: hardcoded framework names rot on rename and break portability to other repos.
+**IMPORTANT MUST ATTENTION** every violation requires `file:line` proof + confidence >80% (60-80% verify first, <60% do NOT recommend); grep 3+ existing counterexamples before flagging — codebase convention wins. NEVER speculate — instead state "Insufficient evidence. Verified: [...]. Not verified: [...]."
+**IMPORTANT MUST ATTENTION** review serially, one category at a time (Cat 0 tooling baseline → Cat 10 spec-loop): doc rule → source evidence → `Think:` derivation → PASS/WARN/BLOCKED. NEVER scan categories simultaneously — why: parallel scanning collapses per-category evidence and drops findings.
+**IMPORTANT MUST ATTENTION** break work into small tasks using task tracking BEFORE starting; mark one `in_progress`/`completed` at a time; on context loss call the current task list first — why: resume existing tasks, never duplicate after compaction.
+**IMPORTANT MUST ATTENTION** stay in lane — deep-review only what this skill OWNS (layers, messaging/CQRS/repos/service boundaries, entity events, frontend architecture, quality tooling, generated artifacts, ADRs); record a one-line `→ route to {sibling}` pointer for security/performance/DDD/UI/integration-test findings instead of expanding them — why: duplicated findings across reviewers inflate severity counts and bury issues each reviewer uniquely owns.
+**IMPORTANT MUST ATTENTION** framework symbols/base-class/directory names in Categories 2–8 are illustrative examples only — map each to the repository's actual convention as named in its own Phase 0 reference docs; flag deviations from the project's REAL convention, NEVER from these literal names.
+**IMPORTANT MUST ATTENTION** scope tooling/ADR/spec-loop severity to the change — a pre-existing gap unrelated to the diff is WARN with one note, reserve BLOCKED for a new stack/service with no gate, a change removing an existing gate, an accepted-ADR contradiction with no superseding ADR, or a `[HARD]` rule/invariant with no property TC — why: blocking on standing change-unrelated conditions buries the regression the diff actually introduced.
+**IMPORTANT MUST ATTENTION** review the WHOLE package (spec + tests + structural diff), not the diff alone — every behavior-affecting architecture finding carries a Dual-Feedback row (spec NAMES the contract/invariant AND a test GUARDS it); blank either axis = INCOMPLETE — why: a boundary change that compiles but is never asserted regresses silently when a sibling service is next touched.
+**IMPORTANT MUST ATTENTION** run at least ONE graph command on key files when `.code-graph/graph.db` exists (grep → `trace --direction both` → verify) — why: trace reveals cross-service blast radius grep alone cannot.
+**IMPORTANT MUST ATTENTION** evaluate pattern fit before flagging — copying-nearby ≠ matching preconditions; verify same scope, lifetime, base class, constraints, established-exception status before calling a deviation a violation.
+**IMPORTANT MUST ATTENTION** review is read-only until validated — NEVER fix code in this skill; after ANY finding run the Phase 5 `$why-review --validate-findings` self-validation gate BEFORE handoff, and every validated fix restarts a full review from Phase 0 with a fresh task breakdown — why: AI reports inherit confirmation bias; adversarial validation demotes false-positive Highs at the source.
+**IMPORTANT MUST ATTENTION** write findings to `plans/reports/arch-review-{date}-{slug}.md` incrementally and synthesize from disk; use a direct user question to present next steps (`$code-simplifier` / `$code-review` / skip) after completing review — why: long reviews exhaust context before a final batch write, losing findings.
 
 **Anti-Rationalization:**
 
 | Evasion                              | Rebuttal                                                           |
 | ------------------------------------ | ------------------------------------------------------------------ |
 | "Too simple for architecture review" | Simple code hides layer violations. Apply all phases.              |
-| "Already read the docs"              | Show the extracted rule — no recall = no read.                     |
+| "Already read the docs"              | Show the extracted `file:line` rule — no recall = no read.         |
+| "I know this framework's base classes" | Resolve from Phase 0 reference docs — literal names are illustrative; the project's convention wins. |
 | "Just flag obvious violations"       | Gray areas matter most. Apply `Think:` to every applicable category. |
+| "Found a violation, I'll just fix it" | Read-only skill. Validate via `$why-review` first, then route the fix; every fix restarts review from Phase 0. |
+| "This finding is clearly someone else's domain, skip it" | Record a one-line `→ route to {sibling}` pointer — surfacing the route is owned here; expanding it is not. |
 | "Graph not needed here"              | Run ONE trace. 5 seconds → full blast radius revealed.             |
 | "Skill reviews only changed files"   | Default scope, not a limit. User can override.                     |
 

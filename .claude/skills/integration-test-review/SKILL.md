@@ -773,17 +773,14 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -934,13 +931,13 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -1000,27 +997,39 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 ## Closing Reminders (MUST ATTENTION)
 
-**Goal:** Ensure the review target (changed production code) has test coverage (integration-first) and that integration tests protect real business behavior with repeatable data-state assertions aligned to specs and implementation.
-- use `TaskCreate` for ALL phases BEFORE starting
-- scope = the CHANGE SET (production + tests) — never review only the test files; Gate 7 coverage mapping is NOT optional
-- every behavior-changing production change needs a covering test — integration-first; unit fallback requires recorded justification; GAP = HIGH minimum, fixed by WRITING the test
-- spec-driven alignment runs BOTH directions — from TCs in tests AND from changed code back to spec docs; missing/stale TC = SPEC-GAP finding
-- test that cannot fail is decoration — if it can't catch the protected business rule/invariant breaking, delete or fix it
-- read handler source BEFORE judging assertions — cannot review without understanding
-- tests MUST be infinitely repeatable — unique data per run, no cleanup, no rollback
-- integration-test verification requires 3 consecutive passing runs without DB reset
-- ALWAYS use async polling/retry for DB assertions
-- flag smoke-only as FAIL unless justified with explicit design comment
-- write findings to report file — never just return text
-- fix ALL CRITICAL and HIGH issues BEFORE running tests — Phase 5 NOT optional
-- validate findings before fixes; after validated fixes, rerun a full fresh review before declaring PASS
-- build and run ALL tests after fixes — Phase 7 NOT optional; unverified reviews have zero value
-- if tests fail, classify and investigate root cause — Phase 8 generates fix plan; NEVER retry blindly
-- Gate 6: read ALL three sources before classifying — never classify from two sources alone
-- NEVER fix a test to match broken code — hides the bug
-- NEVER self-resolve a three-way conflict — escalate via `AskUserQuestion`
-- "stale docs" requires BOTH impl code AND test to agree — one source never enough
-- validate findings before fixes; after validated fixes, rerun full integration-test review before PASS
+**IMPORTANT MUST ATTENTION Goal:** Ensure the review target (changed production code) is covered by tests that protect real business behavior with correct data assertions, infinite repeatability, and spec alignment — verify every behavior change has a covering test (integration-first, unit fallback) so specs ↔ tests ↔ code stay aligned (spec-driven development).
+
+**Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
+
+- **Critical Thinking:** Traced `file:line` proof per claim; confidence >80% to act.
+- **Evidence:** Speculation forbidden; cite evidence, state confidence, NEVER guess.
+- **Double Round-Trip Review:** Validated-fix then full fresh re-review until clean.
+- **Repeatable Test Principle:** Unique IDs, additive-only, no cleanup; ALWAYS async-poll DB asserts.
+- **Source/Test Drift Check:** Source change → reinspect affected tests for intended behavior.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **Nested Task Creation:** Expand child phases, link parent, one `in_progress`.
+- **Project Reference Docs Guide:** Read required project docs (ALWAYS `lessons.md`) before target work.
+- **Task Tracking External Report:** Bootstrap tasks; persist findings to `plans/reports/` incrementally.
+- **Systematic Review Batching:** Large changeset → size-capped parallel batches; NEVER one-by-one.
+- **Severity Rubric:** Classify by consequence; Critical/High block PASS until resolved.
+- **Category Review Thinking:** Derive each category's concerns from first principles, NEVER a fixed checklist.
+
+**IMPORTANT MUST ATTENTION** scope = the CHANGE SET (production + test files) — NEVER review only the test files; Gate 7 coverage mapping is NOT optional — why: a test-files-only scope reviews tests that exist and misses changed behavior that has none
+**IMPORTANT MUST ATTENTION** read handler/service source (and feature docs) BEFORE judging any assertion — cannot review what you have not read — why: assertion quality is unknowable without knowing what the handler actually writes
+**IMPORTANT MUST ATTENTION** every finding requires `file:line` proof with confidence >80% to act, 60-80% verify first, <60% DO NOT report — NEVER speculate; "Insufficient evidence" is valid output — why: AI reports inherit confirmation bias; unproven severities propagate downstream as ground truth
+**IMPORTANT MUST ATTENTION** bootstrap `TaskCreate` for ALL 9 phases BEFORE starting; on context loss call `TaskList` first and resume, never duplicate — why: phase tracking is the only recovery anchor after compaction
+**IMPORTANT MUST ATTENTION** search 3+ existing test patterns and the project's test reference docs (`integration-test-reference.md` via grep, NEVER hardcoded paths) before judging conventions; evaluate pattern FIT (same base class, scope, DI path) before copying a nearby example — why: local conventions override generic framework defaults
+**IMPORTANT MUST ATTENTION** every behavior-changing production change needs a covering test — integration-first; unit fallback requires recorded infeasibility justification; GAP = HIGH minimum (CRITICAL on auth/money/data-integrity), fixed by WRITING the test in Phase 5, not just reporting
+**IMPORTANT MUST ATTENTION** Gate 1 mutation probe is non-skippable — record the Mutation Probe Ledger (KILLED/SURVIVOR per changed core-logic line); no ledger = Gate 1 FAIL, not "skipped" — why: a surviving mutant is a fakeable test that protects no invariant
+**IMPORTANT MUST ATTENTION** spec-driven alignment runs BOTH directions — from TCs in tests AND from changed code back to spec docs; missing OR stale-but-covered TC = SPEC-GAP finding — why: a covering test whose mapped TC documents OLD behavior passes a spec gap silently
+**IMPORTANT MUST ATTENTION** a test that cannot fail is decoration — if it cannot catch the protected business rule/invariant breaking, delete or fix it; flag smoke-only/existence-only/dead assertions as FAIL unless justified by explicit design comment
+**IMPORTANT MUST ATTENTION** tests MUST be infinitely repeatable — unique IDs per run, no cleanup, no rollback; ALWAYS use async polling/retry for ALL DB assertions; verification requires 3 consecutive passing runs without DB reset — why: one green run hides ordering and eventual-consistency flakiness
+**IMPORTANT MUST ATTENTION** Gate 6 — read ALL three sources before classifying (never two); NEVER fix a test to match broken code (report the code bug instead); NEVER self-resolve a three-way conflict (escalate via `AskUserQuestion`); "stale docs" requires BOTH impl code AND test to agree — why: a winner picked without evidence hides bugs
+**IMPORTANT MUST ATTENTION** fix ALL CRITICAL/HIGH issues (Phase 5 NOT optional); validate findings via `/why-review` before fixing; after validated fixes rerun a full fresh review until a clean pass returns 0 CRITICAL/0 HIGH — why: every fix invalidates the prior verdict
+**IMPORTANT MUST ATTENTION** integration-test reviews ALWAYS spawn the `integration-tester` sub-agent, NEVER `code-reviewer`, with all protocol bodies embedded VERBATIM — why: `code-reviewer` lacks TC-traceability and async-polling assertion depth, and file-path indirection drops compliance ~40%
+**IMPORTANT MUST ATTENTION** build and run ALL changed/reviewed tests after fixes (Phase 7 NOT optional) — unverified reviews have zero value; if tests fail, classify (test bug vs service bug vs environment) and root-cause in Phase 8, NEVER retry blindly
+**IMPORTANT MUST ATTENTION** write findings to `plans/reports/integration-test-review-{date}-{slug}.md` incrementally — never just return text — why: long sub-agents hit cutoffs before a final batch write and lose findings
+**IMPORTANT MUST ATTENTION** every finding requires `file:line` proof with confidence >80%; scope = the CHANGE SET, never just tests; read handler source BEFORE judging assertions
 
 **Anti-Rationalization:**
 
@@ -1036,6 +1045,9 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 | "A unit test is enough here"              | Integration-first. Unit fallback requires recorded infeasibility justification. |
 | "Test with matching name exists = covered" | Read it. Coverage means it exercises the changed path and asserts the changed outcome. |
 | "Specs can be updated later"              | Spec-driven development: missing/stale TC is a SPEC-GAP finding, fixed in this review. |
+| "I checked the mutants mentally"          | No ledger = Gate 1 FAIL. The Mutation Probe Ledger is the only proof the probe ran. |
+| "My finding list is obviously right"      | AI reports inherit confirmation bias. Validate via `/why-review` before fixing. |
+| "Name match counts as coverage"           | Read the test — coverage requires exercising the changed path AND asserting its outcome. |
 
 ---
 

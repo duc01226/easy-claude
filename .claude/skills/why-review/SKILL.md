@@ -484,17 +484,14 @@ If suppressed or no-fire, do NOT mention `/llm-council`. If gate fires, ask a **
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -834,19 +831,46 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 ## Closing Reminders
 
-**MANDATORY Goal:** Ensure decisions, findings, and plans survive adversarial rationale review before downstream work proceeds.
-**MANDATORY** break work into small todo tasks using `TaskCreate` BEFORE starting.
-**MANDATORY** resolve the user's requested review target BEFORE reviewing: plan/PBI rationale, code changes, docs/spec/report, findings, or another artifact. Commit/PR/diff input defaults to code-change review; "no active plan" applies ONLY to unresolved plan-rationale requests.
-**MANDATORY** validate decisions with user via `AskUserQuestion` — why: review gate needs user-owned next step, not AI auto-proceed.
-**MANDATORY** add a final review todo task to verify work quality.
-**MANDATORY** in full mode, create the **Findings Validation Gate** closing task at skill START (see Task Bootstrap); whenever findings exist, run it before completing — re-invoke `/why-review --validate-findings` (TERMINAL mode, SAME session) to verify every finding is correct, proof-backed, reasonable, best-practice; RE-DO it ONLY if it surfaces finding issues or enhancement opportunities (max 2 re-dos, then escalate via `AskUserQuestion`). `validate-findings` mode is terminal — it NEVER re-invokes why-review.
-**MANDATORY** read reference docs chosen by Project Reference Docs Gate; always include `docs/project-reference/lessons.md`.
+**IMPORTANT MUST ATTENTION Goal:** Resolve the requested review target and apply the matching adversarial review path (plan/PBI rationale, code changes, docs/spec/report, findings, or explicit artifact) so decisions, findings, and plans survive adversarial rationale review before downstream work proceeds.
 
-- **MANDATORY** cite `file:line` evidence for every claim. Confidence >80% to act, <60% do NOT recommend.
-- **MANDATORY** execute the review loop: review → validate findings → fix validated findings → full re-review. A complete review pass with zero findings ENDS the review.
-- **MANDATORY** run graph blast-radius on changed files to find potentially stale consumers/handlers (when graph.db exists).
+**Protocols in force (concise digest of the SYNC/shared blocks this skill carries):** these are signposts — the canonical bodies above are binding; MUST ATTENTION honor each, NEVER treat a digest line as the full rule.
+
+- **End-To-Start Debugger Trace:** for non-trivial bugs, trace observed final state backward to trigger.
+- **Behavioral Delta Matrix:** bugfix verdict needs ≥3-row pre/post delta table, one outside report.
+- **Nested Task Creation:** workflow rows still expand child phase tasks; link parent when nested.
+- **Project Reference Docs:** read scoped project docs (always `lessons.md`) before judging conventions.
+- **Task Tracking & External Report:** bootstrap tasks; persist long-review findings to `plans/reports/` incrementally.
+- **Critical Thinking:** every claim traced + proof-backed; confidence >80% to act, stay self-skeptical.
+- **Sequential Thinking:** multi-step Thought N/M with REVISION/BRANCH/HYPOTHESIS markers and confidence closer.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **Evidence-Based Reasoning:** cite `file:line`/grep/docs for every claim; no proof, no recommendation.
+- **Double Round-Trip Review:** review → validate → fix validated → full re-review until clean ends loop.
+- **Fresh Context Review:** after a fix cycle restart full review with fresh zero-memory sub-agents.
+- **Review Protocol Injection:** embed all 11 protocol bodies VERBATIM into each fresh sub-agent prompt.
+- **Graph Impact Analysis:** run blast-radius when graph.db exists; impacted minus changed = stale files.
+- **Severity Rubric:** classify findings Critical/High/Medium/Low by consequence; Critical/High block PASS.
+
+**IMPORTANT MUST ATTENTION** default stance SKEPTIC, NOT validator — before ANY verdict complete all 6 Anti-Bias Gate boxes: steel-man ≥1 rejected alternative, name ≥1 unseen alternative, list 2-3 arguments AGAINST chosen approach, stress-test 2-3 hidden assumptions, run a pre-mortem, check pros/cons symmetry. — why: section presence is never a pass, and a reviewer who already endorsed the reasoning needs a forced reset to find what's wrong.
+**IMPORTANT MUST ATTENTION** resolve target type BEFORE reviewing: plan/PBI rationale, code changes, docs/spec/report, findings, or another artifact. Commit/PR/diff input defaults to code-change review; say "no active plan" ONLY for unresolved plan-rationale requests, NEVER silently convert target types. — why: wrong target type reviews the wrong artifact against the wrong checklist.
+**IMPORTANT MUST ATTENTION** recursion guard is non-negotiable: full mode may call `/why-review --validate-findings` at most ONCE; validate-findings mode is TERMINAL — NEVER re-invokes why-review, NEVER runs the gate, NEVER spawns a sub-agent. — why: any of these from terminal mode causes infinite recursion.
+
+**IMPORTANT MUST ATTENTION** cite `file:line` evidence + severity + confidence for EVERY finding (>80% act, <60% do NOT recommend); reject "probably / should be / I think" — why: an unproven finding is speculation, not a review result.
+**IMPORTANT MUST ATTENTION** judge by Easy-to-Change — every finding, test, refactor, abstraction must lower future change cost; name the real enemies (coupling, hidden state, duplicated knowledge, unclear intent, premature irreversible decisions) or reject the recommendation. — why: this metric overrides any downstream "best practice" that raises change cost.
+**IMPORTANT MUST ATTENTION** search 3+ existing patterns and read target files BEFORE judging conventions; evaluate fit before flagging a nearby pattern as "wrong" (closest example ≠ matching preconditions). — why: local conventions override generic framework defaults; pattern-matching without context manufactures false findings.
+**IMPORTANT MUST ATTENTION** break work into small todo tasks via `TaskCreate` BEFORE starting; in full mode create the **Findings Validation Gate** closing task at skill START (Task Bootstrap) and run it whenever findings exist — re-invoke `/why-review --validate-findings` (TERMINAL, SAME session) to confirm every finding is correct, proof-backed, reasonable, best-practice; RE-DO ONLY on surfaced finding issues/enhancements (max 2 re-dos, then escalate via `AskUserQuestion`). — why: the gate catches inflated, misread, or unproven findings before handoff.
+**IMPORTANT MUST ATTENTION** execute the review loop: review → validate findings → fix validated findings → full re-review; a complete review pass with zero findings ENDS the review. NEVER fix unvalidated findings; NEVER reuse a sub-agent across rounds (spawn NEW `Agent` calls); main agent reads sub-agent reports but does NOT filter or override. — why: every fix invalidates the prior verdict, and orchestrator confirmation bias hides regressions a fresh zero-memory reviewer catches.
+**IMPORTANT MUST ATTENTION** judge the WHOLE PACKAGE, not the diff alone — load the behavior's spec (§3 AC / §4 BR / §8 TC), its tests, and the changed code together and triangulate; a missing or disagreeing face is itself a finding (CODE-WRONG / SPEC-STALE / TEST-GAP / SPEC-SILENT). NEVER mark PASS while any face disagrees without a logged finding. — why: the diff is the entry point, the package is the unit of judgment.
+**IMPORTANT MUST ATTENTION** every behavior-changing finding carries BOTH a spec-drift verdict (CODE-WRONG / SPEC-STALE / AMBIGUOUS / SPEC-SILENT / in-sync) AND a concrete test-feedback action; a SPEC-SILENT verdict additionally REQUIRES a spec-enrichment action (§4 BR/§3 AC + §8 TC). A missing axis is HAS-ISSUES, never a clean finding. — why: code-only fixes silently drop the invariant from the spec and leave it unguarded.
+**IMPORTANT MUST ATTENTION** for bugfix / regression / behavior-changing reviews, walk the End-to-Start debugger trace (observed final state → backward → feeder paths → hypothesis matrix → owning layer → forward convergence proof) and produce the Behavioral Delta Matrix (≥3 rows, ≥1 row outside the bug report) BEFORE the verdict; any REGRESSION delta → FAIL until a preservation test covers it. — why: narrative claims hide regressions and symptom-first fixes the matrix and trace force into view.
+**IMPORTANT MUST ATTENTION** require fixes at the owning layer — the lowest layer that owns the invariant — NEVER at the symptom/crash site; a fix touching 3+ files with defensive checks signals the wrong layer, go lower. — why: symptom-site patches leave every other consumer exposed.
+**IMPORTANT MUST ATTENTION** High/Medium residual risk must be fixed, reduced, or explicitly accepted by the user/owner before PASS; AI-extracted specs/TCs are not accepted evidence unless the canonical owner/review gate accepted them. — why: unowned residual risk is a deferred failure, not a pass.
+**IMPORTANT MUST ATTENTION** flag 3+ duplicated patterns for extraction and same-suffix classes (`*Entity`/`*Dto`/`*Service`) for a shared base when it lowers future change cost; NEVER recommend a pattern with fewer than 3 occurrences (YAGNI). — why: both over- and under-abstraction raise future change cost.
+**IMPORTANT MUST ATTENTION** read reference docs chosen by Project Reference Docs Gate (always include `docs/project-reference/lessons.md`); persist long-review findings to `plans/reports/` incrementally; validate the next step with the user via `AskUserQuestion` in full mode — NEVER auto-proceed. — why: project docs override generic assumptions, external memory survives compaction, and the review gate is user-owned.
+**IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.
 <!-- SYNC:critical-thinking-mindset:reminder -->
-- **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
+
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:sequential-thinking-protocol:reminder -->
@@ -857,7 +881,8 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-- **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
+
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
@@ -875,6 +900,10 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 | "Findings look obvious" | Validate every finding via terminal `--validate-findings`.                              |
 | "All dimensions at once" | One focused pass per dimension; split attention catches misses.                        |
 | "Ask later"             | Full mode asks user next step before completion.                                        |
+| "Looks good / faces agree" | Default SKEPTIC; complete all 6 Anti-Bias boxes; triangulate spec↔tests↔code — any disagreeing face is a finding. |
+| "Behavior change, no spec impact" | Emit spec-drift verdict + test-feedback action; SPEC-SILENT requires §4 BR/§3 AC + §8 TC enrichment. |
+| "Fix where it crashes"  | Fix at the owning layer (lowest invariant owner); the crash site is the symptom, not the cause.       |
+| "High risk, but ship"   | High/Medium residual risk must be fixed, reduced, or owner-accepted before PASS.        |
 
 ---
 

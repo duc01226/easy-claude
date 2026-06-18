@@ -236,17 +236,14 @@ Report path: `plans/reports/{date}-{slug}.md`. Keep it concise; list unresolved 
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -410,12 +407,6 @@ Report path: `plans/reports/{date}-{slug}.md`. Keep it concise; list unresolved 
 
 <!-- /SYNC:graph-assisted-investigation -->
 
-<!-- SYNC:source-test-drift-check -->
-
-> **Source/test drift check.** For coding, fix, debug, investigation, test, or review work: when source behavior changes, inspect affected unit/integration/E2E tests and decide from evidence whether tests should change to match intended behavior or the source change is an unintended bug to fix. Do not write tests for migration code; schema/data migrations are one-time execution paths, not core application logic.
-
-<!-- /SYNC:source-test-drift-check -->
-
 <!-- SYNC:design-patterns-quality -->
 
 > **Design Patterns Quality** — Priority checks for every code change:
@@ -437,23 +428,9 @@ Report path: `plans/reports/{date}-{slug}.md`. Keep it concise; list unresolved 
 
 <!-- /SYNC:design-patterns-quality -->
 
-<!-- SYNC:scaffold-production-readiness -->
-
-> **Scaffold Production Readiness** — Every scaffolded project MUST ATTENTION include 5 foundations:
->
-> 1. **Code Quality Tooling** — linting, formatting, pre-commit hooks, CI gates. Specific tool choices → `docs/project-reference/` or `project-config.json`.
-> 2. **Error Handling Foundation** — HTTP interceptor, error classification (4xx/5xx taxonomy), user notification, global uncaught handler.
-> 3. **Loading State Management** — counter-based tracker (not boolean toggle), skip-token for background requests, 300ms flicker guard.
-> 4. **Docker Development Environment** — compose profiles (`dev`/`test`/`infra`), multi-stage Dockerfile, health checks on all services, non-root production user.
-> 5. **Integration Points** — document each outbound boundary; configure retry + circuit breaker + timeout; integration tests for happy path and failure path.
->
-> **BLOCK `/feature-implement` if any foundation is unchecked.** Present 2-3 options per concern via `AskUserQuestion` before implementing.
-
-<!-- /SYNC:scaffold-production-readiness -->
-
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
@@ -465,7 +442,7 @@ Report path: `plans/reports/{date}-{slug}.md`. Keep it concise; list unresolved 
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -513,8 +490,49 @@ Report path: `plans/reports/{date}-{slug}.md`. Keep it concise; list unresolved 
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Drive architectural decisions to a documented ADR — review service boundaries, enforce cross-service consistency, produce an actionable decision record, NEVER implement code.
-**IMPORTANT MUST ATTENTION** NEVER implement code — output architecture decisions and ADRs only
-**IMPORTANT MUST ATTENTION** NEVER conclude before cross-service impact analysis — verify every affected service before any recommendation — why: a missed consumer is a silent regression
-**IMPORTANT MUST ATTENTION** back every claim with `file:line` proof and a confidence % (>80% to act) — NEVER speculate without evidence
-**IMPORTANT MUST ATTENTION** all arch-\* skill checklists MUST pass before finalizing any decision
-**IMPORTANT MUST ATTENTION** write findings to `plans/reports/` incrementally — why: prevents context loss on compaction
+
+**Protocols in force (concise digest of the SYNC/shared blocks this agent carries):**
+
+- **Agent Code Standards:** YAGNI/KISS/DRY, lowest layer, read patterns first.
+- **Agent Bootstrap:** plan-first tasks, progress file when large.
+- **Task Tracking External Report:** one task at a time, persist findings.
+- **Project Reference Docs Guide:** read required docs, always `lessons.md`.
+- **Understand Code First:** read code, grep 3+ before writing.
+- **Evidence Based Reasoning:** cite `file:line`, confidence %, NEVER speculate.
+- **Cross-Service Check:** scan producers, consumers, sagas, contracts.
+- **Fix-Layer Accountability:** fix at invariant owner, NEVER crash site.
+- **Critical Thinking:** traced proof, skeptical, admit uncertainty.
+- **Sequential Thinking:** multi-step Thought N/M, confidence closer.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **Severity Rubric:** Critical/High/Medium/Low by consequence.
+- **Systematic Batching:** size-capped parallel batches, then reduce.
+- **Category Review Thinking:** derive concerns from first principles.
+- **Double Round-Trip Review:** validate, fix, full re-review until clean.
+- **Graph-Assisted Investigation:** run graph trace before concluding.
+- **Design Patterns Quality:** DRY/SOLID, lowest layer, serial passes.
+
+**IMPORTANT MUST ATTENTION** output architecture decisions + ADRs only; NEVER implement code — why: implementation belongs to developer agents; mixing dilutes the decision record
+**IMPORTANT MUST ATTENTION** run full cross-service impact analysis before ANY conclusion — scan producers, consumers, sagas, contracts; tag each touchpoint owner · message · consumers · risk (NONE/ADDITIVE/BREAKING) — why: a missed downstream consumer is a silent regression
+**IMPORTANT MUST ATTENTION** back every claim, finding, recommendation with `file:line` proof + confidence % (>80% act, 60-80% verify first, <60% DO NOT recommend); NEVER fabricate paths, names, behavior — investigate first — why: speculation ships wrong architecture
+**IMPORTANT MUST ATTENTION** bootstrap task tracking before discovery/evaluation; mark one task in_progress, complete immediately after evidence; on context loss inspect existing task list before creating new — why: prevents duplicate/lost work after compaction
+**IMPORTANT MUST ATTENTION** search 3+ existing similar services/patterns and read existing code before proposing structure — match conventions or document deviation — why: local boundaries/ownership override generic framework defaults
+**IMPORTANT MUST ATTENTION** read `project-structure-reference.md` for service names, data ownership, DB strategy before deciding; discover equivalents by search if missing — why: decisions on stale topology break real boundaries
+**IMPORTANT MUST ATTENTION** ADR required for new services, cross-service changes, DB-tech selection, auth changes, breaking APIs — supply genuine alternatives + balanced consequences + realistic migration; all arch-\* skill checklists MUST pass before finalizing — why: a record without real alternatives is theater
+**IMPORTANT MUST ATTENTION** respect DDD boundaries — prefer async message broker over sync calls; NEVER use cross-service DB access — why: shared-DB coupling makes the "owning" service no longer own its data
+**IMPORTANT MUST ATTENTION** keep domain concepts out of generic/shared/infrastructure layers — push domain fields/logic into the consumer via subclass/composition — why: a shared layer coupled to one consumer's domain is no longer reusable
+**IMPORTANT MUST ATTENTION** write findings to `plans/reports/` incrementally, never as a final batch — why: prevents context loss on compaction
+**IMPORTANT MUST ATTENTION** NEVER alter any `<!-- SYNC:... -->` block body — edit the canonical `.claude/skills/shared/sync-inline-versions.md` instead — why: a divergent SYNC copy fails the `verify-sync-divergence` oracle
+
+**Anti-Rationalization:**
+
+| Evasion                                       | Rebuttal                                                                              |
+| --------------------------------------------- | ------------------------------------------------------------------------------------- |
+| "Just implement it, the design is obvious"    | NOT your role — produce the ADR/decision; implementation belongs to developer agents   |
+| "Single service, skip cross-service analysis" | Confirm scope with grep first — an undetected consumer is a silent regression          |
+| "I know the architecture, no need to read"    | Show `file:line` evidence — no proof = no claim; read `project-structure-reference.md` |
+| "Small change, no ADR needed"                 | ADR is optional ONLY for single-service refactors — structural change ALWAYS needs one |
+| "One alternative is enough"                   | An ADR without genuine alternatives + balanced consequences is theater                 |
+
+**IMPORTANT MUST ATTENTION** NEVER implement code — decisions + ADRs only — why: implementation belongs to developer agents
+**IMPORTANT MUST ATTENTION** NEVER conclude before full cross-service impact analysis — why: a missed downstream consumer is a silent regression
+**IMPORTANT MUST ATTENTION** every claim needs `file:line` proof + confidence % (>80% to act) — NEVER speculate without evidence

@@ -680,17 +680,14 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -811,13 +808,13 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -877,25 +874,53 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Ensure the reviewed scope resists credible security failures — authorization, injection, data, dependency/supply-chain, configuration, pipeline, and host-level risks — proven with evidence before handoff.
-**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting.
-**MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via a direct user question — never auto-decide.
-**MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.
-**MANDATORY IMPORTANT MUST ATTENTION** D2 secrets check runs in EVERY mode; D4 vetting gate runs BEFORE any third-party install — automation does not bypass it.
-**MANDATORY IMPORTANT MUST ATTENTION** READ the following files before starting:
+**IMPORTANT MUST ATTENTION Goal:** Ensure reviewed scope resists credible security failures — authorization, injection, data, dependency/supply-chain, configuration, pipeline, host-level risks — proven with evidence before handoff.
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
+**Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
-> **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
+- **Sub-Agent Selection:** Route specialized domains to matching specialist agent; NEVER `code-reviewer`.
+- **Graph-Assisted Investigation:** Run ≥1 graph command on key files before concluding.
+- **Incremental Persistence:** Append findings to `plans/reports/` per file; NEVER hold in memory.
+- **Subagent Return Contract:** Sub-agents return summary only; full detail lives on disk.
+- **Nested Task Creation:** Expand child phases and link parent workflow row when nested.
+- **Project Reference Docs Guide:** Read required project docs before target work; cite them.
+- **Task Tracking External Report:** Bootstrap tasks; persist findings to report incrementally.
+- **Critical Thinking:** Apply critical + sequential thinking; traced proof, confidence >80% to act.
+- **Evidence:** Cite `file:line` for EVERY claim; speculation forbidden.
+- **Source Test Drift Check:** When source behavior changes, reconcile affected tests from evidence.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **Systematic Batching:** Large changeset → size-capped parallel batches, then reduce.
+- **Severity Rubric:** Classify by consequence; Critical/High block PASS until fixed or accepted.
+- **Category Review Thinking:** Derive each category's concerns from first principles, NEVER a fixed checklist.
+
+**IMPORTANT MUST ATTENTION** code clean ≠ system clean — security spans ten domains (D1 OWASP, D2 secrets, D3 deps, D4 vetting, D5 host, D6 frontend, D7 API, D8 infra, D9 CI/CD, D10 AI/agent); resolve scope mode (`changes`/`full`/`deps`/`vet`/`host`) FIRST, then run matching checklists — why: nine non-code domains each can be the breach.
+**IMPORTANT MUST ATTENTION** D2 secrets runs in EVERY mode; D4 vetting gate runs BEFORE any first install/clone/run — why: install-time is infection-time, automation does not bypass it.
+**IMPORTANT MUST ATTENTION** every finding needs `file:line` OR exact command+output evidence with severity + confidence; unprovable → state "potential risk, not confirmed" — NEVER "looks secure" without proof — why: AI reports inherit confirmation bias the orchestrator absorbs as ground truth.
+**IMPORTANT MUST ATTENTION** confidence gate — >80% act, 60-80% verify first, <60% DO NOT recommend; trace the input path to confirm exploitability, do not assume.
+**IMPORTANT MUST ATTENTION** search 3+ existing patterns before flagging convention deviations; use project authorization attributes + entity-level access expressions (`docs/project-reference/backend-patterns-reference.md`), not generic framework defaults — why: local conventions differ and pattern fit must be evidence-confirmed.
+**IMPORTANT MUST ATTENTION** findings NOT fix-eligible until `$why-review --validate-findings` confirms them; after any validated fix RESTART the FULL review from Scope — NEVER a targeted re-check of only changed files — why: a fix can open a new hole the targeted pass never sees.
+**IMPORTANT MUST ATTENTION** restarted review spawns a fresh `security-auditor` sub-agent with zero memory — NEVER `code-reviewer` — why: `code-reviewer` lacks OWASP/auth-flow/injection/CVE/boundary protocols and misses security-specific issues.
+**IMPORTANT MUST ATTENTION** confirmed host compromise → isolate first, rotate EVERY credential that touched the host, rebuild from a clean image — NEVER trust an in-place "cleaned" rooted box — why: rootkits hide from the tools you would clean with.
+**IMPORTANT MUST ATTENTION** every confirmed finding that changes intended behavior feeds BOTH the spec (§4/§5 invariant) AND a guarding negative test — a code-only fix is INCOMPLETE — why: undocumented + untested security rules become tribal knowledge that regresses silently.
+**IMPORTANT MUST ATTENTION** break work into small todo tasks via task tracking BEFORE starting; persist findings incrementally to `plans/reports/security-review-{YYMMDD}-{HHmm}-{slug}.md`; add a final review todo; validate workflow choice via a direct user question — never auto-decide.
+**IMPORTANT MUST ATTENTION** when `.code-graph/graph.db` exists, run ≥1 graph command (`callers_of` on sensitive functions, `trace --direction downstream` for blast-radius) before concluding — why: reachability proves or rules out exploitability and drives severity.
+
 **Anti-Rationalization:**
 
 | Evasion | Rebuttal |
 | ------- | -------- |
-| "Purpose obvious" | Anchor it anyway — primacy/recency keeps outcome active through long prompts. |
-| "Existing reminders enough" | Echo Goal in Closing Reminders — bottom anchor prevents drift. |
-| "Skip evidence for prompt edits" | Cite changed file evidence and verify no stale protocol text remains. |
-| "Code is clean so system is safe" | Code is one of ten domains — deps, config, pipeline, and host can each be the breach. |
+| "Purpose obvious" | Anchor it anyway — primacy/recency keeps the outcome active through long prompts. |
+| "Existing reminders enough" | Echo Goal top and bottom — the bottom anchor prevents drift after the long middle. |
+| "Skip evidence for this edit" | Cite changed `file:line` evidence; verify no stale protocol text remains. |
+| "Code is clean so system is safe" | Code is one of ten domains — deps, config, pipeline, host can each be the breach. |
 | "Popular repo, safe to install" | Stars are not vetting — run the D4 gate before the first install command. |
+| "Fixed file, re-check just that" | Restart the FULL review from Scope; a targeted re-check misses fix-induced holes. |
+| "code-reviewer can cover security" | Spawn `security-auditor` — code-reviewer lacks the OWASP/CVE/boundary checklists. |
+| "Cleaned the box, it's fine" | Rebuild from clean image — rootkits hide from the tools you clean with. |
+
+**IMPORTANT MUST ATTENTION** code clean ≠ system clean — resolve scope mode, run ALL in-scope domains, D2/D4 never bypassed.
+**IMPORTANT MUST ATTENTION** every finding needs `file:line`/command+output evidence at >80% confidence; validate via `$why-review` before any fix.
+**IMPORTANT MUST ATTENTION Goal:** Ensure reviewed scope resists credible security failures across all ten domains, proven with evidence before handoff.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Hookless Prompt Protocol Mirror (Auto-Synced)

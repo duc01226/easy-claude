@@ -340,17 +340,14 @@ If a test fails because the system is unavailable → report as "system not read
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -405,13 +402,13 @@ If a test fails because the system is unavailable → report as "system not read
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -459,17 +456,45 @@ If a test fails because the system is unavailable → report as "system not read
 
 **IMPORTANT MUST ATTENTION Goal:** Prove the reviewed integration tests pass repeatably — 3 consecutive green runs without DB reset, using project-configured run commands — with every pass/fail claim backed by actual test-runner output, never assumption.
 
-- **MANDATORY IMPORTANT MUST ATTENTION** read `docs/project-config.json` → `integrationTestVerify` FIRST — project-specific guidance overrides defaults
-- **MANDATORY IMPORTANT MUST ATTENTION** read project-specific integration-test reference docs/scripts from config before any test command — Codex has no hook injection
-- **MANDATORY IMPORTANT MUST ATTENTION** use `quickRunCommand` from config, not hardcoded `dotnet test` — this skill is language-agnostic
-- **MANDATORY IMPORTANT MUST ATTENTION** run system check before tests — unreliable system = unreliable results
-- **MANDATORY IMPORTANT MUST ATTENTION** never weaken assertions to fix failures — diagnose and fix root cause
-- **MANDATORY IMPORTANT MUST ATTENTION** show actual test runner output — "all passed" without evidence is not verification
-- **MANDATORY IMPORTANT MUST ATTENTION** on failure: diagnose (test bug vs service bug) before fixing anything
+**IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
+- **Source/Test Drift:** On source change, reconcile affected tests vs source-bug from evidence.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **Nested Task Creation:** Expand child phases and link parent when nested; one `in_progress`.
+- **Task Tracking & External Report:** Bootstrap tracking; persist plan/review findings to `plans/reports/` incrementally.
+- **Critical Thinking:** Traced `file:line` proof per claim; confidence >80% to act.
+- **Project Reference Docs:** Read required project docs and `lessons.md` before target work; cite them.
 
-> **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
+**IMPORTANT MUST ATTENTION** read `docs/project-config.json` → `integrationTestVerify` FIRST — project-specific guidance overrides defaults; missing section → Fallback Mode — why: hardcoded assumptions about the runner break on any non-default stack.
+**IMPORTANT MUST ATTENTION** use `quickRunCommand` from config — NEVER hardcode `dotnet test` or any language-specific command — why: this skill is language-agnostic and one repo's runner is another's wrong tool.
+**IMPORTANT MUST ATTENTION** read project-specific integration-test reference docs/scripts named by `referenceDocs` before any test command — Codex/Copilot have no hook injection, so they must open these files directly.
+**IMPORTANT MUST ATTENTION** gate on a healthy system before running — run `systemCheckCommand`, and STOP (point user at `startupScript`) when infrastructure/services aren't ready — why: an unreliable system produces unreliable green/red results that prove nothing.
+**IMPORTANT MUST ATTENTION** pass requires 3 consecutive green runs of each relevant suite WITHOUT DB reset; any single failure restarts the sequence from run 1 — why: a one-off green run hides order-dependent and state-leak flakiness.
+**IMPORTANT MUST ATTENTION** show actual runner output (Passed/Failed/Skipped counts + failing names) — "all passed" without evidence is theater, not verification — confidence >80% to claim PASS, and that confidence rests on the captured output, never assumption.
+**IMPORTANT MUST ATTENTION** on failure, diagnose test-bug vs service-bug at the responsible layer BEFORE any edit — fix the root cause; report service bugs as findings, do NOT silently fix — why: patching the symptom site leaves the real defect live.
+**IMPORTANT MUST ATTENTION** to make red go green NEVER weaken/remove assertions, add skip annotations, or mutate domain data outside real use-case paths — instead fix the assertion setup or the handler, then re-run the full 3-run sequence — why: a test that no longer protects its invariant is worse than no test.
+**IMPORTANT MUST ATTENTION** before authoring or changing any test code, grep 3+ sibling integration tests and follow the local pattern (base fixtures, real DI, no mocks) — cite `file:line` — why: the closest example may not share the same preconditions; verify fit before copying.
+**IMPORTANT MUST ATTENTION** bootstrap task tracking before work and mark one task `in_progress` / `completed` at a time; on context loss call the current task list first and resume — never blindly duplicate tasks.
+**IMPORTANT MUST ATTENTION** resolve and update the active Goal Contract — append per-run pass/fail evidence to the goal file's Iteration Log and matrix; NEVER copy raw sensitive fixture data into goal files.
+
+**Anti-Rationalization:**
+
+| Evasion                                       | Rebuttal                                                                         |
+| --------------------------------------------- | ------------------------------------------------------------------------------- |
+| "One green run is enough"                     | 3 consecutive green runs without DB reset, or it isn't verified. Restart on any red. |
+| "I'll just hardcode `dotnet test`"            | Read `quickRunCommand` from config — this skill is language-agnostic.            |
+| "The test asserts too strictly, relax it"     | Fix the code or the setup, never the assertion. Weakened tests protect nothing.  |
+| "Looks like it passed"                        | Show Passed/Failed/Skipped counts from real runner output. No output = no claim. |
+| "System probably ready"                       | Run `systemCheckCommand`. Unhealthy system → STOP, point user at `startupScript`. |
+| "Too simple to track"                         | Skip depth, never skip task tracking. Wrong assumptions waste more time.         |
+
+> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — analyze task size first.
+
+---
+
+**IMPORTANT MUST ATTENTION Goal:** Prove reviewed integration tests pass repeatably — 3 consecutive green runs, no DB reset, every pass/fail claim backed by actual runner output.
+**IMPORTANT MUST ATTENTION** read `integrationTestVerify` config FIRST and use its `quickRunCommand` — NEVER hardcode a language-specific runner.
+**IMPORTANT MUST ATTENTION** NEVER weaken assertions, add skips, or mutate domain data to force green — fix the root-cause layer (test bug vs service bug) and re-run the full 3-run sequence.
 
 ---
 

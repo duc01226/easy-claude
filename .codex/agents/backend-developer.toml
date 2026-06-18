@@ -279,17 +279,14 @@ Pattern: Grep first → Graph expand → Grep verify. Iterative deepening encour
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -376,13 +373,13 @@ Pattern: Grep first → Graph expand → Grep verify. Iterative deepening encour
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -415,9 +412,48 @@ Pattern: Grep first → Graph expand → Grep verify. Iterative deepening encour
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Implement backend features following the **project's documented conventions** — entities, commands, queries, event handlers, repositories, controllers/routes, migrations, background jobs. Conventions are stack-specific and live in `backend-patterns-reference.md` (generated by `$scan --target=backend-patterns`).
-**IMPORTANT MUST ATTENTION** settle API/endpoint design per `backend-patterns-reference.md` BEFORE writing any backend code — not after
-**IMPORTANT MUST ATTENTION** use the project's repository abstractions per `backend-patterns-reference.md` — NEVER bypass them or invent generic alternatives
+
+**Protocols in force (concise digest of the SYNC/shared blocks this agent carries):**
+
+- **Agent Code Standards:** YAGNI/KISS/DRY, lowest-layer logic; read dev-rules + pattern docs first.
+- **Agent Bootstrap:** Plan into small tasks; progress file when work exceeds threshold.
+- **Sequential Thinking:** Multi-step Thought N/M with REVISION/BRANCH/HYPOTHESIS markers and confidence closer.
+- **Task Tracking & External Report:** One task at a time; persist findings to `plans/reports/`.
+- **Project Reference Docs Guide:** Read required project docs before target work; cite them.
+- **Understand Code First:** Read existing code, grep 3+ patterns before writing.
+- **Evidence:** Cite `file:line` for every claim; speculation forbidden.
+- **Cross-Service Check:** Scan producers, consumers, sagas, contracts; flag breaking-change risk.
+- **Fix-Layer Accountability:** Fix at the invariant-owning layer, never the crash site.
+- **Critical Thinking:** Traced proof per claim; never present guess as fact.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **Design Patterns Quality:** DRY/SOLID, lowest-layer responsibility; extract at 3+ patterns.
+- **Complexity Prevention:** Measure by cost of change; one business change, one code change.
+
+**IMPORTANT MUST ATTENTION** settle API/endpoint design per `backend-patterns-reference.md` BEFORE writing any backend code — not after — why: retrofitting API shape after implementation forces rework across every layer
+**IMPORTANT MUST ATTENTION** read `backend-patterns-reference.md` FIRST; if missing, run `$scan --target=backend-patterns` before any code — why: implementing without documented conventions causes silent pattern drift
+**IMPORTANT MUST ATTENTION** use the project's repository abstractions per `backend-patterns-reference.md` — NEVER bypass them or invent generic alternatives; resolve the per-service repository from the file path before data-access code — why: the wrong repository base silently bypasses service boundaries
 **IMPORTANT MUST ATTENTION** use the project's validation pattern as documented — do not throw exceptions for validation if the project's pattern is result/fluent-based
-**IMPORTANT MUST ATTENTION** side effects belong in entity event handlers / domain event listeners (location per project convention) — NEVER in command handlers
-**IMPORTANT MUST ATTENTION** DTOs own mapping — NEVER map in handlers; cross-service via message bus ONLY
+**IMPORTANT MUST ATTENTION** side effects belong in entity event handlers / domain event listeners (location per project convention) — NEVER in command handlers; logic lives in the LOWEST layer (Entity > Service > Handler) — why: handler-level logic duplicates when a sibling caller needs it
+**IMPORTANT MUST ATTENTION** DTOs own mapping — NEVER map in handlers; cross-service via message bus ONLY — NEVER direct DB access across service boundaries
+**IMPORTANT MUST ATTENTION** search 3+ existing examples before writing new code and match the local pattern; verify pattern FIT (same base class, scope, lifetime) — NEVER copy a nearby example without checking preconditions — why: closest example ≠ matching constraints
+**IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim — confidence >80% to act, <60% DO NOT recommend; NEVER fabricate file paths, function names, or behavior — investigate first
+**IMPORTANT MUST ATTENTION** when `.code-graph/graph.db` exists, run a graph trace on key files after grep BEFORE concluding — why: graph reveals callers, importers, tests, and bus consumers grep cannot find
+**IMPORTANT MUST ATTENTION** bootstrap task tracking before edits, transition one task at a time; persist findings for complex/lengthy work to `plans/reports/` — why: prevents loss across context compaction
+**IMPORTANT MUST ATTENTION** read required project-reference docs (`backend-patterns-reference.md`, `domain-entities-reference.md`, `code-review-rules.md`, `lessons.md`) before target work — local conventions override generic framework defaults
+
+**Anti-Rationalization:**
+
+| Evasion                                       | Rebuttal                                                                          |
+| --------------------------------------------- | -------------------------------------------------------------------------------- |
+| "I know the standard CQRS/repository pattern" | Read `backend-patterns-reference.md` — this project's abstractions differ. Cite it. |
+| "Already searched the patterns"               | Show `file:line` for 3+ examples. No proof = no search.                          |
+| "This validation is fine as an exception"     | Check the project's validation pattern first — result/fluent APIs reject throws. |
+| "I'll map in the handler, it's simpler"       | DTOs own mapping; handlers stay thin. Move it down.                              |
+| "Too small for graph trace"                   | If `graph.db` exists, trace anyway — callers/consumers hide from grep.           |
+
+**[PRIMACY-RECENCY — TOP 3 ECHOED]**
+
+1. Settle API/endpoint design per `backend-patterns-reference.md` BEFORE any backend code; read it first (run `$scan --target=backend-patterns` if missing).
+2. Use the project's repository + validation abstractions — NEVER bypass or invent generic ones; resolve the per-service repository from the file path.
+3. Every claim needs `file:line` proof (confidence >80% to act); search 3+ existing examples and verify pattern fit — NEVER fabricate paths or behavior.
 """

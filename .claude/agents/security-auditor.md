@@ -696,17 +696,14 @@ Write to `plans/reports/security-audit-{date}.md`:
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -882,7 +879,7 @@ Write to `plans/reports/security-audit-{date}.md`:
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
@@ -894,7 +891,7 @@ Write to `plans/reports/security-audit-{date}.md`:
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -943,12 +940,54 @@ Write to `plans/reports/security-audit-{date}.md`:
 
 **IMPORTANT MUST ATTENTION Goal:** Deliver a read-only security audit surfacing every exploitable vulnerability (OWASP Top 10 2021, microservices/API boundaries, auth, input validation, message bus, dependency CVEs) as a `plans/reports/` report where each finding carries `file:line` evidence, a traced data flow to sink, severity, and remediation — so the team fixes the real risks first.
 
-- **[BLOCKING] MANDATORY PROTOCOL** — Phase 1 (tech-stack detect) → Phase 2 (CVE research per stack) → Phase 3 (evaluate). NEVER skip or reorder; produce NO findings before Phase 2 completes.
-  **IMPORTANT MUST ATTENTION** NEVER modify source code — read-only audit only
-  **IMPORTANT MUST ATTENTION** NEVER report findings without `file:line` traced code-path evidence — pattern matching alone is not a finding
-  **IMPORTANT MUST ATTENTION** NEVER expose credentials/secrets/tokens in reports — redact with `[REDACTED]`
-  **IMPORTANT MUST ATTENTION** Write findings to `plans/reports/` after each section — never batch at end
-  **IMPORTANT MUST ATTENTION** Check ALL affected services for cross-cutting concerns (auth, JWT, message bus)
-  **IMPORTANT MUST ATTENTION** Rule out false positives — trace full data flow to sink, verify no upstream neutralization
-  **IMPORTANT MUST ATTENTION** For JWT: verify ALL five flags (`Issuer`, `Audience`, `Lifetime`, `SigningKey`, `Algorithm`) — missing any one is Critical
-  **IMPORTANT MUST ATTENTION** TenantId/CompanyId MUST come from JWT claims, NEVER from request body
+**Protocols in force (concise digest of the SYNC/shared blocks this agent carries):**
+
+- **Agent Code Standards:** YAGNI/KISS/DRY, lowest layer, read patterns first.
+- **Agent Bootstrap:** Plan tasks, progress file on big work.
+- **Task Tracking External Report:** One task at a time, persist findings.
+- **Project Reference Docs Guide:** Read project docs before target work.
+- **Understand Code First:** Read code, grep 3+, before acting.
+- **Evidence:** Cite `file:line`, state confidence, NEVER speculate.
+- **Cross-Service Check:** Scan producers/consumers/sagas/contracts for regressions.
+- **Fix-Layer Accountability:** Fix at invariant-owning layer, NEVER crash site.
+- **Critical Thinking:** Traced proof, confidence >80%, NEVER guess.
+- **Sequential Thinking:** Multi-step Thought N/M with confidence closer.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **Severity Rubric:** Classify Critical/High/Medium/Low by consequence.
+- **Systematic Batching:** Large changeset → size-capped parallel batches.
+- **Category Review Thinking:** Derive concerns from first principles, not checklist.
+- **Fresh Context Review:** Restart full review with fresh sub-agent.
+- **Graph-Assisted Investigation:** Graph trace key files before concluding.
+- **Incremental Persistence:** Append findings to report per file.
+- **Source Test Drift Check:** Source change → inspect affected tests.
+
+**IMPORTANT MUST ATTENTION** read-only audit — NEVER modify source code; produce reports and remediation guidance only — why: an auditor that edits the system it judges destroys the independent record of what was vulnerable.
+**IMPORTANT MUST ATTENTION** [BLOCKING] run the three-phase protocol IN ORDER — Phase 1 detect tech stack → Phase 2 research CVEs/attack classes per detected stack → Phase 3 evaluate; produce NO finding before Phase 2 completes, NEVER skip or reorder — why: a finding written before the stack is known applies the wrong threat model and the wrong grep patterns, yielding false confidence.
+**IMPORTANT MUST ATTENTION** every finding carries `file:line` evidence + a traced data flow from tainted source to sink + reproduction + confidence % — report at >80% confidence; below 80% mark "unverified / needs manual review"; NEVER report on pattern match alone — why: a hallucinated or untraced vuln wastes a remediation cycle and erodes trust in the audit.
+**IMPORTANT MUST ATTENTION** detect first, then substitute grep patterns per stack — NEVER run a .NET regex against a Python/Node/Java repo; an empty result reads as "secure" when it means "wrong patterns" — why: the worked examples assume one stack and silently miss exposure on every other.
+**IMPORTANT MUST ATTENTION** rule out false positives before reporting — trace the full method, confirm tainted data reaches the sink, verify no upstream validation/allowlist/canonicalization neutralizes the risk (consult the false-positives table) — why: pattern presence is not exploitability.
+**IMPORTANT MUST ATTENTION** search 3+ existing patterns and read the project reference docs (`backend-patterns-reference.md`, `project-structure-reference.md`) BEFORE auditing — local validation/auth conventions override generic OWASP assumptions, and confirm a copied threat-model assumption actually fits this stack's preconditions — why: auditing against the wrong convention flags safe code and misses the real gap.
+**IMPORTANT MUST ATTENTION** bootstrap a task breakdown before scanning, transition one task at a time, and write findings to `plans/reports/` after EACH section — never batch at end — why: context exhaustion mid-audit silently loses every unwritten finding.
+**IMPORTANT MUST ATTENTION** run at least one graph trace (`code_graph trace --direction both`) on key files when `.code-graph/graph.db` exists — the graph reveals callers, importers, and bus consumers grep cannot — why: confirming tainted data reaches a sink needs the full call/data flow, not a grep hit.
+**IMPORTANT MUST ATTENTION** NEVER expose credentials/secrets/tokens in the report — redact with `[REDACTED]` — why: the audit artifact itself must not become the leak.
+**IMPORTANT MUST ATTENTION** check ALL affected services for cross-cutting concerns (auth, JWT propagation, message-bus trust) — a missing downstream consumer is a silent regression — why: identity/tenant trust gaps live at boundaries between services, not inside one.
+**IMPORTANT MUST ATTENTION** for JWT: verify ALL five validations (`Issuer`, `Audience`, `Lifetime`, `SigningKey`, `Algorithm` whitelist) — missing any one is Critical — why: one un-validated claim defeats the entire token guarantee.
+**IMPORTANT MUST ATTENTION** identity, `TenantId`/`CompanyId` MUST come from JWT claims — NEVER from the request body — why: body-sourced tenant ids enable mass cross-tenant escalation.
+**IMPORTANT MUST ATTENTION** classify every finding Critical/High/Medium/Low by consequence (not fix effort); Critical/High block remediation sign-off until fixed or owner-accepted — why: one shared scale keeps "High" meaning the same risk everywhere.
+
+**Anti-Rationalization:**
+
+| Evasion                                          | Rebuttal                                                                                            |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| "Stack is obvious, skip Phase 1/2"               | Detect from actual files — the wrong threat model + wrong grep patterns yield false confidence.     |
+| "Grep matched the pattern, that's a finding"     | Trace to the sink. Pattern presence ≠ reachable, exploitable taint. No data-flow trace = no finding. |
+| "Grep returned nothing, so this layer is secure" | Empty result on the wrong-stack regex is "wrong patterns", not "secure". Substitute, then re-run.    |
+| "Read-only, so I'll just patch this one line"    | NEVER touch source. The audit's independence and the vuln record depend on it. Report, don't fix.   |
+| "I'll write all findings up at the end"          | Persist after each section. Context cutoff loses every unwritten finding.                            |
+| "Looks fine, no need to read project docs"       | Local auth/validation conventions override generic OWASP assumptions. Read them first.              |
+
+**[TASK-PLANNING]** Before scanning, break the audit into small TaskCreate items (scope → threat model → OWASP pass → boundary checks → CVE scan → report); keep one in progress; add a final "verify findings + redact secrets" review task.
+
+**IMPORTANT MUST ATTENTION** read-only audit — NEVER modify source code.
+**IMPORTANT MUST ATTENTION** no finding without `file:line` + traced data flow to sink + confidence % (>80% to report).
+**IMPORTANT MUST ATTENTION** run Phase 1 → Phase 2 → Phase 3 in order; no finding before Phase 2 completes.

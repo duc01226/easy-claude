@@ -56,17 +56,14 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -118,17 +115,17 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 Classify before analysis. Detection drives dimensions, evidence, sub-agent choice.
 
-| Scope | Signals | Primary evidence |
-| --- | --- | --- |
-| DB read | slow query, full scan, sort spill, high rows examined | query text/ORM expression, row count, plan/explain, indexes |
-| DB write | slow save, lock waits, per-row updates, transaction bloat | write loop, batch size, lock/deadlock logs, transaction scope |
-| N+1/fan-out | loop with query/API call, lazy loading, per-item lookup | caller trace, query count, loop source |
-| API latency | high p95/p99, timeout, slow endpoint/job | trace/profile/logs, call chain |
+| Scope               | Signals                                                                                         | Primary evidence                                                                                |
+| ------------------- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| DB read             | slow query, full scan, sort spill, high rows examined                                           | query text/ORM expression, row count, plan/explain, indexes                                     |
+| DB write            | slow save, lock waits, per-row updates, transaction bloat                                       | write loop, batch size, lock/deadlock logs, transaction scope                                   |
+| N+1/fan-out         | loop with query/API call, lazy loading, per-item lookup                                         | caller trace, query count, loop source                                                          |
+| API latency         | high p95/p99, timeout, slow endpoint/job                                                        | trace/profile/logs, call chain                                                                  |
 | Saturation/Queueing | high p99 while the operation itself is fast, pool exhausted/timeout, threads blocked on acquire | pool active/idle/pending, acquire-wait time, threads/workers vs pool size, replica count × pool |
-| Memory/OOM | large materialization, blobs, no paging, buffering | allocation profile, result size, collection loads |
-| Frontend | slow render, huge bundle, repeated fetch, DOM churn | browser profile, network waterfall, component/render trace |
-| Distributed | message lag, cross-service waterfall, retry storm | trace spans, queue metrics, consumer/producer chain |
-| Compute/CPU | hot loop, nested iteration, quadratic scaling, regex stall, heavy serialize/clone | input N, operation count vs N, profiler/flame-graph sample, microbench |
+| Memory/OOM          | large materialization, blobs, no paging, buffering                                              | allocation profile, result size, collection loads                                               |
+| Frontend            | slow render, huge bundle, repeated fetch, DOM churn                                             | browser profile, network waterfall, component/render trace                                      |
+| Distributed         | message lag, cross-service waterfall, retry storm                                               | trace spans, queue metrics, consumer/producer chain                                             |
+| Compute/CPU         | hot loop, nested iteration, quadratic scaling, regex stall, heavy serialize/clone               | input N, operation count vs N, profiler/flame-graph sample, microbench                          |
 
 Skip reason allowed only when target explicitly narrows scope and evidence proves dimension irrelevant.
 
@@ -136,7 +133,7 @@ Skip reason allowed only when target explicitly narrows scope and evidence prove
 
 ## Architecture-Altitude Performance Review
 
-> **When to apply:** design/architecture reviews (e.g. via the `architect` agent) — judging performance as a **structural property of the design** *before* it ships, not a tactical query fix *after* a bottleneck is observed. The dimension passes below stay the tool for tactical work; this section is the design-level lens layered on top.
+> **When to apply:** design/architecture reviews (e.g. via the `architect` agent) — judging performance as a **structural property of the design** _before_ it ships, not a tactical query fix _after_ a bottleneck is observed. The dimension passes below stay the tool for tactical work; this section is the design-level lens layered on top.
 
 Evaluate the bottleneck **layer model** as a design concern, not just a symptom site:
 
@@ -156,7 +153,7 @@ Architecture-altitude rules (decide at design time — cheapest to fix here):
 - **Caching is a design decision, not a patch** — choose request-scope memoization vs bounded shared cache up front, with key dimensions (tenant/user/auth/version), TTL/invalidation, size limits, and privacy constraints specified; never cache to hide an unbounded query.
 - **Async I/O is structural** — never design a path that blocks threads with `.Result`; bounded parallelism for fan-out work is part of the design, with a fresh safe scope/context per worker.
 - **Make the cost visible** — design slow-operation logging and query logging in from the start so regressions are observable in production.
-- **Size pools and parallelism, never default them** — derive connection/thread/permit pool size from Little's Law (in-use = arrival-rate × hold-time) and state the assumptions; shrink *hold-time* (release the resource across non-DB / external-wait spans) before growing the pool; size a shared backend against fleet-aggregate demand (replica count × per-instance pool), not one instance — local per-instance tuning becomes a thundering herd on the shared dependency.
+- **Size pools and parallelism, never default them** — derive connection/thread/permit pool size from Little's Law (in-use = arrival-rate × hold-time) and state the assumptions; shrink _hold-time_ (release the resource across non-DB / external-wait spans) before growing the pool; size a shared backend against fleet-aggregate demand (replica count × per-instance pool), not one instance — local per-instance tuning becomes a thundering herd on the shared dependency.
 
 For database index strategy at design time, see the `database-optimization` skill (composite key order, covering/partial indexes, write-cost analysis). The tactical evidence gate (measure baseline, prove with plan/explain) in the phases below still applies to every recommendation made at this altitude.
 
@@ -202,12 +199,12 @@ MANDATORY baseline for saturation/pooling findings:
 
 Confidence:
 
-| Confidence | Action |
-| --- | --- |
-| 95%+ | Recommend fix freely. |
-| 80-94% | Recommend with caveats and verification command. |
-| 60-79% | List unknowns first; gather more evidence before fix. |
-| <60% | STOP. Do not recommend. |
+| Confidence | Action                                                |
+| ---------- | ----------------------------------------------------- |
+| 95%+       | Recommend fix freely.                                 |
+| 80-94%     | Recommend with caveats and verification command.      |
+| 60-79%     | List unknowns first; gather more evidence before fix. |
+| <60%       | STOP. Do not recommend.                               |
 
 ---
 
@@ -383,12 +380,12 @@ Before code changes (MUST ATTENTION):
 
 Use specialized help when available:
 
-| Detected focus | Sub-agent |
-| --- | --- |
-| DB/query/N+1/memory/backend hot path | `performance-optimizer` |
-| Auth, PII, tenant isolation, sensitive cache keys | `security-auditor` first, then `performance-optimizer` |
-| Cross-service architecture, caching policy, capacity/SLO trade-off | architecture/performance specialist |
-| Frontend render/bundle/network waterfall | frontend or performance specialist |
+| Detected focus                                                     | Sub-agent                                              |
+| ------------------------------------------------------------------ | ------------------------------------------------------ |
+| DB/query/N+1/memory/backend hot path                               | `performance-optimizer`                                |
+| Auth, PII, tenant isolation, sensitive cache keys                  | `security-auditor` first, then `performance-optimizer` |
+| Cross-service architecture, caching policy, capacity/SLO trade-off | architecture/performance specialist                    |
+| Frontend render/bundle/network waterfall                           | frontend or performance specialist                     |
 
 Sub-agent prompt MUST include target, detected scope, local context evidence, required dimensions, report path, and "return summary only; write full report incrementally."
 
@@ -554,29 +551,48 @@ If evidence insufficient, output: `Insufficient evidence. Verified: [...]. Not v
 
 ## Closing Reminders
 
-**IMPORTANT Goal:** Ensure every shipped performance fix removes a measured (or static-risk-labeled) bottleneck while preserving behavior, authorization, and semantics — proven by before/after evidence, validated via `$why-review` before any fix, and confirmed by a clean full Phase-0 re-review — never a guess-driven change that hides waste or breaks correctness.
-**MANDATORY** stay project-generic: discover local stack, conventions, query APIs, index definitions, metrics, and report paths before judging.
-**MANDATORY** prove every performance claim with measurement or static evidence: `file:line`, query text/shape, row counts, query plan/explain output, trace, profile, or logs.
-**MANDATORY** review performance one dimension at a time: over-fetching, filters, indexes, N+1 fan-out, batching, aggregation/join shape, materialization, writes, caching, in-process compute/algorithmic complexity, concurrency/pool saturation.
-**MANDATORY** ALWAYS measure before/after; static review findings need explicit verification command.
-**MANDATORY** ALWAYS verify index usability with actual query shape/order and plan/explain; index existence alone is not proof.
-**IMPORTANT MANDATORY MUST ATTENTION** ALWAYS push row filters to data source before projection/caching; row-count reduction beats column trimming.
-**IMPORTANT MUST ATTENTION** after any validated performance fix, restart the full performance review from Phase 0 before claiming PASS.
-**IMPORTANT MUST ATTENTION** add final review task checking doc/test/spec staleness.
+**IMPORTANT MUST ATTENTION Goal:** Ensure every shipped performance fix removes a measured (or static-risk-labeled) bottleneck while preserving behavior, authorization, and semantics — proven by before/after evidence, validated via `$why-review` before any fix, and confirmed by a clean full Phase-0 re-review — never a guess-driven change that hides waste or breaks correctness.
+
+**Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
+
+- **Critical Thinking:** Traced `file:line` proof per claim; NEVER present a guess as fact.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **Graph-Assisted Investigation:** ALWAYS run a graph trace on key files when `graph.db` exists.
+- **Severity Rubric:** Classify by consequence; Critical/High block PASS until resolved.
+- **Category Review Thinking:** Derive per-category concerns from first principles, NEVER a fixed checklist.
+- **Systematic Batching:** Large changeset → size-capped parallel batches, then reduce.
+
+**IMPORTANT MUST ATTENTION** prove every performance claim with measurement or static evidence — `file:line`, query text/shape, row counts, query plan/explain, trace, profile, or logs; confidence >80% to act, 60-79% gather more, <60% STOP — why: a number without a measured baseline is a guess that ships unverified waste.
+**IMPORTANT MUST ATTENTION** review performance one dimension at a time — over-fetching, filters, indexes, N+1 fan-out, batching, aggregation/join shape, materialization, writes, caching, in-process compute/algorithmic complexity, concurrency/pool saturation — why: split attention misses violations.
+**MANDATORY** search 3+ similar local query/API patterns before proposing a fix, and read the index/migration/schema files controlling the data — why: local conventions override generic framework defaults; the closest example must match preconditions (base class, scope, cardinality) before you copy it.
+**MANDATORY** ALWAYS measure before/after; static review findings need an explicit verification command attached.
+**MANDATORY** ALWAYS verify index usability with actual query shape/order and plan/explain — index existence alone is not proof.
+**IMPORTANT MANDATORY MUST ATTENTION** ALWAYS push row filters to the data source before projection/caching; row-count reduction beats column trimming — why: fewer columns from too many rows still scans the rows.
+**MANDATORY** size pools/parallelism by Little's Law (in-use = arrival-rate × hold-time) × replica count, and shrink hold-time before growing the pool — why: a fast op with high p99 is saturation at the pool entrance, not a slow query.
+**MANDATORY** Break work into small tracked tasks before starting; one `in_progress` at a time; mark each `completed` immediately after its evidence lands — why: compaction wipes memory and untracked review scope silently goes uncovered.
+**MANDATORY** when a finding moves a behavior-defining boundary (SLA/p95 budget, result-set bound, page-size limit, pool-size assumption), feed it BOTH the spec (record as a §5 invariant) AND a guarding test/benchmark — why: a faster number left undocumented OR unguarded regresses silently.
+**MANDATORY** add a final review task checking doc/test/spec staleness.
 
 **Anti-Rationalization:**
 
-| Evasion | Rebuttal |
-| --- | --- |
-| "Bottleneck obvious, skip baseline" | No measurement = guess. Capture metric or label static risk. |
-| "Index exists, so query fine" | Show plan/explain and access path. Existing unused index proves nothing. |
-| "Projection enough" | First reduce rows. Loading fewer columns from too many rows still wastes work. |
-| "Just cache it" | Fix query shape/index/bounds first. Cache can hide stale, unsafe, unbounded work. |
-| "Only one query in code" | Trace loops, serializers, resolvers, consumers, and retries. Fan-out often hides upstream. |
-| "Loop is fine, the list is small" | Show N and worst-case N. O(n²) that's fine at 10 melts at 10k. Bench at real scale. |
-| "Query is fast, so the endpoint is fast" | Measure pool acquire-wait and queue depth. A 2ms query behind a saturated pool still yields a 200ms p99 — the wait is at the pool entrance, not in the query. |
+| Evasion                                       | Rebuttal                                                                                                                                                      |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "Bottleneck obvious, skip baseline"           | No measurement = guess. Capture metric or label static risk with the verify command.                                                                          |
+| "Index exists, so query fine"                 | Show plan/explain and access path. Existing unused index proves nothing.                                                                                      |
+| "Projection enough"                           | First reduce rows. Loading fewer columns from too many rows still wastes work.                                                                                |
+| "Just cache it"                               | Fix query shape/index/bounds first. Cache can hide stale, unsafe, unbounded work.                                                                             |
+| "Only one query in code"                      | Trace loops, serializers, resolvers, consumers, and retries. Fan-out often hides upstream.                                                                    |
+| "Loop is fine, the list is small"             | Show N and worst-case N. O(n²) that's fine at 10 melts at 10k. Bench at real scale.                                                                           |
+| "Query is fast, so the endpoint is fast"      | Measure pool acquire-wait and queue depth. A 2ms query behind a saturated pool still yields a 200ms p99 — the wait is at the pool entrance, not in the query. |
+| "Found one similar pattern, good enough"      | Grep 3+ and verify preconditions match. One nearby example ≠ a fit; cite `file:line`.                                                                         |
+| "Fix it where it errors/spikes"               | Trace caller (wrong data) vs callee (wrong handling); fix at the layer owning the invariant, not the symptom site.                                            |
+| "Validated nothing, just fix the obvious one" | No fix until `$why-review --validate-findings` confirms it; then restart the FULL review from Phase 0.                                                        |
 
 **[TASK-PLANNING]** Break work into small tracked tasks before starting; update each status immediately.
+
+**IMPORTANT MUST ATTENTION** prove every claim with measurement/static evidence + `file:line` (confidence >80% to act, <60% STOP).
+**IMPORTANT MUST ATTENTION** push row filters to the data source before projection/caching; verify index usability via plan/explain, never existence alone.
+**IMPORTANT MUST ATTENTION** no fix before `$why-review --validate-findings`; after every validated fix restart the full review from Phase 0 before claiming PASS.
 
 <!-- SYNC:systematic-review-batching -->
 
@@ -626,10 +642,14 @@ If evidence insufficient, output: `Insufficient evidence. Verified: [...]. Not v
 <!-- /SYNC:systematic-review-batching -->
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
+
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 <!-- SYNC:ai-mistake-prevention:reminder -->
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
+
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->

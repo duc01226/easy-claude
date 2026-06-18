@@ -379,17 +379,14 @@ After validation:
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -418,7 +415,7 @@ After validation:
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
@@ -430,7 +427,7 @@ After validation:
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -469,26 +466,51 @@ After validation:
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Force every assumption-laden plan decision and every preservation-critical behavior through explicit user confirmation BEFORE implementation — so no unstated assumption silently reaches code.
+**IMPORTANT MUST ATTENTION Goal:** Force every assumption-laden plan decision and every preservation-critical behavior through explicit user confirmation BEFORE implementation — by interviewing the user with critical questions that validate assumptions and surface issues — so no unstated assumption silently reaches code.
 
-- **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting
-- **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via a direct user question — NEVER auto-decide
-- **MANDATORY IMPORTANT MUST ATTENTION** detect plan type (Phase 0) BEFORE generating questions — bugfix ALWAYS triggers Preservation
-- **MANDATORY IMPORTANT MUST ATTENTION** add final review task to verify work quality
-- **MANDATORY IMPORTANT MUST ATTENTION** NEVER modify phase files — document what needs updating only
-- **MANDATORY IMPORTANT MUST ATTENTION** for bugfix plans, trigger Preservation question (keywords: fix, bug, regression, broken, defect)
+**Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
+
+- **Nested Task Creation:** child skill still creates visible phase tasks; link parent when nested.
+- **Task Tracking & External Report:** bootstrap task breakdown first; persist findings incrementally to `plans/reports/`.
+- **Critical Thinking:** MUST ATTENTION apply critical + sequential thinking; cite proof; confidence >80% to act.
+- **Sequential Thinking:** structured multi-step Thought N/M with REVISION/BRANCH/HYPOTHESIS markers and confidence closer.
+- **Project Reference Docs:** read required project-reference docs before target work; always include `lessons.md`.
+- **Understand Code First:** MUST ATTENTION read code and grep 3+ patterns before any modification.
+- **Plan Quality:** include `## Test Specifications` with TC-{FEATURE}-{NNN} IDs per phase.
+- **Cross-Service Check:** scan producers, consumers, sagas, contracts; flag breaking-change risk.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+
+**IMPORTANT MUST ATTENTION** validate decisions with the user via a direct user question — NEVER auto-decide or self-answer; completing without ≥1 question is a protocol violation — why: the user owns every assumption-laden choice, not the agent
+**IMPORTANT MUST ATTENTION** detect plan type FIRST (Phase 0) BEFORE generating questions — bugfix keywords (fix, bug, regression, broken, defect) make the Preservation question BLOCKING, never skipped — why: detection drives which categories fire and the Preservation gate
+**IMPORTANT MUST ATTENTION** NEVER modify phase files — persist results by adding ONLY a `## Validation Summary` (confirmed decisions + action items) to `plan.md` — why: phase files are the plan's source of truth and validation is a read-then-annotate pass
+
+- **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting (including a task per file read); call the current task list first on context loss, never duplicate — why: resume existing tasks rather than re-plan after compaction
+- **MANDATORY IMPORTANT MUST ATTENTION** honor the `questions` MIN-MAX range and `mode` from `## Plan Context` as hard constraints; give 2-4 concrete options per question, never go below min — why: the interview budget is configured, not improvised
+- **MANDATORY IMPORTANT MUST ATTENTION** treat the Preservation "Unsure" answer as BLOCKED → return BLOCKED status and route to `$plan` preservation analysis before any implementation — why: an unverified preserved-correctness invariant is a silent regression risk
+- **MANDATORY IMPORTANT MUST ATTENTION** if the plan introduces new tech/packages, probe whether alternatives were evaluated before accepting the choice — why: unevaluated dependency choices raise future change cost
+- **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` proof or traced evidence with confidence % for every claim (>80% act, <80% verify first); admit uncertainty rather than present a guess as fact — why: speculation drives wrong validation questions
+- **MANDATORY IMPORTANT MUST ATTENTION** search 3+ existing patterns and read the plan + phase files BEFORE generating questions — match the codebase's local conventions over generic framework defaults — why: questions grounded in actual code surface real decisions, not invented ones
+- **MANDATORY IMPORTANT MUST ATTENTION** apply the Easy-to-Change lens before any rule below — flag decisions that raise future change cost (coupling, hidden state, duplicated knowledge, unclear intent, irreversible early choices)
+- **MANDATORY IMPORTANT MUST ATTENTION** add a final review task to verify work quality
 
 **Anti-Rationalization:**
 
-| Evasion                           | Rebuttal                                                        |
-| --------------------------------- | --------------------------------------------------------------- |
-| "Plan is simple, skip validation" | Simple plans still have implicit decisions. Apply anyway.       |
-| "Already know the answers"        | Show user responses as proof. No responses = no validation.     |
-| "Preservation doesn't apply here" | If title has fix/bug/regression/broken/defect → ALWAYS applies. |
-| "Phase 0 not needed"              | Detection drives Preservation gate. NEVER skip.                 |
-| "Only ask a few questions"        | Use `questions` range from Plan Context. Never go below min.    |
+| Evasion                            | Rebuttal                                                            |
+| ---------------------------------- | ------------------------------------------------------------------- |
+| "Plan is simple, skip validation"  | Simple plans still have implicit decisions. Apply anyway.           |
+| "Already know the answers"         | Show user responses as proof. No responses = no validation.         |
+| "Preservation doesn't apply here"  | If title has fix/bug/regression/broken/defect → ALWAYS applies.     |
+| "Phase 0 not needed"               | Detection drives the Preservation gate. NEVER skip.                 |
+| "Only ask a few questions"         | Use the `questions` range from Plan Context. Never go below min.    |
+| "I'll just answer for the user"    | a direct user question is mandatory. Self-answer = no validation.        |
+| "New library is obviously fine"    | Probe whether alternatives were evaluated before accepting it.      |
+| "I'll edit the phase files inline" | NEVER. Add only a `## Validation Summary` to `plan.md`.             |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
+
+**IMPORTANT MUST ATTENTION** detect plan type (Phase 0) FIRST — bugfix keywords make Preservation BLOCKING.
+**IMPORTANT MUST ATTENTION** validate with the user via a direct user question — NEVER auto-decide.
+**IMPORTANT MUST ATTENTION** NEVER modify phase files — add only a `## Validation Summary` to `plan.md`.
 
 ---
 

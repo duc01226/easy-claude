@@ -32,7 +32,6 @@ const DEBUGGER_TRACE_REQUIRED_SNIPPETS = [
 ];
 
 const DEBUGGER_TRACE_REQUIRED_SOURCE_PATHS = [
-    '.claude/skills/scout/SKILL.md',
     '.claude/skills/graph-trace/SKILL.md',
     '.claude/skills/graph-query/SKILL.md',
     '.claude/skills/investigate/SKILL.md',

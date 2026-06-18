@@ -555,17 +555,14 @@ Find working reference → compare implementations → identify differences → 
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -597,7 +594,7 @@ Find working reference → compare implementations → identify differences → 
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
@@ -609,7 +606,7 @@ Find working reference → compare implementations → identify differences → 
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -643,26 +640,54 @@ Find working reference → compare implementations → identify differences → 
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Produce an evidence-backed understanding of how existing code works — strictly READ-ONLY, every claim traced to `file:line` or explicitly marked "inferred" — so the next decision or change rests on verified system flow, never assumption.
+**IMPORTANT MUST ATTENTION Goal:** Produce evidence-backed understanding of how existing code works — strictly READ-ONLY, every claim traced to `file:line` or explicitly marked "inferred" — so the next decision or change rests on verified system flow, never assumption.
 
-- **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting
-- **MANDATORY IMPORTANT MUST ATTENTION** Phase 0: classify scope (quick/deep/debug/recommendation) before acting
-- **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act, <60% DO NOT recommend)
-- **MANDATORY IMPORTANT MUST ATTENTION** run at least ONE graph command on key files before concluding any investigation
-- **MANDATORY IMPORTANT MUST ATTENTION** deep scope → write analysis to `.ai/workspace/analysis/[feature]-investigation.md`; re-read ENTIRE file before presenting
-- **MANDATORY IMPORTANT MUST ATTENTION** recommendation scope → complete ALL validation chain steps before any code change suggestion
+**IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries; each line is a signpost — the canonical body above binds):**
+
+- **End-to-Start Debugger Trace:** start at observed end state, trace backward, build hypothesis matrix before fixing.
+- **Knowledge Graph Template:** document per-file type, pattern, symbols, dependencies, relevance, evidence level.
+- **Root Cause Debugging:** reproduce, isolate, trace, hypothesize, verify, fix cause — never guess-and-check.
+- **Nested Task Creation:** expand child phase tasks; link parent workflow row when nested.
+- **Project Reference Docs Guide:** read required project docs first; conventions override generic defaults.
+- **Task Tracking & External Report:** bootstrap task breakdown; persist plan/review findings incrementally to disk.
+- **Critical Thinking:** trace every claim, confidence >80% to act, never present guess as fact.
+- **Sequential Thinking:** multi-step Thought N/M with revision/branch/hypothesis markers and confidence closer.
+- **Understand Code First:** MUST ATTENTION read code and grep 3+ patterns before writing, planning, or fixing.
+- **Graph-Assisted Investigation:** run one graph command on key files when graph.db exists.
+- **Cross-Service Check:** scan producers, consumers, sagas, contracts — missing consumer is silent regression.
+- **Fix-Layer Accountability:** trace full data flow, fix at owning layer, not crash site.
+- **Source/Test Drift Check:** when source behavior changes, inspect affected tests for intended-behavior alignment.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+
+**IMPORTANT MUST ATTENTION** stay strictly READ-ONLY — NEVER edit code, plans, or specs during investigation; deliver findings only — why: investigation that mutates state stops being investigation and corrupts the baseline the next step trusts.
+**IMPORTANT MUST ATTENTION** cite `file:line` for every claim; mark unverified statements "inferred" — confidence >80% to act, <60% DO NOT recommend — why: an unmarked guess reads as fact and propagates into the next decision.
+**IMPORTANT MUST ATTENTION** run at least ONE `code_graph` command on 2-3 key files before concluding — graph surfaces callers, bus consumers, importers grep alone misses (sub-agents cannot use graph — only the main agent) — why: grep sees text, not the call/event/import edges that define real reach.
+
+- **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting; mark one `in_progress`, complete each immediately after its evidence lands.
+- **MANDATORY IMPORTANT MUST ATTENTION** Phase 0: classify scope (quick / deep / debug / recommendation) before acting — depth, analysis file, and validation chain all flow from this; DECLARE scope before skipping any step.
+- **MANDATORY IMPORTANT MUST ATTENTION** read required project docs first (always `lessons.md`; `project-structure-reference.md` for architecture) — project conventions override generic framework assumptions — why: local patterns differ from framework defaults and silently invalidate generic reasoning.
+- **MANDATORY IMPORTANT MUST ATTENTION** grep 3+ similar patterns and read the actual implementations before concluding — NEVER assume code works as named; verify by reading — why: a name promises behavior the body may not deliver.
+- **MANDATORY IMPORTANT MUST ATTENTION** evaluate pattern FIT before reusing a nearby example — confirm the new context shares the same base classes, scope, lifetime, and preconditions — why: closest example ≠ matching constraints.
+- **MANDATORY IMPORTANT MUST ATTENTION** deep scope → write analysis to `.ai/workspace/analysis/[feature]-investigation.md`; re-read the ENTIRE file before presenting (never work from memory after a long context).
+- **MANDATORY IMPORTANT MUST ATTENTION** recommendation scope → complete ALL validation chain steps (impls → registrations → usages → cross-service impact → confidence) before any code-change suggestion; ANY step incomplete → STOP and state "Insufficient evidence to recommend."
+- **MANDATORY IMPORTANT MUST ATTENTION** microservices/event-driven → scan producers, consumers, sagas, and shared contracts in scope — a missed downstream consumer is a silent regression.
+- **MANDATORY IMPORTANT MUST ATTENTION** bug/behavior-changing investigation → run the End-to-Start Debugger Trace (observed final state → backward hops → feeder paths → hypothesis matrix → owning fix layer) before concluding cause; ask "whose responsibility?" and locate the invariant owner, not the crash site.
 
 **Anti-Rationalization:**
 
-| Evasion                                            | Rebuttal                                                                  |
-| -------------------------------------------------- | ------------------------------------------------------------------------- |
-| "Simple investigation, skip graph"                 | Graph reveals callers + bus consumers grep misses. Run it anyway.         |
-| "Already grepped, enough evidence"                 | Show `file:line` proof. No citation = no evidence.                        |
-| "Quick task, skip task tracking"                      | Still need tracking. Create tasks, mark done immediately.                 |
-| "Recommendation is obvious, skip validation chain" | Risk matrix applies regardless of confidence. Complete ALL steps.         |
-| "Deep scope wastes time for this"                  | Classify first. If quick, fine — but DECLARE scope before skipping steps. |
+| Evasion                                            | Rebuttal                                                                       |
+| -------------------------------------------------- | ----------------------------------------------------------------------------- |
+| "Simple investigation, skip graph"                 | Graph reveals callers + bus consumers grep misses. Run it anyway.             |
+| "Already grepped, enough evidence"                 | Show `file:line` proof. No citation = no evidence; unverified = mark inferred. |
+| "Quick task, skip task tracking"                      | Still need tracking. Create tasks, mark done immediately.                      |
+| "Recommendation is obvious, skip validation chain" | Risk matrix applies regardless of confidence. Complete ALL steps or STOP.      |
+| "Deep scope wastes time for this"                  | Classify first. If quick, fine — but DECLARE scope before skipping steps.      |
+| "Nearby example is close enough, copy it"          | Closest ≠ matching preconditions. Verify base class, scope, lifetime first.    |
+| "I'll just fix what I found while here"            | READ-ONLY. Investigation never mutates; hand findings to the fix step.         |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
+
+**IMPORTANT MUST ATTENTION** READ-ONLY always · cite `file:line` or mark "inferred" · run ONE graph command before concluding — these three bind every scope and mode.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Hookless Prompt Protocol Mirror (Auto-Synced)

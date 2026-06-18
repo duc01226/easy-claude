@@ -695,17 +695,14 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -737,13 +734,13 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -789,12 +786,31 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Ensure reviewed artifacts are complete, evidence-backed, and ready for handoff without missing assumptions or acceptance gaps.
-**IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
-**IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
-**IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
-**IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
-**IMPORTANT MUST ATTENTION** execute the review loop: review → validate findings → fix validated findings → full re-review. A complete review pass with zero findings ENDS the review.
+**IMPORTANT MUST ATTENTION Goal:** Review an artifact (PBI, design spec, story, test spec) for completeness and quality so reviewed artifacts are complete, evidence-backed, and ready for handoff without missing assumptions or acceptance gaps.
+
+**Protocols in force — MUST ATTENTION honor every block below (concise digest of the SYNC/shared blocks this skill carries):**
+
+- **Nested Task Creation:** Parent workflow rows never replace child phase tracking.
+- **Project Reference Docs Guide:** Read required project docs before target work.
+- **Task Tracking External Report:** Bootstrap tasks; persist review findings to `plans/reports/`.
+- **Critical Thinking Mindset:** Traced `file:line` proof; confidence >80% to act.
+- **Evidence Based Reasoning:** No claim without cited evidence; state confidence.
+- **Understand Code First:** Read code, grep 3+ patterns before any change.
+- **Double Round Trip Review:** Validate findings, fix, restart full review until clean.
+- **Fresh Context Review:** Spawn fresh zero-memory sub-agent after each fix cycle.
+- **Review Protocol Injection:** Embed all 11 protocol bodies verbatim in sub-agent prompts.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **Severity Rubric:** Classify findings Critical/High/Medium/Low by consequence.
+
+**IMPORTANT MUST ATTENTION** be a SKEPTIC, not a presence-checker — run ALL 6 adversarial techniques (steel-man rejected alternatives, stress-test 3 assumptions, AC-testability, pre-mortem, unseen alternatives, contrarian pass) and clear the Anti-Bias Gate BEFORE any verdict — why: sections that exist but hold weak/untestable content create false confidence worse than missing ones.
+**IMPORTANT MUST ATTENTION** enforce the BLOCKING M1-M6 gate on ALL types — any M1-M5 violation forces NEEDS WORK citing the mandate ID + exact section/line; NEVER pass an M1-M5 violation — why: passing it makes this review itself defective.
+**IMPORTANT MUST ATTENTION** exempt source identifiers inside evidence carriers (`[Source:]`, `**Evidence**`, `IntegrationTest`, frontmatter, mermaid) — flag tech leakage only in narrative/AC/scenario prose — why: carriers are CORRECT places for class/path/test names; flagging them is a false finding.
+**IMPORTANT MUST ATTENTION** dispatch on `--type={pbi|story|spec-tests|design}` (infer if omitted) — apply that type's Required/Recommended checklist; verdict = PASS (all Required + ≥50% Recommended) | WARN (all Required, <50% Recommended) | FAIL (any Required fails).
+**IMPORTANT MUST ATTENTION** for `--type=spec-tests`: every `[HARD]` §4 rule / §5 invariant maps to ≥1 universally-quantified property TC + boundary counter-case — a missing property category is a blocking finding; one business TC covered by MANY tests is the correct one-to-many shape, NEVER a duplicate.
+**IMPORTANT MUST ATTENTION** run the findings-validation gate BEFORE fixing — invoke `/why-review --validate-findings <report-path>` first; NEVER edit the artifact to resolve findings before this gate returns CLEAN — why: validate-before-fix at parity with `/plan-review` prevents fixing phantom findings.
+**IMPORTANT MUST ATTENTION** fix only validated findings, then restart the FULL review with a fresh `general-purpose` sub-agent (artifacts are NOT code) and loop until a clean pass — a clean review with zero findings ENDS the loop; NEVER spawn a confirmation sub-agent after a clean round — why: every fix invalidates the prior verdict, but a clean pass needs no re-confirmation.
+**IMPORTANT MUST ATTENTION** cite `file:line`/section+line evidence for every finding (confidence >80% to act, <60% DO NOT recommend); every NEEDS WORK item must be actionable — why: speculation produces non-fixable findings.
+**IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting; add a final review todo task to verify work quality.
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
 
@@ -812,6 +828,15 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 | Evasion | Rebuttal |
 | ------- | -------- |
-| "Purpose obvious" | Anchor it anyway — primacy/recency keeps outcome active through long prompts. |
-| "Existing reminders enough" | Echo Goal in Closing Reminders — bottom anchor prevents drift. |
-| "Skip evidence for prompt edits" | Cite changed file evidence and verify no stale protocol text remains. |
+| "Required sections present, looks complete" | Presence ≠ quality. Name what's IN them and the specific failure mode NOT addressed. |
+| "ACs are defined" | Are they TESTABLE? Name the automated test a QA engineer writes for each — without clarification. |
+| "Alternatives were considered" | Real alternatives or strawmen set up to lose? Steel-man the strongest rejected one. |
+| "Verdict is clear, skip the contrarian pass" | Generate 2 sentences arguing the OPPOSITE conclusion first, then decide on evidence. |
+| "M1-M5 violation is minor, let it pass" | Passing an M1-M5 violation makes THIS review defective. NEEDS WORK + cite mandate ID + section/line. |
+| "Source name in prose, flag it" | Check the carrier first — `[Source:]`/`**Evidence**`/`IntegrationTest`/frontmatter/mermaid are EXEMPT. |
+| "Fix the finding, then I'm done" | Validate findings (`/why-review`) BEFORE fixing, then restart the FULL review until a clean pass. |
+| "Skip evidence for review judgments" | Cite section+line for every finding; confidence >80% to act, <60% DO NOT recommend. |
+
+**IMPORTANT MUST ATTENTION** SKEPTIC stance — clear the Anti-Bias Gate (adversarial techniques) before any verdict.
+**IMPORTANT MUST ATTENTION** M6 enforcement — NEEDS WORK on any M1-M5 violation, cite mandate ID + section/line; carriers exempt.
+**IMPORTANT MUST ATTENTION** validate findings before fixing, then restart the FULL fresh review until a clean pass ENDS the loop.

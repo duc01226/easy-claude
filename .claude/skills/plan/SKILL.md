@@ -656,17 +656,14 @@ After creating all phase files, run **recursive decomposition loop**:
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -718,7 +715,7 @@ After creating all phase files, run **recursive decomposition loop**:
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
@@ -730,7 +727,7 @@ After creating all phase files, run **recursive decomposition loop**:
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -765,24 +762,53 @@ After creating all phase files, run **recursive decomposition loop**:
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** deliver a validated, implementation-ready plan — every phase startable immediately (file paths, zero open decisions, mapped TCs) — so coding runs without rework at minimum future change cost
-**MANDATORY IMPORTANT MUST ATTENTION** default mode HARD — opt out to fast mode ONLY when ALL trivial-task conditions met
-**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks via `TaskCreate` BEFORE starting
-**MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — never auto-decide
-**MANDATORY IMPORTANT MUST ATTENTION** every phase passes 5-point granularity check — failing phases → sub-plan
-**MANDATORY IMPORTANT MUST ATTENTION** NEVER skip `/plan-review` after plan creation
-**MANDATORY IMPORTANT MUST ATTENTION** add final review todo task to verify work quality
+**IMPORTANT MUST ATTENTION Goal:** deliver a validated, implementation-ready plan — every phase startable immediately (exact file paths, zero open decisions, mapped TC IDs) — so coding runs without rework at minimum future change cost.
+
+**Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
+
+- **Plan Granularity:** every phase passes the 5-point check or sub-plans.
+- **Preservation Inventory:** bugfix plans tabulate invariants with `file:line` + verification.
+- **Nested Task Creation:** child skills expand visible phase tasks; link parent when nested.
+- **Project Reference Docs Guide:** ALWAYS read required project docs before target work.
+- **Task Tracking & External Report:** bootstrap tasks; persist findings to `plans/reports/`.
+- **Critical Thinking:** every claim needs traced proof; confidence >80% to act.
+- **Sequential Thinking:** multi-step Thought N/M with REVISION/BRANCH/HYPOTHESIS markers.
+- **Understand Code First:** read code + grep 3+ patterns before planning.
+- **Cross-Service Check:** scan producers, consumers, sagas, contracts for breaking risk.
+- **Estimation Framework:** bottom-up phase hours drive man-days; SP DERIVED.
+- **Plan Quality:** every phase carries `## Test Specifications` with TC IDs.
+- **Iterative Phase Quality:** score complexity first; decompose at score ≥6.
+- **Fix-Layer Accountability:** NEVER fix at the crash site; fix the invariant owner.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+
+**IMPORTANT MUST ATTENTION** PLANNING ONLY — NEVER implement or execute code; produce `plan.md` + per-phase files + `goal.md` Goal Contract, then hand off — why: this skill's contract is a plan, not a change.
+**IMPORTANT MUST ATTENTION** default mode HARD — opt out to fast mode ONLY when ALL trivial-task conditions hold — why: skipping rigor on a non-trivial task costs more rework than rigor saves.
+**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks via `TaskCreate` BEFORE starting; add a final review todo; on context loss call `TaskList` first — never duplicate tasks.
+**MANDATORY IMPORTANT MUST ATTENTION** bootstrap the Goal Contract (`goal.md` from `goal-contract-template.md`) BEFORE investigation; every phase success criterion maps to a saved goal criterion. Redact secrets.
+**MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — NEVER auto-decide because a task seems "obvious"; the user decides the next step.
+**MANDATORY IMPORTANT MUST ATTENTION** every phase passes the 5-point granularity check ("Can I start coding RIGHT NOW?") — failing phases → sub-plan (max depth 3).
+**MANDATORY IMPORTANT MUST ATTENTION** detect new tech/lib not in project → `TaskCreate` per lib → WebSearch top 3 → compare → recommend with confidence % → `AskUserQuestion` — why: an unvetted dependency is an irreversible decision exposed too early.
+**MANDATORY IMPORTANT MUST ATTENTION** estimation is bottom-up — phase hours drive `man_days_traditional` (`Σh/6 × productivity_factor`); SP DERIVED, never the driver; UI cost usually dominates; emit full `estimate_reasoning` frontmatter.
+**MANDATORY IMPORTANT MUST ATTENTION** every phase carries `## Test Specifications` with `TC-{FEATURE}-{NNN}` IDs; map every functional requirement to ≥1 TC (or explicit `Evidence: TBD` for TDD-first).
+**MANDATORY IMPORTANT MUST ATTENTION** for `.claude` skills/hooks/workflows/sync work, plans MUST include generated-mirror sync action or explicit no-sync evidence — why: a silently stale mirror diverges from source.
+**MANDATORY IMPORTANT MUST ATTENTION** NEVER skip `/plan-review` after plan creation — run it standalone or as the workflow step; standalone `/plan` also appends `/review-changes` as a final task.
+**IMPORTANT MUST ATTENTION** search 3+ existing patterns and read target code BEFORE planning; cite `file:line`; run graph trace when `.code-graph/graph.db` exists — why: local conventions override generic framework defaults.
 
 **Anti-Rationalization:**
 
-| Evasion                         | Rebuttal                                                          |
-| ------------------------------- | ---------------------------------------------------------------- |
-| "Task too simple to plan"       | Default mode HARD. Opt out ONLY when ALL trivial conditions met. |
-| "I already know the codebase"   | Show `file:line` from 3+ patterns. No proof = not read.          |
-| "Phase is clear enough"         | Run 5-point granularity check: "Can I start coding RIGHT NOW?"   |
-| "Plan looks good, skip review"  | NEVER skip `/plan-review` — fresh eyes catch author blind spots. |
+| Evasion                            | Rebuttal                                                                                |
+| ---------------------------------- | --------------------------------------------------------------------------------------- |
+| "Task too simple to plan"          | Default mode HARD. Opt out ONLY when ALL trivial conditions hold.                        |
+| "I already know the codebase"      | Show `file:line` from 3+ patterns + graph trace. No proof = not read.                    |
+| "Phase is clear enough"            | Run the 5-point granularity check: "Can I start coding RIGHT NOW?" — else sub-plan.      |
+| "Plan looks good, skip review"     | NEVER skip `/plan-review` — fresh eyes catch author blind spots.                         |
+| "Only existing libs, skip the gate"| Prove it — grep manifests. Any new tech/lib → WebSearch + `AskUserQuestion` before approval. |
+| "I'll just estimate SP directly"   | SP is DERIVED from bottom-up phase hours, never the driver. Σh/6 × productivity first.   |
+| "It's a `.claude` change, no sync" | State the mirror action or explicit no-sync evidence — stale mirrors fail the oracle.    |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break into small todo tasks and sub-tasks via TaskCreate.
+
+**IMPORTANT MUST ATTENTION** PLANNING ONLY — never implement; cite `file:line` evidence (confidence >80% to act); NEVER skip `/plan-review` and the New Tech/Lib + Goal-Contract gates.
 
 ---
 

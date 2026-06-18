@@ -655,15 +655,37 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Deliver a complete, evidence-backed, user-validated architecture decision report — every concern researched with 3+ options, every recommendation carrying confidence % + cited evidence, every decision confirmed by the user — so implementation proceeds on sound, owned architectural choices.
-**MANDATORY IMPORTANT MUST ATTENTION** research min 3 options per architecture concern with cited web evidence — NEVER recommend from familiarity alone.
-**MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` (Step 12) — NEVER auto-decide a hard-to-reverse choice.
-**MANDATORY IMPORTANT MUST ATTENTION** emit an ADR for every significant hard-to-reverse decision — a decision not written as an ADR cannot be enforced downstream.
-**MANDATORY IMPORTANT MUST ATTENTION** brownfield: NEVER re-litigate a settled ADR-recorded decision without a superseding-ADR rationale.
-**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting; add a final review todo.
+
+**IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
+
+- **Critical Thinking:** traced `file:line` proof per claim, confidence >80% to act.
+- **Sequential Thinking:** multi-step Thought N/M with REVISION/BRANCH/HYPOTHESIS, confidence closer.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+
+**MANDATORY IMPORTANT MUST ATTENTION** research min 3 options per architecture concern with cited web evidence (stars, last release, downloads, CVE scan) — NEVER recommend from familiarity alone — why: familiarity bias ships unmaintained or insecure dependencies.
+**MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` (Step 12) — NEVER auto-decide a hard-to-reverse choice — why: the user owns hard-to-reverse decisions; the architect proposes, the user confirms.
+**MANDATORY IMPORTANT MUST ATTENTION** quantify Step-2 quality-attribute scenarios (latency p95/p99, throughput, SLO, RPO/RTO, growth, concurrency) — any unknown target becomes an explicit `Unresolved question`, NEVER a silent guess — why: a style chosen without numbers is a guess, not an enforceable decision.
+**MANDATORY IMPORTANT MUST ATTENTION** brownfield: FIRST read project reference docs + accepted ADRs, constrain research to the existing stack, and NEVER re-litigate a settled ADR-recorded decision without a superseding-ADR rationale — why: re-deciding a recorded choice churns the codebase and breaks downstream conformance checks.
+**MANDATORY IMPORTANT MUST ATTENTION** search 3+ existing patterns/ADRs before proposing any new style or pattern; cite `file:line` (or URL/benchmark) evidence and a confidence % for EVERY claim — confidence >80% to recommend, <60% DO NOT recommend — why: speculation without proof is forbidden output.
+**MANDATORY IMPORTANT MUST ATTENTION** evaluate fit before copying a nearby pattern — closest example ≠ matching preconditions; verify the new context shares the same scale, constraints, and boundaries — why: a pattern lifted into a mismatched context fails silently.
+**MANDATORY IMPORTANT MUST ATTENTION** produce the two binding downstream contracts — one ADR per hard-to-reverse decision (`review-architecture` Cat 9 enforces) AND the Scaffold Handoff tool-choices table (`scaffold`/`harness-setup` consume) — a decision not written as an ADR or encoded as an executable fitness check cannot be enforced downstream — why: documented-but-unenforced budgets erode silently as code changes.
+**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting; mark one `in_progress`, mark `completed` immediately after evidence lands; add a final review todo — why: external task state survives context compaction; memory does not.
+
+**Anti-Rationalization (Closing — reject these excuses):**
+
+| Excuse the model tells itself                        | Reality                                                                                             |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| "I know this stack — skip the 3-options research"    | Familiarity ≠ evidence. Research 3+ options with cited proof per concern, every time.               |
+| "The architecture is obvious — skip user validation" | Step 12 is MANDATORY. The user owns hard-to-reverse decisions; never auto-decide.                   |
+| "No scale numbers given, I'll just pick a style"     | Missing target = explicit `Unresolved question`, never a silent guess. Quantify via Step-2 first.   |
+| "Small feature — skip the ADR / fitness check"       | Significant AND costly-to-reverse → needs an ADR + executable fitness rule, or it cannot be enforced. |
+| "Brownfield, but my preferred style is better"       | NEVER re-litigate a settled ADR-recorded decision without a superseding-ADR rationale.              |
+| "Found a nearby pattern, just copy it"               | Evaluate fit first — same scale/constraints/boundaries? Closest ≠ matching. Verify before reusing.  |
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-- **MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
+
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:critical-thinking-mindset -->
@@ -701,17 +723,14 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -731,7 +750,8 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-- **MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
+
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.

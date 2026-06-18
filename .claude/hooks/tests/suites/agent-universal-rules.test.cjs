@@ -47,6 +47,26 @@
  *   H (TC-UAR-010) — web-research domain block: web-research/SKILL.md MUST carry its
  *                    own SYNC:web-research block (regression guard — the skill's
  *                    primary-behavior protocol must not silently drop on edit).
+ *   I (TC-UAR-011) — canonical reminder parity: files carrying managed reminder
+ *                    blocks match sync-inline-versions.md exactly.
+ *   J (TC-UAR-012) — universal AI mistake prevention blocks/digests stay
+ *                    role-neutral; code/debug/fix wording belongs in code-tier
+ *                    protocols, not the universal block.
+ *   K (TC-UAR-013) — protocol digest aliases must not claim absent managed
+ *                    SYNC blocks are in force.
+ *   L (TC-UAR-014) — scaffold production-readiness wording stays aligned to
+ *                    the canonical 5-foundation protocol.
+ *   M (TC-UAR-015) — review-cycle protocols stay limited to agents whose role
+ *                    includes review/fix-cycle validation.
+ *   N (TC-UAR-016) — off-role protocol trim pins: architect carries NO
+ *                    source-test-drift-check / scaffold-production-readiness;
+ *                    refine carries NO scaffold-production-readiness /
+ *                    cross-cutting-quality; test-ui carries NO source-test-drift-check.
+ *                    Confirms the user-validated KEEPS survive: architect &
+ *                    solution-architect keep fix-layer-accountability; architect &
+ *                    ui-ux-designer keep graph-assisted-investigation. Guards the
+ *                    four surgical trims from silently regressing on a future
+ *                    matrix/agent edit.
  */
 
 const fs = require('fs');
@@ -55,6 +75,7 @@ const { assertEqual, assertTrue } = require('../lib/assertions.cjs');
 
 const AGENTS_DIR = path.resolve(process.env.CLAUDE_PROJECT_DIR, '.claude', 'agents');
 const SKILLS_DIR = path.resolve(process.env.CLAUDE_PROJECT_DIR, '.claude', 'skills');
+const SYNC_INLINE_PATH = path.resolve(process.env.CLAUDE_PROJECT_DIR, '.claude', 'skills', 'shared', 'sync-inline-versions.md');
 
 // ── Tier constants — mirror sync-hooks-to-skills.py tier sets verbatim ────────
 const CORE_TAGS = [
@@ -101,6 +122,21 @@ const CODE_STANDARDS_AGENTS = new Set([
     'performance-optimizer', 'planner', 'security-auditor', 'solution-architect',
     'spec-compliance-reviewer', 'tester',
 ]);
+const REVIEW_CYCLE_TAGS = [
+    'fresh-context-review',
+    'double-round-trip-review',
+    'review-protocol-injection',
+];
+const REVIEW_CYCLE_AGENTS = new Set([
+    'architect',
+    'code-reviewer',
+    'integration-tester',
+    'planner',
+    'quality-gate-review',
+    'security-auditor',
+    'spec-compliance-reviewer',
+    'ui-ux-designer',
+]);
 
 const diskAgents = fs
     .readdirSync(AGENTS_DIR)
@@ -117,6 +153,38 @@ const skillNames = fs
     .filter(d => d.isDirectory() && fs.existsSync(path.join(SKILLS_DIR, d.name, 'SKILL.md')))
     .map(d => d.name);
 const readSkill = name => fs.readFileSync(path.join(SKILLS_DIR, name, 'SKILL.md'), 'utf8');
+const instructionDocs = () => [
+    ...diskAgents.map(name => ({ kind: 'agent', name, body: read(name) })),
+    ...skillNames.map(name => ({ kind: 'skill', name, body: readSkill(name) })),
+];
+
+const canonicalBody = tag => {
+    const source = fs.readFileSync(SYNC_INLINE_PATH, 'utf8');
+    const match = new RegExp(`^## ${tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\n([\\s\\S]*?)(?=^---\\s*$)`, 'm').exec(source);
+    assertTrue(Boolean(match), `canonical block not found: ${tag}`);
+    return match[1].trim();
+};
+
+const blockBody = (body, tag) => {
+    const match = new RegExp(`<!-- ${tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} -->\\s*([\\s\\S]*?)\\s*<!-- /${tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} -->`).exec(body);
+    return match ? match[1].trim() : null;
+};
+
+const aiMistakeDigestLines = body => body
+    .split(/\r?\n/)
+    .filter(line => line.includes('AI Mistake Prevention:'));
+
+const codeSpecificAiMistakePattern = /\b(holistic[- ]first|debugging|debug\b|fix(?:es|ing)?\s+(?:at|the|responsible|owning)|owning layer|responsible layer|surgical diff|surgical diffs|symptom site|crash site)\b/i;
+const managedProtocolDigestAliases = new Map([
+    ['Cross-Cutting Quality', 'SYNC:cross-cutting-quality'],
+    ['Scaffold Production Readiness', 'SYNC:scaffold-production-readiness'],
+    ['Source Test Drift', 'SYNC:source-test-drift-check'],
+    ['Source-Test Drift Check', 'SYNC:source-test-drift-check'],
+    ['UI System Context', 'SYNC:ui-system-context'],
+    ['End-to-Start Debugger Trace', 'SYNC:end-to-start-debugger-trace'],
+    ['Fix-Layer Accountability', 'SYNC:fix-layer-accountability'],
+]);
+const protocolDigestLinePattern = /^\s*-\s+\*\*([^:*]+):\*\*/;
 
 // Count ONLY real fences at column 0 (multiline-anchored). A block body may
 // document the fence syntax inline — e.g. the shared-protocol-duplication-policy
@@ -267,6 +335,156 @@ module.exports = {
                 assertTrue(
                     body.includes('<!-- SYNC:web-research'),
                     'web-research/SKILL.md is missing its own SYNC:web-research domain block',
+                );
+            },
+        },
+        {
+            name: '[agent-universal-rules] TC-UAR-011 managed reminder bodies match canonical sync-inline source',
+            fn: () => {
+                const checkedTags = ['SYNC:critical-thinking-mindset:reminder', 'SYNC:ai-mistake-prevention:reminder'];
+                const problems = [];
+                for (const tag of checkedTags) {
+                    const expected = canonicalBody(tag);
+                    for (const doc of instructionDocs()) {
+                        const actual = blockBody(doc.body, tag);
+                        if (actual === null) continue;
+                        if (actual !== expected) problems.push(`${doc.kind}:${doc.name} ${tag}`);
+                    }
+                }
+                assertEqual(
+                    problems.length,
+                    0,
+                    `managed reminder block(s) drift from canonical sync-inline source:\n  ${problems.join('\n  ')}`,
+                );
+            },
+        },
+        {
+            name: '[agent-universal-rules] TC-UAR-012 universal AI mistake prevention stays role-neutral',
+            fn: () => {
+                const problems = [];
+                for (const doc of instructionDocs()) {
+                    for (const tag of ['SYNC:ai-mistake-prevention', 'SYNC:ai-mistake-prevention:reminder']) {
+                        const actual = blockBody(doc.body, tag);
+                        if (actual !== null && codeSpecificAiMistakePattern.test(actual)) {
+                            problems.push(`${doc.kind}:${doc.name} ${tag}`);
+                        }
+                    }
+                    for (const line of aiMistakeDigestLines(doc.body)) {
+                        if (codeSpecificAiMistakePattern.test(line)) {
+                            problems.push(`${doc.kind}:${doc.name} digest: ${line.trim()}`);
+                        }
+                    }
+                }
+                assertEqual(
+                    problems.length,
+                    0,
+                    `universal AI mistake prevention carries code/debug-specific wording:\n  ${problems.join('\n  ')}`,
+                );
+            },
+        },
+        {
+            name: '[agent-universal-rules] TC-UAR-013 protocol digest aliases require matching managed SYNC blocks',
+            fn: () => {
+                const problems = [];
+                for (const doc of instructionDocs()) {
+                    for (const line of doc.body.split(/\r?\n/)) {
+                        const digestMatch = protocolDigestLinePattern.exec(line);
+                        if (!digestMatch) continue;
+
+                        const tag = managedProtocolDigestAliases.get(digestMatch[1]);
+                        if (!tag) continue;
+
+                        if (blockBody(doc.body, tag) === null) {
+                            problems.push(`${doc.kind}:${doc.name} digest references absent ${tag}: ${line.trim()}`);
+                        }
+                    }
+                }
+                assertEqual(
+                    problems.length,
+                    0,
+                    `protocol digest references absent managed block(s):\n  ${problems.join('\n  ')}`,
+                );
+            },
+        },
+        {
+            name: '[agent-universal-rules] TC-UAR-014 scaffold production-readiness wording uses 5 foundations',
+            fn: () => {
+                const scaffold = readSkill('scaffold');
+                assertTrue(
+                    scaffold.includes('Every scaffolded project MUST ATTENTION include these 5 foundations'),
+                    'scaffold quick-reference must state 5 production-readiness foundations',
+                );
+                assertTrue(
+                    scaffold.includes('### 5. Integration Points'),
+                    'scaffold quick-reference must include integration points as foundation 5',
+                );
+                assertEqual(
+                    /\b(?:all\s+)?4 foundations\b/i.test(scaffold),
+                    false,
+                    'scaffold must not retain stale 4-foundation wording',
+                );
+            },
+        },
+        {
+            name: '[agent-universal-rules] TC-UAR-015 review-cycle protocols stay on review-capable agents',
+            fn: () => {
+                const problems = [];
+                for (const name of diskAgents) {
+                    const body = read(name);
+                    const carried = REVIEW_CYCLE_TAGS.filter(tag => hasBlock(body, tag));
+                    if (carried.length > 0 && !REVIEW_CYCLE_AGENTS.has(name)) {
+                        problems.push(`${name}: ${carried.join(', ')}`);
+                    }
+                }
+                assertEqual(
+                    problems.length,
+                    0,
+                    `review-cycle protocol(s) assigned to non-review agent(s):\n  ${problems.join('\n  ')}`,
+                );
+            },
+        },
+        {
+            name: '[agent-universal-rules] TC-UAR-016 off-role protocol trims stay removed; validated keeps stay present',
+            fn: () => {
+                const problems = [];
+
+                // Removed off-role blocks (body + :reminder + digest must all be gone).
+                const removed = [
+                    { kind: 'agent', name: 'architect', tag: 'source-test-drift-check', labels: ['Source-Test Drift Check', 'Source Test Drift'] },
+                    { kind: 'agent', name: 'architect', tag: 'scaffold-production-readiness', label: 'Scaffold Production Readiness' },
+                    { kind: 'skill', name: 'refine', tag: 'scaffold-production-readiness', label: 'Scaffold Production Readiness' },
+                    { kind: 'skill', name: 'refine', tag: 'cross-cutting-quality', label: 'Cross-Cutting Quality' },
+                    { kind: 'skill', name: 'test-ui', tag: 'source-test-drift-check', labels: ['Source-Test Drift Check', 'Source Test Drift'] },
+                ];
+                for (const { kind, name, tag, label, labels } of removed) {
+                    const body = kind === 'agent' ? read(name) : readSkill(name);
+                    if (body.includes(`SYNC:${tag}`)) {
+                        problems.push(`${kind}:${name} still carries SYNC:${tag} (must be trimmed)`);
+                    }
+                    for (const digestLabel of labels || [label]) {
+                        if (body.includes(`- **${digestLabel}:**`)) {
+                            problems.push(`${kind}:${name} still carries Closing-Reminders digest "${digestLabel}" (must be trimmed)`);
+                        }
+                    }
+                }
+
+                // User-validated keeps — these blocks MUST remain on their owning files.
+                const kept = [
+                    { name: 'architect', tag: 'fix-layer-accountability' },
+                    { name: 'solution-architect', tag: 'fix-layer-accountability' },
+                    { name: 'architect', tag: 'graph-assisted-investigation' },
+                    { name: 'ui-ux-designer', tag: 'graph-assisted-investigation' },
+                ];
+                for (const { name, tag } of kept) {
+                    if (!hasBlock(read(name), tag)) {
+                        problems.push(`agent:${name} lost required keep SYNC:${tag}`);
+                    }
+                }
+
+                assertEqual(
+                    problems.length,
+                    0,
+                    `off-role-trim regression:\n  ${problems.join('\n  ')}`,
                 );
             },
         },

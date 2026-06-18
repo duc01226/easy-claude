@@ -692,17 +692,14 @@ For domain PBIs: detect module from `docs/specs/` directory names, extract busin
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -884,32 +881,6 @@ For domain PBIs: detect module from `docs/specs/` directory names, extract busin
 
 <!-- /SYNC:estimation-framework -->
 
-<!-- SYNC:scaffold-production-readiness -->
-
-> **Scaffold Production Readiness** — Every scaffolded project MUST ATTENTION include 5 foundations:
->
-> 1. **Code Quality Tooling** — linting, formatting, pre-commit hooks, CI gates. Specific tool choices → `docs/project-reference/` or `project-config.json`.
-> 2. **Error Handling Foundation** — HTTP interceptor, error classification (4xx/5xx taxonomy), user notification, global uncaught handler.
-> 3. **Loading State Management** — counter-based tracker (not boolean toggle), skip-token for background requests, 300ms flicker guard.
-> 4. **Docker Development Environment** — compose profiles (`dev`/`test`/`infra`), multi-stage Dockerfile, health checks on all services, non-root production user.
-> 5. **Integration Points** — document each outbound boundary; configure retry + circuit breaker + timeout; integration tests for happy path and failure path.
->
-> **BLOCK `$feature-implement` if any foundation is unchecked.** Present 2-3 options per concern via a direct user question before implementing.
-
-<!-- /SYNC:scaffold-production-readiness -->
-
-<!-- SYNC:cross-cutting-quality -->
-
-> **Cross-Cutting Quality** — Check across all changed files:
->
-> 1. **Error handling consistency** — same error patterns across related files
-> 2. **Logging** — structured logging with correlation IDs for traceability
-> 3. **Security** — no hardcoded secrets, input validation at boundaries, auth checks present
-> 4. **Performance** — no N+1 queries, unnecessary allocations, or blocking calls in async paths
-> 5. **Observability** — health checks, metrics, tracing spans for new endpoints
-
-<!-- /SYNC:cross-cutting-quality -->
-
 <!-- SYNC:ui-wireframe -->
 
 > **UI Wireframe** — Process visual design input (Figma URLs, screenshots, wireframes) via appropriate tool BEFORE creating wireframes. Use box-drawing ASCII characters for spatial layout. Classify every component into exactly ONE tier: Common (cross-app reusable) / Domain-Shared (cross-domain) / Page (single-page). Duplicate UI code = wrong tier. Search existing component libraries before creating new (>=80% match = reuse). Detail level varies by skill (idea=rough, story=full decomposition).
@@ -958,21 +929,9 @@ For domain PBIs: detect module from `docs/specs/` directory names, extract busin
 
 <!-- /SYNC:ui-system-context:reminder -->
 
-<!-- SYNC:scaffold-production-readiness:reminder -->
-
-**IMPORTANT MUST ATTENTION** verify 5 production-readiness foundations (code quality, error handling, loading state, Docker, integration points) for scaffold PBIs.
-
-<!-- /SYNC:scaffold-production-readiness:reminder -->
-
-<!-- SYNC:cross-cutting-quality:reminder -->
-
-**IMPORTANT MUST ATTENTION** check error handling, logging, security, performance, and observability across changed files.
-
-<!-- /SYNC:cross-cutting-quality:reminder -->
-
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
@@ -984,7 +943,7 @@ For domain PBIs: detect module from `docs/specs/` directory names, extract busin
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -1002,8 +961,27 @@ For domain PBIs: detect module from `docs/specs/` directory names, extract busin
 ## Closing Reminders
 
 - **IMPORTANT MUST ATTENTION Goal:** emit a Definition-of-Ready PBI — problem-validated, tech-agnostic, with testable acceptance criteria, estimates, and a Dependencies table — so a team can build it without re-asking what or why
-- **MANDATORY IMPORTANT MUST ATTENTION** break work into small tasks via task tracking BEFORE starting
+
+**Protocols in force — MUST ATTENTION (concise digest of the SYNC/shared blocks this skill carries):**
+
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **UI System Context:** ALWAYS read frontend-patterns, scss-styling-guide, design-system before any UI change.
+- **Estimation Framework:** bottom-up hours drive man-days; SP derived; UI cost usually dominates.
+- **UI Wireframe:** ASCII layout, classify every component into ONE tier, reuse before creating.
+- **Critical Thinking:** traced proof per claim, confidence >80% to act, NEVER guess.
+- **Sequential Thinking:** multi-step Thought N/M with REVISION/BRANCH/HYPOTHESIS markers, confidence-% closer.
+
+- **IMPORTANT MUST ATTENTION** Phase 3 problem-hypothesis validation + Phase 7 validation interview (3-5 questions) are NON-OPTIONAL for new features — user decides assumptions/scope/dependencies, AI NEVER auto-decides — why: 42% of products fail from no market need; a silent AI assumption ships an unvalidated build
+- **IMPORTANT MUST ATTENTION** Phase 7.5 RE-DERIVES `story_points`/`complexity`/`man_days_traditional`/`man_days_ai` against the LOCKED post-interview scope (per `SYNC:estimation-framework`) — NEVER ship stale Phase 6 draft numbers — why: pre-validation guesses are the #1 source of unreliable velocity data
+- **MANDATORY IMPORTANT MUST ATTENTION** break work into small tasks via task tracking BEFORE starting; mark one `in_progress`, complete it before the next; on context loss the current task list first — why: compaction wipes prior-work memory, resume don't duplicate
 - **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via a direct user question — NEVER auto-decide
+- **IMPORTANT MUST ATTENTION** acceptance criteria are BDD GIVEN/WHEN/THEN (min 3: happy/edge/error) and MUST satisfy the Phase 5.1 AI-SDD M1-M5 gate — tech-agnostic Business Intent, logical `FR-`/`BR-` IDs first, observable single-interpretation ACs, rebuild-from-scratch validity — why: a reader who must guess a rule/limit/role re-implements the wrong behavior
+- **IMPORTANT MUST ATTENTION** every PBI MUST include `story_points`, `complexity`, `man_days_traditional`, `man_days_ai` frontmatter AND a complete Dependencies table (`must-before`/`can-parallel`/`blocked-by`/`independent`) — fill even when `independent`
+- **IMPORTANT MUST ATTENTION** keep PBI Business Intent prose tech-agnostic — NO framework/product/language/design-pattern names; implementation hints go ONLY in `## Implementation Notes`, source refs ONLY in `[Source: namespace/service/id]` evidence carriers — why: a tech-leaked spec is not rebuildable on another stack (M1/M2)
+- **IMPORTANT MUST ATTENTION** greenfield mode: NEVER ask about tech stack during refinement — capture team skills/scale as signals only; tech decided after business analysis
+- **MANDATORY IMPORTANT MUST ATTENTION** before refining domain PBIs, read existing TCs in `docs/specs/` and `docs/project-reference/domain-entities-reference.md`; grep 3+ existing PBIs/specs for local conventions before authoring — why: project vocabulary and patterns override generic BABOK/INVEST defaults
+- **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` (or `[Source: ...]`) evidence for every claim, confidence >80% to act, <60% DO NOT recommend — NEVER present a guess as fact
+- **IMPORTANT MUST ATTENTION** complex/lengthy work → persist findings to `plans/reports/` incrementally — why: prevents silent loss of all findings on context exhaustion
 - **MANDATORY IMPORTANT MUST ATTENTION** add final review task to verify work quality
 - **MANDATORY IMPORTANT MUST ATTENTION** add task: run `$why-review` — validate PBI design rationale before `$story` or `$spec [mode=tests]`
 - **MANDATORY IMPORTANT MUST ATTENTION** add task: run `$pbi-challenge` — Dev BA PIC review before `$dor-gate` or `$story`
@@ -1012,13 +990,19 @@ For domain PBIs: detect module from `docs/specs/` directory names, extract busin
 
 | Evasion                                   | Rebuttal                                                                       |
 | ----------------------------------------- | ------------------------------------------------------------------------------ |
-| "Simple PBI, skip hypothesis validation"  | Wrong assumption wastes more time than validation check. Apply always.         |
-| "Validation interview is optional here"   | NEVER optional — user decides assumptions, AI doesn't                          |
+| "Simple PBI, skip hypothesis validation"  | Wrong assumption wastes more time than validation check. Apply Phase 3 always. |
+| "Validation interview is optional here"   | NEVER optional — Phase 7 user decides assumptions, AI doesn't                  |
+| "Phase 6 estimate is fine, skip re-derive"| Phase 7.5 is MANDATORY — interview changed scope; stale numbers corrupt velocity |
 | "Skip Dependencies table, no blockers"    | Unknown blockers exist. Always fill table — even if `independent`              |
 | "Skip story points, just write ACs"       | `story_points`, `man_days_traditional`, `man_days_ai` mandatory in frontmatter |
+| "Add a stack hint, it clarifies the AC"   | Business Intent stays tech-agnostic (M1/M2) — hints go to `## Implementation Notes` only |
 | "Domain context not needed for small PBI" | Small PBIs touch entities. Read domain-entities-reference first                |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
+
+**IMPORTANT MUST ATTENTION** Phase 3 hypothesis + Phase 7 interview are NON-OPTIONAL — user decides, AI never auto-decides.
+**IMPORTANT MUST ATTENTION** Phase 7.5 re-derives estimates against locked scope — never ship stale Phase 6 numbers.
+**IMPORTANT MUST ATTENTION** keep Business Intent tech-agnostic; cite `file:line`/`[Source:]` evidence, confidence >80% to act.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Hookless Prompt Protocol Mirror (Auto-Synced)

@@ -58,6 +58,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Review current working-tree, staged, branch, or commit diffs across code, docs, config, infra, and non-code artifacts — finding correctness bugs, flaws, missing updates, stale docs, and convention drift with evidence — so every reviewed change is defect-free, evidence-backed, convention-aligned, and synchronized with required tests/docs before handoff; when code files changed, also prove the code stays easy to change.
 
+**Summary:** read-this-if-nothing-else digest —
+
+- **Report-driven and evidence-gated.** Every finding is written to `plans/reports/code-review-{date}-{slug}.md` with `file:line` proof; speculation is forbidden, "looks fine" is not a verdict, codebase convention (grep 3+ examples) wins over textbook rules.
+- **Findings are never auto-fixed on sight.** Standalone mode runs validate (Phase 6 `$why-review --validate-findings`, an actual skill call) → fix (Phase 7) → restart `$review-changes` from Phase 0 over the full diff, looping until one whole pass has zero findings. Inside `$workflow-review-changes` you stop after the report and hand findings to the parent.
+- **When code changed, three delegated gates are MANDATORY:** Phase 3.5 `$code-simplifier` (clarity/maintainability), Phase 3.7 `$integration-test-review` Gate-7 coverage (every behavior change → covering test + spec TC), and — for every behavior change — Spec Drift Adjudication + the Dual-Feedback Ledger (the gap feeds BOTH spec AND tests).
+- **Docs-update is the unconditional terminal step.** Once the loop converges clean, Phase 8 `$docs-update` ALWAYS runs over the full changeset (deferred only to the parent inside the workflow).
+
 > **Routing boundary:** This skill reviews a **git diff** — working-tree (default), staged, branch, or commit. For an explicit file-set or SHA-range review, processing received review feedback, or a pre-completion verification gate over already-known scope, use `code-review` instead.
 
 > **Shared engine (keep in sync):** `review-changes` and `code-review` share the same review-protocol `SYNC:` blocks. Canonical source: `.claude/skills/shared/sync-inline-versions.md`; policy: `SYNC:shared-protocol-duplication-policy`. When you change a shared block in one skill, update the canonical file AND the sibling skill so the two never drift. The skills differ only in entry intent (diff vs explicit scope) and diff-specific gates (integration-test-sync, translation-sync, the Phase 3.7 integration-test-review coverage gate) — not in review quality.
@@ -1616,17 +1623,14 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -1711,7 +1715,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
@@ -1723,7 +1727,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -1787,6 +1791,33 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 **IMPORTANT MUST ATTENTION Goal:** Ensure every reviewed change is defect-free, evidence-backed, convention-aligned, and synchronized with required tests/docs before handoff; when code files changed, also prove the code stays easy to change.
 
+**IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries; each line is a signpost to its canonical body above — MUST ATTENTION honor the full block, NEVER act on the digest alone):**
+
+- **Systematic Batching:** ≥10 files → size-capped parallel batches.
+- **Debugger Trace:** bug/fix → End→Start backward trace gate.
+- **Critical Thinking:** every claim traced; confidence >80% to act.
+- **Sequential Thinking:** multi-step Thought N/M with markers.
+- **Understand Code First:** grep 3+, read code before changes.
+- **Design Patterns Quality:** DRY/SOLID, right responsibility layer.
+- **Complexity Prevention:** one business change = one code change.
+- **Double Round-Trip Review:** validate → fix → full re-review until clean.
+- **Fresh Context Review:** fresh zero-memory sub-agent after fixes.
+- **Review Protocol Injection:** embed 11 protocols verbatim into sub-agent prompts.
+- **Logic And Intention Review:** WHAT code does matches WHY changed.
+- **Bug Detection:** null, boundaries, error handling, resource cleanup.
+- **Test Spec Verification:** map changed paths to test cases.
+- **Integration Test Sync:** missing tests surface via a direct user question.
+- **Translation Sync:** multilingual UI text changes need translation updates.
+- **Category Review Thinking:** derive categories from file + change nature.
+- **Graph-Assisted Investigation:** run graph trace on key files.
+- **Nested Task Creation:** expand child phases, link parent.
+- **Project Reference Docs:** read required docs including `lessons.md`.
+- **Task Tracking + Report:** bootstrap tasks, persist findings incrementally.
+- **Source/Test Drift:** behavior change → reconcile affected tests.
+- **Spec Drift:** classify CODE-WRONG/SPEC-STALE/AMBIGUOUS/SPEC-SILENT, route fix.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **Severity Rubric:** classify Critical/High/Medium/Low by consequence.
+
 > **[CRITICAL — TOP 3 RULES REPEATED]**
 >
 > 1. **MUST ATTENTION Phase 0 graph blast-radius FIRST** — NEVER skip; informs entire review priority order
@@ -1810,6 +1841,20 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **MANDATORY** run the **Phase 6 Why-Review Findings Validation Gate** whenever ANY finding exists in standalone mode — invoke the `$why-review` skill through the skill invocation with `--validate-findings` (terminal mode, same session; an ACTUAL skill call — re-reading the cited lines yourself or any inline/manual self-validation does NOT satisfy this gate). The moment the first finding is recorded, register `[Review Phase 6] Why-review findings validation gate — invoke $why-review` via task tracking so it is never forgotten. Verify every finding is correct, proof-backed, reasonable, and best-practice; RE-DO it ONLY if it surfaces finding issues or enhancement opportunities (max 2 re-dos, then escalate via a direct user question); then Phase 7 fixes validated findings and restarts this skill. Inside `$workflow-review-changes`, do not run Phase 6/7 locally; parent step 2 and steps 10-15 own those gates.
 - **MANDATORY** follow declared step order; NEVER skip, reorder, or merge steps without explicit user approval
 - **MANDATORY** every skipped step includes explicit reason; every completed step includes concise evidence
+- **MANDATORY** Report-driven — write every finding to `plans/reports/code-review-{date}-{slug}.md` incrementally as each file/dimension is reviewed, NOT in one final batch — why: the report is external memory AND the deliverable; findings held only in context are lost on compaction
+- **MANDATORY** Evidence Gate — back every claim, finding, and recommendation with `file:line` proof or a traced call chain plus a confidence read (>80% act, 60-80% verify first, <60% DO NOT recommend); speculation is FORBIDDEN output and "insufficient evidence" is a valid verdict — why: an unproven finding wastes the author's time and erodes trust in the whole report
+- **MANDATORY** Convention-before-flag — grep 3+ existing examples before flagging ANY pattern, naming, or style violation; codebase convention wins over textbook rules — why: flagging against a rule the project never adopted manufactures false positives
+- **MANDATORY** Enforce YAGNI / KISS / DRY / Clean Code on changed code — flag speculative generality, needless complexity, and duplicated knowledge; 3+ similar patterns = MANDATORY extraction, 2+ same-kind violations = a structural finding (not individual nits) — why: these are the day-to-day forms of the Easy-to-Change success metric
+- **MANDATORY** Spec Drift Adjudication runs for EVERY behavior-changing review (not only post-bugfix) — classify each divergence CODE-WRONG / SPEC-STALE / AMBIGUOUS / SPEC-SILENT and route the owed fix (CODE-WRONG → fix code + regression TC; SPEC-STALE/SPEC-SILENT → `$spec [update]` + `$spec [mode=tests]`; AMBIGUOUS → a direct user question); record `Spec in sync` when none — why: passing code and tests can still silently normalize a spec violation
+- **MANDATORY** Dual-Feedback Ledger — every behavior-changing finding must feed BOTH the spec AND the tests; a blank or bare-"N/A" cell on either axis = FAIL (each N/A carries its reason inline) — why: fixing only the code leaves the spec or its TC stale and the gap reopens next change
+- **MANDATORY** Bugfix Debugger Trace Gate (§6.5) — for bugfix / regression / failed-verification / stale-output / behavior-changing fixes, FAIL the review unless an End→Start debugger trace, enumerated feeder paths, hypothesis matrix, lowest-owning-fix-layer justification, and forward-convergence + regression-test proof are all present — why: a fix without a trace patches the symptom site and the bug recurs
+- **MANDATORY** Fresh-Context Gate (Phase 3) is review-ONLY — it may ADD findings but NEVER fixes or validates them, NEVER re-reviews known findings, and does NOT run merely because Phase 7 restarted; any non-zero finding set flows straight to Phase 6 — why: re-reviewing known findings burns context without adding signal
+- **MANDATORY** Integrate sub-agent and synthesis findings RAW into the main report — read them, NEVER filter, soften, or override them — why: the main agent rationalizes away its own mistakes; the zero-memory sub-agent exists to catch exactly those
+- **MANDATORY** When the diff includes frontend/UI files, `$review-changes` OWNS the UI dimension — run `$review-ui` (prefer a `ui-ux-designer` sub-agent in the same parallel batch): long-content overflow, responsive flex sizing, z-index discipline, SCSS/BEM quality; skip only when no frontend files changed — why: `$review-ui` is never a separate workflow step, so a skipped UI pass ships UI defects unreviewed
+- **MANDATORY** M1-M6 Code-to-Spec Drift Gate (§8, BLOCKING) for any spec/feature-doc/PBI/story/test-spec the change touches or should sync — FAIL on introduced tech leakage (M1) / source-code-as-prose (M2) / broken logical-ID mapping (M3) / AC ambiguity (M4) / spec no longer rebuildable from artifact alone (M5); a FAIL must name the violated mandate ID + changed file:line; carriers (`[Source:]`, `**Evidence**`, frontmatter, mermaid) are EXEMPT — why: passing an introduced M1-M5 violation makes the review itself defective
+- **MANDATORY** Architecture Boundary Check — for each changed file, read `architectureRules.layerBoundaries` from `docs/project-config.json`, match the file's layer, grep its imports, and BLOCK as Critical on any import from a `cannotImportFrom` layer; skip silently when `architectureRules` is absent — why: a layer-boundary breach compiles and ships silently while rotting the architecture
+- **MANDATORY** AI Agent Integrity Gate before reporting ANY work done — grep every removed name (0 dangling refs across ALL file types), ask WHY before changing an existing value, verify ALL affected outputs (one green ≠ all green), evaluate pattern fit before copying nearby code (same scope/lifetime/base class/constraints), and prove every new artifact is wired (registered, imported, reachable) — why: completion ≠ correctness, and an unverified "done" is an untested hypothesis
+- **MANDATORY** Large changeset (≥10 changed files) → Systematic Review Batching — categorize, size-cap batches (≤8 files OR ≤2000 diff-lines), fire one parallel sub-agent per batch, then reduce; >6 categories OR >40 files adds the hierarchical synthesis tier with the cross-concern interaction pass; ANNOUNCE any dropped/sampled scope — never review many files one-by-one and never let bounded coverage read as complete — why: a single agent's context silently truncates on big diffs, leaving files unreviewed
 
 > **[BOTTOM REMINDER — WHY-REVIEW FINDINGS-VALIDATION GATE IS NON-NEGOTIABLE]**
 >
@@ -1831,6 +1876,15 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 | "No test files changed, skip test review" | The review target is the CHANGE, not the test files. Phase 3.7 Gate 7 maps every behavior change to a covering test + spec TC. |
 | "Test file with matching name exists"   | Name pairing ≠ coverage. Phase 3.7 `$integration-test-review` proves assertion-level coverage of the changed behavior. |
 | "Clean review, docs surely fine"        | Clean code ≠ current docs. Run the Phase 8 `$docs-update` sweep before handoff — it is mandatory, not conditional. |
+| "Behavior changed but spec + tests pass" | Passing ≠ in-sync. Run Spec Drift Adjudication AND the Dual-Feedback Ledger; classify the divergence and route the owed spec/test fix. |
+| "Bug fixed, ship it"                     | A bugfix review FAILS without the §6.5 End→Start trace, feeder enumeration, hypothesis matrix, and regression proof. |
+| "Confident enough, no need to cite"      | <80% confidence = verify first; no `file:line` = speculation, which is forbidden output. State what you traced and how. |
+| "It reads fine, looks correct"           | "Looks fine" is not proof. Trace one happy path + one error path and cite the lines before calling it correct. |
+| "Frontend tweak, skip UI review"         | `$review-changes` owns the UI dimension — any frontend file in the diff triggers `$review-ui`; it is never a separate step to defer. |
+| "Nearby code does it this way, copy it"  | Closest example ≠ matching preconditions. Prove the new context shares the same scope, lifetime, base class, and constraints before copying. |
+| "Spec prose names the class, harmless"   | Introduced tech/source-as-prose in spec narrative is an M1/M2 FAIL (§8). Name the mandate ID + changed file:line; carriers are the only exemption. |
+| "Import compiles, layer is fine"         | Compiling ≠ allowed. Check `architectureRules.layerBoundaries`; a `cannotImportFrom` breach is a BLOCKING Critical, not a style nit. |
+| "Many files, I'll just read them all"    | One context truncates silently on big diffs. ≥10 files → size-capped parallel batches + reduce; announce any dropped/sampled scope. |
 
 **[TASK-PLANNING]** Break scope into small todo tasks before acting; maintain one `in_progress`; add final review todo.
 

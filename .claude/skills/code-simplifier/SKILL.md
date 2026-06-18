@@ -97,7 +97,7 @@ below — if a downstream rule would raise change cost, this principle wins.
 
 ## Simplification Mindset
 
-**Skeptical-first:** Verify before simplifying. Every change needs proof it preserves behavior.
+**Skeptical-first:** Verify before simplifying. Every change needs proof preserving behavior.
 
 - NEVER assume code redundant — trace call paths and read implementations first
 - Before removing/replacing: grep all usages confirming nothing depends on current form
@@ -221,7 +221,7 @@ function getData() {
 
 ## Self-Recursive Verification (MANDATORY after simplifications)
 
-After simplifications applied, verification requires a **self-recursive simplification pass** over the updated diff. Do NOT spawn a fresh-context reviewer to re-review this skill's own findings. Repeat analyze → simplify → verify until this skill finds no further simplification opportunities, or stop on an unsafe/no-progress/user-decision blocker.
+After simplifications applied, verification requires a **self-recursive simplification pass** over the updated diff. Do NOT spawn fresh-context reviewer to re-review this skill's own findings. Repeat analyze → simplify → verify until this skill finds no further simplification opportunities, or stop on unsafe/no-progress/user-decision blocker.
 
 ## Self-Review Gate (MANDATORY when this skill changed code)
 
@@ -365,17 +365,14 @@ Rules:
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -510,7 +507,7 @@ Rules:
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
@@ -522,7 +519,7 @@ Rules:
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -546,28 +543,50 @@ Rules:
 
 ## Closing Reminders
 
-- **MANDATORY Goal:** lower the cost of the next change — cut coupling, hidden state, duplicated knowledge, unclear intent — without altering observable behavior
-- **MANDATORY** break work into small todo tasks via `TaskCreate` BEFORE starting
-- **MANDATORY** validate decisions with user via `AskUserQuestion` — never auto-decide
-- **MANDATORY** add final review task to verify work quality
-- **MANDATORY** READ `docs/project-reference/code-review-rules.md` FIRST
-- **MANDATORY** search 3+ existing patterns and read code BEFORE modification. Run graph trace when graph.db exists.
-- **MANDATORY IMPORTANT MUST ATTENTION** check DRY via OOP (same-suffix → base class), right responsibility (lowest layer), SOLID. Grep dangling refs after changes.
-- **MANDATORY IMPORTANT MUST ATTENTION** NEVER simplify generated code, migrations, vendor files
-- **MANDATORY IMPORTANT MUST ATTENTION** run the self-recursive simplification loop until this skill finds zero simplification findings; do not spawn a fresh-context reviewer for this skill's own findings.
-- **MANDATORY IMPORTANT MUST ATTENTION** Self-Review Gate — when this skill changed code, self-invoke `/code-review` scoped to ONLY the changed files (recursion-safe leaf skill; NEVER `/review-changes`); skip + log when nothing changed. The simplifier owns review of its own output.
+**IMPORTANT MUST ATTENTION Goal:** lower the cost of the next change — cut coupling, hidden state, duplicated knowledge, unclear intent — by simplifying and refining code for clarity, consistency, maintainability WITHOUT altering any observable behavior. — why: every simplification serves future change cost, not aesthetics.
+
+**Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
+
+- **Subagent Return Contract:** sub-agents return only the summary shape; full detail to report file.
+- **UI System Context:** read frontend-patterns, scss-styling-guide, design-system before touching UI files.
+- **Shared Protocol Duplication Policy:** inline SYNC duplication is intentional — NEVER extract behind file reference.
+- **Source/Test Drift Check:** when source behavior changes, decide from evidence whether tests follow or source is a bug.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **Critical Thinking:** traced proof per claim, confidence >80% to act, NEVER present guess as fact.
+- **Understand Code First:** read target + grep 3+ patterns + graph trace before writing or fixing.
+- **Design Patterns Quality:** DRY via OOP, lowest-layer responsibility, SOLID, one serial pass per dimension.
+- **Complexity Prevention:** one business change = one code change; flag change amplification and wrong-layer logic.
+- **Severity Rubric:** classify findings Critical/High/Medium/Low by consequence; Critical/High block PASS.
+
+**IMPORTANT MUST ATTENTION** apply a simplification ONLY when certain it preserves behavior — grep all usages + trace consumers (graph downstream when graph.db exists) and cite `file:line` BEFORE touching anything; if unsure → DO NOT apply. — why: an unverified "safe" rewrite silently breaks a downstream consumer.
+**IMPORTANT MUST ATTENTION** NEVER simplify generated, migration, or vendor files — HARD-SKIP them in Phase 0. — why: regenerated output overwrites edits and migrations are one-time execution paths, not core logic.
+**IMPORTANT MUST ATTENTION** run the Self-Recursive Loop (analyze → simplify → verify) until ZERO simplification findings remain; do NOT spawn a fresh-context reviewer for this skill's own findings. — why: re-reviewing your own findings in fresh context burns tokens the convergence loop already owns.
+
+- **MANDATORY** Evidence Gate — every finding/recommendation needs `file:line` proof or a traced call chain; confidence >80% to act, 60-80% verify first, <60% DO NOT recommend. NEVER use "obviously"/"I think"/"should be" without proof.
+- **MANDATORY** break work into small todo tasks via `TaskCreate` BEFORE starting (one task per file read); keep exactly one `in_progress`; mark `completed` immediately; add a final review task. On context loss, `TaskList` first — resume, never duplicate.
+- **MANDATORY** READ `docs/project-reference/code-review-rules.md` FIRST, then `project-structure-reference.md`; search 3+ existing patterns and read the target code BEFORE modification. Run graph trace when `graph.db` exists.
+- **MANDATORY** evaluate pattern FIT before copying nearby code — verify same scope, lifetime, base class, constraints; closest example ≠ matching preconditions. — why: a copied pattern with mismatched preconditions compiles but is wrong.
+- **MANDATORY** reason by the 5 Simplification Dimensions — readability, DRY/abstraction (≥3 occurrences, YAGNI gate), right-responsibility-lowest-layer (Entity > Domain Service > App Service > Controller), complexity reduction, DB paging+indexes; every technique answers ONE test: does this make the next change cheaper?
+- **MANDATORY IMPORTANT MUST ATTENTION** check DRY via OOP (same-suffix → base class), right responsibility (lowest layer), SOLID; grep ENTIRE scope for dangling refs after every extraction/move/rename — zero tolerance. — why: "primary file done" ≠ secondary files clean.
+- **MANDATORY IMPORTANT MUST ATTENTION** preserve ALL invariants — NEVER weaken, delete, or trivialize a property/mutation test guarding a `[HARD]` §4 rule or §5 invariant; a behavior change is a Dual-Feedback finding (feed spec AND tests, re-review) — report and stop, never ship silently. — why: green tests on a weakened bar are not a pass.
+- **MANDATORY IMPORTANT MUST ATTENTION** verify ALL affected outputs and tests pass after EACH change (apply one refactoring type at a time) — one build green ≠ all green. — why: multi-stack changes regress the stack you didn't check.
+- **MANDATORY IMPORTANT MUST ATTENTION** Self-Review Gate — when this skill changed code, self-invoke `/code-review` scoped to ONLY the changed files (recursion-safe leaf skill; NEVER `/review-changes` — it recurses into `/code-simplifier`); skip + log the reason when nothing changed. The simplifier owns review of its own output. — why: the simplifier rewrites code after the main review batch, so its output ships unreviewed without this gate.
+- **MANDATORY** validate route decisions with the user via `AskUserQuestion` when outside a workflow — never auto-decide "simple enough to skip".
 
 **Anti-Rationalization:**
 
 | Evasion                          | Rebuttal                                                                                                                               |
 | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| "Too simple for graph trace"     | Wrong assumptions waste more time. Run trace anyway.                                                                                   |
+| "Too simple for graph trace"     | Wrong assumptions waste more time. Run trace anyway when `graph.db` exists.                                                            |
 | "Already searched"               | Show `file:line` evidence. No proof = no search.                                                                                       |
-| "Just a small simplification"    | Small change at wrong layer cascades. Verify consumers first.                                                                          |
-| "Code is self-explanatory"       | Future readers need evidence trail. Document non-obvious intent.                                                                       |
-| "Simplification is safe"         | NEVER assume safe without grepping all usages first.                                                                                   |
+| "Just a small simplification"    | Small change at wrong layer cascades. Trace consumers first.                                                                           |
+| "Code is self-explanatory"       | Future readers need an evidence trail. Document non-obvious intent.                                                                    |
+| "Simplification is safe"         | NEVER assume safe — grep ALL usages first; <80% confidence = do not apply.                                                            |
 | "Best practice says abstract it" | Abstract only when it lowers future change cost; pass-through indirection is complexity, not simplification.                            |
+| "This pattern is everywhere"     | Pattern fit ≠ pattern presence. Verify same scope/lifetime/base-class/constraints before copying.                                     |
+| "Tests still pass, ship it"      | Did you weaken the bar? A relaxed property/mutation test passing is not a pass. Keep the SAME invariant bar.                            |
 | "Skip recursive check after fixing" | Every simplification changes the diff. Re-run this skill's own simplification analysis until it finds zero simplification findings. |
+| "Generated file is messy too"    | NEVER touch generated/migration/vendor — HARD-SKIP. Regeneration overwrites you.                                                       |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break into small todo tasks using TaskCreate.
 

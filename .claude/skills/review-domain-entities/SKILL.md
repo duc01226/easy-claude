@@ -637,17 +637,14 @@ If no domain entity files match in changes mode → announce "No domain entity c
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -904,7 +901,7 @@ If no domain entity files match in changes mode → announce "No domain entity c
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
@@ -927,7 +924,7 @@ If no domain entity files match in changes mode → announce "No domain entity c
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -987,33 +984,62 @@ If no domain entity files match in changes mode → announce "No domain entity c
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Ensure domain entities and value objects preserve invariants, aggregate boundaries, and discovered DDD conventions.
-- **MANDATORY MUST ATTENTION** Phase 0 project discovery FIRST — discovered conventions override ALL generic rules. NEVER apply generic patterns without verifying project base classes.
-- **MANDATORY MUST ATTENTION** run mandatory grep patterns in Phase 1 BEFORE reading individual files — fastest path to highest-signal violations.
-- **MANDATORY MUST ATTENTION** validate findings before fixes; after validated fixes, restart the full review before declaring PASS. A clean review pass ENDS the review.
-- **MANDATORY MUST ATTENTION** NEVER report any finding without `file:line` evidence — confidence >80% to act.
-- **MANDATORY MUST ATTENTION** NEVER throw raw language exceptions for domain violations — use project's domain exception type.
-- **MANDATORY MUST ATTENTION** NEVER allow mutable properties on Value Objects — structural immutability is non-negotiable.
-- **MANDATORY MUST ATTENTION** derive entity rules from discovered project patterns before applying generic DDD judgment.
-- **MANDATORY MUST ATTENTION** inspect entity callers/usages before classifying anemic model or misplaced invariant.
-- **MANDATORY MUST ATTENTION** treat repeated entity design violations as structural findings, not isolated style notes.
-- **MANDATORY MUST ATTENTION** preserve validation-first loop: findings → validation → validated fixes → full review restart.
+**IMPORTANT MUST ATTENTION Goal:** Detect DDD design quality violations in domain entities/value objects across any stack — adapting to project-specific patterns via config/reference-doc discovery — so entities/VOs preserve invariants, aggregate boundaries, and discovered DDD conventions.
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
+**Protocols in force — MUST ATTENTION (concise digest of the SYNC/shared blocks this skill carries):**
 
-> **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
+- **Source/Test Drift Check:** Source behavior change → inspect and reconcile affected tests.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **Nested Task Creation:** Workflow parent row NEVER replaces child phase tracking.
+- **Project Reference Docs Guide:** Read required project-reference docs (incl. `lessons.md`) before target work.
+- **Task Tracking & External Report:** Bootstrap tasks; persist review findings to `plans/reports/` incrementally.
+- **Critical Thinking Mindset:** Traced `file:line` proof per claim; confidence >80% to act.
+- **Understand Code First:** Discover conventions and grep 3+ patterns before applying checklist.
+- **Graph-Assisted Investigation:** Run a graph trace on key entity files when graph.db exists.
+- **Double Round-Trip Review:** Validate findings, fix, restart full re-review; clean pass ENDS loop.
+- **Fresh Context Review:** Spawn fresh zero-memory sub-agent only after a validated-fix cycle.
+- **Systematic Review Batching:** 10+ files → size-capped parallel batches, then reduce.
+- **Severity Rubric:** Classify by consequence; Critical/High block PASS until resolved.
+- **Category Review Thinking:** Derive each category's concerns from first principles — NEVER a fixed checklist.
 
----
+**Top-3 (primacy-recency — these 3 are also at file top):**
 
-> **Closing reminder — Easy to Change is the success metric.** Every finding,
-> test, refactor, and abstraction must answer one question: _does this make
-> the next change cheaper or more expensive?_ If it doesn't reduce future
-> change cost, reject it. Coupling, hidden state, duplicated knowledge, and
-> unclear intent are the real enemies — call them out by name.
+- **MANDATORY MUST ATTENTION** Phase 0 project discovery FIRST — discovered base classes / validation API / domain exception type override ALL generic rules. NEVER apply generic DDD patterns without verifying the project's real entity/VO base classes — why: wrong base classes = wrong checklist, every downstream finding is then noise.
+- **MANDATORY MUST ATTENTION** NEVER report any finding without `file:line` evidence — confidence >80% to report, 60-80% verify first, <60% DO NOT recommend — why: AI sub-agent reports inherit confirmation bias; unproven findings inflate severity downstream.
+- **MANDATORY MUST ATTENTION** validate findings before fixing (Phase 5 why-review gate); after validated fixes restart the FULL review before declaring PASS — a clean review pass ENDS the review — why: every fix invalidates the prior verdict.
+
+**Evidence + process gates:**
+
+- **MANDATORY MUST ATTENTION** run mandatory Phase 1 grep patterns (hidden `validate()` overrides, leaked persistence/business logic, missing identity markers) BEFORE reading individual files, and write EVERY grep result to the report immediately — why: highest-signal violations surface fastest and batched writes lose findings on context loss.
+- **MANDATORY MUST ATTENTION** bootstrap `TaskCreate` for ALL phases before any work; mark one task `in_progress`, mark `completed` immediately after evidence; on context loss call `TaskList` first — never duplicate — why: phase tracking survives compaction, memory does not.
+- **MANDATORY MUST ATTENTION** read project-reference docs (`lessons.md`, entity/backend/code-review references) + `CLAUDE.md` and search 3+ existing entity files BEFORE applying any checklist — discovered conventions win — why: local conventions differ from generic framework defaults.
+- **MANDATORY MUST ATTENTION** evaluate pattern FIT before copying a nearby entity pattern — verify the new context shares the same base class, scope, and lifetime — why: closest example ≠ matching preconditions.
+- **MANDATORY MUST ATTENTION** run a graph trace on key entity files when `.code-graph/graph.db` exists, and inspect entity callers/usages before classifying anemic model or misplaced invariant — why: code existing ≠ code executing; the bug owner is the layer the data flows through.
+- **MANDATORY MUST ATTENTION** append findings per file — NEVER batch; persist to `plans/reports/` incrementally and synthesize from disk — why: long sub-agents hit budget before a final batched write and lose everything.
+
+**Domain rules (this skill's invariants):**
+
+- **MANDATORY MUST ATTENTION** NEVER throw raw language exceptions for domain violations — use the project's discovered domain exception type — why: generic exceptions lose domain context and bypass the invariant contract.
+- **MANDATORY MUST ATTENTION** NEVER allow mutable public state or reference equality on Value Objects — structural immutability + structural equality are non-negotiable — why: a mutable VO implies identity-through-mutation, which is an entity, not a VO.
+- **MANDATORY MUST ATTENTION** enforce invariants at the entity (lowest layer) via constructor/factory/`validate()`/`ensureCan*()` — NEVER application-layer-only — why: any other entry point can then reach an invalid domain state.
+- **MANDATORY MUST ATTENTION** NEVER give a child entity its own repository and NEVER reference another aggregate by object — ID only — why: only the aggregate root owns its consistency boundary; object references create implicit transaction coupling.
+- **MANDATORY MUST ATTENTION** map every verified §5 invariant to a universally-quantified property TC + boundary counter-case (Dual-Feedback) — spec NAMES it AND a test GUARDS it — why: an enforced invariant with no property test is one refactor from silent regression.
+- **MANDATORY MUST ATTENTION** treat 2+ violations of the same kind as a structural/architectural finding, not isolated style notes — why: repeated leaks reveal a missing pattern, not individual slips.
+- **MANDATORY MUST ATTENTION** classify by consequence not fix-effort (CRITICAL/HIGH block PASS); 10+ entity files → switch to parallel `code-reviewer` sub-agents automatically — why: one "High" must mean the same everywhere, and serial review of many files exhausts context.
+
+**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using `TaskCreate`; add a final "Analyze AI mistakes & lessons learned" review task.
+
+> **Closing reminder — Easy to Change is the success metric.** Every finding, test, refactor, and abstraction must answer one question: _does this make the next change cheaper or more expensive?_ If it doesn't reduce future change cost, reject it. Coupling, hidden state, duplicated knowledge, and unclear intent are the real enemies — call them out by name.
+
 **Anti-Rationalization:**
 
 | Evasion | Rebuttal |
 | ------- | -------- |
-| "Purpose obvious" | Anchor it anyway — primacy/recency keeps outcome active through long prompts. |
-| "Existing reminders enough" | Echo Goal in Closing Reminders — bottom anchor prevents drift. |
-| "Skip evidence for prompt edits" | Cite changed file evidence and verify no stale protocol text remains. |
+| "Generic DDD rule fits, skip Phase 0" | Discovered base classes override generic rules — verify the project's real entity/VO base FIRST or every finding is noise. |
+| "Finding is obvious, skip evidence" | No `file:line` proof = no finding. Confidence <60% → DO NOT recommend. |
+| "Clean enough, skip the re-review after fixes" | Every fix invalidates the prior verdict — restart the full review until a clean pass ENDS it. |
+| "Looks anemic, flag it" | Inspect callers + base class first — pattern fit, not pattern resemblance, decides anemic vs. correct delegation. |
+| "Invariant enforced in code, that's coverage" | Dual-Feedback: spec must NAME it AND a property TC must GUARD it — code-only is INCOMPLETE. |
+| "Many entities, review them inline" | 10+ files → parallel sub-agents; persist per-file findings to `plans/reports/` or they vanish on budget cutoff. |
+
+**IMPORTANT MUST ATTENTION** Phase 0 discovery FIRST (base classes override generic rules) · NEVER report a finding without `file:line` evidence at confidence >80% · validate findings before fixing, then restart the full review — a clean pass ENDS it.

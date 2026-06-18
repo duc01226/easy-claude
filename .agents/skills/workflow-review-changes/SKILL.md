@@ -419,17 +419,14 @@ Activate the `workflow-review-changes` workflow. Run `$start-workflow workflow-r
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -484,13 +481,13 @@ Activate the `workflow-review-changes` workflow. Run `$start-workflow workflow-r
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -542,34 +539,55 @@ Activate the `workflow-review-changes` workflow. Run `$start-workflow workflow-r
 
 ## Closing Reminders
 
-**MUST ATTENTION Goal:** Ensure changed work reaches clean review through validated findings, verified fixes, full re-review, and synchronized docs/tests.
-**MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting — create ALL 15 tasks immediately
-**MUST ATTENTION** after fixes in `$plan-execute` (and ONLY if `$plan-execute` changed files), re-run `$review-changes` INLINE over the current full diff from Phase 0; loop `$plan`→`$plan-execute`→`$review-changes` until clean
-**MUST ATTENTION** track full re-review invocations and repeated blockers in conversation context (session-scoped, no persistent files) — stop after the same blocker repeats 3 times with no progress and escalate via a direct user question
-**MUST ATTENTION** PASS means a complete review pass finds zero blocking issues after all validated fixes and verification are included
-**MUST ATTENTION** skip steps 9-12 when all reviews PASS with zero findings (no fixes needed)
-**IMPORTANT MUST ATTENTION** each step MUST invoke its skill invocation — marking completed without invocation is a violation
-**IMPORTANT MUST ATTENTION** treat multilingual UI translation gaps as mandatory user-decision gates — no silent pass when locale updates are missing
-**IMPORTANT MUST ATTENTION** `$why-review` runs ONCE at step 2 as a FINDINGS-VALIDATION gate (sanity-checks the `$review-changes` findings before the parallel batch — drops false positives early); the fix-plan rationale check is owned by `$plan-review` (step 10), which self-invokes `$why-review --validate-findings` internally — no separate explicit step needed
+**IMPORTANT MUST ATTENTION Goal:** Ensure changed work reaches clean review through validated findings, verified fixes, full re-review, and synchronized docs/tests — review all uncommitted changes, validate findings, fix ONLY validated findings, then re-run `$review-changes` INLINE (only when `$plan-execute` changed files), looping plan→plan-execute→review-changes until one complete pass is clean.
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
+**MUST ATTENTION Protocols in force (concise digest of the SYNC/shared blocks this skill carries — each line is a signpost to its canonical body above; NEVER act on the digest alone, read the cited block):**
 
-> **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
+- **Parallel-Phase Advancement:** spawn batch in one message; advance only after all-return barrier.
+- **End-to-Start Debugger Trace:** trace observed end state backward before fixing.
+- **Fresh Context Re-Review:** restart full review post-fix; zero-memory re-read counters confirmation bias.
+- **Incremental Persistence:** append findings to report file per item; never hold in memory.
+- **Sub-Agent Return Contract:** return only the summary shape; full report on disk.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **Nested Task Creation:** parent workflow row never replaces child phase tasks.
+- **Task Tracking & External Report:** bootstrap task breakdown and report path before work.
+- **Critical Thinking:** every claim needs traced proof; confidence >80% to act.
+- **Project Reference Docs:** read required project-reference docs first; conventions override generic defaults.
+
+**IMPORTANT MUST ATTENTION** run the sequence in order — step 1 `$review-changes` owns the baseline (surface analysis + UI review via internal `$review-ui` + integration-test/translation-sync/spec-drift gates), step 2 `$why-review` validates those findings BEFORE the parallel batch fires — so steps 3–7 act only on warranted findings — why: validating after fixing wastes the batch on false positives.
+**IMPORTANT MUST ATTENTION** spawn the steps 3–7 read-only reviewers (`$review-architecture`, `$review-domain-entities` [if entity files], `$performance-review`, `$integration-test-review`, `$security-review`) ALL in ONE message and advance ONLY after EVERY member returns (all-return barrier) — defer mutating `$code-simplifier` (step 8) until the barrier clears — why: a code-mutating step must see the complete review snapshot, not a partial one.
+**IMPORTANT MUST ATTENTION** every finding, recommendation, and verdict needs `file:line` proof or traced evidence + a confidence % — >80% act, 60–80% verify first, <60% DO NOT recommend; "Insufficient evidence" is valid output — why: speculation is forbidden output and silently encodes false positives into the fix plan.
+
+**MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting — create ALL 15 tasks immediately (source of truth = `workflows.json` → `review-changes.sequence`); mark one `in_progress`, mark `completed` immediately after each step's evidence; on context loss call the current task list first — never duplicate.
+**MUST ATTENTION** grep 3+ existing patterns and read the target files BEFORE proposing any fix; cite `file:line` evidence in the fix plan — local conventions override generic framework defaults — why: closest example ≠ matching preconditions, verify shared base classes/scope/lifetime before copying.
+**MUST ATTENTION** after fixes in `$plan-execute` (and ONLY if `$plan-execute` changed files), re-run `$review-changes` INLINE over the current full diff from Phase 0; re-read the diff from scratch to counter orchestrator confirmation bias — why: the main agent rationalizes findings about its own fixes; loop `$plan`→`$plan-execute`→`$review-changes` until clean.
+**MUST ATTENTION** track full re-review invocations and repeated blockers in conversation context (session-scoped, no persistent files) — stop after the same blocker repeats 3 times with no progress and escalate via a direct user question; STOP and escalate if round N finds MORE issues than round N-1 — never silently loop.
+**MUST ATTENTION** PASS means one complete review pass finds zero blocking issues after all validated fixes and verification are included; a behavior-changing fix that left no covering §8 regression/preservation TC is an OPEN finding, NOT a clean pass — green tests do not normalize spec drift.
+**MUST ATTENTION** skip steps 9–12 ONLY when all reviews PASS with zero findings (no fixes needed); mark conditional tasks `completed` with note "Skipped — all reviews passed" — NEVER consolidate, rename, or omit steps.
+**MUST ATTENTION** adjudicate every behavior-vs-spec divergence in step 1 as CODE-WRONG (BLOCKING) / SPEC-STALE (spec is stale, `$docs-update` fixes spec first) / AMBIGUOUS (escalate) — NEVER silently pick a side; the workflow is NOT clean while any divergence stays unadjudicated.
+**IMPORTANT MUST ATTENTION** each step MUST invoke its skill invocation — marking a task completed without invocation is a workflow violation; NEVER batch-complete validation gates — why: a skipped gate ships unreviewed work.
+**IMPORTANT MUST ATTENTION** treat integration-test coverage gaps and multilingual UI translation gaps as mandatory a direct user question user-decision gates — surface them, never silently pass when tests or locale updates are missing.
+**IMPORTANT MUST ATTENTION** `$why-review` runs ONCE at step 2 as a FINDINGS-VALIDATION gate (drops false positives before the parallel batch); the fix-plan rationale check is owned by `$plan-review` (step 10), which self-invokes `$why-review --validate-findings` internally — no separate explicit step needed.
+**IMPORTANT MUST ATTENTION** when invoked as a step inside a parent workflow, run this whole 15-step workflow via `spawn_agent` (`agent_type: "code-reviewer"`), NEVER inline — why: inline execution absorbs 15 steps of context into the parent session.
+**IMPORTANT MUST ATTENTION** apply critical + sequential thinking — keep the SKEPTIC default when reviewing: steel-man rejected alternatives, invert each stated reason, stress-test top assumptions; section presence ≠ quality — why: certainty without evidence is the root of hallucination.
+**IMPORTANT MUST ATTENTION** Easy to Change is the success metric — every finding/test/refactor must answer "does this make the next change cheaper?"; name the real enemies (coupling, hidden state, duplicated knowledge, unclear intent) — reject best practices that raise change cost.
+
+**Anti-Rationalization:**
+
+| Evasion                                          | Rebuttal                                                                                                          |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| "Reviews look clean, skip `$why-review`"         | Step 2 validates findings BEFORE the batch — run it; a false positive entering the fix plan wastes 5 reviewers. |
+| "I already know what I fixed, skip re-review"    | Orchestrator confirmation bias — re-read the full diff from scratch INLINE; main-agent self-review is NOT enough. |
+| "Tests are green, the spec drift is fine"        | Green can encode the drift itself — adjudicate CODE-WRONG / SPEC-STALE; not clean until every divergence resolved. |
+| "Mark the step done, the skill obviously ran"    | Marking completed without invoking the skill invocation is a workflow violation — show the invocation evidence.       |
+| "Same blocker again, one more loop will fix it"  | Cap at 3 no-progress repeats → escalate via a direct user question; if issues increase round-over-round, STOP now.     |
+| "Fix at the crash site, it's faster"             | Trace caller (wrong data) vs callee (wrong handling); fix at the responsible layer, never patch the symptom site. |
 
 ---
 
-> **Closing reminder — Easy to Change is the success metric.** Every finding,
-> test, refactor, and abstraction must answer one question: _does this make
-> the next change cheaper or more expensive?_ If it doesn't reduce future
-> change cost, reject it. Coupling, hidden state, duplicated knowledge, and
-> unclear intent are the real enemies — call them out by name.
-**Anti-Rationalization:**
-
-| Evasion | Rebuttal |
-| ------- | -------- |
-| "Purpose obvious" | Anchor it anyway — primacy/recency keeps outcome active through long prompts. |
-| "Existing reminders enough" | Echo Goal in Closing Reminders — bottom anchor prevents drift. |
-| "Skip evidence for prompt edits" | Cite changed file evidence and verify no stale protocol text remains. |
+**IMPORTANT MUST ATTENTION** step 1 `$review-changes` runs FIRST and owns the baseline; step 2 `$why-review` validates findings BEFORE the steps 3–7 parallel batch — spawn the batch in ONE message, advance only after the all-return barrier, defer `$code-simplifier` until it clears.
+**IMPORTANT MUST ATTENTION** every finding/verdict needs `file:line` evidence + confidence (>80% act, <60% DO NOT recommend); grep 3+ patterns and read target files before any fix — no speculation.
+**IMPORTANT MUST ATTENTION** after `$plan-execute` changes files, re-run `$review-changes` INLINE from scratch and loop until ONE clean zero-finding pass — a behavior change with no covering §8 TC is an OPEN finding; cap repeated blockers at 3 → escalate.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Hookless Prompt Protocol Mirror (Auto-Synced)

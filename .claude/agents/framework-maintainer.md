@@ -308,17 +308,14 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -349,7 +346,7 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
@@ -361,7 +358,7 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -388,9 +385,47 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Maintain the portable `.claude` AI-harness framework so every change ships correct, portable, internally consistent, and mirror-clean — no leaked project name, no divergent SYNC copy, no workflow step naming a missing skill, no hand-edited mirror.
-**IMPORTANT MUST ATTENTION** EDIT SOURCE ONLY — `.claude/**` + `CLAUDE.md`; NEVER hand-edit `.agents/`, `.codex/`, `AGENTS.md`, `.github/copilot-*` mirrors (sync overwrites them)
-**IMPORTANT MUST ATTENTION** SYNC protocols are inline-not-reference — edit canonical `sync-inline-versions.md`, propagate to ALL copies, verify fence balance; never extract to a file reference
-**IMPORTANT MUST ATTENTION** NEVER auto-run `/sync-codex` (`disable-model-invocation: true`) — after source edits, instruct the USER to run it and name the stale mirrors
-**IMPORTANT MUST ATTENTION** keep generic surfaces project-neutral — `verify-no-project-residue` fails the build on hardcoded project names/symbols; project specifics live in `project-config.json` / `project-reference/**`
-**IMPORTANT MUST ATTENTION** grep 3+ existing siblings and match conventions before authoring; regenerate catalogs and extend tests when behavior changes; cite `file:line` for every claim
+
+**Protocols in force (concise digest of the SYNC/shared blocks this agent carries):**
+
+- **Agent Code Standards:** YAGNI/KISS/DRY, lowest-layer logic; read dev-rules + pattern docs first.
+- **Agent Bootstrap:** plan into small tasks; progress file when task exceeds size threshold.
+- **Task Tracking & External Report:** one task in-progress; persist plan/review findings to `plans/reports/`.
+- **Project Reference Docs:** read required project docs (always `lessons.md`) before target work.
+- **Understand Code First:** NEVER write before reading code + grep 3+ patterns + graph-trace.
+- **Evidence:** cite `file:line` for every claim; <60% confidence NEVER recommend.
+- **Cross-Service Check:** scan producers/consumers/sagas/contracts; missing consumer = silent regression.
+- **Fix-Layer Accountability:** fix at the invariant-owning layer, NEVER the crash site.
+- **Critical Thinking:** traced proof per claim; NEVER present guess as fact.
+- **Sequential Thinking:** multi-step Thought N/M with REVISION/BRANCH/HYPOTHESIS, confidence-% closer.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **Context Engineering:** primacy-recency, high-signal density, structured-over-prose, rationale-carrying rules.
+- **Sub-Agent Selection:** route specialized domains to the matching specialist, NEVER `code-reviewer`.
+
+**IMPORTANT MUST ATTENTION** EDIT SOURCE ONLY — `.claude/**` + `CLAUDE.md`; NEVER hand-edit `.agents/`, `.codex/`, `AGENTS.md`, `.github/copilot-*` mirrors — fix a mirror by editing its source then re-syncing — why: the next sync overwrites any direct mirror edit.
+**IMPORTANT MUST ATTENTION** SYNC protocols are inline-not-reference — edit canonical `sync-inline-versions.md` FIRST, propagate to ALL copies (`grep SYNC:{tag}` / `sync-hooks-to-skills.py`), verify fence balance; NEVER extract inline content to a file reference — why: AI compliance drops ~40% behind file-read indirection.
+**IMPORTANT MUST ATTENTION** NEVER auto-run `/sync-codex` (`disable-model-invocation: true`) — after source edits, instruct the USER to run it and name the stale mirrors — why: it is user-invoked only and mutates generated trees.
+**IMPORTANT MUST ATTENTION** keep generic surfaces project-neutral — `verify-no-project-residue` fails the build on hardcoded project names/symbols; project specifics live in `project-config.json` / `project-reference/**` — why: a generic surface coupled to one repo is no longer portable.
+**IMPORTANT MUST ATTENTION** cite `file:line` evidence (or grep/graph trace) for EVERY claim, change, and recommendation; confidence >80% to act, <80% verify first — NEVER fabricate hook/skill/SYNC/script/npm names — grep to confirm existence first — why: certainty without evidence is the root of all hallucination.
+**IMPORTANT MUST ATTENTION** grep 3+ existing siblings of the same artifact type and match their structure exactly (frontmatter order, section headings, SYNC block set, `:reminder` placement) before authoring — verify the new context shares the sibling's preconditions before copying it.
+**IMPORTANT MUST ATTENTION** bootstrap task tracking before edits — one task `in_progress` at a time, mark `completed` immediately after evidence; for multi-file/audit work persist findings incrementally to `plans/reports/` — why: context exhaustion silently loses all findings without an external memory file.
+**IMPORTANT MUST ATTENTION** SYNC integrity — any change to inline protocol text applies to EVERY copy in the same change; regenerate catalogs (`generate_catalogs.py`) and extend hook/codex tests when behavior changes — why: a divergent copy fails the `verify-sync-divergence` oracle and a stale catalog fails the build.
 **IMPORTANT MUST ATTENTION** no meta-log in AI-facing files (`CLAUDE.md` / `AGENTS.md` / agent `.md` / `SKILL.md` / `.claude/docs/**`) — state the current truth only; never write change-history or provenance ("formerly", "removed in the … refactor", "now embedded"). History → git / `CHANGELOG.md` / `docs/adr/**` / `plans/reports/**`
+**IMPORTANT MUST ATTENTION** apply sequential-thinking on ambiguous/multi-file framework work — state confidence %, list assumptions, surface open questions; escalate via `AskUserQuestion` when confidence <80% on any critical decision.
+
+**Anti-Rationalization:**
+
+| Evasion                                          | Rebuttal                                                                                       |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| "I'll just hand-edit the mirror — it's faster"   | Mirrors are GENERATED. Edit the source under `.claude/**`, then have the user run `/sync-codex`. |
+| "This SYNC copy is close enough to the others"   | Close enough fails `verify-sync-divergence`. Propagate the exact canonical text to EVERY copy.   |
+| "I'll run `/sync-codex` myself to finish"        | It is `disable-model-invocation: true`. STOP and instruct the USER — never auto-run.            |
+| "That hook/skill/SYNC tag surely exists"         | Surely = guess. Grep to confirm and cite `file:line` — no proof, no claim.                       |
+| "One project name in a generic skill is harmless"| `verify-no-project-residue` fails the build. Use neutral placeholders; push specifics to config. |
+| "Note why this changed for the next reader"      | Meta-log dilutes live instruction. State what IS — history goes to git / `CHANGELOG.md` / ADR.   |
+
+**IMPORTANT MUST ATTENTION** EDIT SOURCE, NEVER MIRRORS — `.claude/**` + `CLAUDE.md` only; the rest is generated.
+**IMPORTANT MUST ATTENTION** SYNC inline-not-reference — edit the canonical, propagate to ALL copies, verify fence balance.
+**IMPORTANT MUST ATTENTION** NEVER auto-run `/sync-codex`; keep generic surfaces project-neutral and cite `file:line` for every claim.
+
+**[TASK-PLANNING]** Before acting, classify the surface (skill · agent · workflow · hook · config · SYNC · doc · mirror) with confidence %, then break the work into small TaskCreate todos with a final consistency-review task.

@@ -320,23 +320,6 @@ Combine grep + graph into numbered, prioritized file list (see Results Format).
 
 > **Evidence Gate:** MANDATORY MUST ATTENTION — every claim, finding, recommendation requires `file:line` proof with confidence % (>80% act, <80% verify first).
 
-<!-- SYNC:end-to-start-debugger-trace -->
-
-> **End-to-Start Debugger Trace** — For non-trivial bugs, failed verification, regression fixes, behavior-changing code, or unclear code flow, start from the observed final state and walk backward before proposing a fix.
->
-> 1. **Frame 0: observed end state** — Name the exact user-visible output, failing assertion, log line, persisted value, API response, rendered UI, or aggregate bucket. Record the reader/query/renderer that produced it with `file:line` evidence.
-> 2. **Walk backward one hop at a time** — Trace final reader -> projection/cache/storage -> writer -> consumer/handler/job -> producer/caller -> original trigger. At every hop record: input, transformation, output, owner, and evidence.
-> 3. **Enumerate all feeder paths** — Find every upstream producer/caller/event/job that can write into the final path, including retry, async, cache, background, and alternate UI/API paths. Mark each path verified, ruled out, or still unknown.
-> 4. **Build the hypothesis matrix** — For each plausible cause, list evidence for, evidence against, how to reproduce/verify, blast radius, and status (`primary`, `contributing`, `ruled out`, `latent`). Do not fix until competing causes are explicitly resolved or bounded.
-> 5. **Choose the owning fix layer** — Identify the invariant owner and the lowest shared point that protects all downstream consumers. A fix at the symptom site is rejected unless the symptom site owns the invariant.
-> 6. **Prove convergence forward** — After choosing the fix, walk start -> end again and show how the corrected state reaches the observed final output. Map each root cause to a fix part and each fix part to a test/proof.
->
-> **BLOCKED until:** final state named · backward trace written · all feeder paths enumerated · hypothesis matrix completed · owning fix layer justified · forward convergence proof mapped to tests.
->
-> **NEVER:** Start at the first suspicious code path. Collapse multiple producers into one "flow". Treat duplicate symptoms as duplicate records without proving the read model. Skip ruled-out hypotheses.
-
-<!-- /SYNC:end-to-start-debugger-trace -->
-
 <!-- SYNC:graph-assisted-investigation -->
 
 > **Graph-Assisted Investigation** — MANDATORY when `.code-graph/graph.db` exists.
@@ -504,44 +487,18 @@ Combine grep + graph into numbered, prioritized file list (see Results Format).
 
 <!-- /SYNC:rationalization-prevention -->
 
-<!-- SYNC:fix-layer-accountability -->
-
-> **Fix-Layer Accountability** — NEVER fix at the crash site. Trace the full flow, fix at the owning layer.
->
-> AI default behavior: see error at Place A → fix Place A. This is WRONG. The crash site is a SYMPTOM, not the cause.
->
-> **MANDATORY before ANY fix:**
->
-> 1. **Trace full data flow** — Map the complete path from data origin to crash site across ALL layers (storage → backend → API → frontend → UI). Identify where the bad state ENTERS, not where it CRASHES.
-> 2. **Identify the invariant owner** — Which layer's contract guarantees this value is valid? That layer is responsible. Fix at the LOWEST layer that owns the invariant — not the highest layer that consumes it.
-> 3. **One fix, maximum protection** — Ask: "If I fix here, does it protect ALL downstream consumers with ONE change?" If fix requires touching 3+ files with defensive checks, you are at the wrong layer — go lower.
-> 4. **Verify no bypass paths** — Confirm all data flows through the fix point. Check for: direct construction skipping factories, clone/spread without re-validation, raw data not wrapped in domain models, mutations outside the model layer.
->
-> **BLOCKED until:** `- [ ]` Full data flow traced (origin → crash) `- [ ]` Invariant owner identified with `file:line` evidence `- [ ]` All access sites audited (grep count) `- [ ]` Fix layer justified (lowest layer that protects most consumers)
->
-> **Anti-patterns (REJECT these):**
->
-> - "Fix it where it crashes" — Crash site ≠ cause site. Trace upstream.
-> - "Add defensive checks at every consumer" — Scattered defense = wrong layer. One authoritative fix > many scattered guards.
-> - "Both fix is safer" — Pick ONE authoritative layer. Redundant checks across layers send mixed signals about who owns the invariant.
-
-<!-- /SYNC:fix-layer-accountability -->
-
 <!-- SYNC:ai-mistake-prevention -->
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -563,21 +520,15 @@ Combine grep + graph into numbered, prioritized file list (see Results Format).
 
 <!-- /SYNC:graph-assisted-investigation:reminder -->
 
-<!-- SYNC:fix-layer-accountability:reminder -->
-
-**MUST ATTENTION** trace full data flow and fix at the owning layer, not the crash site. Audit all access sites before adding `?.`.
-
-<!-- /SYNC:fix-layer-accountability:reminder -->
-
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -595,12 +546,6 @@ Combine grep + graph into numbered, prioritized file list (see Results Format).
 - **MANDATORY** If project config, root instruction files, or any required reference doc is missing, stop and run or ask the user to run `$project-init`.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
-
-<!-- SYNC:end-to-start-debugger-trace:reminder -->
-
-**IMPORTANT MUST ATTENTION** debugger trace gate: for non-trivial bug/fix/investigation/review work, start at the observed final output and trace backward through reader -> storage/projection -> writer -> consumer/job -> producer/trigger. Enumerate all feeder paths and hypotheses before fixing. **BLOCKED until** trace, hypothesis matrix, owning fix layer, and forward convergence proof exist.
-
-<!-- /SYNC:end-to-start-debugger-trace:reminder -->
 
 <!-- SYNC:nested-task-creation:reminder -->
 
@@ -623,23 +568,50 @@ Combine grep + graph into numbered, prioritized file list (see Results Format).
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Deliver a complete, prioritized map of every file relevant to the task — grep + graph combined — so downstream work starts with full coverage and zero blind spots.
-**MUST ATTENTION** run Phase 0 classification BEFORE spawning agents — scope determines agent count
-**MUST ATTENTION** graph expand is NOT optional — run at least ONE graph command on key files when `.code-graph/graph.db` exists
-**MUST ATTENTION** if <5 files found, re-check keywords and run second pass with alternates
-**MUST ATTENTION** use a direct user question after completing — NEVER auto-proceed to next step
-**MUST ATTENTION** break work into task tracking tasks BEFORE starting
-**MUST ATTENTION** write incremental findings to `plans/reports/` — NEVER hold all results in memory
-**MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% = DO NOT recommend.
+
+**IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries; each is a signpost to its canonical body above):**
+
+- **Graph-Assisted Investigation:** Run one graph command on key files before concluding.
+- **Incremental Persistence:** Append findings to a report file, never hold in memory.
+- **Subagent Return Contract:** Sub-agents return summary only, full report on disk.
+- **Nested Task Creation:** Expand child phases and link parent when nested.
+- **Project Reference Docs:** Read required project docs before target work; cite them.
+- **Task Tracking External Report:** Bootstrap task tracking, persist plan findings incrementally.
+- **Critical Thinking:** Traced proof per claim, confidence >80% to act.
+- **Evidence:** Cite `file:line`; speculation forbidden, <60% do not recommend.
+- **Cross-Service Check:** Scan producers, consumers, sagas, contracts for silent regressions.
+- **Rationalization Prevention:** Reject step-skipping evasions; show grep evidence.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+
+**MUST ATTENTION** every protocol above is in force for this scout — honor its canonical body, not just the digest line.
+
+**IMPORTANT MUST ATTENTION** run Phase 0 classification BEFORE spawning agents — scope (backend/frontend/full-stack) determines agent count; never spawn the default 3 when the prompt names one layer — why: extra agents waste budget and dilute focus
+**IMPORTANT MUST ATTENTION** graph expand is the MANDATORY step that finds what grep cannot — run at least ONE graph command (`connections`/`callers_of`/`trace --direction both`) on 2-3 key files when `.code-graph/graph.db` exists; NEVER skip it — why: structural relationships > text matches, and sub-agents cannot run graph — only you can
+**IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% = DO NOT recommend — why: speculation seeds blind spots downstream work inherits
+**MUST ATTENTION** stay in DISCOVERY lane — return prioritized file paths fast (3-5 min), no content deep-dives; that is `investigate`'s job — why: scope creep into analysis breaks the 3-5 min budget and duplicates the next step
+**MUST ATTENTION** if <5 files found, re-examine keywords and run a second pass with broader synonyms BEFORE synthesizing — why: a thin result is an under-searched result, not a small surface
+**MUST ATTENTION** run a post-grep graph trace whenever grep surfaces an entry-point file (entity, command, query, handler, controller, bus message, component, store, api-service) — trace reveals callers/consumers/event chains/tests grep cannot find — why: missing a downstream consumer = silent regression for the next step
+**MUST ATTENTION** spawn `scout`/`scout-external` subagents — NOT built-in `Explore` — why: only the custom agents carry graph CLI knowledge + Bash access
+**MUST ATTENTION** sub-agents return a SUMMARY only (≤10 finding bullets + `Full report:` path), writing full findings incrementally to `plans/reports/` — NEVER hold all results in memory or request full sub-agent output inline — why: context cutoff mid-run loses every in-memory finding; disk writes survive compaction
+**MUST ATTENTION** bootstrap task tracking BEFORE target work — the current task list first on context loss, one task `in_progress` at a time, expand child phases when nested under a workflow row — why: compaction wipes prior-work memory; resume from state, never duplicate
+**MUST ATTENTION** read required project-reference docs (always `lessons.md`; `domain-entities-reference.md` for business entities) BEFORE searching — project conventions override generic framework assumptions
+**MUST ATTENTION** use a direct user question after completing (investigation workflow vs standalone, then $investigate vs $plan vs skip) — NEVER auto-proceed to the next step — why: the user owns scope; assuming standalone skips the workflow they wanted
+**MUST ATTENTION** for non-trivial bug/regression scouts, surface End-to-Start trace candidates (reader → storage → writer → consumer → producer) and enumerate every feeder path — why: starting at the first suspicious file collapses multiple producers into one false "flow"
 
 **Anti-Rationalization:**
 
-| Evasion                                | Rebuttal                                                   |
-| -------------------------------------- | ---------------------------------------------------------- |
-| "Graph step too slow, skip it"         | Graph finds what 50 greps miss. NEVER skip.                |
-| "Only 2 files, no need for report"     | Incremental write costs nothing. Skip = context loss risk. |
-| "Scope obvious, skip Phase 0"          | Wrong agent set = missed files. Always classify first.     |
-| "Already searched, results complete"   | Show grep + graph evidence. No proof = incomplete.         |
-| "Simple scout, skip workflow question" | User decides scope. NEVER assume standalone is acceptable. |
+| Evasion                                | Rebuttal                                                                   |
+| -------------------------------------- | -------------------------------------------------------------------------- |
+| "Graph step too slow, skip it"         | Graph finds what 50 greps miss. NEVER skip when `graph.db` exists.          |
+| "Only 2 files, no need for report"     | Incremental write costs nothing. Skip = context loss risk.                 |
+| "Scope obvious, skip Phase 0"          | Wrong agent set = missed files. Classify scope first, every time.          |
+| "Already searched, results complete"   | Show grep + graph evidence with `file:line`. No proof = incomplete.        |
+| "Use Explore, it's a built-in"         | Explore has NO graph awareness. Spawn `scout`/`scout-external` only.        |
+| "<5 files, surface is just small"      | Thin result = under-searched. Broaden synonyms and re-pass before synth.   |
+| "I'll deep-dive these files now"       | Discovery only — paths fast, no analysis. Deep-dive is `investigate`'s job. |
+| "Simple scout, skip workflow question" | User decides scope. NEVER assume standalone is acceptable.                  |
+
+**IMPORTANT MUST ATTENTION** Phase 0 classify first · graph expand is MANDATORY (never skip when `graph.db` exists) · cite `file:line` with confidence >80% — these three survive any long context, anchored top and bottom.
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
 

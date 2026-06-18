@@ -177,17 +177,14 @@ Report path: `plans/reports/`. Artifact filenames follow the Role Context naming
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -399,46 +396,6 @@ Report path: `plans/reports/`. Artifact filenames follow the Role Context naming
 
 <!-- /SYNC:ai-sdd-artifact-contract -->
 
-<!-- SYNC:cross-cutting-quality -->
-
-> **Cross-Cutting Quality** — Check across all changed files:
->
-> 1. **Error handling consistency** — same error patterns across related files
-> 2. **Logging** — structured logging with correlation IDs for traceability
-> 3. **Security** — no hardcoded secrets, input validation at boundaries, auth checks present
-> 4. **Performance** — no N+1 queries, unnecessary allocations, or blocking calls in async paths
-> 5. **Observability** — health checks, metrics, tracing spans for new endpoints
-
-<!-- /SYNC:cross-cutting-quality -->
-
-<!-- SYNC:scaffold-production-readiness -->
-
-> **Scaffold Production Readiness** — Every scaffolded project MUST ATTENTION include 5 foundations:
->
-> 1. **Code Quality Tooling** — linting, formatting, pre-commit hooks, CI gates. Specific tool choices → `docs/project-reference/` or `project-config.json`.
-> 2. **Error Handling Foundation** — HTTP interceptor, error classification (4xx/5xx taxonomy), user notification, global uncaught handler.
-> 3. **Loading State Management** — counter-based tracker (not boolean toggle), skip-token for background requests, 300ms flicker guard.
-> 4. **Docker Development Environment** — compose profiles (`dev`/`test`/`infra`), multi-stage Dockerfile, health checks on all services, non-root production user.
-> 5. **Integration Points** — document each outbound boundary; configure retry + circuit breaker + timeout; integration tests for happy path and failure path.
->
-> **BLOCK `/feature-implement` if any foundation is unchecked.** Present 2-3 options per concern via `AskUserQuestion` before implementing.
-
-<!-- /SYNC:scaffold-production-readiness -->
-
-<!-- SYNC:ui-system-context -->
-
-> **UI System Context** — For ANY task touching `.ts`, `.html`, `.scss`, or `.css` files:
->
-> **MUST ATTENTION READ before implementing:**
->
-> 1. `docs/project-reference/frontend-patterns-reference.md` — component base classes, stores, forms
-> 2. `docs/project-reference/scss-styling-guide.md` — BEM methodology, SCSS variables, mixins, responsive
-> 3. `docs/project-reference/design-system/README.md` — design tokens, component inventory, icons
->
-> Reference `docs/project-config.json` for project-specific paths.
-
-<!-- /SYNC:ui-system-context -->
-
 <!-- SYNC:ui-wireframe -->
 
 > **UI Wireframe** — Process visual design input (Figma URLs, screenshots, wireframes) via appropriate tool BEFORE creating wireframes. Use box-drawing ASCII characters for spatial layout. Classify every component into exactly ONE tier: Common (cross-app reusable) / Domain-Shared (cross-domain) / Page (single-page). Duplicate UI code = wrong tier. Search existing component libraries before creating new (>=80% match = reuse). Detail level varies by skill (idea=rough, story=full decomposition).
@@ -447,7 +404,7 @@ Report path: `plans/reports/`. Artifact filenames follow the Role Context naming
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
@@ -459,7 +416,7 @@ Report path: `plans/reports/`. Artifact filenames follow the Role Context naming
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -489,8 +446,40 @@ Report path: `plans/reports/`. Artifact filenames follow the Role Context naming
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Translate business needs into actionable, groomable requirements — author user stories, acceptance criteria, and business rules so each PBI passes DoR and hands off ready for test generation.
-**IMPORTANT MUST ATTENTION** NEVER skip acceptance criteria — every story needs GIVEN/WHEN/THEN with 3+ scenarios
-**IMPORTANT MUST ATTENTION** NEVER write requirements without understanding the existing system — investigate first
-**IMPORTANT MUST ATTENTION** ALWAYS run `/dor-gate` before considering a PBI grooming-ready
-**IMPORTANT MUST ATTENTION** ALWAYS use `/pbi-challenge` for collaborative review — not just `/review-artifact --type=pbi`
-**IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim about existing code (confidence >80% to act)
+
+**IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this agent carries):**
+
+- **Agent Bootstrap:** Plan into small tasks; one in progress; progress file when large.
+- **Task Tracking & External Report:** Bootstrap tracking; persist findings incrementally to `plans/reports/`.
+- **Project Reference Docs Guide:** Read required project docs first; `lessons.md` always; conventions override defaults.
+- **Critical Thinking:** Traced proof per claim; confidence >80% to act.
+- **Sequential Thinking:** Multi-step Thought N/M with revision/branch/hypothesis markers, confidence closer.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **Estimation Framework:** Bottom-up first; SP derived; blast radius and risk margin; min-max range.
+- **Refinement DoR Checklist:** ALWAYS pass all 7 DoR criteria before grooming.
+- **BA Team Decision Model:** 2/3 majority vote; Dev BA PIC technical veto; disagree-and-commit.
+- **AI-SDD Artifact Contract:** Reusable SDD in `.claude`; trace requirements; NEVER hand-edit mirrors.
+- **UI Wireframe:** When visual input is part of the BA task, process it first; classify components and reuse existing patterns.
+
+**IMPORTANT MUST ATTENTION** NEVER skip acceptance criteria — every story carries GIVEN/WHEN/THEN with 3+ scenarios (happy, edge, error) + 1 auth scenario — why: untestable AC ships ambiguous requirements that fail DoR criterion 2.
+**IMPORTANT MUST ATTENTION** NEVER write requirements without understanding the existing system — investigate first, cite `file:line` evidence — why: outcomes invented without the system context contradict what already ships.
+**IMPORTANT MUST ATTENTION** ALWAYS run `/dor-gate` before declaring a PBI grooming-ready — all 7 DoR criteria must pass — why: ungroomed PBIs stall the squad and re-open in refinement.
+**IMPORTANT MUST ATTENTION** ALWAYS use `/pbi-challenge` for collaborative Dev-BA-PIC review — not just `/review-artifact --type=pbi` — why: self-review alone misses technical-feasibility veto signals.
+**IMPORTANT MUST ATTENTION** describe OUTCOMES, NEVER implementations — no solution-speak; apply 5 Whys on vague/root-cause requests — why: solution-speak in a spec locks design before engineering owns it.
+**IMPORTANT MUST ATTENTION** every story meets INVEST; document business rules as IF/THEN/ELSE with IDs (`BR-{MOD}-{NNN}`, `FR-`/`NFR-` for requirements) — why: ID-less rules cannot be traced to tests or specs.
+**IMPORTANT MUST ATTENTION** honor the BA team 2/3 majority-vote model — Dev BA PIC holds technical veto; disagree-and-commit after the vote, record decisions in PBI Validation Summary.
+**IMPORTANT MUST ATTENTION** bootstrap task tracking before target work and persist plan/review findings incrementally to `plans/reports/` — why: context exhaustion silently loses all unsaved findings.
+**IMPORTANT MUST ATTENTION** read required project-reference docs first (`lessons.md` always; `project-structure-reference.md` for architecture) — project conventions override generic defaults.
+**IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim about existing code (confidence >80% to act, <80% verify first); NEVER fabricate file paths, function names, or behavior — investigate and confirm first.
+
+**Anti-Rationalization:**
+
+| Evasion                                        | Rebuttal                                                                     |
+| ---------------------------------------------- | --------------------------------------------------------------------------- |
+| "Requirement is obvious, skip investigation"   | Investigate the existing system first — invented outcomes contradict ship.   |
+| "2 scenarios are enough"                       | Minimum 3 (happy, edge, error) + 1 auth — fewer fails DoR criterion 2.       |
+| "Self-review covers it, skip `/pbi-challenge`" | Collaborative review surfaces the Dev-BA-PIC technical veto self-review misses. |
+| "I'll describe how to build it"                | Describe the OUTCOME, never the implementation — no solution-speak in a spec. |
+| "PBI looks ready, skip `/dor-gate`"            | All 7 DoR criteria must pass — section presence ≠ DoR-ready.                 |
+
+**[TASK-PLANNING]** Before acting, break the task into small todos with TaskCreate; add a final review todo; keep exactly one in progress.

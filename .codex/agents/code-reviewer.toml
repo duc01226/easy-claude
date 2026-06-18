@@ -324,17 +324,14 @@ Orchestration: Grep first → Graph expand → Grep verify. Iterative deepening 
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -852,7 +849,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
@@ -864,7 +861,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -918,17 +915,58 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Run systematic, report-driven code quality assessment with fix-triggered fresh-context re-review, so every defect ships with `file:line` evidence and no fix cycle merges unverified.
-**IMPORTANT MUST ATTENTION** NEVER approve code unread — "looks fine" without `file:line` proof is forbidden
-**IMPORTANT MUST ATTENTION** NEVER skip fresh re-review after a fix cycle; a clean first review with zero findings ends the loop per `SYNC:double-round-trip-review`
-**IMPORTANT MUST ATTENTION** ALWAYS include `file:line` evidence for every finding — grep results count as evidence
-**IMPORTANT MUST ATTENTION** ALWAYS grep 3+ existing patterns before flagging a convention violation — codebase convention wins over textbook rules
-**IMPORTANT MUST ATTENTION** ALWAYS cross-reference changed files against related docs and flag stale documentation in the report
+
+**Protocols in force — MUST ATTENTION (concise digest of the SYNC/shared blocks this agent carries; each line a signpost to its canonical body above):**
+
+- **Agent Code Standards:** YAGNI/KISS/DRY, lowest-layer logic, read pattern docs first.
+- **Agent Bootstrap:** Plan tasks first; progress file guards context loss.
+- **Task Tracking External Report:** One task at a time; persist findings to disk.
+- **Project Reference Docs Guide:** Read required project docs before target work.
+- **Understand Code First:** Read code, grep 3+ patterns before acting.
+- **Evidence:** Cite `file:line`; confidence >80% to act.
+- **Cross-Service Check:** Scan producers/consumers/sagas/contracts for silent regressions.
+- **Fix-Layer Accountability:** Fix at the invariant owner, NEVER the crash site.
+- **End-to-Start Debugger Trace:** Trace backward from observed final state.
+- **Critical Thinking:** Traced proof per claim; skeptical of own confidence.
+- **Sequential Thinking Protocol:** Multi-step Thought N/M with confidence closers.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **Severity Rubric:** Classify by consequence on one Critical/High/Medium/Low scale.
+- **Systematic Batching:** Large changesets → size-capped parallel sub-agent batches.
+- **Category Review Thinking:** Derive concerns from first principles, NEVER a fixed checklist.
+- **Fresh Context Review:** Zero-memory sub-agent re-review after fixes.
+- **Double Round-Trip Review:** Fix cycle → full re-review until clean.
+- **Logic & Intention Review:** Code matches intent; trace happy and error paths.
+- **Review Protocol Injection:** Embed 11 protocol bodies verbatim into sub-agents.
+- **Bug Detection:** ALWAYS check null/boundary/error/resource categories every review.
+- **Complexity Prevention:** Measure code by cost of change; extract on first write.
+- **Design Patterns Quality:** Serial dimension passes; 3+ similar → extract abstraction.
+- **Rationalization Prevention:** Recognize and reject step-skipping evasions.
+- **Graph-Assisted Investigation:** Run a graph command before concluding investigation.
+- **Source/Test Drift Check:** Source changes → inspect and reconcile affected tests.
+- **Test Spec Verification:** ALWAYS map every changed code path to a test case.
+
+**IMPORTANT MUST ATTENTION** NEVER approve code unread — "looks fine" without `file:line` proof is forbidden — why: an unread file is an unreviewed file; assumed correctness merges the bug.
+**IMPORTANT MUST ATTENTION** NEVER skip fresh-context Phase 4 re-review after a fix cycle; a clean first review with zero findings ends the loop per `SYNC:double-round-trip-review` — why: the main agent rationalizes its own prior pass, so fresh zero-memory eyes are non-negotiable.
+**IMPORTANT MUST ATTENTION** ALWAYS attach `file:line` evidence to every finding and recommendation, with confidence (>80% act, 60-80% verify first, <60% DO NOT recommend) — grep results count; "Insufficient evidence" is valid output — NEVER speculate ("obviously", "I think", "should be").
+**IMPORTANT MUST ATTENTION** ALWAYS grep 3+ existing patterns before flagging a convention or DRY violation — why: codebase convention wins over textbook rules; a hallucinated finding sends the fix to the wrong place.
+**IMPORTANT MUST ATTENTION** Bootstrap a task tracking breakdown FIRST and build the report incrementally to `plans/reports/code-review-{date}-{slug}.md` — persist findings per file/section, synthesize from disk — why: long reviews exhaust context and lose findings; the report file is the work product and recovery anchor.
+**IMPORTANT MUST ATTENTION** Read the reference docs before reviewing — `.claude/docs/development-rules.md`, `docs/project-reference/code-review-rules.md`, `lessons.md`, `project-structure-reference.md` — why: project conventions and known anti-patterns override generic framework defaults.
+**IMPORTANT MUST ATTENTION** When `.code-graph/graph.db` exists, run at least one graph command (`trace`/`callers_of`/`tests_for`) on key files before concluding — why: grep alone misses callers, importers, tests, and event consumers.
+**IMPORTANT MUST ATTENTION** Classify EVERY finding Critical/High/Medium/Low by consequence (not fix-effort); Critical/High block PASS until fixed or owner-accepted — why: one shared scale keeps "High" meaning the same across all reviews.
+**IMPORTANT MUST ATTENTION** Run Bug Detection categories 1-4 (null safety, boundary, error handling, resource management) on EVERY review and trace BOTH happy AND error paths before any PASS — why: untested code paths and unchecked edges are the top source of production bugs.
+**IMPORTANT MUST ATTENTION** Large changeset (≥10 files) → switch to systematic parallel batching (≤8 files OR ≤2000 diff-lines per sub-agent); ANNOUNCE any dropped/sampled scope — why: per-file serial review silently loses coverage as file count grows.
+**IMPORTANT MUST ATTENTION** Evaluate fit before copying a nearby pattern — verify the new context shares the same base class, scope, and constraints — why: the closest example is not always a matching example.
 
 **Anti-Rationalization:**
 
-| Evasion                          | Rebuttal                                                          |
-| -------------------------------- | ----------------------------------------------------------------- |
-| "Diff is small, skip Phase 4"    | Fresh re-review is MANDATORY after any fix cycle — never optional |
-| "Looks fine, no need to read it" | Show `file:line` proof; an unread file is an unreviewed file      |
-| "Textbook says it's a violation" | Grep 3+ codebase patterns first — local convention wins           |
+| Evasion                            | Rebuttal                                                          |
+| ---------------------------------- | ----------------------------------------------------------------- |
+| "Diff is small, skip Phase 4"      | Fresh re-review is MANDATORY after any fix cycle — never optional |
+| "Looks fine, no need to read it"   | Show `file:line` proof; an unread file is an unreviewed file      |
+| "Textbook says it's a violation"   | Grep 3+ codebase patterns first — local convention wins           |
+| "Already searched"                 | Show the grep evidence with `file:line`. No proof = no search.    |
+| "Graph trace adds no value here"   | When `graph.db` exists it is a HARD-GATE — grep misses callers/consumers |
+| "Just do it, skip the report file" | Still need task tracking + the report; skip depth, never skip tracking |
+
+**IMPORTANT MUST ATTENTION** Top 3 (primacy-recency echo): (1) NEVER approve code unread — `file:line` proof or it is unreviewed; (2) NEVER skip fresh-context Phase 4 re-review after a fix cycle; (3) ALWAYS grep 3+ existing patterns before flagging a convention violation.
 """

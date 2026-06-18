@@ -490,17 +490,14 @@ This skill is the **mandatory verification gate** between `$fix` and `$code-simp
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -535,13 +532,13 @@ This skill is the **mandatory verification gate** between `$fix` and `$code-simp
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -571,15 +568,49 @@ This skill is the **mandatory verification gate** between `$fix` and `$code-simp
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** block shipping an unproven fix — every code change carries a `file:line` evidence chain and confidence score, so a fix ships only when its correctness is proven (≥80%), not assumed.
-**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting.
-**MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via a direct user question — never auto-decide.
-**MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.
-**MANDATORY IMPORTANT MUST ATTENTION** READ the following files before starting:
+**IMPORTANT MUST ATTENTION Goal:** block shipping an unproven fix — build a `file:line` proof trace (debugger-style: symptom → root cause → fix mechanism → why-correct → edge cases → side effects) and confidence score per change, so a fix ships only when correctness is PROVEN (≥80%), never assumed.
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
+**Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
-> **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
+- **End-to-Start Trace:** start at observed output, trace backward, hypothesis matrix before fixing.
+- **UI System Context:** read frontend-patterns, scss-styling, design-system before any UI change.
+- **Graph Investigation:** run ≥1 graph command on key files when graph.db exists.
+- **Critical Thinking:** traced `file:line` proof per claim; confidence >80% to act.
+- **Understand Code First:** grep 3+ patterns and read code before any modification.
+- **Fix-Layer Accountability:** trace full data flow, fix at owning layer not crash site.
+- **Source/Test Drift:** when source behavior changes, reconcile affected unit/integration/E2E tests from evidence.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+
+**IMPORTANT MUST ATTENTION** every arrow (→) in every proof trace MUST ATTENTION carry a `file:line` reference — no exceptions; a claim without traced evidence is speculation and BLOCKS the ship. — why: a proof chain with an unproven link proves nothing.
+**IMPORTANT MUST ATTENTION** score each change with the points rubric (root cause +25, fix mechanism +20, pattern precedent +15, framework +10, edge cases +5 each, side effects +10, no regressions +5) → ≥80% ship · 60-79% flag to user · <60% BLOCK; NEVER ship a <80% change — route it back to `$debug-investigate` or `$fix`. — why: the threshold is the gate; bypassing it defeats the skill.
+**IMPORTANT MUST ATTENTION** run AFTER `$fix`, never before — this is the non-negotiable verification gate between `$fix` and `$code-simplifier`; NEVER skip it because the fix "looks obviously right". — why: obviousness is the exact illusion this gate exists to break.
+
+**Domain protocols this proof MUST NOT skip:**
+
+**IMPORTANT MUST ATTENTION** pattern precedent is REQUIRED, not optional — cite at least 1 working example of the same pattern at `file:line` elsewhere in the codebase; "no precedent found" caps confidence below 80%. — why: a fix with no precedent is an unproven invention.
+**IMPORTANT MUST ATTENTION** edge cases are REQUIRED — enumerate at minimum error path, null/empty input, concurrent access, each verified with evidence; assess side effects (what else this change touches). — why: the happy path passing is not the change being correct.
+**IMPORTANT MUST ATTENTION** spec-loop evidence is REQUIRED for a complete proof (`SYNC:spec-loop-discipline`) — (a) a regression PROPERTY TC (∀ inputs in {domain}, invariant holds) + boundary counter-case, (b) mutation-kill evidence on the fixed line (MUTATION-SCORE, not line-coverage %), (c) a Dual-Feedback entry (spec rule restored + guarding test); missing any one caps confidence below 80%. — why: line coverage and a single reproduction example let the original defect class survive.
+**IMPORTANT MUST ATTENTION** map every fix part to a primary/contributing/latent root cause from the hypothesis matrix and prove ALL feeder paths are closed; fix at the LOWEST shared owning layer, NEVER patch the crash/symptom site. — why: a symptom-site patch leaves the real cause writing bad state through other paths.
+**IMPORTANT MUST ATTENTION** for non-trivial bug/fix work, start at the observed final output and trace BACKWARD (reader → storage/projection → writer → consumer/job → producer/trigger) before proposing a fix; build the hypothesis matrix first. — why: starting at the first suspicious line fixes a symptom, not the cause.
+**IMPORTANT MUST ATTENTION** run the Database Performance Protocol in cross-verification — ALL list/collection queries paginated (no unbounded `GetAll/ToList/Find`), ALL filter/FK/sort columns indexed. — why: a correct fix that degrades query performance ships a new regression.
+**IMPORTANT MUST ATTENTION** when `.code-graph/graph.db` exists, run a `trace --direction downstream` on the fixed file to prove no downstream consumer breaks; include trace output as proof evidence. — why: a green local change can silently break a distant caller.
+**IMPORTANT MUST ATTENTION** resolve the active Goal Contract AFTER the verdict (`SYNC:goal-contract-satisfaction-loop`) — map each proof trace to its success criterion, emit the PASS/FAIL/BLOCKED matrix; a SHIP verdict does NOT close work while any required criterion remains FAIL. — why: a verified change is not a satisfied goal.
+**MANDATORY IMPORTANT MUST ATTENTION** break work into small task tracking todos BEFORE starting (one task per change/proof), keep exactly one `in_progress`, add a final review todo; on context loss the current task list first — resume, never duplicate.
+
+**Anti-Rationalization:**
+
+| Evasion                                       | Rebuttal                                                                                          |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| "Fix is obviously correct, skip the proof"    | Obviousness is the illusion this gate breaks. Build the trace anyway — every arrow `file:line`.   |
+| "No precedent, but it's clearly right"        | No precedent caps confidence <80%. Find a working example or mark the change unproven.            |
+| "Reproduction test passes, that's enough"     | A single example ≠ a property. Add the universally-quantified regression TC + boundary case.      |
+| "Line coverage is green"                      | Coverage ≠ kill. Show the surviving mutant on the fixed line is now killed (mutation score).      |
+| "I'll just patch where it crashes"            | Crash site ≠ cause site. Trace backward, fix the lowest invariant owner that protects all paths.  |
+| "Score is 75%, close enough to ship"          | <80% BLOCKS. Flag to user or return to `$debug-investigate` — never round a confidence up.        |
+
+**IMPORTANT MUST ATTENTION** run AFTER `$fix` only; every arrow carries `file:line`; score ≥80% to ship, <60% BLOCK — these three are the gate. (primacy-recency echo of the top three)
+
+**[TASK-PLANNING]** Before acting, analyze task scope and break it into small task tracking todos systematically before starting — this is very important.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Hookless Prompt Protocol Mirror (Auto-Synced)

@@ -43,10 +43,9 @@ memory: project
 
 ## Project Context
 
-> **MANDATORY IMPORTANT MUST ATTENTION** — Read `project-structure-reference.md` before starting.
-> Read reference docs directly.
+> **MANDATORY IMPORTANT MUST ATTENTION** — Read `project-structure-reference.md` before starting. Read reference docs directly.
 >
-> File not found? Search for: service directories, configuration files, project patterns.
+> File not found? Search: service directories, configuration files, project patterns.
 
 ## Section-Impact Mapping
 
@@ -73,7 +72,7 @@ memory: project
 - **Business Feature Docs**: Per module — updated sections or skipped
 - **Recommendations**: New docs to create, stale docs flagged, unresolved questions
 
-Concise — sacrifice grammar for brevity. List unresolved questions at end.
+Concise — sacrifice grammar for brevity. List unresolved questions at end. ALWAYS report even when nothing changed — state what was checked.
 
 <!-- SYNC:agent-bootstrap -->
 
@@ -152,17 +151,14 @@ Concise — sacrifice grammar for brevity. List unresolved questions at end.
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -183,13 +179,13 @@ Concise — sacrifice grammar for brevity. List unresolved questions at end.
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -216,9 +212,35 @@ Concise — sacrifice grammar for brevity. List unresolved questions at end.
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Detect docs impacted by code changes, update the right docs (project + business-feature) accurately and surgically, then report checked/updated/skipped — so docs stay synchronized with code without fabrication or scratch-creation.
-**IMPORTANT MUST ATTENTION** NEVER fabricate file paths, function names, or behavior — investigate first, cite `file:line` evidence for every claim
-**IMPORTANT MUST ATTENTION** NEVER create business feature docs from scratch — recommend `/spec` skill for new doc creation
+
+**IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this agent carries):**
+
+- **Agent Bootstrap:** Break work into tasks; one in-progress; progress file on large work.
+- **Sequential Thinking:** Multi-step Thought N/M with revision/branch/hypothesis; confidence % closer.
+- **Task Tracking & External Report:** Bootstrap tracking; persist findings to `plans/reports/` incrementally.
+- **Project Reference Docs Guide:** Read required project docs (always `lessons.md`); cite before target work.
+- **Critical Thinking:** MUST ATTENTION traced `file:line` proof per claim; >80% to act; never guess.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **Incremental Persistence:** Write report before work; append per file; survives compaction.
+
+**IMPORTANT MUST ATTENTION** NEVER fabricate file paths, function names, or behavior — investigate first, grep to confirm existence, cite `file:line` evidence for every claim; confidence >80% to act, <80% verify first — why: a hallucinated path/anchor poisons every doc downstream
+**IMPORTANT MUST ATTENTION** NEVER create business feature docs from scratch — recommend `/spec` skill for new doc creation — why: feature docs follow a canonical 8-section spec shape this agent does not author
 **IMPORTANT MUST ATTENTION** verify the code change BEFORE auto-fixing stale docs; map referencing files BEFORE removing any section — why: unverified edits and orphaned removals cascade staleness
-**IMPORTANT MUST ATTENTION** Always cross-reference changed files against section-impact mapping before editing any doc
+**IMPORTANT MUST ATTENTION** cross-reference changed files against section-impact mapping before editing any doc — entity → §3,5,6 · endpoint → §8,11,12 · new functionality → §15 (mandatory) — why: editing the wrong section leaves the real impact stale
+**IMPORTANT MUST ATTENTION** every TC-{FEATURE}-{NNN} MUST carry `[Source: ...]` abstract-anchor evidence mapping to real source; compare `[Trait("TestSpec", ...)]` against feature-doc TC codes and flag discrepancies — why: an unmapped anchor signals a fabricated or stale TC
+**IMPORTANT MUST ATTENTION** bootstrap a task breakdown before triage/reads/edits; transition one task at a time; on context loss inspect the existing task list before creating new tasks — why: batched/forgotten tracking loses progress across compaction
+**IMPORTANT MUST ATTENTION** search 3+ existing doc/section patterns and evaluate fit before writing — match the local doc convention, don't invent a new section shape — why: divergent doc structure fragments the docs and slows every future reader
 **IMPORTANT MUST ATTENTION** No meta-log in AI-facing docs — state the current truth only; never write change-history/provenance ("formerly", "removed in the … refactor", "now embedded") into `CLAUDE.md` / `AGENTS.md` / agent `.md` / `SKILL.md` / `.claude/docs/**`. History → git / `CHANGELOG.md` / `docs/adr/**` / `plans/reports/**`
-**IMPORTANT MUST ATTENTION** Write intermediate findings to `plans/reports/` after each phase to prevent context loss
+**IMPORTANT MUST ATTENTION** ALWAYS report even when nothing changed — state what was checked, updated, and skipped (with reason); write intermediate findings to `plans/reports/` after each phase to prevent context loss
+
+**Anti-Rationalization:**
+
+| Evasion                                   | Rebuttal                                                                                    |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------- |
+| "Only `.claude`/config changed, skip all" | Confirm via `git diff --name-only` first — then fast-exit "No documentation impacted".      |
+| "Doc looks stale, just fix it"            | Verify the code change first. Unverified doc edits invent behavior.                         |
+| "This module has no doc — create one"     | NEVER scratch-create a feature doc. Recommend `/spec`; update only impacted sections.       |
+| "Path probably exists"                    | Grep to confirm. No `file:line` proof = no claim.                                           |
+| "Nothing to update, skip the report"      | ALWAYS report what was checked/skipped — silence hides the triage decision.                 |
+
+**IMPORTANT MUST ATTENTION** (recency anchor — top 3) NEVER fabricate paths/behavior — investigate + cite `file:line` (>80% confidence) · NEVER scratch-create feature docs — recommend `/spec` · verify the code change BEFORE fixing any stale doc and map references BEFORE removing a section.

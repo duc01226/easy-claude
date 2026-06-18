@@ -51,8 +51,11 @@ test("sync-hooks preserves non-bash and prompt-event matchers", async () => {
     await execFileAsync(process.execPath, [syncHooksScript], { cwd: tempRoot });
 
     const rawHooks = await fs.readFile(path.join(tempRoot, ".codex", "hooks.json"), "utf8");
-    const hooks = JSON.parse(rawHooks);
+    const hooksConfig = JSON.parse(rawHooks);
+    const hooks = hooksConfig.hooks;
 
+    assert.ok(hooks);
+    assert.deepEqual(Object.keys(hooksConfig), ["hooks"]);
     const preMatchers = (hooks.PreToolUse ?? []).map((group) => group.matcher);
     assert.ok(preMatchers.includes("Edit|Write|MultiEdit"));
     assert.ok(preMatchers.includes("Bash"));
@@ -91,7 +94,10 @@ test("sync-hooks omits Claude startup auto-install hook and writes a skip report
     await execFileAsync(process.execPath, [syncHooksScript], { cwd: tempRoot });
 
     const rawHooks = await fs.readFile(path.join(tempRoot, ".codex", "hooks.json"), "utf8");
-    const hooks = JSON.parse(rawHooks);
+    const hooksConfig = JSON.parse(rawHooks);
+    const hooks = hooksConfig.hooks;
+    assert.ok(hooks);
+    assert.deepEqual(Object.keys(hooksConfig), ["hooks"]);
     assert.equal(hooks.SessionStart, undefined);
 
     const rawReport = await fs.readFile(path.join(tempRoot, ".codex", "hooks.sync.report.json"), "utf8");

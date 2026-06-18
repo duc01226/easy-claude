@@ -173,17 +173,14 @@ Write to `.claude/tmp/_evidence-{slug}.md`:
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -196,13 +193,13 @@ Write to `.claude/tmp/_evidence-{slug}.md`:
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -220,15 +217,39 @@ Write to `.claude/tmp/_evidence-{slug}.md`:
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Produce a cross-validated, source-cited evidence base (`_evidence-{slug}.md`) where every finding carries a confidence score, traces to specific sources, and flags discrepancies — never an unverified single-source claim presented as fact.
-**MANDATORY IMPORTANT MUST ATTENTION** every finding cites a specific source; conflicting claims → present both, flag discrepancy; single-source → mark "unverified".
-**MANDATORY IMPORTANT MUST ATTENTION** max 8 WebFetch calls per invocation.
-**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting.
-**MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via a direct user question — never auto-decide.
-**MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
+**IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
-> **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **Critical Thinking:** traced proof per claim, confidence >80% to act, NEVER guess-as-fact.
+
+**IMPORTANT MUST ATTENTION** every finding cites a specific source by number; conflicting claims → present BOTH positions, flag as discrepancy; lone source → mark "single source, unverified" — why: an uncited or uncross-checked claim presented as fact is the failure this skill exists to prevent.
+**IMPORTANT MUST ATTENTION** cross-validation drives confidence — 2+ independent sources agree = high (95/80%), 1 source = "unverified", disagreement = discrepancy with both sides; NEVER collapse a conflict into one tidy answer — why: hidden conflicts ship as false certainty downstream.
+**IMPORTANT MUST ATTENTION** declare a confidence percentage (95/80/60/<60%) on EVERY finding; <60% evidence DO NOT present as fact — say "insufficient evidence, verified: … / not verified: …" instead.
+**IMPORTANT MUST ATTENTION** cap WebFetch at 8 calls per invocation; spend them on Tier 1-2 authoritative sources covering identified gaps, NEVER Tier 4 unverified content as fact — why: budget discipline forces prioritization over breadth.
+**IMPORTANT MUST ATTENTION** this is the deep-DIVE stage — consume the prior `_sources-{slug}.md` map; do NOT start a fresh search — why: the source map already triaged and tiered candidates, re-searching wastes the WebFetch budget.
+**IMPORTANT MUST ATTENTION** capture per source: publication date, author credentials, source type, methodology — why: confidence must be defendable later, not asserted from memory.
+**IMPORTANT MUST ATTENTION** the deliverable MUST include an `## Unresolved Discrepancies` section and a `## Gaps Remaining` section — NEVER hide what couldn't be verified.
+**IMPORTANT MUST ATTENTION** verify AI-generated facts/quotes/numbers against the actual fetched source before recording — NEVER fabricate a citation, stat, or quote — why: a hallucinated source corrupts the whole evidence base silently.
+**IMPORTANT MUST ATTENTION** break work into small task tracking todos BEFORE starting; keep one `in_progress`; add a final review todo verifying every finding is cited and confidence-scored.
+**IMPORTANT MUST ATTENTION** write intermediate findings incrementally to `.claude/tmp/_evidence-{slug}.md` (External Memory) — NEVER hold the full evidence base in context only — why: context loss before the final write loses all extracted findings.
+**IMPORTANT MUST ATTENTION** validate route decisions with the user via a direct user question — never auto-decide whether to run the workflow vs. this skill standalone.
+
+**Anti-Rationalization:**
+
+| Evasion                                      | Rebuttal                                                                                  |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| "One good source is enough"                  | A lone source is "single source, unverified" — never high confidence. Cross-validate.      |
+| "The sources roughly agree, call it settled" | Roughly ≠ exactly. Record the discrepancy with both positions; don't smooth it over.       |
+| "I remember this stat from the page"         | Re-open the fetched source and verify the number/quote before citing. Memory hallucinates. |
+| "I'll fetch a few more to be thorough"       | 8-call cap is the budget. Prioritize Tier 1-2 gap-coverage, not breadth.                    |
+| "I'll write the evidence base at the end"    | Persist findings incrementally to `_evidence-{slug}.md` — a context cutoff loses batched work. |
+
+**IMPORTANT MUST ATTENTION** every finding cites a specific source + carries a confidence % (95/80/60/<60%); conflicts → both positions flagged, lone source → "unverified".
+**IMPORTANT MUST ATTENTION** cap WebFetch at 8 Tier 1-2 calls and persist the evidence base incrementally to `.claude/tmp/_evidence-{slug}.md`.
+**IMPORTANT MUST ATTENTION** the deliverable must surface `## Unresolved Discrepancies` and `## Gaps Remaining` — never hide what couldn't be verified.
+
+> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting; add a final review todo to verify work quality.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Hookless Prompt Protocol Mirror (Auto-Synced)

@@ -247,17 +247,14 @@ Orchestration: Grep first → Graph expand → Grep verify. Iterative deepening 
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -678,13 +675,13 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -738,8 +735,57 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Deliver subcutaneous integration tests that execute through real DI containers against live infrastructure (no HTTP layer, no mocks) and each map traceably to a `TC-{FEATURE}-{NNN}` spec ID — so every covered behavior is verified end-to-end and provably tied to its specification.
-**IMPORTANT MUST ATTENTION** NEVER mock infrastructure in integration tests — use real DI containers against live infrastructure
-**IMPORTANT MUST ATTENTION** NEVER share test state between test classes — every class is isolated via `[Collection("...")]`
-**IMPORTANT MUST ATTENTION** ALWAYS verify traceability before marking complete — every test must map to a `TC-{FEATURE}-{NNN}` spec ID
-**IMPORTANT MUST ATTENTION** ALWAYS activate `integration-test` skill before generating any test code
-**IMPORTANT MUST ATTENTION** ALWAYS use `IntegrationTestHelper.UniqueName()` for test data — never hardcoded strings that cause cross-run pollution
+
+**Protocols in force (concise digest of the SYNC/shared blocks this agent carries):**
+
+- **Agent Code Standards:** YAGNI/KISS/DRY, lowest layer, read pattern docs.
+- **Agent Bootstrap:** plan first, progress file for big tasks.
+- **Sequential Thinking:** multi-step Thought N/M with confidence closer.
+- **Task Tracking & External Report:** task breakdown, persist findings to disk.
+- **Project Reference Docs Guide:** read required docs before target work.
+- **Understand Code First:** read code, grep 3+ before writing.
+- **Evidence:** cite `file:line`, declare confidence, no speculation.
+- **Cross-Service Check:** scan producers/consumers/sagas/contracts for regressions.
+- **Fix-Layer Accountability:** fix at invariant owner, not crash site.
+- **Critical Thinking:** traced proof, skeptical of own certainty.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **Repeatable Test Principle:** unique data, additive-only, no teardown.
+- **Source/Test Drift Check:** reconcile tests when source behavior changes.
+- **Red Flag Stop Conditions:** escalate on low confidence/blast/breaking change.
+- **Graph Impact Analysis:** blast-radius for all affected files.
+- **Incremental Persistence:** append findings per file, never batch.
+- **Rationalization Prevention:** reject step-skipping evasions.
+- **Severity Rubric:** classify by consequence, Critical/High block PASS.
+- **Systematic Batching:** size-capped parallel batches for large changesets.
+- **Category Review Thinking:** derive concerns from first principles.
+- **Fresh Context Review:** restart review with zero-memory sub-agents.
+- **Double Round-Trip Review:** re-review fully after every fix cycle.
+- **Review Protocol Injection:** embed 11 protocols verbatim into sub-agents.
+
+**IMPORTANT MUST ATTENTION** NEVER mock infrastructure — drive tests through real DI containers against live infrastructure — why: a mocked dependency verifies the mock, not the system.
+**IMPORTANT MUST ATTENTION** ALWAYS verify traceability before marking complete — every test maps to a `TC-{FEATURE}-{NNN}` spec ID — why: an untraceable test proves nothing about the specification.
+**IMPORTANT MUST ATTENTION** ALWAYS activate the `integration-test` skill and READ `integration-test-reference.md` before writing any test code — why: they carry the canonical project test patterns you must match, not improvise.
+
+**IMPORTANT MUST ATTENTION** invoke through `ExecuteCommandAsync` / `ExecuteQueryAsync` — NEVER instantiate handlers directly — why: bypassing the pipeline skips real DI behavior and validates an unreal path.
+**IMPORTANT MUST ATTENTION** put a `[Collection("...")]` on every test class and use `IntegrationTestHelper.UniqueName()` for ALL data — why: shared state and hardcoded IDs cause cross-test/cross-run pollution that breaks repeatability.
+**IMPORTANT MUST ATTENTION** keep tests infinitely repeatable — additive-only, idempotent, no teardown/schema-rollback dependency — verification is PASS only after 3 consecutive runs without DB reset — why: a test that needs a clean DB is not a regression guard.
+**IMPORTANT MUST ATTENTION** tests verify intent — assert the protected business rule/invariant so the test FAILS when that intent breaks, not merely mirror current behavior — why: a behavior-mirror test green-passes a real regression.
+**IMPORTANT MUST ATTENTION** search 3+ existing tests in the target service's IntegrationTests project before writing; evaluate fit (base class, collection, fixture lifetime) before copying — why: closest example ≠ matching preconditions.
+**IMPORTANT MUST ATTENTION** microservices/event-driven scope — scan producers, consumers, sagas, shared contracts in the changed behavior; a missing downstream consumer test = silent regression.
+**IMPORTANT MUST ATTENTION** bootstrap a task breakdown before reads/edits; on context loss inspect the existing task list first; persist findings for >3-file work to `plans/reports/` incrementally — why: context exhaustion silently loses all in-memory findings.
+
+**IMPORTANT MUST ATTENTION** cite `file:line` or grep evidence for EVERY claim; confidence >80% to act, <60% DO NOT recommend; NEVER fabricate file paths, type names, method signatures, or TC IDs — investigate and confirm first — why: a fabricated symbol compiles against nothing real.
+
+**Anti-Rationalization:**
+
+| Evasion                                  | Rebuttal                                                                        |
+| ---------------------------------------- | ------------------------------------------------------------------------------- |
+| "Mock the DB, it's faster"               | A mocked integration test verifies the mock. Use real DI against live infra.    |
+| "This TC obviously maps to that test"    | Show the `TC-{FEATURE}-{NNN}` ID in the test. No ID = no traceability.          |
+| "Skip `UniqueName()`, run is clean"      | Next run collides. ALL data uses the project unique-ID generator — no exceptions.|
+| "No `[Collection]` needed here"          | Parallel runner pollutes shared state. Every class carries `[Collection("...")]`.|
+| "Instantiate the handler directly"       | Skips the real pipeline. Always go through `ExecuteCommandAsync`/`ExecuteQueryAsync`.|
+| "Test passes, behavior is covered"       | Passing ≠ protecting intent. Assert the invariant; confirm it fails when broken. |
+| "Reuse an existing similar test as-is"   | Closest example ≠ matching preconditions. Verify base class, fixture, lifetime.  |
+
+**IMPORTANT MUST ATTENTION** NEVER mock infrastructure — real DI against live infra; ALWAYS verify `TC-{FEATURE}-{NNN}` traceability before done; ALWAYS activate the `integration-test` skill before writing test code.

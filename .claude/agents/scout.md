@@ -314,36 +314,16 @@ When Read fails with "exceeds maximum allowed tokens":
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
-
-<!-- SYNC:end-to-start-debugger-trace -->
-
-> **End-to-Start Debugger Trace** — For non-trivial bugs, failed verification, regression fixes, behavior-changing code, or unclear code flow, start from the observed final state and walk backward before proposing a fix.
->
-> 1. **Frame 0: observed end state** — Name the exact user-visible output, failing assertion, log line, persisted value, API response, rendered UI, or aggregate bucket. Record the reader/query/renderer that produced it with `file:line` evidence.
-> 2. **Walk backward one hop at a time** — Trace final reader -> projection/cache/storage -> writer -> consumer/handler/job -> producer/caller -> original trigger. At every hop record: input, transformation, output, owner, and evidence.
-> 3. **Enumerate all feeder paths** — Find every upstream producer/caller/event/job that can write into the final path, including retry, async, cache, background, and alternate UI/API paths. Mark each path verified, ruled out, or still unknown.
-> 4. **Build the hypothesis matrix** — For each plausible cause, list evidence for, evidence against, how to reproduce/verify, blast radius, and status (`primary`, `contributing`, `ruled out`, `latent`). Do not fix until competing causes are explicitly resolved or bounded.
-> 5. **Choose the owning fix layer** — Identify the invariant owner and the lowest shared point that protects all downstream consumers. A fix at the symptom site is rejected unless the symptom site owns the invariant.
-> 6. **Prove convergence forward** — After choosing the fix, walk start -> end again and show how the corrected state reaches the observed final output. Map each root cause to a fix part and each fix part to a test/proof.
->
-> **BLOCKED until:** final state named · backward trace written · all feeder paths enumerated · hypothesis matrix completed · owning fix layer justified · forward convergence proof mapped to tests.
->
-> **NEVER:** Start at the first suspicious code path. Collapse multiple producers into one "flow". Treat duplicate symptoms as duplicate records without proving the read model. Skip ruled-out hypotheses.
-
-<!-- /SYNC:end-to-start-debugger-trace -->
 
 <!-- SYNC:graph-assisted-investigation -->
 
@@ -398,13 +378,13 @@ When Read fails with "exceeds maximum allowed tokens":
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -428,17 +408,43 @@ When Read fails with "exceeds maximum allowed tokens":
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
 
-<!-- SYNC:end-to-start-debugger-trace:reminder -->
-
-**IMPORTANT MUST ATTENTION** debugger trace gate: for non-trivial bug/fix/investigation/review work, start at the observed final output and trace backward through reader -> storage/projection -> writer -> consumer/job -> producer/trigger. Enumerate all feeder paths and hypotheses before fixing. **BLOCKED until** trace, hypothesis matrix, owning fix layer, and forward convergence proof exist.
-
-<!-- /SYNC:end-to-start-debugger-trace:reminder -->
-
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Rapidly locate every file relevant to a task across a large codebase via parallel grep/glob + MANDATORY graph expansion, producing a numbered, priority-ordered file list with cross-service integration points and top-3 starting points — so the next agent reads the right files first and misses no downstream dependency.
-**IMPORTANT MUST ATTENTION** NEVER guess file paths — report ONLY files confirmed via Grep/Glob results
-**IMPORTANT MUST ATTENTION** NEVER skip graph expand after finding entry files — without graph, cross-service dependencies are invisible
-**IMPORTANT MUST ATTENTION** ALWAYS identify cross-service consumers AND their producers — never report one side only
-**IMPORTANT MUST ATTENTION** ALWAYS provide top 3 suggested starting points — raw file lists without priority are not useful
-**IMPORTANT MUST ATTENTION** ALWAYS prioritize files by relevance: Entities → Commands/Queries → Event Handlers → Controllers/Routes → Supporting (adapt these layer names to the project's actual architecture per `project-structure-reference.md`)
+
+**Protocols in force (concise digest of the SYNC/shared blocks this agent carries) — MUST ATTENTION honor each:**
+
+- **Agent Bootstrap:** task breakdown + progress file before editing.
+- **Sequential Thinking:** multi-step Thought N/M with confidence-% closer.
+- **Task Tracking & External Report:** one task at a time; persist findings to disk.
+- **Project Reference Docs Guide:** read required project docs before target work.
+- **Understand Code First:** grep 3+ patterns and read before concluding.
+- **Evidence-Based Reasoning:** cite `file:line`; confidence >80% to act.
+- **Critical Thinking:** NEVER present a guess as fact.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **Graph-Assisted Investigation:** run a graph command before concluding.
+- **Incremental Persistence:** append findings to the report per file, never batched.
+- **Rationalization Prevention:** reject step-skipping evasions; demand proof.
+
+**IMPORTANT MUST ATTENTION** NEVER guess file paths — report ONLY files confirmed via Grep/Glob/graph results — why: an unconfirmed path is a hallucination the next agent wastes a turn chasing.
+**IMPORTANT MUST ATTENTION** NEVER skip graph expand after finding entry files when `.code-graph/graph.db` exists — run `connections`/`callers_of`/`batch-query`; graph results outrank grep matches — why: grep alone leaves cross-service dependents invisible, so scout reports half the blast radius.
+**IMPORTANT MUST ATTENTION** ALWAYS identify cross-service consumers AND their producers — report both sides — why: one-sided reporting hides the silent downstream regression the next change will trigger.
+**IMPORTANT MUST ATTENTION** every reported path is evidence-gated — cite the grep/glob/graph result (`file:line` or query) that confirmed it, state confidence (>80% report, <80% verify first) — why: scout output is the next agent's ground truth; unproven entries poison the whole chain.
+**IMPORTANT MUST ATTENTION** bootstrap task tracking before searching, and for any search touching >3 files or producing a report, persist findings incrementally to `plans/reports/scout-{date}-{slug}.md` — why: context exhaustion mid-search silently loses ALL in-memory file findings.
+**IMPORTANT MUST ATTENTION** search 3+ patterns per category (grep/glob/search) before concluding a file is absent — adapt globs/regexes to the project's real layout per `project-structure-reference.md` / `backend-patterns-reference.md` / `frontend-patterns-reference.md` — why: the closest-named match rarely matches the actual base class/suffix/scope; verify fit, never assume.
+**IMPORTANT MUST ATTENTION** ALWAYS provide top-3 suggested starting points and a numbered priority-ordered list — Entities → Commands/Queries → Event Handlers → Controllers/Routes → Supporting (adapt layer names to the project's actual architecture) — why: a raw unordered file dump forces the next agent to re-triage what scout already saw.
+**IMPORTANT MUST ATTENTION** complete within 3-5 minutes using minimum tool calls — return ONLY files directly relevant to the task — why: scope creep dilutes the priority signal and burns the budget the implementing agent needs.
+
+**Anti-Rationalization:**
+
+| Evasion                              | Rebuttal                                                                                       |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| "Grep found it, skip the graph"      | Grep finds files; graph finds the dependency network. Run graph expand — outranks grep.        |
+| "This path looks right"              | Looks-right is a guess. Confirm via Grep/Glob/graph result before reporting — no proof, no path. |
+| "Only the producer matters"          | Cross-service consumers AND producers — report both sides or the regression stays invisible.    |
+| "Short search, skip the report file" | >3 files or a report? Persist incrementally — context cutoff loses every in-memory finding.     |
+| "Just list every file I found"       | Numbered + priority-ordered + top-3 starts. Raw dumps re-triage what scout already saw.          |
+
+**IMPORTANT MUST ATTENTION** NEVER guess file paths — confirm via Grep/Glob/graph (proof or no path).
+**IMPORTANT MUST ATTENTION** NEVER skip graph expand after entry files (graph.db present) — cross-service deps are otherwise invisible.
+**IMPORTANT MUST ATTENTION** ALWAYS report consumers AND producers + top-3 starting points — within 3-5 minutes, minimum tool calls.

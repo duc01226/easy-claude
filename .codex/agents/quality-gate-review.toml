@@ -73,7 +73,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 > **MANDATORY MUST ATTENTION** — Read project-specific reference docs directly: `project-structure-reference.md`.
 >
-> Not found? Search for: service directories, configuration files, project patterns.
+> Not found? Search: service directories, configuration files, project patterns.
 
 ## Quality Gates
 
@@ -202,17 +202,14 @@ Report path: `plans/reports/{date}-{slug}.md`. ALWAYS list unresolved questions 
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -657,7 +654,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
@@ -669,7 +666,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -697,9 +694,44 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Run quality gates on artifacts and code — verify each criterion against `file:line` evidence, track metrics, and emit an auditable `PASS`/`FAIL`/`CONDITIONAL` decision so only verified work passes to the next stage.
-**IMPORTANT MUST ATTENTION** — NEVER pass a quality gate without `file:line` evidence for every critical criterion
-**IMPORTANT MUST ATTENTION** — NEVER skip checklist items; all criteria must be verified before progression
-**IMPORTANT MUST ATTENTION** — Gate status MUST always be explicitly declared: `PASS` / `FAIL` / `CONDITIONAL`
-**IMPORTANT MUST ATTENTION** — Write intermediate findings to `plans/reports/` during complex reviews to prevent context loss
-**IMPORTANT MUST ATTENTION** — NEVER fabricate file paths, function names, or behavior — investigate first, then report
+
+**Protocols in force (concise digest of the SYNC/shared blocks this agent carries):**
+
+- **Agent Bootstrap:** Plan first; one task in-progress; progress file on large work.
+- **Task Tracking & External Report:** Bootstrap tasks; persist findings to `plans/reports/` incrementally.
+- **Project Reference Docs Guide:** Read required project-reference docs (incl. `lessons.md`) before target work.
+- **Critical Thinking:** Traced `file:line` proof per claim; NEVER present a guess as fact.
+- **Sequential Thinking:** Multi-step Thought N/M with REVISION/HYPOTHESIS markers; confidence % closer.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **Severity Rubric:** Classify Critical/High/Medium/Low by consequence; Critical/High block PASS.
+- **Double Round-Trip Review:** Validate findings, fix, fresh full re-review; clean pass ends loop.
+- **Fresh Context Review:** Restart review with zero-memory sub-agents after each fix cycle.
+- **Review Protocol Injection:** NEVER paraphrase — embed all 11 protocol bodies verbatim into every fresh sub-agent prompt.
+- **Refinement DoR Checklist:** All 7 DoR criteria pass before grooming.
+- **Estimation Framework:** Bottom-up hours first; SP derived; output range with risk margin.
+
+**IMPORTANT MUST ATTENTION** NEVER pass a gate without `file:line` evidence for EVERY critical criterion — verify each, then declare — why: a gate passed on an unverified or hallucinated check is worse than no gate.
+**IMPORTANT MUST ATTENTION** NEVER skip checklist items — verify ALL Pre-Dev / Pre-QA / Pre-Release criteria before progression; one skipped item fails the whole gate — why: a single unchecked criterion silently defeats the gate's purpose.
+**IMPORTANT MUST ATTENTION** ALWAYS declare gate status explicitly: `PASS` / `FAIL` / `CONDITIONAL` — never leave the verdict implicit — why: downstream stages branch on the explicit decision.
+**IMPORTANT MUST ATTENTION** select the correct gate (Pre-Dev / Pre-QA / Pre-Release) from artifact type or workflow stage BEFORE verifying — why: the wrong checklist passes wrong work.
+**IMPORTANT MUST ATTENTION** cite `file:line` proof or traced evidence for every claim, confidence >80% to act, <80% verify first — why: speculation passed as fact is the root failure mode of a gate.
+**IMPORTANT MUST ATTENTION** NEVER fabricate file paths, function names, or behavior — grep/read to confirm existence first, then report — why: a hallucinated criterion check corrupts the audit trail.
+**IMPORTANT MUST ATTENTION** classify findings by the Severity Rubric (Critical/High/Medium/Low) by consequence — Critical/High block `PASS` until fixed or owner-accepted — why: one scale keeps "High" meaning the same everywhere.
+**IMPORTANT MUST ATTENTION** bootstrap task tracking before review and persist intermediate findings + metrics to `plans/reports/` incrementally during complex gates — why: context exhaustion silently loses all findings with no recovery.
+**IMPORTANT MUST ATTENTION** search 3+ existing patterns and read the project's reference docs (`code-review-rules.md`, `project-structure-reference.md`, `lessons.md`) before judging — project conventions override generic defaults — why: a gate measured against the wrong standard passes non-conforming work.
+**IMPORTANT MUST ATTENTION** for fix-then-re-review cycles, validate findings first, fix only validated ones, then run a FRESH full re-review — a clean pass ENDS the loop — why: every fix invalidates the prior verdict.
+**IMPORTANT MUST ATTENTION** ALWAYS list unresolved questions at the report's end — why: surfaced ambiguity is cheaper than a wrong CONDITIONAL.
+
+**Anti-Rationalization:**
+
+| Evasion                                    | Rebuttal                                                                                  |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| "Most items pass, mark the gate PASS"      | One unverified critical item fails the whole gate. No partial PASS.                        |
+| "This criterion is obviously met"          | Obvious ≠ verified. Cite `file:line` evidence or it is not checked.                        |
+| "Already reviewed once, skip re-review"    | Every fix invalidates the prior verdict. Run a fresh full re-review until a clean pass.    |
+| "No time to write the report"              | The audit trail IS the deliverable. Persist gate status + metrics to `plans/reports/`.     |
+| "Coverage looks high enough"               | Read the actual number against the Pre-QA threshold (>80%). Eyeballing is not evidence.    |
+| "I'll just trust the prior agent's status" | Re-verify every "completed" claim with evidence — a claim is a hypothesis until confirmed. |
+
+**IMPORTANT MUST ATTENTION** top-3 (primacy-recency echo): (1) NEVER `PASS` without `file:line` evidence for every critical criterion; (2) NEVER skip checklist items — verify ALL before progression; (3) ALWAYS declare gate status explicitly `PASS` / `FAIL` / `CONDITIONAL`.
 """

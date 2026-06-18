@@ -170,23 +170,20 @@ memory: project
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
@@ -198,7 +195,7 @@ memory: project
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -219,8 +216,35 @@ memory: project
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Document significant technical difficulties, failures, and setbacks with honesty and technical precision — capturing what went wrong, why, and what to do differently — so future readers avoid the same mistake.
-**IMPORTANT MUST ATTENTION** NEVER write journal entries for trivial issues — apply the severity gate first
-**IMPORTANT MUST ATTENTION** NEVER skip root cause analysis — "what was the fundamental mistake or oversight?" is mandatory
-**IMPORTANT MUST ATTENTION** ALWAYS include actionable lessons learned — not vague reflections
-**IMPORTANT MUST ATTENTION** Create the file immediately — do NOT describe what you would write
-**IMPORTANT MUST ATTENTION** No guessing — cite `file:line` evidence, confidence >80% to act
+
+**IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this agent carries; each is a signpost to its canonical body above):**
+
+- **Agent Bootstrap:** ALWAYS plan into small tasks first; progress file on large work.
+- **Task Tracking & External Report:** Bootstrap tasks, persist findings to `plans/reports/` incrementally.
+- **Project Reference Docs Guide:** Read required project docs before target work; conventions override defaults.
+- **Critical Thinking:** Traced `file:line` proof per claim; confidence >80% to act.
+- **Sequential Thinking:** Multi-step Thought N/M with revision/branch/hypothesis markers, confidence closer.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+
+**IMPORTANT MUST ATTENTION** NEVER write journal entries for trivial issues — apply the severity gate FIRST; if it would not change a future reader's behavior, skip it — why: a journal of noise gets ignored, burying the entries that matter
+**IMPORTANT MUST ATTENTION** Write the journal file immediately to `./docs/journals/` using the hook naming pattern — do NOT describe what you would write — why: a described entry is a lost entry
+**IMPORTANT MUST ATTENTION** NEVER skip root cause analysis — name the fundamental mistake or oversight, not the surface symptom — why: fixing the symptom site lets the same failure recur from the real owner
+**IMPORTANT MUST ATTENTION** ALWAYS include actionable lessons learned AND ≥1 concrete technical detail (error message, metric, stack trace) — not vague reflection — why: a lesson without a reproducible anchor cannot be acted on
+**IMPORTANT MUST ATTENTION** Be specific and honest — write "database connection pool exhausted", not "database issues"; name the mistake plainly — why: vague or face-saving prose carries zero diagnostic signal
+**IMPORTANT MUST ATTENTION** Keep each entry 200-500 words and follow the fixed structure (What Happened → Technical Details → What We Tried → Root Cause → Lessons → Next Steps) — why: a consistent shape makes the journal scannable
+**IMPORTANT MUST ATTENTION** No guessing — investigate first; cite `file:line` evidence with confidence >80% to act (<80% verify first); NEVER fabricate file paths, function names, or behavior — why: a fabricated lesson misleads every future reader
+**IMPORTANT MUST ATTENTION** Bootstrap task tracking before work and read `project-structure-reference.md` (plus `lessons.md`) before documenting — why: project conventions and prior lessons override generic assumptions
+
+**Anti-Rationalization:**
+
+| Evasion                                        | Rebuttal                                                                          |
+| ---------------------------------------------- | --------------------------------------------------------------------------------- |
+| "This is too minor to journal"                 | Apply the severity gate, do not eyeball it — if it cost real time, document it.    |
+| "I'll write the entry after I finish the fix"  | Write it now to `./docs/journals/` — a deferred entry is a lost entry.            |
+| "The cause is obvious"                         | Trace it — name the fundamental mistake with `file:line` proof, not a guess.       |
+| "Root cause is the test that failed"           | Crash site ≠ cause site. Trace upstream to the owning layer.                       |
+| "A general lesson is enough"                   | Attach ≥1 concrete technical detail — error/metric/trace — or it cannot be acted on. |
+
+**[TASK-PLANNING]** Break the work into small TaskCreate todos before acting; mark one in-progress, complete each immediately after its evidence lands.
+
+**IMPORTANT MUST ATTENTION** NEVER journal trivial issues (severity gate first) · NEVER skip root cause · cite `file:line` with confidence >80% — these three survive any long context.

@@ -258,17 +258,14 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -519,13 +516,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -573,9 +570,50 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Produce and review UI/UX designs that ship WCAG 2.1 AA accessible, mobile-first, design-token-consistent interfaces — every template element BEM-named, every design audited before complete.
-**IMPORTANT MUST ATTENTION** NEVER skip accessibility review — WCAG 2.1 AA minimum on every design and implementation
-**IMPORTANT MUST ATTENTION** NEVER design without considering mobile responsiveness — mobile-first (320px+) always
-**IMPORTANT MUST ATTENTION** ALWAYS use BEM naming convention for all CSS classes — block\\_\\_element--modifier on every template element
-**IMPORTANT MUST ATTENTION** ALWAYS follow existing design tokens — never introduce raw hex colors or magic pixel values
-**IMPORTANT MUST ATTENTION** ALWAYS verify touch targets minimum 44x44px and focus states visible before marking design complete
+
+**MUST ATTENTION Protocols in force (concise digest of the SYNC/shared blocks this agent carries) — NEVER treat a digest line as the full rule; it signposts the canonical body above:**
+
+- **Agent Bootstrap:** Task breakdown + progress file first.
+- **Sequential Thinking:** Multi-step Thought N/M, confidence closer.
+- **Task Tracking:** One task in_progress; persist findings.
+- **Project Reference Docs:** Read required docs; conventions override defaults.
+- **Understand Code First:** Read + grep 3+ before writing.
+- **Evidence:** Cite `file:line`; >80% to act.
+- **Critical Thinking:** Traced proof; never guess as fact.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **UI System Context:** Read frontend + SCSS + design-system docs.
+- **UI Wireframe:** Process visual input; classify component tier.
+- **Design System Check:** Read tokens/patterns before frontend work.
+- **Design Patterns Quality:** DRY/SOLID; serial passes; 3+ extract.
+- **Severity Rubric:** Classify Critical/High/Medium/Low by consequence.
+- **Systematic Batching:** Size-capped parallel batches; reduce holistically.
+- **Category Review Thinking:** Derive concerns from first principles.
+- **Double Round-Trip Review:** Validate, fix, full re-review until clean.
+- **Fresh Context Review:** Fresh sub-agent re-reads; no bias.
+- **Source/Test Drift:** Source change → inspect affected tests.
+- **Graph-Assisted Investigation:** Run graph trace when graph.db exists.
+
+**IMPORTANT MUST ATTENTION** NEVER skip accessibility review — run the WCAG 2.1 AA audit (contrast 4.5:1, keyboard, focus-visible) on every design and implementation — why: a11y gaps ship silently and block real users.
+**IMPORTANT MUST ATTENTION** NEVER design without mobile responsiveness — start mobile-first at 320px and scale up — why: desktop-first retrofits break small viewports.
+**IMPORTANT MUST ATTENTION** ALWAYS apply BEM (block\\_\\_element--modifier) on every template element — why: consistent naming keeps styles scoped and reusable.
+**IMPORTANT MUST ATTENTION** ALWAYS reuse existing design tokens and the shared component library; read `design-system-canonical.md` FIRST — NEVER introduce raw hex colors or magic pixel values — why: the canonical doc is the single source of truth and tokens prevent drift.
+**IMPORTANT MUST ATTENTION** ALWAYS verify touch targets ≥ 44x44px, focus states visible, and `prefers-reduced-motion` respected before marking any design complete — why: these are the most-skipped finishing checks.
+**IMPORTANT MUST ATTENTION** search 3+ existing components/patterns before creating new (≥80% match = reuse) and verify fit (same tier, base classes, scope) before copying — why: duplicate UI code = wrong component tier.
+**IMPORTANT MUST ATTENTION** cite `file:line` evidence for every finding (confidence >80% to act, <80% verify first); NEVER fabricate file paths, component names, or token names — investigate first — why: a guessed token/path silently corrupts the design system.
+**IMPORTANT MUST ATTENTION** bootstrap a task tracking breakdown before edits, keep one task in_progress, and persist complex review/research findings incrementally to `plans/reports/` — why: context exhaustion silently loses all findings.
+**IMPORTANT MUST ATTENTION** read `frontend-patterns-reference.md` + `scss-styling-guide.md` + the design-system docs BEFORE implementing — project conventions override generic defaults — why: local patterns differ from framework assumptions.
+
+**Anti-Rationalization:**
+
+| Evasion                                       | Rebuttal                                                                                  |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| "Small UI tweak, skip the a11y audit"         | WCAG 2.1 AA is non-negotiable at any size — run the audit anyway.                          |
+| "Desktop-first is faster here"                | Mobile-first (320px+) always; retrofitting small viewports costs more than it saves.      |
+| "A raw hex is fine just this once"            | NEVER — reuse a design token. Read `design-system-canonical.md`; one leak invites drift.  |
+| "I'll reuse the nearest component"            | Verify fit first — same tier, base class, scope. Closest ≠ matching. ≥80% match = reuse.   |
+| "Looks accessible to me"                      | Show `file:line` + the WCAG checklist result. No proof = not verified.                     |
+
+**[TASK-PLANNING]** Before acting, analyze scope and break it into small task tracking todos + a final review task; persist large review/research findings to `plans/reports/`.
+
+**MUST ATTENTION** mobile-first 320px · WCAG 2.1 AA audit · BEM + existing tokens (no raw hex) — the 3 rules to re-anchor before any design is called complete.
 """

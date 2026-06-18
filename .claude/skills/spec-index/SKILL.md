@@ -215,17 +215,14 @@ A **derived-index generator** over the single-home spec tree. The canonical know
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -238,13 +235,13 @@ A **derived-index generator** over the single-home spec tree. The canonical know
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -261,14 +258,25 @@ A **derived-index generator** over the single-home spec tree. The canonical know
 
 ## Closing Reminders
 
-- **IMPORTANT MUST ATTENTION Goal:** Give readers a regenerable, single-writer navigation layer (catalog + cross-capability ERD + rebuild guide) over the canonical Feature Specs — so a bucket can be browsed or replatformed without ever forking a second, hand-maintained source of truth
-- **IMPORTANT MUST ATTENTION [BLOCKING]** Output is DERIVED — never emit `M##`/A-E/`00-module-registry`/`01-domain-erd`/`06-reimplementation-guide`/QA-dashboard files (see Hard Prohibitions). The thin-index-only contract applies.
-- **IMPORTANT MUST ATTENTION [BLOCKING]** The Feature Spec (`docs/specs/{Bucket}/README.{Feature}.md`) is the source of truth — this skill assembles, never authors, business content.
-- **IMPORTANT MUST ATTENTION [BLOCKING]** Confirm bucket + mode + artifacts via `AskUserQuestion` BEFORE Step 1 — NEVER auto-start.
-- **IMPORTANT MUST ATTENTION [BLOCKING]** Context compaction/session resume → `TaskList` FIRST; never re-run a completed generation pass.
-- **IMPORTANT MUST ATTENTION [BLOCKING]** Stamp the DERIVED banner + regenerate date on every generated file; write after each artifact, never accumulate.
-- **IMPORTANT MUST ATTENTION [REQUIRED]** INDEX/ERD prose tech-agnostic; only a reimplementation guide may name a target stack (rebuild-guide exception).
-- **IMPORTANT MUST ATTENTION [REQUIRED]** Every catalog row / ERD entity links to an existing Feature Spec; mark `[UNVERIFIED]` rather than guessing.
+- **IMPORTANT MUST ATTENTION Goal:** Give readers a regenerable, single-writer navigation layer (catalog + cross-capability ERD + rebuild guide) assembled FROM the canonical Feature Specs — so a bucket can be browsed or replatformed without ever forking a second, hand-maintained source of truth
+
+**Protocols in force (concise digest of the SYNC/shared blocks this skill carries — MUST ATTENTION each canonical body above):**
+
+- **Cross-Service Check:** scan producers/consumers/sagas/contracts; flag breaking-change risk.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **Critical Thinking:** NEVER present a guess as fact; traced proof, confidence >80% to act.
+
+- **IMPORTANT MUST ATTENTION [BLOCKING]** Output is DERIVED — never emit `M##`/A-E/`00-module-registry`/`01-domain-erd`/`06-reimplementation-guide`/QA-dashboard files (see Hard Prohibitions); use `{Bucket}.*` filenames instead — why: an A-E bundle becomes a second source of truth competing with the Feature Spec
+- **IMPORTANT MUST ATTENTION [BLOCKING]** The Feature Spec (`docs/specs/{Bucket}/README.{Feature}.md`) is the source of truth — this skill assembles, never authors, business content — why: a derived aid that asserts canonical authority corrupts the single-writer contract
+- **IMPORTANT MUST ATTENTION [BLOCKING]** Confirm bucket + mode + artifacts via `AskUserQuestion` BEFORE Step 1 — NEVER auto-start; if the bucket has no `README.*.md` specs, STOP and route to `/spec` instead of fabricating a spec to index
+- **IMPORTANT MUST ATTENTION [BLOCKING]** Context compaction/session resume → `TaskList` FIRST; resume existing tasks, never re-run a completed generation pass — why: summaries describe intent, not filesystem state
+- **IMPORTANT MUST ATTENTION [BLOCKING]** Stamp the DERIVED banner + regenerate date on every generated file; write after each artifact, never accumulate large outputs in context
+- **IMPORTANT MUST ATTENTION [REQUIRED]** INDEX/ERD prose tech-agnostic (read `spec-principles.md` §3 banned-token list FIRST); only a reimplementation guide may name a target stack (rebuild-guide exception)
+- **IMPORTANT MUST ATTENTION [REQUIRED]** Every catalog row / ERD entity links to an existing Feature Spec — grep the source path to confirm it resolves; mark `[UNVERIFIED]` rather than guessing — why: dangling links silently rot the navigation layer
+- **IMPORTANT MUST ATTENTION** Read code ONLY to resolve a cross-spec ERD relationship or a reimplementation build order — never to populate a parallel spec layer — why: code is the technical source of truth, not a spec substitute
+- **IMPORTANT MUST ATTENTION** Cite `file:line` evidence for every extracted field and link (confidence >80% to act, <60% mark `[UNVERIFIED]`) — NEVER fabricate a capability name, feature code, or TC count; grep the source spec to confirm
+- **IMPORTANT MUST ATTENTION** Before authoring any new derived format, grep 3+ existing `INDEX.md`/`*.erd.md` siblings and match their structure — verify the new bucket shares the same spec layout before copying a nearby pattern
+- **IMPORTANT MUST ATTENTION** Break task scope into small `TaskCreate` todos (one per artifact) before acting; mark each `completed` immediately after its file is written; keep exactly one `in_progress`
 
 **Anti-Rationalization:**
 
@@ -279,9 +287,15 @@ A **derived-index generator** over the single-home spec tree. The canonical know
 | "The index can be the source of truth, it's complete"    | NEVER — it is derived/regenerable. §1-7 + §8 of the Feature Spec are canonical.                    |
 | "No specs in this bucket, I'll extract from code"        | STOP. Route to `/spec`. This skill indexes existing specs; it does not author new ones.    |
 | "Scope is obvious, skip Step 0 AskUserQuestion"          | BLOCKING — NEVER auto-start. Bucket, mode, and artifact set MUST be confirmed first.               |
+| "I'll just trust the spec link, no need to verify"       | Grep the source path. A dangling link makes the derived navigation layer worse than none.         |
+| "TC count looks about right, skip re-reading §8"         | NEVER guess counts. Re-read `## 8. Test Specifications`; mark `[UNVERIFIED]` if unresolved.        |
 
 **[TASK-PLANNING]** MUST ATTENTION analyze task scope and break into small todo tasks/sub-tasks via TaskCreate before acting.
 
 > **[IMPORTANT]** Break into many small todo tasks systematically before starting — this is critical.
+
+**IMPORTANT MUST ATTENTION** Output is DERIVED + regenerable — never a second source of truth; the Feature Spec is canonical.
+**IMPORTANT MUST ATTENTION** Confirm bucket + mode + artifacts via `AskUserQuestion` BEFORE any read; no specs → STOP, route to `/spec`.
+**IMPORTANT MUST ATTENTION** Cite `file:line` for every extracted field; mark `[UNVERIFIED]` rather than guessing; never emit retired A-E/`M##`/QA-dashboard files.
 
 ---

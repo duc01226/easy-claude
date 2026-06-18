@@ -923,17 +923,14 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -986,7 +983,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
@@ -998,7 +995,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -1051,26 +1048,51 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Block any plan from reaching implementation unless it is hallucination-free (every existing-code claim proven at `file:line`) and implementation-ready (every step concrete, small enough to code from immediately).
-**MANDATORY IMPORTANT MUST ATTENTION** plans must not hallucinate — every claim about existing source code needs `file:line` proof. Unverified paths, class names, or behaviors = FAIL.
-**MANDATORY IMPORTANT MUST ATTENTION** plans must be detailed and small enough — too vague? detail it. Too big? break it. Every step must be implementation-ready.
-**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting.
-**MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — never auto-decide.
-**MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.
-**MANDATORY IMPORTANT MUST ATTENTION** when plan-review finds any issue, run `/why-review --validate-findings` before editing plan files; after validated fixes, rerun plan-review until zero findings.
-**MANDATORY IMPORTANT MUST ATTENTION** READ the following files before starting:
+**IMPORTANT MUST ATTENTION Goal:** Block any plan reaching implementation unless hallucination-free (every existing-code claim proven at `file:line`) AND implementation-ready (every step concrete, small enough to code from immediately) — recursive review until a complete pass finds zero findings.
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
+**IMPORTANT MUST ATTENTION** Protocols in force (concise digest of the SYNC/shared blocks this skill carries) — each line is a signpost to its canonical body above; NEVER treat the digest as a substitute for the full block, and ALWAYS apply every protocol below in full:
 
-> **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
+- **Behavioral Delta Matrix:** bugfix reviews need input × pre × post × delta table before verdict.
+- **Graph-Assisted Investigation:** run one graph command on key files when graph.db exists.
+- **Cross-Service Check:** scan producers, consumers, sagas, contracts; missing consumer = silent regression.
+- **Fresh Context Review:** spawn zero-memory sub-agent re-reading from scratch after each fix cycle.
+- **Nested Task Creation:** expand child phase tasks; link the parent workflow row when nested.
+- **Task Tracking & External Report:** bootstrap task breakdown; persist findings to `plans/reports/` incrementally.
+- **Critical Thinking:** every claim needs traced `file:line` proof; never present guess as fact.
+- **Sequential Thinking:** multi-step Thought N/M with REVISION/BRANCH/HYPOTHESIS markers and confidence closer.
+- **Project Reference Docs:** read required project-reference docs before target work; conventions override generic defaults.
+- **Understand Code First:** grep 3+ patterns and read code before any modification.
+- **Double Round-Trip Review:** review → validate findings → fix → full re-review until clean.
+- **Review Protocol Injection:** embed all 11 protocol bodies verbatim into every fresh review prompt.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **Severity Rubric:** classify Critical/High/Medium/Low by consequence; Critical/High block PASS.
+
+**IMPORTANT MUST ATTENTION** review as SKEPTIC not validator — your job: find what cannot work, not confirm what looks right; run the full Anti-Bias Gate (reality check, assumption stress-test, pre-mortem, steel-man rejected alternative, contrarian pass) BEFORE any verdict — why: confirmation bias rubber-stamps well-structured plans.
+**MANDATORY IMPORTANT MUST ATTENTION** Anti-Hallucination Gate — every plan claim about existing source code needs `file:line` proof (file exists, symbol grepped, behavior code-traced); "should be"/"probably"/"typically" about existing code = FAIL. Greenfield-only plans → PASS.
+**MANDATORY IMPORTANT MUST ATTENTION** Granularity Gate "Detailed & Small Enough" — FAIL any phase >5 files OR >3h OR carrying planning verbs (research/determine/decide/evaluate/explore/investigate); too vague → detail it (file paths, exact method names), too big → break it into sibling phases/sub-plans — why: a plan you can't immediately code from is NOT ready.
+**MANDATORY IMPORTANT MUST ATTENTION** detect plan type FIRST (Phase 0) — bugfix MANDATES the Behavioral Delta Matrix (≥3 rows, ≥1 outside the bug report, any REGRESSION → FAIL until a preservation test covers it); security/perf/refactor/contract/infra each add their own focus.
+**MANDATORY IMPORTANT MUST ATTENTION** spec-loop scheduling — plan must schedule property/invariant test specs for every `[HARD]` §4 rule / §5 invariant + a MUTATION-SCORE quality bar; FAIL a plan targeting a line-coverage % instead of a mutation-score bar.
+**MANDATORY IMPORTANT MUST ATTENTION** when ANY finding exists, run `/why-review --validate-findings` BEFORE editing any `plan.md`/`phase-*.md`; fix ONLY validated findings at the smallest responsible location, then restart the FULL review with a fresh zero-memory sub-agent — loop until a clean pass; NEVER edit plan files before this gate passes — why: unvalidated fixes corrupt the plan and waste review rounds.
+**MANDATORY IMPORTANT MUST ATTENTION** no arbitrary round cap — a clean pass ends the loop immediately; escalate via `AskUserQuestion` ONLY when the SAME blocker survives 3 consecutive full re-reviews with no progress, or a finding needs product/owner judgment.
+**MANDATORY IMPORTANT MUST ATTENTION** bootstrap `TaskCreate` task breakdown BEFORE reads/grep/edits (one task per file read); persist findings to `plans/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` incrementally and synthesize from disk; add a final review task — why: long plan files exhaust context, the report file is ground truth.
+**MANDATORY IMPORTANT MUST ATTENTION** run a graph trace on each "files to modify" entry when `.code-graph/graph.db` exists; flag any downstream file NOT listed in the plan as "potentially missed" — why: catches cross-service/event-handler impact the author overlooked.
+**MANDATORY IMPORTANT MUST ATTENTION** standalone runs end with `AskUserQuestion` presenting findings + next-step options; skip ONLY inside a workflow.
+**MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every finding (confidence >80% to act, <60% DO NOT recommend); NEVER mark PASS while any spec/test/code face disagrees without a logged finding.
+**MANDATORY IMPORTANT MUST ATTENTION** READ before reviewing: `.claude/docs/development-rules.md`, `docs/project-reference/code-review-rules.md`, `lessons.md`, plus skill-specific pattern refs (backend/frontend/integration-test).
 
 **Anti-Rationalization:**
 
 | Evasion | Rebuttal |
 | ------- | -------- |
-| "Plan looks reasonable" | Prove every existing-code claim with `file:line`; plausible text is not evidence. |
-| "One review pass enough" | Continue recursive review only after fixes; clean complete pass ends loop. |
-| "Implementation can fill gaps" | FAIL vague steps now — implementation should execute plan, not invent it. |
+| "Plan looks reasonable" | Structure ≠ correctness. Prove every existing-code claim with `file:line`; plausible text is not evidence. |
+| "Phases are well-defined" | Presence of phases ≠ implementable. Apply the 5-point Granularity Gate per phase. |
+| "One review pass enough" | Re-review only after a validated-finding fix cycle; a clean COMPLETE pass ends the loop. |
+| "Implementation can fill gaps" | FAIL vague steps now — implementation executes the plan, it does not invent it. |
+| "Alternatives were considered" | Were they real, or strawmen set up to fail? Steel-man the rejected one. |
+| "Risk is managed" | "Monitor closely" is not a mitigation. Demand action, owner, trigger. |
+| "Already traced the code" | Show `file:line` / grep evidence. No proof = no trace. |
+
+**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using `TaskCreate`; add a final review task.
 
 ---
 
@@ -1079,3 +1101,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > the next change cheaper or more expensive?_ If it doesn't reduce future
 > change cost, reject it. Coupling, hidden state, duplicated knowledge, and
 > unclear intent are the real enemies — call them out by name.
+
+**IMPORTANT MUST ATTENTION Goal:** Block any plan reaching implementation unless hallucination-free (`file:line` proof) AND implementation-ready (concrete, small-enough phases) — loop until a clean pass.
+**IMPORTANT MUST ATTENTION** review as SKEPTIC — `file:line` proof for every existing-code claim; FAIL vague/oversized phases; bugfix → Behavioral Delta Matrix.
+**IMPORTANT MUST ATTENTION** validate findings via `/why-review --validate-findings` before editing plan files; fix only validated findings; restart full review until zero findings.

@@ -791,17 +791,14 @@ Example for a "Create Invoice" story:
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -817,7 +814,7 @@ Example for a "Create Invoice" story:
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
@@ -829,7 +826,7 @@ Example for a "Create Invoice" story:
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -846,12 +843,40 @@ Example for a "Create Invoice" story:
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** produce sprint-ready, INVEST-valid user stories — tech-agnostic, testable GWT criteria, evidence-cited estimates, dependency-mapped — that a team with zero codebase knowledge can implement on any stack.
-**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting.
-**MANDATORY IMPORTANT MUST ATTENTION** every story MUST satisfy AI-SDD mandates M1-M5 — tech-agnostic prose, `FR-`/`BR-` logical ID, testable GWT criteria, rebuild-from-scratch — reject and rework on any failure condition — why: stories drive implementation on any stack.
-**MANDATORY IMPORTANT MUST ATTENTION** every story set includes a Story Dependencies table with no orphan stories; SP >8 MUST split, >5 SHOULD split — why: ordering feeds `/prioritize` and `/plan`.
-**MANDATORY IMPORTANT MUST ATTENTION** estimation is bottom-up — phase hours drive `man_days_traditional`, SP DERIVED; compute test_count explicitly, never hand-wave "+tests".
-**MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via `AskUserQuestion` — never auto-decide.
-**MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.
+
+**Protocols in force (concise digest of the SYNC/shared blocks this skill carries) — MUST ATTENTION honor each canonical body, NEVER skip one:**
+
+- **Estimation Framework:** Bottom-up phase hours drive man-days; SP DERIVED; UI usually dominates.
+- **UI System Context:** Read frontend-patterns, scss-styling, design-system before any UI change.
+- **UI Wireframe:** Box-ASCII layout; classify each component into one tier; reuse before new.
+- **Critical Thinking:** Trace proof for every claim; confidence >80% to act.
+- **Sequential Thinking:** Multi-step Thought N/M with revision/branch/hypothesis markers; confidence closer.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+
+**IMPORTANT MUST ATTENTION** every story MUST satisfy AI-SDD mandates M1-M5 — tech-agnostic prose, `FR-`/`BR-` logical ID + `[Source: namespace/service/id]` abstract anchor (NEVER `file:line` in story prose), testable GWT criteria, rebuild-from-scratch — reject and rework on any STOP condition — why: stories drive implementation on any stack, so a leaked framework/class name breaks portability.
+**IMPORTANT MUST ATTENTION** every story set includes a Story Dependencies table with no orphan stories; SP >8 MUST split, >5 SHOULD split via SPIDR — why: ordering feeds `/prioritize` and `/plan` and oversized stories miss the sprint.
+**MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting; mark one `in_progress` and `completed` immediately — why: long story files exhaust context and lose findings without external tracking.
+**MANDATORY IMPORTANT MUST ATTENTION** estimation is bottom-up — phase hours drive `man_days_traditional` (`Σh/6 × productivity_factor`), SP DERIVED never the driver; run the Blast Radius pre-pass and compute `test_count` explicitly per driver — NEVER hand-wave "+tests" (the #1 failure) — why: SP-first estimates anchor to a guess, not the work.
+**MANDATORY IMPORTANT MUST ATTENTION** emit the full estimate frontmatter — `story_points`, `complexity`, `man_days_traditional`, `man_days_ai`, `risk_margin_pct`, `risk_factors`, `blast_radius`, `estimate_scope_*`, `estimate_reasoning` (UI vs backend cost driver) — why: downstream `/prioritize` and `/plan` read these fields, blanks block them.
+**MANDATORY IMPORTANT MUST ATTENTION** write min 3 GWT scenarios (happy + edge + error) PLUS a mandatory authorization scenario per story; every criterion has exactly ONE observable interpretation — why: a vague or single-scenario story ships untested edge/error/auth paths.
+**MANDATORY IMPORTANT MUST ATTENTION** slice VERTICALLY (thin end-to-end), NEVER horizontally (backend/frontend split) — why: horizontal slices delay deliverable user value.
+**MANDATORY IMPORTANT MUST ATTENTION** search existing component libraries and domain vocabulary BEFORE proposing new components/entities (>=80% match = reuse); use the project's own entity names — why: duplicate UI/domain code = wrong tier and fragments the codebase.
+**MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` (or grep/graph) evidence with a confidence % for every claim about existing code/entities — >80% to act, <80% verify first — why: AI hallucinates entity/API names; unverified scoping mis-slices the story.
+**MANDATORY IMPORTANT MUST ATTENTION** validate stories with the user via `AskUserQuestion` before handoff — NEVER auto-decide slicing/scope/effort — why: silent assumptions on ambiguous scope ship the wrong stories.
+**MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify every story against its AC scenarios, the dependency table, and the Quality Checklist.
+
+**Anti-Rationalization:**
+
+| Evasion                                   | Rebuttal                                                                                      |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------- |
+| "Story is small, skip SPIDR/estimate"     | SP >8 MUST split, >5 SHOULD — and SP is DERIVED from bottom-up hours, not eyeballed. Estimate. |
+| "Tech notes need the class name"          | Source identifiers belong only in evidence carriers as `[Source: namespace/service/id]` — never in prose (M1/M2). |
+| "Happy path is enough"                    | Min 3 scenarios + a mandatory authorization scenario per story. Edge + error + auth are NOT optional. |
+| "+tests covers the test cost"             | Compute `test_count` explicitly per driver (auth matrix, validation, states). Hand-wave is the #1 estimate failure. |
+| "Independent story, skip the dep table"   | No orphan stories — every story appears in the dependency table, even if `independent`.        |
+| "Slicing is obvious, skip validation"     | `AskUserQuestion` validation is MANDATORY, not optional. The user confirms slicing/scope/effort. |
+
+**IMPORTANT MUST ATTENTION** AI-SDD M1-M5 tech-agnostic + dependency table + bottom-up estimate are the three rules this skill must never skip — re-anchored here (recency) and in the Quick Summary (primacy).
 ````
 
 **MANDATORY IMPORTANT MUST ATTENTION** READ the following files before starting:

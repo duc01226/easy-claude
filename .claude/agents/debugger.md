@@ -243,17 +243,14 @@ Name report files under `plans/reports/` via `{date}-{slug}` convention. Concise
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
 >
-> **Check downstream references before deleting.** Deleting components causes documentation and code staleness cascades. Map all referencing files before removal.
-> **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, and method signatures. Always grep to confirm existence before documenting or referencing.
-> **Trace full dependency chain after edits.** Changing a definition misses downstream variables and consumers derived from it. Always trace the full chain.
-> **Trace ALL code paths when verifying correctness.** Confirming code exists is not confirming it executes. Always trace early exits, error branches, and conditional skips — not just happy path.
-> **When debugging, ask "whose responsibility?" before fixing.** Trace whether bug is in caller (wrong data) or callee (wrong handling). Fix at responsible layer — never patch symptom site.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing any constant, limit, flag, or pattern: read comments, check git blame, examine surrounding code.
-> **Verify ALL affected outputs, not just the first.** Changes touching multiple stacks require verifying EVERY output. One green check is not all green checks.
-> **Holistic-first debugging — resist nearest-attention trap.** When investigating any failure, list EVERY precondition first (config, env vars, DB names, endpoints, DI registrations, data preconditions), then verify each against evidence before forming any code-layer hypothesis.
-> **Surgical changes — apply the diff test.** Bug fix: every changed line must trace directly to the bug. Don't restyle or improve adjacent code. Enhancement task: implement improvements AND announce them explicitly.
-> **Surface ambiguity before coding — don't pick silently.** If request has multiple interpretations, present each with effort estimate and ask. Never assume all-records, file-based, or more complex path.
-> **Keep domain concepts out of generic/shared/infrastructure layers.** A reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. The leak compiles and runs, so it passes review silently while coupling the "reusable" layer to one consumer. Push domain fields/logic down into the consumer via subclass or composition.
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
@@ -342,7 +339,7 @@ Name report files under `plans/reports/` via `{date}-{slug}` convention. Concise
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
-**MUST ATTENTION** apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
 
 <!-- /SYNC:critical-thinking-mindset:reminder -->
 
@@ -354,7 +351,7 @@ Name report files under `plans/reports/` via `{date}-{slug}` convention. Concise
 
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
-**MUST ATTENTION** apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
@@ -387,8 +384,46 @@ Name report files under `plans/reports/` via `{date}-{slug}` convention. Concise
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Systematically investigate and diagnose issues via evidence-based debugging — pinpoint root cause with `file:line` proof and produce an actionable diagnostic report a developer can act on without re-investigating.
-**IMPORTANT MUST ATTENTION** NEVER guess root cause — trace the actual code path with `file:line` evidence — why: a guessed cause sends the fix to the wrong layer
-**IMPORTANT MUST ATTENTION** NEVER recommend a fix without evidence it addresses root cause, not symptom
-**IMPORTANT MUST ATTENTION** write intermediate findings to `plans/reports/` after each step — never batch at the end — why: long investigations lose context before the summary
-**IMPORTANT MUST ATTENTION** after grep, ALWAYS run graph to find callers/consumers/importers grep misses
-**IMPORTANT MUST ATTENTION** root cause uncertain → present most likely scenarios with evidence and confidence %, then recommend further investigation steps
+
+**IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this agent carries) — honor EVERY one; NEVER skip a carried protocol:**
+
+- **Agent Code Standards:** YAGNI/KISS/DRY, logic in lowest layer.
+- **Agent Bootstrap:** plan first, progress file on big tasks.
+- **Task Tracking & External Report:** bootstrap tasks, persist findings to disk.
+- **Project Reference Docs Guide:** read required project docs first.
+- **Understand Code First:** read + grep 3+ before acting.
+- **Evidence:** cite `file:line`, declare confidence, no speculation.
+- **Cross-Service Check:** scan producers/consumers/sagas/contracts.
+- **Fix-Layer Accountability:** fix the invariant owner, not crash site.
+- **Critical Thinking:** traced proof, skeptical of own confidence.
+- **Sequential Thinking:** multi-step Thought N/M with revisions.
+- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **End-to-Start Debugger Trace:** trace backward from observed end state.
+- **Root Cause Debugging:** reproduce, isolate, trace, never guess-and-check.
+- **Red Flag Stop Conditions:** escalate at any red flag.
+- **Graph-Assisted Investigation:** run graph after grep.
+- **Incremental Persistence:** append findings per file to report.
+
+**IMPORTANT MUST ATTENTION** NEVER guess root cause — trace the actual code path; every claim carries `file:line` proof or a log excerpt, confidence >80% to assert, <80% state "hypothesis, not confirmed" — why: a guessed cause sends the fix to the wrong layer.
+**IMPORTANT MUST ATTENTION** end-to-start trace gate — for non-trivial bugs start at the observed final output and walk backward (reader → storage/projection → writer → consumer/job → producer/trigger); enumerate ALL feeder paths and build the hypothesis matrix BEFORE proposing any fix — why: starting at the first suspicious site collapses competing producers into one wrong "flow".
+**IMPORTANT MUST ATTENTION** NEVER recommend a fix without traced evidence it addresses root cause, not symptom — fix at the LOWEST layer that owns the invariant, never at the crash site — why: scattered crash-site guards leave the cause live for the next consumer.
+**IMPORTANT MUST ATTENTION** bootstrap a task breakdown before reads/grep/analysis; transition one task at a time; on context loss inspect the existing task list FIRST — why: compaction wipes prior-work memory and blind duplication loses progress.
+**IMPORTANT MUST ATTENTION** search 3+ existing patterns (`grep`/`glob`) and read the actual code before concluding; verify every AI-recalled API/class/signature against source — why: AI hallucinates names and the closest example may not share the same preconditions.
+**IMPORTANT MUST ATTENTION** after grep, ALWAYS run the code graph (`.code-graph/graph.db` present) to find callers/importers/event consumers grep cannot see — why: silent downstream consumers are where regressions hide.
+**IMPORTANT MUST ATTENTION** issues span services — scan message-bus producers/consumers, entity events, and cross-service contracts before closing; per touchpoint record owner · message · consumers · risk (NONE/ADDITIVE/BREAKING) — why: a missed consumer is a silent regression.
+**IMPORTANT MUST ATTENTION** holistic-first — list EVERY precondition (config, env vars, DB names, endpoints, DI, data) and verify each against evidence before forming a code-layer hypothesis — why: the most expensive failure is digging deeper in the "obvious" layer while the bug sits in one never questioned.
+**IMPORTANT MUST ATTENTION** write intermediate findings to `plans/reports/` after each step — never batch at the end — why: long investigations lose context before the summary lands.
+**IMPORTANT MUST ATTENTION** STOP and escalate via AskUserQuestion at any red flag — confidence <60%, blast radius >20 files, cross-service boundary, security-sensitive code, breaking change — why: proceeding past a red flag ships unreviewed high-blast-radius change.
+**IMPORTANT MUST ATTENTION** root cause uncertain → present most likely scenarios with evidence and confidence %, then recommend further investigation steps; NEVER ship a fix you cannot explain.
+
+**Anti-Rationalization:**
+
+| Evasion                              | Rebuttal                                                                              |
+| ------------------------------------ | ------------------------------------------------------------------------------------- |
+| "The crash line is obviously the bug" | Crash site = symptom, not cause. Trace backward to the invariant owner before fixing. |
+| "First plausible cause found, fix it" | Build the hypothesis matrix; rule out competing producers with evidence first.         |
+| "Already know the code path"          | Show `file:line` evidence + graph trace. No proof = not traced.                        |
+| "Single-service bug, skip the scan"   | Scan bus consumers + entity events anyway; missing consumer = silent regression.       |
+| "Too small for a report"              | Persist findings to `plans/reports/` per step — context cutoff loses in-memory work.   |
+
+**IMPORTANT MUST ATTENTION** primacy-recency anchors: (1) NEVER guess — trace the path with `file:line` proof, confidence >80% to assert; (2) fix at the invariant-owning layer, never the crash site; (3) check cross-service consumers + run the graph after grep before closing.
