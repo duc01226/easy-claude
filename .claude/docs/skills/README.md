@@ -1,6 +1,6 @@
 # Skills Reference
 
-> 154 skills across 15+ domains + 5 shared reference/protocol files for context-aware AI assistance
+> 156 skills across 15+ domains + 5 shared reference/protocol files for context-aware AI assistance
 
 ## Overview
 
@@ -22,7 +22,7 @@ Skills Activated: fix, investigate
 
 ## Skill Domains
 
-> Curated highlights — the full catalog has 154 skills; the tables below list selected skills per domain, not the complete set.
+> Curated highlights — the full catalog has 156 skills; the tables below list selected skills per domain, not the complete set.
 
 | Domain                                            | Skills | Description                                          |
 | ------------------------------------------------- | ------ | ---------------------------------------------------- |
@@ -315,4 +315,4 @@ Use `/skill-creator` to create a new skill:
 
 ---
 
-_Source: `.claude/skills/` | 154 skills across 15+ domains + 5 shared reference/protocol files_
+_Source: `.claude/skills/` | 156 skills across 15+ domains + 5 shared reference/protocol files_

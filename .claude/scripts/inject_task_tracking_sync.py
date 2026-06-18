@@ -44,6 +44,9 @@ SKILL_NAMES = [
     "investigate",
     "debug-investigate",
     "scout",
+    # Spec authoring quality family (idea → spec gates)
+    "spec-discovery",
+    "spec-clarify",
     # workflow-write-integration-test step skills (those not already listed)
     # NOTE: `spec` (merged feature-spec router) is intentionally NOT a target —
     # it carries task-tracking via STEP-TASK-ANCHOR and writes its TC registry

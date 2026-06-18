@@ -54,6 +54,10 @@ The `/brainstorm` step frames the idea using the Double Diamond process:
 Output: the converged capability (or a short list if multiple distinct capabilities emerge).
 AI presents the framing and confirms scope: **"Which capability should we author as a Feature Spec?"** If multiple distinct capabilities are in scope, confirm with the user and author one Feature Spec per capability (sub-agent per capability for 4+ — see Scale awareness).
 
+### 1a. Spec-Discovery (Landscape Investigation — After brainstorm, Before domain-analysis)
+
+`/spec-discovery` investigates the surrounding system BEFORE authoring: it Globs `docs/specs/**` to classify every related / overlapping / affected Feature Spec, scouts related code (graph-expanded when `.code-graph/graph.db` exists), and surfaces gaps, missing test cases / user stories, and the **invariant landscape** the idea must respect. It ends in a **BLOCKING scope-decision gate** — author a NEW spec, EXTEND an existing one, or SPLIT into N — so no duplicate / overlapping spec is authored. Greenfield (no specs + no code) short-circuits with a recorded reason.
+
 ### 2. Why-Review Gate (After domain-analysis, Before spec authoring)
 
 Before authoring the spec, validate the idea framing with `/why-review`:
@@ -81,6 +85,7 @@ These steps run in sequence. **Spec-driven order: idea → draft Feature Spec �
 | `/spec [mode=tests]`                 | Author §8 TC-{FEATURE}-{NNN} behavioral test cases (`Evidence: TBD`, `Status: Planned` — before any code)                | Feature Spec §8 Test Specifications             |
 | `/review-artifact --type=spec-tests` | Test-spec quality check                                                                                                  | Reviewed §8 TCs                                 |
 | `/review-artifact`                   | Feature Spec quality check                                                                                               | Reviewed Feature Spec                           |
+| `/spec-clarify`                     | Brainstorm open questions, audit non-obvious decisions, confirm with user (BLOCKING)                                     | Clarified spec + Decisions Log                  |
 | `/why-review`                        | Validate the authored spec's rationale and completeness                                                                  | Why-Review checklist                            |
 | `/docs-update`                       | Sync the Feature Spec (§8) and derived bucket indexes                                                                    | Docs-update report                              |
 
@@ -104,14 +109,14 @@ At `/workflow-end`, AI presents:
 
 ---
 
-**IMPORTANT MANDATORY Steps:** /brainstorm -> /domain-analysis -> /why-review -> /idea -> /spec [mode=draft] -> /spec [mode=tests] -> /review-artifact --type=spec-tests -> /review-artifact -> /why-review -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /web-research -> /deep-research -> /brainstorm -> /spec-discovery -> /domain-analysis -> /why-review -> /idea -> /spec [mode=draft] -> /spec [mode=tests] -> /review-artifact --type=spec-tests -> /review-artifact -> /spec-clarify -> /why-review -> /docs-update -> /workflow-end -> /watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
 Activate the `workflow-idea-to-spec` workflow. Run `/start-workflow workflow-idea-to-spec` with the user's prompt as context.
 
 **Steps:**
-/brainstorm → /domain-analysis → /why-review → /idea → /spec [mode=draft] → /spec [mode=tests] → /review-artifact --type=spec-tests → /review-artifact → /why-review → /docs-update → /workflow-end → /watzup
+/web-research → /deep-research → /brainstorm → /spec-discovery → /domain-analysis → /why-review → /idea → /spec [mode=draft] → /spec [mode=tests] → /review-artifact --type=spec-tests → /review-artifact → /spec-clarify → /why-review → /docs-update → /workflow-end → /watzup
 
 > **Scale awareness:** When the brainstorm converges on multiple distinct capabilities, this workflow authors one Feature Spec per capability. For 4+ capabilities, spawn one `spec` sub-agent per capability in ONE message (each gets the framing context + output path); the main context assembles and reviews. Use incremental-write patterns to prevent context overrun.
 

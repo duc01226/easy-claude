@@ -222,10 +222,19 @@ module.exports = {
             },
         },
         {
-            name: 'COVERAGE: review-protocol-injection reaches all 12 carriers and carries the Triangulation protocol (post-P1)',
+            // Pinned carrier count (no silent cap): review-protocol-injection reaches 13 carriers =
+            // 8 review SKILLs (code-review, review-changes, review-artifact, knowledge-review,
+            // production-readiness-review, plan-review, why-review, spec-clarify) + 5 review AGENTS
+            // (code-reviewer, spec-compliance-reviewer, quality-gate-review, planner, integration-tester).
+            // spec-clarify (the post-spec clarification gate) joined as the 8th skill: it runs INLINE for
+            // its AskUserQuestion gate but performs the SAME validate→fix→fresh-full-re-review cycle as its
+            // review-family peers, so it carries the trio (double-round-trip / fresh-context / protocol-injection)
+            // at parity with review-artifact. A 14th appearing — or one vanishing — must surface loudly here
+            // rather than quietly widen/narrow the guarded set.
+            name: 'COVERAGE: review-protocol-injection reaches all 13 carriers and carries the Triangulation protocol (post-P1)',
             fn() {
                 const carriers = PAIRS.filter((p) => p.tag === 'review-protocol-injection');
-                assertEqual(carriers.length, 12, `expected 12 review-protocol-injection carriers, found ${carriers.length}`);
+                assertEqual(carriers.length, 13, `expected 13 review-protocol-injection carriers, found ${carriers.length}`);
                 const canon = CANON_BODY.get('review-protocol-injection');
                 assertTrue(
                     canon != null && /Spec ↔ Tests ↔ Code Triangulation/.test(canon),

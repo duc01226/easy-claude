@@ -1,10 +1,10 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-06-16'
-  total_skills: 154
+  last_updated: '2026-06-19'
+  total_skills: 156
   total_by_status:
-    active: 153
+    active: 155
     deprecated: 1
     experimental: 0
 categories:
@@ -1212,6 +1212,36 @@ skills:
       category: other
       has_scripts: false
       has_references: true
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: spec-clarify
+      path: spec-clarify/SKILL.md
+      description: '[Code Quality] Use to validate a spec artifact''s decisions with
+        the user across three contexts — a freshly-authored Feature Spec (idea-to-spec),
+        an existing canonical spec before PBI decomposition (spec-to-pbi), or a refined
+        idea + §8 test-specs (idea-to-pbi deep mode). Detects the context, walks every
+        applicable validation category, and runs an exhaustive but budget-bounded
+        blocking clarification gate so every non-obvious or conflicting decision is
+        confirmed before the artifact drives downstream work.'
+      category: other
+      has_scripts: false
+      has_references: true
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: spec-discovery
+      path: spec-discovery/SKILL.md
+      description: '[Investigation] Use when about to author a new Feature Spec from
+        an idea — investigate all existing Feature Specs AND related code logic first
+        to surface related/overlapping/affected specs, missing features, missing test
+        cases/user stories, system unknowns, and the invariant landscape, before any
+        spec is drafted.'
+      category: other
+      has_scripts: false
+      has_references: false
       status: active
       deprecated_by: null
       deprecated_since: null

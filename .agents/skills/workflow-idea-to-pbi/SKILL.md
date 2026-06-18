@@ -102,6 +102,7 @@ After confirming the workflow, present the full step list and let the user desel
 - [x] Brainstorm (brainstorm)                      — DISCOVERY MODE ONLY; RICE opportunity map
 - [ ] Market research (web-research)               — DISCOVERY MODE, CONDITIONAL
 - [x] Idea capture (idea)                          — REPEATS per opportunity in discovery mode
+- [x] Spec & code discovery (spec-discovery)       — investigate related/affected specs + code before authoring
 - [ ] Review existing artifact (review-artifact)   — CONDITIONAL
 - [ ] PO → BA handoff (handoff)                    — CONDITIONAL
 - [x] Refine to PBI (refine)                        — REPEATS per opportunity in discovery mode
@@ -271,16 +272,16 @@ Purpose:
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $brainstorm -> $web-research -> $idea -> $review-artifact -> $refine -> $why-review -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $domain-analysis -> $why-review -> $plan -> $plan-review -> $plan-validate -> $why-review -> $review-artifact --type=pbi -> $story -> $why-review -> $review-artifact --type=story -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $prioritize -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $brainstorm -> $web-research -> $idea -> $spec-discovery -> $review-artifact -> $refine -> $why-review -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $spec-clarify -> $domain-analysis -> $why-review -> $plan -> $plan-review -> $plan-validate -> $why-review -> $review-artifact --type=pbi -> $story -> $why-review -> $review-artifact --type=story -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $prioritize -> $docs-update -> $workflow-end -> $watzup
 
-> **Mode gating of the canonical sequence above** — **Single-PBI deep mode:** skip $brainstorm + $web-research; run the full deep track (one PBI). **Discovery mode:** run $brainstorm + $web-research, skip $spec [mode=tests], $review-artifact --type=spec-tests, $plan, $plan-review, $plan-validate; loop $idea→/refine→/review-artifact --type=pbi→/story→/review-artifact --type=story→/pbi-challenge→/dor-gate→/pbi-mockup per selected opportunity, then $prioritize cross-PBI.
+> **Mode gating of the canonical sequence above** — **Single-PBI deep mode:** skip $brainstorm + $web-research; run the full deep track (one PBI). **Discovery mode:** run $brainstorm + $web-research, skip $spec [mode=tests], $review-artifact --type=spec-tests, $spec-clarify, $plan, $plan-review, $plan-validate; loop $idea→/refine→/review-artifact --type=pbi→/story→/review-artifact --type=story→/pbi-challenge→/dor-gate→/pbi-mockup per selected opportunity, then $prioritize cross-PBI.
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its skill invocation — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
 Activate the `workflow-idea-to-pbi` workflow. Run `$start-workflow workflow-idea-to-pbi` with the user's prompt as context.
 
 **Steps:**
-$brainstorm → $web-research → $idea → $review-artifact → $refine → $why-review → $spec [mode=tests] → $why-review → $review-artifact --type=spec-tests → $domain-analysis → $why-review → $plan → $plan-review → $plan-validate → $why-review → $review-artifact --type=pbi → $story → $why-review → $review-artifact --type=story → $pbi-challenge → $dor-gate → $pbi-mockup → $prioritize → $docs-update → $workflow-end → $watzup
+$brainstorm → $web-research → $idea → $spec-discovery → $review-artifact → $refine → $why-review → $spec [mode=tests] → $why-review → $review-artifact --type=spec-tests → $spec-clarify → $domain-analysis → $why-review → $plan → $plan-review → $plan-validate → $why-review → $review-artifact --type=pbi → $story → $why-review → $review-artifact --type=story → $pbi-challenge → $dor-gate → $pbi-mockup → $prioritize → $docs-update → $workflow-end → $watzup
 
 > **Conditional / mode-gated steps:**
 >

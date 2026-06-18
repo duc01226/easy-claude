@@ -198,7 +198,7 @@ Workflow can close only when:
 - The final backlog artifact ranks all PBIs and explains what to do first.
 - `$docs-update` has run as the near-final sync gate, with Feature Specs (§8) and derived bucket indexes either updated or explicitly marked unchanged.
 
-**IMPORTANT MANDATORY Steps:** $scout -> $spec-index -> $domain-analysis -> $why-review -> $plan -> $plan-review -> $plan-validate -> $why-review -> $refine -> $why-review -> $review-artifact --type=pbi -> $story -> $why-review -> $review-artifact --type=story -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $prioritize -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $scout -> $spec-index -> $domain-analysis -> $why-review -> $spec-clarify -> $plan -> $plan-review -> $plan-validate -> $why-review -> $refine -> $why-review -> $review-artifact --type=pbi -> $story -> $why-review -> $review-artifact --type=story -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $prioritize -> $docs-update -> $workflow-end -> $watzup
 
 > **[BLOCKING]** Each step MUST invoke its skill invocation. Marking a workflow step completed without skill invocation is a workflow violation.
 

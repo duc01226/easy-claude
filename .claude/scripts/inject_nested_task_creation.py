@@ -43,6 +43,8 @@ SKILL_NAMES = [
     # Investigate / scout family
     "investigate", "debug-investigate",
     "scout",
+    # Spec authoring quality family (idea → spec gates)
+    "spec-discovery", "spec-clarify",
     # Refactor / migration / scaffold
     "refactoring", "db-migrate", "scaffold",
     # Workflow step skills (inner phases)

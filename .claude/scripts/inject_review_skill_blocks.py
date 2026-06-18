@@ -43,6 +43,7 @@ SEVERITY = [
     "code-review", "review-changes", "review-architecture",
     "review-domain-entities", "review-ui", "integration-test-review", "security-review",
     "performance-review", "production-readiness-review", "knowledge-review", "review-artifact",
+    "spec-clarify",
     "plan-review", "why-review", "code-simplifier",
 ]
 CATEGORY = list(BATCHING)  # co-paired with batching

@@ -1316,6 +1316,35 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
+  description: '[Code Quality] Use to validate a spec artifact''s decisions with the
+    user across three contexts — a freshly-authored Feature Spec (idea-to-spec), an
+    existing canonical spec before PBI decomposition (spec-to-pbi), or a refined idea
+    + §8 test-specs (idea-to-pbi deep mode). Detects the context, walks every applicable
+    validation category, and runs an exhaustive but budget-bounded blocking clarification
+    gate so every non-obvious or conflicting decision is confirmed before the artifact
+    drives downstream work.'
+  has_references: true
+  has_scripts: false
+  name: spec-clarify
+  path: spec-clarify/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
+  description: '[Investigation] Use when about to author a new Feature Spec from an
+    idea — investigate all existing Feature Specs AND related code logic first to
+    surface related/overlapping/affected specs, missing features, missing test cases/user
+    stories, system unknowns, and the invariant landscape, before any spec is drafted.'
+  has_references: false
+  has_scripts: false
+  name: spec-discovery
+  path: spec-discovery/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
   description: '[General] Use when you need to (re)generate a DERIVED navigation index,
     cross-capability ERD, or reimplementation guide assembled FROM the canonical Feature
     Specs under docs/specs/**. Never extracts a separate A-E engineering tree.'
