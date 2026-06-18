@@ -3,7 +3,7 @@ name: devops
 version: 1.0.0
 description: '[DevOps] Use when deploying to Cloudflare (Workers, R2, D1, KV, Pages), Docker, or GCP (Compute Engine, GKE, Cloud Run).'
 license: MIT
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 ## Quick Summary

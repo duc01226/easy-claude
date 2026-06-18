@@ -2,7 +2,7 @@
 name: workflow-idea-to-spec
 version: 2.0.0
 description: '[Workflow] Use when activating the Idea-to-Spec workflow — turn a raw idea/vision/problem into ONE canonical (provisional) Feature Spec. STOPS at the reviewed spec; chain workflow-spec-to-pbi for a backlog. For code→spec use workflow-code-to-spec.'
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 > **Renamed:** formerly `workflow-product-discovery` — now `/workflow-idea-to-spec`. The old name no longer resolves as a slash command.
@@ -64,25 +64,25 @@ Before authoring the spec, validate the idea framing with `/why-review`:
 - Pre-mortem: if this is built and misses in 6 months, what was the root cause?
 - Are there systemic alternatives (infrastructure change, process change) that make this unnecessary?
 
-| Result | Action                                          |
-| ------ | ----------------------------------------------- |
-| PASS   | Proceed to spec authoring                       |
-| WARN   | Document risk, acknowledge with user, proceed   |
-| FAIL   | Revisit brainstorm framing before authoring     |
+| Result | Action                                        |
+| ------ | --------------------------------------------- |
+| PASS   | Proceed to spec authoring                     |
+| WARN   | Document risk, acknowledge with user, proceed |
+| FAIL   | Revisit brainstorm framing before authoring   |
 
 ### 3. Spec Authoring Flow (core mechanic — idea → provisional Feature Spec)
 
 These steps run in sequence. **Spec-driven order: idea → draft Feature Spec → test specs → review.**
 
-| Step             | Purpose                                                                     | Output                                          |
-| ---------------- | --------------------------------------------------------------------------- | ----------------------------------------------- |
-| `/idea`          | Capture the converged idea as a structured artifact                         | `team-artifacts/ideas/{date}-po-idea-{slug}.md` |
-| `/spec [mode=draft]` | Author the canonical tech-free 8-section Feature Spec §1-7 FROM the idea text (no code grep; `provisional: true` marker) | `docs/specs/{Bucket}/README.{Feature}.md`       |
-| `/spec [mode=tests]` | Author §8 TC-{FEATURE}-{NNN} behavioral test cases (`Evidence: TBD`, `Status: Planned` — before any code) | Feature Spec §8 Test Specifications             |
-| `/review-artifact --type=spec-tests` | Test-spec quality check                                      | Reviewed §8 TCs                                 |
-| `/review-artifact` | Feature Spec quality check                                                 | Reviewed Feature Spec                           |
-| `/why-review`    | Validate the authored spec's rationale and completeness                     | Why-Review checklist                            |
-| `/docs-update`   | Sync the Feature Spec (§8) and derived bucket indexes                        | Docs-update report                              |
+| Step                                 | Purpose                                                                                                                  | Output                                          |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------- |
+| `/idea`                              | Capture the converged idea as a structured artifact                                                                      | `team-artifacts/ideas/{date}-po-idea-{slug}.md` |
+| `/spec [mode=draft]`                 | Author the canonical tech-free 8-section Feature Spec §1-7 FROM the idea text (no code grep; `provisional: true` marker) | `docs/specs/{Bucket}/README.{Feature}.md`       |
+| `/spec [mode=tests]`                 | Author §8 TC-{FEATURE}-{NNN} behavioral test cases (`Evidence: TBD`, `Status: Planned` — before any code)                | Feature Spec §8 Test Specifications             |
+| `/review-artifact --type=spec-tests` | Test-spec quality check                                                                                                  | Reviewed §8 TCs                                 |
+| `/review-artifact`                   | Feature Spec quality check                                                                                               | Reviewed Feature Spec                           |
+| `/why-review`                        | Validate the authored spec's rationale and completeness                                                                  | Why-Review checklist                            |
+| `/docs-update`                       | Sync the Feature Spec (§8) and derived bucket indexes                                                                    | Docs-update report                              |
 
 **Provisional output:** because no code exists yet, the spec is provisional — §8 TCs carry `Evidence: TBD` and `Status: Planned`, and frontmatter carries `provisional: true`. The first `workflow-code-to-spec` / `spec [mode=update]` run against real code upgrades `TBD` → real `[Source:]` anchors and clears the provisional flag.
 
@@ -97,10 +97,10 @@ At `/workflow-end`, AI presents:
 
 ## Conditional Skip Rules
 
-| Step                  | Skip When                                                                   |
-| --------------------- | --------------------------------------------------------------------------- |
-| `/domain-analysis`    | No new domain entities or aggregates involved                               |
-| `/why-review` (gate)  | User has already validated the idea rationale; no alternatives available    |
+| Step                 | Skip When                                                                |
+| -------------------- | ------------------------------------------------------------------------ |
+| `/domain-analysis`   | No new domain entities or aggregates involved                            |
+| `/why-review` (gate) | User has already validated the idea rationale; no alternatives available |
 
 ---
 
@@ -242,11 +242,11 @@ Activate the `workflow-idea-to-spec` workflow. Run `/start-workflow workflow-ide
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
 
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
-**Anti-Rationalization:**
+> **Anti-Rationalization:**
 
-| Evasion | Rebuttal |
-| ------- | -------- |
-| "Purpose obvious" | Anchor it anyway — primacy/recency keeps outcome active through long prompts. |
-| "Existing reminders enough" | Echo Goal in Closing Reminders — bottom anchor prevents drift. |
-| "Skip evidence for prompt edits" | Cite changed file evidence and verify no stale protocol text remains. |
-| "Decompose into PBIs while I'm here" | Out of scope — this workflow STOPS at the spec. Chain workflow-spec-to-pbi. |
+| Evasion                              | Rebuttal                                                                      |
+| ------------------------------------ | ----------------------------------------------------------------------------- |
+| "Purpose obvious"                    | Anchor it anyway — primacy/recency keeps outcome active through long prompts. |
+| "Existing reminders enough"          | Echo Goal in Closing Reminders — bottom anchor prevents drift.                |
+| "Skip evidence for prompt edits"     | Cite changed file evidence and verify no stale protocol text remains.         |
+| "Decompose into PBIs while I'm here" | Out of scope — this workflow STOPS at the spec. Chain workflow-spec-to-pbi.   |

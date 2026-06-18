@@ -2,7 +2,7 @@
 name: workflow-seed-test-data
 version: 1.0.0
 description: '[Workflow] Use when activating the Seed Test Data workflow for idempotent QC happy-path seeders.'
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 ## Quick Summary

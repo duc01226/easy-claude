@@ -9,13 +9,24 @@ const path = require('path');
  * Each function returns a string (markdown content) or null (skip section).
  */
 
+// A runtime backing-service (any datastore/cache/broker, e.g. a DB or message
+// queue) is modeled as a kind:"infrastructure" module carrying a meta.port —
+// exactly the set buildInfraPorts renders in its own ports table. These are
+// runtime dependencies, NOT source-code modules, so they must NOT pollute the
+// "Apps/Services" list (buildTldr) or the "Key File Locations" tree
+// (buildKeyLocations). Infrastructure CODE modules (an orchestrator/IaC project)
+// carry no meta.port and are kept — they ARE real source locations.
+function isInfraBackingService(mod) {
+    return mod?.kind === 'infrastructure' && mod?.meta?.port != null;
+}
+
 function buildTldr(config) {
     const name = config.project?.name || 'Project';
     const desc = config.project?.description || '';
     const langs = config.project?.languages?.join(', ') || '';
     const framework = config.framework?.name || '';
     const modules = config.modules || [];
-    const apps = modules.map(m => m.name).join(', ');
+    const apps = modules.filter(m => !isInfraBackingService(m)).map(m => m.name).join(', ');
 
     const techParts = [langs, framework].filter(Boolean).join(' + ');
     const lines = [
@@ -68,7 +79,7 @@ function buildDecisionQuickRef(config) {
 }
 
 function buildKeyLocations(config) {
-    const modules = config.modules || [];
+    const modules = (config.modules || []).filter(m => !isInfraBackingService(m));
     if (modules.length === 0) return null;
 
     const lines = modules.map(m => {
@@ -150,15 +161,33 @@ function buildIntegrationTesting(config) {
 }
 
 function buildE2eTesting(config) {
-    const doc = config.framework?.e2eTestDoc;
-    // Also check testing config
+    const e2e = config.e2eTesting || {};
+    const doc = config.framework?.e2eTestDoc || e2e.guideDoc;
     const frameworks = config.testing?.frameworks || [];
-    const hasE2e = frameworks.some(f => f.toLowerCase().includes('selenium') || f.toLowerCase().includes('playwright') || f.toLowerCase().includes('cypress'));
+    const hasE2e = frameworks.some(f => /selenium|playwright|cypress|specflow/i.test(f)) || !!e2e.framework;
 
     if (!doc && !hasE2e) return null;
-    if (doc) {
-        return `See [${path.basename(doc)}](${doc}) for E2E test patterns, page objects, and configuration.`;
-    }
+
+    // Compose a stack descriptor from structured e2eTesting.architecture so the
+    // generated line is at least as rich as a hand-authored one (avoids the
+    // info-loss that otherwise forces a section to stay hand-authored).
+    const PRETTY = {
+        selenium: 'Selenium WebDriver',
+        playwright: 'Playwright',
+        cypress: 'Cypress',
+        specflow: 'SpecFlow BDD',
+        'page-object-model': 'Page Object Model'
+    };
+    const arch = e2e.architecture || {};
+    const stack = [arch.webDriverType, arch.bddFramework, arch.pattern]
+        .map(k => PRETTY[k]).filter(Boolean).join(' + ');
+    const docLink = doc
+        ? `Full guide: [${path.basename(doc)}](${doc}) for E2E test patterns, page objects, and configuration.`
+        : '';
+
+    if (stack && docLink) return `${stack}. ${docLink}`;
+    if (stack) return `E2E stack: ${stack}.`;
+    if (docLink) return docLink;
     return `E2E testing framework(s): ${frameworks.join(', ')}`;
 }
 

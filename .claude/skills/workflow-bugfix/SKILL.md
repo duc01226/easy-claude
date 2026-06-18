@@ -2,7 +2,7 @@
 name: workflow-bugfix
 version: 1.0.0
 description: '[Workflow] Use when activating the Bug Fix workflow for systematic debugging with root cause investigation, fix, and verification.'
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 ## Quick Summary

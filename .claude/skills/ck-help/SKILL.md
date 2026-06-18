@@ -2,7 +2,7 @@
 name: ck-help
 version: 1.0.0
 description: '[Utilities] Use when you need claudeKit usage guide - just type naturally.'
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 ## Quick Summary

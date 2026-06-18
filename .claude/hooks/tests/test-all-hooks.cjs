@@ -118,7 +118,7 @@ async function runHook(hookFile, input, options = {}) {
         const env = { ...process.env, ...options.env };
         const startTime = Date.now();
 
-        const proc = spawn('node', [hookPath], {
+        const proc = spawn('node', [hookPath, ...(options.args || [])], {
             cwd: options.cwd || process.cwd(),
             env,
             stdio: ['pipe', 'pipe', 'pipe']
@@ -270,9 +270,7 @@ async function testSessionInit() {
     {
         const result = await runHook('session-init.cjs', { source: 'startup' });
         logResult('Startup trigger exits 0', result.code === 0);
-        if (result.stdout) {
-            logOutputValidation('Contains system-reminder', containsSystemReminder(result.stdout));
-        }
+        logOutputValidation('No stdout context injection', result.stdout === '');
     }
 
     // Test 2: Resume trigger
@@ -341,7 +339,7 @@ async function testGraphSessionInit() {
         }
     }
 
-    // Test 2: Config populated → produces graph-related output
+    // Test 2: Config populated → stays silent while preserving side effects
     // Pin CLAUDE_PROJECT_DIR to the repo root: without it the loader falls back to
     // process.cwd(), which resolves to the empty tests/docs fixture when the suite
     // is launched from the tests directory (cwd-sensitive false failure).
@@ -349,7 +347,7 @@ async function testGraphSessionInit() {
         const repoRoot = path.resolve(__dirname, '..', '..', '..');
         const result = await runHook('graph-session-init.cjs', { source: 'startup' }, { timeout: 30000, env: { CLAUDE_PROJECT_DIR: repoRoot } });
         logResult('Exits 0 when config populated', result.code === 0);
-        logResult('Produces graph output when config populated', result.stdout.includes('code-graph') || result.stdout.includes('graph'));
+        logResult('No graph output when config populated', result.stdout === '');
     }
 }
 
@@ -581,7 +579,11 @@ async function testSessionEnd() {
 async function testInitPromptGate() {
     logSection('UserPromptSubmit: init-prompt-gate.cjs (project-context router)');
     const completeAgentFileStub = [
-        '<!-- CK:UNIVERSAL-GUIDES v3 -->',
+        '<!-- CK:UNIVERSAL-GUIDES v6 -->',
+        '<!-- CK:CRITICAL-THINKING -->',
+        '<!-- CK:AI-MISTAKE-PREVENTION -->',
+        '[CRITICAL-THINKING-MINDSET]',
+        'Common AI Mistake Prevention (System Lessons)',
         '## First Action Decision',
         '## Workflow Step Advancement',
         '## IMPORTANT: Task Planning Rules',
@@ -591,6 +593,37 @@ async function testInitPromptGate() {
         '## Git & Version-Control Discipline',
         ''
     ].join('\n');
+    const setupPopulatedPromptGateProject = tmpDir => {
+        const docsDir = path.join(tmpDir, 'docs');
+        const srcDir = path.join(tmpDir, 'src');
+        const graphDir = path.join(tmpDir, '.code-graph');
+        fs.mkdirSync(docsDir, { recursive: true });
+        fs.mkdirSync(srcDir, { recursive: true });
+        fs.mkdirSync(graphDir, { recursive: true });
+        fs.writeFileSync(
+            path.join(docsDir, 'project-config.json'),
+            JSON.stringify({
+                project: { name: 'TestProject' },
+                modules: [{ name: 'mod', kind: 'library', pathRegex: 'src/' }]
+            })
+        );
+        fs.writeFileSync(path.join(graphDir, 'graph.db'), 'fake-db');
+        fs.writeFileSync(path.join(tmpDir, 'CLAUDE.md'), completeAgentFileStub);
+        fs.writeFileSync(path.join(tmpDir, 'AGENTS.md'), completeAgentFileStub);
+        const tmpClaudeDir = path.join(tmpDir, 'tmp', 'claude-temp');
+        fs.mkdirSync(tmpClaudeDir, { recursive: true });
+        return tmpClaudeDir;
+    };
+    const writeScanStaleFlag = tmpClaudeDir => {
+        fs.writeFileSync(
+            path.join(tmpClaudeDir, '.scan-stale'),
+            JSON.stringify({
+                staleDays: 60,
+                docs: [{ filename: 'backend-patterns-reference.md', ageDays: 95, scanSkill: 'scan --target=backend-patterns' }],
+                checkedAt: new Date().toISOString()
+            }, null, 2)
+        );
+    };
 
     // Test 1: Populated config → exit 0 (silent pass-through)
     {
@@ -646,6 +679,8 @@ async function testInitPromptGate() {
                 }
             );
             logResult('Exit 0 when config unpopulated', result.code === 0);
+            logResult('Claude guidance uses plaintext stdout', !result.stdout.trim().startsWith('{'));
+            logResult('Codex guidance avoids JSON-looking stdout', !/^\s*[\[{]/.test(result.stdout));
             logResult('Guidance mentions /project-init', result.stdout.includes('/project-init'));
             logResult('Guidance mentions /project-config', result.stdout.includes('/project-config'));
         } finally {
@@ -833,10 +868,70 @@ async function testInitPromptGate() {
         logResult('Malformed input: fail-open exit 0', result.code === 0);
     }
 
+    // ── Reference Doc Scan Gate: Dismissal Tests ──
+    logSubsection('Reference Doc Scan Gate — Dismissal');
+
+    // Test 10: "skip scan" writes a 7-day dismiss flag under tmp/claude-temp
+    {
+        const tmpDir = createTempDir();
+        try {
+            const tmpClaudeDir = setupPopulatedPromptGateProject(tmpDir);
+            writeScanStaleFlag(tmpClaudeDir);
+            const dismissPath = path.join(tmpClaudeDir, '.scan-stale-dismissed');
+            const result = await runHook('init-prompt-gate.cjs', { prompt: 'skip scan' }, { env: { CLAUDE_PROJECT_DIR: tmpDir } });
+            logResult('Skip scan dismiss exits 0', result.code === 0);
+            logResult('Skip scan reports 7-day dismissal', result.stdout.includes('Gate dismissed for 7 days'));
+            logResult('Skip scan creates temp dismiss file', fs.existsSync(dismissPath));
+            const dismissState = JSON.parse(fs.readFileSync(dismissPath, 'utf-8'));
+            logResult('Skip scan stores ttlDays=7', dismissState.ttlDays === 7);
+            logResult('Skip scan stores dismissedAt timestamp', typeof dismissState.dismissedAt === 'string' && dismissState.dismissedAt.length > 0);
+        } finally {
+            cleanupTempDir(tmpDir);
+        }
+    }
+
+    // Test 11: 6-day-old scan dismiss flag still suppresses stale-doc output
+    {
+        const tmpDir = createTempDir();
+        try {
+            const tmpClaudeDir = setupPopulatedPromptGateProject(tmpDir);
+            writeScanStaleFlag(tmpClaudeDir);
+            const dismissedAt = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000);
+            fs.writeFileSync(
+                path.join(tmpClaudeDir, '.scan-stale-dismissed'),
+                JSON.stringify({ dismissedAt: dismissedAt.toISOString(), ttlDays: 7 }, null, 2)
+            );
+            const result = await runHook('init-prompt-gate.cjs', { prompt: 'implement feature X' }, { env: { CLAUDE_PROJECT_DIR: tmpDir } });
+            logResult('Active scan dismiss allows prompt', result.code === 0);
+            logResult('Active scan dismiss suppresses stale-doc warning', !result.stdout.includes('Reference docs are stale'));
+        } finally {
+            cleanupTempDir(tmpDir);
+        }
+    }
+
+    // Test 12: 8-day-old scan dismiss flag expires and stale-doc output returns
+    {
+        const tmpDir = createTempDir();
+        try {
+            const tmpClaudeDir = setupPopulatedPromptGateProject(tmpDir);
+            writeScanStaleFlag(tmpClaudeDir);
+            const dismissedAt = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000);
+            fs.writeFileSync(
+                path.join(tmpClaudeDir, '.scan-stale-dismissed'),
+                JSON.stringify({ dismissedAt: dismissedAt.toISOString(), ttlDays: 7 }, null, 2)
+            );
+            const result = await runHook('init-prompt-gate.cjs', { prompt: 'implement feature X' }, { env: { CLAUDE_PROJECT_DIR: tmpDir } });
+            logResult('Expired scan dismiss allows prompt', result.code === 0);
+            logResult('Expired scan dismiss shows stale-doc warning', result.stdout.includes('Reference docs are stale'));
+        } finally {
+            cleanupTempDir(tmpDir);
+        }
+    }
+
     // ── Graph Gate: Config Guard Tests ──
     logSubsection('Graph Gate — Config Guard');
 
-    // Test 10: Config populated + no graph.db + no dismiss → exit 0 with graph guidance
+    // Test 13: Config populated + no graph.db + no dismiss → exit 0 with graph guidance
     {
         const tmpDir = createTempDir();
         try {
@@ -864,7 +959,7 @@ async function testInitPromptGate() {
         }
     }
 
-    // Test 11: Config NOT populated + no graph.db → exit 0 with config guidance (NOT graph)
+    // Test 14: Config NOT populated + no graph.db → exit 0 with config guidance (NOT graph)
     {
         const tmpDir = createTempDir();
         try {
@@ -881,7 +976,7 @@ async function testInitPromptGate() {
         }
     }
 
-    // Test 12: Config populated + graph.db exists → exit 0 (both gates pass)
+    // Test 15: Config populated + graph.db exists → exit 0 (both gates pass)
     {
         const tmpDir = createTempDir();
         try {
@@ -909,7 +1004,7 @@ async function testInitPromptGate() {
         }
     }
 
-    // Test 13: "skip graph" dismiss → exit 0
+    // Test 16: "skip graph" dismiss → exit 0
     {
         const tmpDir = createTempDir();
         try {
@@ -966,8 +1061,8 @@ async function testLessonLearnedReminder() {
         const { injectLessonReminder } = require('../lib/prompt-injections.cjs');
         const result = injectLessonReminder(null);
         logResult('Returns reminder with no transcript', result !== null && result.includes('[LESSON-LEARNED-REMINDER]'));
-        logResult('Contains TaskCreate instruction', result.includes('TaskCreate'));
-        logResult('Contains /learn instruction', result.includes('/learn'));
+        logResult('Contains task tracking instruction', result.includes('task tracking'));
+        logResult('Contains $learn instruction', result.includes('$learn'));
     }
 
     // Test 2: Dedup — returns null when marker in recent transcript

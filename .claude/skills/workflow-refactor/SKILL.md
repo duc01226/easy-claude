@@ -2,7 +2,7 @@
 name: workflow-refactor
 version: 1.0.0
 description: '[Workflow] Use when activating the Code Refactoring workflow for restructure and improve existing code without changing behavior.'
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 ## Quick Summary

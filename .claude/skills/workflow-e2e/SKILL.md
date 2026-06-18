@@ -2,7 +2,7 @@
 name: workflow-e2e
 version: 1.0.0
 description: '[Workflow] Use when activating the E2E testing workflow to generate, update, or maintain Playwright/E2E tests. Pick mode with --source={changes|recording|update-ui}.'
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 ## Quick Summary
@@ -31,11 +31,11 @@ disable-model-invocation: true
 
 Resolve `--source` from the invocation. If omitted, infer from the request (recording file present → `recording`; UI/SCSS/HTML diff → `update-ui`; otherwise `changes`) and state the chosen source before proceeding.
 
-| `--source`   | Use when                                                                  | When NOT to use                                                                  |
-| ------------ | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `changes`    | Test specs or source code changed and E2E tests need to be synced.        | New recordings (`recording`), visual-only changes (`update-ui`).                 |
-| `recording`  | A Chrome DevTools recording JSON exists and a Playwright test is wanted.  | Updating existing tests, writing from scratch, running existing tests.           |
-| `update-ui`  | UI changed and E2E screenshot baselines need updating.                    | Generating new tests, fixing test logic, non-visual changes.                     |
+| `--source`  | Use when                                                                 | When NOT to use                                                        |
+| ----------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
+| `changes`   | Test specs or source code changed and E2E tests need to be synced.       | New recordings (`recording`), visual-only changes (`update-ui`).       |
+| `recording` | A Chrome DevTools recording JSON exists and a Playwright test is wanted. | Updating existing tests, writing from scratch, running existing tests. |
+| `update-ui` | UI changed and E2E screenshot baselines need updating.                   | Generating new tests, fixing test logic, non-visual changes.           |
 
 All three sources run the same sequence: `/scout → /e2e-test → /test → /docs-update → /workflow-end → /watzup`. The downstream `e2e-test` leaf is mode-aware and performs the per-source work; this wrapper only injects the matching protocol and triggers the workflow.
 

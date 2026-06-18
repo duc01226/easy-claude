@@ -31,7 +31,7 @@ two events is counted once per event).
 | ------------------ | ---------------------------- | ----- | ---------------------------------------------------------------------------------------- |
 | `SessionStart`     | Session begins/resumes       | 5     | Verify install, init state, auto-install npm, load docs, init graph                      |
 | `SessionEnd`       | Session ends                 | 1     | Save pending-tasks warning, cleanup temp/swap files                                      |
-| `UserPromptSubmit` | Before processing user input | 1     | Gate prompts until config/graph ready                                                    |
+| `UserPromptSubmit` | Before processing user input | 1     | Warn/route when config, root instructions, docs, or graph need refresh                    |
 | `PreToolUse`       | Before tool execution        | 9     | Block sensitive ops, guard path boundaries, warn on doc⇄code drift, command-syntax guard |
 | `PostToolUse`      | After tool completes         | 2     | Format code, update graph                                                                |
 | `Notification`     | Idle/waiting events          | 1     | System notification (`hooks/notifications/notify.cjs`)                                   |
@@ -62,7 +62,7 @@ The PreToolUse / UserPromptSubmit hooks are gates — not content injectors.
 
 | Hook                   | Event            | Matcher | Purpose                                                                           |
 | ---------------------- | ---------------- | ------- | --------------------------------------------------------------------------------- |
-| `init-prompt-gate.cjs` | UserPromptSubmit | `*`     | Block prompts until project config is populated + graph is built (exit 2 = block) |
+| `init-prompt-gate.cjs` | UserPromptSubmit | `*`     | Warn/route until project context, root instructions, docs, and graph are current |
 
 ### Gates (PreToolUse)
 
@@ -94,7 +94,7 @@ Lessons are managed via the `/learn` skill. See `.claude/skills/learn/SKILL.md`.
 
 | Hook                    | Event                  | Purpose                                                             |
 | ----------------------- | ---------------------- | ------------------------------------------------------------------- |
-| `init-prompt-gate.cjs`  | UserPromptSubmit       | Block prompts until config populated + graph built (exit 2 = block) |
+| `init-prompt-gate.cjs`  | UserPromptSubmit       | Warn/route until project context, root instructions, docs, and graph are current |
 | `session-init-docs.cjs` | SessionStart:`startup` | Config skeleton + reference doc placeholder creation                |
 
 > Plan/skill/todo enforcement and cross-compaction todo persistence are **model-driven
@@ -145,7 +145,7 @@ Max 50 entries (FIFO trim)
 
 **How to teach:**
 
-- Type `/learn always use IGrowthRootRepository` → lesson saved to `docs/project-reference/lessons.md`
+- Type `/learn always use the project-specific repository interface` → lesson saved to `docs/project-reference/lessons.md`
 - Type `/learn list` → view current lessons
 - Type `/learn remove 3` → remove lesson #3
 - Say "remember this" or "always do X" → auto-inferred, asks confirmation
@@ -217,7 +217,7 @@ SESSION START (5 hooks)                         DURING SESSION
 
 | Module                     | Purpose                                                                                                                                                                                                      |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `prompt-injections.cjs`    | Canonical text of critical-context / AI-mistake-prevention / lessons / workflow-protocol blocks; source of truth mirrored into static `CLAUDE.md` / `SKILL.md` guidance and read by the codex sync transform |
+| `prompt-injections.cjs`    | Delegating compat wrapper for legacy injector callers — keeps no protocol body copies; canonical text of critical-context / AI-mistake-prevention / lessons / workflow-protocol blocks is owned by `.claude/skills/shared/sync-inline-versions.md` and composed by `.claude/scripts/lib/hookless-prompt-protocol.cjs` (the codex sync transform reads the composer, not this wrapper) |
 | `dedup-constants.cjs`      | Centralized dedup markers and dynamic line count calculation                                                                                                                                                 |
 | `session-init-helpers.cjs` | SessionStart helpers: reference doc placeholders, config init                                                                                                                                                |
 | `doc-sync-classify.cjs`    | Pure classification shared by both `doc-sync-gate.cjs` matchers (commit-time WARN + per-edit WARN, both advisory exit 0)                                                                                     |
@@ -262,7 +262,17 @@ Hooks receive JSON via stdin with event-specific payload:
 
 ### Output (stdout)
 
-Text printed to stdout is injected into conversation context. Hooks use `console.log()` for context injection.
+`UserPromptSubmit` guidance is plaintext stdout by default. Claude and Codex both accept non-JSON
+stdout on this event as prompt context, so `init-prompt-gate.cjs` keeps the same reminder behavior
+on both hosts. JSON `hookSpecificOutput.additionalContext` remains available when a hook needs
+structured control, but the stale-doc/project-init reminder does not need it.
+
+Keep prompt guidance plaintext, but do not let the emitted text start with `{` or `[` after
+trimming. Codex may route JSON-looking stdout through its event-specific JSON parser before
+treating it as plaintext context, which can surface as an invalid `UserPromptSubmit` JSON error.
+
+Do not generalize this rule to every event: Codex `Stop` and `SubagentStop` require JSON output,
+while `UserPromptSubmit` specifically accepts plaintext context.
 
 ### Exit Codes
 
@@ -271,7 +281,7 @@ Text printed to stdout is injected into conversation context. Hooks use `console
 | `0`  | Success, allow operation to proceed            |
 | `2`  | Block operation (with error message on stderr) |
 
-> All hooks exit 0 (non-blocking) except safety/gate hooks (`path-boundary-block`, `privacy-block`, `scout-block`, `init-prompt-gate`, `git-commit-block`) which exit 2 to block. Note: `doc-sync-gate.cjs` is explicitly WARN-only — every code path exits 0.
+> All hooks exit 0 (non-blocking) except blocking safety gates (`path-boundary-block`, `privacy-block`, `scout-block`, `git-commit-block`) which exit 2 to block. `init-prompt-gate.cjs` and `doc-sync-gate.cjs` are WARN-only — every code path exits 0.
 
 ---
 
@@ -315,12 +325,12 @@ Hooks are registered in `settings.json` under `hooks.{EventName}[].hooks[]`. Eac
 
 ## Testing
 
-Primary hook test status: `test-all-hooks.cjs` passes with 213 tests, 0 failures (live run 2026-06-17; the in-suite count guard confirms docs agree at 213). The aggregate runner `run-all-tests.cjs` passes 289 tests across all discoverable suites (live run 2026-06-17).
+Primary hook test status: `test-all-hooks.cjs` passes with 224 tests, 0 failures (live run 2026-06-18; the in-suite count guard confirms docs agree at 224). The aggregate runner `run-all-tests.cjs` passes 305 tests across all discoverable suites (live run 2026-06-18).
 
 | Test Surface          | Count | File/Location                                                     |
 | --------------------- | ----- | ----------------------------------------------------------------- |
-| Primary hook runner   | 213   | `tests/test-all-hooks.cjs`                                        |
-| Aggregate runner      | 289   | `tests/run-all-tests.cjs` (all suites)                            |
+| Primary hook runner   | 224   | `tests/test-all-hooks.cjs`                                        |
+| Aggregate runner      | 305   | `tests/run-all-tests.cjs` (all suites)                            |
 | Standalone test files | TODO  | `tests/test-*.cjs/.js` excluding runner (re-verify before citing) |
 | Scout-block tests     | TODO  | `scout-block/tests/test-*.js` (re-verify before citing)           |
 | Lib unit tests        | TODO  | `lib/__tests__/*.test.cjs` (re-verify before citing)              |

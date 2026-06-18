@@ -71,6 +71,9 @@ const stages = [
     // Cross-surface byte-equality oracles. These were the gap that made the standalone runner verify
     // LESS than `npm run verify:all`: the npm path ran both divergence oracles, the runner ran neither,
     // so a copied `.claude` could pass the runner yet ship a drifted mirror. Now they are in the runner.
+    // verify-sync-divergence guards BOTH the .agents/skills mirror AND the CONTEXT mirror
+    // (AGENTS.md + .codex/CODEX_CONTEXT.md) — the context idempotency check is folded in there
+    // (not a separate stage/file) so the portable export ships zero new pipeline scripts.
     { id: "sync-divergence",    label: "verify-sync-divergence",    cmd: "node", args: [path.join(sourceScriptsDir, "verify-sync-divergence.mjs")] },
     { id: "copilot-divergence", label: "verify-copilot-divergence", cmd: "node", args: [path.join(claudeScriptsDir, "verify-copilot-divergence.cjs")] },
 ];

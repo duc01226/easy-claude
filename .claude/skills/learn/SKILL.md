@@ -122,8 +122,8 @@ Before saving any lesson, critically evaluate whether a doc update alone is suff
 | Prevention Layer                            | When to use                                                                   | Example                                                                                     |
 | ------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
 | **Doc update only**                         | One-off awareness, rare edge case, team convention                            | "Always use fluent validation API" → `docs/project-reference/backend-patterns-reference.md` |
-| **Prompt rule** (`development-rules.md`)    | Rule that ALL agents must follow on every task (injected on UserPromptSubmit) | "Grep after bulk edits" → `.claude/docs/development-rules.md`                               |
-| **System Lesson** (`prompt-injections.cjs`) | Universal AI mistake, high recurrence, silent failure, any project            | "Re-read files after context compaction" → `.claude/hooks/lib/prompt-injections.cjs`        |
+| **Prompt rule** (`development-rules.md`)    | Rule that ALL agents must follow on every task                                | "Grep after bulk edits" → `.claude/docs/development-rules.md`                               |
+| **Static protocol lesson** (`sync-inline-versions.md`) | Universal AI mistake, high recurrence, silent failure, any project | "Re-read files after context compaction" → `.claude/skills/shared/sync-inline-versions.md` |
 | **Hook** (`.claude/hooks/`)                 | Automated enforcement, must never be forgotten                                | "Dedup markers must match" → `lib/dedup-constants.cjs` + consistency test                   |
 | **Test** (`.claude/hooks/tests/`)           | Regression prevention, verifiable invariant                                   | "All hooks import from shared module" → test in `test-all-hooks.cjs`                        |
 | **Skill update** (`.claude/skills/`)        | Workflow step that should always include this check                           | "Review changes must check doc staleness" → skill SKILL.md update                           |
@@ -133,31 +133,31 @@ Before saving any lesson, critically evaluate whether a doc update alone is suff
 1. **Capture** the lesson
 2. **Ask:** "Could this mistake recur if the AI forgets this lesson?" If yes → needs more than a doc update
 3. **Ask:** "Can this be caught automatically by a test or hook?" If yes → recommend hook/test
-4. **Evaluate System Lesson promotion** (see below)
+4. **Evaluate Static Protocol Lesson promotion** (see below)
 5. **Present options to user** with `AskUserQuestion`:
     - "Doc update only" — save to the best-fit reference file (default for most lessons)
     - "Doc + prompt rule" — also add to `development-rules.md` so all agents see it
-    - "Doc + System Lesson" — also add to `prompt-injections.cjs` System Lessons (see criteria below)
+    - "Doc + Static Protocol Lesson" — also add to shared protocol lessons (see criteria below)
     - "Full prevention" — plan a hook, test, or shared module to enforce it automatically
 6. **Execute** the chosen option. For "Full prevention", create a plan via `/plan` instead of just saving.
 
-### System Lesson Promotion (MANDATORY evaluation)
+### Static Protocol Lesson Promotion (MANDATORY evaluation)
 
-After generalizing a lesson, evaluate whether it qualifies as a **System Lesson** in `.claude/hooks/lib/prompt-injections.cjs`. System Lessons are injected into EVERY prompt — they are the highest-visibility prevention layer.
+After generalizing a lesson, evaluate whether it qualifies as a **Static Protocol Lesson** in `.claude/skills/shared/sync-inline-versions.md`. Static protocol lessons are baked into `CLAUDE.md`, mirrored into `AGENTS.md`, and synced to Codex/Copilot carriers through project-init/sync tooling.
 
 **Qualification criteria (ALL must be true):**
 
 1. **Universal** — Applies to ANY AI coding project, not just this codebase
 2. **High recurrence** — AI agents make this mistake repeatedly across sessions without the reminder
 3. **Silent failure** — The mistake produces no error/warning; it silently degrades output quality
-4. **Not already covered** — No existing System Lesson addresses the same root cause
+4. **Not already covered** — No existing Static Protocol Lesson addresses the same root cause
 
-> **System Lessons** — Universal AI mistake prevention rules injected into EVERY prompt. Stored in `injectAiMistakePrevention()` → "Common AI Mistake Prevention" array. Each must be universal, high-recurrence, and silent-failure.
-> READ `.claude/hooks/lib/prompt-injections.cjs` to check for duplicates before adding.
+> **Static Protocol Lessons** — Universal AI mistake prevention rules baked into static carriers. Stored in `.claude/skills/shared/sync-inline-versions.md` under the `ai-mistake-prevention` and `ai-mistake-prevention:full` SYNC blocks. Each must be universal, high-recurrence, and silent-failure.
+> READ `.claude/skills/shared/sync-inline-versions.md` to check for duplicates before adding.
 
-**If qualified:** Recommend "Doc + System Lesson" option. On user approval, append the lesson as a new bullet to the System Lessons array in `prompt-injections.cjs` following the existing format: `` `- **Bold title.** Explanation sentence.` ``
+**If qualified:** Recommend "Doc + Static Protocol Lesson" option. On user approval, append the lesson as a new bullet to the relevant shared SYNC blocks, then run the project-init / sync pipeline so `CLAUDE.md`, `AGENTS.md`, Codex, and Copilot carriers regenerate from the shared source.
 
-**If NOT qualified:** Explain why (e.g., "Too project-specific", "Already covered by existing System Lesson about X", "Low recurrence — only happens in rare edge cases"). Proceed with doc-only or prompt-rule option.
+**If NOT qualified:** Explain why (e.g., "Too project-specific", "Already covered by existing Static Protocol Lesson about X", "Low recurrence — only happens in rare edge cases"). Proceed with doc-only or prompt-rule option.
 
 ### Lesson Quality Gate (BLOCKING — generalize before you save)
 
@@ -250,7 +250,7 @@ Run these 2 tasks at the end of every `/learn` operation:
 
 ## Budget Enforcement (MANDATORY for `docs/project-reference/lessons.md`)
 
-`docs/project-reference/lessons.md` is injected into EVERY prompt and EVERY file edit. Token budget must be controlled.
+`docs/project-reference/lessons.md` is a static project-reference carrier read during project work. Token budget must be controlled.
 
 **Hard limit:** 10000 characters (~3333 tokens). Check BEFORE saving any new lesson.
 

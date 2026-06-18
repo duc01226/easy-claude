@@ -2,7 +2,7 @@
 name: workflow-feature
 version: 1.0.0
 description: '[Workflow] Use when activating the Feature Implementation workflow for implement a well-defined feature with investigation, planning, implementation, and review. Also covers TDD/test-first development and spec-driven feature implementation with test specs written before code.'
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 ## Quick Summary
@@ -32,15 +32,15 @@ disable-model-invocation: true
 
 This workflow has steps that appear multiple times. When creating tasks, use these descriptions to distinguish them:
 
-| Step               | Occurrence   | Task Description                                 |
-| ------------------ | ------------ | ------------------------------------------------ |
-| `/plan`            | 1st (pos 6)  | PLAN₁: Feature Spec-backed implementation plan   |
-| `/plan`            | 2nd (pos 13)  | PLAN₂: Sprint-ready plan incorporating TDD specs |
-| `/plan-review`     | 1st (pos 7)  | Review PLAN₁                                     |
-| `/plan-review`     | 2nd (pos 14) | Review PLAN₂                                     |
-| `/spec [mode=tests]`        | 1st (pos 10)  | TDD-SPEC₁: Pre-implementation test specs         |
-| `/spec [mode=tests]`        | 2nd (pos 17) | TDD-SPEC₂: Post-implementation test spec update  |
-| `/review-artifact --type=spec-tests` | 1st (pos 12)  | Review TDD-SPEC₁                                 |
+| Step                                 | Occurrence   | Task Description                                 |
+| ------------------------------------ | ------------ | ------------------------------------------------ |
+| `/plan`                              | 1st (pos 6)  | PLAN₁: Feature Spec-backed implementation plan   |
+| `/plan`                              | 2nd (pos 13) | PLAN₂: Sprint-ready plan incorporating TDD specs |
+| `/plan-review`                       | 1st (pos 7)  | Review PLAN₁                                     |
+| `/plan-review`                       | 2nd (pos 14) | Review PLAN₂                                     |
+| `/spec [mode=tests]`                 | 1st (pos 10) | TDD-SPEC₁: Pre-implementation test specs         |
+| `/spec [mode=tests]`                 | 2nd (pos 17) | TDD-SPEC₂: Post-implementation test spec update  |
+| `/review-artifact --type=spec-tests` | 1st (pos 12) | Review TDD-SPEC₁                                 |
 | `/review-artifact --type=spec-tests` | 2nd (pos 19) | Review TDD-SPEC₂                                 |
 
 **NEVER deduplicate** — each occurrence is a distinct task with a different purpose.
@@ -85,7 +85,7 @@ Activate the `workflow-feature` workflow. Run `/start-workflow workflow-feature`
 
 > **[AI-SDD CLOSURE]** Before `/workflow-end`, confirm changed behavior, unchanged behavior, TCs/tests, docs/specs, and generated mirror sync are either completed or explicitly skipped with evidence.
 >
-> **[AI-SDD CLOSURE — POST-IMPLEMENTATION SPEC RE-VERIFY (MANDATORY)]** The `/spec` authored at step 5 (before `/plan`) captured *intended* behavior. After `/plan-execute`, re-verify Feature Spec **§1-7** (not only §8 TCs) against what was *actually built* and adjudicate every divergence per `shared/sdd-artifact-contract.md` → Drift Gates (`SYNC:spec-drift-adjudication`): **CODE-WRONG** → fix code/test against the spec; **SPEC-STALE** → run `/spec [update]` to record the new intended behavior, then `/spec [mode=tests] [update]` + `/spec [mode=sync]`; **AMBIGUOUS** → escalate to the spec owner. A feature that shipped behavior the spec does not describe leaves the spec stale and is NOT closure-ready. This re-verify is not optional cleanup — it is the "after implement, verify and create/update specs again" half of the SDD cycle.
+> **[AI-SDD CLOSURE — POST-IMPLEMENTATION SPEC RE-VERIFY (MANDATORY)]** The `/spec` authored at step 5 (before `/plan`) captured _intended_ behavior. After `/plan-execute`, re-verify Feature Spec **§1-7** (not only §8 TCs) against what was _actually built_ and adjudicate every divergence per `shared/sdd-artifact-contract.md` → Drift Gates (`SYNC:spec-drift-adjudication`): **CODE-WRONG** → fix code/test against the spec; **SPEC-STALE** → run `/spec [update]` to record the new intended behavior, then `/spec [mode=tests] [update]` + `/spec [mode=sync]`; **AMBIGUOUS** → escalate to the spec owner. A feature that shipped behavior the spec does not describe leaves the spec stale and is NOT closure-ready. This re-verify is not optional cleanup — it is the "after implement, verify and create/update specs again" half of the SDD cycle.
 
 <!-- SYNC:end-to-start-debugger-trace -->
 

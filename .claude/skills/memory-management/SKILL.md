@@ -2,7 +2,7 @@
 name: memory-management
 version: 1.0.0
 description: '[Utilities] Use when saving or recovering task progress across sessions via file checkpoints — especially before context compaction.'
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 ## Quick Summary
@@ -138,26 +138,26 @@ All long-running workflows should follow this pattern:
 
 ### Checkpoint Naming Convention
 
-| Type              | Format                                      | Example                                |
-| ----------------- | ------------------------------------------- | -------------------------------------- |
+| Type              | Format                                      | Example                                   |
+| ----------------- | ------------------------------------------- | ----------------------------------------- |
 | Manual checkpoint | `checkpoint-{YYYYMMDD}-{HHMMSS}-{slug}.md`  | `checkpoint-20250106-143000-user-auth.md` |
 | Auto checkpoint   | `checkpoint-{YYYYMMDD}-{HHMMSS}-{slug}.md`  | `checkpoint-20250106-143000-autosave.md`  |
-| Analysis notes    | `{type}-{date}-{slug}.md`                   | `analysis-250106-payment-flow.md`      |
-| Task notes        | `.ai/workspace/analysis/{slug}.analysis.md` | Used by feature                        |
+| Analysis notes    | `{type}-{date}-{slug}.md`                   | `analysis-250106-payment-flow.md`         |
+| Task notes        | `.ai/workspace/analysis/{slug}.analysis.md` | Used by feature                           |
 
 > **Legacy back-read:** checkpoints written before grammar unification — `memory-checkpoint-*.md`, or `checkpoint-{YYMMDD}-{HHMM}-{slug}.md` without seconds — are still discovered by `/recover`. No on-disk checkpoint is orphaned by the rename. (`/recover` is the sole discoverer — recovery is skill-driven.)
 
 ### Related Commands & Skills
 
-| Command/Skill            | Purpose                             |
-| ------------------------ | ----------------------------------- |
-| `/checkpoint`            | Create manual memory checkpoint     |
-| `/context`               | Load project context                |
-| `/compact`               | Manually trigger context compaction |
-| `/watzup`                | Generate progress summary           |
-| `workflow-feature`                | Uses task analysis notes pattern    |
-| `debug-investigate`      | Uses investigation logs             |
-| `investigate`  | Uses analysis report pattern        |
+| Command/Skill       | Purpose                             |
+| ------------------- | ----------------------------------- |
+| `/checkpoint`       | Create manual memory checkpoint     |
+| `/context`          | Load project context                |
+| `/compact`          | Manually trigger context compaction |
+| `/watzup`           | Generate progress summary           |
+| `workflow-feature`  | Uses task analysis notes pattern    |
+| `debug-investigate` | Uses investigation logs             |
+| `investigate`       | Uses analysis report pattern        |
 
 ## Related
 

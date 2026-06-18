@@ -2,7 +2,7 @@
 name: workflow-idea-to-pbi
 version: 2.2.0
 description: '[Workflow] Use when activating the Idea to PBI workflow for turning an idea — or a raw product vision/problem — into prioritized PBIs and stories (single-PBI deep mode, or multi-opportunity discovery mode).'
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 ## Quick Summary
@@ -11,9 +11,9 @@ disable-model-invocation: true
 
 **Mode Detection Gate (FIRST — pick the track before any step, then declare it):**
 
-| Input | Mode | Track |
-| --- | --- | --- |
-| ONE concrete idea / ticket / brief | **Single-PBI Deep** | full track incl. `spec [mode=tests]` + `plan`/`plan-review`/`plan-validate` → 1 deeply-groomed PBI. SKIP `brainstorm`/`web-research`. |
+| Input                                                        | Mode                            | Track                                                                                                                                                                                                                  |
+| ------------------------------------------------------------ | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ONE concrete idea / ticket / brief                           | **Single-PBI Deep**             | full track incl. `spec [mode=tests]` + `plan`/`plan-review`/`plan-validate` → 1 deeply-groomed PBI. SKIP `brainstorm`/`web-research`.                                                                                  |
 | Raw product vision / problem spanning multiple opportunities | **Multi-Opportunity Discovery** | `brainstorm` → RICE map → multi-select → light per-opportunity loop → cross-PBI `prioritize`. `spec [mode=tests]` + `plan` cycle are **deep-mode only — never per opportunity**; `domain-analysis` runs once up front. |
 
 When the input is ambiguous, ask via `AskUserQuestion` before step 1.
@@ -211,15 +211,15 @@ Write output IMMEDIATELY after each step — never batch across steps.
 
 ### 7. Conditional Skip Rules
 
-| Step               | Skip When                             |
-| ------------------ | ------------------------------------- |
-| `/brainstorm`      | Single-PBI deep mode (one concrete idea/ticket) |
-| `/web-research`    | Single-PBI deep mode, internal tool, or well-understood domain |
-| `/review-artifact` | No existing artifact — raw idea input |
-| `/spec [mode=tests]`, `/review-artifact --type=spec-tests` | Discovery mode (deep-mode only — never per opportunity) |
-| `/domain-analysis` | Idea introduces no new/changed domain entities; in discovery mode run ONCE up front |
-| `/plan`, `/plan-review`, `/plan-validate` | Discovery mode (deep-mode only — never per opportunity) |
-| `/pbi-mockup`      | Backend-only PBI — no UI changes      |
+| Step                                                       | Skip When                                                                           |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `/brainstorm`                                              | Single-PBI deep mode (one concrete idea/ticket)                                     |
+| `/web-research`                                            | Single-PBI deep mode, internal tool, or well-understood domain                      |
+| `/review-artifact`                                         | No existing artifact — raw idea input                                               |
+| `/spec [mode=tests]`, `/review-artifact --type=spec-tests` | Discovery mode (deep-mode only — never per opportunity)                             |
+| `/domain-analysis`                                         | Idea introduces no new/changed domain entities; in discovery mode run ONCE up front |
+| `/plan`, `/plan-review`, `/plan-validate`                  | Discovery mode (deep-mode only — never per opportunity)                             |
+| `/pbi-mockup`                                              | Backend-only PBI — no UI changes                                                    |
 
 ---
 

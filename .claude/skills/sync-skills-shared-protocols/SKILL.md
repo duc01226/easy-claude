@@ -77,7 +77,7 @@ Report:
 
 Use when a NEW SYNC: block needs to be inserted into all 183 skill/agent files that don't have it yet. This is a bulk-insert operation — not a content-update.
 
-**When to use:** A new protocol rule is added to hooks (`prompt-injections.cjs`) and should also appear in all skills/agents as a fallback for hook-less environments.
+**When to use:** A new protocol rule is added to `.claude/skills/shared/sync-inline-versions.md` and should appear in static carriers (`CLAUDE.md`, `AGENTS.md`, Codex, Copilot, skills, and agents).
 
 #### Step B1: Add block content to canonical source
 

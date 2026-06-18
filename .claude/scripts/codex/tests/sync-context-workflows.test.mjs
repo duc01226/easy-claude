@@ -55,17 +55,6 @@ test("sync-context-workflows mirrors subagent authorization into AGENTS.md", asy
     );
 
     await fs.writeFile(
-      path.join(tempRoot, ".claude", "hooks", "lib", "prompt-injections.cjs"),
-      [
-        "module.exports = {",
-        "  injectWorkflowProtocol: () => '## Workflow Protocol Stub',",
-        "};",
-        "",
-      ].join("\n"),
-      "utf8"
-    );
-
-    await fs.writeFile(
       path.join(tempRoot, ".claude", "skills", "shared", "sync-inline-versions.md"),
       [
         "## SYNC:ai-sdd-artifact-contract",
@@ -139,6 +128,57 @@ test("sync-context-workflows mirrors subagent authorization into AGENTS.md", asy
   }
 });
 
+test("sync-context-workflows points to lessons.md without inlining project lessons", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-sync-context-lessons-"));
+
+  try {
+    await fs.mkdir(path.join(tempRoot, ".claude", "skills", "test"), { recursive: true });
+    await fs.mkdir(path.join(tempRoot, ".claude", "hooks", "lib"), { recursive: true });
+    await fs.mkdir(path.join(tempRoot, ".codex"), { recursive: true });
+
+    await fs.writeFile(
+      path.join(tempRoot, ".claude", "workflows.json"),
+      JSON.stringify(
+        {
+          workflows: {
+            testing: {
+              name: "Testing",
+              description: "Run local tests",
+              sequence: ["test"],
+              preActions: { injectContext: "Use /test for local test execution." },
+            },
+          },
+        },
+        null,
+        2
+      ),
+      "utf8"
+    );
+
+    await fs.writeFile(
+      path.join(tempRoot, ".claude", "skills", "test", "SKILL.md"),
+      ["---", "name: test", "description: Test skill", "---", "", "# Test", ""].join("\n"),
+      "utf8"
+    );
+
+    await execFileAsync(process.execPath, [syncContextScript], { cwd: tempRoot });
+
+    const contextText = await fs.readFile(path.join(tempRoot, ".codex", "CODEX_CONTEXT.md"), "utf8");
+    const agentsText = await fs.readFile(path.join(tempRoot, "AGENTS.md"), "utf8");
+
+    assert.match(contextText, /docs\/project-reference\/lessons\.md/);
+    assert.match(agentsText, /docs\/project-reference\/lessons\.md/);
+    assert.doesNotMatch(contextText, /^## Learned Lessons\b/m);
+    assert.doesNotMatch(contextText, /^# Lessons Learned\b/m);
+    assert.doesNotMatch(contextText, /ExecuteInjectScopedAsync/);
+    assert.doesNotMatch(agentsText, /^## Learned Lessons\b/m);
+    assert.doesNotMatch(agentsText, /^# Lessons Learned\b/m);
+    assert.doesNotMatch(agentsText, /ExecuteInjectScopedAsync/);
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
 test("sync-context-workflows creates Codex context and AGENTS when both are missing", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-sync-context-missing-"));
 
@@ -171,17 +211,6 @@ test("sync-context-workflows creates Codex context and AGENTS when both are miss
       "utf8"
     );
 
-    await fs.writeFile(
-      path.join(tempRoot, ".claude", "hooks", "lib", "prompt-injections.cjs"),
-      [
-        "module.exports = {",
-        "  injectWorkflowProtocol: () => '## Workflow Protocol Stub',",
-        "};",
-        "",
-      ].join("\n"),
-      "utf8"
-    );
-
     await execFileAsync(process.execPath, [syncContextScript], { cwd: tempRoot });
 
     const contextText = await fs.readFile(path.join(tempRoot, ".codex", "CODEX_CONTEXT.md"), "utf8");
@@ -204,6 +233,72 @@ test("sync-context-workflows creates Codex context and AGENTS when both are miss
     await execFileAsync(process.execPath, [syncContextScript], { cwd: tempRoot });
     const agentsTextAfterSecondRun = await fs.readFile(path.join(tempRoot, "AGENTS.md"), "utf8");
     assert.equal(agentsTextAfterSecondRun, agentsText);
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test("sync-context-workflows builds hookless prompt protocols without prompt-injections.cjs", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-sync-context-no-hooks-"));
+
+  try {
+    await fs.mkdir(path.join(tempRoot, ".claude", "skills", "test"), { recursive: true });
+
+    await fs.writeFile(
+      path.join(tempRoot, ".claude", "workflows.json"),
+      JSON.stringify(
+        {
+          workflows: {
+            testing: {
+              name: "Testing",
+              description: "Run local tests",
+              sequence: ["test"],
+              preActions: { injectContext: "Use /test for local test execution." },
+            },
+          },
+        },
+        null,
+        2
+      ),
+      "utf8"
+    );
+
+    await fs.writeFile(
+      path.join(tempRoot, ".claude", ".ck.json"),
+      JSON.stringify(
+        {
+          portability: {
+            rule: "Custom portable rule from local config.",
+            projectConfigPath: "custom/project-config.json",
+            docsIndexPath: "custom/docs-index.md",
+          },
+        },
+        null,
+        2
+      ),
+      "utf8"
+    );
+
+    await fs.writeFile(
+      path.join(tempRoot, ".claude", "skills", "test", "SKILL.md"),
+      ["---", "name: test", "description: Test skill", "---", "", "# Test", ""].join("\n"),
+      "utf8"
+    );
+
+    await execFileAsync(process.execPath, [syncContextScript], { cwd: tempRoot });
+
+    const contextText = await fs.readFile(path.join(tempRoot, ".codex", "CODEX_CONTEXT.md"), "utf8");
+    const agentsText = await fs.readFile(path.join(tempRoot, "AGENTS.md"), "utf8");
+
+    for (const text of [contextText, agentsText]) {
+      assert.match(text, /\[WORKFLOW-EXECUTION-PROTOCOL\]/);
+      assert.match(text, /Custom portable rule from local config\./);
+      assert.match(text, /custom\/project-config\.json/);
+      assert.match(text, /custom\/docs-index\.md/);
+      assert.match(text, /Auto-select/i);
+      assert.doesNotMatch(text, /Unable to load `\.claude\/hooks\/lib\/prompt-injections\.cjs`/);
+      assert.doesNotMatch(text, /Source: `\.claude\/hooks\/lib\/prompt-injections\.cjs`/);
+    }
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
   }
@@ -255,22 +350,6 @@ test("sync-context-workflows passes portability config into prompt protocol mirr
     await fs.writeFile(
       path.join(tempRoot, ".claude", "skills", "test", "SKILL.md"),
       ["---", "name: test", "description: Test skill", "---", "", "# Test", ""].join("\n"),
-      "utf8"
-    );
-
-    await fs.writeFile(
-      path.join(tempRoot, ".claude", "hooks", "lib", "prompt-injections.cjs"),
-      [
-        "module.exports = {",
-        "  injectWorkflowProtocol: (_transcriptPath, portability) => [",
-        "    '## Workflow Protocol Stub',",
-        "    portability.rule,",
-        "    portability.projectConfigPath,",
-        "    portability.docsIndexPath,",
-        "  ].join('\\n'),",
-        "};",
-        "",
-      ].join("\n"),
       "utf8"
     );
 
@@ -326,22 +405,11 @@ test("sync-context-workflows replaces stale project-reference gate content", asy
     );
 
     await fs.writeFile(
-      path.join(tempRoot, ".claude", "hooks", "lib", "prompt-injections.cjs"),
-      [
-        "module.exports = {",
-        "  injectWorkflowProtocol: () => '## Workflow Protocol Stub',",
-        "};",
-        "",
-      ].join("\n"),
-      "utf8"
-    );
-
-    await fs.writeFile(
       path.join(tempRoot, ".codex", "CODEX_CONTEXT.md"),
       [
         "# Existing Context",
         "",
-        "Codex does not receive Claude hook-injected project docs or project config summaries. Before coding, planning, debugging, testing, or reviewing:",
+        "Codex uses static project-reference loading instead of runtime-injected project docs. Before coding, planning, debugging, testing, or reviewing:",
         "",
         "- Read `docs/project-config.json` for project-specific commands, module paths, workflow settings, and doc paths.",
         "- Read `docs/project-reference/docs-index-reference.md` to route to the right project-reference files.",

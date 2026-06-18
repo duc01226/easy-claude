@@ -3,7 +3,7 @@ name: skill-creator
 version: 4.0.0
 description: '[Skill Management] Use when creating a new Claude Code skill, adding reference files or scripts to an existing skill, scanning/fixing invalid skill headers, or optimizing/packaging skills. Triggers on: create skill, new skill, add skill reference, add skill script, fix skill, validate skill, package skill.'
 license: Complete terms in LICENSE.txt
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 ## Quick Summary
@@ -14,14 +14,14 @@ disable-model-invocation: true
 
 **Modes (pick by intent):**
 
-| Mode               | Trigger                                              | Jump to                          |
-| ------------------ | ---------------------------------------------------- | -------------------------------- |
-| **Create**         | New skill from a description                          | `## Mode 1: Create a New Skill`   |
-| **Add Resources**  | Add reference/script files to an existing skill      | `## Mode 2: Add Resources`        |
-| **Scan & Fix**     | Audit/repair invalid frontmatter across the catalog  | `## Mode 3: Scan & Fix`           |
-| **Package**        | Validate + zip a finished skill for distribution     | `## Mode 4: Package & Distribute` |
-| **Optimize**       | Optimize an existing skill (tokens / anchoring / SYNC) | `## Mode 5: Optimize an Existing Skill` |
-| **Fix from Logs**  | Fix a skill from its captured `logs.txt`             | `## Mode 6: Fix a Skill from Logs` |
+| Mode              | Trigger                                                | Jump to                                 |
+| ----------------- | ------------------------------------------------------ | --------------------------------------- |
+| **Create**        | New skill from a description                           | `## Mode 1: Create a New Skill`         |
+| **Add Resources** | Add reference/script files to an existing skill        | `## Mode 2: Add Resources`              |
+| **Scan & Fix**    | Audit/repair invalid frontmatter across the catalog    | `## Mode 3: Scan & Fix`                 |
+| **Package**       | Validate + zip a finished skill for distribution       | `## Mode 4: Package & Distribute`       |
+| **Optimize**      | Optimize an existing skill (tokens / anchoring / SYNC) | `## Mode 5: Optimize an Existing Skill` |
+| **Fix from Logs** | Fix a skill from its captured `logs.txt`               | `## Mode 6: Fix a Skill from Logs`      |
 
 > Modes 5 and 6 cover optimization and log-driven repair inside `/skill-creator`; there are no separate standalone commands for those tasks.
 
@@ -133,12 +133,12 @@ Optimize an existing skill for token efficiency, AI attention anchoring, and SYN
 
 **Optimization Checklist:**
 
-| Group | Checks |
-| --- | --- |
-| **Structure** | `## Quick Summary` (Goal/Workflow/Key Rules) within first 30 lines · `## Closing Reminders` at bottom with `:reminder` SYNC blocks · SYNC protocol blocks at top (primacy zone) · critical rules in BOTH top and bottom (primacy-recency) |
-| **SYNC Protocol** | no `.claude/skills/shared/` file references — all protocols inlined via SYNC blocks · all SYNC tags balanced · content matches canonical `.claude/skills/shared/sync-inline-versions.md` · `:reminder` blocks present at bottom per protocol |
-| **Token Efficiency** | SKILL.md under 500 lines (target under 300) · no filler/redundancy/TOCs · tables/bullets over prose · examples minimal (1 per pattern) |
-| **Final Enhancement** | `/prompt-enhance` on finished SKILL.md · verify no content loss · rule density maintained or improved (count MUST ATTENTION/NEVER/ALWAYS before & after) |
+| Group                 | Checks                                                                                                                                                                                                                                       |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Structure**         | `## Quick Summary` (Goal/Workflow/Key Rules) within first 30 lines · `## Closing Reminders` at bottom with `:reminder` SYNC blocks · SYNC protocol blocks at top (primacy zone) · critical rules in BOTH top and bottom (primacy-recency)    |
+| **SYNC Protocol**     | no `.claude/skills/shared/` file references — all protocols inlined via SYNC blocks · all SYNC tags balanced · content matches canonical `.claude/skills/shared/sync-inline-versions.md` · `:reminder` blocks present at bottom per protocol |
+| **Token Efficiency**  | SKILL.md under 500 lines (target under 300) · no filler/redundancy/TOCs · tables/bullets over prose · examples minimal (1 per pattern)                                                                                                       |
+| **Final Enhancement** | `/prompt-enhance` on finished SKILL.md · verify no content loss · rule density maintained or improved (count MUST ATTENTION/NEVER/ALWAYS before & after)                                                                                     |
 
 **Key rules:** SKILL.md under 500 lines, reference files under 100 lines each; shared protocols MUST ATTENTION be inlined via `<!-- SYNC:tag -->` blocks (NEVER `MUST ATTENTION READ shared/` references); MUST ATTENTION call `/prompt-enhance` as the final quality pass.
 
@@ -178,12 +178,12 @@ If the skill needs shared protocol enforcement (most do), inline them via SYNC t
 
 ## Scripts
 
-| Script                  | Purpose                                                        |
-| ----------------------- | ------------------------------------------------------------- |
-| `init_skill.py`         | Scaffold a new skill directory + template SKILL.md            |
-| `package_skill.py`      | Validate + zip a skill for distribution                       |
-| `quick_validate.py`     | Fast single-skill structure check                             |
-| `validate-skills.cjs`   | Catalog-wide frontmatter audit + `--fix` auto-repair          |
+| Script                | Purpose                                              |
+| --------------------- | ---------------------------------------------------- |
+| `init_skill.py`       | Scaffold a new skill directory + template SKILL.md   |
+| `package_skill.py`    | Validate + zip a skill for distribution              |
+| `quick_validate.py`   | Fast single-skill structure check                    |
+| `validate-skills.cjs` | Catalog-wide frontmatter audit + `--fix` auto-repair |
 
 ## References
 

@@ -2,7 +2,7 @@
 name: workflow-spec-to-pbi
 version: 2.0.0
 description: '[Workflow] Use when activating the Spec to PBI Backlog workflow to convert canonical tech-free Feature Specs into complete, prioritized, dependency-aware PBIs and stories.'
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 ## Quick Summary
@@ -71,9 +71,9 @@ Run `/spec-index` in audit mode before PBI generation.
 
 Create a matrix with one row per independently deliverable item:
 
-| Spec Source        | Capability     | Feature/Operation | Domain Impact             | Shared Dependency | PBI Type                                      | Status  |
-| ------------------ | -------------- | ----------------- | ------------------------- | ----------------- | --------------------------------------------- | ------- |
-| `{Feature §sec}`   | `{capability}` | `{feature}`       | entity/state/event/API/UI | yes/no            | feature/foundation/shared/migration/test-data | planned |
+| Spec Source      | Capability     | Feature/Operation | Domain Impact             | Shared Dependency | PBI Type                                      | Status  |
+| ---------------- | -------------- | ----------------- | ------------------------- | ----------------- | --------------------------------------------- | ------- |
+| `{Feature §sec}` | `{capability}` | `{feature}`       | entity/state/event/API/UI | yes/no            | feature/foundation/shared/migration/test-data | planned |
 
 Every source feature/operation must map to exactly one of:
 
@@ -86,13 +86,13 @@ Every source feature/operation must map to exactly one of:
 
 Apply these scale rules before creating PBIs:
 
-| Scope                      | Required Breakdown                                                       |
-| -------------------------- | ----------------------------------------------------------------------- |
-| 1-3 capabilities           | Process inline with one task per capability and feature group           |
-| 4-10 capabilities          | Split by capability, then feature/operation group                       |
-| 10+ capabilities           | Incremental capability-group batches with coverage matrix checkpoints   |
-| Any PBI > 8 story points   | Split with SPIDR until each PBI is <= 8 story points                    |
-| Cross-cutting prerequisite | Create shared/foundation PBI before dependent feature PBIs              |
+| Scope                      | Required Breakdown                                                    |
+| -------------------------- | --------------------------------------------------------------------- |
+| 1-3 capabilities           | Process inline with one task per capability and feature group         |
+| 4-10 capabilities          | Split by capability, then feature/operation group                     |
+| 10+ capabilities           | Incremental capability-group batches with coverage matrix checkpoints |
+| Any PBI > 8 story points   | Split with SPIDR until each PBI is <= 8 story points                  |
+| Cross-cutting prerequisite | Create shared/foundation PBI before dependent feature PBIs            |
 
 ### 6. Domain Analysis Gate
 

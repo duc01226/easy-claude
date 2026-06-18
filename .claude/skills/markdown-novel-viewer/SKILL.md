@@ -2,7 +2,7 @@
 name: markdown-novel-viewer
 version: 1.0.0
 description: '[Content] Use when you need background HTTP server rendering markdown files with calm, book-like reading experience.'
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 ## Quick Summary

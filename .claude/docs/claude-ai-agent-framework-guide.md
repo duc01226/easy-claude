@@ -233,10 +233,10 @@ sequenceDiagram
 
 ### 4.1 What Hooks Are
 
-Hooks are **Node.js scripts** that execute as child processes at specific lifecycle events. They receive JSON input on stdin and produce output on stdout. Exit codes control behavior:
+Hooks are **Node.js scripts** that execute as child processes at specific lifecycle events. They receive JSON input on stdin and use event-specific stdout contracts plus exit codes. Static prompt/context guidance is carried by `CLAUDE.md`, `AGENTS.md`, agent files, and skill files, not SessionStart stdout.
 
 ```
-Exit 0  →  Allow (inject context via stdout)
+Exit 0  →  Allow (stdout only when the event contract requires it)
 Exit 1  →  Block (user can override with APPROVED: prefix)
 Exit 2  →  Block (security — no override possible)
 ```
@@ -289,7 +289,7 @@ HOOK SYSTEM (15 top-level .cjs hooks + 1 .js notification helper)
 │   ├── session-init.cjs ─────────── Load config, set env vars
 │   ├── session-init-docs.cjs ────── Initialize reference docs from project-config
 │   ├── npm-auto-install.cjs ──────── Install missing npm packages
-│   ├── graph-session-init.cjs ───── Check Python/tree-sitter/graph.db, inject status
+│   ├── graph-session-init.cjs ───── Check Python/tree-sitter/graph.db, sync silently
 │   └── session-end.cjs ──────────── Cleanup temp/swap files, save state
 │
 ├── PROMPT PROCESSING (1 hook)
@@ -2808,7 +2808,7 @@ Context engineering is the discipline of **managing what information reaches the
 │                                                                   │
 │  COMPACTION EVENT:                                                │
 │  Context window full → system summarizes old messages →          │
-│  all injected context, tool results, and state are LOST          │
+│  prior static context, tool results, and transient state are LOST │
 │                                                                   │
 │  RECOVERY PIPELINE (static, model-driven):                       │
 │                                                                   │
@@ -2916,8 +2916,8 @@ The graph integrates via 3 CJS hooks that fire automatically:
 graph TB
     subgraph "Hook 1: graph-session-init.cjs"
         SE["SessionStart"] --> CHK{"Python +<br/>tree-sitter<br/>installed?"}
-        CHK -->|Yes| STAT["Inject: Graph active<br/>94 files, 875 nodes"]
-        CHK -->|No| GUIDE["Inject: Install<br/>instructions"]
+        CHK -->|Yes| STAT["Silent graph sync<br/>when graph.db exists"]
+        CHK -->|No| GUIDE["Silent skip<br/>static setup guides remain authoritative"]
     end
 
     subgraph "Hook 2: graph-auto-update.cjs"
@@ -3063,7 +3063,7 @@ Two protocol blocks (`SYNC:be-focused-review-checklist` and `SYNC:fe-logic-focus
 
 1. Command/Query handler co-location (CQRS one-file rule)
 2. Repository usage — no generic interface, no direct DbContext
-3. Business validation — `PlatformValidationResult` fluent API, no `throw new`
+3. Business validation — project-specific fluent validation API, no direct exception throwing for business validation
 4. Side effect placement — entity event handlers only, not in handler bodies
 5. Cross-service communication — message bus only, no shared DB access
 6. DTO mapping ownership — DTOs own mapping, no mapping in `Handle()`
@@ -3238,7 +3238,7 @@ Sections 8.1–8.2 cover injecting _project knowledge_ (patterns, reference docs
 | **Surface ambiguity**              | Multiple valid interpretations → present each with an effort estimate and ask; never silently pick the broad/complex path                        | Clarify-before-assume             |
 | **Output quality**                 | Token efficiency without quality loss — no inventories/dir-trees/redundant examples; lead with the answer; unresolved questions at the end       | Signal density                    |
 
-The short principles are authored once as hardcoded strings in `.claude/hooks/lib/prompt-injections.cjs` (the 5-line `injectCriticalContext` block + the 26-bullet AI-mistake-prevention block); their long-form canon lives in `.claude/docs/development-rules.md` and `.claude/docs/anti-hallucination-patterns.md`; and the reusable ones are also SYNC-tagged in `sync-inline-versions.md` so they propagate into skill bodies and the cross-tool mirrors (Section 13.5).
+The short principles are authored once as SYNC-tagged blocks in `.claude/skills/shared/sync-inline-versions.md` (the critical-thinking-mindset block + the AI-mistake-prevention block) and composed by `.claude/scripts/lib/hookless-prompt-protocol.cjs`; `.claude/hooks/lib/prompt-injections.cjs` is only a delegating compat wrapper that reads those canonical blocks (it holds no body copies). Their long-form canon lives in `.claude/docs/development-rules.md` and `.claude/docs/anti-hallucination-patterns.md`; and the SYNC-tagged blocks propagate into skill bodies and the cross-tool mirrors (Section 13.5).
 
 #### Static delivery — principle stays in the attention window
 
@@ -3256,7 +3256,7 @@ multiple hook part-files.
 
 #### Dual-window dedup — anchoring without bloat
 
-Re-injecting on every prompt would flood the context. `wasMarkerRecentlyInjected` (in `prompt-injections.cjs`) does a **dual primacy + recency check**: it suppresses a re-injection if the marker already appears in either the last N lines (recency window) _or_ the first ~50 lines (primacy window). Window sizes are computed from actual content size in `dedup-constants.cjs`. The effect: a principle stays present at the boundaries of the conversation but is never duplicated mid-stream — and after compaction (which clears both windows) it correctly re-injects. This is the same dedup discipline as Section 4.5, applied specifically to keep the mindset layer cheap.
+Re-injecting on every prompt would have flooded the context, so the historical runtime emitter used `wasMarkerRecentlyInjected` (in `prompt-injections.cjs`) for a **dual primacy + recency check**: it suppressed a re-injection when the marker already appeared in either the last N lines (recency window) _or_ the first ~50 lines (primacy window), with window sizes computed from actual content size in `dedup-constants.cjs`. **After the de-hooking refactor no hook emits protocol text at runtime, so this dedup path is dormant** — the principle now stays present at the conversation boundaries because it is authored statically into `CLAUDE.md` and the skill bodies (re-read after compaction) rather than re-injected. The helper survives only as a SYNC-verified compat surface, applying the same dedup discipline as Section 4.5.
 
 #### Embedded over external — the sequential-thinking migration
 
@@ -3347,10 +3347,10 @@ sequenceDiagram
 
 | Runner                               | Tests   | Scope                                                                                      |
 | ------------------------------------ | ------- | ------------------------------------------------------------------------------------------ |
-| `test-all-hooks.cjs` (primary gate)  | **213** | All 15 hook behaviors + bridged suites + count-drift guard                                 |
-| `run-all-tests.cjs` (full aggregate) | **289** | Primary + extended lib, swap-engine, shared-utilities, and every `tests/suites/*.test.cjs` |
+| `test-all-hooks.cjs` (primary gate)  | **215** | All 15 hook behaviors + bridged suites + count-drift guard                                 |
+| `run-all-tests.cjs` (full aggregate) | **300** | Primary + extended lib, swap-engine, shared-utilities, and every `tests/suites/*.test.cjs` |
 
-> Counts are live-verified (`test-all-hooks.cjs` = 213, `run-all-tests.cjs` = 289; 2026-06-17). The former per-suite breakdown was hand-maintained and drifted — derive counts from a live run, not a static table.
+> Counts are live-verified (`test-all-hooks.cjs` = 215, `run-all-tests.cjs` = 300; 2026-06-18). The former per-suite breakdown was hand-maintained and drifted — derive counts from a live run, not a static table.
 
 Suites under `tests/suites/` (15): agent-files-gate, agent-universal-rules, bugfix-regression, check-subagent-routing, content-presence, count-drift, doc-sync-gate, init-reference-docs, integration, lifecycle, notification, protocol-text-parity, security, swap-engine, workflow.
 
@@ -3380,7 +3380,7 @@ flowchart TB
     B -->|Yes| C[Model reads static workflow catalog<br/>baked into CLAUDE.md]
     C --> D[Static dev rules + lessons + reminders<br/>from CLAUDE.md / SKILL.md]
 
-    D --> H{LLM processes prompt<br/>with injected context}
+    D --> H{LLM processes prompt<br/>with static context}
 
     H -->|Tool: Edit| I[PreToolUse pipeline]
     I --> I1[windows-command-detector]
@@ -3609,8 +3609,8 @@ This is the answer to two questions the rest of the guide raises: _"does this on
 ┌──────────────────────────────────────────────────────────────────────┐
 │  SOURCE OF TRUTH  (hand-authored, the ONLY place you edit)            │
 │  .claude/skills/**/SKILL.md · .claude/agents/*.md ·                   │
-│  .claude/workflows.json · .claude/hooks/lib/prompt-injections.cjs ·   │
-│  CLAUDE.md (project instructions)                                      │
+│  .claude/workflows.json · CLAUDE.md (project instructions) ·          │
+│  .claude/skills/shared/sync-inline-versions.md                        │
 └──────────────────────────────────────────────────────────────────────┘
             │  npm run codex:sync   (9-stage pipeline, fail-fast)
             ▼

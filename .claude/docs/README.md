@@ -149,7 +149,7 @@
 | Hook Events            | 8     |
 | Agents                 | 29    |
 | Workflows              | 17    |
-| Hook Tests             | 213   |
+| Hook Tests             | 224   |
 | Documentation Files    | 28    |
 
 ---

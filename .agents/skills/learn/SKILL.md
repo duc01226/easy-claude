@@ -17,7 +17,7 @@ disable-model-invocation: false
 <!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
 ## Codex Project-Reference Loading (No Hooks)
 
-Codex does not receive Claude hook-based doc injection.
+Codex uses static project-reference loading instead of runtime-injected project docs.
 When coding, planning, debugging, testing, or reviewing, open project docs explicitly using this routing.
 
 **Always read:**
@@ -157,8 +157,8 @@ Before saving any lesson, critically evaluate whether a doc update alone is suff
 | Prevention Layer                            | When to use                                                                   | Example                                                                                     |
 | ------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
 | **Doc update only**                         | One-off awareness, rare edge case, team convention                            | "Always use fluent validation API" → `docs/project-reference/backend-patterns-reference.md` |
-| **Prompt rule** (`development-rules.md`)    | Rule that ALL agents must follow on every task (injected on UserPromptSubmit) | "Grep after bulk edits" → `.claude/docs/development-rules.md`                               |
-| **System Lesson** (`prompt-injections.cjs`) | Universal AI mistake, high recurrence, silent failure, any project            | "Re-read files after context compaction" → `.claude/hooks/lib/prompt-injections.cjs`        |
+| **Prompt rule** (`development-rules.md`)    | Rule that ALL agents must follow on every task                                | "Grep after bulk edits" → `.claude/docs/development-rules.md`                               |
+| **Static protocol lesson** (`sync-inline-versions.md`) | Universal AI mistake, high recurrence, silent failure, any project | "Re-read files after context compaction" → `.claude/skills/shared/sync-inline-versions.md` |
 | **Hook** (`.claude/hooks/`)                 | Automated enforcement, must never be forgotten                                | "Dedup markers must match" → `lib/dedup-constants.cjs` + consistency test                   |
 | **Test** (`.claude/hooks/tests/`)           | Regression prevention, verifiable invariant                                   | "All hooks import from shared module" → test in `test-all-hooks.cjs`                        |
 | **Skill update** (`.claude/skills/`)        | Workflow step that should always include this check                           | "Review changes must check doc staleness" → skill SKILL.md update                           |
@@ -168,31 +168,31 @@ Before saving any lesson, critically evaluate whether a doc update alone is suff
 1. **Capture** the lesson
 2. **Ask:** "Could this mistake recur if the AI forgets this lesson?" If yes → needs more than a doc update
 3. **Ask:** "Can this be caught automatically by a test or hook?" If yes → recommend hook/test
-4. **Evaluate System Lesson promotion** (see below)
+4. **Evaluate Static Protocol Lesson promotion** (see below)
 5. **Present options to user** with a direct user question:
     - "Doc update only" — save to the best-fit reference file (default for most lessons)
     - "Doc + prompt rule" — also add to `development-rules.md` so all agents see it
-    - "Doc + System Lesson" — also add to `prompt-injections.cjs` System Lessons (see criteria below)
+    - "Doc + Static Protocol Lesson" — also add to shared protocol lessons (see criteria below)
     - "Full prevention" — plan a hook, test, or shared module to enforce it automatically
 6. **Execute** the chosen option. For "Full prevention", create a plan via `$plan` instead of just saving.
 
-### System Lesson Promotion (MANDATORY evaluation)
+### Static Protocol Lesson Promotion (MANDATORY evaluation)
 
-After generalizing a lesson, evaluate whether it qualifies as a **System Lesson** in `.claude/hooks/lib/prompt-injections.cjs`. System Lessons are injected into EVERY prompt — they are the highest-visibility prevention layer.
+After generalizing a lesson, evaluate whether it qualifies as a **Static Protocol Lesson** in `.claude/skills/shared/sync-inline-versions.md`. Static protocol lessons are baked into `CLAUDE.md`, mirrored into `AGENTS.md`, and synced to Codex/Copilot carriers through project-init/sync tooling.
 
 **Qualification criteria (ALL must be true):**
 
 1. **Universal** — Applies to ANY AI coding project, not just this codebase
 2. **High recurrence** — AI agents make this mistake repeatedly across sessions without the reminder
 3. **Silent failure** — The mistake produces no error/warning; it silently degrades output quality
-4. **Not already covered** — No existing System Lesson addresses the same root cause
+4. **Not already covered** — No existing Static Protocol Lesson addresses the same root cause
 
-> **System Lessons** — Universal AI mistake prevention rules injected into EVERY prompt. Stored in `injectAiMistakePrevention()` → "Common AI Mistake Prevention" array. Each must be universal, high-recurrence, and silent-failure.
-> READ `.claude/hooks/lib/prompt-injections.cjs` to check for duplicates before adding.
+> **Static Protocol Lessons** — Universal AI mistake prevention rules baked into static carriers. Stored in `.claude/skills/shared/sync-inline-versions.md` under the `ai-mistake-prevention` and `ai-mistake-prevention:full` SYNC blocks. Each must be universal, high-recurrence, and silent-failure.
+> READ `.claude/skills/shared/sync-inline-versions.md` to check for duplicates before adding.
 
-**If qualified:** Recommend "Doc + System Lesson" option. On user approval, append the lesson as a new bullet to the System Lessons array in `prompt-injections.cjs` following the existing format: `` `- **Bold title.** Explanation sentence.` ``
+**If qualified:** Recommend "Doc + Static Protocol Lesson" option. On user approval, append the lesson as a new bullet to the relevant shared SYNC blocks, then run the project-init / sync pipeline so `CLAUDE.md`, `AGENTS.md`, Codex, and Copilot carriers regenerate from the shared source.
 
-**If NOT qualified:** Explain why (e.g., "Too project-specific", "Already covered by existing System Lesson about X", "Low recurrence — only happens in rare edge cases"). Proceed with doc-only or prompt-rule option.
+**If NOT qualified:** Explain why (e.g., "Too project-specific", "Already covered by existing Static Protocol Lesson about X", "Low recurrence — only happens in rare edge cases"). Proceed with doc-only or prompt-rule option.
 
 ### Lesson Quality Gate (BLOCKING — generalize before you save)
 
@@ -285,7 +285,7 @@ Run these 2 tasks at the end of every `$learn` operation:
 
 ## Budget Enforcement (MANDATORY for `docs/project-reference/lessons.md`)
 
-`docs/project-reference/lessons.md` is injected into EVERY prompt and EVERY file edit. Token budget must be controlled.
+`docs/project-reference/lessons.md` is a static project-reference carrier read during project work. Token budget must be controlled.
 
 **Hard limit:** 10000 characters (~3333 tokens). Check BEFORE saving any new lesson.
 
@@ -428,7 +428,7 @@ $prompt-enhance docs/project-reference/<modified-file>.md
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Hookless Prompt Protocol Mirror (Auto-Synced)
 
-Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
+Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs`
 
 ## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
 
@@ -440,11 +440,33 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
 6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
-**[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
-**Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
-**AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
-**Goal-driven execution:** Define success criteria first, loop until verified, and stop only when observable checks pass.
-**Tests verify intent:** Tests must protect business rules/invariants and fail when the protected intent breaks, not only mirror current behavior.
+## Shared AI-SDD Protocol Markers
+
+Source: `.claude/skills/shared/sync-inline-versions.md`
+
+## SYNC:ai-sdd-artifact-contract
+
+> **AI-SDD Artifact Contract** — Shared spec-driven development rules stay portable and source-owned.
+>
+> 1. Keep reusable AI-SDD principles in `.claude`; put repository-specific paths, commands, owners, products, and formats in project config/reference docs.
+> 2. Preserve cycle: `spec -> plan -> tasks -> implement -> verify -> update spec/docs`.
+> 3. Trace every requirement or invariant through decision, task, TC/test, source evidence, and docs/spec update.
+> 4. Treat code-to-spec extraction as reference-only until accepted by the canonical spec owner.
+> 5. Any supported AI tool may plan, implement, review, or verify with synced context; using multiple tools is optional.
+> 6. Update `.claude` source first, then sync generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`. — why: mirrors are generated artifacts; hand-edits are overwritten on the next sync
+> 7. If `docs/project-config.json`, root instruction files, or a required project-reference doc is missing or stale, auto-run `$project-init` or the narrow lower-level route before ordinary project-specific work.
+>
+> **Active reference:** `shared/sdd-artifact-contract.md` in the active skills root.
+
+---
+
+## SYNC:ai-sdd-artifact-contract:reminder
+
+- **MANDATORY** Apply `shared/sdd-artifact-contract.md`; keep reusable AI-SDD in `.claude` and local rules in project docs.
+- **MANDATORY** Code-to-spec extraction is reference-only until canonical acceptance; any supported AI tool may execute with synced context.
+- **MANDATORY** Update `.claude` source before syncing generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`.
+- **MANDATORY** Missing or stale project config, root instruction files, or required reference docs route project-specific work through `$project-init` or the narrow setup route automatically.
+**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
 ## [LESSON-LEARNED-REMINDER] [BLOCKING] Task Planning & Continuous Improvement — MANDATORY. Do not skip.
 
 Break work into small tasks (task tracking) before starting. Add final task: "Analyze AI mistakes & lessons learned".
@@ -457,6 +479,39 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
 6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/`$lint` catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
-**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
+**[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
+**Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
+**AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
+**Goal-driven execution:** Define success criteria first, loop until verified, and stop only when observable checks pass.
+**Tests verify intent:** Tests must protect business rules/invariants and fail when the protected intent breaks, not only mirror current behavior.
+## Common AI Mistake Prevention (System Lessons)
+
+- **Re-read files after context compaction.** Edit requires prior Read in same context; compaction wipes read state. Re-read before editing.
+- **Grep for old terms after bulk replacements.** AI over-trusts find/replace completeness. Grep full repo after bulk edits for missed refs in docs/configs/catalogs.
+- **Check downstream references before deleting.** Deletions cascade doc/code staleness. Map referencing files before removal.
+- **After memory loss, check existing state before creating new.** Compaction wipes prior-work memory. Query current state to resume — never blindly duplicate.
+- **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, method signatures. Grep to confirm existence before documenting/referencing.
+- **Trace full dependency chain after edits.** Changing a definition misses downstream consumers. Trace the full chain.
+- **When renaming, grep ALL consumer file types.** Some file types silently ignore missing refs (no compile error). Search code, templates, configs, generated files.
+- **Trace ALL code paths when verifying correctness.** Code existing ≠ code executing. Trace early exits, error branches, conditional skips — not just happy path.
+- **Update docs that embed canonical data when source changes.** Docs inlining derived data (workflows, schemas, configs) go stale silently. Update all embedding docs alongside source.
+- **Verify sub-agent results after context recovery.** Background agents may finish while parent compacted — grep-verify output, don't trust assumed completion.
+- **Cross-check full target list against sub-agent assignments.** Parallel sub-agents by category miss boundary items. Reconcile union of assignments against target list before proceeding.
+- **Sub-agents inherit knowledge only from their agent .md definition — use custom agent types, not built-in Explore.** Tool adoption = permission + knowledge + enforcement (numbered workflow step).
+- **Persist sub-agent findings incrementally, not as a final batch.** Long sub-agents hit cutoffs before final write — findings lost. Instruct append-per-section to report file.
+- **When debugging, ask "whose responsibility?" before fixing.** Trace caller (wrong data) vs callee (wrong handling). Fix at responsible layer — never patch symptom site.
+- **Grep ALL removed names after extraction/refactoring.** Primary file "done" ≠ secondary files clean. Grep entire scope for every removed symbol before declaring complete.
+- **Assume existing values are intentional — ask WHY before changing.** Pattern-matching as "wrong" skips context. Before changing any constant/limit/flag: read comments, git blame, surrounding code.
+- **Verify ALL affected outputs, not just the first.** One build green ≠ all green. Multi-stack changes (backend/frontend/tests/docs) require verifying EVERY output.
+- **Evaluate fit before copying a nearby pattern.** Closest example ≠ matching preconditions — verify the new context shares the same constraints, base classes, scope, lifetime.
+- **Holistic-first debugging — resist nearest-attention trap.** Don't dive into first plausible cause. List EVERY precondition (config, env vars, paths, DB, endpoints, creds, versions, DI, data). Verify each against evidence (grep/query — not reasoning). Ask "what would falsify this?" — if nothing, it's not a hypothesis. Most expensive failure: going deeper in "obvious" layer while bug sits in layer never questioned.
+- **Surgical changes — apply the diff test (context-aware).** Two modes: (1) Bug fix → every line traces to the bug; no restyling; orphan cleanup only for imports YOUR changes made unused. (2) Review/enhancement → implement improvements AND announce as "Enhancement beyond main request: [what]". Never silently scope-creep. Diff test: "Would this line exist if I wasn't asked to do X?" — if no, delete or announce.
+- **Surface ambiguity before coding — don't pick silently.** Multiple valid interpretations → present each with effort: "[Request] could mean (1) [N h], (2) [N h]. Which matters?" List scope/format/volume/constraints assumptions first. If simpler path exists, say so. Never silently pick.
+- **[MANDATORY FIRST ACTION] ALWAYS activate a suitable skill or workflow BEFORE responding.** Match task against workflow catalog + skill list; invoke via skill invocation or `$start-workflow <workflowId>`. NEVER answer or write code before checking. Skip = protocol violation.
+- **Why-Review adversarial mindset — apply when reviewing any plan, decision, or design.** Default SKEPTIC not VALIDATOR: steel-man a rejected alternative, invert each stated reason ("what does it sacrifice?"), stress-test top 2-3 assumptions, run pre-mortem ("ships, fails in 3 months — what breaks?"), surface 1-2 alternatives author missed. Section presence ≠ quality; quality = causal reasoning + concrete mitigations + evidence, not "it's better" or "monitor closely".
+- **Front-load report-write in sub-agent prompts for large reviews.** Many-file sub-agents hit budget before final write — findings lost. Design prompts so: (1) report-write is first explicit deliverable, (2) append per-file/section (not batched), (3) scope bounded so reads don't exhaust budget. Truncated mid-sentence with no report file → spawn narrower scope, don't retry same prompt.
+- **After context compaction, re-verify all prior phase outcomes before continuing.** Summaries describe intent, not environment state (git index, filesystem, processes). On resume, FIRST audit: git status, re-read modified files, verify filesystem. Every "completed" claim is an untested hypothesis until evidence confirms.
+- **OOM/memory: check row count before row size.** Triage: (1) Unbounded query — no DB filter for trigger? Push filter to DB; eliminates OOM. (2) Large rows? Projection reduces proportionally. Row reduction > projection in ROI.
+- **Keep domain concepts out of generic/shared/infrastructure layers.** Reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. Leak compiles + runs → passes review silently while coupling the "reusable" layer to one consumer. Keep shared type domain-free; push domain fields/logic down into the consumer via subclass/composition. — why: a layer coupled to one consumer's domain is no longer reusable.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:END -->

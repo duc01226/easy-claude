@@ -46,12 +46,7 @@ const sessionInitTests = [
                 const input = createSessionStartInput('startup', 'test-session-123');
                 const result = await runHook(SESSION_INIT, input, { cwd: tmpDir });
                 assertAllowed(result.code, 'Should not block');
-                // Session init outputs project context
-                const output = result.stdout + result.stderr;
-                assertTrue(
-                    output.includes('Session') || output.includes('Project') || output === '' || output.includes('single-repo'), // May detect project type
-                    'Should output session context or nothing'
-                );
+                assertTrue(result.stdout === '', 'SessionStart hooks must not inject stdout context');
             } finally {
                 cleanupTempDir(tmpDir);
             }
@@ -105,15 +100,7 @@ const sessionInitTests = [
                 const input = createSessionStartInput('startup');
                 const result = await runHook(SESSION_INIT, input, { cwd: tmpDir });
                 assertAllowed(result.code);
-                const output = result.stdout + result.stderr;
-                // May detect node/npm project
-                assertTrue(
-                    output.toLowerCase().includes('npm') ||
-                        output.toLowerCase().includes('node') ||
-                        output.toLowerCase().includes('single-repo') ||
-                        output === '',
-                    'May detect Node project'
-                );
+                assertTrue(result.stdout === '', 'Project detection must stay silent on SessionStart');
             } finally {
                 cleanupTempDir(tmpDir);
             }

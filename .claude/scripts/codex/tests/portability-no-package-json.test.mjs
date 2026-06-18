@@ -104,19 +104,6 @@ test('PORT-001 sync/verify pipeline scripts import only node: built-ins and rela
             if (e.endsWith('.cjs') || e.endsWith('.mjs')) scanList.push(`.claude/scripts/lib/${e}`);
         }
     }
-    // Include the hooks/lib closure dynamically loaded by the copilot sync stage. The static
-    // bareSpecifiers scanner cannot follow sync-copilot-workflows.cjs's variable-path
-    // `require(PROMPT_INJECTIONS_PATH)` (:281) into prompt-injections.cjs and its transitive
-    // hooks/lib requires (dedup-constants -> project-config-loader, ck-config-loader -> ck-path-utils,
-    // ck-config-schema, ...). A hand-maintained closure list would silently rot as that graph grows, so
-    // scan the whole flat hooks/lib dir — the bare-`.claude` portability invariant holds for every hook
-    // library anyway. Flat readdir excludes the `__tests__` subdir (no `.cjs`/`.mjs` extension match).
-    const hooksLibDir = path.join(repoRoot, '.claude', 'hooks', 'lib');
-    if (await exists(hooksLibDir)) {
-        for (const e of await fs.readdir(hooksLibDir)) {
-            if (e.endsWith('.cjs') || e.endsWith('.mjs')) scanList.push(`.claude/hooks/lib/${e}`);
-        }
-    }
     for (const rel of scanList) {
         const bare = bareSpecifiers(await readRel(rel));
         if (bare.length) offenders.push(`${rel}: ${bare.join(', ')}`);

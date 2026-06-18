@@ -2,7 +2,7 @@
 name: workflow-write-integration-test
 version: 1.0.0
 description: '[Workflow] Use when activating the Write Integration Tests workflow for spec-first integration test authoring. Also covers converting existing test specs into integration test code and verifying integration test stability (repeat-run verification).'
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 ## Quick Summary

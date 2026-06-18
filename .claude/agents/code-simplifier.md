@@ -49,7 +49,7 @@ memory: project
 > - `docs/project-reference/frontend-patterns-reference.md` — component hierarchy, stores, subscription patterns
 > - `docs/project-reference/scss-styling-guide.md` — BEM methodology, SCSS conventions
 >
-> If files not found, search for: `AppBaseComponent`, store base classes, validation fluent API patterns.
+> If files not found, search the codebase for the project's component base classes, state-store base classes, and validation patterns.
 
 ## Simplification Techniques
 

@@ -3,13 +3,10 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createRequire } from "node:module";
-
-const require = createRequire(import.meta.url);
 
 // Prose-only semantic anchor for the advancement+barrier rule, shared (case-insensitively) by
-// every wording across all three carriers (Codex context note, Copilot common-protocol clause,
-// injectWorkflowProtocol output): "advance only after ALL/EVERY member(s) return". Deliberately
+// every wording across static carriers (Codex context note, Copilot common-protocol clause):
+// "advance only after ALL/EVERY member(s) return". Deliberately
 // NOT a substring of the rendered barrier token "[parallel ⇉ all-return barrier: …]" — so this
 // clause-presence check (W5(c)) proves the rule PROSE reached the carrier independently of the
 // token-parity check below. (Earlier "all-return barrier" was a token substring, making the check
@@ -22,7 +19,6 @@ const ADVANCEMENT_CLAUSE_LABEL = 'advance only after ALL/EVERY member(s) return'
 // portable across single-tool checkouts of the framework.
 const CODEX_CARRIER = "AGENTS.md";
 const COPILOT_CARRIER = path.join(".github", "instructions", "common-protocol.instructions.md");
-const PROMPT_INJECTIONS = path.join(".claude", "hooks", "lib", "prompt-injections.cjs");
 
 const TARGET_WORKFLOW_IDS = [
   "workflow-big-feature",
@@ -522,10 +518,8 @@ function checkParallelGroupsStructure(workflowId, workflow, rawSequence, failure
 }
 
 // W5(b)+(c) — cross-mirror proof. (b) the expected barrier token is byte-identical across the
-// rendered Codex and Copilot mirrors; (c) the advancement clause reached all three carriers.
-// Reads each carrier once. Mirror files are optional (portability); injectWorkflowProtocol is a
-// framework file and is always exercised. injectWorkflowProtocol(null) short-circuits its dedup
-// guard with zero file I/O, so calling it here has no side effects.
+// rendered Codex and Copilot mirrors; (c) the advancement clause reached every enabled static
+// carrier. Reads each carrier once. Mirror files are optional (portability).
 async function checkParallelGroupsMirrorParity(workflows, rootDir, failures) {
   const grouped = Object.entries(workflows).filter(
     ([, wf]) => Array.isArray(wf?.parallelGroups) && wf.parallelGroups.length > 0
@@ -537,18 +531,9 @@ async function checkParallelGroupsMirrorParity(workflows, rootDir, failures) {
   const codexText = (await exists(codexPath)) ? await fs.readFile(codexPath, "utf8") : null;
   const copilotText = (await exists(copilotPath)) ? await fs.readFile(copilotPath, "utf8") : null;
 
-  let injectedProtocol = null;
-  try {
-    const { injectWorkflowProtocol } = require(path.join(rootDir, PROMPT_INJECTIONS));
-    injectedProtocol = injectWorkflowProtocol(null);
-  } catch (error) {
-    failures.push(`parallelGroups carrier check: unable to load injectWorkflowProtocol from ${PROMPT_INJECTIONS} (${error.message})`);
-  }
-
   const clauseCarriers = [
     { label: `Codex context (${CODEX_CARRIER})`, text: codexText },
     { label: `Copilot common-protocol (${normalizePath(copilotPath, rootDir)})`, text: copilotText },
-    { label: "injectWorkflowProtocol output", text: injectedProtocol },
   ];
   for (const carrier of clauseCarriers) {
     if (carrier.text === null) continue;

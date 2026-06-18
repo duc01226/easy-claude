@@ -16,7 +16,7 @@ Source: .claude/agents/code-simplifier.md
 <!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
 ## Codex Project-Reference Loading (No Hooks)
 
-Codex does not receive Claude hook-based doc injection.
+Codex uses static project-reference loading instead of runtime-injected project docs.
 When coding, planning, debugging, testing, or reviewing, open project docs explicitly using this routing.
 
 **Always read:**
@@ -79,7 +79,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 > - `docs/project-reference/frontend-patterns-reference.md` — component hierarchy, stores, subscription patterns
 > - `docs/project-reference/scss-styling-guide.md` — BEM methodology, SCSS conventions
 >
-> If files not found, search for: `AppBaseComponent`, store base classes, validation fluent API patterns.
+> If files not found, search the codebase for the project's component base classes, state-store base classes, and validation patterns.
 
 ## Simplification Techniques
 

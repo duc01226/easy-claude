@@ -2,7 +2,7 @@
 name: workflow-greenfield-init
 version: 1.0.0
 description: '[Workflow] Use when activating the Greenfield Project Init workflow for full waterfall project inception from idea through implementation with integration testing.'
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 ## Quick Summary
@@ -27,26 +27,26 @@ disable-model-invocation: true
 
 This workflow has steps that appear multiple times. When creating tasks, use these descriptions to distinguish them:
 
-| Step                      | Occurrence   | Task Description                                                                          |
-| ------------------------- | ------------ | ----------------------------------------------------------------------------------------- |
-| `/plan`                   | 1st (pos 10)  | PLAN₁: High-level architecture plan (after architecture-design)                           |
-| `/plan`                   | 2nd (pos 29) | PLAN₂: Sprint-ready implementation plan (after review-artifact --type=spec-tests)                           |
-| `/plan`                   | 3rd (pos 40) | PLAN₃: Integration test architecture plan (post-implementation)                           |
-| `/plan-review`            | 1st (pos 11) | Review PLAN₁ architecture (immediate gate; replaces former rationale why-review)                                                                 |
-| `/plan-review`            | 2nd (pos 14) | Re-review PLAN₁ after architecture-security + performance analysis                                                               |
-| `/plan-review`            | 3rd (pos 30) | Review PLAN₂ implementation                                                               |
-| `/plan-review`            | 4th (pos 41) | Review PLAN₃ integration tests                                                            |
-| `/security-review`               | 1st (pos 12)  | Architecture security review                                                              |
-| `/security-review`               | 2nd (pos 48) | Production readiness security review                                                      |
-| `/spec [mode=tests]`               | 1st (pos 26) | TDD-SPEC₁: Feature test specs (before implementation)                                     |
-| `/spec [mode=tests]`               | 2nd (pos 37) | TDD-SPEC₂: Post-implementation test spec update                                           |
-| `/review-artifact --type=spec-tests`        | 1st (pos 28) | Review TDD-SPEC₁                                                                          |
-| `/review-artifact --type=spec-tests`        | 2nd (pos 39) | Review TDD-SPEC₂                                                                          |
-| `/test`                   | 1st (pos 45) | Test after integration tests                                                              |
-| `/test`                   | 2nd (pos 50) | Final test verification                                                                   |
-| `/review-domain-entities` | 1st (pos 36) | DDD quality review — conditional: skip if no domain entity files in changeset             |
-| `/linter-setup`           | (new)        | LINTER-SETUP: Install and configure computational feedback sensors                        |
-| `/harness-setup`          | (new)        | HARNESS-SETUP: Full outer agent harness (feedforward guides + feedback sensors inventory) |
+| Step                                 | Occurrence   | Task Description                                                                          |
+| ------------------------------------ | ------------ | ----------------------------------------------------------------------------------------- |
+| `/plan`                              | 1st (pos 10) | PLAN₁: High-level architecture plan (after architecture-design)                           |
+| `/plan`                              | 2nd (pos 29) | PLAN₂: Sprint-ready implementation plan (after review-artifact --type=spec-tests)         |
+| `/plan`                              | 3rd (pos 40) | PLAN₃: Integration test architecture plan (post-implementation)                           |
+| `/plan-review`                       | 1st (pos 11) | Review PLAN₁ architecture (immediate gate; replaces former rationale why-review)          |
+| `/plan-review`                       | 2nd (pos 14) | Re-review PLAN₁ after architecture-security + performance analysis                        |
+| `/plan-review`                       | 3rd (pos 30) | Review PLAN₂ implementation                                                               |
+| `/plan-review`                       | 4th (pos 41) | Review PLAN₃ integration tests                                                            |
+| `/security-review`                   | 1st (pos 12) | Architecture security review                                                              |
+| `/security-review`                   | 2nd (pos 48) | Production readiness security review                                                      |
+| `/spec [mode=tests]`                 | 1st (pos 26) | TDD-SPEC₁: Feature test specs (before implementation)                                     |
+| `/spec [mode=tests]`                 | 2nd (pos 37) | TDD-SPEC₂: Post-implementation test spec update                                           |
+| `/review-artifact --type=spec-tests` | 1st (pos 28) | Review TDD-SPEC₁                                                                          |
+| `/review-artifact --type=spec-tests` | 2nd (pos 39) | Review TDD-SPEC₂                                                                          |
+| `/test`                              | 1st (pos 45) | Test after integration tests                                                              |
+| `/test`                              | 2nd (pos 50) | Final test verification                                                                   |
+| `/review-domain-entities`            | 1st (pos 36) | DDD quality review — conditional: skip if no domain entity files in changeset             |
+| `/linter-setup`                      | (new)        | LINTER-SETUP: Install and configure computational feedback sensors                        |
+| `/harness-setup`                     | (new)        | HARNESS-SETUP: Full outer agent harness (feedforward guides + feedback sensors inventory) |
 
 **NEVER deduplicate** — each occurrence is a distinct task with a different purpose.
 

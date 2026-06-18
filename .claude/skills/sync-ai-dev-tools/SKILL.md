@@ -2,7 +2,7 @@
 name: sync-ai-dev-tools
 version: 2.1.0
 description: '[AI & Tools] USER-INVOKED. Use when you (the USER) need to reconcile AI dev-tool SOURCE guidance (Claude↔Copilot skills/prompts/agents/instructions) and/or regenerate BOTH generated mirror surfaces by delegating to the two mirror skills (/sync-to-copilot FIRST then /sync-codex) with both divergence oracles.'
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 ## Quick Summary
@@ -18,15 +18,14 @@ This skill is the **single full-pipeline form**: it authors source parity AND cl
 
 **Two ways to run it:**
 
-| You need…                                              | Do                                                     |
-| ------------------------------------------------------ | ------------------------------------------------------ |
-| Reconcile source AND ship it to all mirrors            | Part A → Part B (full flow)                            |
-| Only regenerate mirrors from already-edited source     | Jump straight to **Part B** (skip Part A)              |
-| Only edit source, defer the regen                      | Part A only; run Part B (or re-invoke this skill) later |
+| You need…                                          | Do                                                      |
+| -------------------------------------------------- | ------------------------------------------------------- |
+| Reconcile source AND ship it to all mirrors        | Part A → Part B (full flow)                             |
+| Only regenerate mirrors from already-edited source | Jump straight to **Part B** (skip Part A)               |
+| Only edit source, defer the regen                  | Part A only; run Part B (or re-invoke this skill) later |
 
 **Key Rules:**
 
-- **USER-INVOKE-ONLY (`disable-model-invocation: true`, binding).** The AI MUST NOT auto-invoke this skill — mirrors are regenerated only when the USER asks. This guard is inherited transitively from the wrapped `/sync-codex` skill.
 - **Part B delegates to two equal skills in a MANDATORY order** — `/sync-to-copilot --fast` BEFORE `/sync-codex` (see "Why this is ordered, not parallel"); reversing OR running them concurrently makes `/sync-codex` RED via TC-WFPROTO-006.
 - **NOT a parallel phase** — the two skills are equal peers but have a read-after-write data dependency (`/sync-codex` reads the copilot-written `common-protocol.instructions.md`); they MUST be sequential.
 - **Fail-fast between Part B steps** — if `/sync-to-copilot --fast` exits non-zero, STOP; do NOT run `/sync-codex` over a half-regenerated copilot surface.
@@ -56,7 +55,7 @@ Activate this skill when:
 ## Quick Reference
 
 | Source surface    | Managed/peer surface              | Location                                                         |
-| ----------------- | --------------------------------- | --------------------------------------------------------------- |
+| ----------------- | --------------------------------- | ---------------------------------------------------------------- |
 | SKILL.md          | Codex skill mirror                | `.claude/skills/` -> `.agents/skills/`                           |
 | Context/workflows | Codex context mirror              | `.claude/**`, `.claude/workflows.json` -> `.codex/`, `AGENTS.md` |
 | SKILL.md          | Copilot skill/prompt              | `.claude/skills/` + `.github/skills/` / `.github/prompts/`       |
@@ -182,7 +181,6 @@ The two skills are **equal peers**, but they CANNOT run as a true parallel phase
 - **Critical Thinking:** Apply critical + sequential thinking; traced proof, confidence >80% to act.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 
-- **MANDATORY IMPORTANT MUST ATTENTION** invoke ONLY when the USER explicitly requests a sync — never auto-invoke (`disable-model-invocation: true` is binding, inherited from the wrapped `/sync-codex` guard)
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
 - **MANDATORY IMPORTANT MUST ATTENTION** in Part B, invoke `/sync-to-copilot --fast` BEFORE `/sync-codex` — reversing OR running them concurrently makes `/sync-codex` RED (read-after-write on the committed copilot file, TC-WFPROTO-006)
 - **MANDATORY IMPORTANT MUST ATTENTION** treat the two skills as equal peers in a MANDATORY sequence — NEVER as a parallel phase
@@ -193,19 +191,17 @@ The two skills are **equal peers**, but they CANNOT run as a true parallel phase
 
 **Anti-Rationalization:**
 
-| Evasion                                       | Rebuttal                                                                                          |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| "Auto-run since the user mentioned mirrors/sync" | `disable-model-invocation: true` is binding. Wait for an explicit invocation from the USER.    |
-| "They're equal peers, so run them in parallel" | No. `/sync-codex` reads the copilot-written `common-protocol.instructions.md` (TC-WFPROTO-006); concurrent = read-after-write race → flaky RED. Equal peers, MANDATORY order. |
-| "Run codex first, copilot second — same thing" | No. `/sync-codex` verifies against the committed copilot file; stale copilot → RED. `/sync-to-copilot --fast` FIRST. |
-| "Copilot step printed a warning, run codex anyway" | Fail-fast seam exists for this. Non-zero `/sync-to-copilot` exit → STOP; fix before `/sync-codex`. |
-| "Use full `/sync-to-copilot` in Part B"       | Part B is mechanical — use `--fast` (script only). The AI enrichment pass is Part A judgment work. |
-| "Just hand-edit the mirror to match"          | Next sync overwrites it. Edit SOURCE, re-run the matching skill.                                   |
-| "Skip the oracles, the skills succeeded"      | Skills mutating ≠ surfaces in parity. Both divergence oracles must exit 0.                         |
+| Evasion                                            | Rebuttal                                                                                                                                                                      |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "They're equal peers, so run them in parallel"     | No. `/sync-codex` reads the copilot-written `common-protocol.instructions.md` (TC-WFPROTO-006); concurrent = read-after-write race → flaky RED. Equal peers, MANDATORY order. |
+| "Run codex first, copilot second — same thing"     | No. `/sync-codex` verifies against the committed copilot file; stale copilot → RED. `/sync-to-copilot --fast` FIRST.                                                          |
+| "Copilot step printed a warning, run codex anyway" | Fail-fast seam exists for this. Non-zero `/sync-to-copilot` exit → STOP; fix before `/sync-codex`.                                                                            |
+| "Use full `/sync-to-copilot` in Part B"            | Part B is mechanical — use `--fast` (script only). The AI enrichment pass is Part A judgment work.                                                                            |
+| "Just hand-edit the mirror to match"               | Next sync overwrites it. Edit SOURCE, re-run the matching skill.                                                                                                              |
+| "Skip the oracles, the skills succeeded"           | Skills mutating ≠ surfaces in parity. Both divergence oracles must exit 0.                                                                                                    |
 
-> **[USER-INVOKED ONLY]** Manually triggered via `$sync-ai-dev-tools`. Claude MUST NOT auto-invoke — `disable-model-invocation: true` enforces this (inherited transitively from the wrapped `/sync-codex` guard).
 > **[FAILS FAST]** In Part B, a non-zero `/sync-to-copilot --fast` exit aborts before `/sync-codex`. `/sync-codex` is itself fail-fast across its 12 stages.
-> **[ORDERED, NOT PARALLEL]** Part B invokes `/sync-to-copilot --fast` FIRST, `/sync-codex` SECOND — two equal skills in a MANDATORY sequence. They are NOT a parallel phase: BOTH write `.github/**` (Step 1 directly; `/sync-codex` via its `copilot` stage, which TC-WFPROTO-006 then byte-checks), so concurrent execution would race on those files. Sequential order avoids the write race — note `/sync-codex` no longer *depends* on Step 1's output (it regenerates the copilot mirror itself), so the order is now race-avoidance, not a correctness dependency.
+> **[ORDERED, NOT PARALLEL]** Part B invokes `/sync-to-copilot --fast` FIRST, `/sync-codex` SECOND — two equal skills in a MANDATORY sequence. They are NOT a parallel phase: BOTH write `.github/**` (Step 1 directly; `/sync-codex` via its `copilot` stage, which TC-WFPROTO-006 then byte-checks), so concurrent execution would race on those files. Sequential order avoids the write race — note `/sync-codex` no longer _depends_ on Step 1's output (it regenerates the copilot mirror itself), so the order is now race-avoidance, not a correctness dependency.
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
 

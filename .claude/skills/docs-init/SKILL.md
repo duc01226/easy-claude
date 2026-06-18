@@ -2,7 +2,7 @@
 name: docs-init
 version: 2.0.0
 description: '[Documentation] Use when you need to initialize project reference docs via hook + scan skills.'
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 ## Quick Summary

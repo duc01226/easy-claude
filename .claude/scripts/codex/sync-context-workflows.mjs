@@ -3,6 +3,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
 import {
   buildSkillReferenceMap,
   prependCodexCompatibilityNote,
@@ -12,6 +13,24 @@ import {
 
 const rootDir = process.cwd();
 const require = createRequire(import.meta.url);
+
+function loadHooklessPromptProtocol() {
+  const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    path.join(rootDir, ".claude", "scripts", "lib", "hookless-prompt-protocol.cjs"),
+    path.join(scriptDir, "..", "lib", "hookless-prompt-protocol.cjs"),
+  ];
+  for (const candidate of candidates) {
+    try {
+      return require(candidate);
+    } catch {}
+  }
+  throw new Error("hookless prompt protocol builder is missing");
+}
+
+const {
+  buildPromptProtocolMirrorSection: buildHooklessPromptProtocolMirrorSection,
+} = loadHooklessPromptProtocol();
 
 // CK markers for the Workflow & Skills catalog block. Declared locally (not imported
 // from the builder) so the dedup regex in main() still works when the builder module
@@ -33,8 +52,8 @@ const CK_AIMP_END = "<!-- /CK:AI-MISTAKE-PREVENTION -->";
 
 // Resolve the shared catalog builder at RUNTIME from the consuming repo root — never a
 // file-relative `../lib` require, which would escape the portable Codex tree (only
-// .claude/scripts/codex/*.mjs travel). Guarded like prompt-injections.cjs below: if the
-// builder is absent (stripped portable consumer), the skills block is simply omitted.
+// .claude/scripts/codex/*.mjs travel). Guarded below: if the builder is absent
+// (stripped portable consumer), the skills block is simply omitted.
 function loadCatalogBuilder() {
   try {
     return require(path.join(rootDir, ".claude", "scripts", "lib", "workflow-skills-catalog.cjs"));
@@ -80,7 +99,7 @@ const LEGACY_AGENTS_CLAUDE_MERGE_START = "<!-- CLAUDE-MERGE:START -->";
 const LEGACY_AGENTS_CLAUDE_MERGE_END = "<!-- CLAUDE-MERGE:END -->";
 const PROJECT_REFERENCE_GATE_HEADING = "## Codex Hookless Project Reference Gate";
 const PROJECT_REFERENCE_GATE_BODY_LINES = [
-  "Codex does not receive Claude hook-injected project docs or project config summaries. Before coding, planning, debugging, testing, or reviewing:",
+  "Codex uses static project-reference loading instead of runtime-injected project docs. Before coding, planning, debugging, testing, or reviewing:",
   "",
   "- Read `docs/project-config.json` for project-specific commands, module paths, workflow settings, and doc paths.",
   "- Read `docs/project-reference/docs-index-reference.md` to route to the right project-reference files.",
@@ -222,7 +241,11 @@ function upsertProjectReferenceGateSection(contextMd) {
   return `${gateSection}\n\n${contextWithoutGate.trimStart()}`.trimEnd();
 }
 
-async function upsertContextIntoAgents(contextMd, claudeMd) {
+// `writePath` defaults to the committed AGENTS.md so normal sync stays byte-identical.
+// The committed file is ALWAYS read as the upsert baseline (preserves the non-managed preface);
+// only the write target is redirectable, so the idempotency oracle can render into a temp dir
+// from the real committed baseline without mutating the repo.
+async function upsertContextIntoAgents(contextMd, claudeMd, writePath = agentsPath) {
   const hasClaudeMirror = typeof claudeMd === "string" && claudeMd.trim().length > 0;
   const claudeBlock = hasClaudeMirror ? buildAgentsClaudeMirrorBlock(claudeMd) : null;
   const mirrorBlock = buildAgentsContextMirrorBlock(contextMd);
@@ -267,7 +290,7 @@ async function upsertContextIntoAgents(contextMd, claudeMd) {
     agentsMd = `${agentsMd.trimEnd()}\n\n${mirrorBlock}\n`;
   }
 
-  await fs.writeFile(agentsPath, agentsMd, "utf8");
+  await fs.writeFile(writePath, agentsMd, "utf8");
 }
 
 async function readExistingContext() {
@@ -548,55 +571,21 @@ async function loadCkConfig() {
 }
 
 async function buildPromptProtocolMirrorSection(headingSuffix = "Auto-Synced") {
-  const promptInjectionsPath = path.join(rootDir, ".claude", "hooks", "lib", "prompt-injections.cjs");
-  try {
-    const promptInjections = require(promptInjectionsPath);
-    const ckConfig = await loadCkConfig();
-    const portability = ckConfig?.portability ?? {};
-    const sections = [
-      normalizePromptProtocolText(
-        promptInjections.injectWorkflowProtocol?.("", portability)
-      ),
-      normalizePromptProtocolText(await buildSharedAiSddMarkerSection()),
-      normalizePromptProtocolText(
-        "**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes."
-      ),
-      // Universal rules baked here because Codex has no hooks. Critical-thinking +
-      // ai-mistake-prevention now source from the canonical `:full` markdown (approach C) —
-      // the SAME source CLAUDE.md bakes — not the runtime hook, so every static mirror shares
-      // one source. `injectLessons` stays hook-sourced (lessons.md content has no canonical
-      // SYNC home). skipDedup=true on injectLessons forces the full block; the runtime
-      // transcript-dedup arg is irrelevant at sync time.
-      normalizePromptProtocolText(await buildCanonicalFullProtocolText("critical-thinking-mindset:full")),
-      normalizePromptProtocolText(await buildCanonicalFullProtocolText("ai-mistake-prevention:full")),
-      normalizePromptProtocolText(promptInjections.injectLessons?.("", true)),
-    ].filter(Boolean);
-
-    if (sections.length === 0) {
-      return [
-        `## Prompt Protocol Mirror (${headingSuffix})`,
-        "",
-        "No prompt-injection protocols resolved from Claude source hooks.",
-      ].join("\n");
-    }
-
-    return [
-      `## Prompt Protocol Mirror (${headingSuffix})`,
-      "",
-      "Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks)",
-      "",
-      ...sections,
-    ].join("\n");
-  } catch {
-    return [
-      `## Prompt Protocol Mirror (${headingSuffix})`,
-      "",
-      "Unable to load `.claude/hooks/lib/prompt-injections.cjs` during sync.",
-    ].join("\n");
-  }
+  return buildHooklessPromptProtocolMirrorSection(rootDir, {
+    heading: `Prompt Protocol Mirror (${headingSuffix})`,
+    includeLessonReminder: false,
+  });
 }
 
-async function main() {
+// Renders the Codex context mirror (CODEX_CONTEXT.md) and the AGENTS.md mirror into
+// `outRootDir`. INPUTS/baselines are always read from the real repo (rootDir-anchored
+// module constants); only the two OUTPUT writes are redirectable. main() passes
+// outRootDir = rootDir (write back into the repo); the idempotency oracle passes a
+// throwaway mkdtemp so it can diff a fresh render against the committed mirror without
+// mutating the working tree.
+export async function runContextSync({ outRootDir = rootDir } = {}) {
+  const outContextPath = path.join(outRootDir, ".codex", "CODEX_CONTEXT.md");
+  const outAgentsPath = path.join(outRootDir, "AGENTS.md");
   const claudeInstructionsRaw = await readClaudeInstructions();
   const workflowsRaw = await fs.readFile(workflowsPath, "utf8");
   const workflowsDoc = JSON.parse(workflowsRaw);
@@ -619,7 +608,7 @@ async function main() {
     )
   );
 
-  await fs.mkdir(path.dirname(contextPath), { recursive: true });
+  await fs.mkdir(path.dirname(outContextPath), { recursive: true });
   let contextMd = await readExistingContext();
   const promptProtocolTopBlock = `${PROMPT_PROTOCOLS_START}\n${topPromptProtocolSection}\n${PROMPT_PROTOCOLS_END}`;
   const replacementBlock = `${START_MARKER}\n${generatedSection}\n${END_MARKER}`;
@@ -670,11 +659,17 @@ async function main() {
       )
     : null;
 
-  await fs.writeFile(contextPath, contextMd, "utf8");
-  await upsertContextIntoAgents(contextMd, claudeInstructionsMd);
+  await fs.writeFile(outContextPath, contextMd, "utf8");
+  await upsertContextIntoAgents(contextMd, claudeInstructionsMd, outAgentsPath);
   console.log(
-    `[codex-context-sync] synced ${workflowEntries.length} workflow(s) into ${path.relative(rootDir, contextPath)} and mirrored CLAUDE.md + context into ${path.relative(rootDir, agentsPath)}`
+    `[codex-context-sync] synced ${workflowEntries.length} workflow(s) into ${path.relative(rootDir, outContextPath)} and mirrored CLAUDE.md + context into ${path.relative(rootDir, outAgentsPath)}`
   );
 }
 
-await main();
+const invokedAsScript =
+  process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (invokedAsScript) {
+  await runContextSync();
+}
+
+export { contextPath, agentsPath };

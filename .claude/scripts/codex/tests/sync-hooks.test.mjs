@@ -60,13 +60,14 @@ test("sync-hooks preserves non-bash and prompt-event matchers", async () => {
     assert.ok(preMatchers.includes("Edit|Write|MultiEdit"));
     assert.ok(preMatchers.includes("Bash"));
     assert.equal(hooks.UserPromptSubmit?.[0]?.matcher, "manual|auto");
+    assert.equal(hooks.UserPromptSubmit?.[0]?.hooks?.[0]?.command, "node ./scripts/user-prompt.cjs");
     assert.equal(hooks.Stop?.[0]?.matcher, "clear|exit");
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });
   }
 });
 
-test("sync-hooks omits Claude startup auto-install hook and writes a skip report", async () => {
+test("sync-hooks omits Claude SessionStart hooks and writes a skip report", async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "codex-sync-hooks-skip-"));
   try {
     await fs.mkdir(path.join(tempRoot, ".claude"), { recursive: true });
@@ -78,7 +79,15 @@ test("sync-hooks omits Claude startup auto-install hook and writes a skip report
             hooks: [
               {
                 type: "command",
+                command: 'node "$CLAUDE_PROJECT_DIR"/.claude/hooks/session-init.cjs',
+              },
+              {
+                type: "command",
                 command: 'node "$CLAUDE_PROJECT_DIR"/.claude/hooks/npm-auto-install.cjs',
+              },
+              {
+                type: "command",
+                command: 'node "$CLAUDE_PROJECT_DIR"/.claude/hooks/graph-session-init.cjs',
               },
             ],
           },
@@ -103,7 +112,11 @@ test("sync-hooks omits Claude startup auto-install hook and writes a skip report
     const rawReport = await fs.readFile(path.join(tempRoot, ".codex", "hooks.sync.report.json"), "utf8");
     const report = JSON.parse(rawReport);
     assert.ok(
-      report.skipped_groups.some((group) => group.reason === "disabled-for-codex-startup-auto-install")
+      report.skipped_events.some(
+        (event) =>
+          event.event === "SessionStart" &&
+          event.reason === "disabled-for-codex-hookless-startup-context"
+      )
     );
   } finally {
     await fs.rm(tempRoot, { recursive: true, force: true });

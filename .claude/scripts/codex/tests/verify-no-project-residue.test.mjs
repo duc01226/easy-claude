@@ -5,7 +5,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
 const verifierPath = path.resolve(thisDir, '..', 'verify-no-project-residue.mjs');
-const { findProjectSymbolViolations, genericSourceRoots, projectSymbolDenylist, projectSymbolAllowlist, projectSymbolScanRoots } =
+const { findProjectSymbolViolations, genericSourceRoots, managedBlockRanges, projectSymbolDenylist, projectSymbolAllowlist, projectSymbolScanRoots } =
     await import(pathToFileURL(verifierPath).href);
 
 // TC-SKILLFIX-010 — a denylisted project symbol in a NON-allowlisted generic skill is flagged.
@@ -65,15 +65,24 @@ test('TC-SKILLFIX-013c: default scan does NOT skip managed blocks', () => {
     assert.equal(findProjectSymbolViolations(content, '.claude/skills/some-generic/SKILL.md').length, 1);
 });
 
-// TC-SKILLFIX-013d — the project-symbol scan MUST cover generic hooks, not just skills. Guards the E2
-// decision: a generic hook must not bake this project's base-class names into injected guidance, which
-// would mislead an agent on a non-.NET/Angular copy. Regression guard against silently dropping
-// '.claude/hooks' from the scan roots.
-test('TC-SKILLFIX-013d: project-symbol scan covers both skills and hooks', () => {
+// TC-SKILLFIX-013d — the project-symbol scan MUST cover source templates and generated mirrors.
+// Guards against portable outputs passing residue checks while carrying source-project symbols.
+test('TC-SKILLFIX-013d: project-symbol scan covers source templates and generated mirrors', () => {
     assert.ok(projectSymbolScanRoots.includes('.claude/skills'), 'skills must be a symbol-scan root');
     assert.ok(projectSymbolScanRoots.includes('.claude/hooks'), 'hooks must be a symbol-scan root');
+    assert.ok(projectSymbolScanRoots.includes('.claude/agents'), 'agent source templates must be a symbol-scan root');
+    assert.ok(projectSymbolScanRoots.includes('.codex'), 'generated Codex output must be a symbol-scan root');
+    assert.ok(projectSymbolScanRoots.includes('.agents'), 'generated agent skill output must be a symbol-scan root');
 });
 
 test('TC-SKILLFIX-013e: forbidden-term scan covers portable hook config', () => {
     assert.ok(genericSourceRoots.includes('.claude/hooks/config'), 'generic hook config must be scanned for project residue');
+});
+
+test('TC-SKILLFIX-013f: prompt protocol mirrors are not exempt from project-term residue checks', () => {
+    assert.equal(
+        managedBlockRanges.some(range => range.start === '<!-- PROMPT-PROTOCOLS:START -->'),
+        false,
+        'PROMPT-PROTOCOLS is generated portable context and must not hide project-specific lesson bodies'
+    );
 });

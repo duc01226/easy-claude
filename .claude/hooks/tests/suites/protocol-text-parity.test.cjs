@@ -2,14 +2,21 @@
 // Phase 04 — Protocol Text Parity (source-freshness gate).
 //
 // Single canonical source of the critical-thinking / ai-mistake-prevention protocol text is
-// `.claude/skills/shared/sync-inline-versions.md`. Every downstream copy — the runtime hook
-// emission, the baked CLAUDE.md blocks, and the per-skill embeds — must stay byte-faithful to it
-// (after EOL/whitespace normalization). This suite is the regression net that fails the moment any
-// copy drifts from canonical, so a hook-free Codex/Copilot harness still sees identical AI context.
+// `.claude/skills/shared/sync-inline-versions.md`. Every downstream copy — the baked CLAUDE.md
+// blocks and the per-skill embeds — must stay byte-faithful to it (after EOL/whitespace
+// normalization). This suite is the regression net that fails the moment any copy drifts from
+// canonical, so a hook-free Codex/Copilot harness still sees identical AI context.
+//
+// After the de-hooking refactor no hook emits protocol text at runtime. `prompt-injections.cjs`
+// is a delegating compat wrapper that returns `buildCanonicalProtocolText(...,':full')` from the
+// canonical file. P1/P2 are therefore a WRAPPER-STILL-DELEGATES guard, not a runtime-emission
+// check: they confirm the legacy injector entrypoints still resolve to the canonical body so any
+// remaining legacy caller stays in lockstep with canonical. The REAL cross-copy parity is held by
+// P3/P4 (CLAUDE.md baked blocks) and P5 (skill embeds).
 //
 // Asserts (TC-CTXP-030..033):
-//   P1  runtime hook  injectCriticalContext('',true)        == canonical SYNC:critical-thinking-mindset:full
-//   P2  runtime hook  injectAiMistakePrevention('',true)    == canonical SYNC:ai-mistake-prevention:full
+//   P1  wrapper-delegates  injectCriticalContext('',true)     == canonical SYNC:critical-thinking-mindset:full
+//   P2  wrapper-delegates  injectAiMistakePrevention('',true) == canonical SYNC:ai-mistake-prevention:full
 //   P3  CLAUDE.md TOP CK:CRITICAL-THINKING / CK:AI-MISTAKE-PREVENTION blocks == canonical :full
 //   P4  CLAUDE.md BOTTOM CK blocks == TOP CK blocks (exactly 2 occurrences each, primacy==recency)
 //   P5  canonical CONDENSED critical-thinking-mindset / ai-mistake-prevention == every skill embed
@@ -105,21 +112,22 @@ function sweepSkillEmbeds(tag, canonCondensedNorm) {
 module.exports = {
     name: 'protocol-text-parity',
     tests: [
-        // ── P1 / P2 — runtime hook emission in lockstep with canonical :full (de-risk invariant).
+        // ── P1 / P2 — wrapper-still-delegates guard: the legacy injector entrypoints in the
+        //    delegating compat wrapper must still resolve to canonical :full (no runtime emission).
         {
             name: 'TC-CTXP-030 P1: injectCriticalContext == canonical critical-thinking-mindset:full',
             fn() {
                 assertTrue(canonCritFull != null, 'canonical critical-thinking-mindset:full not found');
-                const hook = injectors.injectCriticalContext('', true);
-                assertEqual(normTrim(hook), normTrim(canonCritFull), 'hook critical emission drifted from canonical :full');
+                const wrapped = injectors.injectCriticalContext('', true);
+                assertEqual(normTrim(wrapped), normTrim(canonCritFull), 'wrapper injectCriticalContext stopped delegating to canonical :full');
             },
         },
         {
             name: 'TC-CTXP-030 P2: injectAiMistakePrevention == canonical ai-mistake-prevention:full',
             fn() {
                 assertTrue(canonAimpFull != null, 'canonical ai-mistake-prevention:full not found');
-                const hook = injectors.injectAiMistakePrevention('', true);
-                assertEqual(normTrim(hook), normTrim(canonAimpFull), 'hook ai-mistake emission drifted from canonical :full');
+                const wrapped = injectors.injectAiMistakePrevention('', true);
+                assertEqual(normTrim(wrapped), normTrim(canonAimpFull), 'wrapper injectAiMistakePrevention stopped delegating to canonical :full');
             },
         },
 

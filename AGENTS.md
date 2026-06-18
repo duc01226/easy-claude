@@ -15,14 +15,14 @@ Do not edit manually; update `CLAUDE.md` and re-sync.
 >
 > Classify complexity and risk first, then route it:
 >
-> | Request is about…                                                  | Default route                                                                                                                                       |
-> | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-> | A simple, straightforward task with a clear target and low risk    | **direct execution** — do it without a workflow                                                                                                     |
-> | A simple task that needs a few coordinated steps or skills         | **custom simple workflow** — sequence only the necessary skills/steps                                                                               |
-> | A non-trivial bug, error, crash, regression, or wrong/stale output | **`workflow-bugfix` workflow** — `$start-workflow workflow-bugfix`                                                                                  |
-> | A non-trivial new feature, capability, or enhancement              | **`workflow-feature` workflow** — `$start-workflow workflow-feature` (use `workflow-big-feature` when scope is large, ambiguous, or research-heavy) |
-> | Anything matching a skill's or workflow's "Use" clause             | that skill / workflow                                                                                                                               |
-> | A one-off question, or a truly trivial edit                        | direct execution                                                                                                                                    |
+> | Request is about… | Default route |
+> | --- | --- |
+> | A simple, straightforward task with a clear target and low risk | **direct execution** — do it without a workflow |
+> | A simple task that needs a few coordinated steps or skills | **custom simple workflow** — sequence only the necessary skills/steps |
+> | A non-trivial bug, error, crash, regression, or wrong/stale output | **`workflow-bugfix` workflow** — `$start-workflow workflow-bugfix` |
+> | A non-trivial new feature, capability, or enhancement | **`workflow-feature` workflow** — `$start-workflow workflow-feature` (use `workflow-big-feature` when scope is large, ambiguous, or research-heavy) |
+> | Anything matching a skill's or workflow's "Use" clause | that skill / workflow |
+> | A one-off question, or a truly trivial edit | direct execution |
 >
 > 1. **An explicit `/skill` or `/workflow` in the prompt is the user's choice — execute it directly.** Otherwise auto-select the route yourself; never ask the user which path to take.
 > 2. **Analyze whether the task is simple and straightforward before defaulting to a standard workflow.** If the target is clear, the change is low-risk, and a short direct execution can satisfy it, choose direct execution.
@@ -33,10 +33,20 @@ Do not edit manually; update `CLAUDE.md` and re-sync.
 >     - **Skill route →** invoke that skill via the skill invocation.
 >     - **Custom simple workflow →** create a small task list from the selected skills/steps, then execute them in order.
 >     - **Direct route →** build the task list yourself, then proceed.
->       In every case the route must be activated BEFORE the first edit, sub-agent, or command.
+>   In every case the route must be activated BEFORE the first edit, sub-agent, or command.
 > 6. **Direct execution is a legitimate route** for trivial, one-off, or simple straightforward work — but the declare-route and activate steps still apply.
 
 <!-- /CK:WORKFLOW-GATE -->
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -104,10 +114,10 @@ Workflow progression is **model-driven** — your responsibility, not a tool/hoo
 
 **Decision Quick-Ref:**
 
-| Task             | Pattern                             |
-| ---------------- | ----------------------------------- |
-| New API endpoint | Controller + CQRS Command           |
-| Business logic   | Command Handler (Application layer) |
+| Task | Pattern |
+|---|---|
+| New API endpoint | Controller + CQRS Command |
+| Business logic | Command Handler (Application layer) |
 
 <!-- /SECTION:decision-quick-ref -->
 
@@ -307,11 +317,11 @@ python .claude/scripts/code_graph search <keyword> --kind Function --json       
 
 When editing files matching these path patterns, pre-read the listed context first:
 
-| Path Pattern                      | Skill / Auto-Context | Pre-Read Files                  |
-| --------------------------------- | -------------------- | ------------------------------- |
-| `/\.claude/hooks/.*\.cjs$**`      | _(auto-context)_     | `.claude/docs/hooks/README.md`  |
-| `/\.claude/skills/.*SKILL\.md$**` | _(auto-context)_     | `.claude/docs/skills/README.md` |
-| `/\.claude/agents/.*\.md$**`      | _(auto-context)_     | `.claude/docs/agents/README.md` |
+| Path Pattern | Skill / Auto-Context | Pre-Read Files |
+|---|---|---|
+| `/\.claude/hooks/.*\.cjs$**` | _(auto-context)_ | `.claude/docs/hooks/README.md` |
+| `/\.claude/skills/.*SKILL\.md$**` | _(auto-context)_ | `.claude/docs/skills/README.md` |
+| `/\.claude/agents/.*\.md$**` | _(auto-context)_ | `.claude/docs/agents/README.md` |
 
 <!-- /SECTION:skill-activation -->
 
@@ -347,14 +357,14 @@ docs/templates/  (1 files)
 
 <!-- SECTION:doc-lookup -->
 
-| If user prompt mentions...                                     | Read first                                                          |
-| -------------------------------------------------------------- | ------------------------------------------------------------------- |
-| Feature specs, capability behavior, business rules, test cases | `docs/specs/` + `docs/project-reference/feature-spec-reference.md`  |
-| Spec paths, TC format, canonical vs derived spec artifacts     | `docs/project-reference/spec-system-reference.md`                   |
-| Spec quality, AI-implementability, tech-agnostic prose         | `docs/project-reference/spec-principles.md`                         |
-| Behavior or public contract changes, spec-test-code sync       | `docs/project-reference/workflow-spec-test-code-cycle-reference.md` |
-| Backend patterns, CQRS, validation                             | `docs/project-reference/backend-patterns-reference.md`              |
-| Frontend patterns, components, stores                          | `docs/project-reference/frontend-patterns-reference.md`             |
+| If user prompt mentions... | Read first |
+|---|---|
+| Feature specs, capability behavior, business rules, test cases | `docs/specs/` + `docs/project-reference/feature-spec-reference.md` |
+| Spec paths, TC format, canonical vs derived spec artifacts | `docs/project-reference/spec-system-reference.md` |
+| Spec quality, AI-implementability, tech-agnostic prose | `docs/project-reference/spec-principles.md` |
+| Behavior or public contract changes, spec-test-code sync | `docs/project-reference/workflow-spec-test-code-cycle-reference.md` |
+| Backend patterns, CQRS, validation | `docs/project-reference/backend-patterns-reference.md` |
+| Frontend patterns, components, stores | `docs/project-reference/frontend-patterns-reference.md` |
 
 <!-- /SECTION:doc-lookup -->
 <!-- CLAUDE-MIRROR:END -->
@@ -378,7 +388,7 @@ Do not edit manually; update Claude sources and re-sync.
 > - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
 ## Prompt Protocol Mirror (Auto-Synced, Primacy Anchor)
 
-Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks)
+Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs`
 
 ## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
 
@@ -451,26 +461,11 @@ Source: `.claude/skills/shared/sync-inline-versions.md`
 - **After context compaction, re-verify all prior phase outcomes before continuing.** Summaries describe intent, not environment state (git index, filesystem, processes). On resume, FIRST audit: git status, re-read modified files, verify filesystem. Every "completed" claim is an untested hypothesis until evidence confirms.
 - **OOM/memory: check row count before row size.** Triage: (1) Unbounded query — no DB filter for trigger? Push filter to DB; eliminates OOM. (2) Large rows? Projection reduces proportionally. Row reduction > projection in ROI.
 - **Keep domain concepts out of generic/shared/infrastructure layers.** Reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. Leak compiles + runs → passes review silently while coupling the "reusable" layer to one consumer. Keep shared type domain-free; push domain fields/logic down into the consumer via subclass/composition. — why: a layer coupled to one consumer's domain is no longer reusable.
-## Learned Lessons
-
-# Lessons
-
-<!-- This file is referenced by Claude skills and agents for project-specific context. -->
-<!-- Fill in your project's details below. -->
-
-- [2026-03-10] **Mirror copies create staleness traps.** Editing a canonical source is insufficient when mirror copies exist — must trace and update ALL mirrored files (configs, skill definitions, docs). Grep verification after edits catches missed mirrors.
-- [2026-03-10] **Docs embedding derived data stale on source modification.** Documentation that inlines data from a canonical source (e.g., workflow sequences, API schemas) goes stale silently when the source changes. Map all docs that embed canonical data and update them alongside the source.
-- [2026-04-14] **Front-load report-write in sub-agent prompts for large reviews.** Sub-agents reviewing many files exhaust token budget before writing the final report — all findings lost. Design prompts so: (1) report-write is the explicit first deliverable, (2) findings appended per-file immediately (not batched), (3) scope is bounded. If sub-agent returns truncated output with no report, spawn a new one with narrower scope.
-- [2026-04-14] **After context compaction, re-verify all prior phase outcomes before continuing.** Session summaries describe what the AI intended — not what persisted in the environment. When resuming a multi-phase task, the first action must be a state audit: re-check git status, re-read files, verify filesystem state. Treat every "completed" phase claim as an untested hypothesis.
-- [2026-06-09] **A sub-agent "X does not exist" verdict is only as wide as its search scope.** An Explore agent grepped only `.claude/hooks` + `.claude/skills` and concluded `AGENTS.md` did not exist — it is a generated artifact produced under `.claude/scripts/codex/`, and the false premise nearly drove a duplicate parallel generator (a mirror-staleness trap). Before acting on a "missing/absent" finding, confirm the search covered generators, scripts, and build outputs — not just the obvious source dirs. For generated files, grep for the writer (`writeFileSync.*<name>`), not just the file.
-- [2026-06-09] **In-process hook tests that mutate `process.env` MUST restore it in `finally`, or they silently break later suites.** A new suite set `process.env.CLAUDE_PROJECT_DIR` to a temp dir without restoring it; the leaked (deleted) path made a _downstream_ suite (`dev-rules-injector`) fail 9 tests in the full run while passing when filtered. Symptom signature: a suite passes in isolation (`--filter`) but fails in the full run → suspect global-state pollution from an earlier suite, not the failing suite itself. Wrap every env mutation in a save/restore helper; a `git stash -u` + re-run pinpoints ownership.
-- [2026-06-09] **Inserting a gate earlier in a precondition chain breaks existing tests that exercise downstream gates.** Adding `handleAgentFilesGate` to the front of `init-prompt-gate`'s config-populated fast-path made older inline tests (which set up populated config but no `CLAUDE.md`/`AGENTS.md`) block on the new gate instead of reaching the staleness/graph gate they assert on. When a new gate runs before others, audit and update the setup of every test that depends on reaching a later gate — provision the new precondition so the gate passes through.
-- [2026-06-09] **Adding a hook or lib module drifts canonical inventory counts — regenerate, don't hand-edit.** New `agent-files-skill-gate.cjs` (+1 hook) and `agent-files-state.cjs` (+1 lib) failed `count-drift` across CLAUDE.md, the structure reference, SKILLS.yaml, and the docs README. Fix is the documented reconcile: `generate_catalogs.py --inject-counts <file>` per marker file + `--skills --output .claude/SKILLS.yaml`, then update the manual README table. Distinguish drift you caused (hooks/lib) from incidental drift already in the working tree (e.g. an unrelated skill add) — regenerating reconciles both to filesystem truth.
 <!-- PROMPT-PROTOCOLS:END -->
 
 ## Codex Hookless Project Reference Gate
 
-Codex does not receive Claude hook-injected project docs or project config summaries. Before coding, planning, debugging, testing, or reviewing:
+Codex uses static project-reference loading instead of runtime-injected project docs. Before coding, planning, debugging, testing, or reviewing:
 
 - Read `docs/project-config.json` for project-specific commands, module paths, workflow settings, and doc paths.
 - Read `docs/project-reference/docs-index-reference.md` to route to the right project-reference files.

@@ -2,7 +2,7 @@
 name: workflow-research
 version: 1.0.0
 description: '[Workflow] Use when activating the Research & Synthesis workflow — research a topic via web sources, then synthesize per --output={synthesis|business-eval|marketing|course} (knowledge report, business evaluation, marketing strategy, or course material).'
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 ## Quick Summary
@@ -33,8 +33,8 @@ disable-model-invocation: true
 
 All modes share the research scaffold `/web-research → /deep-research → … → /knowledge-review → /workflow-end`; only the terminal synthesis skill(s) swap per `--output`:
 
-| `--output`              | Terminal synthesis skill(s)                 | Full sequence                                                                                                 |
-| ----------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `--output`              | Terminal synthesis skill(s)                 | Full sequence                                                                                                  |
+| ----------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | **synthesis** (default) | `/knowledge-synthesis`                      | `/web-research → /deep-research → /knowledge-synthesis → /knowledge-review → /workflow-end`                    |
 | **business-eval**       | `/market-analysis` + `/business-evaluation` | `/web-research → /deep-research → /market-analysis → /business-evaluation → /knowledge-review → /workflow-end` |
 | **marketing**           | `/market-analysis` + `/strategy-builder`    | `/web-research → /deep-research → /market-analysis → /strategy-builder → /knowledge-review → /workflow-end`    |

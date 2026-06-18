@@ -1,7 +1,7 @@
 ---
 name: estimate-actual
 description: '[Planning] Use when calibrating estimates from actual code, diff, PR scope, and developer time.'
-disable-model-invocation: true
+disable-model-invocation: false
 argument-hint: '<plan-file> | --changes | --pr <number>'
 ---
 

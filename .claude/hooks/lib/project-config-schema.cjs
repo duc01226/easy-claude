@@ -190,6 +190,7 @@ const SCHEMA = {
             frontendPatternsDoc: { type: 'string', required: false },
             codeReviewDoc: { type: 'string', required: false },
             integrationTestDoc: { type: 'string', required: false },
+            e2eTestDoc: { type: 'string', required: false },
             searchPatternKeywords: { type: 'array', required: false }
         }
     },

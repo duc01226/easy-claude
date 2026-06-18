@@ -28,8 +28,8 @@ const GATE_BLOCK_RE = /<!-- CK:WORKFLOW-GATE -->[\s\S]*?<!-- \/CK:WORKFLOW-GATE 
 const SKILLS_BLOCK_RE = /<!-- CK:WORKFLOW-SKILLS -->[\s\S]*?<!-- \/CK:WORKFLOW-SKILLS -->/g;
 // Full always-on protocol blocks (critical-thinking + ai-mistake-prevention) baked into CLAUDE.md
 // at BOTH top (after the catalog — strong primacy) and bottom (recency anchor) so a hookless
-// read of CLAUDE.md reaches the same protocol the Claude post-compact hook injects. Build-source
-// is the canonical markdown (sync-inline-versions.md `:full`), read via the shared parser — the
+// read of CLAUDE.md reaches the same protocol the hookless mirrors render. Build-source is the
+// canonical markdown (sync-inline-versions.md `:full`), read via the shared parser — the
 // generator never couples to hooks/lib. Marker-wrapped so the bake is idempotently strip-and-restamped
 // here, deduped from the AGENTS.md CLAUDE-mirror by sync-context-workflows.mjs, and located by the
 // Phase 04 freshness verifiers.
@@ -116,10 +116,9 @@ function loadWorkflowSkillsCatalog() {
  * unavailable so CLAUDE.md generation never fails on a partial install (gate + catalog still stamp).
  *
  * Approach C: the generator reads canonical `:full` markdown — it does NOT import hooks/lib.
- * `prompt-injections.cjs` is now a build-time-only emitter (Codex/Copilot mirror generators) with
- * no runtime hook consumer after the de-hooking refactor; it stays pinned to this same canonical
- * text by the Phase 04 verifier (P1/P2). The shared parser normalizes CRLF, so the bake is correct
- * regardless of the working-tree checkout's line endings.
+ * Codex/Copilot mirrors use `.claude/scripts/lib/hookless-prompt-protocol.cjs`, which composes
+ * this same canonical text without depending on hook prompt-injection modules. The shared parser
+ * normalizes CRLF, so the bake is correct regardless of the working-tree checkout's line endings.
  */
 function loadFullProtocolBlocks() {
     try {

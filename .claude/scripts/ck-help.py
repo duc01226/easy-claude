@@ -647,7 +647,7 @@ def show_config_guide() -> None:
     print("1. On session start, checks `<!-- Last scanned: YYYY-MM-DD -->` in each reference doc")
     print("2. If any doc exceeds `staleDays`, a warning lists the stale docs")
     print("3. The next prompt blocks until you run `/scan-all` (or a `/scan-*`) or type `skip scan`")
-    print("4. `skip scan` dismisses the gate for 24 hours")
+    print("4. `skip scan` dismisses the gate for 7 days")
     print()
     print("---")
     print()

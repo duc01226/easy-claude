@@ -9,8 +9,6 @@ disable-model-invocation: false
 
 **Goal:** Save current analysis context and progress to an external file for recovery after context loss.
 
-> **Thin alias.** `/checkpoint` is the user-facing entry point to the **CHECKPOINT_CREATE** protocol owned by `memory-management` (Part 1: File-Based External Memory). `memory-management` is `disable-model-invocation: true` (not directly user-invocable), so this command is the canonical way to create a manual checkpoint. The checkpoint **file structure is defined once** in `.claude/skills/memory-management/SKILL.md` (Part 1); this skill is the command surface that invokes it.
-
 **Workflow:**
 
 1. **Gather Context** — task state, key findings (with `file:line`), files analyzed/modified, progress, decisions, next steps, open questions

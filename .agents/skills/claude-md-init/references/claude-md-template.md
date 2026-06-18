@@ -11,8 +11,8 @@
      (CK:AI-MISTAKE-PREVENTION block) — is likewise STAMPED, not inlined: `stampHeader()` bakes it right
      after the catalog (primacy) and `stampFooter()` re-bakes it at EOF (recency), both read from the
      canonical .claude/skills/shared/sync-inline-versions.md `:full` sections via
-     .claude/scripts/lib/extract-sync-block.cjs. This gives a hookless CLAUDE.md the same protocol the
-     Claude post-compact hook injects. Do not inline these blocks here — they would drift from canonical. -->
+     .claude/scripts/lib/extract-sync-block.cjs. This gives CLAUDE.md, AGENTS.md, Codex, and Copilot
+     the same hookless static protocol. Do not inline these blocks here — they would drift from canonical. -->
 
 # {project-name} - Code Instructions
 
@@ -76,6 +76,21 @@ Before writing code, you MUST grep/glob for 3+ similar examples and follow the l
 
 **Why:** projects have local conventions that differ from framework defaults.
 **Enforced by:** Feature/Bugfix/Refactor workflows (scout → investigate steps).
+
+## Project Reference Loading
+
+Before project-specific work, route by changed path and read only the relevant docs:
+
+| Path → Reference Doc | Read first |
+| --- | --- |
+| Backend / CQRS / API / domain changes | `docs/project-reference/backend-patterns-reference.md`, `docs/project-reference/project-structure-reference.md` |
+| Frontend / Angular / state changes | `docs/project-reference/frontend-patterns-reference.md` |
+| Integration tests | `docs/project-reference/integration-test-reference.md` |
+| E2E tests | `docs/project-reference/e2e-test-reference.md` |
+| Specs / test cases / behavior contracts | `docs/project-reference/spec-system-reference.md`, `docs/project-reference/feature-spec-reference.md` |
+| SCSS / CSS / templates / design system | `docs/project-reference/design-system/design-system-canonical.md` |
+
+If the routing table is stale or a required doc is missing, run `$project-init` or the narrow setup route before coding.
 
 ---
 
@@ -228,6 +243,8 @@ Don't speculate. Every claim about code behavior — and every recommendation fo
 > **[BLOCKING] Self-improvement loop — runs at the end of every non-trivial task.** This is the static, hook-independent home of the `$learn` gate: it binds Claude, Codex, and Copilot equally, with or without any hook firing.
 
 Add a final task — "Analyze AI mistakes & lessons learned" — to every non-trivial task list (see [Task Planning Rules](#task-planning-rules)). At task end, extract lessons by **ROOT CAUSE, not symptom**:
+
+Before project-specific work, read `docs/project-reference/lessons.md` when it exists; it is the static, hookless carrier for learned guardrails that used to be surfaced by prompt hooks.
 
 1. Name the **failure mode** (the reasoning/assumption failure), not the symptom — "assumed an API existed without reading the source", not "used the wrong enum value".
 2. **Generality test:** does this failure mode apply to ≥3 contexts/codebases? If not, abstract one level up.

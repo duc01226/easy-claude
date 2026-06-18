@@ -9,8 +9,8 @@
  * Allowlist: Prompts containing init commands (/project-config, /scan, /scan-*, skip init)
  * are always allowed through so the user can fix the init state.
  *
- * Dismiss: User can type "skip init" to create a 1-day dismiss flag.
- * After 1 day the gate re-activates.
+ * Dismiss: User can type "skip init" to create a 1-day init dismiss flag,
+ * or "skip scan" to create a 7-day reference-doc scan dismiss flag.
  *
  * Exit Codes:
  *   0 - Prompt allowed. Missing context is surfaced as guidance, not a stop.
@@ -42,11 +42,29 @@ const PROJECT_DIR = process.env.CLAUDE_PROJECT_DIR || process.cwd();
 // Must match where session-init creates the config, else a custom-path project blocks every prompt.
 const CONFIG_PATH = getConfiguredProjectConfigPath();
 const DISMISS_TTL_MS = 24 * 60 * 60 * 1000; // 1 day
-const SCAN_DISMISS_TTL_MS = 24 * 60 * 60 * 1000; // 1 day
+const SCAN_DISMISS_TTL_DAYS = 7;
+const SCAN_DISMISS_TTL_MS = SCAN_DISMISS_TTL_DAYS * 24 * 60 * 60 * 1000;
 
 // Graph gate constants
 const GRAPH_DB_PATH = path.join(PROJECT_DIR, '.code-graph', 'graph.db');
 const GRAPH_DISMISS_TTL_MS = 24 * 60 * 60 * 1000; // 1 day
+
+/**
+ * Emit UserPromptSubmit guidance.
+ * Claude and Codex both accept plaintext stdout as prompt context for this event.
+ * Prefix JSON-looking text so Codex does not route it through its JSON parser.
+ * @param {string} message
+ */
+function emitPromptContext(message) {
+    const text = String(message || '');
+    if (!text) return;
+    const trimmedStart = text.trimStart();
+    if (trimmedStart.startsWith('{') || trimmedStart.startsWith('[')) {
+        console.log(`Hook context:\n${trimmedStart}`);
+        return;
+    }
+    console.log(text);
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PROMPT ALLOWLIST — patterns that bypass the gate (case-insensitive)
@@ -142,6 +160,21 @@ function isDismissRequest(prompt) {
 function isScanDismissed() {
     try {
         if (!fs.existsSync(SCAN_DISMISS_FLAG)) return false;
+        const content = fs.readFileSync(SCAN_DISMISS_FLAG, 'utf-8').trim();
+        if (content) {
+            try {
+                const data = JSON.parse(content);
+                const dismissedAt = Date.parse(data.dismissedAt || '');
+                if (!Number.isNaN(dismissedAt)) {
+                    return Date.now() - dismissedAt < SCAN_DISMISS_TTL_MS;
+                }
+            } catch {
+                const dismissedAt = Date.parse(content);
+                if (!Number.isNaN(dismissedAt)) {
+                    return Date.now() - dismissedAt < SCAN_DISMISS_TTL_MS;
+                }
+            }
+        }
         const stat = fs.statSync(SCAN_DISMISS_FLAG);
         return Date.now() - stat.mtimeMs < SCAN_DISMISS_TTL_MS;
     } catch {
@@ -155,7 +188,17 @@ function isScanDismissed() {
 function writeScanDismissFlag() {
     try {
         ensureProjectTmpDir();
-        fs.writeFileSync(SCAN_DISMISS_FLAG, new Date().toISOString() + '\n', 'utf-8');
+        const dismissedAt = new Date();
+        const expiresAt = new Date(dismissedAt.getTime() + SCAN_DISMISS_TTL_MS);
+        fs.writeFileSync(
+            SCAN_DISMISS_FLAG,
+            JSON.stringify({
+                dismissedAt: dismissedAt.toISOString(),
+                expiresAt: expiresAt.toISOString(),
+                ttlDays: SCAN_DISMISS_TTL_DAYS
+            }, null, 2) + '\n',
+            'utf-8'
+        );
     } catch {
         /* non-critical */
     }
@@ -202,7 +245,7 @@ function handleStalenessGate(userPrompt) {
 
     if (isScanDismissRequest(userPrompt)) {
         writeScanDismissFlag();
-        console.log('Reference doc scan skipped. Gate dismissed for 24 hours.');
+        emitPromptContext('Reference doc scan skipped. Gate dismissed for 7 days.');
         process.exit(0);
     }
 
@@ -210,7 +253,7 @@ function handleStalenessGate(userPrompt) {
 
     // WARN — stale docs, no escape hatch. Allow the model to auto-route.
     const docList = staleState.docs.map(d => `  - ${d.filename} (${d.ageDays}d old) -> /${d.scanSkill}`).join('\n');
-    console.log(
+    emitPromptContext(
         [
             '',
             '[project-context] Reference docs are stale.',
@@ -254,14 +297,14 @@ function handleAgentFilesGate(userPrompt) {
 
     if (isAgentFilesDismissRequest(userPrompt)) {
         writeAgentFilesDismissFlag();
-        console.log('Agent-file init skipped. Gate dismissed for 24 hours.');
+        emitPromptContext('Agent-file init skipped. Gate dismissed for 24 hours.');
         process.exit(0);
     }
 
     if (isAllowlistedPrompt(userPrompt)) return;
 
     // WARN — root agent file(s) missing or incomplete. Allow the model to auto-route.
-    console.log(buildOfferMessage(issues));
+    emitPromptContext(buildOfferMessage(issues));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -326,7 +369,7 @@ function handleGraphGate(userPrompt) {
 
     if (isGraphDismissRequest(userPrompt)) {
         writeGraphDismissFlag();
-        console.log('Graph build skipped. Gate dismissed for 24 hours.');
+        emitPromptContext('Graph build skipped. Gate dismissed for 24 hours.');
         process.exit(0);
     }
 
@@ -353,7 +396,7 @@ function handleGraphGate(userPrompt) {
           ];
 
     // WARN — graph not built. Allow the model to continue or auto-route.
-    console.log(
+    emitPromptContext(
         [
             '',
             '[project-context] Knowledge graph not built.',
@@ -411,7 +454,7 @@ function main() {
         // 2. Dismiss request → write flag, allow
         if (isDismissRequest(userPrompt)) {
             writeDismissFlag();
-            console.log('Project init skipped. Gate dismissed for 24 hours.');
+            emitPromptContext('Project init skipped. Gate dismissed for 24 hours.');
             process.exit(0);
         }
 
@@ -419,7 +462,7 @@ function main() {
         if (isAllowlistedPrompt(userPrompt)) process.exit(0);
 
         // 4. WARN — config unpopulated, no escape hatch matched
-        console.log(
+        emitPromptContext(
             [
                 '',
                 '[project-context] Project configuration not initialized.',
@@ -442,6 +485,7 @@ function main() {
 
 // Export for testing
 module.exports = {
+    emitPromptContext,
     isConfigPopulated,
     isDismissed,
     writeDismissFlag,
@@ -454,6 +498,7 @@ module.exports = {
     writeScanDismissFlag,
     isScanDismissRequest,
     checkScanStaleFlag,
+    SCAN_DISMISS_TTL_DAYS,
     SCAN_DISMISS_TTL_MS,
     // Graph gate
     isGraphDismissed,

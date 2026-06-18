@@ -2,7 +2,7 @@
 name: workflow-big-feature
 version: 1.0.0
 description: '[Workflow] Use when activating the Big Feature workflow for large or ambiguous research-driven feature work.'
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 ## Quick Summary
@@ -27,12 +27,12 @@ disable-model-invocation: true
 
 This workflow has steps that appear multiple times. When creating tasks, use these descriptions to distinguish them:
 
-| Step           | Occurrence   | Task Description                                                |
-| -------------- | ------------ | --------------------------------------------------------------- |
-| `/plan`        | 1st (pos 10)  | PLAN₁: High-level architecture plan (after architecture-design) |
+| Step           | Occurrence   | Task Description                                                                  |
+| -------------- | ------------ | --------------------------------------------------------------------------------- |
+| `/plan`        | 1st (pos 10) | PLAN₁: High-level architecture plan (after architecture-design)                   |
 | `/plan`        | 2nd (pos 25) | PLAN₂: Sprint-ready implementation plan (after review-artifact --type=spec-tests) |
-| `/plan-review` | 1st (pos 11)  | Review PLAN₁ architecture                                       |
-| `/plan-review` | 2nd (pos 26) | Review PLAN₂ implementation                                     |
+| `/plan-review` | 1st (pos 11) | Review PLAN₁ architecture                                                         |
+| `/plan-review` | 2nd (pos 26) | Review PLAN₂ implementation                                                       |
 
 **NEVER deduplicate** — each occurrence is a distinct task with a different purpose.
 

@@ -15,12 +15,12 @@ const genericSourceFiles = [
     '.claude/hooks/lib/prompt-injections.cjs',
     '.claude/hooks/session-init-docs.cjs'
 ];
-// Project-SYMBOL scan roots (base-class leakage). Covers skills AND hook source — generic hooks
-// must not bake this project's base-class names into injected guidance (would mislead an agent on
-// a non-.NET/Angular copy). This is a NARROWER, separate scan from forbiddenTerms above: it matches
-// only the unambiguous denylist symbols, so hook config/test fixtures (which carry service NAMES,
-// not base-CLASS symbols) do not trip it.
-export const projectSymbolScanRoots = ['.claude/skills', '.claude/hooks'];
+// Project-SYMBOL scan roots (base-class leakage). Covers source templates and generated mirrors:
+// portable skills/hooks/agents must not bake this project's base-class names into guidance, and
+// generated Codex/Agents output must not reintroduce them after sync. This is a NARROWER, separate
+// scan from forbiddenTerms above: it matches only the unambiguous denylist symbols, so hook
+// config/test fixtures (which carry service NAMES, not base-CLASS symbols) do not trip it.
+export const projectSymbolScanRoots = ['.claude/skills', '.claude/hooks', '.claude/agents', '.codex', '.agents'];
 const forbiddenTerms = ['br' + 'avo', 'Br' + 'avoSuite'];
 
 // Project-specific framework symbols (this codebase's .NET/Angular base classes) that must NOT
@@ -82,14 +82,12 @@ const projectSymbolMatchers = projectSymbolDenylist.map(symbol => ({
 const ignoredParts = new Set(['node_modules', 'plans', '.git', '.venv', '__pycache__', 'tmp']);
 const ignoredExtensions = new Set(['.pyc', '.pyo', '.exe', '.dll', '.png', '.jpg', '.jpeg', '.gif', '.webp']);
 const ignoredFilenamePatterns = [/\.local\.json$/i];
-const managedBlockRanges = [
+export const managedBlockRanges = [
     { start: '<!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->', end: '<!-- CODEX:SYNC-PROMPT-PROTOCOLS:END -->' },
     { start: '<!-- CODEX:PROJECT-REFERENCE-LOADING:START -->', end: '<!-- CODEX:PROJECT-REFERENCE-LOADING:END -->' },
-    // .codex/CODEX_CONTEXT.md + AGENTS.md wrap the auto-synced prompt-protocol mirror (lessons.md,
-    // hook injections) in this marker pair — legitimately carries project-specifics from synced
-    // sources, so exempt it like the two CODEX:-prefixed managed blocks above. Canonical per
-    // sync-context-workflows.test.mjs (asserts CODEX_CONTEXT.md opens with PROMPT-PROTOCOLS:START).
-    { start: '<!-- PROMPT-PROTOCOLS:START -->', end: '<!-- PROMPT-PROTOCOLS:END -->' }
+    // Do NOT exempt PROMPT-PROTOCOLS. It is a generated portable mirror and must stay free of
+    // project-specific lesson bodies; otherwise .codex/CODEX_CONTEXT.md can pass while carrying
+    // terms from docs/project-reference/lessons.md.
 ];
 
 async function exists(targetPath) {

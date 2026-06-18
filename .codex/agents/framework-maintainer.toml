@@ -16,7 +16,7 @@ Source: .claude/agents/framework-maintainer.md
 <!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
 ## Codex Project-Reference Loading (No Hooks)
 
-Codex does not receive Claude hook-based doc injection.
+Codex uses static project-reference loading instead of runtime-injected project docs.
 When coding, planning, debugging, testing, or reviewing, open project docs explicitly using this routing.
 
 **Always read:**
@@ -105,7 +105,7 @@ Authoring split: must-be-guaranteed → hook · needs judgment → skill · orde
 ### Context engineering invariants (do not break these when editing)
 
 - **Static JIT guidance:** there are no per-edit PreToolUse context-injection hooks. Path-scoped guidance (a frontend edit must not pull backend patterns) is authored statically — `project-config.json` `pathRegexes` map paths to the `patternsDoc` a reader should open, and `CLAUDE.md` / `SKILL.md` carry the routing as prose so a hookless harness reads identically. Keep path routing in config, not hardcoded.
-- **Marker-based dedup (no runtime emitters remain):** no hook emits injected context after the de-hooking refactor, so nothing writes a dedup marker at runtime; the `dedup-constants.cjs` keys and `prompt-injections.cjs` text are retained only as the canonical SYNC-verified source (see `protocol-text-parity.test.cjs`). No per-edit inject hooks remain to register.
+- **Marker-based dedup (no runtime emitters remain):** no hook emits injected context after the de-hooking refactor, so nothing writes a dedup marker at runtime; the `dedup-constants.cjs` keys are retained only as the canonical key set. The canonical protocol source is `.claude/skills/shared/sync-inline-versions.md` (composed by `.claude/scripts/lib/hookless-prompt-protocol.cjs`); `prompt-injections.cjs` is a SYNC-verified downstream compat wrapper that delegates to that source, with the delegation guarded by `protocol-text-parity.test.cjs`. No per-edit inject hooks remain to register.
 - **External memory / recovery:** state persists to disk (`.ck-todo-state.json`, `.ck-workflow-state.json`, swap files, `plans/`) so it survives compaction; recovery is now skill-driven — static `CLAUDE.md` re-read re-anchors protocol and `$recover` resumes from the on-disk state (the former `pre-compact-snapshot` → `post-compact-recovery` hooks were removed in the de-hooking refactor). `autoMemoryEnabled: false` — never re-enable Claude's built-in memory; the framework owns state.
 
 ### SYNC-tag mechanism (inline-not-reference)
@@ -123,7 +123,7 @@ Authoring split: must-be-guaranteed → hook · needs judgment → skill · orde
 
 ### Codex/Copilot mirror sync (9-stage pipeline + 5 verifiers)
 
-- Source of truth → generated mirrors: `.claude/skills/**`, `.claude/agents/*.md`, `.claude/workflows.json`, `.claude/hooks/lib/prompt-injections.cjs`, `CLAUDE.md` → `.agents/skills/**`, `.codex/CODEX_CONTEXT.md`, `.codex/agents/*.toml`, `.codex/hooks.json`, root `AGENTS.md` (+ optional `.github/copilot-instructions.md`).
+- Source of truth → generated mirrors: `.claude/skills/**`, `.claude/agents/*.md`, `.claude/workflows.json`, `.claude/skills/shared/sync-inline-versions.md` (canonical protocol bodies, composed by `.claude/scripts/lib/hookless-prompt-protocol.cjs`), `CLAUDE.md` → `.agents/skills/**`, `.codex/CODEX_CONTEXT.md`, `.codex/agents/*.toml`, `.codex/hooks.json`, root `AGENTS.md` (+ optional `.github/copilot-instructions.md`).
 - Hookless-parity: Codex/Copilot have no hooks; Claude also reads guidance statically, so the mirror TRANSFORM mostly relays the same static text (workflow catalog written inline; the lessons/project-reference read contract → a `CODEX:PROJECT-REFERENCE-LOADING` gate; `/skill` → `$skill`; `spawn_agent(...)` → `spawn_agent`; `agent_type` → `agent_type`; Claude-only frontmatter keys like `version` stripped, `disable-model-invocation` preserved).
 - `npm run codex:sync` = `node .claude/skills/sync-codex/scripts/run-codex-sync.mjs` — **9 sequential, fail-fast stages** (1–4 mutate, 5–9 verify-only): `migrate → hooks → context → copilot → tests → wf-cycle → sk-proto → residue → sdd`. The `copilot` stage regenerates `.github/` from `workflows.json` before `tests` (TC-WFPROTO-006 validates that mirror), so `codex:sync` is self-contained.
 - **5 verifiers** (`.claude/scripts/codex/verify-*.mjs`, each with a unit test): `verify-sync-divergence` (oracle — re-runs transform, diffs vs committed mirror) · `verify-skill-protocol-compliance` (parity + no Claude-isms leak) · `verify-workflow-cycle-compliance` (step-sequences match skills in BOTH `.claude` and `.agents`; ordered gates intact) · `verify-no-project-residue` (portability) · `verify-sdd-semantic-compliance` (spec-driven contract coverage).

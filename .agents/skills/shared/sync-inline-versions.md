@@ -4,7 +4,7 @@
 > These are what gets copied into `<!-- SYNC:tag -->` blocks across all skills.
 > To update: edit here first, then `grep SYNC:tag-name` and update all copies.
 >
-> **Tier contract.** `## SYNC:<tag>` = the CONDENSED checklist embedded as `<!-- SYNC:tag -->` in skill `SKILL.md` files. `## SYNC:<tag>:full` = the FULL variant and the **single build source** for the always-on static-context bakes (root `CLAUDE.md`, `AGENTS.md`, Copilot) — read via `.claude/scripts/lib/extract-sync-block.cjs` and mirrored at runtime by the Claude post-compact hook `.claude/hooks/lib/prompt-injections.cjs` (pinned equal by the freshness verifiers). A `:full` body is PLAIN markdown (no `>` blockquote) so it stays byte-identical, after trim, to the hook's emission. Edit BOTH tiers HERE first, then propagate.
+> **Tier contract.** `## SYNC:<tag>` = the CONDENSED checklist embedded as `<!-- SYNC:tag -->` in skill `SKILL.md` files. `## SYNC:<tag>:full` = the FULL variant and the **single build source** for the always-on static-context bakes (root `CLAUDE.md`, `AGENTS.md`, Codex, Copilot) — read via `.claude/scripts/lib/extract-sync-block.cjs` and composed by `.claude/scripts/lib/hookless-prompt-protocol.cjs`. A `:full` body is PLAIN markdown so every static carrier can render it consistently. Edit BOTH tiers HERE first, then propagate.
 
 ---
 

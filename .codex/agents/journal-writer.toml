@@ -16,7 +16,7 @@ Source: .claude/agents/journal-writer.md
 <!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
 ## Codex Project-Reference Loading (No Hooks)
 
-Codex does not receive Claude hook-based doc injection.
+Codex uses static project-reference loading instead of runtime-injected project docs.
 When coding, planning, debugging, testing, or reviewing, open project docs explicitly using this routing.
 
 **Always read:**
@@ -105,7 +105,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 [Why did this really happen? What was the fundamental mistake or oversight?]
 
-## Lessons Learned
+## Retrospective Notes
 
 [What should we do differently? What patterns should we avoid?]
 

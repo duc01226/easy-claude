@@ -1,7 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
+import { execFile } from "node:child_process";
 import { createRequire } from "node:module";
+import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 
 // Locks the content-loss guard in generate-claude-md.cjs `updateMarkedSections`. `--mode update`
@@ -11,12 +15,14 @@ import { fileURLToPath } from "node:url";
 // visible WARN. These tests fail if the guard is removed or its low-noise heuristic regresses.
 
 const require = createRequire(import.meta.url);
+const execFileAsync = promisify(execFile);
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(thisDir, "..", "..", "..", "..");
+const generatorPath = path.join(repoRoot, ".claude", "skills", "claude-md-init", "scripts", "generate-claude-md.cjs");
 
 // Importing the generator must NOT regenerate CLAUDE.md (require.main guard). If the guard were
 // missing, requiring it here would run main() against the test runner's argv and mutate the repo.
-const gen = require(path.join(repoRoot, ".claude", "skills", "claude-md-init", "scripts", "generate-claude-md.cjs"));
+const gen = require(generatorPath);
 
 const section = (key, ...bodyLines) =>
   [`<!-- SECTION:${key} -->`, "", ...bodyLines, "", `<!-- /SECTION:${key} -->`].join("\n");
@@ -72,4 +78,69 @@ test("TC-CLG-005 unmanaged sections (no builder content) never warn", () => {
   const warns = [];
   gen.updateMarkedSections(existing, {}, m => warns.push(m));
   assert.equal(warns.length, 0, "sections without builder output are preserved, not dropped");
+});
+
+test("TC-CLG-007 init mode bakes former hook guidance into CLAUDE.md static carrier", async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), "claude-md-init-hookless-"));
+
+  try {
+    await fs.mkdir(path.join(tempRoot, "docs"), { recursive: true });
+    await fs.mkdir(path.join(tempRoot, ".claude", "skills", "test"), { recursive: true });
+
+    await fs.writeFile(
+      path.join(tempRoot, "docs", "project-config.json"),
+      JSON.stringify(
+        {
+          project: { name: "Hookless Test", description: "Temporary hookless init fixture." },
+          framework: { languages: ["typescript"] },
+        },
+        null,
+        2
+      ),
+      "utf8"
+    );
+
+    await fs.writeFile(
+      path.join(tempRoot, ".claude", "workflows.json"),
+      JSON.stringify(
+        {
+          workflows: {
+            testing: {
+              name: "Testing",
+              description: "Run local tests",
+              whenToUse: "user wants to verify changes",
+              sequence: ["test"],
+            },
+          },
+        },
+        null,
+        2
+      ),
+      "utf8"
+    );
+
+    await fs.writeFile(
+      path.join(tempRoot, ".claude", "skills", "test", "SKILL.md"),
+      ["---", "name: test", "description: Test skill", "---", "", "# Test", ""].join("\n"),
+      "utf8"
+    );
+
+    await execFileAsync(process.execPath, [generatorPath, "--mode", "init"], { cwd: tempRoot });
+
+    const claudeMd = await fs.readFile(path.join(tempRoot, "CLAUDE.md"), "utf8");
+    for (const expected of [
+      "<!-- CK:UNIVERSAL-GUIDES v6 -->",
+      "<!-- CK:WORKFLOW-GATE -->",
+      "## Workflow & Skills Catalog",
+      "`testing`",
+      "<!-- CK:CRITICAL-THINKING -->",
+      "<!-- CK:AI-MISTAKE-PREVENTION -->",
+      "## Continuous Improvement — Lesson Extraction Gate",
+      "docs/project-reference/lessons.md",
+    ]) {
+      assert.ok(claudeMd.includes(expected), `CLAUDE.md init output must include ${expected}`);
+    }
+  } finally {
+    await fs.rm(tempRoot, { recursive: true, force: true });
+  }
 });

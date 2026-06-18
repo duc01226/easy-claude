@@ -1,7 +1,7 @@
 ---
 name: sync-codex
 description: '[Codex] Use when you need to run the full cross-surface mirror sync + verify pipeline (migrate → hooks → context → copilot → verify) standalone, no npm/package JSON needed.'
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 > Codex compatibility note:
@@ -17,7 +17,7 @@ disable-model-invocation: true
 <!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
 ## Codex Project-Reference Loading (No Hooks)
 
-Codex does not receive Claude hook-based doc injection.
+Codex uses static project-reference loading instead of runtime-injected project docs.
 When coding, planning, debugging, testing, or reviewing, open project docs explicitly using this routing.
 
 **Always read:**
@@ -78,8 +78,7 @@ session-start guides must be embedded in `AGENTS.md` directly; stage 3 produces 
 CLAUDE.md route (`missing` → init, `incomplete` → update smart-merge preserving project content, `ok`
 → no block), decided by the shared sentinel-then-anchors check.
 
-The gate is **user-invoke-only** for this route (`disable-model-invocation: true`) — the AI cannot
-self-run `$sync-codex`, so the gate instructs it to *ask the user* to run it. Detection is shared with
+Detection is shared with
 the CLAUDE.md route via `.claude/hooks/lib/agent-files-state.cjs`. Opt out of completeness enforcement
 with `portability.requireUniversalGuides: false` in `docs/project-config.json` (default `true`);
 `skip init` dismisses both hooks for 24h. Generate `CLAUDE.md` first (via `$claude-md-init`) — stage 3
@@ -89,20 +88,20 @@ reads it as the mirror source.
 
 12 stages, sequential — the full `npm run sync:all && npm run verify:all` pipeline (the npm scripts delegate here). Stages 1-4 mutate; 5-12 verify (read-only):
 
-| #   | Stage              | Script                                                       | Effect                                                                                                 |
-| --- | ------------------ | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| 1   | migrate            | `.claude/scripts/codex/migrate-claude-to-codex.mjs`          | Migrate Claude agents → `.codex/agents/`; mirror skills → `.agents/skills/`; setup Codex notifications |
-| 2   | hooks              | `.claude/scripts/codex/sync-hooks.mjs`                       | Generate `.codex/hooks.json` + sync report                                                             |
-| 3   | context            | `.claude/scripts/codex/sync-context-workflows.mjs`           | Regenerate `.codex/CODEX_CONTEXT.md` + `AGENTS.md` with workflow context and shared AI-SDD markers     |
+| #   | Stage              | Script                                                       | Effect                                                                                                                                                                                                 |
+| --- | ------------------ | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | migrate            | `.claude/scripts/codex/migrate-claude-to-codex.mjs`          | Migrate Claude agents → `.codex/agents/`; mirror skills → `.agents/skills/`; setup Codex notifications                                                                                                 |
+| 2   | hooks              | `.claude/scripts/codex/sync-hooks.mjs`                       | Generate `.codex/hooks.json` + sync report                                                                                                                                                             |
+| 3   | context            | `.claude/scripts/codex/sync-context-workflows.mjs`           | Regenerate `.codex/CODEX_CONTEXT.md` + `AGENTS.md` with workflow context and shared AI-SDD markers                                                                                                     |
 | 4   | copilot            | `.claude/scripts/sync-copilot-workflows.cjs`                 | Regenerate `.github/copilot-instructions.md` + `.github/instructions/*` from `workflows.json` (MUST precede the test stages — TC-WFPROTO-006 byte-matches the committed mirror against this generator) |
-| 5   | tests              | `node --test .claude/scripts/codex/tests/*.test.mjs`         | Run codex tooling unit tests                                                                           |
-| 6   | copilot-tests      | `node --test .claude/scripts/tests/*.test.mjs`               | Run copilot tooling unit tests (the `copilot:test:tooling` npm equivalent)                             |
-| 7   | wf-cycle           | `.claude/scripts/codex/verify-workflow-cycle-compliance.mjs` | Verify workflow sequence cycle compliance                                                              |
-| 8   | sk-proto           | `.claude/scripts/codex/verify-skill-protocol-compliance.mjs` | Verify skill strict-execution-contract                                                                 |
-| 9   | residue            | `.claude/scripts/codex/verify-no-project-residue.mjs`        | Verify no project residue in generated and generic source artifacts                                    |
-| 10  | sdd                | `.claude/scripts/codex/verify-sdd-semantic-compliance.mjs`   | Verify AI-SDD semantic contract coverage                                                               |
-| 11  | sync-divergence    | `.claude/scripts/codex/verify-sync-divergence.mjs`           | Byte-equality oracle: `.agents/skills` mirror === `.claude/skills` (codex mirror)                      |
-| 12  | copilot-divergence | `.claude/scripts/verify-copilot-divergence.cjs`              | Byte-equality oracle: `.github/**` Copilot mirror === generator output (copilot mirror)                |
+| 5   | tests              | `node --test .claude/scripts/codex/tests/*.test.mjs`         | Run codex tooling unit tests                                                                                                                                                                           |
+| 6   | copilot-tests      | `node --test .claude/scripts/tests/*.test.mjs`               | Run copilot tooling unit tests (the `copilot:test:tooling` npm equivalent)                                                                                                                             |
+| 7   | wf-cycle           | `.claude/scripts/codex/verify-workflow-cycle-compliance.mjs` | Verify workflow sequence cycle compliance                                                                                                                                                              |
+| 8   | sk-proto           | `.claude/scripts/codex/verify-skill-protocol-compliance.mjs` | Verify skill strict-execution-contract                                                                                                                                                                 |
+| 9   | residue            | `.claude/scripts/codex/verify-no-project-residue.mjs`        | Verify no project residue in generated and generic source artifacts                                                                                                                                    |
+| 10  | sdd                | `.claude/scripts/codex/verify-sdd-semantic-compliance.mjs`   | Verify AI-SDD semantic contract coverage                                                                                                                                                               |
+| 11  | sync-divergence    | `.claude/scripts/codex/verify-sync-divergence.mjs`           | Byte-equality oracle: `.agents/skills` mirror === `.claude/skills` (codex mirror)                                                                                                                      |
+| 12  | copilot-divergence | `.claude/scripts/verify-copilot-divergence.cjs`              | Byte-equality oracle: `.github/**` Copilot mirror === generator output (copilot mirror)                                                                                                                |
 
 ## Usage
 
@@ -159,14 +158,12 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --skip=migrate,hooks
 
 **Anti-Rationalization:**
 
-| Evasion                                  | Rebuttal                                                                     |
-| ---------------------------------------- | ---------------------------------------------------------------------------- |
-| "Just edit the .agents mirror directly"  | Next sync overwrites it. Always edit `.claude/skills/sync-codex/` source     |
-| "Skip a stage to save time"              | Verifiers (4-8) catch drift; skipping = silent regression risk               |
-| "Auto-invoke since user mentioned codex" | `disable-model-invocation: true` is binding. Wait for explicit `$sync-codex` |
-| "Sync looks idempotent, skip verify"     | Timestamp diffs are normal; structural diffs = bug. Always run verifiers     |
+| Evasion                                 | Rebuttal                                                                 |
+| --------------------------------------- | ------------------------------------------------------------------------ |
+| "Just edit the .agents mirror directly" | Next sync overwrites it. Always edit `.claude/skills/sync-codex/` source |
+| "Skip a stage to save time"             | Verifiers (4-8) catch drift; skipping = silent regression risk           |
+| "Sync looks idempotent, skip verify"    | Timestamp diffs are normal; structural diffs = bug. Always run verifiers |
 
-> **[USER-INVOKED ONLY]** Manually triggered via `$sync-codex`. Claude MUST NOT auto-invoke — `disable-model-invocation: true` enforces this.
 > **[FAILS FAST]** First non-zero stage exit aborts chain. Re-run failing stage manually to debug.
 > **[REPO ROOT]** Orchestrator auto-resolves repo root from its own path. NEVER pass `--cwd`.
 
@@ -191,7 +188,7 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --skip=migrate,hooks
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Hookless Prompt Protocol Mirror (Auto-Synced)
 
-Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
+Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs`
 
 ## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
 
@@ -203,11 +200,33 @@ Source: `.claude/hooks/lib/prompt-injections.cjs` + `.claude/.ck.json`
 4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
 5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
 6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
-**[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
-**Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
-**AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
-**Goal-driven execution:** Define success criteria first, loop until verified, and stop only when observable checks pass.
-**Tests verify intent:** Tests must protect business rules/invariants and fail when the protected intent breaks, not only mirror current behavior.
+## Shared AI-SDD Protocol Markers
+
+Source: `.claude/skills/shared/sync-inline-versions.md`
+
+## SYNC:ai-sdd-artifact-contract
+
+> **AI-SDD Artifact Contract** — Shared spec-driven development rules stay portable and source-owned.
+>
+> 1. Keep reusable AI-SDD principles in `.claude`; put repository-specific paths, commands, owners, products, and formats in project config/reference docs.
+> 2. Preserve cycle: `spec -> plan -> tasks -> implement -> verify -> update spec/docs`.
+> 3. Trace every requirement or invariant through decision, task, TC/test, source evidence, and docs/spec update.
+> 4. Treat code-to-spec extraction as reference-only until accepted by the canonical spec owner.
+> 5. Any supported AI tool may plan, implement, review, or verify with synced context; using multiple tools is optional.
+> 6. Update `.claude` source first, then sync generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`. — why: mirrors are generated artifacts; hand-edits are overwritten on the next sync
+> 7. If `docs/project-config.json`, root instruction files, or a required project-reference doc is missing or stale, auto-run `$project-init` or the narrow lower-level route before ordinary project-specific work.
+>
+> **Active reference:** `shared/sdd-artifact-contract.md` in the active skills root.
+
+---
+
+## SYNC:ai-sdd-artifact-contract:reminder
+
+- **MANDATORY** Apply `shared/sdd-artifact-contract.md`; keep reusable AI-SDD in `.claude` and local rules in project docs.
+- **MANDATORY** Code-to-spec extraction is reference-only until canonical acceptance; any supported AI tool may execute with synced context.
+- **MANDATORY** Update `.claude` source before syncing generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`.
+- **MANDATORY** Missing or stale project config, root instruction files, or required reference docs route project-specific work through `$project-init` or the narrow setup route automatically.
+**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
 ## [LESSON-LEARNED-REMINDER] [BLOCKING] Task Planning & Continuous Improvement — MANDATORY. Do not skip.
 
 Break work into small tasks (task tracking) before starting. Add final task: "Analyze AI mistakes & lessons learned".
@@ -220,6 +239,39 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
 6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/`$lint` catch this?" — Yes → improve review skill instead.
 7. BOTH gates pass → ask user to run `$learn`.
-**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
+**[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
+**Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
+**AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
+**Goal-driven execution:** Define success criteria first, loop until verified, and stop only when observable checks pass.
+**Tests verify intent:** Tests must protect business rules/invariants and fail when the protected intent breaks, not only mirror current behavior.
+## Common AI Mistake Prevention (System Lessons)
+
+- **Re-read files after context compaction.** Edit requires prior Read in same context; compaction wipes read state. Re-read before editing.
+- **Grep for old terms after bulk replacements.** AI over-trusts find/replace completeness. Grep full repo after bulk edits for missed refs in docs/configs/catalogs.
+- **Check downstream references before deleting.** Deletions cascade doc/code staleness. Map referencing files before removal.
+- **After memory loss, check existing state before creating new.** Compaction wipes prior-work memory. Query current state to resume — never blindly duplicate.
+- **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, method signatures. Grep to confirm existence before documenting/referencing.
+- **Trace full dependency chain after edits.** Changing a definition misses downstream consumers. Trace the full chain.
+- **When renaming, grep ALL consumer file types.** Some file types silently ignore missing refs (no compile error). Search code, templates, configs, generated files.
+- **Trace ALL code paths when verifying correctness.** Code existing ≠ code executing. Trace early exits, error branches, conditional skips — not just happy path.
+- **Update docs that embed canonical data when source changes.** Docs inlining derived data (workflows, schemas, configs) go stale silently. Update all embedding docs alongside source.
+- **Verify sub-agent results after context recovery.** Background agents may finish while parent compacted — grep-verify output, don't trust assumed completion.
+- **Cross-check full target list against sub-agent assignments.** Parallel sub-agents by category miss boundary items. Reconcile union of assignments against target list before proceeding.
+- **Sub-agents inherit knowledge only from their agent .md definition — use custom agent types, not built-in Explore.** Tool adoption = permission + knowledge + enforcement (numbered workflow step).
+- **Persist sub-agent findings incrementally, not as a final batch.** Long sub-agents hit cutoffs before final write — findings lost. Instruct append-per-section to report file.
+- **When debugging, ask "whose responsibility?" before fixing.** Trace caller (wrong data) vs callee (wrong handling). Fix at responsible layer — never patch symptom site.
+- **Grep ALL removed names after extraction/refactoring.** Primary file "done" ≠ secondary files clean. Grep entire scope for every removed symbol before declaring complete.
+- **Assume existing values are intentional — ask WHY before changing.** Pattern-matching as "wrong" skips context. Before changing any constant/limit/flag: read comments, git blame, surrounding code.
+- **Verify ALL affected outputs, not just the first.** One build green ≠ all green. Multi-stack changes (backend/frontend/tests/docs) require verifying EVERY output.
+- **Evaluate fit before copying a nearby pattern.** Closest example ≠ matching preconditions — verify the new context shares the same constraints, base classes, scope, lifetime.
+- **Holistic-first debugging — resist nearest-attention trap.** Don't dive into first plausible cause. List EVERY precondition (config, env vars, paths, DB, endpoints, creds, versions, DI, data). Verify each against evidence (grep/query — not reasoning). Ask "what would falsify this?" — if nothing, it's not a hypothesis. Most expensive failure: going deeper in "obvious" layer while bug sits in layer never questioned.
+- **Surgical changes — apply the diff test (context-aware).** Two modes: (1) Bug fix → every line traces to the bug; no restyling; orphan cleanup only for imports YOUR changes made unused. (2) Review/enhancement → implement improvements AND announce as "Enhancement beyond main request: [what]". Never silently scope-creep. Diff test: "Would this line exist if I wasn't asked to do X?" — if no, delete or announce.
+- **Surface ambiguity before coding — don't pick silently.** Multiple valid interpretations → present each with effort: "[Request] could mean (1) [N h], (2) [N h]. Which matters?" List scope/format/volume/constraints assumptions first. If simpler path exists, say so. Never silently pick.
+- **[MANDATORY FIRST ACTION] ALWAYS activate a suitable skill or workflow BEFORE responding.** Match task against workflow catalog + skill list; invoke via skill invocation or `$start-workflow <workflowId>`. NEVER answer or write code before checking. Skip = protocol violation.
+- **Why-Review adversarial mindset — apply when reviewing any plan, decision, or design.** Default SKEPTIC not VALIDATOR: steel-man a rejected alternative, invert each stated reason ("what does it sacrifice?"), stress-test top 2-3 assumptions, run pre-mortem ("ships, fails in 3 months — what breaks?"), surface 1-2 alternatives author missed. Section presence ≠ quality; quality = causal reasoning + concrete mitigations + evidence, not "it's better" or "monitor closely".
+- **Front-load report-write in sub-agent prompts for large reviews.** Many-file sub-agents hit budget before final write — findings lost. Design prompts so: (1) report-write is first explicit deliverable, (2) append per-file/section (not batched), (3) scope bounded so reads don't exhaust budget. Truncated mid-sentence with no report file → spawn narrower scope, don't retry same prompt.
+- **After context compaction, re-verify all prior phase outcomes before continuing.** Summaries describe intent, not environment state (git index, filesystem, processes). On resume, FIRST audit: git status, re-read modified files, verify filesystem. Every "completed" claim is an untested hypothesis until evidence confirms.
+- **OOM/memory: check row count before row size.** Triage: (1) Unbounded query — no DB filter for trigger? Push filter to DB; eliminates OOM. (2) Large rows? Projection reduces proportionally. Row reduction > projection in ROI.
+- **Keep domain concepts out of generic/shared/infrastructure layers.** Reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. Leak compiles + runs → passes review silently while coupling the "reusable" layer to one consumer. Keep shared type domain-free; push domain fields/logic down into the consumer via subclass/composition. — why: a layer coupled to one consumer's domain is no longer reusable.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:END -->

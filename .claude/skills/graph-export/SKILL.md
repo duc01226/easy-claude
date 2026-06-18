@@ -1,7 +1,7 @@
 ---
 name: graph-export
 description: '[Code Intelligence] Use when you need to export the code review knowledge graph. Flag: --format={json|mermaid} (default json); --format=json dumps the full graph to a JSON file, --format=mermaid renders a single file as a Mermaid flowchart diagram.'
-disable-model-invocation: true
+disable-model-invocation: false
 version: 1.0.0
 ---
 
@@ -30,8 +30,8 @@ version: 1.0.0
 ## Format Mode (`--format=`)
 
 | `--format`       | CLI verb                                  | Output                                                      | Requires |
-| ---------------- | ----------------------------------------- | ---------------------------------------------------------- | -------- |
-| `json` (default) | `code_graph export --json`                | Full graph dump → `.code-graph/graph-export.json`          | —        |
+| ---------------- | ----------------------------------------- | ----------------------------------------------------------- | -------- |
+| `json` (default) | `code_graph export --json`                | Full graph dump → `.code-graph/graph-export.json`           | —        |
 | `mermaid`        | `code_graph export-mermaid <path> --json` | Single-file Mermaid diagram → `.code-graph/<name>-graph.md` | `<path>` |
 
 `--format=json` dumps ALL nodes + edges from the whole graph. `--format=mermaid` renders ONE file's internal call graph as a Mermaid flowchart (folds former `/graph-export-mermaid`). Pick `--format` FIRST (default `json`), then run the matching branch below.

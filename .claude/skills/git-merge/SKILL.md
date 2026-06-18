@@ -2,7 +2,7 @@
 name: git-merge
 version: 1.0.0
 description: '[Git] Use when you need ⚠️ Merge code from one branch to another.'
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 ## Quick Summary

@@ -2,7 +2,7 @@
 name: workflow-code-to-spec
 version: 3.0.0
 description: '[Workflow] Use when activating code-to-spec development — author/maintain the single canonical Feature Spec FROM existing code, keeping spec, implementation, and tests synchronized. For idea→spec (no code yet) use workflow-idea-to-spec.'
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -24,12 +24,12 @@ disable-model-invocation: true
 
 ### One Canonical Artifact + Derived Aids
 
-| Artifact                | Path                                                        | Canonical?                       | Maintained By                       |
-| ----------------------- | ----------------------------------------------------------- | -------------------------------- | ----------------------------------- |
-| **Feature Spec**        | `docs/specs/{Bucket}/README.{Feature}.md` | **Yes — single source of truth** | `spec`                      |
-| Section 8 — Test Specs  | Same file, **Section 8**                                    | Yes — canonical TC registry      | `spec [mode=tests]`                          |
-| Bucket `INDEX.md`       | `docs/specs/{Bucket}/INDEX.md`                              | Derived — regenerable            | `spec` / `spec-index`       |
-| System index / ERD      | (generated on demand)                                       | Derived — never canonical        | `spec-index` (repurposed)           |
+| Artifact               | Path                                      | Canonical?                       | Maintained By             |
+| ---------------------- | ----------------------------------------- | -------------------------------- | ------------------------- |
+| **Feature Spec**       | `docs/specs/{Bucket}/README.{Feature}.md` | **Yes — single source of truth** | `spec`                    |
+| Section 8 — Test Specs | Same file, **Section 8**                  | Yes — canonical TC registry      | `spec [mode=tests]`       |
+| Bucket `INDEX.md`      | `docs/specs/{Bucket}/INDEX.md`            | Derived — regenerable            | `spec` / `spec-index`     |
+| System index / ERD     | (generated on demand)                     | Derived — never canonical        | `spec-index` (repurposed) |
 
 ### App Bucket Mapping
 
@@ -37,11 +37,11 @@ Resolve service→bucket assignments from the canonical table in [`docs/project-
 
 **Mode Routing:**
 
-| Mode        | When to Use                                  | Step Sequence                                                                                                                                                                              |
-| ----------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mode        | When to Use                                  | Step Sequence                                                                                                                                                                                                                           |
+| ----------- | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `init-full` | Zero — no Feature Spec for target scope      | scout → **size-evaluation** → **plan** → **plan-review** → **plan-validate** → spec [mode=init] → **spec [mode=tests]** → **review-artifact --type=spec-tests** → review-artifact → **docs-update(final sync)** → workflow-end → watzup |
-| `update`    | Code changed, new requirement, new PBI       | workflow-review-changes → spec [mode=update] → **spec [mode=tests]** → **review-artifact --type=spec-tests** → spec [mode=sync] → review-changes → **docs-update(final sync)** → workflow-end → watzup |
-| `audit`     | Quarterly health check, verify doc freshness | scout → spec [mode=audit] → review-artifact → **docs-update(final sync)** → workflow-end → watzup                                                                                        |
+| `update`    | Code changed, new requirement, new PBI       | workflow-review-changes → spec [mode=update] → **spec [mode=tests]** → **review-artifact --type=spec-tests** → spec [mode=sync] → review-changes → **docs-update(final sync)** → workflow-end → watzup                                  |
+| `audit`     | Quarterly health check, verify doc freshness | scout → spec [mode=audit] → review-artifact → **docs-update(final sync)** → workflow-end → watzup                                                                                                                                       |
 
 **Key Rules:**
 
@@ -91,7 +91,7 @@ Starting from zero: no `docs/specs/{Bucket}/README.{Feature}.md` for the target 
 
 ### Step Sequence
 
-```
+````
 ## Step A — Discovery (scout)
 
 /scout
@@ -174,7 +174,7 @@ TaskCreate: "size-evaluation — count capabilities, decide split strategy"
 
 /watzup
   → Session summary: capabilities authored, files written, ~lines, §8 TC counts, coverage gaps, open questions (confidence < 80%), plus final /understand handoff
-```
+````
 
 ---
 
@@ -296,17 +296,17 @@ Budget multiplier: If last audit was >90 days ago → ×1.5 (more drift expected
 
 ## Conditional Skip Rules
 
-| Step                           | Skip When                                                                                                      |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------- |
-| §5 Mermaid ERD in init         | Never — the ERD is a mandatory section of the Feature Spec                                                     |
-| `/spec [mode=tests]` in init    | User explicitly requests a behavior-doc-only pass (TCs deferred to a later cycle)                              |
-| `/dor-gate` in update          | Update source is code diff only, existing PBI is already DoR-ready, or no PBI readiness decision is being made |
-| `/pbi-mockup` in update        | Backend-only/non-UI requirement, code diff only, or existing mockup already covers the change                  |
-| `/review-artifact --type=spec-tests` in update   | `/spec [mode=tests]` skipped because there were no TC changes                                                           |
-| `/spec [mode=sync]`   | No TC changes in this update cycle                                                                             |
-| `/docs-update` near-final sync | Never skip entirely; sub-phases may be skipped only with explicit reason in the docs-update report             |
-| `/review-artifact` audit pass  | No stale specs found AND no UNVERIFIED items                                                                   |
-| `/spec-index` (derived)        | No derived index/ERD is maintained for this bucket, or it is already current                                  |
+| Step                                           | Skip When                                                                                                      |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| §5 Mermaid ERD in init                         | Never — the ERD is a mandatory section of the Feature Spec                                                     |
+| `/spec [mode=tests]` in init                   | User explicitly requests a behavior-doc-only pass (TCs deferred to a later cycle)                              |
+| `/dor-gate` in update                          | Update source is code diff only, existing PBI is already DoR-ready, or no PBI readiness decision is being made |
+| `/pbi-mockup` in update                        | Backend-only/non-UI requirement, code diff only, or existing mockup already covers the change                  |
+| `/review-artifact --type=spec-tests` in update | `/spec [mode=tests]` skipped because there were no TC changes                                                  |
+| `/spec [mode=sync]`                            | No TC changes in this update cycle                                                                             |
+| `/docs-update` near-final sync                 | Never skip entirely; sub-phases may be skipped only with explicit reason in the docs-update report             |
+| `/review-artifact` audit pass                  | No stale specs found AND no UNVERIFIED items                                                                   |
+| `/spec-index` (derived)                        | No derived index/ERD is maintained for this bucket, or it is already current                                   |
 
 ---
 
@@ -360,13 +360,13 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 
 ### Use Standalone Skills Instead
 
-| Goal                                               | Use                                       |
-| -------------------------------------------------- | ----------------------------------------- |
-| Update one specific Feature Spec after small change | `/spec` directly                  |
-| Add/sync Section 8 TCs                             | `/spec [mode=tests]` directly                      |
-| Regenerate a derived bucket index / ERD            | `/spec-index` directly                    |
-| Understand one specific feature                    | `/investigate`                            |
-| Write integration tests from existing Section 8    | `/integration-test`                       |
+| Goal                                                | Use                           |
+| --------------------------------------------------- | ----------------------------- |
+| Update one specific Feature Spec after small change | `/spec` directly              |
+| Add/sync Section 8 TCs                              | `/spec [mode=tests]` directly |
+| Regenerate a derived bucket index / ERD             | `/spec-index` directly        |
+| Understand one specific feature                     | `/investigate`                |
+| Write integration tests from existing Section 8     | `/integration-test`           |
 
 ---
 
@@ -521,11 +521,11 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 - **[REQUIRED]** Apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.
 
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
-**Anti-Rationalization:**
+> **Anti-Rationalization:**
 
-| Evasion | Rebuttal |
-| ------- | -------- |
-| "Purpose obvious" | Anchor it anyway — primacy/recency keeps outcome active through long prompts. |
-| "Existing reminders enough" | Echo Goal in Closing Reminders — bottom anchor prevents drift. |
-| "Skip evidence for prompt edits" | Cite changed file evidence and verify no stale protocol text remains. |
+| Evasion                                 | Rebuttal                                                                                                    |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| "Purpose obvious"                       | Anchor it anyway — primacy/recency keeps outcome active through long prompts.                               |
+| "Existing reminders enough"             | Echo Goal in Closing Reminders — bottom anchor prevents drift.                                              |
+| "Skip evidence for prompt edits"        | Cite changed file evidence and verify no stale protocol text remains.                                       |
 | "Re-extract the A-E engineering bundle" | Not part of the spec model. ONE Feature Spec; the ERD is §5. `spec-index` only regenerates a derived index. |

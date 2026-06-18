@@ -88,44 +88,6 @@
         "matcher": "mcp__filesystem__*"
       }
     ],
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ./.claude/hooks/verify-install.cjs"
-          }
-        ],
-        "matcher": "startup|resume"
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ./.claude/hooks/session-init.cjs"
-          }
-        ],
-        "matcher": "startup|resume"
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ./.claude/hooks/session-init-docs.cjs"
-          }
-        ],
-        "matcher": "startup|resume"
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ./.claude/hooks/graph-session-init.cjs"
-          }
-        ],
-        "matcher": "startup|resume"
-      }
-    ],
     "Stop": [
       {
         "hooks": [

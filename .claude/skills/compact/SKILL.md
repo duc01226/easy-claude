@@ -9,8 +9,6 @@ disable-model-invocation: false
 
 **Goal:** Compress conversation context to optimize token usage while preserving critical information.
 
-> **Thin alias.** `/compact` is the user-facing entry point to the **Compress** strategy (Strategy #3) owned by `context-optimization`. That skill is `disable-model-invocation: true` (not directly user-invocable), so this command is the canonical way to trigger a manual compaction. `/compact` is also a **CLI-native command** — this alias keeps the harness-specific preservation guidance attached to it without re-implementing the compress logic, which lives once in `context-optimization`.
-
 **Workflow:**
 
 1. **Analyze** — Identify essential vs. expendable context

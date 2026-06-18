@@ -2,7 +2,7 @@
 name: dual-ai
 version: 1.3.0
 description: '[User-Invoked] Use ONLY when the user explicitly types /dual-ai or /dual-ai <workflow-id> — fans out one prompt, or one workflow invocation per tool, to two fresh parallel AI sessions (Claude Code + Codex CLI), both pre-set to xhigh reasoning effort and full-permission mode before the prompt executes. NEVER auto-activate.'
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 ## Quick Summary
@@ -47,12 +47,12 @@ Run the same task through two independent frontier agents at maximum reasoning e
 
 - Strip MODE flags from USER_PROMPT first.
 - Resolve workflow-id mode before validation:
-  - Read `.claude/workflows.json` and parse the `workflows` id set.
-  - If the first non-mode token exactly matches a `workflows` key, set WORKFLOW_ID to that token and remove it from USER_PROMPT.
-  - Set `CLAUDE_PROMPT = "/" + WORKFLOW_ID`.
-  - Set `CODEX_PROMPT = "$" + WORKFLOW_ID`.
-  - If remaining text exists, append one space plus that remaining text verbatim to both prompts.
-  - Example: `/dual-ai workflow-review-changes --orchestrate` writes `/workflow-review-changes` for Claude and `$workflow-review-changes` for Codex, preserving the former review wrapper behavior.
+    - Read `.claude/workflows.json` and parse the `workflows` id set.
+    - If the first non-mode token exactly matches a `workflows` key, set WORKFLOW_ID to that token and remove it from USER_PROMPT.
+    - Set `CLAUDE_PROMPT = "/" + WORKFLOW_ID`.
+    - Set `CODEX_PROMPT = "$" + WORKFLOW_ID`.
+    - If remaining text exists, append one space plus that remaining text verbatim to both prompts.
+    - Example: `/dual-ai workflow-review-changes --orchestrate` writes `/workflow-review-changes` for Claude and `$workflow-review-changes` for Codex, preserving the former review wrapper behavior.
 - If USER_PROMPT is empty AND no per-tool prompts were derived from WORKFLOW_ID → ask the user, stop.
 - Check tool availability: `claude --version` and `codex --version`. If either is missing, report it and offer to run the available one only.
 - Detect OS in the same Bash call: `uname -s` → `MINGW*`/`MSYS*`/`CYGWIN*` = Windows, `Darwin` = macOS, `Linux` = Linux. Pick the matching launcher + spawn branch below.
@@ -136,8 +136,22 @@ Skip steps 3–4 (no terminal windows). The bundled supervisor `scripts/dual-ai-
     "timeoutSec": 3600,
     "maxOutputBytes": 26214400,
     "agents": [
-        { "name": "claude", "command": "claude", "args": ["-p", "--dangerously-skip-permissions", "--effort", "xhigh"], "promptFile": "prompt-claude.txt", "outputFile": "claude-output.md", "outputMode": "stdout" },
-        { "name": "codex", "command": "codex", "args": ["exec", "--dangerously-bypass-approvals-and-sandbox", "-c", "model_reasoning_effort=xhigh", "-o", "<RUN_DIR>/codex-output.md"], "promptFile": "prompt-codex.txt", "outputFile": "codex-output.md", "outputMode": "file" }
+        {
+            "name": "claude",
+            "command": "claude",
+            "args": ["-p", "--dangerously-skip-permissions", "--effort", "xhigh"],
+            "promptFile": "prompt-claude.txt",
+            "outputFile": "claude-output.md",
+            "outputMode": "stdout"
+        },
+        {
+            "name": "codex",
+            "command": "codex",
+            "args": ["exec", "--dangerously-bypass-approvals-and-sandbox", "-c", "model_reasoning_effort=xhigh", "-o", "<RUN_DIR>/codex-output.md"],
+            "promptFile": "prompt-codex.txt",
+            "outputFile": "codex-output.md",
+            "outputMode": "file"
+        }
     ]
 }
 ```
@@ -216,6 +230,7 @@ State: run folder, the two window titles (or output file paths in orchestrated m
 **IMPORTANT MUST ATTENTION** detect OS first (`uname -s`) and use the matching launcher/spawn branch
 **IMPORTANT MUST ATTENTION** do not answer the prompt in the current session — orchestrate only
 **IMPORTANT MUST ATTENTION** orchestrated mode: launch the runner ONCE in background, watch `status.json`, collect + compare outputs when it exits — never re-implement supervision inline and never busy-poll
+
 <!-- SYNC:ai-mistake-prevention:reminder -->
 
 **MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.

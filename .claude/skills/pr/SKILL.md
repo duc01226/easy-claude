@@ -2,7 +2,7 @@
 name: pr
 version: 1.0.0
 description: '[Git] Use when you need to create pull request with standard format.'
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 ## Quick Summary

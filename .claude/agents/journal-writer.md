@@ -77,7 +77,7 @@ memory: project
 
 [Why did this really happen? What was the fundamental mistake or oversight?]
 
-## Lessons Learned
+## Retrospective Notes
 
 [What should we do differently? What patterns should we avoid?]
 
