@@ -3,7 +3,7 @@
  *
  * Re-homes the parity guarantees that USED to be enforced by the now-deleted
  * context-injection hooks. Those hooks injected guidance at runtime; the guidance
- * now lives statically in CLAUDE.md / agent .md so a hookless harness (Codex/Copilot)
+ * now lives statically in CLAUDE.md / agent .md so a hookless harness (Codex)
  * reads identical instructions. These are GENUINE presence asserts — each FAILS
  * if the relocated guidance goes missing. No tautologies (we assert specific
  * load-bearing phrases, not "file is non-empty").
@@ -15,7 +15,7 @@
  *   TC-CP-008 — CLAUDE.md carries the full workflow SELECTION catalog (Workflows Index
  *               listing every workflow id from workflows.json) so a hookless read picks
  *               the right workflow WITHOUT the workflow-router.cjs hook. This is the
- *               static-bake half of "Claude has no hooks"; the mirrors (AGENTS.md, Copilot)
+ *               static-bake half of "Claude has no hooks"; the mirrors (AGENTS.md)
  *               bake the same catalog from the same source.
  *   TC-CP-002 — the universal subagent-bootstrap phrases are present in a
  *               representative sample of agents (one code, one non-code).
@@ -34,7 +34,7 @@
  * The 4 per-context inject hooks (design-system-canonical-guide / figma-context-extractor /
  * ba-refinement-context / graph-grep-suggester) are now presence-asserted by TC-CP-004..007
  * against the verbatim load-bearing phrases their guidance relocated to. A future skill edit
- * that drops a relocated block fails the matching TC, restoring hookless (Codex/Copilot) parity.
+ * that drops a relocated block fails the matching TC, restoring hookless (Codex) parity.
  */
 
 const fs = require('fs');

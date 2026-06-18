@@ -5,7 +5,7 @@
 **Audience:** AI engineers, tech leads, and teams wanting to build reliable AI-assisted development systems.
 **Scope:** What each layer does, why it exists, how the pieces compose, the design principles behind every decision, and which AI agent best practices each addresses.
 
-> **Document Sync Status** — Current local verification (2026-06-15): **15 hook files · 156 skills · 17 workflows · 29 agents** using the ADR-0002 filesystem metrics. Codex mirrors are committed under `.agents/`, `.codex/`, and `AGENTS.md`; Copilot instructions are generated on demand by the Copilot sync skills/scripts. Notable mechanisms documented here include multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential-thinking.
+> **Document Sync Status** — Current local verification (2026-06-15): **15 hook files · 156 skills · 17 workflows · 29 agents** using the ADR-0002 filesystem metrics. Codex mirrors are committed under `.agents/`, `.codex/`, and `AGENTS.md`. Notable mechanisms documented here include multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential-thinking.
 
 ---
 
@@ -47,7 +47,7 @@
 
 This framework wraps Claude Code in a three-pillar execution framework — **15 top-level hook files**, **156 skills**, **17 registered workflows**, and **29 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
 
-It is also **harness- and project-agnostic**: the `.claude/` source compiles to verified OpenAI Codex mirrors (`AGENTS.md`, `.agents/`, `.codex/`) and can generate GitHub Copilot instruction files on demand, while all project-specific knowledge is factored into `project-config.json` + reference docs — so the same behavior runs on any supported AI tool and ports to any codebase (Section 13).
+It is also **harness- and project-agnostic**: the `.claude/` source compiles to verified OpenAI Codex mirrors (`AGENTS.md`, `.agents/`, `.codex/`), while all project-specific knowledge is factored into `project-config.json` + reference docs — so the same behavior runs on any supported AI tool and ports to any codebase (Section 13).
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -74,7 +74,7 @@ It is also **harness- and project-agnostic**: the `.claude/` source compiles to 
 │  Docs phases skipped   │  docs-update BLOCK  │  8-task audit trail│
 │  Spec bundle stale     │  spec-index upd     │  Incremental diffs │
 │  AI trusts own review  │  Findings-val gate  │  Self re-review    │
-│  AI tool lock-in       │  Mirror sync        │  Codex+Copilot     │
+│  AI tool lock-in       │  Mirror sync        │  Codex             │
 │  Project lock-in       │  Residue verifier   │  Build-gate fail   │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -277,7 +277,7 @@ graph LR
 > **Static guidance layer (current architecture).** This harness has no runtime
 > per-context PreToolUse "inject" layer. Path-scoped guidance, mindset principles, and
 > sub-agent context live **statically** in `CLAUDE.md`, agent `.md` files, and skill
-> `SKILL.md` files, so a hookless harness (Codex / Copilot) reads identical instructions.
+> `SKILL.md` files, so a hookless harness (Codex) reads identical instructions.
 > The tree below lists only hooks that map to a real registration in
 > `.claude/settings.json`.
 
@@ -385,7 +385,7 @@ graph TB
     P5 -->|No task?| BLOCK2[⚠️ Model-driven: create task first<br/>per CLAUDE.md rule]
 ```
 
-**Why this matters:** The path → patterns routing reaches the AI through static `CLAUDE.md` / `SKILL.md` guidance and the project-reference-docs read gate — read identically by Claude Code, Codex, and Copilot, with no hook required.
+**Why this matters:** The path → patterns routing reaches the AI through static `CLAUDE.md` / `SKILL.md` guidance and the project-reference-docs read gate — read identically by Claude Code and Codex, with no hook required.
 
 ### 4.5 Deduplication — Preventing Context Bloat
 
@@ -2650,7 +2650,7 @@ This section maps **established prompt engineering techniques** to specific fram
 
 Context engineering is the discipline of **managing what information reaches the LLM, when, and how** — treating the context window as a scarce computational resource. This framework implements context engineering as a first-class architectural concern.
 
-> **Note — delivery is static.** The principles below (just-in-time context, path-based routing, dedup) are authored statically in `CLAUDE.md`, agent `.md`, and skill `SKILL.md` content and read identically by Claude Code, Codex, and Copilot; no runtime hook emits context — recovery after compaction is the model re-reading those same static files. The principles below describe the design intent the static layout realizes; earlier architectures realized some of them with runtime injection/recovery hooks since retired.
+> **Note — delivery is static.** The principles below (just-in-time context, path-based routing, dedup) are authored statically in `CLAUDE.md`, agent `.md`, and skill `SKILL.md` content and read identically by Claude Code and Codex; no runtime hook emits context — recovery after compaction is the model re-reading those same static files. The principles below describe the design intent the static layout realizes; earlier architectures realized some of them with runtime injection/recovery hooks since retired.
 
 #### The Context Engineering Problem
 
@@ -3599,7 +3599,7 @@ Each agent definition now inlines two shared protocol blocks from `sync-inline-v
 
 ## 13. Multi-AI-Tool Portability — One Source, Every Harness
 
-Everything documented above is engineered as **Claude Code hooks, skills, and workflows** — but the harness is not the product. The product is the **behavior**: evidence gates, workflow enforcement, pattern injection, quality protocols. Claude Code is one execution engine; OpenAI Codex and GitHub Copilot are others. The framework treats the harness as a target, not a dependency — the same authored behavior **compiles** to each tool.
+Everything documented above is engineered as **Claude Code hooks, skills, and workflows** — but the harness is not the product. The product is the **behavior**: evidence gates, workflow enforcement, pattern injection, quality protocols. Claude Code is one execution engine; OpenAI Codex is another. The framework treats the harness as a target, not a dependency — the same authored behavior **compiles** to each tool.
 
 This is the answer to two questions the rest of the guide raises: _"does this only work with Claude Code?"_ (no) and _"does this only work on this codebase?"_ (no). Both are answered by the same mechanism — a **single source of truth that generates verified mirrors** for every supported tool, with project-specific knowledge factored out into config.
 
@@ -3624,23 +3624,20 @@ This is the answer to two questions the rest of the guide raises: _"does this on
 │       ├── .codex/hooks.json            hookless-parity declaration     │
 │       └── AGENTS.md (root)             full CLAUDE.md mirror +         │
 │                                         managed Codex-context block    │
-│                                                                        │
-│  Optional Copilot outputs, generated on demand:                       │
-│       .github/copilot-instructions.md + .github/instructions/*.md     │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-Every generated file **self-declares** as a mirror. `AGENTS.md`: _"This block is auto-generated from `CLAUDE.md` by `npm run codex:sync:context`. Do not edit manually; update `CLAUDE.md` and re-sync."_ Copilot outputs generated by `sync-copilot-workflows.cjs` carry the same auto-generated warning. The authoring rule is absolute: **edit `.claude/` source, run sync, never touch a mirror** — because the next sync overwrites direct mirror edits.
+Every generated file **self-declares** as a mirror. `AGENTS.md`: _"This block is auto-generated from `CLAUDE.md` by `npm run codex:sync:context`. Do not edit manually; update `CLAUDE.md` and re-sync."_ The authoring rule is absolute: **edit `.claude/` source, run sync, never touch a mirror** — because the next sync overwrites direct mirror edits.
 
 ### 13.2 Why Mirrors at All? The Hookless-Parity Problem
 
-Claude Code's power in this framework comes substantially from **hooks** plus a large body of **static standing instructions** that re-anchor principles and gate routing inside the model's control loop. Path-scoped guidance and mindset principles are carried statically in `CLAUDE.md` / `SKILL.md` (see Section 4). Codex and Copilot **have no hook system at all**. A naive port would lose every automatic injection that any remaining hook performs.
+Claude Code's power in this framework comes substantially from **hooks** plus a large body of **static standing instructions** that re-anchor principles and gate routing inside the model's control loop. Path-scoped guidance and mindset principles are carried statically in `CLAUDE.md` / `SKILL.md` (see Section 4). Codex **has no hook system at all**. A naive port would lose every automatic injection that any remaining hook performs.
 
 The mirror compensates by **baking what hooks deliver (and what Claude carries statically) into the mirror artifacts**:
 
 | Behavior on Claude Code                                   | How the mirror delivers it to a hookless tool                                                                    |
 | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| The workflow catalog is baked statically into `CLAUDE.md` | Catalog written into `.codex/CODEX_CONTEXT.md` and `copilot-instructions.md` as static text                      |
+| The workflow catalog is baked statically into `CLAUDE.md` | Catalog written into `.codex/CODEX_CONTEXT.md` as static text                                                     |
 | Static `lessons.md` read contract                         | Replaced by an explicit `CODEX:PROJECT-REFERENCE-LOADING` gate telling Codex to open the reference docs itself   |
 | Static project-config + reference-doc read contract       | A loading gate instructs the tool to read `docs/project-config.json` + `docs/project-reference/**` at task start |
 | `/skill` slash invocation                                 | Rewritten to Codex's `$skill` invocation syntax; `Agent(...)` → `spawn_agent`, `subagent_type` → `agent_type`    |
@@ -3651,11 +3648,9 @@ So the mirror is not a copy — it is a **transform** that converts hook-depende
 
 | Skill                   | Scope                                                                                                             | Mechanics                                                                                                                                                                                                                                                                                                                                                                                              |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **`sync-codex`**        | Full Claude → Codex mirror                                                                                        | `npm run codex:sync` (or the skill without npm). `disable-model-invocation: true` — **user-invoked only, never auto-runs.** 9 sequential, fail-fast stages (self-contained — regenerates the Copilot mirror too, so its `tests` stage validates fresh output).                                                                                                                                         |
-| **`sync-ai-dev-tools`** | Broadest, full-pipeline: **bidirectional** Claude ↔ Copilot source reconciliation **+** ordered both-mirror regen | Part A: 4-step source pipeline (Understand → Research → Compare → Sync). Part B: regenerate BOTH mirrors in load-bearing order (copilot FIRST, then `sync-codex`) + both divergence oracles. `disable-model-invocation: true` — **user-invoked only, never auto-runs** (absorbed the former `sync-all-mirrors` orchestrator).                                                                          |
-| **`sync-to-copilot`**   | Claude → Copilot knowledge/docs                                                                                   | Script generates instruction files from `workflows.json` + `development-rules.md`; AI enrichment adds per-doc "Key Sections". `--fast` mode runs the script only (no AI pass) — the workflow-catalog-only path, needed because the catalog is generated from `workflows.json` rather than authored by hand (absorbed the former `sync-copilot-workflows` skill; the generator script keeps that name). |
+| **`sync-codex`**        | Full Claude → Codex mirror                                                                                        | `npm run codex:sync` (or the skill without npm). `disable-model-invocation: true` — **user-invoked only, never auto-runs.** Sequential, fail-fast stages.                                                                                                                                                                                                                                            |
 
-**`sync-codex`'s 9 stages** (1–4 mutate, 5–9 verify-only, any failure aborts): **migrate** (agents/skills/notifications) → **hooks** (`.codex/hooks.json`) → **context** (`CODEX_CONTEXT.md` + `AGENTS.md`) → **copilot** (`.github/copilot-instructions.md` + `.github/instructions/*` from `workflows.json`) → **tests** → **wf-cycle** → **sk-proto** → **residue** → **sdd**. The `copilot` stage is ordered _before_ `tests` on purpose: the `tests` stage's TC-WFPROTO-006 byte-matches the committed Copilot mirror against the generator's output, so the pipeline regenerates that mirror first — making `codex:sync` self-contained rather than dependent on a prior `/sync-to-copilot`. The sync is not "done" until all five verifiers pass (four run as dedicated stages — wf-cycle, sk-proto, residue, sdd; the `verify-sync-divergence` oracle runs via its unit test in the `tests` stage) — a stale or non-portable mirror **fails the pipeline** rather than shipping silently.
+**`sync-codex`'s stages** (mutate first, verify-only after, any failure aborts): **migrate** (agents/skills/notifications) → **hooks** (`.codex/hooks.json`) → **context** (`CODEX_CONTEXT.md` + `AGENTS.md`) → **tests** → **wf-cycle** → **sk-proto** → **residue** → **sdd**. The sync is not "done" until all five verifiers pass (four run as dedicated stages — wf-cycle, sk-proto, residue, sdd; the `verify-sync-divergence` oracle runs via its unit test in the `tests` stage) — a stale or non-portable mirror **fails the pipeline** rather than shipping silently.
 
 Mirror parity also enables **multi-AI execution**, not just portability: the **`dual-ai`** skill fans a single prompt out to **two fresh parallel sessions** — Claude Code and Codex CLI — each launched at xhigh reasoning effort in full-permission mode, with an `--orchestrate` mode that supervises both runs and collects a result comparison. It also accepts a workflow id, so `dual-ai workflow-review-changes` gives Claude `/workflow-review-changes` and Codex `$workflow-review-changes`, producing two independent reviews of the same working tree — possible only because the verified mirrors guarantee both tools execute the same workflow. The skill is `disable-model-invocation: true` — strictly user-invoked, since it spawns external sessions that consume quota.
 
@@ -3673,11 +3668,9 @@ Five verifier scripts (`.claude/scripts/codex/verify-*.mjs`, each with a unit te
 
 `verify-no-project-residue` is the load-bearing one for "works for any project": it is impossible to merge a generic skill that leaked project-specific names, because the residue scan rejects it. Portability isn't a guideline — it's a gate.
 
-The **Copilot mirror** (`.github/copilot-instructions.md` + `.github/instructions/*.instructions.md`) has its own oracle outside the Codex pipeline: `.claude/scripts/verify-copilot-divergence.cjs`. Same oracle pattern as `verify-sync-divergence` — it imports the **real** generator (`sync-copilot-workflows.cjs`), regenerates the expected instruction set, and diffs against the committed `.github` files; any drift fails. It ships with a unit test (`.claude/scripts/tests/verify-copilot-divergence.test.mjs`), npm scripts (`copilot:verify:divergence`, `copilot:test:tooling`), and a diff-gated `.husky/pre-commit` block. It is standalone rather than a 6th pipeline stage because the Copilot mirror is produced by a separate generator (`sync-copilot-workflows.cjs`), not the Codex `run-codex-sync.mjs` transform — so both mirrors now have mechanical parity gates, each rooted in its own generator.
-
 ### 13.5 The SYNC-Tag Mechanism — One Protocol, Identical Everywhere
 
-The framework's protocols (evidence-based reasoning, critical-thinking mindset, AI-SDD contract, end-to-start debugger trace, …) must read **identically** across ~150 skills _and_ across three tools. They are kept identical by **inlining, not referencing**:
+The framework's protocols (evidence-based reasoning, critical-thinking mindset, AI-SDD contract, end-to-start debugger trace, …) must read **identically** across ~150 skills _and_ across both tools. They are kept identical by **inlining, not referencing**:
 
 1. Each shared protocol is authored **once** under a `## SYNC:{tag}` heading in `.claude/skills/shared/sync-inline-versions.md` (~67 tagged protocols).
 2. In every consuming skill the content is inlined **verbatim** between `<!-- SYNC:{tag} -->` … `<!-- /SYNC:{tag} -->` fences.
@@ -3699,7 +3692,7 @@ The rule that keeps it clean: _"If a rule can be reused unchanged by another rep
 1. Copy `.claude/` (skills, hooks, workflows, agents) — the reusable behavior, unchanged.
 2. Replace `docs/project-config.json` and `docs/project-reference/**` with the new project's stack, paths, patterns, and conventions. (The `/project-config` and `scan-*` skills can generate these from a codebase scan.)
 3. Rewrite `CLAUDE.md` for the new project's golden rules.
-4. Run `npm run codex:sync` to regenerate the committed Codex mirrors. Run `/sync-to-copilot` (use `--fast` for catalog-only changes) only when Copilot instruction files are part of the target repo.
+4. Run `npm run codex:sync` to regenerate the committed Codex mirrors.
 
 The harness, the protocols, and the quality gates carry over verbatim. Only the config and reference docs change. That is what "works for any project, on any supported AI harness" means in this framework — and it is enforced by the same verifier suite that keeps the mirrors honest.
 
@@ -3764,7 +3757,7 @@ The framework elevates the AI from a code autocomplete tool to a **strategic dev
 | Skills work in isolation     | Plan-aware skills (Step 0) read prior workflow outputs automatically                                |
 | Manual workflow progression  | Skill chain navigation (Next Steps) auto-recommends next action                                     |
 | Artifacts flow unchecked     | Review gate skills validate PBIs, stories, and test specs mid-flow                                  |
-| Locked to one tool & repo    | One source compiles to Codex mirrors and can generate Copilot instructions; config-driven, any repo |
+| Locked to one tool & repo    | One source compiles to verified Codex mirrors; config-driven, any repo                              |
 
 **For greenfield projects**, the AI becomes a full Solution Architect — conducting market research, evaluating tech stacks with confidence percentages, modeling domains with DDD, and collaborating with the user at every decision point. The AI earns trust through structured thinking, not just fast output.
 

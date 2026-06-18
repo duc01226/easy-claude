@@ -21,7 +21,7 @@ normalize main-block bodies to Operation A's exact output (guarantees --dry-run 
 Usage:
     python inject_review_skill_blocks.py [--dry-run]
 
-Does NOT touch mirrors (.agents/, .codex/, .github/copilot-*, AGENTS.md) — deferred per plan.
+Does NOT touch mirrors (.agents/, .codex/, AGENTS.md) — deferred per plan.
 """
 from __future__ import annotations
 

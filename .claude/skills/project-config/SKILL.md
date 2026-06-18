@@ -284,7 +284,7 @@ node -e "const h=require('./.claude/hooks/lib/session-init-helpers.cjs');const{l
 ```
 
 - Set `config.referenceDocs` = the returned **`normalized`** array (canonical docs + genuine project-specific extras, canonical order, legacy names resolved, canonical `templatePath`s preserved). Add project-specific reference docs only as EXTRA entries; **never** delete or rename a canonical entry.
-- For each **`renames[]`** `{from,to}`: if `docs/project-reference/<from>` exists — `git mv` it to `<to>` when `<to>` is absent; if `<to>` already exists, `<from>` is a stale duplicate → confirm `<to>` holds the canonical content, then `git rm <from>`. Migrate every downstream textual reference (`docs-index-reference.md`, `project-structure-reference.md`, `docs/copilot-registry.json`, generated `.github/*` mirrors) `<from>` → `<to>`.
+- For each **`renames[]`** `{from,to}`: if `docs/project-reference/<from>` exists — `git mv` it to `<to>` when `<to>` is absent; if `<to>` already exists, `<from>` is a stale duplicate → confirm `<to>` holds the canonical content, then `git rm <from>`. Migrate every downstream textual reference (`docs-index-reference.md`, `project-structure-reference.md`) `<from>` → `<to>`.
 - **`added[]`** are canonical docs missing on disk — the SessionStart hook (or the matching `/scan --target=<key>`) creates them. Do not hand-fabricate content; per-doc purpose/sections come from `DEFAULT_REFERENCE_DOCS`.
 - Re-run the probe after merging; `changed:false` with empty `renames`/`added`/`removedLegacy` is the only PASS state.
 

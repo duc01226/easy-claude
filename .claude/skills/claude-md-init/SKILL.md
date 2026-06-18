@@ -14,6 +14,7 @@ description: '[Documentation] Use when you need initialize, update, or refactor 
 2. **Run Generator** — `node .claude/skills/claude-md-init/scripts/generate-claude-md.cjs --mode <mode>`
 3. **AI Fill** — Review output, fill creative sections (project description, golden rules inference)
 4. **Verify** — Confirm output is valid, no project-specific leaks from template
+5. **Sync Mirrors** — After CLAUDE.md is written (init/update/refactor), call `/sync-codex` to regenerate the stale `AGENTS.md` + Codex mirror surfaces from the new CLAUDE.md
 
 **Key Rules:**
 
@@ -127,6 +128,25 @@ After the script generates the mechanical parts, AI reviews and fills:
 - [ ] No template placeholder text remains (e.g., `{project-name}`, `TODO`)
 - [ ] No `.claude/skills/claude-md-init/` references leak into output (self-reference)
 - [ ] Conditional sections with no data are omitted (not empty stubs)
+
+## Phase 5: Sync Mirrors (after CLAUDE.md is written)
+
+Writing/updating CLAUDE.md leaves the generated mirror surfaces stale — `AGENTS.md` (Codex), the
+`.codex/` mirrors, and other downstream surfaces are derived FROM CLAUDE.md and
+do not update on their own.
+
+**MUST add a final todo task — "Sync Codex mirrors from updated CLAUDE.md" — and run it after
+init/update/refactor completes**, by invoking the `/sync-codex` skill (the full cross-surface
+migrate → hooks → context → verify pipeline, which regenerates `AGENTS.md`). Create this as
+the LAST `TaskCreate` item so it always follows the verify step:
+
+```text
+TaskCreate: "Sync Codex mirrors from updated CLAUDE.md → invoke /sync-codex"
+```
+
+Skip only when no CLAUDE.md content actually changed (e.g. generator reported all sections preserved /
+no diff). Otherwise the AGENTS.md mirror drifts from CLAUDE.md and Codex runs against stale
+guidance.
 
 ## Refactor Mode (AI-Only)
 

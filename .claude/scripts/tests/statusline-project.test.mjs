@@ -9,9 +9,9 @@ import { createRequire } from 'node:module';
 // project_dir > current_dir > cwd source precedence (subdir-stable name).
 //
 // statusline-project is .cjs (a ccstatusline custom-command widget). Bridge to
-// its pure exports via createRequire — same .cjs↔.mjs interop the repo uses in
-// verify-copilot-divergence.test.mjs. Requiring it must NOT run main(): the
-// script guards main() behind a require.main === module check.
+// its pure exports via createRequire — the .cjs↔.mjs interop the repo uses for
+// .cjs scripts. Requiring it must NOT run main(): the script guards main()
+// behind a require.main === module check.
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 const scriptPath = path.resolve(thisDir, '..', 'statusline-project.cjs');

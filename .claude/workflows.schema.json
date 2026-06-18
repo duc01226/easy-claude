@@ -86,7 +86,7 @@
           "type": "string"
         },
         "parallelGroups": {
-          "description": "Optional declaration of parallel-phase barrier groups within `sequence`. Each group's members run concurrently as ONE all-return barrier: spawn ALL members together (one message), then advance past the group ONLY after EVERY member returns (a skipped conditional member counts as returned). This is the portable, machine-visible complement to the prose advancement rule — both sync renderers collapse a group's members into a single `[parallel ⇉ all-return barrier: ...]` token in the Codex/Copilot context mirrors, so the barrier is visible to hookless tools that read only the rendered sequence. Every member MUST be a value present in this workflow's `sequence`, members SHOULD be contiguous in `sequence`, and a member MUST NOT appear in more than one group.",
+          "description": "Optional declaration of parallel-phase barrier groups within `sequence`. Each group's members run concurrently as ONE all-return barrier: spawn ALL members together (one message), then advance past the group ONLY after EVERY member returns (a skipped conditional member counts as returned). This is the portable, machine-visible complement to the prose advancement rule — the sync renderer collapses a group's members into a single `[parallel ⇉ all-return barrier: ...]` token in the Codex context mirrors, so the barrier is visible to hookless tools that read only the rendered sequence. Every member MUST be a value present in this workflow's `sequence`, members SHOULD be contiguous in `sequence`, and a member MUST NOT appear in more than one group.",
           "items": {
             "additionalProperties": false,
             "properties": {

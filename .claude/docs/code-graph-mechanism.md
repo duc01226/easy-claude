@@ -6,7 +6,7 @@
 
 The Code Review Graph builds a **persistent knowledge graph** of your codebase using Tree-sitter **AST (Abstract Syntax Tree)** parsing — a technique that reads source code structure (functions, classes, imports) without executing it, similar to how a compiler understands your code. It stores functions, classes, imports, calls, inheritance, and test relationships in a SQLite database. When you make changes, it can compute a **blast radius** — the set of files, functions, and tests affected by your change (borrowed from incident response: "how far does the damage spread?").
 
-> **On-demand structural context.** Structural context is obtained on demand through the `graph-*` skills (`graph-trace`, `graph-blast-radius`, `graph-query`) and the `python .claude/scripts/code_graph` CLI, which Claude/Codex/Copilot invoke explicitly per the Graph Intelligence gate in `CLAUDE.md`. The graph DB is kept fresh automatically by `graph-auto-update.cjs` (PostToolUse).
+> **On-demand structural context.** Structural context is obtained on demand through the `graph-*` skills (`graph-trace`, `graph-blast-radius`, `graph-query`) and the `python .claude/scripts/code_graph` CLI, which Claude/Codex invoke explicitly per the Graph Intelligence gate in `CLAUDE.md`. The graph DB is kept fresh automatically by `graph-auto-update.cjs` (PostToolUse).
 
 **Key benefit:** Claude can know what your change breaks _before_ reviewing the code. No full-project scan needed.
 
@@ -215,7 +215,7 @@ graph TB
 
 ## How Structural Context Reaches Claude
 
-The graph data (binary SQLite) is **never read directly by Claude**. It flows through a translation chain. Claude/Codex/Copilot invoke the `code_graph` CLI (directly or via the `graph-*` skills) on demand and read the JSON/text output:
+The graph data (binary SQLite) is **never read directly by Claude**. It flows through a translation chain. Claude/Codex invoke the `code_graph` CLI (directly or via the `graph-*` skills) on demand and read the JSON/text output:
 
 ```
 .code-graph/graph.db (binary SQLite)
@@ -226,7 +226,7 @@ python .claude/scripts/code_graph graph-blast-radius --json
         │
         │  Outputs JSON to stdout
         ▼
-Claude/Codex/Copilot (or a graph-* skill) captures the JSON and reads it directly:
+Claude/Codex (or a graph-* skill) captures the JSON and reads it directly:
         │
         ▼
 Claude sees:

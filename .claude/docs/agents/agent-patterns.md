@@ -678,7 +678,7 @@ Agents carry the same role-specific quality SYNC blocks as their twin skills (se
 
 **Orchestration-exclusion rule:** main-loop orchestration blocks — `nested-task-creation`, `sub-agent-selection`, `subagent-return-contract`, `parallel-phase-advancement` — must NOT propagate to agents (they govern the orchestrator, not a worker). The **sole whitelist exception** is `framework-maintainer`, which legitimately spawns/curates sub-agents and so carries `sub-agent-selection`. Any new exception must be declared explicitly in the matrix, not added ad-hoc to an agent file.
 
-**Deferred-mirror convention:** source-side agent + doc edits under `.claude/` land first; the AI-harness mirrors (`.agents/`, `.codex/`, `.github/copilot-*`, `AGENTS.md`) regenerate via `npm run sync:all` then `npm run verify:all` as a **separate, single-purpose commit** — never bundled with the hand-curated source change. See the Phase 09 handoff in [`plans/260616-agent-skill-quality-parity/phase-09-verify-and-handoff.md`](../../../plans/260616-agent-skill-quality-parity/phase-09-verify-and-handoff.md).
+**Deferred-mirror convention:** source-side agent + doc edits under `.claude/` land first; the AI-harness mirrors (`.agents/`, `.codex/`, `AGENTS.md`) regenerate via `npm run sync:all` then `npm run verify:all` as a **separate, single-purpose commit** — never bundled with the hand-curated source change. See the Phase 09 handoff in [`plans/260616-agent-skill-quality-parity/phase-09-verify-and-handoff.md`](../../../plans/260616-agent-skill-quality-parity/phase-09-verify-and-handoff.md).
 
 ## Related Documentation
 

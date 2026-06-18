@@ -11,7 +11,7 @@
      (CK:AI-MISTAKE-PREVENTION block) — is likewise STAMPED, not inlined: `stampHeader()` bakes it right
      after the catalog (primacy) and `stampFooter()` re-bakes it at EOF (recency), both read from the
      canonical .claude/skills/shared/sync-inline-versions.md `:full` sections via
-     .claude/scripts/lib/extract-sync-block.cjs. This gives CLAUDE.md, AGENTS.md, Codex, and Copilot
+     .claude/scripts/lib/extract-sync-block.cjs. This gives CLAUDE.md, AGENTS.md, and Codex
      the same hookless static protocol. Do not inline these blocks here — they would drift from canonical. -->
 
 # {project-name} - Code Instructions
@@ -107,14 +107,14 @@ If the routing table is stale or a required doc is missing, run `/project-init` 
 
 ## Workflow Step Advancement & Parallel Phases
 
-<!-- Universal portable rule shipped by claude-md-init into every project — model-driven workflow progression, identical across Claude, Codex (AGENTS.md whole-file mirror), and Copilot (baked common-protocol), none of which depend on a hook. The runtime workflow-protocol injector and any step-tracker hook are accelerators only. -->
+<!-- Universal portable rule shipped by claude-md-init into every project — model-driven workflow progression, identical across Claude and Codex (AGENTS.md whole-file mirror), neither of which depends on a hook. The runtime workflow-protocol injector and any step-tracker hook are accelerators only. -->
 
 Workflow progression is **model-driven** — your responsibility, not a tool/hook/harness signal:
 
 1. **Advancement.** A step is complete when its work returns — whether run **inline** (a skill/step call) OR dispatched as a **sub-agent** (Agent / Task tool). A sub-agent completion advances the step **identically** to an inline call. Do not wait for any hook or tool event to advance; advance by judgment and your task list.
 2. **Parallel phase = all-return barrier.** When steps are declared a parallel-phase group, spawn **ALL** members together (one message), then advance **only after EVERY member returns**. Never start the next step — and never start any code-mutating step (e.g. `code-simplifier`) — until the whole group has returned. A conditional member whose trigger is absent counts as "returned."
 3. **Workflow-in-workflow → sub-agent.** A step that itself activates a multi-step workflow MUST run as a sub-agent; it returns only a summary and writes full findings to `plans/reports/`. This preserves context containment.
-4. **Hooks/trackers are accelerators only.** Any step-tracking hook is an optimization that may emit "next step" hints; correctness MUST NOT depend on it. Claude, Codex, and Copilot all run without a step-tracking hook and advance entirely by this rule.
+4. **Hooks/trackers are accelerators only.** Any step-tracking hook is an optimization that may emit "next step" hints; correctness MUST NOT depend on it. Claude and Codex both run without a step-tracking hook and advance entirely by this rule.
 
 ---
 
@@ -240,7 +240,7 @@ Don't speculate. Every claim about code behavior — and every recommendation fo
 
 ## Continuous Improvement — Lesson Extraction Gate
 
-> **[BLOCKING] Self-improvement loop — runs at the end of every non-trivial task.** This is the static, hook-independent home of the `/learn` gate: it binds Claude, Codex, and Copilot equally, with or without any hook firing.
+> **[BLOCKING] Self-improvement loop — runs at the end of every non-trivial task.** This is the static, hook-independent home of the `/learn` gate: it binds Claude and Codex equally, with or without any hook firing.
 
 Add a final task — "Analyze AI mistakes & lessons learned" — to every non-trivial task list (see [Task Planning Rules](#task-planning-rules)). At task end, extract lessons by **ROOT CAUSE, not symptom**:
 
@@ -258,7 +258,7 @@ Before project-specific work, read `docs/project-reference/lessons.md` when it e
 
 ## Git & Version-Control Discipline
 
-> **[BLOCKING] Hook-independent guardrail — binds Claude, Codex, and Copilot equally.** Where hooks run, `git-commit-block.cjs` enforces this as a hard PreToolUse block; on a hookless host (Codex/Copilot) or an un-wired project this section is the ONLY guardrail — obey it without the block.
+> **[BLOCKING] Hook-independent guardrail — binds Claude and Codex equally.** Where hooks run, `git-commit-block.cjs` enforces this as a hard PreToolUse block; on a hookless host (Codex) or an un-wired project this section is the ONLY guardrail — obey it without the block.
 
 1. **Never commit, push, or stage (`git add`) unless the user explicitly asks for it.** "Implement X" / "fix the bug" is NOT permission to commit — finish the work, report what changed, and wait. Only an explicit "commit"/"push" (or an invoked commit skill / git-manager) authorizes it.
 2. **Never `git commit --amend`.** Amending rewrites history and can corrupt commits once HEAD has moved — always create a NEW commit. No bypass.

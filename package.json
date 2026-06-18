@@ -26,8 +26,9 @@
     "codex:sync:context": "node .claude/scripts/codex/sync-context-workflows.mjs",
     "codex:sync:copy-skills": "node .claude/scripts/codex/migrate-claude-to-codex.mjs --copy-skills && npm run codex:sync:hooks && npm run codex:sync:context && npm run codex:verify:all",
     "codex:sync:hooks": "node .claude/scripts/codex/sync-hooks.mjs",
+    "codex:test:scripts": "node --test .claude/scripts/tests/*.test.mjs",
     "codex:test:tooling": "node --test .claude/scripts/codex/tests/*.test.mjs",
-    "codex:verify:all": "npm run codex:test:tooling && npm run codex:verify:workflow-cycle && npm run codex:verify:skill-protocol && npm run codex:verify:no-project-residue && npm run codex:verify:sdd && npm run codex:verify:sync-divergence",
+    "codex:verify:all": "npm run codex:test:tooling && npm run codex:test:scripts && npm run codex:verify:workflow-cycle && npm run codex:verify:skill-protocol && npm run codex:verify:no-project-residue && npm run codex:verify:sdd && npm run codex:verify:sync-divergence",
     "codex:verify:no-project-residue": "node .claude/scripts/codex/verify-no-project-residue.mjs",
     "codex:verify:sdd": "node .claude/scripts/codex/verify-sdd-semantic-compliance.mjs",
     "codex:verify:skill-protocol": "node .claude/scripts/codex/verify-skill-protocol-compliance.mjs",
@@ -35,12 +36,11 @@
     "codex:verify:workflow-cycle": "node .claude/scripts/codex/verify-workflow-cycle-compliance.mjs",
     "copilot:sync": "node .claude/scripts/sync-copilot-workflows.cjs",
     "copilot:test:tooling": "node --test .claude/scripts/tests/*.test.mjs",
-    "copilot:verify:divergence": "node .claude/scripts/verify-copilot-divergence.cjs",
     "sync:all": "node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --copy-skills",
     "test": "npm run test:hooks && npm run test:suites",
     "test:hooks": "node .claude/hooks/tests/test-all-hooks.cjs",
     "test:suites": "node .claude/hooks/tests/run-all-tests.cjs",
-    "verify:all": "node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --only=tests,copilot-tests,wf-cycle,sk-proto,residue,sdd,sync-divergence,copilot-divergence"
+    "verify:all": "node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --only=tests,scripts-tests,wf-cycle,sk-proto,residue,sdd,sync-divergence"
   },
   "version": "1.0.0"
 }

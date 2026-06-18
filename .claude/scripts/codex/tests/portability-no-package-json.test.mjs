@@ -57,13 +57,11 @@ const PIPELINE_FILES = [
     '.claude/scripts/codex/migrate-claude-to-codex.mjs',
     '.claude/scripts/codex/sync-hooks.mjs',
     '.claude/scripts/codex/sync-context-workflows.mjs',
-    '.claude/scripts/sync-copilot-workflows.cjs',
     '.claude/scripts/codex/verify-workflow-cycle-compliance.mjs',
     '.claude/scripts/codex/verify-skill-protocol-compliance.mjs',
     '.claude/scripts/codex/verify-no-project-residue.mjs',
     '.claude/scripts/codex/verify-sdd-semantic-compliance.mjs',
     '.claude/scripts/codex/verify-sync-divergence.mjs',
-    '.claude/scripts/verify-copilot-divergence.cjs',
 ];
 
 // Core (built-in) module names, both `node:`-prefixed and the legacy unprefixed form. `.cjs` files use
@@ -141,14 +139,13 @@ test('PORT-004 sync:all/verify:all contain no && chain (orchestration lives in .
 });
 
 // ── PORT-005 — the standalone runner is a SUPERSET of the npm verify set (no silent under-verify) ──
-// Before this change the runner omitted sync-divergence + the copilot verifiers, so a bare `.claude`
-// copy could pass the runner yet ship a drifted mirror. This locks: every verifier the npm scripts run
-// is also a runner stage, and the 3 previously-missing stages are present.
+// Locks: every verifier the npm scripts run is also a runner stage, so a bare `.claude` copy can never
+// pass the runner yet ship a drifted mirror.
 test('PORT-005 runner stages cover the full npm verify set (completeness + parity)', async () => {
     const runnerSrc = await readRel(runnerRel);
     const stageIds = [...runnerSrc.matchAll(/\bid:\s*"([\w-]+)"/g)].map(m => m[1]);
-    const required = ['migrate', 'hooks', 'context', 'copilot', 'tests', 'copilot-tests',
-        'wf-cycle', 'sk-proto', 'residue', 'sdd', 'sync-divergence', 'copilot-divergence'];
+    const required = ['migrate', 'hooks', 'context', 'tests', 'scripts-tests',
+        'wf-cycle', 'sk-proto', 'residue', 'sdd', 'sync-divergence'];
     const missingStages = required.filter(id => !stageIds.includes(id));
     assert.deepEqual(missingStages, [], `runner is missing canonical stage id(s): ${missingStages.join(', ')}`);
 
@@ -160,7 +157,7 @@ test('PORT-005 runner stages cover the full npm verify set (completeness + parit
         if (!/(verify|test:tooling)/.test(key)) continue;
         if (/^(sync:all|verify:all)$/.test(key)) continue; // these delegate to the runner itself
         for (const m of String(val).matchAll(/([\w-]+\.(?:mjs|cjs))/g)) {
-            if (/^(verify-|sync-copilot)/.test(m[1])) verifierBasenames.add(m[1]);
+            if (/^verify-/.test(m[1])) verifierBasenames.add(m[1]);
         }
     }
     const missingFromRunner = [...verifierBasenames].filter(b => !runnerSrc.includes(b));

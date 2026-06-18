@@ -1387,25 +1387,12 @@
   path: strategy-builder/SKILL.md
   removal_after: null
   status: active
-- category: ai-ml
-  deprecated_by: null
-  deprecated_since: null
-  description: '[AI & Tools] USER-INVOKED. Use when you (the USER) need to reconcile
-    AI dev-tool SOURCE guidance (Claude↔Copilot skills/prompts/agents/instructions)
-    and/or regenerate BOTH generated mirror surfaces by delegating to the two mirror
-    skills (/sync-to-copilot FIRST then /sync-codex) with both divergence oracles.'
-  has_references: true
-  has_scripts: false
-  name: sync-ai-dev-tools
-  path: sync-ai-dev-tools/SKILL.md
-  removal_after: null
-  status: active
 - category: other
   deprecated_by: null
   deprecated_since: null
-  description: '[Codex] Use when you need to run the full cross-surface mirror sync
-    + verify pipeline (migrate → hooks → context → copilot → verify) standalone, no
-    npm/package JSON needed.'
+  description: '[Codex] Use when you need to run the full Codex mirror sync + verify
+    pipeline (migrate → hooks → context → verify) standalone, no npm/package JSON
+    needed.'
   has_references: false
   has_scripts: true
   name: sync-codex
@@ -1421,18 +1408,6 @@
   has_scripts: false
   name: sync-skills-shared-protocols
   path: sync-skills-shared-protocols/SKILL.md
-  removal_after: null
-  status: active
-- category: other
-  deprecated_by: null
-  deprecated_since: null
-  description: '[AI & Tools] Use when you need to sync Claude Code knowledge to GitHub
-    Copilot instructions. Auto-inits docs/copilot-registry.json when missing. Flag:
-    --fast (script-only workflow-catalog sync, no registry-curation pass).'
-  has_references: false
-  has_scripts: false
-  name: sync-to-copilot
-  path: sync-to-copilot/SKILL.md
   removal_after: null
   status: active
 - category: utilities

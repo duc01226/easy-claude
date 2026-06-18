@@ -7,8 +7,8 @@ import { fileURLToPath } from "node:url";
 // Regression lock for the cross-surface mirror-drift class fixed this session:
 //   1. A standalone `prettier --write` reformatted AGENTS.md and drifted its mirror block off
 //      .codex/CODEX_CONTEXT.md, FAILing verify-skill-protocol-compliance.
-//   2. There was no single entrypoint to sync+verify ALL three surfaces (codex + copilot), so a
-//      one-surface sync left the others silently stale.
+//   2. There was no single entrypoint to sync+verify the codex surfaces, so a one-surface sync
+//      left the others silently stale.
 // These tests fail loudly if either guard is removed — keeping the sync pipeline the sole writer
 // of generated-mirror bytes, and keeping one command that re-establishes full cross-surface parity.
 
@@ -21,7 +21,7 @@ const read = rel => fs.readFileSync(path.join(repoRoot, rel), "utf8");
 // sole byte-writer. These are the exact artifacts the mirror-equality verifiers byte-compare.
 test("TC-MWG-001 .prettierignore excludes every generated cross-surface mirror", () => {
   const ignore = read(".prettierignore");
-  const required = ["/AGENTS.md", "/.codex/", "/.agents/", "/.github/copilot-instructions.md", "/.github/instructions/"];
+  const required = ["/AGENTS.md", "/.codex/", "/.agents/"];
   const lines = new Set(ignore.split(/\r?\n/).map(l => l.trim()));
   const missing = required.filter(p => !lines.has(p));
   assert.equal(missing.length, 0, `.prettierignore must exclude generated mirrors (prettier-drift guard). Missing: ${missing.join(", ")}`);
@@ -42,7 +42,7 @@ test("TC-MWG-002 .prettierignore does NOT exclude CLAUDE.md (it is prettier-mana
 test("TC-MWG-003 sync:all + verify:all delegate to the standalone .claude runner (no embedded && chain)", () => {
   const pkg = JSON.parse(read("package.json"));
   const scripts = pkg.scripts || {};
-  for (const name of ["sync:all", "verify:all", "copilot:sync"]) {
+  for (const name of ["sync:all", "verify:all"]) {
     assert.ok(typeof scripts[name] === "string" && scripts[name].length > 0, `package.json must define the "${name}" script`);
   }
   const runnerRef = /node\s+\.claude\/skills\/sync-codex\/scripts\/run-codex-sync\.mjs/;

@@ -28,12 +28,12 @@ The framework registers hook events across `SessionStart`, `UserPromptSubmit`, `
 - Hook entry points should stay thin: parse input, call shared helpers, print the final message, and return the correct exit code.
 - Shared behavior belongs in `.claude/hooks/lib/`, not duplicated across hook files.
 - Project-specific paths and conventions come from `docs/project-config.json`, `.claude/.ck.json`, or project-reference docs.
-- Generated mirrors (`.agents/`, `.codex/`, `AGENTS.md`, `.github/instructions/`) are not hook sources. Update canonical `.claude` sources, then sync mirrors.
+- Generated mirrors (`.agents/`, `.codex/`, `AGENTS.md`) are not hook sources. Update canonical `.claude` sources, then sync mirrors.
 - Workflow advancement is model-driven — there is no step-tracking hook; correctness must not depend on any tracker.
 
 ## Context Injection
 
-Per-edit/per-prompt context-injection guidance lives statically in `CLAUDE.md`, `.claude/agents/*.md`, and skill `SKILL.md` files so a hookless harness (Codex / Copilot) reads identical instructions; there are no runtime context-injection hooks. Any hook that still emits context (e.g. `session-init.cjs` / `graph-session-init.cjs` status guidance) should inject only the guidance needed for the current event, prefer a read-on-demand pointer over whole files for large references, and use stable dedup markers from `.claude/hooks/lib/dedup-constants.cjs` when a hook can fire repeatedly in one session.
+Per-edit/per-prompt context-injection guidance lives statically in `CLAUDE.md`, `.claude/agents/*.md`, and skill `SKILL.md` files so a hookless harness (Codex) reads identical instructions; there are no runtime context-injection hooks. Any hook that still emits context (e.g. `session-init.cjs` / `graph-session-init.cjs` status guidance) should inject only the guidance needed for the current event, prefer a read-on-demand pointer over whole files for large references, and use stable dedup markers from `.claude/hooks/lib/dedup-constants.cjs` when a hook can fire repeatedly in one session.
 
 ## Safety And Privacy
 

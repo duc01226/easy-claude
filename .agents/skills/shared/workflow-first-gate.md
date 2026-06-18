@@ -1,14 +1,13 @@
 <!-- CANONICAL SOURCE of the Workflow-First Gate. Hook-independent primacy anchor stamped at the
-     top of every generated context file so Claude, Codex, and Copilot get the same routing rule
+     top of every generated context file so Claude and Codex get the same routing rule
      with ZERO hooks. Consumers (keep in lockstep — they read this file, with an inline fallback):
        - .claude/skills/claude-md-init/scripts/generate-claude-md.cjs  → CLAUDE.md (mirrored into AGENTS.md / .codex/CODEX_CONTEXT.md)
-       - .claude/scripts/sync-copilot-workflows.cjs                     → .github/copilot-instructions.md
      The block between the CK:WORKFLOW-GATE markers below is what gets stamped verbatim. -->
 
 <!-- CK:WORKFLOW-GATE -->
 
 > **[WORKFLOW-GATE] — routing is your FIRST action, before any tool call.**
-> This rule is hook-independent: it binds Claude, Codex, and Copilot equally. Do not wait for any injected reminder to apply it.
+> This rule is hook-independent: it binds Claude and Codex equally. Do not wait for any injected reminder to apply it.
 >
 > Classify complexity and risk first, then route it:
 >

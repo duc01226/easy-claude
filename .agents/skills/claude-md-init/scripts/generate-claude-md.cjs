@@ -17,14 +17,14 @@ const CLAUDE_MD_PATH = path.join(PROJECT_DIR, 'CLAUDE.md');
 const BACKUP_PATH = path.join(PROJECT_DIR, '.claude-md.backup');
 const TEMPLATE_PATH = path.join(__dirname, '..', 'references', 'claude-md-template.md');
 // Canonical hook-independent Workflow-First Gate (primacy anchor). Stamped at the top of every
-// generated/updated CLAUDE.md so the routing rule survives in Codex/Copilot mirrors with no hooks.
+// generated/updated CLAUDE.md so the routing rule survives in Codex mirrors with no hooks.
 const WORKFLOW_GATE_PATH = path.join(__dirname, '..', '..', 'shared', 'workflow-first-gate.md');
 const GATE_OPEN = '<!-- CK:WORKFLOW-GATE -->';
 const GATE_CLOSE = '<!-- /CK:WORKFLOW-GATE -->';
 const GATE_BLOCK_RE = /<!-- CK:WORKFLOW-GATE -->[\s\S]*?<!-- \/CK:WORKFLOW-GATE -->/g;
 // Concise workflows-index + composable step-skills reference, derived from workflows.json.
 // Stamped right after the gate so CLAUDE.md carries the same workflow/skill catalog the
-// hookless Codex/Copilot mirrors get. The block is idempotently strip-and-restamped.
+// hookless Codex mirrors get. The block is idempotently strip-and-restamped.
 const SKILLS_BLOCK_RE = /<!-- CK:WORKFLOW-SKILLS -->[\s\S]*?<!-- \/CK:WORKFLOW-SKILLS -->/g;
 // Full always-on protocol blocks (critical-thinking + ai-mistake-prevention) baked into CLAUDE.md
 // at BOTH top (after the catalog — strong primacy) and bottom (recency anchor) so a hookless
@@ -45,7 +45,7 @@ const CK_AIMP_BLOCK_RE = /<!-- CK:AI-MISTAKE-PREVENTION -->[\s\S]*?<!-- \/CK:AI-
 const WORKFLOW_GATE_FALLBACK = `${GATE_OPEN}
 
 > **[WORKFLOW-GATE] — routing is your FIRST action, before any tool call.**
-> This rule is hook-independent: it binds Claude, Codex, and Copilot equally.
+> This rule is hook-independent: it binds Claude and Codex equally.
 >
 > Classify complexity and risk first, then route it:
 >
@@ -93,10 +93,10 @@ function loadWorkflowGate() {
  * the ability to pick the right workflow from this file ALONE never depends on any hook. This
  * keeps CLAUDE.md at information parity with the hookless mirrors, which bake the same
  * selection catalog independently from workflows.json (AGENTS.md via sync-context-workflows.mjs,
- * which strips this CK block from the CLAUDE mirror and regenerates its own Codex-native copy;
- * Copilot via sync-copilot-workflows.cjs). Per-workflow EXECUTION protocol is intentionally NOT
+ * which strips this CK block from the CLAUDE mirror and regenerates its own Codex-native copy).
+ * Per-workflow EXECUTION protocol is intentionally NOT
  * baked here — it is loaded on demand by the start-workflow skill (available to every harness),
- * keeping the always-on context lean. Single source of truth for all three surfaces:
+ * keeping the always-on context lean. Single source of truth for both surfaces:
  * .claude/scripts/lib/workflow-skills-catalog.cjs over .claude/workflows.json.
  */
 function loadWorkflowSkillsCatalog() {
@@ -116,7 +116,7 @@ function loadWorkflowSkillsCatalog() {
  * unavailable so CLAUDE.md generation never fails on a partial install (gate + catalog still stamp).
  *
  * Approach C: the generator reads canonical `:full` markdown — it does NOT import hooks/lib.
- * Codex/Copilot mirrors use `.claude/scripts/lib/hookless-prompt-protocol.cjs`, which composes
+ * Codex mirrors use `.claude/scripts/lib/hookless-prompt-protocol.cjs`, which composes
  * this same canonical text without depending on hook prompt-injection modules. The shared parser
  * normalizes CRLF, so the bake is correct regardless of the working-tree checkout's line endings.
  */
@@ -389,7 +389,10 @@ function loadConfig() {
 }
 
 function hasMarkers(content) {
-    return SECTION_OPEN.test(content.split('\n').find(l => SECTION_OPEN.test(l.trim())) || '');
+    // Match on the TRIMMED line — CLAUDE.md is often CRLF, so a raw line ends in "\r"
+    // and SECTION_OPEN's `$` anchor would fail (the marker "looks" absent), misrouting
+    // detectMode() to smart-merge and silently skipping the back-fill guard on Windows.
+    return content.split('\n').some(l => SECTION_OPEN.test(l.trim()));
 }
 
 function detectMode() {

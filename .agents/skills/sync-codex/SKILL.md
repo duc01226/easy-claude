@@ -1,6 +1,6 @@
 ---
 name: sync-codex
-description: '[Codex] Use when you need to run the full cross-surface mirror sync + verify pipeline (migrate → hooks → context → copilot → verify) standalone, no npm/package JSON needed.'
+description: '[Codex] Use when you need to run the full Codex mirror sync + verify pipeline (migrate → hooks → context → verify) standalone, no npm/package JSON needed.'
 disable-model-invocation: false
 ---
 
@@ -42,7 +42,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Run the full cross-surface pipeline standalone — equivalent to `npm run sync:all && npm run verify:all` (codex + copilot, sync + verify) without `package.json` or `npm`. This runner is the **single source of truth** for the pipeline; the `package.json` `sync:all`/`verify:all` scripts delegate to it, so a project that only copied `.claude` (no root `package.json`) runs the identical pipeline.
+**Goal:** Run the full Codex mirror pipeline standalone — equivalent to `npm run sync:all && npm run verify:all` (sync + verify) without `package.json` or `npm`. This runner is the **single source of truth** for the pipeline; the `package.json` `sync:all`/`verify:all` scripts delegate to it, so a project that only copied `.claude` (no root `package.json`) runs the identical pipeline.
 
 > **Renamed:** formerly `/codex-sync` — that name no longer resolves as a slash command; use `$sync-codex`.
 
@@ -56,10 +56,10 @@ Also bootstraps team-wide Codex completion notifications by copying the portable
 
 **Key Rules:**
 
-- MUST run all 12 stages in order — orchestrator fails fast on first non-zero exit
+- MUST run all 10 stages in order — orchestrator fails fast on first non-zero exit
 - NEVER edit `.agents/skills/sync-codex/**` (auto-mirror) — edit `.claude/skills/sync-codex/**` source instead
 - `.claude` is the source for skills/workflows/hooks; generated acceptance targets are `.agents/skills/**`, `.codex/CODEX_CONTEXT.md`, and `AGENTS.md`
-- Stages 1-4 mutate `.agents/skills/`, `.codex/`, `AGENTS.md`, `.github/` (Copilot mirror); stages 5-12 are read-only verifiers (codex + copilot tooling tests, the 4 codex verifiers, and BOTH cross-surface divergence oracles)
+- Stages 1-3 mutate `.agents/skills/`, `.codex/`, `AGENTS.md`; stages 4-10 are read-only verifiers (codex tooling tests, repo-script unit tests, the 4 codex verifiers, and the cross-surface divergence oracle)
 - Stage 1 upserts `[tui].status_line` to show model+reasoning, current directory, project root, context used, five-hour limit, and weekly limit by default
 - Stage 3 mirrors full `CLAUDE.md` into `AGENTS.md`, then appends the generated Codex hook/context mirror and shared AI-SDD markers so Codex has both source instructions and hookless parity context
 - Stage 1 must not inline `docs/project-reference/lessons.md` content into `.agents/skills/**`; generated skill mirrors reference the project-reference loading gate instead
@@ -86,22 +86,20 @@ reads it as the mirror source.
 
 ## Stages
 
-12 stages, sequential — the full `npm run sync:all && npm run verify:all` pipeline (the npm scripts delegate here). Stages 1-4 mutate; 5-12 verify (read-only):
+10 stages, sequential — the full `npm run sync:all && npm run verify:all` pipeline (the npm scripts delegate here). Stages 1-3 mutate; 4-10 verify (read-only):
 
-| #   | Stage              | Script                                                       | Effect                                                                                                                                                                                                 |
-| --- | ------------------ | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1   | migrate            | `.claude/scripts/codex/migrate-claude-to-codex.mjs`          | Migrate Claude agents → `.codex/agents/`; mirror skills → `.agents/skills/`; setup Codex notifications                                                                                                 |
-| 2   | hooks              | `.claude/scripts/codex/sync-hooks.mjs`                       | Generate `.codex/hooks.json` + sync report                                                                                                                                                             |
-| 3   | context            | `.claude/scripts/codex/sync-context-workflows.mjs`           | Regenerate `.codex/CODEX_CONTEXT.md` + `AGENTS.md` with workflow context and shared AI-SDD markers                                                                                                     |
-| 4   | copilot            | `.claude/scripts/sync-copilot-workflows.cjs`                 | Regenerate `.github/copilot-instructions.md` + `.github/instructions/*` from `workflows.json` (MUST precede the test stages — TC-WFPROTO-006 byte-matches the committed mirror against this generator) |
-| 5   | tests              | `node --test .claude/scripts/codex/tests/*.test.mjs`         | Run codex tooling unit tests                                                                                                                                                                           |
-| 6   | copilot-tests      | `node --test .claude/scripts/tests/*.test.mjs`               | Run copilot tooling unit tests (the `copilot:test:tooling` npm equivalent)                                                                                                                             |
-| 7   | wf-cycle           | `.claude/scripts/codex/verify-workflow-cycle-compliance.mjs` | Verify workflow sequence cycle compliance                                                                                                                                                              |
-| 8   | sk-proto           | `.claude/scripts/codex/verify-skill-protocol-compliance.mjs` | Verify skill strict-execution-contract                                                                                                                                                                 |
-| 9   | residue            | `.claude/scripts/codex/verify-no-project-residue.mjs`        | Verify no project residue in generated and generic source artifacts                                                                                                                                    |
-| 10  | sdd                | `.claude/scripts/codex/verify-sdd-semantic-compliance.mjs`   | Verify AI-SDD semantic contract coverage                                                                                                                                                               |
-| 11  | sync-divergence    | `.claude/scripts/codex/verify-sync-divergence.mjs`           | Byte-equality oracle: `.agents/skills` mirror === `.claude/skills` (codex mirror)                                                                                                                      |
-| 12  | copilot-divergence | `.claude/scripts/verify-copilot-divergence.cjs`              | Byte-equality oracle: `.github/**` Copilot mirror === generator output (copilot mirror)                                                                                                                |
+| #   | Stage           | Script                                                       | Effect                                                                                              |
+| --- | --------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| 1   | migrate         | `.claude/scripts/codex/migrate-claude-to-codex.mjs`          | Migrate Claude agents → `.codex/agents/`; mirror skills → `.agents/skills/`; setup Codex notifications |
+| 2   | hooks           | `.claude/scripts/codex/sync-hooks.mjs`                       | Generate `.codex/hooks.json` + sync report                                                           |
+| 3   | context         | `.claude/scripts/codex/sync-context-workflows.mjs`           | Regenerate `.codex/CODEX_CONTEXT.md` + `AGENTS.md` with workflow context and shared AI-SDD markers   |
+| 4   | tests           | `node --test .claude/scripts/codex/tests/*.test.mjs`         | Run codex tooling unit tests                                                                         |
+| 5   | scripts-tests   | `node --test .claude/scripts/tests/*.test.mjs`              | Run repo-script unit tests (statusline widgets, etc.)                                                |
+| 6   | wf-cycle        | `.claude/scripts/codex/verify-workflow-cycle-compliance.mjs` | Verify workflow sequence cycle compliance                                                            |
+| 7   | sk-proto        | `.claude/scripts/codex/verify-skill-protocol-compliance.mjs` | Verify skill strict-execution-contract                                                               |
+| 8   | residue         | `.claude/scripts/codex/verify-no-project-residue.mjs`        | Verify no project residue in generated and generic source artifacts                                  |
+| 9   | sdd             | `.claude/scripts/codex/verify-sdd-semantic-compliance.mjs`   | Verify AI-SDD semantic contract coverage                                                             |
+| 10  | sync-divergence | `.claude/scripts/codex/verify-sync-divergence.mjs`           | Byte-equality oracle: `.agents/skills` mirror === `.claude/skills` (codex mirror)                    |
 
 ## Usage
 
@@ -116,7 +114,7 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --verbose
 node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --copy-skills
 
 # Read-only verifiers (no mutation) — the full `npm run verify:all`:
-node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --only=tests,copilot-tests,wf-cycle,sk-proto,residue,sdd,sync-divergence,copilot-divergence
+node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --only=tests,scripts-tests,wf-cycle,sk-proto,residue,sdd,sync-divergence
 
 # Skip stages while debugging:
 node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --skip=migrate,hooks
@@ -154,14 +152,14 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --skip=migrate,hooks
 **MUST ATTENTION** keep learned-lessons content out of `.agents/skills/**`; skills may point to `docs/project-reference/lessons.md` but must not embed its entries
 **MUST ATTENTION** orchestrator fails fast — re-run single failing stage with `--only=<id> --verbose` to debug
 **MUST ATTENTION** working directory auto-resolves to repo root from script path — do not pass `--cwd`
-**MUST ATTENTION** stages 1-4 mutate; stages 5-12 verify only — use `--only=` for non-destructive validation
+**MUST ATTENTION** stages 1-3 mutate; stages 4-10 verify only — use `--only=` for non-destructive validation
 
 **Anti-Rationalization:**
 
 | Evasion                                 | Rebuttal                                                                 |
 | --------------------------------------- | ------------------------------------------------------------------------ |
 | "Just edit the .agents mirror directly" | Next sync overwrites it. Always edit `.claude/skills/sync-codex/` source |
-| "Skip a stage to save time"             | Verifiers (4-8) catch drift; skipping = silent regression risk           |
+| "Skip a stage to save time"             | Verifiers (4-10) catch drift; skipping = silent regression risk          |
 | "Sync looks idempotent, skip verify"    | Timestamp diffs are normal; structural diffs = bug. Always run verifiers |
 
 > **[FAILS FAST]** First non-zero stage exit aborts chain. Re-run failing stage manually to debug.

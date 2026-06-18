@@ -468,7 +468,7 @@ If a test fails because the system is unavailable → report as "system not read
 
 **IMPORTANT MUST ATTENTION** read `docs/project-config.json` → `integrationTestVerify` FIRST — project-specific guidance overrides defaults; missing section → Fallback Mode — why: hardcoded assumptions about the runner break on any non-default stack.
 **IMPORTANT MUST ATTENTION** use `quickRunCommand` from config — NEVER hardcode `dotnet test` or any language-specific command — why: this skill is language-agnostic and one repo's runner is another's wrong tool.
-**IMPORTANT MUST ATTENTION** read project-specific integration-test reference docs/scripts named by `referenceDocs` before any test command — Codex/Copilot have no hook injection, so they must open these files directly.
+**IMPORTANT MUST ATTENTION** read project-specific integration-test reference docs/scripts named by `referenceDocs` before any test command — Codex has no hook injection, so it must open these files directly.
 **IMPORTANT MUST ATTENTION** gate on a healthy system before running — run `systemCheckCommand`, and STOP (point user at `startupScript`) when infrastructure/services aren't ready — why: an unreliable system produces unreliable green/red results that prove nothing.
 **IMPORTANT MUST ATTENTION** pass requires 3 consecutive green runs of each relevant suite WITHOUT DB reset; any single failure restarts the sequence from run 1 — why: a one-off green run hides order-dependent and state-leak flakiness.
 **IMPORTANT MUST ATTENTION** show actual runner output (Passed/Failed/Skipped counts + failing names) — "all passed" without evidence is theater, not verification — confidence >80% to claim PASS, and that confidence rests on the captured output, never assumption.

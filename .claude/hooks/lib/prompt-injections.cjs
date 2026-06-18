@@ -3,7 +3,7 @@
 /**
  * Legacy compatibility wrapper for old prompt-injection helpers.
  *
- * Active context carriers are static: CLAUDE.md, AGENTS.md, Codex, Copilot, skills, and agents.
+ * Active context carriers are static: CLAUDE.md, AGENTS.md, Codex, skills, and agents.
  * Protocol text is owned by .claude/skills/shared/sync-inline-versions.md and composed by
  * .claude/scripts/lib/hookless-prompt-protocol.cjs. This file intentionally keeps no protocol
  * body copies; tests and any legacy caller read through the shared hookless source.

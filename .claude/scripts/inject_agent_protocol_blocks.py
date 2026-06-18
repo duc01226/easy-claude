@@ -24,7 +24,7 @@ canonical by construction. Run ``sync-update-blocks.py`` afterwards to normalize
 main-block bodies (guarantees ``--dry-run`` clean).
 
 Targets ONLY ``.claude/agents/*.md``. Does NOT touch the mirrors (``.agents/``,
-``.codex/``, ``.github/copilot-*``, ``AGENTS.md``) -- those are deferred to the
+``.codex/``, ``AGENTS.md``) -- those are deferred to the
 phase-09 handoff (intended divergence).
 
 Usage:

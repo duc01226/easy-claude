@@ -137,7 +137,7 @@ Hooks communicate with Claude Code via event-specific stdout contracts plus the 
 
 `runBlockingHook` implements the blocking channel for you: return `{ allowed: false, message }` and it writes `message` to stderr and exits 2 (`hook-runner.cjs:161-168`).
 
-**SessionStart contract:** setup hooks may create files, refresh state, or run checks, but must emit no stdout. Claude/Codex/Copilot startup context is carried by static files, not runtime hook output.
+**SessionStart contract:** setup hooks may create files, refresh state, or run checks, but must emit no stdout. Claude/Codex startup context is carried by static files, not runtime hook output.
 
 ### Exit Codes
 

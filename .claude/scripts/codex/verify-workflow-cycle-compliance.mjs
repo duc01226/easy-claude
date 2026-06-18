@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 // Prose-only semantic anchor for the advancement+barrier rule, shared (case-insensitively) by
-// every wording across static carriers (Codex context note, Copilot common-protocol clause):
+// every wording across static carriers (Codex context note):
 // "advance only after ALL/EVERY member(s) return". Deliberately
 // NOT a substring of the rendered barrier token "[parallel ⇉ all-return barrier: …]" — so this
 // clause-presence check (W5(c)) proves the rule PROSE reached the carrier independently of the
@@ -18,7 +18,6 @@ const ADVANCEMENT_CLAUSE_LABEL = 'advance only after ALL/EVERY member(s) return'
 // that tool's mirror is not enabled in this project (skip, do not fail) — keeps the verifier
 // portable across single-tool checkouts of the framework.
 const CODEX_CARRIER = "AGENTS.md";
-const COPILOT_CARRIER = path.join(".github", "instructions", "common-protocol.instructions.md");
 
 const TARGET_WORKFLOW_IDS = [
   "workflow-big-feature",
@@ -453,9 +452,9 @@ function getWorkflowSkillName(workflowId) {
   return WORKFLOW_SKILL_NAME_OVERRIDES.get(workflowId) ?? workflowId;
 }
 
-// Inline twin of renderBarrierToken in sync-context-workflows.mjs / sync-copilot-workflows.cjs.
-// MUST stay byte-identical to those renderers — this is the oracle the cross-mirror parity asserts
-// against, so any future format change to the renderers without updating this fails the verifier.
+// Inline twin of renderBarrierToken in sync-context-workflows.mjs.
+// MUST stay byte-identical to that renderer — this is the oracle the cross-mirror parity asserts
+// against, so any future format change to the renderer without updating this fails the verifier.
 function renderExpectedBarrierToken(group) {
   const members = Array.isArray(group?.members) ? group.members : [];
   const conditional = new Set(Array.isArray(group?.conditionalMembers) ? group.conditionalMembers : []);
@@ -481,7 +480,7 @@ function checkParallelGroupsStructure(workflowId, workflow, rawSequence, failure
   const seenGroupIds = new Set();
   for (const group of groups) {
     const groupId = group?.id ?? "(unnamed)";
-    // id is structurally load-bearing: the Codex/Copilot mirror renderers dedup groups by id, so a
+    // id is structurally load-bearing: the Codex mirror renderer dedups groups by id, so a
     // missing or duplicate id silently drops a group's barrier token from the rendered mirror. Require
     // a non-empty, unique string id so the validator rejects what the renderer would mis-emit.
     if (typeof group?.id !== "string" || group.id.trim() === "") {
@@ -517,9 +516,9 @@ function checkParallelGroupsStructure(workflowId, workflow, rawSequence, failure
   }
 }
 
-// W5(b)+(c) — cross-mirror proof. (b) the expected barrier token is byte-identical across the
-// rendered Codex and Copilot mirrors; (c) the advancement clause reached every enabled static
-// carrier. Reads each carrier once. Mirror files are optional (portability).
+// W5(b)+(c) — cross-mirror proof. (b) the expected barrier token is present in the rendered Codex
+// mirror; (c) the advancement clause reached the enabled static carrier. Reads the carrier once.
+// Mirror file is optional (portability).
 async function checkParallelGroupsMirrorParity(workflows, rootDir, failures) {
   const grouped = Object.entries(workflows).filter(
     ([, wf]) => Array.isArray(wf?.parallelGroups) && wf.parallelGroups.length > 0
@@ -527,13 +526,10 @@ async function checkParallelGroupsMirrorParity(workflows, rootDir, failures) {
   if (grouped.length === 0) return;
 
   const codexPath = path.join(rootDir, CODEX_CARRIER);
-  const copilotPath = path.join(rootDir, COPILOT_CARRIER);
   const codexText = (await exists(codexPath)) ? await fs.readFile(codexPath, "utf8") : null;
-  const copilotText = (await exists(copilotPath)) ? await fs.readFile(copilotPath, "utf8") : null;
 
   const clauseCarriers = [
     { label: `Codex context (${CODEX_CARRIER})`, text: codexText },
-    { label: `Copilot common-protocol (${normalizePath(copilotPath, rootDir)})`, text: copilotText },
   ];
   for (const carrier of clauseCarriers) {
     if (carrier.text === null) continue;
@@ -544,7 +540,6 @@ async function checkParallelGroupsMirrorParity(workflows, rootDir, failures) {
 
   const tokenMirrors = [
     { label: `Codex (${CODEX_CARRIER})`, text: codexText },
-    { label: `Copilot (${normalizePath(copilotPath, rootDir)})`, text: copilotText },
   ];
   for (const [workflowId, workflow] of grouped) {
     for (const group of workflow.parallelGroups) {
@@ -553,7 +548,7 @@ async function checkParallelGroupsMirrorParity(workflows, rootDir, failures) {
         if (mirror.text === null) continue;
         if (!mirror.text.includes(expected)) {
           failures.push(
-            `parallelGroups parity (${workflowId}/${group?.id ?? "(unnamed)"}): expected barrier token absent from ${mirror.label} — regenerate mirrors (npm run codex:sync + node .claude/scripts/sync-copilot-workflows.cjs, or /sync-all-mirrors). Expected: ${expected}`
+            `parallelGroups parity (${workflowId}/${group?.id ?? "(unnamed)"}): expected barrier token absent from ${mirror.label} — regenerate mirrors (npm run codex:sync). Expected: ${expected}`
           );
         }
       }

@@ -2,20 +2,19 @@
 
 /**
  * Shared builder for the concise Workflow & Skills catalog baked into every AI
- * session-start context (CLAUDE.md, Codex CODEX_CONTEXT.md/AGENTS.md, Copilot
- * common-protocol). Hookless tools (Codex, Copilot) learn the available workflows
- * and composable step-skills ONLY from this statically-baked block — without it
- * they cannot compose a custom workflow because they don't know what skills exist.
+ * session-start context (CLAUDE.md, Codex CODEX_CONTEXT.md/AGENTS.md). Hookless
+ * tools (Codex) learn the available workflows and composable step-skills ONLY from
+ * this statically-baked block — without it they cannot compose a custom workflow
+ * because they don't know what skills exist.
  *
  * Single source of truth: .claude/workflows.json (+ each step-skill's SKILL.md
  * `description:` frontmatter). Emits a markdown BODY (no wrapping) — callers wrap:
  *   - Codex generator embeds it inside its WORKFLOWS:START/END block (applies the
  *     $-dialect rewrite itself).
- *   - Claude/Copilot generators keep the native `/` token style.
+ *   - Claude generator keeps the native `/` token style.
  *
  * Consumers (keep in lockstep):
  *   - .claude/scripts/codex/sync-context-workflows.mjs       (via createRequire)
- *   - .claude/scripts/sync-copilot-workflows.cjs
  *   - .claude/skills/claude-md-init/scripts/generate-claude-md.cjs
  */
 

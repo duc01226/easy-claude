@@ -2,9 +2,9 @@ metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
   last_updated: '2026-06-19'
-  total_skills: 156
+  total_skills: 154
   total_by_status:
-    active: 155
+    active: 153
     deprecated: 1
     experimental: 0
 categories:
@@ -1283,9 +1283,9 @@ skills:
       removal_after: null
     - name: sync-codex
       path: sync-codex/SKILL.md
-      description: '[Codex] Use when you need to run the full cross-surface mirror
-        sync + verify pipeline (migrate → hooks → context → copilot → verify) standalone,
-        no npm/package JSON needed.'
+      description: '[Codex] Use when you need to run the full Codex mirror sync +
+        verify pipeline (migrate → hooks → context → verify) standalone, no npm/package
+        JSON needed.'
       category: other
       has_scripts: true
       has_references: false
@@ -1297,18 +1297,6 @@ skills:
       path: sync-skills-shared-protocols/SKILL.md
       description: '[Skill Management] Use when shared protocol checklists change
         and need propagation across skills.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: sync-to-copilot
-      path: sync-to-copilot/SKILL.md
-      description: '[AI & Tools] Use when you need to sync Claude Code knowledge to
-        GitHub Copilot instructions. Auto-inits docs/copilot-registry.json when missing.
-        Flag: --fast (script-only workflow-catalog sync, no registry-curation pass).'
       category: other
       has_scripts: false
       has_references: false
@@ -1803,21 +1791,6 @@ skills:
         Pages), Docker, or GCP (Compute Engine, GKE, Cloud Run).'
       category: infrastructure
       has_scripts: true
-      has_references: true
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    ai-ml:
-    - name: sync-ai-dev-tools
-      path: sync-ai-dev-tools/SKILL.md
-      description: '[AI & Tools] USER-INVOKED. Use when you (the USER) need to reconcile
-        AI dev-tool SOURCE guidance (Claude↔Copilot skills/prompts/agents/instructions)
-        and/or regenerate BOTH generated mirror surfaces by delegating to the two
-        mirror skills (/sync-to-copilot FIRST then /sync-codex) with both divergence
-        oracles.'
-      category: ai-ml
-      has_scripts: false
       has_references: true
       status: active
       deprecated_by: null

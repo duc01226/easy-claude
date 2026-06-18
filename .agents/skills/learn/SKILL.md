@@ -178,7 +178,7 @@ Before saving any lesson, critically evaluate whether a doc update alone is suff
 
 ### Static Protocol Lesson Promotion (MANDATORY evaluation)
 
-After generalizing a lesson, evaluate whether it qualifies as a **Static Protocol Lesson** in `.claude/skills/shared/sync-inline-versions.md`. Static protocol lessons are baked into `CLAUDE.md`, mirrored into `AGENTS.md`, and synced to Codex/Copilot carriers through project-init/sync tooling.
+After generalizing a lesson, evaluate whether it qualifies as a **Static Protocol Lesson** in `.claude/skills/shared/sync-inline-versions.md`. Static protocol lessons are baked into `CLAUDE.md`, mirrored into `AGENTS.md`, and synced to Codex carriers through project-init/sync tooling.
 
 **Qualification criteria (ALL must be true):**
 
@@ -190,7 +190,7 @@ After generalizing a lesson, evaluate whether it qualifies as a **Static Protoco
 > **Static Protocol Lessons** — Universal AI mistake prevention rules baked into static carriers. Stored in `.claude/skills/shared/sync-inline-versions.md` under the `ai-mistake-prevention` and `ai-mistake-prevention:full` SYNC blocks. Each must be universal, high-recurrence, and silent-failure.
 > READ `.claude/skills/shared/sync-inline-versions.md` to check for duplicates before adding.
 
-**If qualified:** Recommend "Doc + Static Protocol Lesson" option. On user approval, append the lesson as a new bullet to the relevant shared SYNC blocks, then run the project-init / sync pipeline so `CLAUDE.md`, `AGENTS.md`, Codex, and Copilot carriers regenerate from the shared source.
+**If qualified:** Recommend "Doc + Static Protocol Lesson" option. On user approval, append the lesson as a new bullet to the relevant shared SYNC blocks, then run the project-init / sync pipeline so `CLAUDE.md`, `AGENTS.md`, and Codex carriers regenerate from the shared source.
 
 **If NOT qualified:** Explain why (e.g., "Too project-specific", "Already covered by existing Static Protocol Lesson about X", "Low recurrence — only happens in rare edge cases"). Proceed with doc-only or prompt-rule option.
 
@@ -334,7 +334,7 @@ Lessons and pattern references are read statically, per the project-reference-do
 - `docs/project-reference/lessons.md` — read on **every** task (the gate always includes it).
 - Pattern/rule references (`backend-patterns-reference.md`, `code-review-rules.md`, etc.) — read by their matching trigger (see the Reference Doc Catalog table above).
 
-Because the routing is static prose, hookless harnesses (Codex / Copilot) load the same lessons and patterns as Claude Code.
+Because the routing is static prose, hookless harnesses (Codex) load the same lessons and patterns as Claude Code.
 
 ## Prompt Enhancement (MANDATORY final step)
 

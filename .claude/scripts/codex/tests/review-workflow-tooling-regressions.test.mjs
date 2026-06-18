@@ -5,11 +5,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { createRequire } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const execFileAsync = promisify(execFile);
-const require = createRequire(import.meta.url);
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(thisDir, '..', '..', '..', '..');
 const normalizeEol = text => text.replace(/\r\n/g, '\n');
@@ -81,51 +79,6 @@ test('TC-WFPROTO-005: redundant why-review sweep preserves review-changes valida
     }
 });
 
-test('TC-WFPROTO-006: common protocol instructions are reproducible from workflow generator', async () => {
-    const generator = require(path.join(repoRoot, '.claude', 'scripts', 'sync-copilot-workflows.cjs'));
-    const workflowConfig = JSON.parse(
-        await fs.readFile(path.join(repoRoot, '.claude', 'workflows.json'), 'utf8')
-    );
-    const generated = normalizeEol(generator.generateCommonProtocolFile(workflowConfig));
-    const tracked = normalizeEol(
-        await fs.readFile(path.join(repoRoot, '.github', 'instructions', 'common-protocol.instructions.md'), 'utf8')
-    );
-
-    assert.equal(tracked, generated, 'tracked common protocol file must match generator output');
-
-    const workflow = workflowConfig.workflows['workflow-review-changes'];
-    const arrow = '\u2192';
-    // Reproduce the generator's barrier-aware rendering (parallelGroups collapse to one token)
-    // via its own exported renderer \u2014 single source of truth, no re-flattening drift.
-    const parallelGroups = Array.isArray(workflow.parallelGroups) ? workflow.parallelGroups : [];
-    const expectedSequence = generator.renderSequenceWithBarriers(
-        workflow.sequence,
-        parallelGroups,
-        ` ${arrow} `,
-        step => step
-    );
-    const sectionStart = tracked.indexOf('**workflow-review-changes**');
-    assert.notEqual(sectionStart, -1, 'generated workflow catalog must include workflow-review-changes');
-    const nextSectionStart = tracked.indexOf('\n**', sectionStart + 1);
-    const reviewChangesSection = tracked.slice(
-        sectionStart,
-        nextSectionStart === -1 ? undefined : nextSectionStart
-    );
-    const stepsLine = reviewChangesSection
-        .split('\n')
-        .find(line => line.trim().startsWith('Steps:'));
-
-    assert.match(reviewChangesSection, new RegExp(`Steps: ${expectedSequence.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
-    assert.ok(stepsLine, 'generated review-changes section must include a Steps line');
-    assert.ok(!workflow.sequence.includes('plan-validate'), 'review-changes workflow must not include plan-validate');
-    assert.doesNotMatch(stepsLine, /plan-validate/);
-    assert.doesNotMatch(stepsLine, /review-ui/);
-    assert.ok(
-        !stepsLine.includes(`code-simplifier ${arrow} code-review ${arrow} integration-test-verify`),
-        'code-review must not be a separate workflow-level step after code-simplifier'
-    );
-});
-
 test('TC-WFPROTO-007: prompt surfaces do not retain stale review workflow guidance', async () => {
     const promptSurfacePaths = [
         '.claude/workflows.json',
@@ -134,7 +87,6 @@ test('TC-WFPROTO-007: prompt surfaces do not retain stale review workflow guidan
         '.claude/skills/review-ui/SKILL.md',
         '.agents/skills/review-architecture/SKILL.md',
         '.agents/skills/review-ui/SKILL.md',
-        '.github/instructions/common-protocol.instructions.md',
         '.codex/CODEX_CONTEXT.md',
         'AGENTS.md'
     ];

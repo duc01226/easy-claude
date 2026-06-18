@@ -279,7 +279,7 @@ SKILL_BLOCK_ORDER = ["critical-thinking-mindset", "ai-mistake-prevention"]
 
 # Core: every agent. (critical-thinking + ai-mistake already present in agents.)
 # agent-bootstrap (Phase 03): self-contained subagent startup contract for hookless
-# harnesses (Codex/Copilot have no SubagentStart hook). Regenerated from canonical
+# harnesses (Codex has no SubagentStart hook). Regenerated from canonical
 # via sync-update-blocks.py agent-bootstrap.
 CORE_BLOCK_ORDER = [
     "critical-thinking-mindset",

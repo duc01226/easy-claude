@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-// Standalone orchestrator for the FULL cross-surface pipeline — equivalent to
-// `npm run sync:all && npm run verify:all` (codex + copilot, sync + verify).
+// Standalone orchestrator for the codex cross-surface pipeline — equivalent to
+// `npm run sync:all && npm run verify:all`.
 // This file is the single source of truth for the pipeline; the package.json
 // `sync:all`/`verify:all` scripts delegate here, so copying `.claude` into a
 // project WITHOUT a root package.json still runs the complete pipeline:
@@ -18,7 +18,6 @@ import url from "node:url";
 const here = path.dirname(url.fileURLToPath(import.meta.url));
 const rootDir = path.resolve(here, "..", "..", "..", "..");
 const sourceScriptsDir = path.join(rootDir, ".claude", "scripts", "codex");
-const claudeScriptsDir = path.join(rootDir, ".claude", "scripts");
 
 const args = process.argv.slice(2);
 const verbose = args.includes("--verbose") || args.includes("-v");
@@ -43,39 +42,29 @@ async function listTestFiles(dir) {
     }
 }
 
-// SYNC stages (1-4, mutate) then VERIFY stages (5-12, read-only). The verify set is the union of
-// `codex:verify:all` (codex tests, wf-cycle, sk-proto, residue, sdd, sync-divergence) AND the copilot
-// verify gate (copilot tooling tests + copilot-divergence) — i.e. the standalone runner now equals the
-// full `npm run verify:all`. portability-no-package-json.test.mjs (PORT-005) locks this parity so the
-// runner can never again verify LESS than the npm path.
+// SYNC stages (1-3, mutate) then VERIFY stages (4-10, read-only). The verify set is
+// `codex:verify:all` (codex tests, scripts tests, wf-cycle, sk-proto, residue, sdd, sync-divergence)
+// — i.e. the standalone runner equals the full `npm run verify:all`. portability-no-package-json.test.mjs
+// (PORT-005) locks this parity so the runner can never again verify LESS than the npm path.
 const codexTestsDir = path.join(sourceScriptsDir, "tests");
-const copilotTestsDir = path.join(claudeScriptsDir, "tests");
+const claudeTestsDir = path.join(rootDir, ".claude", "scripts", "tests");
 const stages = [
     { id: "migrate",  label: "migrate",          cmd: "node", mutate: true, args: [path.join(sourceScriptsDir, "migrate-claude-to-codex.mjs"), ...migrateFlags] },
     { id: "hooks",    label: "sync-hooks",       cmd: "node", mutate: true, args: [path.join(sourceScriptsDir, "sync-hooks.mjs")] },
     { id: "context",  label: "sync-context",     cmd: "node", mutate: true, args: [path.join(sourceScriptsDir, "sync-context-workflows.mjs")] },
-    // Regenerate the Copilot mirror (.github/copilot-instructions.md + .github/instructions/*) from
-    // workflows.json. MUST run before the test stages — the codex test stage includes TC-WFPROTO-006,
-    // which asserts the tracked Copilot mirror byte-matches this generator's output. Without this stage
-    // a workflows.json change leaves the mirror stale and the test fails on its own un-regenerated input.
-    { id: "copilot",  label: "sync-copilot",     cmd: "node", mutate: true, args: [path.join(claudeScriptsDir, "sync-copilot-workflows.cjs")] },
-    { id: "tests",         label: "test-codex",   cmd: "node", argsAsync: async () => ["--test", ...await listTestFiles(codexTestsDir)] },
-    // Copilot tooling unit tests (.claude/scripts/tests/*.test.mjs) — the `copilot:test:tooling` npm
-    // equivalent. Listed via readdir so the stage works without shell glob expansion (PowerShell does
-    // not expand globs the way POSIX shells do; the npm script relied on that, the runner does not).
-    { id: "copilot-tests", label: "test-copilot", cmd: "node", argsAsync: async () => ["--test", ...await listTestFiles(copilotTestsDir)] },
+    { id: "tests",    label: "test-codex",       cmd: "node", argsAsync: async () => ["--test", ...await listTestFiles(codexTestsDir)] },
+    // General .claude tooling unit tests (.claude/scripts/tests/*.test.mjs) — e.g. the statusline tests.
+    // Listed via readdir so the stage works without shell glob expansion (PowerShell does not expand
+    // globs the way POSIX shells do; the npm script relied on that, the runner does not).
+    { id: "scripts-tests", label: "test-scripts", cmd: "node", argsAsync: async () => ["--test", ...await listTestFiles(claudeTestsDir)] },
     { id: "wf-cycle", label: "verify-wf-cycle",  cmd: "node", args: [path.join(sourceScriptsDir, "verify-workflow-cycle-compliance.mjs")] },
     { id: "sk-proto", label: "verify-sk-proto",  cmd: "node", args: [path.join(sourceScriptsDir, "verify-skill-protocol-compliance.mjs")] },
     { id: "residue",  label: "verify-residue",   cmd: "node", args: [path.join(sourceScriptsDir, "verify-no-project-residue.mjs")] },
     { id: "sdd",      label: "verify-sdd",       cmd: "node", args: [path.join(sourceScriptsDir, "verify-sdd-semantic-compliance.mjs")] },
-    // Cross-surface byte-equality oracles. These were the gap that made the standalone runner verify
-    // LESS than `npm run verify:all`: the npm path ran both divergence oracles, the runner ran neither,
-    // so a copied `.claude` could pass the runner yet ship a drifted mirror. Now they are in the runner.
-    // verify-sync-divergence guards BOTH the .agents/skills mirror AND the CONTEXT mirror
-    // (AGENTS.md + .codex/CODEX_CONTEXT.md) — the context idempotency check is folded in there
-    // (not a separate stage/file) so the portable export ships zero new pipeline scripts.
+    // Cross-surface byte-equality oracle. verify-sync-divergence guards BOTH the .agents/skills mirror
+    // AND the CONTEXT mirror (AGENTS.md + .codex/CODEX_CONTEXT.md) — the context idempotency check is
+    // folded in there (not a separate stage/file) so the portable export ships zero new pipeline scripts.
     { id: "sync-divergence",    label: "verify-sync-divergence",    cmd: "node", args: [path.join(sourceScriptsDir, "verify-sync-divergence.mjs")] },
-    { id: "copilot-divergence", label: "verify-copilot-divergence", cmd: "node", args: [path.join(claudeScriptsDir, "verify-copilot-divergence.cjs")] },
 ];
 
 function shouldRun(id) {

@@ -5,7 +5,7 @@
 // `.claude/skills/shared/sync-inline-versions.md`. Every downstream copy — the baked CLAUDE.md
 // blocks and the per-skill embeds — must stay byte-faithful to it (after EOL/whitespace
 // normalization). This suite is the regression net that fails the moment any copy drifts from
-// canonical, so a hook-free Codex/Copilot harness still sees identical AI context.
+// canonical, so a hook-free Codex harness still sees identical AI context.
 //
 // After the de-hooking refactor no hook emits protocol text at runtime. `prompt-injections.cjs`
 // is a delegating compat wrapper that returns `buildCanonicalProtocolText(...,':full')` from the

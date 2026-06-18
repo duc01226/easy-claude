@@ -16,7 +16,7 @@ SessionStart hooks → UserPromptSubmit hooks → PreToolUse hooks → [Tool run
 
 > **Context injection (current architecture).** Per-edit/per-prompt context-injection
 > guidance lives **statically** in `CLAUDE.md`, agent `.md` files, and skill `SKILL.md`
-> files, so a hookless harness (Codex / Copilot) reads identical instructions; there are
+> files, so a hookless harness (Codex) reads identical instructions; there are
 > no runtime context-injection hooks. The PreToolUse hooks are blocking/advisory **gates**
 > and a few utility hooks; every hook below maps to a real registration in
 > `.claude/settings.json`. Plan/skill/todo enforcement and compaction-state recovery are

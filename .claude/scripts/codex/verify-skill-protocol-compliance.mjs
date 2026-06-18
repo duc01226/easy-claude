@@ -12,7 +12,6 @@ const agentsRoot = path.join(rootDir, '.codex', 'agents');
 const contextPath = path.join(rootDir, '.codex', 'CODEX_CONTEXT.md');
 const projectAgentsPath = path.join(rootDir, 'AGENTS.md');
 const canonicalSyncPath = path.join(rootDir, '.claude', 'skills', 'shared', 'sync-inline-versions.md');
-const commonProtocolPath = path.join(rootDir, '.github', 'instructions', 'common-protocol.instructions.md');
 const SKILL_PROTOCOL_MARKER = 'CODEX:SYNC-PROMPT-PROTOCOLS:START';
 const SKILL_PROTOCOL_END_MARKER = 'CODEX:SYNC-PROMPT-PROTOCOLS:END';
 const CONTEXT_PROTOCOL_TOP_MARKER = 'PROMPT-PROTOCOLS:START';
@@ -62,10 +61,10 @@ const REQUIRED_CONTRACT_SNIPPETS = [
     'If a required step/tool cannot run in this environment, stop and ask the user before adapting.'
 ];
 
-// P6/P7 — canonical protocol-body parity in the auto-loaded mirrors (AGENTS.md = Codex project
-// context; common-protocol.instructions.md = Copilot always-applied instructions). The mirrors
-// term-rewrite tool nouns (Agent->spawn_agent, "Skill tool"->lowercased, etc.), so byte-equality
-// vs the raw canonical :full block is INVALID and would false-fail. Instead anchor on each block's
+// P6 — canonical protocol-body parity in the auto-loaded mirror (AGENTS.md = Codex project
+// context). The mirror term-rewrites tool nouns (Agent->spawn_agent, "Skill tool"->lowercased,
+// etc.), so byte-equality vs the raw canonical :full block is INVALID and would false-fail.
+// Instead anchor on each block's
 // rewrite-invariant signature (a line that contains no tool term) and assert it appears EXACTLY
 // ONCE — proving the protocol is both PRESENT (reachability) and DEDUPED (the CK-marked CLAUDE.md
 // copies were stripped during mirroring; the body is baked once via the prompt-protocol section).
@@ -372,9 +371,9 @@ export function countOccurrences(haystack, needle) {
     return count;
 }
 
-// P6 (AGENTS.md) + P7 (common-protocol.instructions.md): each canonical :full block's rewrite-invariant
-// signature must appear EXACTLY ONCE in every auto-loaded mirror. Fail-closed at every gap — a missing
-// canonical source, missing mirror, stale signature, or wrong occurrence count is a FAILURE, never a skip.
+// P6 (AGENTS.md): each canonical :full block's rewrite-invariant signature must appear EXACTLY ONCE
+// in the auto-loaded mirror. Fail-closed at every gap — a missing canonical source, missing mirror,
+// stale signature, or wrong occurrence count is a FAILURE, never a skip.
 async function checkCanonicalProtocolBodySignatures(failures) {
     if (!(await exists(canonicalSyncPath))) {
         failures.push(`Missing canonical protocol source: ${path.relative(rootDir, canonicalSyncPath)} (cannot verify mirror protocol-body parity)`);
@@ -391,8 +390,7 @@ async function checkCanonicalProtocolBodySignatures(failures) {
     }
 
     const targets = [
-        { label: 'AGENTS.md', filePath: projectAgentsPath }, // P6 — Codex project context
-        { label: 'common-protocol.instructions.md', filePath: commonProtocolPath } // P7 — Copilot always-applied
+        { label: 'AGENTS.md', filePath: projectAgentsPath } // P6 — Codex project context
     ];
     for (const { label, filePath } of targets) {
         if (!(await exists(filePath))) {

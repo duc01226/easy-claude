@@ -123,7 +123,7 @@ Run phases sequentially except the explicit post-config parallel group. After ea
 1. **Config** - `/project-config` when config is missing, skeleton, invalid, or stale relative to the workspace.
 1a. **Reference-doc normalization — canonical floor (MANDATORY when Phase 0 probe reports `changed:true`)** - repair reference-doc drift BEFORE the scan/spec barrier so every project converges to the framework floor regardless of starting state (no docs / partial / legacy names / wrong standard):
    - Rewrite `config.referenceDocs` to `normalizeReferenceDocs(config.referenceDocs).normalized` (canonical order, legacy names resolved via the alias map, canonical `templatePath`s preserved, genuine project-specific extras kept). Never delete or rename a canonical entry.
-   - For each `renames[]` `{from,to}`: `git mv docs/project-reference/<from> docs/project-reference/<to>` when `<to>` is absent; if `<to>` already exists, `<from>` is a stale duplicate → confirm `<to>` holds the canonical content, then `git rm docs/project-reference/<from>`. Migrate every downstream textual reference (`docs-index-reference.md`, `project-structure-reference.md`, `docs/copilot-registry.json`, generated `.github/*` mirrors) `<from>` → `<to>`, then ask the user to re-run `/sync-codex` + the Copilot sync so the regenerated mirrors match.
+   - For each `renames[]` `{from,to}`: `git mv docs/project-reference/<from> docs/project-reference/<to>` when `<to>` is absent; if `<to>` already exists, `<from>` is a stale duplicate → confirm `<to>` holds the canonical content, then `git rm docs/project-reference/<from>`. Migrate every downstream textual reference (`docs-index-reference.md`, `project-structure-reference.md`) `<from>` → `<to>`, then ask the user to re-run `/sync-codex` so the regenerated mirrors match.
    - `added[]` canonical docs missing on disk are created idempotently by the SessionStart `session-init-docs.cjs` hook (or `/scan --target=<key>`) from `DEFAULT_REFERENCE_DOCS` + `templatePath`; do not hand-fabricate their content.
    - Re-run the Phase 0 normalize probe and proceed only when it reports `changed:false` with empty `renames`/`added`/`removedLegacy`.
 2. **Post-config parallel context build (MANDATORY)** - after config exists, create sibling tasks `Call /scan-all` and `Call /workflow-code-to-spec`; run them in parallel when the environment/tooling supports parallel skill work, otherwise execute both before crossing the barrier.
@@ -169,7 +169,7 @@ If either skill cannot run because the environment lacks the required tool, stop
 
 ## Phase 3: Hookless Agent Rule
 
-For Codex, Copilot, or any environment without Claude hooks:
+For Codex or any environment without Claude hooks:
 
 - If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or a task-required reference doc is missing or stale, invoke `/project-init` before ordinary task work.
 - If `/project-init` cannot run because required tools are absent, report the missing tool and the exact lower-level route that remains.
@@ -196,7 +196,7 @@ Spec workflow verification before declaring setup complete:
 - Confirm `/why-review` ran after `/review-changes`, or stopped with an explicit missing-tool blocker.
 - Confirm `Spawn background /graph-build sub-agent` ran after setup/review/verification was otherwise done, or stopped with an explicit missing-tool/dependency blocker.
 - Confirm the Feature Spec root is the fixed path `docs/specs/`.
-- Confirm the hook-independent Workflow-First Gate (`<!-- CK:WORKFLOW-GATE -->` block) is present at the TOP of `CLAUDE.md`, `AGENTS.md`, and `.github/copilot-instructions.md` so routing survives without hooks. If missing, re-run `/claude-md-init` (CLAUDE.md), then ask the user to run `/sync-codex` (AGENTS.md mirror) and re-run the Copilot sync (copilot-instructions.md).
+- Confirm the hook-independent Workflow-First Gate (`<!-- CK:WORKFLOW-GATE -->` block) is present at the TOP of `CLAUDE.md` and `AGENTS.md` so routing survives without hooks. If missing, re-run `/claude-md-init` (CLAUDE.md), then ask the user to run `/sync-codex` (AGENTS.md mirror).
 - For grown projects, confirm large scope is split per `/workflow-code-to-spec` (`>10` capabilities grouped; `4-10` capabilities sub-agented).
 
 If Codex mirrors were changed, run:

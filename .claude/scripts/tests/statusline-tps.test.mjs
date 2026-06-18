@@ -8,8 +8,8 @@ import { createRequire } from 'node:module';
 // Pairs assistant.timestamp with the most recent preceding non-assistant
 // event (user/tool_result/system). Discards pairs > MAX_TURN_GAP_MS.
 //
-// statusline-tps is .cjs; bridge to its pure exports via createRequire — same
-// .cjs↔.mjs interop the repo uses in verify-copilot-divergence.test.mjs.
+// statusline-tps is .cjs; bridge to its pure exports via createRequire — the
+// .cjs↔.mjs interop the repo uses for .cjs scripts.
 const thisDir = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 const { computeAvgTps, fmt, MAX_TURN_GAP_MS } = require(path.resolve(thisDir, '..', 'statusline-tps.cjs'));

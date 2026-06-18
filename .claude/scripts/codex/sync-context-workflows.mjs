@@ -372,7 +372,7 @@ function buildWorkflowSection(workflowEntries) {
   lines.push("");
 
   // Quick Keyword Lookup — decision-first index so the AI can pick a workflow
-  // without reading every full detail block below. Mirrors the Copilot mirror.
+  // without reading every full detail block below.
   const lookupRows = sorted
     .map(([workflowId, workflow]) => {
       const hint = extractKeywords(safeLine(workflow?.whenToUse));
@@ -432,9 +432,9 @@ function buildWorkflowSection(workflowEntries) {
   return lines.join("\n");
 }
 
-// TWIN: keep byte-identical with the same-named helpers in
-// .claude/scripts/sync-copilot-workflows.cjs — the rendered `[parallel ⇉ all-return barrier: ...]`
-// token MUST be identical across the Codex and Copilot mirrors (cross-mirror parity is the portability proof).
+// TWIN: keep byte-identical with the inline twin renderExpectedBarrierToken in
+// .claude/scripts/codex/verify-workflow-cycle-compliance.mjs — the rendered `[parallel ⇉ all-return barrier: ...]`
+// token MUST match what that verifier asserts against the Codex mirror (cross-mirror parity is the portability proof).
 // Renders `sequence` collapsing every declared parallelGroup's members into one barrier token at the
 // position of the group's first-encountered member; other members are skipped. Non-grouped steps render
 // via renderStep unchanged, so workflows without parallelGroups are byte-identical to the old flat join.

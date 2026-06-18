@@ -19,8 +19,7 @@
 // script would itself have to be git-tracked to ship in the portable export (export-claude
 // ships `git ls-files .claude`) — adding a fresh untracked-until-staged portability gap to
 // close the very gap it fixes. Folding it into this already-tracked, already-wired oracle
-// keeps the framework export self-contained with zero new pipeline files. The sibling
-// copilot mirror is already guarded by verify-copilot-divergence.cjs.
+// keeps the framework export self-contained with zero new pipeline files.
 //
 // Failure policy:
 //   - Genuine divergence  -> exit 1 (blocks commit; remediation: npm run codex:sync).

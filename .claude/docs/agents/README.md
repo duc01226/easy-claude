@@ -86,7 +86,7 @@ Main Claude Session
 | `frontend-developer`    | Angular frontend specialist (stores, BEM)                                                     | All tools                                                                               |
 | `security-auditor`      | Read-only security analysis, OWASP compliance                                                 | All tools                                                                               |
 | `performance-optimizer` | Performance analysis (N+1, bundle, indexes)                                                   | All tools                                                                               |
-| `framework-maintainer`  | Maintain the portable .claude AI-harness (skills, agents, hooks, SYNC, Codex/Copilot mirrors) | Read, Write, Edit, MultiEdit, Grep, Glob, Bash, TaskCreate, TaskUpdate, AskUserQuestion |
+| `framework-maintainer`  | Maintain the portable .claude AI-harness (skills, agents, hooks, SYNC, Codex mirrors) | Read, Write, Edit, MultiEdit, Grep, Glob, Bash, TaskCreate, TaskUpdate, AskUserQuestion |
 
 ---
 
@@ -173,7 +173,7 @@ Task({
 | Create test plan              | `tester`               | Test coverage, case generation                            |
 | Synthesize knowledge          | `knowledge-worker`     | Web research, structured reports, course material         |
 | Design specification          | `ui-ux-designer`       | Figma integration, design tokens                          |
-| Edit the .claude framework    | `framework-maintainer` | Skills, agents, hooks, SYNC blocks, Codex/Copilot mirrors |
+| Edit the .claude framework    | `framework-maintainer` | Skills, agents, hooks, SYNC blocks, Codex mirrors |
 
 ### When NOT to Use Agents
 
@@ -194,7 +194,7 @@ Task({
 > There is **no** `SubagentStart` hook. Each agent's context contract — project rules,
 > reports path, naming, and the development-rules / lessons read contract — is baked
 > statically into the agent's `.md` system prompt and the shared SYNC blocks it inlines,
-> so a hookless tool (Codex / Copilot) gets identical guidance. Each agent's `.md`
+> so a hookless tool (Codex) gets identical guidance. Each agent's `.md`
 > carries, in effect:
 
 ```
@@ -381,7 +381,7 @@ Every agent carries the **same role-specific quality protocol** as its twin skil
 
 Partition: 17 Code-10 + 4 Readonly-Code-8 + 8 Core-6 = 29 agents (pairwise disjoint).
 
-> See [agent-patterns.md](./agent-patterns.md) → _Adding or changing an agent's quality protocol_ for the contributor loop and the `framework-maintainer` orchestration whitelist. Source-side edits land first; mirrors (`.agents/`, `.codex/`, `.github/copilot-*`, `AGENTS.md`) regenerate via `npm run sync:all` + `npm run verify:all` as a tracked follow-up.
+> See [agent-patterns.md](./agent-patterns.md) → _Adding or changing an agent's quality protocol_ for the contributor loop and the `framework-maintainer` orchestration whitelist. Source-side edits land first; mirrors (`.agents/`, `.codex/`, `AGENTS.md`) regenerate via `npm run sync:all` + `npm run verify:all` as a tracked follow-up.
 
 ## Related Documentation
 
