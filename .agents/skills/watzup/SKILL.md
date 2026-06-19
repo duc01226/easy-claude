@@ -340,7 +340,6 @@ After `$understand` completes, MUST ATTENTION use a direct user question to pres
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
 
-
 <!-- SYNC:nested-task-creation:reminder -->
 
 - **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.

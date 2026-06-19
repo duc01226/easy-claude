@@ -228,7 +228,7 @@ The Debug Mindset, Confidence & Evidence Gate, and all SYNC gates below apply to
 - Check responsive breakpoints when fixing layout issues.
 - **Pre-read (design system):** load `designSystem.canonicalDoc` + `tokenFiles` from `docs/project-config.json` so fixes use real token names (`--brand-*`, `$brand-*`) and canonical component classes — not invented values.
 
-**Required skills (priority order):** `ui-ux-pro-max` (design-intelligence DB) → `web-design-guidelines` (principles) → `frontend-design` (implementation patterns).
+**Required skills (priority order):** `ui-ux-pro-max` (design-intelligence DB) → `web-design-guidelines` (principles) → `design --lane=marketing` (implementation patterns).
 
 **Workflow:**
 
@@ -522,7 +522,6 @@ Analyze skills catalog and activate other needed skills during the process.
 - **MANDATORY** If project config, root instruction files, or any required reference doc is missing or stale, auto-run `/project-init` or the narrow lower-level route before ordinary project-specific work.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
-
 
 <!-- SYNC:end-to-start-debugger-trace:reminder -->
 

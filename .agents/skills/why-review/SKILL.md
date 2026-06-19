@@ -826,7 +826,6 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
 
-
 <!-- SYNC:end-to-start-debugger-trace:reminder -->
 
 **IMPORTANT MUST ATTENTION** debugger trace gate: for non-trivial bug/fix/investigation/review work, start at the observed final output and trace backward through reader -> storage/projection -> writer -> consumer/job -> producer/trigger. Enumerate all feeder paths and hypotheses before fixing. **BLOCKED until** trace, hypothesis matrix, owning fix layer, and forward convergence proof exist.
@@ -847,6 +846,13 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:goal-contract-satisfaction-loop:reminder -->
 
+<!-- SYNC:severity-rubric:reminder -->
+
+- **MANDATORY** Classify findings Critical/High/Medium/Low by consequence; Critical/High block PASS until fixed or owner-accepted.
+- **MANDATORY** Score-based skills (sre 0-2, perf two-axis) map onto the same four tiers — no parallel severity vocabulary.
+
+<!-- /SYNC:severity-rubric:reminder -->
+
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
 
 ## Prompt-Enhance Closing Anchors
@@ -857,13 +863,6 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
-
-<!-- SYNC:severity-rubric:reminder -->
-
-- **MANDATORY** Classify findings Critical/High/Medium/Low by consequence; Critical/High block PASS until fixed or owner-accepted.
-- **MANDATORY** Score-based skills (sre 0-2, perf two-axis) map onto the same four tiers — no parallel severity vocabulary.
-
-<!-- /SYNC:severity-rubric:reminder -->
 
 ## Closing Reminders
 

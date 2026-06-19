@@ -1499,7 +1499,6 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:category-review-thinking -->
 
-
 <!-- SYNC:graph-assisted-investigation -->
 
 > **Graph-Assisted Investigation** — MANDATORY when `.code-graph/graph.db` exists.
@@ -1710,7 +1709,6 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **MANDATORY** If project config, root instruction files, or any required reference doc is missing or stale, auto-run `/project-init` or the narrow lower-level route before ordinary project-specific work.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
-
 
 <!-- SYNC:end-to-start-debugger-trace:reminder -->
 

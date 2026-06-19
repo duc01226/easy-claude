@@ -66,6 +66,8 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Extraction Fallback Chain
 
+> **[BLOCKING] Before the extracted design feeds a new/updated screen** (per the `SYNC:existing-ui-research` protocol carried by this skill): inventory the existing related UI and map connected feature flows so the design built from this extract faithfully matches the current UI system. Skip only when the extract is not driving a new/updated screen (state it explicitly).
+
 ### Level 1: Official Figma MCP (Best Fidelity)
 
 Check if MCP tools available: look for `get_design_context` in tool list.
@@ -176,6 +178,19 @@ Save to `team-artifacts/design-specs/{YYMMDD}-figma-extract-{slug}.md`:
 ---
 
 > **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting.
+
+<!-- SYNC:existing-ui-research -->
+
+> **[BLOCKING] Understand the existing UI before you design or spec a new/updated screen.** Before producing any wireframe, mockup, screen design, or UI spec:
+>
+> 1. **Inventory existing related UI** — search the project for screens, pages, and components already serving this feature or its domain (consult design-system docs + the real component inventory).
+> 2. **Map connected flows** — identify every feature that links to, embeds, includes, or navigates to/from the new screen; trace its entry and exit flows so the new screen fits them.
+> 3. **Reuse before invent** — prefer existing components, patterns, and layout conventions; justify any new component against what already exists.
+> 4. **Record findings** — note the matched existing screens/components + connected flows in the artifact so downstream design faithfully matches the current UI system.
+>
+> **Skip ONLY** when the feature is backend-only (no UI) — state that explicitly.
+
+<!-- /SYNC:existing-ui-research -->
 
 <!-- SYNC:ui-system-context -->
 

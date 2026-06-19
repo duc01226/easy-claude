@@ -672,7 +672,6 @@ After `/fix` applies changes, `/prove-fix` MUST be run — builds code proof tra
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
 
-
 <!-- SYNC:end-to-start-debugger-trace:reminder -->
 
 **IMPORTANT MUST ATTENTION** debugger trace gate: for non-trivial bug/fix/investigation/review work, start at the observed final output and trace backward through reader -> storage/projection -> writer -> consumer/job -> producer/trigger. Enumerate all feeder paths and hypotheses before fixing. **BLOCKED until** trace, hypothesis matrix, owning fix layer, and forward convergence proof exist.

@@ -604,7 +604,6 @@ If `architectureRules` absent in project-config.json → skip silently.
 
 <!-- /SYNC:category-review-thinking -->
 
-
 <!-- SYNC:subagent-return-contract -->
 
 > **Sub-Agent Return Contract** — When this skill spawns a sub-agent, the sub-agent MUST return ONLY this structure. Main agent reads only this summary — NEVER requests full sub-agent output inline.
@@ -1253,7 +1252,6 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:category-review-thinking:reminder -->
 
-
 <!-- SYNC:task-tracking-external-report:reminder -->
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
@@ -1268,7 +1266,6 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **MANDATORY** If project config, root instruction files, or any required reference doc is missing or stale, auto-run `$project-init` or the narrow lower-level route before ordinary project-specific work.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
-
 
 <!-- SYNC:end-to-start-debugger-trace:reminder -->
 
@@ -1290,17 +1287,6 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:goal-contract-satisfaction-loop:reminder -->
 
-<!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
-
-## Prompt-Enhance Closing Anchors
-
-**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
-**IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
-**IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
-**IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses
-
-<!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
-
 <!-- SYNC:systematic-review-batching:reminder -->
 
 - **MANDATORY** Large changeset → batch by size cap (≤8 files OR ≤2000 diff-lines), one parallel sub-agent per batch; never review many files one-by-one.
@@ -1314,6 +1300,17 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **MANDATORY** Score-based skills (sre 0-2, perf two-axis) map onto the same four tiers — no parallel severity vocabulary.
 
 <!-- /SYNC:severity-rubric:reminder -->
+
+<!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
+
+## Prompt-Enhance Closing Anchors
+
+**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
+**IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
+**IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
+**IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses
+
+<!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 
 ## Closing Reminders
 

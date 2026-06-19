@@ -662,6 +662,8 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /OVERRIDE-NOTE:fresh-context-review -->
 
+> **Complexity Prevention (UI-scoped)** — measure code by cost of change: one UI change should map to one code change. The full backend-OOP treatise (anemic models, primitive obsession, value objects, repo leakage) does not apply to UI review and is intentionally not carried here. UI-relevant essence: (1) **extract repeated component lifecycle** — 3+ forms/list views reimplementing loading/dirty/submit/pagination → base component / hook / composable / mixin; (2) **keep derivations, formatting, and validation off the template** — move them onto the model / store / view-model / API service, not inline in the component. For deeper OOP/DRY structural review of any backend the UI calls, defer to `$review-changes` / `$review-architecture`.
+
 <!-- SYNC:graph-assisted-investigation -->
 
 > **Graph-Assisted Investigation** — MANDATORY when `.code-graph/graph.db` exists.
@@ -823,8 +825,6 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > 4. **2+ violations of same kind = structural finding** — Report as "pattern problem" needing architectural resolution, not a list of individual instances.
 
 <!-- /SYNC:design-patterns-quality -->
-
-> **Complexity Prevention (UI-scoped)** — measure code by cost of change: one UI change should map to one code change. The full backend-OOP treatise (anemic models, primitive obsession, value objects, repo leakage) does not apply to UI review and is intentionally not carried here. UI-relevant essence: (1) **extract repeated component lifecycle** — 3+ forms/list views reimplementing loading/dirty/submit/pagination → base component / hook / composable / mixin; (2) **keep derivations, formatting, and validation off the template** — move them onto the model / store / view-model / API service, not inline in the component. For deeper OOP/DRY structural review of any backend the UI calls, defer to `$review-changes` / `$review-architecture`.
 
 <!-- SYNC:double-round-trip-review -->
 
@@ -1079,17 +1079,6 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:nested-task-creation:reminder -->
 
-<!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
-
-## Prompt-Enhance Closing Anchors
-
-**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
-**IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
-**IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
-**IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses
-
-<!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
-
 <!-- SYNC:systematic-review-batching:reminder -->
 
 - **MANDATORY** Large changeset → batch by size cap (≤8 files OR ≤2000 diff-lines), one parallel sub-agent per batch; never review many files one-by-one.
@@ -1110,6 +1099,17 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **MANDATORY** Derive each category's concerns from first principles with `file:line` evidence — never a fixed checklist.
 
 <!-- /SYNC:category-review-thinking:reminder -->
+
+<!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
+
+## Prompt-Enhance Closing Anchors
+
+**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
+**IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
+**IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
+**IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses
+
+<!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 
 ## Closing Reminders
 

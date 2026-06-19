@@ -584,13 +584,19 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
 
-
 <!-- SYNC:nested-task-creation:reminder -->
 
 - **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
 - **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] $skill-name — phase` prefixes and one-`in_progress` discipline.
 
 <!-- /SYNC:nested-task-creation:reminder -->
+
+<!-- SYNC:severity-rubric:reminder -->
+
+- **MANDATORY** Classify findings Critical/High/Medium/Low by consequence; Critical/High block PASS until fixed or owner-accepted.
+- **MANDATORY** Score-based skills (sre 0-2, perf two-axis) map onto the same four tiers — no parallel severity vocabulary.
+
+<!-- /SYNC:severity-rubric:reminder -->
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
 
@@ -602,13 +608,6 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
-
-<!-- SYNC:severity-rubric:reminder -->
-
-- **MANDATORY** Classify findings Critical/High/Medium/Low by consequence; Critical/High block PASS until fixed or owner-accepted.
-- **MANDATORY** Score-based skills (sre 0-2, perf two-axis) map onto the same four tiers — no parallel severity vocabulary.
-
-<!-- /SYNC:severity-rubric:reminder -->
 
 ## Closing Reminders
 

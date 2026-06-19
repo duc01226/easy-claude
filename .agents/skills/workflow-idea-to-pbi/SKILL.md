@@ -124,7 +124,8 @@ After confirming the workflow, present the full step list and let the user desel
 - [x] Story review (review-artifact --type=story)   — REPEATS per opportunity
 - [x] Dev BA PIC challenge (pbi-challenge)          — REPEATS per opportunity
 - [x] Definition of Ready gate (dor-gate)           — REPEATS per opportunity
-- [x] PBI HTML mock-up (pbi-mockup)                — CONDITIONAL; REPEATS per opportunity
+- [x] PBI HTML mock-up (pbi-mockup)                — CONDITIONAL; REPEATS per opportunity; faithfully matches current UI system
+- [x] UI design spec (design-spec)                  — CONDITIONAL (UI PBIs); REPEATS per opportunity; UI specs after the mockup
 - [x] Backlog prioritization (prioritize)           — cross-PBI in discovery mode
 - [x] Documentation synchronization (docs-update)
 ```
@@ -138,9 +139,9 @@ Activated only when the input is a raw product vision/problem spanning multiple 
 1. **Brainstorm → opportunity map.** Run `$brainstorm` with Double Diamond (problem framing → opportunity framing → ideation → convergence). Output a **RICE-scored opportunity map** of 3–8 items to `plans/{plan-dir}/brainstorm-opportunity-map.md`.
 2. **Multi-select.** Present the map via a direct user question (`multiSelect: true`): "Which opportunities should we develop into PBIs?"
 3. **Opportunity-map why-review gate** (before the loop): challenge whether the top-ranked opportunities are the right problems, whether RICE Reach/Impact are founded or speculative, run a pre-mortem, and name systemic alternatives. FAIL on a high-ranked opportunity → drop it or revisit framing; WARN → document and proceed with user acknowledgment.
-4. **Task decomposition gate.** Call task tracking for EVERY task (N opportunities × 8 loop steps = N×8 minimum) BEFORE processing any opportunity — never start the loop without a complete task list.
+4. **Task decomposition gate.** Call task tracking for EVERY task (N opportunities × 9 loop steps = N×9 minimum) BEFORE processing any opportunity — never start the loop without a complete task list.
 5. **Per-opportunity light loop** (for EACH selected opportunity — NO `spec [mode=draft]`, NO `spec [mode=tests]`, NO `plan`/`plan-review`/`plan-validate`; `domain-analysis` already ran once up front):
-   `$idea` → `$refine` → `$review-artifact --type=pbi` → `$story` → `$review-artifact --type=story` → `$pbi-challenge` → `$dor-gate` → `$pbi-mockup` (skip for backend-only PBIs).
+   `$idea` → `$refine` → `$review-artifact --type=pbi` → `$story` → `$review-artifact --type=story` → `$pbi-challenge` → `$dor-gate` → `$pbi-mockup` → `$design-spec` (mockup + UI specs skip for backend-only PBIs).
 6. **Scale management.** For 6+ selected opportunities, spawn one sub-agent per opportunity (each gets brainstorm context + its task list); the main context runs `$prioritize` at the end. Update a session summary table after every 3 opportunities.
 7. **Cross-PBI prioritize.** After ALL opportunities are processed, run `$prioritize` across all session PBIs (cross-PBI RICE + dependency graph) → sprint-ready ranked backlog, flagging Must/Should/Could-Have.
 
@@ -278,16 +279,16 @@ Purpose:
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $brainstorm -> $web-research -> $deep-research -> $idea -> $spec-discovery -> $review-artifact -> $refine -> $why-review -> $spec [mode=draft] -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $spec-clarify -> $domain-analysis -> $why-review -> $plan -> $plan-review -> $plan-validate -> $why-review -> $review-artifact --type=pbi -> $story -> $why-review -> $review-artifact --type=story -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $prioritize -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $brainstorm -> $web-research -> $deep-research -> $idea -> $spec-discovery -> $review-artifact -> $refine -> $why-review -> $spec [mode=draft] -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $spec-clarify -> $domain-analysis -> $why-review -> $plan -> $plan-review -> $plan-validate -> $why-review -> $review-artifact --type=pbi -> $story -> $why-review -> $review-artifact --type=story -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $design-spec -> $prioritize -> $docs-update -> $workflow-end -> $watzup
 
-> **Mode gating of the canonical sequence above** — **Single-PBI deep mode:** skip $brainstorm + $web-research + $deep-research; run the full deep track (one PBI). **Discovery mode:** run $brainstorm (optionally $web-research → $deep-research), skip $spec [mode=draft], $spec [mode=tests], $review-artifact --type=spec-tests, $spec-clarify, $plan, $plan-review, $plan-validate; loop $idea→/refine→/review-artifact --type=pbi→/story→/review-artifact --type=story→/pbi-challenge→/dor-gate→/pbi-mockup per selected opportunity, then $prioritize cross-PBI.
+> **Mode gating of the canonical sequence above** — **Single-PBI deep mode:** skip $brainstorm + $web-research + $deep-research; run the full deep track (one PBI). **Discovery mode:** run $brainstorm (optionally $web-research → $deep-research), skip $spec [mode=draft], $spec [mode=tests], $review-artifact --type=spec-tests, $spec-clarify, $plan, $plan-review, $plan-validate; loop $idea→/refine→/review-artifact --type=pbi→/story→/review-artifact --type=story→/pbi-challenge→/dor-gate→/pbi-mockup→/design-spec per selected opportunity, then $prioritize cross-PBI.
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its skill invocation — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
 Activate the `workflow-idea-to-pbi` workflow. Run `$start-workflow workflow-idea-to-pbi` with the user's prompt as context.
 
 **Steps:**
-$brainstorm → $web-research → $deep-research → $idea → $spec-discovery → $review-artifact → $refine → $why-review → $spec [mode=draft] → $spec [mode=tests] → $why-review → $review-artifact --type=spec-tests → $spec-clarify → $domain-analysis → $why-review → $plan → $plan-review → $plan-validate → $why-review → $review-artifact --type=pbi → $story → $why-review → $review-artifact --type=story → $pbi-challenge → $dor-gate → $pbi-mockup → $prioritize → $docs-update → $workflow-end → $watzup
+$brainstorm → $web-research → $deep-research → $idea → $spec-discovery → $review-artifact → $refine → $why-review → $spec [mode=draft] → $spec [mode=tests] → $why-review → $review-artifact --type=spec-tests → $spec-clarify → $domain-analysis → $why-review → $plan → $plan-review → $plan-validate → $why-review → $review-artifact --type=pbi → $story → $why-review → $review-artifact --type=story → $pbi-challenge → $dor-gate → $pbi-mockup → $design-spec → $prioritize → $docs-update → $workflow-end → $watzup
 
 > **Conditional / mode-gated steps:**
 >
@@ -295,7 +296,8 @@ $brainstorm → $web-research → $deep-research → $idea → $spec-discovery �
 > - `$spec [mode=draft]`, `$spec [mode=tests]`, `$review-artifact --type=spec-tests`, `$plan`, `$plan-review`, `$plan-validate` — DEEP MODE only; never run per opportunity in discovery mode
 > - `$review-artifact` — skip if no existing artifact/ticket/PRD; proceed straight to `$refine`
 > - `$domain-analysis` — skip if the idea introduces no new/changed domain entities; in discovery mode run once up front
-> - `$pbi-mockup` — skip if PBI is backend-only (no UI changes)
+> - `$pbi-mockup` — skip if PBI is backend-only (no UI changes); when run, the mockup MUST faithfully match the current UI system (gated by `SYNC:existing-ui-research`)
+> - `$design-spec` — UI PBIs only (runs right after `$pbi-mockup`); skip if PBI is backend-only; authors the PBI's tech-agnostic UI specs, gated by `SYNC:existing-ui-research`
 
 ---
 
@@ -416,7 +418,7 @@ $brainstorm → $web-research → $deep-research → $idea → $spec-discovery �
 - **MANDATORY IMPORTANT MUST ATTENTION** run all five purpose-specific why-review gates: after refine, after spec [mode=tests], after domain-analysis, after plan-validate, and after story; FAIL blocks the next artifact step, WARN requires user acknowledgment
 - **MANDATORY IMPORTANT MUST ATTENTION** spec [mode=draft] authors the §1-7 Feature Spec (provisional) right after refine, then spec [mode=tests] and review-artifact --type=spec-tests run before the PBI is drafted (idea → draft Feature Spec → specs → from those specs to PBI); both spec [mode=draft] and spec [mode=tests] are SINGLE-PBI DEEP MODE ONLY (never per opportunity in discovery mode)
 - **MANDATORY IMPORTANT MUST ATTENTION** pbi-challenge must be run by a reviewer different from the drafter
-- **MANDATORY IMPORTANT MUST ATTENTION** dor-gate must pass (PASS or WARN) before pbi-mockup is finalized
+- **MANDATORY IMPORTANT MUST ATTENTION** dor-gate must pass (PASS or WARN) before pbi-mockup is finalized; for UI PBIs, pbi-mockup AND design-spec both run (mockup first, then UI specs) so the PBI carries a faithful mockup matching the current UI system PLUS UI specs — both skip for backend-only PBIs and both are gated by SYNC:existing-ui-research; the code-producing design lanes are reference-only, not part of this workflow
 - **MANDATORY IMPORTANT MUST ATTENTION** write each artifact immediately — never batch output across steps
 - **MANDATORY IMPORTANT MUST ATTENTION** docs-update runs after prioritize and before workflow-end to sync specs, feature docs, and TDD/spec dashboards
 - **MANDATORY IMPORTANT MUST ATTENTION** add a final watzup summary: PBI title, DoR result, any blocking items, recommended next step

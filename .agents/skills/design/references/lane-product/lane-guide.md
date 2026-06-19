@@ -1,21 +1,8 @@
----
-name: interface-design
-version: 1.0.0
-description: '[Frontend] Use when you need interface design for product UIs — dashboards, admin panels, SaaS apps, tools.'
----
+# Lane Guide — Product UI (`design --lane=product`)
 
-<!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
+> Absorbed from the former `interface-design` skill. This is the full lane body the `design` dispatcher points to for distinctive, craft-driven product interfaces (dashboards, admin panels, SaaS apps, tools, settings pages, data interfaces). Reference files in this directory carry code examples, validation, and critique protocols.
 
-> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
-> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
-> **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
-> **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
-
-<!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
-
-## Quick Summary
-
-**Goal:** Build distinctive, craft-driven product interfaces (dashboards, admin panels, SaaS apps) that emerge from domain exploration rather than AI defaults.
+**Goal:** Build distinctive, craft-driven product interfaces that emerge from domain exploration rather than AI defaults.
 
 **Workflow:**
 
@@ -37,7 +24,7 @@ description: '[Frontend] Use when you need interface design for product UIs — 
 **Scope:**
 
 - **Use for:** Dashboards, admin panels, SaaS apps, tools, settings pages, data interfaces
-- **Not for:** Landing pages, marketing sites, campaigns — redirect to `/frontend-design`
+- **Not for:** Landing pages, marketing sites, campaigns — use `design --lane=marketing` instead
 
 ---
 
@@ -416,95 +403,14 @@ This compounds — each save makes future work faster and more consistent.
 
 For more detail on specific topics:
 
-- `references/principles.md` — Code examples, specific values, dark mode
-- `references/validation.md` — Memory management, when to update system.md
-- `references/critique.md` — Post-build craft critique protocol
+- `principles.md` — Code examples, specific values, dark mode
+- `validation.md` — Memory management, when to update system.md
+- `critique.md` — Post-build craft critique protocol
+- `example.md` — Worked example
 
-# Commands
+## Related lanes & skills
 
-- `/interface-design:status` — Current system state
-- `/interface-design:audit` — Check code against system
-- `/interface-design:extract` — Extract patterns from code
-- `/interface-design:critique` — Critique your build for craft, then rebuild what defaulted
-
-## Related
-
-- `frontend-design` — Marketing pages, landing pages, screenshot replication
-- `ui-ux-pro-max` — Searchable design DB (50 styles, 21 palettes, 50 font pairings)
+- Marketing/creative lane (landing pages, campaigns, screenshot replication): `design --lane=marketing` (`../lane-marketing/lane-guide.md`)
+- `ui-ux-pro-max` — searchable design DB (50 styles, 21 palettes, 50 font pairings)
 - `design-spec` — Create design specifications from requirements (incl. UX research notes, accessibility audit)
 - `web-design-guidelines` — WCAG 2.2, accessibility review
-
----
-
-## Next Steps
-
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use `AskUserQuestion` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
-
-- **"/web-design-guidelines (Recommended)"** — Review UI for accessibility and best practices
-- **"/workflow-review-changes"** — Review all changes before commit
-- **"Skip, continue manually"** — user decides
-
----
-
-> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
-
-<!-- SYNC:ai-mistake-prevention -->
-
-> **AI Mistake Prevention** — Failure modes to avoid on every task:
->
-> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
-> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
-> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
-> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
-> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
-> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
-> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
-
-<!-- /SYNC:ai-mistake-prevention -->
-
-<!-- SYNC:critical-thinking-mindset -->
-
-> **Critical Thinking Mindset** — Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
-> **Anti-hallucination:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
-
-<!-- /SYNC:critical-thinking-mindset -->
-
-<!-- SYNC:critical-thinking-mindset:reminder -->
-
-**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
-
-<!-- /SYNC:critical-thinking-mindset:reminder -->
-
-<!-- SYNC:ai-mistake-prevention:reminder -->
-
-**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
-
-<!-- /SYNC:ai-mistake-prevention:reminder -->
-
-<!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
-
-## Prompt-Enhance Closing Anchors
-
-**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
-**IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
-**IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
-**IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses
-
-<!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
-
-## Closing Reminders
-
-**IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
-
-- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
-- **Critical Thinking:** traced `file:line` proof per claim; confidence >80% to act; never guess.
-
-- **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
-- **MANDATORY IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
-- **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
-- **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
-
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
-
-> **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.

@@ -665,17 +665,6 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 - **"Skip council — proceed (Recommended)"** — Continue with the architecture decision as-is. Recommended default.
 - **"Escalate to $llm-council"** — Run 11 sub-agent council (5 advisors + 5 reviewers + chairman). Use when this architecture pick is hard to reverse and you need adversarial framing. Cheaper alternatives: `$why-review`, `$plan-validate` (run these first if you haven't).
 
-<!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
-
-## Prompt-Enhance Closing Anchors
-
-- **IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
-- **IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
-- **IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
-- **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses
-
-<!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
-
 ## Anti-Rationalization (reject these excuses)
 
 | Excuse the model tells itself                          | Reality                                                                                            |
@@ -686,6 +675,17 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 | "It's a small feature — skip the ADR"                 | If a decision is significant AND costly to reverse, it needs an ADR or it cannot be enforced.      |
 | "Brownfield, but my preferred style is better"        | NEVER re-litigate a settled ADR-recorded decision without a superseding-ADR rationale.             |
 | "I'll document the budget, enforcement is optional"   | Documented-but-unenforced budgets erode. Encode them as executable fitness checks for CI.          |
+
+<!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
+
+## Prompt-Enhance Closing Anchors
+
+- **IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
+- **IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
+- **IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
+- **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses
+
+<!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 
 ## Closing Reminders
 

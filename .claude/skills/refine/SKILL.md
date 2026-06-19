@@ -514,6 +514,8 @@ Then error "{message}"
 
 ## UI Layout
 
+**Design Spec:** {link to the `/design-spec` artifact — or inline UI specs ref — that owns this PBI's screen/component design. REQUIRED for any PBI with UI work. Produce it AFTER inventorying existing UI + connected flows (per `SYNC:existing-ui-research`) so it faithfully matches the current UI system. If backend-only: `N/A — Backend-only change. No UI affected.`}
+
 ### Wireframe
 
 {ASCII wireframe using box-drawing characters}
@@ -595,6 +597,7 @@ Then error "{message}"
 - [ ] User story template (As a... I want... So that...)
 - [ ] AC testable (GIVEN/WHEN/THEN, no vague language)
 - [ ] Wireframes attached (UX BA) + UI design ready (Designer BA)
+- [ ] (UI PBIs) Design spec linked — `/design-spec` artifact or inline UI specs present in `## UI Layout`; backend-only PBIs exempt (`N/A — Backend-only`)
 - [ ] AI pre-review passed (`/review-artifact --type=pbi` or `/pbi-challenge`)
 - [ ] Story points estimated by AI
 - [ ] Dependencies table complete

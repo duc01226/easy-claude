@@ -234,7 +234,7 @@ If ANY check fails → AI Verdict is REQUEST_REVISION; tag each violated mandate
 > 1. **User story template** — "As a {role}, I want {goal}, so that {benefit}" format
 > 2. **AC testable & unambiguous** — GIVEN/WHEN/THEN. No "should/might/TBD/various/appropriate". Min 3 scenarios (happy, edge, error) + 1 auth scenario
 > 3. **Wireframes attached** — UI features: `## UI Layout` with wireframe + components + states + tokens. Backend-only: explicit "N/A"
-> 4. **UI design ready** — Visual design + component decomposition tree. Backend-only: "N/A"
+> 4. **UI design ready** — Visual design + component decomposition tree + design-spec linked (`/design-spec` artifact or inline UI specs in `## UI Layout`) for any PBI with UI work. Backend-only: "N/A"
 > 5. **AI pre-review passed** — `/review-artifact --type=pbi` or `/pbi-challenge` returned PASS or WARN (not FAIL)
 > 6. **Story points estimated** — Fibonacci 1-21 + complexity (Low/Medium/High). >13 SP → recommend split
 > 7. **Dependencies table complete** — Dependency, Type (must-before/can-parallel/blocked-by/independent), Status

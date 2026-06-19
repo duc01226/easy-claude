@@ -2,9 +2,9 @@ metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
   last_updated: '2026-06-19'
-  total_skills: 154
+  total_skills: 152
   total_by_status:
-    active: 153
+    active: 151
     deprecated: 1
     experimental: 0
 categories:
@@ -53,11 +53,12 @@ skills:
     - name: design
       path: design/SKILL.md
       description: '[Design] Create or describe a UI design — quick (fast), immersive
-        (good), or recreated/described from a screenshot or video. Dispatch via --mode={fast|good|describe|screenshot|video}
-        (default fast).'
+        (good), or recreated/described from a screenshot or video, in a product-UI
+        or marketing/creative lane. Dispatch via --mode={fast|good|describe|screenshot|video}
+        (default fast) and --lane={product|marketing} (default product).'
       category: frontend
       has_scripts: false
-      has_references: false
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null
@@ -85,17 +86,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: frontend-design
-      path: frontend-design/SKILL.md
-      description: '[Frontend] Use when you need to create distinctive, production-grade
-        frontend interfaces with high design quality.'
-      category: frontend
-      has_scripts: false
-      has_references: true
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
     - name: graph-build
       path: graph-build/SKILL.md
       description: '[Code Intelligence] Use when you need to build, update, or sync
@@ -106,17 +96,6 @@ skills:
       category: frontend
       has_scripts: false
       has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: interface-design
-      path: interface-design/SKILL.md
-      description: '[Frontend] Use when you need interface design for product UIs
-        — dashboards, admin panels, SaaS apps, tools.'
-      category: frontend
-      has_scripts: false
-      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null

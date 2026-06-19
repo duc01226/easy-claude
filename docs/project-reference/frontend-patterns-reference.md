@@ -15,7 +15,7 @@ This placeholder exists so that `/scan-frontend-patterns` has a known output loc
 
 easy-claude ships skill definitions and agents that produce frontend guidance for **other** projects — not for this repository:
 
-- **Skills:** `/frontend-design`, `/interface-design`, `/ui-ux-pro-max`, `/figma-design`, `/wireframe-to-spec`, `/design-spec`
+- **Skills:** `/design` (multi-mode/lane), `/ui-ux-pro-max`, `/figma-design`, `/wireframe-to-spec`, `/design-spec`
 - **Shared protocols:** `ui-system-context.md`, `ui-wireframe-protocol.md`, `design-system-check.md`
 - **Agents:** `frontend-developer`, `fullstack-developer`, `ui-ux-designer`
 - **Scan skill:** `/scan-frontend-patterns` — run this after adopting easy-claude into a frontend project to populate this file with component patterns, service abstractions, state management conventions, and routing structure.

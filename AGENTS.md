@@ -315,7 +315,7 @@ When editing files matching these path patterns, pre-read the listed context fir
 
 <!-- /SECTION:skill-activation -->
 
-**Design routing:** SCSS / style files → review-ui / frontend-design skill (BEM conventions live there). UI / HTML / CSS files → design skill (canonical design-system doc: tokens, components, BEM).
+**Design routing:** SCSS / style files → review-ui / design skill (BEM conventions live there). UI / HTML / CSS files → design skill (canonical design-system doc: tokens, components, BEM).
 
 ---
 
@@ -325,7 +325,7 @@ When editing files matching these path patterns, pre-read the listed context fir
 
 | Kind        | Count                                       |
 | ----------- | ------------------------------------------- |
-| Skills      | <!-- COUNT:skills -->156<!-- /COUNT -->     |
+| Skills      | <!-- COUNT:skills -->152<!-- /COUNT -->     |
 | Hooks       | <!-- COUNT:hooks -->15<!-- /COUNT -->       |
 | Agents      | <!-- COUNT:agents -->29<!-- /COUNT -->      |
 | Workflows   | <!-- COUNT:workflows -->17<!-- /COUNT -->   |
@@ -847,7 +847,7 @@ UNIVERSAL RULES:
 ### workflow-idea-to-pbi — Idea to PBI
 - Description: PO/BA idea → grooming-ready backlog. TWO modes: (1) SINGLE-PBI DEEP — one concrete idea/ticket/brief → deep single PBI via idea → draft Feature Spec → TDD test specs → domain → plan → PBI/stories → challenge → DoR → mockup → prioritize; (2) MULTI-OPPORTUNITY DISCOVERY — a raw vision/problem → brainstorm (optionally web-research → deep-research) → RICE opportunity map → user multi-select → light per-opportunity PBI loop → cross-PBI ranked backlog. For idea → ONE provisional Feature Spec only (no backlog) use workflow-idea-to-spec.
 - When To Use: PO/BA wants a grooming-ready PBI backlog from an idea. SINGLE-PBI DEEP: a raw idea — or a handed-off artifact/ticket/brief — through to ONE grooming-ready PBI with a provisional Feature Spec, user stories, TDD test specifications, Dev BA PIC challenge, DoR validation, wireframes, and prioritization. MULTI-OPPORTUNITY DISCOVERY: a raw product vision/problem statement → structured brainstorm → RICE opportunity map → user multi-select → multiple PBIs (light per-opportunity loop) → cross-PBI ranked backlog. For idea → ONE provisional Feature Spec only (no backlog), use workflow-idea-to-spec
-- Sequence: `brainstorm -> web-research -> deep-research -> idea -> spec-discovery -> review-artifact -> refine -> why-review -> spec [mode=draft] -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> spec-clarify -> domain-analysis -> why-review -> plan -> plan-review -> plan-validate -> why-review -> review-artifact --type=pbi -> story -> why-review -> review-artifact --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> prioritize -> docs-update -> workflow-end -> watzup`
+- Sequence: `brainstorm -> web-research -> deep-research -> idea -> spec-discovery -> review-artifact -> refine -> why-review -> spec [mode=draft] -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> spec-clarify -> domain-analysis -> why-review -> plan -> plan-review -> plan-validate -> why-review -> review-artifact --type=pbi -> story -> why-review -> review-artifact --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> design-spec -> prioritize -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -855,8 +855,8 @@ IDEA TO PBI PROTOCOL:
 Capture and refine a raw idea — or a handed-off artifact/ticket/brief — into a grooming-ready PBI via an idea → test specs → (from those specs) PBI/stories/plan flow, with domain analysis, challenge review, DoR validation, and wireframe. Apply the shared SDD Artifact Contract from shared/sdd-artifact-contract.md in the active skills root and read docs/project-config.json plus docs/project-reference/docs-index-reference.md for project-specific conventions. Any supported AI tool may produce or review artifacts when this context is synced.
 
 MODE DETECTION GATE (FIRST — pick the track before running any step, then declare it to the user):
-- SINGLE-PBI DEEP MODE — input is ONE concrete idea / ticket / brief. Run the deep single-PBI track: idea → spec-discovery → refine → spec [mode=draft] → spec [mode=tests] → review-artifact --type=spec-tests → spec-clarify → domain-analysis → plan → plan-review → plan-validate → PBI → stories → challenge → DoR → mockup → prioritize. SKIP brainstorm, web-research, and deep-research.
-- MULTI-OPPORTUNITY DISCOVERY MODE — input is a raw product vision / problem statement spanning multiple opportunities. Run brainstorm (optionally web-research → deep-research up front to inform framing) → RICE opportunity map → user multi-select → spec-discovery (ONCE, shared across opportunities) → a LIGHT per-opportunity PBI loop (idea → refine → review-artifact --type=pbi → story → review-artifact --type=story → pbi-challenge → dor-gate → pbi-mockup), then cross-PBI prioritize. The spec [mode=draft] Feature Spec authoring step, the spec [mode=tests] step, the spec-clarify validation gate, and the plan/plan-review/plan-validate cycle are SINGLE-PBI-DEEP-MODE ONLY — NEVER run them per opportunity (they would multiply N× and stall discovery). domain-analysis runs ONCE up front (shared across opportunities), not per opportunity.
+- SINGLE-PBI DEEP MODE — input is ONE concrete idea / ticket / brief. Run the deep single-PBI track: idea → spec-discovery → refine → spec [mode=draft] → spec [mode=tests] → review-artifact --type=spec-tests → spec-clarify → domain-analysis → plan → plan-review → plan-validate → PBI → stories → challenge → DoR → mockup → design-spec → prioritize. SKIP brainstorm, web-research, and deep-research.
+- MULTI-OPPORTUNITY DISCOVERY MODE — input is a raw product vision / problem statement spanning multiple opportunities. Run brainstorm (optionally web-research → deep-research up front to inform framing) → RICE opportunity map → user multi-select → spec-discovery (ONCE, shared across opportunities) → a LIGHT per-opportunity PBI loop (idea → refine → review-artifact --type=pbi → story → review-artifact --type=story → pbi-challenge → dor-gate → pbi-mockup → design-spec), then cross-PBI prioritize. The spec [mode=draft] Feature Spec authoring step, the spec [mode=tests] step, the spec-clarify validation gate, and the plan/plan-review/plan-validate cycle are SINGLE-PBI-DEEP-MODE ONLY — NEVER run them per opportunity (they would multiply N× and stall discovery). domain-analysis runs ONCE up front (shared across opportunities), not per opportunity.
 When the input is ambiguous (single concrete ask vs broad vision), ask via ask the user directly before step 1.
 
 MANDATORY IMPORTANT MUST ATTENTION RULES:
@@ -865,7 +865,7 @@ MANDATORY IMPORTANT MUST ATTENTION RULES:
 3. why-review runs after refine, after spec [mode=tests], after domain-analysis, after plan-validate, and after story. The standalone gate after review-artifact --type=pbi is omitted because review-artifact --type=pbi (like every review skill) self-invokes $why-review --validate-findings internally as a Findings Validation Gate. Each gate validates WHY before the next artifact step proceeds. FAIL blocks the next artifact step; WARN requires user acknowledgment.
 4. spec [mode=draft] authors the canonical tech-free 8-section Feature Spec §1-7 (idea-sourced, provisional: true, §8 Evidence: TBD) right after refine, then spec [mode=tests] and review-artifact --type=spec-tests run on that draft (BEFORE the PBI is drafted) so the idea is captured as a §1-7 Feature Spec plus testable §8 TC specifications first; spec-clarify (SINGLE-PBI DEEP MODE ONLY) then validates those §8 test-spec decisions with the user — ask the user directly on every NON-OBVIOUS / CONFLICTS / high-impact decision — BEFORE domain-analysis and decomposition build on them; domain-analysis and plan/plan-review/plan-validate (grafted from the spec-to-pbi analytical half), then the PBI and stories, are derived FROM those specs (idea → draft Feature Spec → test specs → from those specs to PBI)
 5. pbi-challenge is run by a reviewer different from the drafter — confirm reviewer identity before that step
-6. dor-gate must pass (PASS or WARN) before pbi-mockup is finalized
+6. dor-gate must pass (PASS or WARN) before pbi-mockup is finalized. For UI PBIs, pbi-mockup AND design-spec both run (mockup first, then UI specs) so the PBI carries a faithful HTML mockup that matches the current UI system PLUS tech-agnostic UI specs — both are CONDITIONAL and SKIP for backend-only PBIs (state the skip reason). Both are gated by the existing-UI-research protocol (SYNC:existing-ui-research) so they faithfully match existing screens/components and connected flows. The code-producing design lanes (design --lane=...) are reference-only and are NOT part of this workflow.
 7. Save artifacts at every step to the workflow artifact paths used by the child skills. If artifact roots become configurable later, update the workflow and child skills in the same change.
 8. Write output IMMEDIATELY after each step — never batch
 9. Run docs-update after prioritize and before workflow-end so specs, workflow-feature docs, and TDD/spec docs stay synchronized
@@ -900,7 +900,8 @@ After workflow activation, present the full step list and let user deselect irre
 - [x] Story review (review-artifact --type=story)
 - [x] Dev BA PIC challenge (pbi-challenge)
 - [x] Definition of Ready gate (dor-gate)
-- [x] PBI mockup/wireframe (pbi-mockup) — CONDITIONAL: skip for backend-only PBIs
+- [x] PBI mockup/wireframe (pbi-mockup) — CONDITIONAL: skip for backend-only PBIs; the mockup MUST faithfully match the current UI system (gated by existing-UI-research)
+- [x] UI design spec (design-spec) — CONDITIONAL: skip for backend-only PBIs; authors the PBI's tech-agnostic UI specs right after the mockup so every UI PBI carries BOTH a faithful mockup AND UI specs (both gated by SYNC:existing-ui-research)
 - [x] Backlog prioritization (prioritize)
 - [x] Documentation synchronization (docs-update) — near-final sync for specs, workflow-feature docs, and TDD/spec docs
 
@@ -925,7 +926,7 @@ SPEC-CLARIFY VALIDATION GATE (SINGLE-PBI DEEP MODE ONLY — after review-artifac
 Once the §8 test specs are authored and reviewed, spec-clarify validates the decisions encoded in them WITH the user before any domain/plan/decomposition work builds on them. Context = TEST-SPEC (a refined idea + drafted §1-7 Feature Spec + §8 TCs): it walks the applicable validation categories (business rules/invariants the §8 set assumes, test-case coverage gaps, cross-spec conflicts vs the spec-discovery landscape), classifies each surfaced decision OBVIOUS / NON-OBVIOUS / CONFLICTS, and asks the user (ask the user directly, ≤4 options per call, recommended first, multiple calls as needed) to confirm every NON-OBVIOUS + CONFLICTS + high-impact decision. Confirmed answers are written back into the refined idea / §8 + a Decisions Log; residual <80%-confidence items become Open Questions. NEVER runs in MULTI-OPPORTUNITY DISCOVERY MODE (the light per-opportunity loop excludes it). Spec Validation: questions=3-6 (TEST-SPEC context budget — ask ≥3 only when ≥3 genuine decisions surface; never invent filler to hit the minimum).
 
 MULTI-OPPORTUNITY DISCOVERY LOOP (DISCOVERY MODE core mechanic — folded in from product discovery):
-The $brainstorm step produces a RICE-scored opportunity map — typically 3–8 opportunities. Present it to the user (ask the user directly, multiSelect: true): 'Which opportunities should we develop into PBIs?'. Run the OPPORTUNITY-MAP WHY-REVIEW gate (below) BEFORE the loop. Then for EACH selected opportunity, run this LIGHT loop (8 steps — NO spec [mode=draft], NO spec [mode=tests], NO spec-clarify, NO plan/plan-review/plan-validate; domain-analysis already ran once up front):
+The $brainstorm step produces a RICE-scored opportunity map — typically 3–8 opportunities. Present it to the user (ask the user directly, multiSelect: true): 'Which opportunities should we develop into PBIs?'. Run the OPPORTUNITY-MAP WHY-REVIEW gate (below) BEFORE the loop. Then for EACH selected opportunity, run this LIGHT loop (9 steps — NO spec [mode=draft], NO spec [mode=tests], NO spec-clarify, NO plan/plan-review/plan-validate; domain-analysis already ran once up front):
   1. $idea — capture as a structured artifact
   2. $refine — PBI with hypothesis, AC, RICE, GIVEN/WHEN/THEN
   3. $review-artifact --type=pbi — BA quality check
@@ -933,10 +934,11 @@ The $brainstorm step produces a RICE-scored opportunity map — typically 3–8 
   5. $review-artifact --type=story — story quality check
   6. $pbi-challenge — Dev BA PIC review (reviewer ≠ drafter)
   7. $dor-gate — INVEST + DoR pass/fail
-  8. $pbi-mockup — wireframe (SKIP for backend-only PBIs)
+  8. $pbi-mockup — wireframe, faithfully matching the current UI system (SKIP for backend-only PBIs)
+  9. $design-spec — tech-agnostic UI specs for the PBI (SKIP for backend-only PBIs)
 After ALL opportunities are processed: run $prioritize across all PBIs (cross-PBI).
 
-TASK DECOMPOSITION GATE (DISCOVERY MODE): After the user selects opportunities, call task tracking for EVERY task (N opportunities × 8 loop steps = N×8 tasks min) BEFORE processing any opportunity — do NOT start the loop without a complete task list.
+TASK DECOMPOSITION GATE (DISCOVERY MODE): After the user selects opportunities, call task tracking for EVERY task (N opportunities × 9 loop steps = N×9 tasks min) BEFORE processing any opportunity — do NOT start the loop without a complete task list.
 
 SCALE MANAGEMENT (DISCOVERY MODE): For 6+ selected opportunities, spawn one sub-agent per opportunity (each gets brainstorm context + its task list); the main context runs $prioritize at the end. After every 3 opportunities, update the session summary table.
 
@@ -971,7 +973,7 @@ UNIVERSAL RULES:
 ### workflow-idea-to-spec — Idea to Feature Spec
 - Description: Idea-to-spec — turns a raw idea/vision/problem statement into ONE canonical, provisional Feature Spec (the tech-free 8-section spec + §8 test specs at docs/specs/{Bucket}/README.{Feature}.md, Evidence: TBD until code lands). STOPS at the reviewed Feature Spec — it does NOT produce a PBI backlog. For a backlog, chain workflow-spec-to-pbi afterward. For code→spec (implementation already exists) use workflow-code-to-spec.
 - When To Use: PO/BA wants to turn a raw product idea, vision, or problem statement into ONE canonical (provisional) Feature Spec — spec-driven: idea → framing → Feature Spec (the tech-free 8-section spec + §8 test specs, Evidence: TBD until code lands). STOPS at the reviewed Feature Spec; for a PBI backlog chain workflow-spec-to-pbi next, or use workflow-idea-to-pbi for idea → full backlog in one pass
-- Sequence: `web-research -> deep-research -> brainstorm -> spec-discovery -> domain-analysis -> why-review -> idea -> spec [mode=draft] -> spec [mode=tests] -> review-artifact --type=spec-tests -> review-artifact -> spec-clarify -> why-review -> docs-update -> workflow-end -> watzup`
+- Sequence: `web-research -> deep-research -> brainstorm -> spec-discovery -> domain-analysis -> why-review -> idea -> spec [mode=draft] -> spec [mode=tests] -> review-artifact --type=spec-tests -> review-artifact -> design-spec -> spec-clarify -> why-review -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -984,7 +986,7 @@ MANDATORY IMPORTANT MUST ATTENTION RULES:
 3. (CONDITIONAL) $web-research then $deep-research run BEFORE $brainstorm to gather external market / competitor / best-practice evidence that FEEDS the framing — AUTO-SKIP both for internal tools / well-understood domains (record the skip reason); $deep-research runs only when $web-research ran. $brainstorm then frames the idea (problem framing → opportunity framing → convergence), informed by that evidence when present, and converges on the SINGLE feature/capability to spec. If multiple distinct capabilities emerge, confirm scope with the user and author one Feature Spec per capability (sub-agent per capability for 4+).
 4. SPEC-DRIVEN MANDATE: the idea is authored as a canonical Feature Spec via $spec [mode=draft] (idea-sourced, no code yet → §8 Evidence: TBD, provisional marker), then §8 test specs via $spec [mode=tests], then reviewed. NEVER skip the Feature Spec.
 5. PROVISIONAL OUTPUT: because no code exists yet, the spec is provisional — §8 TCs carry Evidence: TBD and Status: Planned, and the spec frontmatter carries provisional: true. The first workflow-code-to-spec / spec [mode=update] run against real code upgrades TBD → real [Source:] anchors and clears the provisional flag.
-6. NO BACKLOG: this workflow produces the Feature Spec only — no PBI/story/DoR/wireframe/prioritize. Those belong to workflow-spec-to-pbi (chain it next) or workflow-idea-to-pbi (idea → full backlog one-shot).
+6. NO BACKLOG: this workflow produces the Feature Spec (plus, for UI ideas, its tech-agnostic UI design specs via $design-spec) only — no PBI/story/DoR/mockup/prioritize. $design-spec authors UI SPECS ONLY (no HTML mockup, no backlog) so the spec-only contract holds; the mockup + full backlog belong to workflow-spec-to-pbi (chain it next) or workflow-idea-to-pbi (idea → full backlog one-shot).
 
 STEP SELECTION GATE:
 After workflow activation, auto-select the applicable steps and skip irrelevant conditional steps. Default step set:
@@ -999,6 +1001,7 @@ After workflow activation, auto-select the applicable steps and skip irrelevant 
 - [x] Feature Spec test specs (spec [mode=tests]) — author §8 TC-{FEATURE}-{NNN} behavioral test cases (Evidence: TBD, Status: Planned)
 - [x] Test-spec review (review-artifact --type=spec-tests)
 - [x] Feature Spec review (review-artifact) — quality-check the authored Feature Spec
+- [x] UI design spec (design-spec) — CONDITIONAL, UI ideas only: author tech-agnostic UI specs for the spec'd capability; NO mockup, NO PBI/backlog (spec-only contract preserved); gated by SYNC:existing-ui-research so specs faithfully match the current UI system. SKIP for backend-only ideas
 - [x] Spec clarification (spec-clarify) — review the authored spec vs the discovered system, brainstorm open questions, audit every hypothesis/decision (OBVIOUS / NON-OBVIOUS / CONFLICTS), and ask the user (ask the user directly) to confirm every non-obvious decision before the spec is finalized
 - [x] Why-Review (why-review) — validate the authored spec's rationale + completeness
 - [x] Docs sync (docs-update) — sync Feature Spec (§8) and derived bucket indexes
@@ -1015,9 +1018,10 @@ SPEC AUTHORING FLOW (core mechanic — idea → provisional Feature Spec):
   9. Run $spec [mode=tests] to author §8 TC-{FEATURE}-{NNN} behavioral test cases (Evidence: TBD, Status: Planned — pure behavior, before any code).
   10. Run $review-artifact --type=spec-tests — test-spec quality check.
   11. Run $review-artifact — Feature Spec quality check.
-  12. Run $spec-clarify (AUTHORED-SPEC context) to validate the freshly-authored spec vs the discovered system: walk EVERY applicable validation category (scope & boundaries, actors/roles/permissions, business rules/invariants, data model/lifecycle/states, process/edge/error flows, acceptance-criteria completeness, §8 TC coverage, cross-spec conflicts, non-functional), classify every hypothesis/decision (OBVIOUS / NON-OBVIOUS / CONFLICTS), brainstorm open questions, then a BLOCKING clarification gate that asks the user (ask the user directly) to confirm every NON-OBVIOUS + CONFLICTS + high-impact decision within the budget; confirmed answers are written back into §1-8 + a Decisions Log. Loops $spec [mode=update] when material gaps are found.
-  13. Run $why-review — validate the authored spec's rationale and completeness.
-  14. Run $docs-update to sync the Feature Spec (§8) and derived bucket indexes.
+  12. (CONDITIONAL — UI ideas only) Run $design-spec to author the idea's tech-agnostic UI specs — UI-spec author ONLY: NO mockup, NO PBI/backlog (the spec-only contract is preserved). Gated by the existing-UI-research protocol (SYNC:existing-ui-research) so the specs faithfully match the current UI system's existing screens/components and connected flows. SKIP for backend-only ideas (record the skip reason).
+  13. Run $spec-clarify (AUTHORED-SPEC context) to validate the freshly-authored spec vs the discovered system: walk EVERY applicable validation category (scope & boundaries, actors/roles/permissions, business rules/invariants, data model/lifecycle/states, process/edge/error flows, acceptance-criteria completeness, §8 TC coverage, cross-spec conflicts, non-functional), classify every hypothesis/decision (OBVIOUS / NON-OBVIOUS / CONFLICTS), brainstorm open questions, then a BLOCKING clarification gate that asks the user (ask the user directly) to confirm every NON-OBVIOUS + CONFLICTS + high-impact decision within the budget; confirmed answers are written back into §1-8 + a Decisions Log. Loops $spec [mode=update] when material gaps are found.
+  14. Run $why-review — validate the authored spec's rationale and completeness.
+  15. Run $docs-update to sync the Feature Spec (§8) and derived bucket indexes.
 
 BRAINSTORM STEP REQUIREMENTS:
 - Detect scenario: problem-solving vs new product vs enhancement
@@ -1346,7 +1350,7 @@ UNIVERSAL RULES:
 
 Session-start reference derived from `.claude/workflows.json` — use it to pick a route on any prompt: run a standard workflow, compose a custom workflow from the step-skills, invoke a single skill, or execute directly.
 
-### Workflow Skills (53 composable steps)
+### Workflow Skills (54 composable steps)
 
 Distinct step-skills used across the workflows above — compose these into a custom workflow when no standard workflow fits.
 
@@ -1359,6 +1363,7 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `code-simplifier` | [Code Quality] Use when you need to simplify and refine code for clarity, consistency, and maintainability while preserving all functionality. |
 | `debug-investigate` | [Fix & Debug] Use when investigating a bug''s root cause — reproduce the symptom, trace it end-to-start through the code, form and test hypotheses, and pinpoint the defect before any fix. |
 | `deep-research` | [Research] Use when deeply researching top sources from web-research. |
+| `design-spec` | [Project Management] Use when you need to create UI/UX design specifications from requirements, PBIs, or user stories. Use --mode=wireframe to convert hand-drawn/digital wireframes or UI sketches into structured specs. |
 | `docs-update` | [Documentation] Use when updating impacted documentation after code, spec, or test changes. |
 | `domain-analysis` | [Architecture] Use when you need to analyze business domain: bounded contexts, aggregates, entities, ERD, domain events, and cross-context integration. |
 | `dor-gate` | [Code Quality] Use when you need to validate a PBI against Definition of Ready before grooming. |

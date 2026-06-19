@@ -833,24 +833,12 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
 
-
 <!-- SYNC:nested-task-creation:reminder -->
 
 - **MANDATORY** Parent workflow rows do not replace child phase tracking; expand phases and link the parent when nested.
 - **MANDATORY** Orchestrators pre-expand child skill phases before invocation; use `[N.M] $skill-name — phase` prefixes and one-`in_progress` discipline.
 
 <!-- /SYNC:nested-task-creation:reminder -->
-
-<!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
-
-## Prompt-Enhance Closing Anchors
-
-**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
-**IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
-**IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
-**IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses
-
-<!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 
 <!-- SYNC:systematic-review-batching:reminder -->
 
@@ -872,6 +860,17 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 - **MANDATORY** Derive each category's concerns from first principles with `file:line` evidence — never a fixed checklist.
 
 <!-- /SYNC:category-review-thinking:reminder -->
+
+<!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
+
+## Prompt-Enhance Closing Anchors
+
+**IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
+**IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
+**IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
+**IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses
+
+<!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 
 ## Closing Reminders
 

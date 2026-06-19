@@ -399,11 +399,6 @@ Rules:
 
 <!-- /SYNC:understand-code-first -->
 
-<!-- SYNC:evidence-based-reasoning:reminder -->
-
-- **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% = do NOT recommend.
-<!-- /SYNC:evidence-based-reasoning:reminder -->
-
 <!-- SYNC:design-patterns-quality -->
 
 > **Design Patterns Quality** — Priority checks for every code change:
@@ -505,6 +500,11 @@ Rules:
 
 <!-- /SYNC:severity-rubric -->
 
+<!-- SYNC:evidence-based-reasoning:reminder -->
+
+- **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% = do NOT recommend.
+<!-- /SYNC:evidence-based-reasoning:reminder -->
+
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
@@ -523,6 +523,13 @@ Rules:
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
+<!-- SYNC:severity-rubric:reminder -->
+
+- **MANDATORY** Classify findings Critical/High/Medium/Low by consequence; Critical/High block PASS until fixed or owner-accepted.
+- **MANDATORY** Score-based skills (sre 0-2, perf two-axis) map onto the same four tiers — no parallel severity vocabulary.
+
+<!-- /SYNC:severity-rubric:reminder -->
+
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
 
 ## Prompt-Enhance Closing Anchors
@@ -533,13 +540,6 @@ Rules:
 **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
-
-<!-- SYNC:severity-rubric:reminder -->
-
-- **MANDATORY** Classify findings Critical/High/Medium/Low by consequence; Critical/High block PASS until fixed or owner-accepted.
-- **MANDATORY** Score-based skills (sre 0-2, perf two-axis) map onto the same four tiers — no parallel severity vocabulary.
-
-<!-- /SYNC:severity-rubric:reminder -->
 
 ## Closing Reminders
 

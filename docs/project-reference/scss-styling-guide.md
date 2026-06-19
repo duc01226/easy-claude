@@ -15,7 +15,7 @@ This placeholder exists so that `/scan-scss-styling` has a known output location
 
 easy-claude includes skill definitions that guide SCSS work in **other** projects — not in this repository:
 
-- **Skills:** `/frontend-design`, `/design-spec`, `/web-design-guidelines`
+- **Skills:** `/design`, `/design-spec`, `/web-design-guidelines`
 - **Shared protocols:** `design-system-check.md`, `ui-system-context.md`
 - **Scan skill:** `/scan-scss-styling` — run this after adopting easy-claude into a project that uses SCSS to populate this file with mixins, variables, theming conventions, and responsive breakpoints.
 

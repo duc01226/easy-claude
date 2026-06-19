@@ -41,7 +41,7 @@ Reference guide for naming Claude Code skills consistently in YourProject.
 
 **When to Use:**
 
-- `frontend-design` — for UI implementation
+- `design` — for UI implementation (`--lane=marketing` creative, `--lane=product` app UIs)
 - `web-design-guidelines` — for UI compliance review
 - Pattern reference docs — auto-injected when editing `.ts` files
 - Implements YourProject frontend patterns
@@ -113,7 +113,7 @@ Reference guide for naming Claude Code skills consistently in YourProject.
 | Redundant suffix               | `debugging-skill`               | `debug-investigate`                 |
 | Mixed case                     | `DebugHelper`                   | `debug-helper`                      |
 | Underscores                    | `task_runner`                   | `task-runner`                       |
-| Overly specific                | `angular-19-nx-component`       | `frontend-design`                   |
+| Overly specific                | `angular-19-nx-component`       | `design`                            |
 | No variant reference           | Missing cross-link              | Add blockquote                      |
 | Shared module < 3 consumers    | Extracting for 2 skills         | Keep inline until 3+                |
 | Over-extraction to references/ | Moving core logic to references | Keep essential patterns in SKILL.md |

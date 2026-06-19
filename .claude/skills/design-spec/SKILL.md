@@ -51,7 +51,7 @@ Create structured UI/UX design specification documents from requirements or PBIs
 ## When NOT to Use
 
 - This skill auto-routes Figma URLs to `/figma-design`; wireframes are handled internally via `--mode=wireframe` — no need to call a separate skill
-- Building the actual UI -- use `frontend-design`
+- Building the actual UI -- use `design --lane=marketing` (marketing/creative) or `design --lane=product` (product UIs)
 - Reviewing existing UI code -- use `web-design-guidelines`
 
 ## Prerequisites
@@ -71,6 +71,8 @@ Read before executing:
 - Design system tokens: `docs/project-reference/design-system/README.md`
 
 ## Workflow
+
+> **[BLOCKING] Step 0 — Inventory existing UI + map connected flows** (per the `SYNC:existing-ui-research` protocol carried by this skill). Before authoring the spec, inventory the existing related screens / components / pages already serving this feature or domain, and map every connected feature flow that links to / embeds / navigates to-or-from the new screen. Record the matched screens + flows in §1 Overview so the spec faithfully matches the current UI system. Skip only for backend-only work (state it explicitly).
 
 1. **Read source input & route by type**
 
@@ -345,10 +347,10 @@ For an accessibility-audit deliverable, produce this checklist report and save i
 
 | Skill                   | When to use instead                  |
 | ----------------------- | ------------------------------------ |
-| `figma-design`          | Extract specs from Figma designs     |
-| `frontend-design`       | Build the actual UI implementation   |
-| `interface-design`      | Product UI design (dashboards, apps) |
-| `web-design-guidelines` | Review existing UI for compliance    |
+| `figma-design`            | Extract specs from Figma designs        |
+| `design --lane=marketing` | Build marketing/creative UI             |
+| `design --lane=product`   | Build product UI (dashboards, apps)     |
+| `web-design-guidelines`   | Review existing UI for compliance       |
 
 ---
 
@@ -356,12 +358,25 @@ For an accessibility-audit deliverable, produce this checklist report and save i
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use `AskUserQuestion` to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
 >
-> 1. **Run the design sequence** (Recommended) — `/design-spec` → `/interface-design` (product UIs) or `/frontend-design` (marketing/creative) → `/workflow-review-changes`
+> 1. **Run the design sequence** (Recommended) — `/design-spec` → `/design --lane=product` (product UIs) or `/design --lane=marketing` (marketing/creative) → `/workflow-review-changes`
 > 2. **Execute `/design-spec` directly** — run this skill standalone
 
 ---
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
+
+<!-- SYNC:existing-ui-research -->
+
+> **[BLOCKING] Understand the existing UI before you design or spec a new/updated screen.** Before producing any wireframe, mockup, screen design, or UI spec:
+>
+> 1. **Inventory existing related UI** — search the project for screens, pages, and components already serving this feature or its domain (consult design-system docs + the real component inventory).
+> 2. **Map connected flows** — identify every feature that links to, embeds, includes, or navigates to/from the new screen; trace its entry and exit flows so the new screen fits them.
+> 3. **Reuse before invent** — prefer existing components, patterns, and layout conventions; justify any new component against what already exists.
+> 4. **Record findings** — note the matched existing screens/components + connected flows in the artifact so downstream design faithfully matches the current UI system.
+>
+> **Skip ONLY** when the feature is backend-only (no UI) — state that explicitly.
+
+<!-- /SYNC:existing-ui-research -->
 
 <!-- SYNC:ai-mistake-prevention -->
 

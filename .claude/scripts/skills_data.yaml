@@ -278,9 +278,10 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Design] Create or describe a UI design — quick (fast), immersive
-    (good), or recreated/described from a screenshot or video. Dispatch via --mode={fast|good|describe|screenshot|video}
-    (default fast).'
-  has_references: false
+    (good), or recreated/described from a screenshot or video, in a product-UI or
+    marketing/creative lane. Dispatch via --mode={fast|good|describe|screenshot|video}
+    (default fast) and --lane={product|marketing} (default product).'
+  has_references: true
   has_scripts: false
   name: design
   path: design/SKILL.md
@@ -467,17 +468,6 @@
   path: fix/SKILL.md
   removal_after: null
   status: active
-- category: frontend
-  deprecated_by: null
-  deprecated_since: null
-  description: '[Frontend] Use when you need to create distinctive, production-grade
-    frontend interfaces with high design quality.'
-  has_references: true
-  has_scripts: false
-  name: frontend-design
-  path: frontend-design/SKILL.md
-  removal_after: null
-  status: active
 - category: other
   deprecated_by: null
   deprecated_since: null
@@ -646,17 +636,6 @@
   has_scripts: false
   name: integration-test-verify
   path: integration-test-verify/SKILL.md
-  removal_after: null
-  status: active
-- category: frontend
-  deprecated_by: null
-  deprecated_since: null
-  description: '[Frontend] Use when you need interface design for product UIs — dashboards,
-    admin panels, SaaS apps, tools.'
-  has_references: true
-  has_scripts: false
-  name: interface-design
-  path: interface-design/SKILL.md
   removal_after: null
   status: active
 - category: other

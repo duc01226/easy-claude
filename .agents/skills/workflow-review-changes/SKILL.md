@@ -308,6 +308,8 @@ Main Session: Review → Validate findings → Plan → Fix ($plan-execute) → 
 
 Activate the `workflow-review-changes` workflow. Run `$start-workflow workflow-review-changes` with the user's prompt as context.
 
+> **Applicability in this workflow (reconciles with step 12):** the canonical block below is the general fresh-context mechanism. In `workflow-review-changes` the **step-12 post-fix re-review applies its _principle_ — zero memory, re-read the full diff from scratch, no self-filtering — INLINE in the main session** (the deliberate cost tradeoff documented at step 12), NOT via an isolated sub-agent. The isolated-sub-agent form below governs (a) the parallel dimensional reviewers in steps 3–7 (already sub-agents) and (b) the case where this entire workflow is invoked as a sub-agent inside a parent workflow. So "with isolated sub-agents **where applicable**" resolves to *inline* for the step-12 self-re-review — no contradiction.
+
 <!-- SYNC:parallel-phase-advancement -->
 
 > **Parallel-Phase Advancement (model-driven)** — How to run AND advance a declared parallel batch of workflow steps. Tool-agnostic: identical under Claude and Codex — neither depends on a hook. Mirrors the universal context-file rule ("Workflow Step Advancement & Parallel Phases" in CLAUDE.md / AGENTS.md).
@@ -339,8 +341,6 @@ Activate the `workflow-review-changes` workflow. Run `$start-workflow workflow-r
 > **NEVER:** Start at the first suspicious code path. Collapse multiple producers into one "flow". Treat duplicate symptoms as duplicate records without proving the read model. Skip ruled-out hypotheses.
 
 <!-- /SYNC:end-to-start-debugger-trace -->
-
-> **Applicability in this workflow (reconciles with step 12):** the canonical block below is the general fresh-context mechanism. In `workflow-review-changes` the **step-12 post-fix re-review applies its _principle_ — zero memory, re-read the full diff from scratch, no self-filtering — INLINE in the main session** (the deliberate cost tradeoff documented at step 12), NOT via an isolated sub-agent. The isolated-sub-agent form below governs (a) the parallel dimensional reviewers in steps 3–7 (already sub-agents) and (b) the case where this entire workflow is invoked as a sub-agent inside a parent workflow. So "with isolated sub-agents **where applicable**" resolves to *inline* for the step-12 self-re-review — no contradiction.
 
 <!-- SYNC:fresh-context-review -->
 
@@ -505,7 +505,6 @@ Activate the `workflow-review-changes` workflow. Run `$start-workflow workflow-r
 - **MANDATORY** If project config, root instruction files, or any required reference doc is missing or stale, auto-run `$project-init` or the narrow lower-level route before ordinary project-specific work.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
-
 
 <!-- SYNC:end-to-start-debugger-trace:reminder -->
 

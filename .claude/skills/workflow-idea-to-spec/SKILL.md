@@ -85,6 +85,7 @@ These steps run in sequence. **Spec-driven order: idea → draft Feature Spec �
 | `/spec [mode=tests]`                 | Author §8 TC-{FEATURE}-{NNN} behavioral test cases (`Evidence: TBD`, `Status: Planned` — before any code)                | Feature Spec §8 Test Specifications             |
 | `/review-artifact --type=spec-tests` | Test-spec quality check                                                                                                  | Reviewed §8 TCs                                 |
 | `/review-artifact`                   | Feature Spec quality check                                                                                               | Reviewed Feature Spec                           |
+| `/design-spec`                       | UI ideas only — author tech-agnostic UI specs (NO mockup/backlog; spec-only contract preserved); gated by `SYNC:existing-ui-research`. Skip for backend-only ideas | UI design specs                                 |
 | `/spec-clarify`                     | Brainstorm open questions, audit non-obvious decisions, confirm with user (BLOCKING)                                     | Clarified spec + Decisions Log                  |
 | `/why-review`                        | Validate the authored spec's rationale and completeness                                                                  | Why-Review checklist                            |
 | `/docs-update`                       | Sync the Feature Spec (§8) and derived bucket indexes                                                                    | Docs-update report                              |
@@ -109,14 +110,14 @@ At `/workflow-end`, AI presents:
 
 ---
 
-**IMPORTANT MANDATORY Steps:** /web-research -> /deep-research -> /brainstorm -> /spec-discovery -> /domain-analysis -> /why-review -> /idea -> /spec [mode=draft] -> /spec [mode=tests] -> /review-artifact --type=spec-tests -> /review-artifact -> /spec-clarify -> /why-review -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /web-research -> /deep-research -> /brainstorm -> /spec-discovery -> /domain-analysis -> /why-review -> /idea -> /spec [mode=draft] -> /spec [mode=tests] -> /review-artifact --type=spec-tests -> /review-artifact -> /design-spec -> /spec-clarify -> /why-review -> /docs-update -> /workflow-end -> /watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
 Activate the `workflow-idea-to-spec` workflow. Run `/start-workflow workflow-idea-to-spec` with the user's prompt as context.
 
 **Steps:**
-/web-research → /deep-research → /brainstorm → /spec-discovery → /domain-analysis → /why-review → /idea → /spec [mode=draft] → /spec [mode=tests] → /review-artifact --type=spec-tests → /review-artifact → /spec-clarify → /why-review → /docs-update → /workflow-end → /watzup
+/web-research → /deep-research → /brainstorm → /spec-discovery → /domain-analysis → /why-review → /idea → /spec [mode=draft] → /spec [mode=tests] → /review-artifact --type=spec-tests → /review-artifact → /design-spec → /spec-clarify → /why-review → /docs-update → /workflow-end → /watzup
 
 > **Scale awareness:** When the brainstorm converges on multiple distinct capabilities, this workflow authors one Feature Spec per capability. For 4+ capabilities, spawn one `spec` sub-agent per capability in ONE message (each gets the framing context + output path); the main context assembles and reviews. Use incremental-write patterns to prevent context overrun.
 

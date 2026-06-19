@@ -218,6 +218,19 @@
 
 ---
 
+## SYNC:existing-ui-research
+
+> **[BLOCKING] Understand the existing UI before you design or spec a new/updated screen.** Before producing any wireframe, mockup, screen design, or UI spec:
+>
+> 1. **Inventory existing related UI** — search the project for screens, pages, and components already serving this feature or its domain (consult design-system docs + the real component inventory).
+> 2. **Map connected flows** — identify every feature that links to, embeds, includes, or navigates to/from the new screen; trace its entry and exit flows so the new screen fits them.
+> 3. **Reuse before invent** — prefer existing components, patterns, and layout conventions; justify any new component against what already exists.
+> 4. **Record findings** — note the matched existing screens/components + connected flows in the artifact so downstream design faithfully matches the current UI system.
+>
+> **Skip ONLY** when the feature is backend-only (no UI) — state that explicitly.
+
+---
+
 ## SYNC:plan-quality
 
 > **Plan Quality** — Every plan phase MUST ATTENTION include test specifications.
@@ -769,7 +782,7 @@
 > 1. **User story template** — "As a {role}, I want {goal}, so that {benefit}" format
 > 2. **AC testable & unambiguous** — GIVEN/WHEN/THEN. No "should/might/TBD/various/appropriate". Min 3 scenarios (happy, edge, error) + 1 auth scenario
 > 3. **Wireframes attached** — UI features: `## UI Layout` with wireframe + components + states + tokens. Backend-only: explicit "N/A"
-> 4. **UI design ready** — Visual design + component decomposition tree. Backend-only: "N/A"
+> 4. **UI design ready** — Visual design + component decomposition tree + design-spec linked (`/design-spec` artifact or inline UI specs in `## UI Layout`) for any PBI with UI work. Backend-only: "N/A"
 > 5. **AI pre-review passed** — `/review-artifact --type=pbi` or `/pbi-challenge` returned PASS or WARN (not FAIL)
 > 6. **Story points estimated** — Fibonacci 1-21 + complexity (Low/Medium/High). >13 SP → recommend split
 > 7. **Dependencies table complete** — Dependency, Type (must-before/can-parallel/blocked-by/independent), Status

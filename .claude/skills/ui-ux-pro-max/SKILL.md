@@ -260,8 +260,8 @@ Before delivering UI code, verify these items:
 
 ## Related
 
-- `frontend-design`
-- `interface-design` — Product UIs (dashboards, admin panels, SaaS apps)
+- `design --lane=marketing` — Marketing/creative UI (landing pages, campaigns)
+- `design --lane=product` — Product UIs (dashboards, admin panels, SaaS apps)
 - `shadcn-tailwind`
 - `design-spec`
 

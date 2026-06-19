@@ -172,9 +172,11 @@ If no UI sections exist (backend-only PBI), inform user and skip mockup generati
 
 4. Optionally read `docs/project-reference/scss-styling-guide.md` (first 100 lines) for BEM patterns
 
-### Step 3b: Load Existing UI Components (match current system UI)
+### Step 3b: [BLOCKING] Inventory Existing UI + Map Connected Flows (match current system UI)
 
-The mockup should resemble the project's actual UI, not generic HTML. Discover existing components:
+> **[BLOCKING] Do NOT generate the mockup until this inventory + connected-flow map is done** (canonical: `SYNC:existing-ui-research`). The mockup must faithfully match the current UI system, not generic HTML.
+
+The mockup should resemble the project's actual UI, not generic HTML. Discover existing components AND map the flows that connect to this screen:
 
 1. Read `docs/project-reference/frontend-patterns-reference.md` (first 200 lines) — extract base component classes, common UI patterns, form patterns, table/grid patterns, dialog/modal patterns
 2. Glob the project's shared component library (if exists):
@@ -188,6 +190,7 @@ The mockup should resemble the project's actual UI, not generic HTML. Discover e
     - **Common components:** Table with pagination, filter bar, action buttons, status chips, breadcrumbs
     - **Form patterns:** Form groups, validation display, multi-step forms
     - **Navigation:** Tab bars, breadcrumbs, sidebar menus
+5. **Map connected feature flows** — identify every existing feature/screen that links to, embeds, includes, or navigates to/from this new screen; note the entry/exit flows so the mockup fits the surrounding navigation, not just a standalone page.
 
 > **Key principle:** Mimic existing system UI. If the project has a table with specific column patterns, use that pattern. If it has card-based layouts, use cards. The mockup should feel like it belongs in the existing application.
 
@@ -313,6 +316,27 @@ Open in browser to preview. Use theme toggle for dark/light mode.
 
 ---
 
+### Step 7: [BLOCKING] Fidelity Validation — Mockup Matches Existing UI
+
+> **[BLOCKING] After the HTML is generated, validate it faithfully matches the existing UI inventoried in Step 3b before handing off.** Do NOT report the mockup as done until this validation records a result — a mockup that does not match the current system is not done.
+
+Validate the produced mockup against the inventoried existing UI and record an explicit pass/fail:
+
+1. **Design tokens** — colors, typography, spacing match the project design system (Step 3).
+2. **Component patterns** — tables, forms, dialogs, status chips, and navigation reuse the existing component patterns (Step 3b), not generic HTML.
+3. **Layout/structure** — the screen layout matches the existing pages of the related feature (sidebar / toolbar / card-grid conventions).
+4. **Connected flows** — entry/exit navigation matches the connected feature flows mapped in Step 3b.
+
+Record the outcome in the Step 6 report:
+
+```
+Fidelity vs existing UI: PASS | FAIL — tokens / components / layout / flows matched? If FAIL: what diverged + the fix.
+```
+
+If **FAIL**, revise the mockup to match the existing UI and re-validate before handoff.
+
+---
+
 ## Mockup Quality Checklist
 
 Before completing:
@@ -326,6 +350,7 @@ Before completing:
 - [ ] Realistic placeholder data used (not Lorem ipsum)
 - [ ] PBI metadata shown in header (ID, title, module, date)
 - [ ] File saved alongside the PBI artifact
+- [ ] Fidelity validation (Step 7) recorded PASS — mockup matches existing UI tokens, components, layout, and connected flows
 
 ---
 
@@ -374,6 +399,19 @@ Before completing:
 > **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting.
 
 > **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION — every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% must verify first).
+
+<!-- SYNC:existing-ui-research -->
+
+> **[BLOCKING] Understand the existing UI before you design or spec a new/updated screen.** Before producing any wireframe, mockup, screen design, or UI spec:
+>
+> 1. **Inventory existing related UI** — search the project for screens, pages, and components already serving this feature or its domain (consult design-system docs + the real component inventory).
+> 2. **Map connected flows** — identify every feature that links to, embeds, includes, or navigates to/from the new screen; trace its entry and exit flows so the new screen fits them.
+> 3. **Reuse before invent** — prefer existing components, patterns, and layout conventions; justify any new component against what already exists.
+> 4. **Record findings** — note the matched existing screens/components + connected flows in the artifact so downstream design faithfully matches the current UI system.
+>
+> **Skip ONLY** when the feature is backend-only (no UI) — state that explicitly.
+
+<!-- /SYNC:existing-ui-research -->
 
 <!-- SYNC:ai-mistake-prevention -->
 
