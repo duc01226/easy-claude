@@ -1552,7 +1552,7 @@ TEST SPECIFICATION ARCHITECTURE
 
 ```
 feature:
-  scout → investigate → domain-analysis → why-review → spec →
+  scout → investigate → spec-discovery → domain-analysis → why-review → spec → spec-clarify →
   plan → plan-review → plan-validate → why-review →
   spec [mode=tests] → why-review → review-artifact --type=spec-tests → plan → plan-review →
   feature-implement → review-domain-entities → spec [mode=tests] → why-review → review-artifact --type=spec-tests →

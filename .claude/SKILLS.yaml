@@ -1,10 +1,10 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-06-19'
-  total_skills: 152
+  last_updated: '2026-06-20'
+  total_skills: 153
   total_by_status:
-    active: 151
+    active: 152
     deprecated: 1
     experimental: 0
 categories:
@@ -501,6 +501,18 @@ skills:
       category: other
       has_scripts: false
       has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: feature-presentation
+      path: feature-presentation/SKILL.md
+      description: '[Documentation] Use when you need to synthesize all generated
+        specs, PBIs, ideas and mockups into one standalone HTML slide presentation
+        for stakeholders (PO/BA/Dev/QC).'
+      category: other
+      has_scripts: false
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null

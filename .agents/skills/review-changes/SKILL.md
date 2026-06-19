@@ -61,7 +61,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Summary:** read-this-if-nothing-else digest —
 
 - **Report-driven and evidence-gated.** Every finding is written to `plans/reports/code-review-{date}-{slug}.md` with `file:line` proof; speculation is forbidden, "looks fine" is not a verdict, codebase convention (grep 3+ examples) wins over textbook rules.
-- **Findings are never auto-fixed on sight.** Standalone mode runs validate (Phase 6 `$why-review --validate-findings`, an actual skill call) → fix (Phase 7) → restart `$review-changes` from Phase 0 over the full diff, looping until one whole pass has zero findings. Inside `$workflow-review-changes` you stop after the report and hand findings to the parent.
+- **Self-recursive loop is goal-gated.** Standalone mode's FIRST action (Phase -1) installs a `/goal` Stop-hook condition so stopping is BLOCKED until the loop converges. Findings are never auto-fixed on sight: validate (Phase 6 `$why-review --validate-findings`, an actual skill call) → SELF-FIX (Phase 7) → restart `$review-changes` from Phase 0 over the WHOLE updated diff (combined with prior fixes, not just the last fix), looping until one whole pass has zero findings. Inside `$workflow-review-changes` you skip Phase -1, stop after the report, and hand findings to the parent (which owns the goal).
 - **When code changed, three delegated gates are MANDATORY:** Phase 3.5 `$code-simplifier` (clarity/maintainability), Phase 3.7 `$integration-test-review` Gate-7 coverage (every behavior change → covering test + spec TC), and — for every behavior change — Spec Drift Adjudication + the Dual-Feedback Ledger (the gap feeds BOTH spec AND tests).
 - **Docs-update is the unconditional terminal step.** Once the loop converges clean, Phase 8 `$docs-update` ALWAYS runs over the full changeset (deferred only to the parent inside the workflow).
 
@@ -71,6 +71,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Workflow:**
 
+0. **Phase -1: Self-Recursive Review-Loop Goal Gate (FIRST ACTION — standalone-only)** — Before any other work, in standalone mode invoke the `/goal` command (an ACTUAL call) with a self-recursive review-loop condition so a session Stop hook BLOCKS stopping until the loop converges: *review the full diff → validate findings (Phase 6) → SELF-FIX validated findings (Phase 7) → restart `$review-changes` from Phase 0 over the WHOLE updated diff (combined with the prior fixes, never just re-checking the last fix) → loop until one complete pass has zero findings, then docs-update*. Skip this gate when running as step 1 inside `$workflow-review-changes` (the parent owns the goal). Full procedure in **Phase -1**.
 1. **Phase 0: Blast Radius** — Call `$graph-blast-radius` skill FIRST (if `.code-graph/graph.db` exists)
 2. **Phase 0.3: Change Types** — Detect high-risk change types; create risk tasks
 3. **Phase 0.5: Plan Compliance** — Verify against active plan (conditional)
@@ -99,8 +100,10 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - Cross-reference changed files against related docs — flag stale docs, test specs, READMEs
 - MANDATORY FINAL step: once the review/fix loop converges to zero findings, ALWAYS run the Phase 8 `$docs-update` sweep over the full changeset — unconditional, never skipped on a clean verdict — why: a clean code review still leaves docs stale unless docs-update reconciles them against the actual changes
 - Findings are not eligible for auto-fix until Phase 6 why-review validation returns CLEAN for the current finding set
-- Every fix cycle invalidates the prior review result; restart `$review-changes` from Phase 0 and review the full updated diff, including the fixes
-- Continue review → validate findings → fix → full re-review until a complete review pass returns zero findings; do not add a fresh-context pass just because findings exist or a fix cycle restarted the review
+- FIRST ACTION (standalone): install the Phase -1 `/goal` self-recursive review-loop gate so stopping is mechanically blocked until a complete review pass over the whole diff is clean — soft "loop until clean" prose alone is not enough; the goal gate makes abandoning the loop early impossible
+- After Phase 6 validation, the skill MUST SELF-FIX every validated finding in Phase 7 (standalone) — a surfaced+validated finding that is reported but left unfixed keeps the `/goal` gate open; never hand validated findings back to the user as "recommendations" in standalone mode
+- Every fix cycle invalidates the prior review result; restart `$review-changes` from Phase 0 and review the full updated diff AS A WHOLE FROM THE BEGINNING — combined with the prior fixes, NOT just re-reviewing the previous cycle's fix in isolation
+- Continue review → validate findings → self-fix → full whole-diff re-review until a complete review pass returns zero findings; do not add a fresh-context pass just because findings exist or a fix cycle restarted the review
 
 > **MANDATORY** Plan ToDo Task to discover and READ project-specific reference docs:
 >
@@ -179,9 +182,9 @@ Apply this lens **before** specific rules, patterns, or checklists below. If dow
 
 > Run `python .claude/scripts/code_graph batch-query <f1> <f2> --json` on changed files for test coverage and caller impact.
 
-## Blast Radius Pre-Analysis (MANDATORY FIRST STEP)
+## Blast Radius Pre-Analysis (MANDATORY FIRST REVIEW STEP)
 
-> **IMPORTANT MANDATORY MUST ATTENTION:** FIRST action in every review. Call `$graph-blast-radius` BEFORE any other review work.
+> **IMPORTANT MANDATORY MUST ATTENTION:** FIRST *review* action in every review — only the Phase -1 `/goal` self-recursive loop gate (standalone) precedes it. Call `$graph-blast-radius` BEFORE any other review work.
 
 If `.code-graph/graph.db` exists, run graph-blast-radius analysis before reviewing changes:
 
@@ -202,7 +205,8 @@ For each changed file, trace full impact:
 **MANDATORY FIRST: Create Todo Tasks for Review Phases**
 Before starting, call task tracking with:
 
-- [ ] `[Review Phase 0] Run $graph-blast-radius to analyze change impact` - in_progress **(MUST ATTENTION BE FIRST)**
+- [ ] `[Review Phase -1] Install /goal self-recursive review-loop gate (standalone-only; skip inside $workflow-review-changes)` - in_progress **(MUST ATTENTION BE FIRST)**
+- [ ] `[Review Phase 0] Run $graph-blast-radius to analyze change impact` - pending **(FIRST review step after the goal gate)**
 - [ ] `[Review Phase 0.3] Detect high-risk change types, create risk tasks` - pending
 - [ ] `[Review Phase 0.7] Categorize changed files, create dimension review tasks` - pending
 - [ ] `[Review Phase 0.5] Plan compliance check (skip if no active plan)` - pending
@@ -222,9 +226,32 @@ Update todo status as each phase completes.
 > **Note:** If Phase 1 reveals 10+ changed files, replace Phase 2-4 tasks with Systematic Review Protocol tasks:
 > `[Review Phase 2] Categorize and fire parallel sub-agents`, `[Review Phase 3] Synchronize and cross-reference`, `[Review Phase 3.5] Run $code-simplifier on changed code files`, `[Review Phase 3.7] Run $integration-test-review coverage gate`, `[Review Phase 4] Generate consolidated report`
 
-**Phase 0: Run Graph Blast Radius Analysis (MANDATORY FIRST STEP)**
+**Phase -1: Self-Recursive Review-Loop Goal Gate (FIRST ACTION — standalone-only)**
 
-> **IMPORTANT MANDATORY MUST ATTENTION:** FIRST action before ANY other review work.
+> **IMPORTANT MANDATORY MUST ATTENTION:** This is the VERY FIRST action in standalone mode — before Phase 0, before any git/graph command. Its purpose is to make the review→fix→re-review loop UNABANDONABLE: a session Stop hook blocks stopping until a complete review pass over the whole diff is clean.
+
+**Entry gate:**
+
+- **Run** in standalone invocation (user called `$review-changes` directly).
+- **SKIP** when this skill is invoked as step 1 inside `$workflow-review-changes` — the parent workflow owns the loop goal (its own Phase -1 / step-0 goal gate). Record: `Phase -1 deferred to parent $workflow-review-changes goal gate.`
+
+**Procedure:**
+
+1. Set the `[Review Phase -1]` task to `in_progress`.
+2. **Invoke `/goal`** (the actual built-in command, NOT a paraphrase) with a condition that encodes THIS skill's self-recursive loop, e.g.:
+
+    ```
+    /goal review-changes self-recursive loop: review the full diff → run $why-review --validate-findings on every finding → SELF-FIX each validated finding → restart $review-changes from Phase 0 over the WHOLE updated diff (combined with the prior fixes, not just the last fix) → loop until one complete review pass finds zero findings; only then run the Phase 8 $docs-update. Do not stop while any validated finding is unfixed or any review pass is non-clean.
+    ```
+
+3. The `/goal` Stop hook now blocks stopping until that condition holds and auto-clears when it does — do not tell the user to clear it.
+4. Set the `[Review Phase -1]` task to `completed` and proceed to Phase 0.
+
+> **Why a goal gate, not just prose:** the loop rules below ("restart from Phase 0", "continue until zero findings") are soft directives an agent can rationalize away after one cycle. The `/goal` Stop hook converts them into a mechanical block — the session cannot end with a validated finding still unfixed or a non-clean review pass. — why: a review that reports findings but stops before fixing-and-reproving them ships unreviewed work.
+
+**Phase 0: Run Graph Blast Radius Analysis (MANDATORY FIRST REVIEW STEP)**
+
+> **IMPORTANT MANDATORY MUST ATTENTION:** FIRST review step, after the Phase -1 goal gate and before ANY other review work.
 
 - Call `$graph-blast-radius` skill
 - Record in report: changed files count, impacted files count, untested changes, risk level
@@ -875,6 +902,7 @@ If `architectureRules` not present in project-config.json, skip silently.
 - NEVER review only the fixed files after a fix; review the full current diff because fixes can interact with earlier changes.
 - NEVER reuse old todo tasks after restart; each recursive review invocation breaks down all phases again.
 - NEVER declare unconditional PASS without the Output Format's Goal Satisfaction matrix showing every required saved criterion PASS (or BLOCKED with a user-facing escalation reason). A required-criterion FAIL is a validated finding for this fix loop.
+- The Phase -1 `/goal` gate stays OPEN until this loop converges — the session cannot stop while any validated finding is unfixed or any review pass is non-clean. Do NOT report findings to the user and stop; SELF-FIX them here, then re-review the whole diff. (Standalone only; inside `$workflow-review-changes` the parent's goal gate governs.)
 
 ---
 
@@ -1574,11 +1602,11 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > **Project Reference Docs Gate** — Run after task-tracking bootstrap and before target/source file reads, grep, edits, or analysis. Project docs override generic framework assumptions.
 >
 > 1. Identify scope: file types, domain area, and operation.
-> 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under `docs/specs/`; architecture/new area `project-structure-reference.md`.
-> 3. Read every required doc. If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow lower-level route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.
-> 4. Before target work, state: `Reference docs read: ... | Not applicable: ...`.
+> 2. **Read `docs/project-config.json` first — the project's machine-readable map.** It is the single source of truth for THIS repo (modules/paths, framework + search keywords, test/E2E/integration run-commands, design system, architecture rules, workflow patterns); ground exact paths, run-commands, and conventions on it **before investigating, planning, or coding** — never assume framework defaults (`CLAUDE.md` + reference docs are derived from it). If it — or the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any required reference doc — is missing or stale, auto-run `$project-init` or the narrow route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) first; if Codex mirrors or `AGENTS.md` are stale, ask the user to run `$sync-codex` (never auto-run it).
+> 3. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under `docs/specs/`; architecture/new area `project-structure-reference.md`.
+> 4. Read every required doc, then before target work state: `Reference docs read: ... | Not applicable: ...`.
 >
-> **Ready when:** scope evaluated, required docs checked/read or setup route completed, `lessons.md` confirmed, citation emitted.
+> **Ready when:** scope evaluated, `docs/project-config.json` consulted, required docs checked/read or setup route completed, `lessons.md` confirmed, citation emitted.
 
 <!-- /SYNC:project-reference-docs-guide -->
 
@@ -1739,8 +1767,8 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 
-- **MANDATORY** After task-tracking bootstrap and before target/source work, read required project-reference docs and cite `Reference docs read: ...`.
-- **MANDATORY** Always include `lessons.md`; project conventions override generic defaults.
+- **MANDATORY** Before investigating, planning, or coding, read `docs/project-config.json` (the project map: modules/paths, run-commands, conventions, architecture/workflow rules) + the required project-reference docs, and cite `Reference docs read: ...`.
+- **MANDATORY** Always include `lessons.md`; project config + conventions override generic framework defaults.
 - **MANDATORY** If project config, root instruction files, or any required reference doc is missing or stale, auto-run `$project-init` or the narrow lower-level route before ordinary project-specific work.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
@@ -1819,8 +1847,8 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 > **[CRITICAL — TOP 3 RULES REPEATED]**
 >
-> 1. **MUST ATTENTION Phase 0 graph blast-radius FIRST** — NEVER skip; informs entire review priority order
-> 2. **MUST ATTENTION findings follow the active ownership boundary.** Standalone mode runs Phase 6 validate → Phase 7 fix → full `$review-changes` restart; inside `$workflow-review-changes`, stop after the report and hand findings to parent step 2, then parent steps 10-15 own plan/feature-implement/restart.
+> 1. **MUST ATTENTION Phase -1 `/goal` self-recursive review-loop gate is the FIRST ACTION (standalone)** — install it before Phase 0 so stopping is blocked until a whole-diff review pass is clean; Phase 0 graph blast-radius is the first *review* step. Skip Phase -1 only inside `$workflow-review-changes` (parent owns the goal).
+> 2. **MUST ATTENTION findings follow the active ownership boundary, and validated findings are SELF-FIXED, not handed back.** Standalone mode runs Phase 6 validate → Phase 7 self-fix → full whole-diff `$review-changes` restart (combined with prior fixes, not just the last fix), looping until zero findings; inside `$workflow-review-changes`, stop after the report and hand findings to parent step 2, then parent steps 10-15 own plan/feature-implement/restart.
 > 3. **MUST ATTENTION task tracking ALL phases** before starting; missing tests MUST surface via a direct user question
 
 - **MANDATORY** Nested Task Expansion Contract — when invoked inside a workflow, STILL expand internal phases via task tracking with `[N.M] $review-changes — phase` prefix and `TaskUpdate(parentTaskId, addBlockedBy: [childIds])` linkage. Workflow row is container, not substitute.

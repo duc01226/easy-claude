@@ -79,7 +79,9 @@ Before writing code, you MUST grep/glob for 3+ similar examples and follow the l
 
 ## Project Reference Loading
 
-Before project-specific work, route by changed path and read only the relevant docs:
+**Read `docs/project-config.json` first — the project's machine-readable map.** It is the single source of truth describing THIS repo: modules/paths, framework + search keywords, test/E2E/integration run-commands, design system, architecture rules, and workflow patterns. Consult its content to ground exact paths, run-commands, conventions, and rules **before investigating, planning, or coding** — never assume framework defaults. (`docs/project-config.json` + the reference docs below are what `CLAUDE.md` is generated from; read the config directly whenever you need precise paths, commands, or rules. If it is missing or still a skeleton, run `/project-init` or the narrow setup route first.)
+
+Then route by changed path and read only the relevant docs:
 
 | Path → Reference Doc | Read first |
 | --- | --- |

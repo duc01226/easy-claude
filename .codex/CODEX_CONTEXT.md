@@ -326,7 +326,7 @@ UNIVERSAL RULES:
 ### workflow-feature — Feature Implementation
 - Description: Full feature development workflow with search-first approach, planning, implementation, testing, and documentation
 - When To Use: User wants to implement a well-defined feature, add a component, build a capability, develop a module, implement/execute an existing plan, create a new API endpoint, or design an API contract, TDD/test-first development, spec-driven feature implementation with test specs written before code
-- Sequence: `scout -> investigate -> domain-analysis -> why-review -> spec -> plan -> plan-review -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> plan -> plan-review -> plan-execute -> seed-test-data -> review-domain-entities -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> spec [mode=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> production-readiness-review -> security-review -> changelog -> test -> docs-update -> workflow-end -> watzup`
+- Sequence: `scout -> investigate -> spec-discovery -> domain-analysis -> why-review -> spec -> spec-clarify -> plan -> plan-review -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> plan -> plan-review -> plan-execute -> seed-test-data -> review-domain-entities -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> spec [mode=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> production-readiness-review -> security-review -> changelog -> test -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -335,8 +335,10 @@ FEATURE IMPLEMENTATION PROTOCOL:
 ⚠️ MANDATORY: Search existing code BEFORE planning
 1. Scout: Find similar features, patterns, and implementation examples using Grep/Glob
 2. Investigate: Study existing patterns - validate with 3+ codebase examples (NOT generic framework docs)
-2b. Domain Analysis — CONDITIONAL: if feature creates/modifies domain entities, run $domain-analysis after investigate to model bounded contexts and ERD before planning.
+2a. Spec Discovery — CONDITIONAL (short-circuits on empty spec corpus): run $spec-discovery after investigate to investigate all existing Feature Specs AND related code logic FIRST — surfacing related/overlapping/affected specs, missing features/test cases, and the invariant landscape — before authoring the spec.
+2b. Domain Analysis — CONDITIONAL: if feature creates/modifies domain entities, run $domain-analysis after spec-discovery to model bounded contexts and ERD before planning.
 3. Author Feature Spec: with $spec BEFORE planning, capture intended behavior — §1-7 business rules, invariants, and acceptance criteria the plan and tests are built against. Validate investigation + spec rationale with $why-review.
+3b. Spec Clarification (spec-clarify) — BLOCKING ask the user directly gate, BEFORE any planning: validate the freshly-authored §1-7 Feature Spec against the discovered system (AUTHORED-SPEC context), classify each surfaced decision OBVIOUS / NON-OBVIOUS / CONFLICTS, and confirm every NON-OBVIOUS + CONFLICTS + high-impact decision with the user (ask the user directly, recommended option first) before $plan. Spec Validation: questions=5-10.
 4. Plan: Design solution following discovered project patterns (architecture, state management, CSS — see docs/project-config.json → workflowPatterns). Include expected behavior, unchanged behavior, and docs/spec/test sync when behavior can change.
 5. Validate plan via $plan-review then $plan-validate before any code changes; confirm design rationale with $why-review.
 6. Write test specifications with $spec [mode=tests] (before implementation). Review with $review-artifact --type=spec-tests.
@@ -353,7 +355,7 @@ FEATURE IMPLEMENTATION PROTOCOL:
 16. Summary report of all changes ($workflow-end + $watzup)
 
 PLAN PHASES:
-- PLAN₁ (after investigate): Feature design plan. Scope: architecture, file changes, implementation approach.
+- PLAN₁ (after spec-clarify): Feature design plan. Scope: architecture, file changes, implementation approach.
 - PLAN₂ (after review-artifact --type=spec-tests): Updated plan incorporating test strategy. Scope: refine PLAN₁ with test infrastructure, test data setup, spec coverage gaps.
 
 GUARDRAIL: Provide file:line evidence of pattern search in plan. Follow project conventions over generic docs.

@@ -1,6 +1,6 @@
 ---
 name: why-review
-version: 1.3.0
+version: 1.4.0
 description: '[Code Quality] Use when reviewing rationale and change quality for plans, PBIs, commits, diffs, docs, specs, reports, or explicit artifacts.'
 ---
 
@@ -24,12 +24,13 @@ description: '[Code Quality] Use when reviewing rationale and change quality for
 **Summary:**
 
 - DETECT MODE FIRST: `--validate-findings` is TERMINAL — it never re-invokes `/why-review`, never runs the gate, never spawns a sub-agent; full mode may call itself ONCE in validate-findings mode. This recursion guard is non-negotiable.
+- FULL MODE FIRST ACTION (after mode detection): install the `/goal` self-recursive review-loop gate so stopping is BLOCKED until findings are validated and a holistic re-review surfaces nothing new (max 2 re-dos, then escalate). NEVER install the goal gate in `validate-findings` terminal mode. "Self-fix" for why-review = reconcile its OWN findings set, not code.
 - Resolve the target type BEFORE reviewing — a commit/PR/diff defaults to code-change review, a PBI/spec/doc to artifact review; "no active plan" is valid ONLY for an unresolved plan-rationale request. Never silently convert target types.
 - Default stance is SKEPTIC not validator: complete every box of the Anti-Bias Gate (steel-man rejected alt, unseen alternative, args against, stressed assumptions, pre-mortem, pros/cons symmetry); presence of a section is never a pass — quality depth is.
 - Judge by Easy-to-Change (does this lower future change cost?) and gate every finding on `file:line`, severity, and confidence; in full mode the Findings Validation Gate on your OWN findings is the mandatory closing task when any finding exists.
 - Dual-feedback validation: when validating findings, a behavior-changing finding MUST carry BOTH a spec-drift verdict (CODE-WRONG / SPEC-STALE / AMBIGUOUS / SPEC-SILENT / in-sync) AND a concrete test-feedback action — a missing axis is a HAS-ISSUES flag, not a clean finding; a SPEC-SILENT verdict additionally REQUIRES a spec-enrichment action (add §4 BR/§3 AC + §8 TC) on the spec axis, else HAS-ISSUES.
 
-**Workflow:** Detect mode/target → route path/docs/graph/sub-agent focus → review dimensions/adversarial gates/Easy-to-Change → validate findings via terminal `--validate-findings` → ask next step in full mode.
+**Workflow:** Detect mode/target → (full mode only) install `/goal` self-recursive review-loop gate → route path/docs/graph/sub-agent focus → review dimensions/adversarial gates/Easy-to-Change → validate findings via terminal `--validate-findings` → reconcile + holistic full re-review until CLEAN with no new findings (max 2 re-dos) → ask next step in full mode.
 
 **Key Rules:** MUST ATTENTION resolve target type BEFORE review. MUST ATTENTION every finding needs `file:line`, severity, confidence, best-practice rationale. NEVER say "No active plan" except unresolved plan-rationale request. NEVER call `/why-review` from `validate-findings`. MUST ATTENTION judge by Easy-to-Change: lower future change cost or reject.
 
@@ -52,13 +53,35 @@ Detect mode from `$ARGUMENTS` BEFORE any review work:
 
 > **In `validate-findings` mode:** skip full Validation Checklist, Adversarial Rounds, Task Bootstrap, Next-Steps council gate. Jump straight to **Findings Validation Routine**, emit verdict, return to caller.
 
+## Self-Recursive Review-Loop Goal Gate (full mode — FIRST ACTION, after mode detection)
+
+> **MUST ATTENTION:** In **full mode only**, the FIRST action after mode detection — before Task Bootstrap, before any review work — is to install a `/goal` self-recursive loop gate so stopping is BLOCKED until this review's own findings are all validated and a holistic re-review surfaces nothing new (or a bounded escalation fires).
+
+**Entry gate:**
+
+- **Run** in full mode (no `validate-findings` token).
+- **SKIP** in `validate-findings` terminal mode — that mode only returns a verdict to its caller and MUST NOT install a goal, create a closing task, or loop (recursion guard). Record nothing.
+
+**Procedure (full mode):**
+
+1. **Invoke `/goal`** (the actual built-in command) with a condition encoding THIS skill's self-recursive loop, e.g.:
+
+    ```
+    /goal why-review self-recursive loop: run the full adversarial review (Validation Checklist + both Adversarial Rounds) over the whole target → run /why-review --validate-findings on the findings → reconcile (drop unproven/inflated findings, fix proof gaps, ADD surfaced findings/enhancements) → re-run the FULL review over the WHOLE target combined with the reconciled findings (not just re-checking the changed findings) → loop until a complete pass yields zero new findings and validation returns CLEAN, or a bounded blocker escalates. Max 2 re-do rounds, then escalate via AskUserQuestion. Do not stop while a finding is unvalidated or a re-review would surface new findings.
+    ```
+
+2. The `/goal` Stop hook blocks stopping until the condition holds and auto-clears when met — do not tell the user to clear it.
+
+> **why-review fixes its OWN findings set, not code.** "Self-fix" here = reconcile the findings report so every surviving finding is correct, proof-backed, reasonable, best-practice, and nothing is missed — the same loop the Findings Validation Gate runs, now made unabandonable by the goal gate. Code/spec/test fixes remain the caller's job; this skill is review-only.
+
 ## Task Bootstrap (full mode — do at skill START)
 
 Before review work, `TaskCreate` phase tasks AND required closing task:
 
+- [ ] `[Why-Review] Install /goal self-recursive review-loop gate (full mode only)` — in_progress **(MANDATORY FIRST TASK — skip in `validate-findings` mode)**
 - [ ] `[Why-Review] Findings Validation Gate — if ANY findings exist, run /why-review --validate-findings on them; re-do until CLEAN (max 2)` — pending **(MANDATORY CLOSING TASK)**
 
-> Create at START. Keep `pending` until findings exist; then execute before skill completes. In `validate-findings` mode, do NOT create it.
+> Create at START. Keep the closing task `pending` until findings exist; then execute before skill completes. In `validate-findings` mode, do NOT create either task.
 
 ## First Principle — Easy to Change
 
@@ -321,7 +344,7 @@ After Round 1, execute **second full adversarial round**:
 2. **Invoke `/why-review --validate-findings plans/reports/why-review-{date}.md`** in SAME main-agent session, NOT sub-agent. Returns CLEAN / HAS-ISSUES. Each call terminal.
 3. **CLEAN** → append `## Findings Validation` line to report ("All N findings re-validated; correct, proof-backed, reasonable, best-practice; no changes."), gate PASSES, exit loop.
 4. **HAS ISSUES** → reconcile: drop/demote unproven or inflated findings, fix proof gaps, add surfaced findings/enhancements, re-derive verdict, record `## Findings Validation Notes` citing what changed and why.
-5. **RE-DO** — re-invoke on UPDATED report ONLY because findings changed. Repeat until CLEAN or **max 2 re-do rounds**. Still not CLEAN → record unresolved state and ask user in `## Next Steps`.
+5. **RE-DO holistically** — because the reconciled findings changed the picture, re-run the FULL review (Validation Checklist + both Adversarial Rounds) over the WHOLE target combined with the reconciled findings — NOT just re-validate the changed findings in isolation — then re-invoke `/why-review --validate-findings` on the UPDATED report. Repeat until CLEAN with no new findings surfaced, or **max 2 re-do rounds**. Still not CLEAN → record unresolved state, mark the goal-gate blocker, and escalate via `AskUserQuestion` in `## Next Steps`.
 
 ## Findings Validation Routine (validate-findings mode body — TERMINAL)
 
@@ -427,11 +450,11 @@ If suppressed or no-fire, do NOT mention `/llm-council`. If gate fires, ask a **
 > **Project Reference Docs Gate** — Run after task-tracking bootstrap and before target/source file reads, grep, edits, or analysis. Project docs override generic framework assumptions.
 >
 > 1. Identify scope: file types, domain area, and operation.
-> 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under `docs/specs/`; architecture/new area `project-structure-reference.md`.
-> 3. Read every required doc. If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `/project-init` or the narrow lower-level route (`/project-config`, `/docs-init`, `/scan-all`, `/scan --target=<key>`, `/claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `/sync-codex`; do not auto-run it.
-> 4. Before target work, state: `Reference docs read: ... | Not applicable: ...`.
+> 2. **Read `docs/project-config.json` first — the project's machine-readable map.** It is the single source of truth for THIS repo (modules/paths, framework + search keywords, test/E2E/integration run-commands, design system, architecture rules, workflow patterns); ground exact paths, run-commands, and conventions on it **before investigating, planning, or coding** — never assume framework defaults (`CLAUDE.md` + reference docs are derived from it). If it — or the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any required reference doc — is missing or stale, auto-run `/project-init` or the narrow route (`/project-config`, `/docs-init`, `/scan-all`, `/scan --target=<key>`, `/claude-md-init`) first; if Codex mirrors or `AGENTS.md` are stale, ask the user to run `/sync-codex` (never auto-run it).
+> 3. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under `docs/specs/`; architecture/new area `project-structure-reference.md`.
+> 4. Read every required doc, then before target work state: `Reference docs read: ... | Not applicable: ...`.
 >
-> **Ready when:** scope evaluated, required docs checked/read or setup route completed, `lessons.md` confirmed, citation emitted.
+> **Ready when:** scope evaluated, `docs/project-config.json` consulted, required docs checked/read or setup route completed, `lessons.md` confirmed, citation emitted.
 
 <!-- /SYNC:project-reference-docs-guide -->
 
@@ -785,8 +808,8 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 
-- **MANDATORY** After task-tracking bootstrap and before target/source work, read required project-reference docs and cite `Reference docs read: ...`.
-- **MANDATORY** Always include `lessons.md`; project conventions override generic defaults.
+- **MANDATORY** Before investigating, planning, or coding, read `docs/project-config.json` (the project map: modules/paths, run-commands, conventions, architecture/workflow rules) + the required project-reference docs, and cite `Reference docs read: ...`.
+- **MANDATORY** Always include `lessons.md`; project config + conventions override generic framework defaults.
 - **MANDATORY** If project config, root instruction files, or any required reference doc is missing or stale, auto-run `/project-init` or the narrow lower-level route before ordinary project-specific work.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->

@@ -69,14 +69,14 @@ This workflow has steps that appear multiple times. When creating tasks, use the
 
 | Step                                 | Occurrence   | Task Description                                 |
 | ------------------------------------ | ------------ | ------------------------------------------------ |
-| `$plan`                              | 1st (pos 6)  | PLAN₁: Feature Spec-backed implementation plan   |
-| `$plan`                              | 2nd (pos 13) | PLAN₂: Sprint-ready plan incorporating TDD specs |
-| `$plan-review`                       | 1st (pos 7)  | Review PLAN₁                                     |
-| `$plan-review`                       | 2nd (pos 14) | Review PLAN₂                                     |
-| `$spec [mode=tests]`                 | 1st (pos 10) | TDD-SPEC₁: Pre-implementation test specs         |
-| `$spec [mode=tests]`                 | 2nd (pos 17) | TDD-SPEC₂: Post-implementation test spec update  |
-| `$review-artifact --type=spec-tests` | 1st (pos 12) | Review TDD-SPEC₁                                 |
-| `$review-artifact --type=spec-tests` | 2nd (pos 19) | Review TDD-SPEC₂                                 |
+| `$plan`                              | 1st (pos 8)  | PLAN₁: Feature Spec-backed implementation plan   |
+| `$plan`                              | 2nd (pos 15) | PLAN₂: Sprint-ready plan incorporating TDD specs |
+| `$plan-review`                       | 1st (pos 9)  | Review PLAN₁                                     |
+| `$plan-review`                       | 2nd (pos 16) | Review PLAN₂                                     |
+| `$spec [mode=tests]`                 | 1st (pos 12) | TDD-SPEC₁: Pre-implementation test specs         |
+| `$spec [mode=tests]`                 | 2nd (pos 20) | TDD-SPEC₂: Post-implementation test spec update  |
+| `$review-artifact --type=spec-tests` | 1st (pos 14) | Review TDD-SPEC₁                                 |
+| `$review-artifact --type=spec-tests` | 2nd (pos 22) | Review TDD-SPEC₂                                 |
 
 **NEVER deduplicate** — each occurrence is a distinct task with a different purpose.
 
@@ -102,11 +102,11 @@ Every step = `TaskUpdate in_progress` → skill invocation → complete skill �
 
 > **Goal Contract propagation (workflow-owned):** At workflow start, resolve the active Goal Contract per `SYNC:goal-contract-satisfaction-loop` (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from the feature request). Before `$plan-execute`, verify the plan's feature success criteria map to the saved criteria. Pass the same goal file reference to every child step — child skills read the SAME saved goal, never a re-derived one from chat memory. Before `$workflow-end`, emit the final Goal Satisfaction matrix (PASS/FAIL/BLOCKED); workflow completion requires every required criterion PASS or BLOCKED with a user-facing escalation.
 
-**IMPORTANT MANDATORY Steps:** $scout -> $investigate -> $domain-analysis -> $why-review -> $spec -> $plan -> $plan-review -> $plan-validate -> $why-review -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $plan -> $plan-review -> $plan-execute -> $seed-test-data -> $review-domain-entities -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $spec [mode=sync] -> $integration-test -> $integration-test-review -> $integration-test-verify -> $workflow-review-changes -> $production-readiness-review -> $security-review -> $changelog -> $test -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $scout -> $investigate -> $spec-discovery -> $domain-analysis -> $why-review -> $spec -> $spec-clarify -> $plan -> $plan-review -> $plan-validate -> $why-review -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $plan -> $plan-review -> $plan-execute -> $seed-test-data -> $review-domain-entities -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $spec [mode=sync] -> $integration-test -> $integration-test-review -> $integration-test-verify -> $workflow-review-changes -> $production-readiness-review -> $security-review -> $changelog -> $test -> $docs-update -> $workflow-end -> $watzup
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $scout -> $investigate -> $domain-analysis -> $why-review -> $spec -> $plan -> $plan-review -> $plan-validate -> $why-review -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $plan -> $plan-review -> $plan-execute -> $seed-test-data -> $review-domain-entities -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $spec [mode=sync] -> $integration-test -> $integration-test-review -> $integration-test-verify -> $workflow-review-changes -> $production-readiness-review -> $security-review -> $changelog -> $test -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $scout -> $investigate -> $spec-discovery -> $domain-analysis -> $why-review -> $spec -> $spec-clarify -> $plan -> $plan-review -> $plan-validate -> $why-review -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $plan -> $plan-review -> $plan-execute -> $seed-test-data -> $review-domain-entities -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $spec [mode=sync] -> $integration-test -> $integration-test-review -> $integration-test-verify -> $workflow-review-changes -> $production-readiness-review -> $security-review -> $changelog -> $test -> $docs-update -> $workflow-end -> $watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its skill invocation — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
@@ -114,13 +114,13 @@ Activate the `workflow-feature` workflow. Run `$start-workflow workflow-feature`
 
 > **Spec check (before investigation):** If `docs/specs/` has a spec for the affected service/module, read the relevant ERD + business-rules + API-contracts files FIRST. Engineering specs provide domain context that reduces investigation time significantly. Command: `ls docs/specs/` to discover available app buckets or flat system folders; then probe `ls docs/specs/{app-bucket}/` or `ls docs/specs/{system-name}/` to find the specific service spec.
 
-**Steps:** $scout → $investigate → $domain-analysis → $why-review → $spec → $plan → $plan-review → $plan-validate → $why-review → $spec [mode=tests] → $why-review → $review-artifact --type=spec-tests → $plan → $plan-review → $plan-execute → $seed-test-data → $review-domain-entities → $spec [mode=tests] → $why-review → $review-artifact --type=spec-tests → $spec [mode=sync] → $integration-test → $integration-test-review → $integration-test-verify → $workflow-review-changes → $production-readiness-review → $security-review → $changelog → $test → $docs-update → $workflow-end → $watzup
+**Steps:** $scout → $investigate → $spec-discovery → $domain-analysis → $why-review → $spec → $spec-clarify → $plan → $plan-review → $plan-validate → $why-review → $spec [mode=tests] → $why-review → $review-artifact --type=spec-tests → $plan → $plan-review → $plan-execute → $seed-test-data → $review-domain-entities → $spec [mode=tests] → $why-review → $review-artifact --type=spec-tests → $spec [mode=sync] → $integration-test → $integration-test-review → $integration-test-verify → $workflow-review-changes → $production-readiness-review → $security-review → $changelog → $test → $docs-update → $workflow-end → $watzup
 
 > **[PERFORMANCE-SDD ROUTE]** If this feature is a performance enhancement (latency, throughput, memory, query speed, load behavior), run `$performance-review` and require SLA/benchmark evidence: target metric, baseline, measurement command, and acceptable regression budget. Run `$plan-execute` even on the performance route — never skip it. If behavior can change, run `$test` and any relevant functional no-regression checks. Update docs/specs for changed SLA, performance constraints, or behavior boundaries. Use project-specific performance docs from `docs/project-config.json` / `docs/project-reference/` when available.
 
 > **[AI-SDD CLOSURE]** Before `$workflow-end`, confirm changed behavior, unchanged behavior, TCs/tests, docs/specs, and generated mirror sync are either completed or explicitly skipped with evidence.
 >
-> **[AI-SDD CLOSURE — POST-IMPLEMENTATION SPEC RE-VERIFY (MANDATORY)]** The `$spec` authored at step 5 (before `$plan`) captured _intended_ behavior. After `$plan-execute`, re-verify Feature Spec **§1-7** (not only §8 TCs) against what was _actually built_ and adjudicate every divergence per `shared/sdd-artifact-contract.md` → Drift Gates (`SYNC:spec-drift-adjudication`): **CODE-WRONG** → fix code/test against the spec; **SPEC-STALE** → run `$spec [update]` to record the new intended behavior, then `$spec [mode=tests] [update]` + `$spec [mode=sync]`; **AMBIGUOUS** → escalate to the spec owner. A feature that shipped behavior the spec does not describe leaves the spec stale and is NOT closure-ready. This re-verify is not optional cleanup — it is the "after implement, verify and create/update specs again" half of the SDD cycle.
+> **[AI-SDD CLOSURE — POST-IMPLEMENTATION SPEC RE-VERIFY (MANDATORY)]** The `$spec` authored at step 6 (before `$plan`) captured _intended_ behavior. After `$plan-execute`, re-verify Feature Spec **§1-7** (not only §8 TCs) against what was _actually built_ and adjudicate every divergence per `shared/sdd-artifact-contract.md` → Drift Gates (`SYNC:spec-drift-adjudication`): **CODE-WRONG** → fix code/test against the spec; **SPEC-STALE** → run `$spec [update]` to record the new intended behavior, then `$spec [mode=tests] [update]` + `$spec [mode=sync]`; **AMBIGUOUS** → escalate to the spec owner. A feature that shipped behavior the spec does not describe leaves the spec stale and is NOT closure-ready. This re-verify is not optional cleanup — it is the "after implement, verify and create/update specs again" half of the SDD cycle.
 
 <!-- SYNC:end-to-start-debugger-trace -->
 

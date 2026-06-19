@@ -54,12 +54,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Summary:**
 
+- **Step 0 (FIRST ACTION, pre-sequence):** install a `/goal` self-recursive review-loop gate so a session Stop hook BLOCKS stopping until the whole loop converges to a clean zero-finding pass — making the review→self-fix→whole-diff-re-review loop unabandonable. It is a session-level wrapper, NOT one of the 15 canonical sequence steps. Skip it only when this workflow runs as a sub-agent inside a parent workflow (parent owns the goal).
 - Step 1 `$review-changes` runs FIRST and owns the baseline (surface analysis, integration-test/translation-sync gaps, UI review via internal `$review-ui`); step 2 `$why-review` validates those findings to drop false positives BEFORE the parallel batch fires — so steps 3–7 act only on warranted findings.
 - Steps 3–7 (`$review-architecture`, `$review-domain-entities` [if entity files], `$performance-review`, `$integration-test-review`, `$security-review`) are read-only sub-agents: spawn ALL in ONE message and advance ONLY after every member returns (all-return barrier); the mutating `$code-simplifier` (step 8) waits until the barrier clears and self-reviews its own changes via `$code-review`.
 - Fix cycle (steps 9–12 `$plan`→`$plan-review`→`$plan-execute`→`$review-changes`) runs ONLY when validated findings exist; the step-12 re-review runs ONLY if `$plan-execute` changed files, re-reading the full diff from scratch INLINE to counter orchestrator confirmation bias, and loops until a clean zero-finding pass (cap at 3 no-progress repeats of the same blocker → escalate via a direct user question).
 - `$docs-update` (step 13) ALWAYS runs and triages internally; SPEC-STALE drift verdicts from step 1 flow here to update the Feature Spec first — the workflow is NOT clean while any behavior-vs-spec divergence stays unadjudicated (green tests do not normalize drift).
 
-**Sequence:** $review-changes (owns UI review — invokes $review-ui internally when frontend changes) → $why-review (validate findings) → **[parallel batch]** $review-architecture + $review-domain-entities (if entity changes) + $performance-review + $integration-test-review + $security-review → $code-simplifier (self-reviews its own changes via $code-review) → $plan → $plan-review → $plan-execute → **/review-changes (conditional inline re-review — only if $plan-execute changed files; loops $plan→/plan-execute→/review-changes until clean)** → $docs-update → $workflow-end → $watzup
+**Sequence:** *(Step 0 pre-sequence: install `/goal` self-recursive review-loop gate — top-level only)* → $review-changes (owns UI review — invokes $review-ui internally when frontend changes) → $why-review (validate findings) → **[parallel batch]** $review-architecture + $review-domain-entities (if entity changes) + $performance-review + $integration-test-review + $security-review → $code-simplifier (self-reviews its own changes via $code-review) → $plan → $plan-review → $plan-execute → **/review-changes (conditional inline re-review — only if $plan-execute changed files; loops $plan→/plan-execute→/review-changes until clean)** → $docs-update → $workflow-end → $watzup
 
 **Key Rules:**
 
@@ -97,9 +98,33 @@ below — if a downstream rule would raise change cost, this principle wins.
 
 ---
 
+## Step 0 — Self-Recursive Review-Loop Goal Gate (FIRST ACTION — pre-sequence)
+
+> **MUST ATTENTION:** Before creating the 15 step tasks below, the VERY FIRST action (top-level invocation) is to install a `/goal` self-recursive loop gate so a session Stop hook BLOCKS stopping until the whole workflow loop converges to a clean zero-finding pass. This is a session-level enforcement WRAPPER — NOT one of the 15 canonical `workflows.json` sequence steps, so it does NOT change the step count or the sequence; it makes the existing loop unabandonable.
+
+**Entry gate:**
+
+- **Run** when this workflow is the top-level invocation (user ran `$start-workflow workflow-review-changes` or `$review-changes` routed here directly).
+- **SKIP** when this whole workflow is itself invoked as a sub-agent inside a parent workflow (see the WORKFLOW-IN-WORKFLOW note) — the sub-agent returns a summary and the PARENT workflow owns the loop goal; a sub-agent cannot usefully own the session Stop hook. Record: `Step 0 goal gate deferred to parent workflow.`
+
+**Procedure:**
+
+1. **Invoke `/goal`** (the actual built-in command) with a condition encoding this workflow's self-recursive loop, e.g.:
+
+    ```
+    /goal workflow-review-changes self-recursive loop: run $review-changes + $why-review + the parallel reviewers + $code-simplifier → if validated findings exist, $plan → $plan-execute SELF-FIXES them → re-run $review-changes INLINE over the WHOLE current diff from the first phase (combined with the prior fixes, not just the last fix) → loop $plan→/plan-execute→/review-changes until one complete pass finds zero findings; only then $docs-update → $workflow-end. Stop only when a complete review pass is clean (or the same blocker repeats 3× with no progress → escalate via ask the user directly). Do not stop while any validated finding is unfixed.
+    ```
+
+2. The `/goal` Stop hook blocks stopping until the condition holds and auto-clears when met — do not tell the user to clear it.
+3. Then proceed to create the 15 step tasks below and run the sequence.
+
+> **Why a goal gate on top of the loop prose:** the conditional re-review (step 12) and the "loop until clean" rules are soft directives an orchestrator can rationalize away after one fix cycle (confirmation bias). The `/goal` Stop hook converts them into a mechanical block — the session cannot end with a validated finding unfixed or a non-clean review pass. — why: a fix cycle that stops before re-proving the whole diff ships unreviewed work.
+
 ## Mandatory Task Creation (ZERO TOLERANCE)
 
-Create one task per row in the table below — source of truth is `workflows.json` → `review-changes.sequence` (currently 15 steps; verify count matches if you suspect drift):
+> **Step 0 first:** install the Step 0 `/goal` self-recursive review-loop gate (above) BEFORE creating these tasks — unless this workflow is running as a sub-agent inside a parent workflow (then the parent owns the goal).
+
+Create one task per row in the table below — source of truth is `workflows.json` → `review-changes.sequence` (currently 15 steps; verify count matches if you suspect drift). The Step 0 goal gate is a pre-sequence wrapper and is NOT counted among these 15:
 
 | #   | Task Subject                                                                                                                                                                   | Conditional?                                                                                   |
 | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
@@ -254,6 +279,8 @@ Note: $why-review runs ONCE (step 2) as a FINDINGS-VALIDATION gate over the $rev
 6. **IF** the inline re-review returns FAIL and the same blocker has not repeated 3 times → validate findings, run `$plan` + `$plan-execute` again, then re-run `$review-changes` (step 12)
 7. **IF** the same validated blocker repeats across 3 invocations with no observable progress → STOP and escalate via a direct user question — do NOT silently loop or fall back to any prior protocol
 
+> **Goal-gate tie-in:** the Step 0 `/goal` gate stays OPEN until this loop reaches a clean zero-finding pass (or a 3-repeat blocker escalates). The session cannot stop with a validated finding still unfixed by `$plan-execute` or a non-clean re-review outstanding. Each re-review reviews the WHOLE current diff from the first phase combined with ALL prior fixes — never just the previous cycle's fix in isolation. (Skip the goal-gate reasoning when this workflow runs as a sub-agent inside a parent workflow — the parent owns the goal.)
+
 ### Iteration Tracking (Conversation-Scoped)
 
 Iteration count is tracked **in conversation context only** — no persistent files. Each new conversation starts fresh at round 0.
@@ -289,6 +316,7 @@ Main Session: Review → Validate findings → Plan → Fix ($plan-execute) → 
 **IMPORTANT MANDATORY Steps:** $review-changes -> $why-review -> $review-architecture -> $review-domain-entities -> $performance-review -> $integration-test-review -> $security-review -> $code-simplifier -> $plan -> $plan-review -> $plan-execute -> $review-changes -> $docs-update -> $workflow-end -> $watzup
 
 > **[STEP CONDITIONS]** Not every step always runs — the bare list above is the canonical order; these are the run-conditions:
+> - **Step 0 `/goal` gate (pre-sequence)** — install at top-level invocation; skip when this whole workflow runs as a sub-agent inside a parent workflow (parent owns the goal). Not one of the 15 counted steps.
 > - **Step 4 `$review-domain-entities`** — only if domain entity files (Domain/, Entities/, ValueObjects/) are in the diff.
 > - **Steps 9–11 `$plan` → `$plan-review` → `$plan-execute`** — only if reviews surfaced validated findings to fix (i.e. there are findings / code changes to make). Skip all three when steps 1–8 PASS clean.
 > - **Step 12 `$review-changes` (re-review)** — only if `$plan-execute` actually changed files; re-runs INLINE and loops `$plan`→`$plan-execute`→`$review-changes` until a clean pass (3-repeat blocker cap).
@@ -471,11 +499,11 @@ Activate the `workflow-review-changes` workflow. Run `$start-workflow workflow-r
 > **Project Reference Docs Gate** — Run after task-tracking bootstrap and before target/source file reads, grep, edits, or analysis. Project docs override generic framework assumptions.
 >
 > 1. Identify scope: file types, domain area, and operation.
-> 2. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under `docs/specs/`; architecture/new area `project-structure-reference.md`.
-> 3. Read every required doc. If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow lower-level route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.
-> 4. Before target work, state: `Reference docs read: ... | Not applicable: ...`.
+> 2. **Read `docs/project-config.json` first — the project's machine-readable map.** It is the single source of truth for THIS repo (modules/paths, framework + search keywords, test/E2E/integration run-commands, design system, architecture rules, workflow patterns); ground exact paths, run-commands, and conventions on it **before investigating, planning, or coding** — never assume framework defaults (`CLAUDE.md` + reference docs are derived from it). If it — or the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any required reference doc — is missing or stale, auto-run `$project-init` or the narrow route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) first; if Codex mirrors or `AGENTS.md` are stale, ask the user to run `$sync-codex` (never auto-run it).
+> 3. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under `docs/specs/`; architecture/new area `project-structure-reference.md`.
+> 4. Read every required doc, then before target work state: `Reference docs read: ... | Not applicable: ...`.
 >
-> **Ready when:** scope evaluated, required docs checked/read or setup route completed, `lessons.md` confirmed, citation emitted.
+> **Ready when:** scope evaluated, `docs/project-config.json` consulted, required docs checked/read or setup route completed, `lessons.md` confirmed, citation emitted.
 
 <!-- /SYNC:project-reference-docs-guide -->
 
@@ -500,8 +528,8 @@ Activate the `workflow-review-changes` workflow. Run `$start-workflow workflow-r
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 
-- **MANDATORY** After task-tracking bootstrap and before target/source work, read required project-reference docs and cite `Reference docs read: ...`.
-- **MANDATORY** Always include `lessons.md`; project conventions override generic defaults.
+- **MANDATORY** Before investigating, planning, or coding, read `docs/project-config.json` (the project map: modules/paths, run-commands, conventions, architecture/workflow rules) + the required project-reference docs, and cite `Reference docs read: ...`.
+- **MANDATORY** Always include `lessons.md`; project config + conventions override generic framework defaults.
 - **MANDATORY** If project config, root instruction files, or any required reference doc is missing or stale, auto-run `$project-init` or the narrow lower-level route before ordinary project-specific work.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
@@ -585,6 +613,7 @@ Activate the `workflow-review-changes` workflow. Run `$start-workflow workflow-r
 
 ---
 
+**IMPORTANT MUST ATTENTION** Step 0 (FIRST ACTION, top-level only) installs the `/goal` self-recursive review-loop gate so stopping is BLOCKED until the whole loop reaches a clean zero-finding pass — a pre-sequence wrapper, not one of the 15 steps; skip it only when this workflow runs as a sub-agent inside a parent workflow (parent owns the goal).
 **IMPORTANT MUST ATTENTION** step 1 `$review-changes` runs FIRST and owns the baseline; step 2 `$why-review` validates findings BEFORE the steps 3–7 parallel batch — spawn the batch in ONE message, advance only after the all-return barrier, defer `$code-simplifier` until it clears.
 **IMPORTANT MUST ATTENTION** every finding/verdict needs `file:line` evidence + confidence (>80% act, <60% DO NOT recommend); grep 3+ patterns and read target files before any fix — no speculation.
 **IMPORTANT MUST ATTENTION** after `$plan-execute` changes files, re-run `$review-changes` INLINE from scratch and loop until ONE clean zero-finding pass — a behavior change with no covering §8 TC is an OPEN finding; cap repeated blockers at 3 → escalate.
