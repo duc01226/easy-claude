@@ -248,8 +248,8 @@ And {additional verification}
 > **Tech-free:** Sections 1-8 prose contains zero technical terms — no API routes, command/handler names,
 > message-bus/event-contract schemas, code, or file paths. Technical detail lives in code (the technical
 > source of truth); an API reference can be regenerated from code if needed.
-> **Size:** Body (sections 1-7) target ≤1200 lines; whole file hard-cap ≤1800 lines. **Split** the capability
-> into two Feature Specs when the body exceeds 1200 lines OR the doc exceeds 40 test cases, OR when two
+> **Size:** No line-count cap applies. **Split** the capability
+> into two Feature Specs when the doc exceeds 40 test cases OR when two
 > distinct module-level capabilities emerge.
 > **IDs required:** Every user story (`US-{FC}-NN`), acceptance criterion (`AC-{FC}-NN`), business rule
 > (`BR-{FC}-NN`), and test case (`TC-{FC}-NNN`) has a unique ID.

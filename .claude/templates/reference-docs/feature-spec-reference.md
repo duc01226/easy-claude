@@ -23,13 +23,13 @@
 - MUST ATTENTION include Section 8 (Test Specifications) with `TC-{FEATURE}-{NNN}` IDs, `Business Intent / Invariant Guarded`, and `Evidence: [Source: namespace/service/id]` (abstract anchor; legacy `[Source: FilePath:Line]` DEPRECATED)
 - MUST ATTENTION study gold standard docs before writing any new feature doc
 - MUST keep feature doc path: `docs/specs/{Bucket}/README.{FeatureName}.md`
-- MUST keep body (sections 1-7) ≤1200 lines and whole file ≤1800 lines (hard cap); split the capability when body>1200 OR TCs>40
+- MUST NOT apply line-count caps to Feature Specs; split the capability only when TCs>40 or distinct module-level capabilities emerge
 
 ---
 
 ## Directory Convention
 
-Feature docs path: `docs/specs/{Bucket}/README.{FeatureName}.md` (body ≤1200 / file ≤1800 lines; split when body>1200 OR TCs>40). Each bucket also includes `INDEX.md`. The spec root is fixed at `docs/specs/` for all projects.
+Feature docs path: `docs/specs/{Bucket}/README.{FeatureName}.md` (no line-count cap; split when TCs>40 or distinct module-level capabilities emerge). Each bucket also includes `INDEX.md`. The spec root is fixed at `docs/specs/` for all projects.
 
 ## Template Paths
 
@@ -119,6 +119,6 @@ The abstract `[Source: namespace/service/id]` form is canonical (see `.claude/sk
 - **IMPORTANT MUST ATTENTION** use the tech-free 8-section Feature Spec template in exact order for ALL business feature docs — §1-7 strictly tech-free, no technical sections (code is the technical source of truth)
 - **IMPORTANT MUST ATTENTION** Section 8 (Test Specifications) MUST include `TC-{FEATURE}-{NNN}` IDs, `Business Intent / Invariant Guarded`, and `Evidence: [Source: namespace/service/id]` for every test case (legacy `[Source: FilePath:Line]` DEPRECATED)
 - **IMPORTANT MUST ATTENTION** study gold standard docs (below the SCAN-MANAGED boundary) before writing any new feature doc
-- **IMPORTANT MUST ATTENTION** keep body (sections 1-7) ≤1200 lines, whole file ≤1800 (hard); split when body>1200 OR TCs>40 — not shorter stubs, not sprawling dumps
+- **IMPORTANT MUST ATTENTION** do not apply line-count caps to Feature Specs; split only when TCs>40 or distinct module-level capabilities emerge — not shorter stubs, not sprawling dumps
 - **IMPORTANT MUST ATTENTION** NEVER ship docs with `TBD` Evidence placeholders — every TC requires a canonical `[Source: namespace/service/id]` anchor (legacy `FilePath:Line` DEPRECATED)
-- **IMPORTANT MUST ATTENTION** add final review task to verify all 8 sections present, §1-7 tech-free, all TCs have Business Intent / Invariant Guarded and Evidence fields, doc length in range
+- **IMPORTANT MUST ATTENTION** add final review task to verify all 8 sections present, §1-7 tech-free, all TCs have Business Intent / Invariant Guarded and Evidence fields, and no line-count cap was applied

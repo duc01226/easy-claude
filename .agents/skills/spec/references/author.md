@@ -74,7 +74,7 @@ docs/
 └── specs/
     ├── {Module}/                     # One folder per service/module in your project
     │   ├── INDEX.md                  # Navigation hub
-    │   └── README.{FeatureName}.md   # Tech-free Feature Spec (8-section; body ≤1200 / file ≤1800 lines)
+    │   └── README.{FeatureName}.md   # Tech-free Feature Spec (8-section; no line-count cap)
     └── ...
 ```
 
@@ -693,7 +693,7 @@ No `.ai.md` companion files. Single `README.{Feature}.md` only output. Template:
 - **No code details** in sections 1-7 — no file paths, no source-code types, no API/command/handler/message names
 - **Evidence only in Section 8** — `[Source: namespace/service/id]` abstract-anchor references in the per-TC hidden carrier
 - **Acceptance criteria MUST cross-reference BR-{FC}-NN** — each AC names the business rules it enforces
-- **Size caps** — body (sections 1-7) ≤1200 lines, whole file ≤1800 (hard). **Split** the capability when body>1200 OR TCs>40 (or when two distinct module-level capabilities emerge):
+- **Split criteria** — no line-count cap applies to Feature Specs. **Split** the capability when TCs>40 or when two distinct module-level capabilities emerge:
     1. Create `README.{FeatureName}-Part1.md` and `README.{FeatureName}-Part2.md`
     2. Keep Business Rules (S4) + Domain Model (S5) in Part1; secondary stories/edge cases → Part2
     3. Preserve TC ID continuity — both parts share `TC-{FEATURE}-` prefix; NEVER renumber
@@ -805,7 +805,7 @@ See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6
 - [ ] **YAML frontmatter** present with module, service, feature_code, entities[]
 - [ ] Derived spec artifact refresh flagged for `$spec-index` when Feature Specs were created, renamed, split, or deleted
 - [ ] Stakeholder navigation table present
-- [ ] **Size caps** — body (sections 1-7) ≤1200 lines, whole file ≤1800 (hard); split when body>1200 OR TCs>40 (follow split procedure in Key Principles)
+- [ ] **Split criteria** — no line-count cap applies; split when TCs>40 or distinct module-level capabilities emerge (follow split procedure in Key Principles)
 - [ ] **No code details** in sections 1-7 (no file paths, no source-code types, no command/handler/API/message names)
 - [ ] **Acceptance criteria reference BR-{FC}-NN** IDs they enforce
 

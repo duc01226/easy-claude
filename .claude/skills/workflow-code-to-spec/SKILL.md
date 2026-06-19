@@ -113,8 +113,8 @@ ESTIMATE:
   IF capability_count ≤ 3:
     → Single-session authoring
 
-**Recursive decomposition rule:** If a single capability's Feature Spec would exceed the caps
-(body §1-7 >1200 lines OR >40 TCs), split the capability into sibling specs.
+**Recursive decomposition rule:** Feature Specs have no line-count cap. If a single capability has
+>40 TCs or contains distinct module-level capabilities, split the capability into sibling specs.
 
 TaskCreate: "size-evaluation — count capabilities, decide split strategy"
 
@@ -147,7 +147,7 @@ TaskCreate: "size-evaluation — count capabilities, decide split strategy"
   → §1-7 STRICTLY tech-free; identifiers live only in §8 evidence carriers + `[Source: ns/service/id]` + ` ```mermaid ``` ` blocks
   → Output: docs/specs/{Bucket}/README.{Feature}.md + bucket INDEX.md
   → Sub-agents for 4+ capabilities (BLOCKING: ONE message spawn); each prompt includes capability name, output path, tech-agnostic contract, SYNC protocols
-  → Caps: body §1-7 ≤1200 lines, whole file ≤1800 (hard) — split when body>1200 OR TCs>40
+  → No line-count cap applies — split when TCs>40 or distinct module-level capabilities emerge
 
 /spec [mode=tests]
   → Populate Section 8 with TC-{FEATURE}-{NNN} entries (BDD, Business Intent, abstract Evidence, IntegrationTest field, Status)
@@ -160,7 +160,7 @@ TaskCreate: "size-evaluation — count capabilities, decide split strategy"
     - §1-7 strictly tech-free (zero framework/product/language terms in prose)
     - §5 Mermaid ERD present with entities, relationships, cardinalities
     - §8 every TC has Business Intent, abstract `[Source: ns/service/id]` anchor, IntegrationTest field, Status
-    - YAML frontmatter present; body ≤1200 / whole file ≤1800 lines
+    - YAML frontmatter present; no line-count cap applied
   → PASS criteria: zero [UNVERIFIED] without exclusion reason + zero tech terms in §1-7
   → Gap found → validate findings → fix validated gaps → restart full review-artifact pass from the first check
 
@@ -510,7 +510,7 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 - **[BLOCKING]** Spawn sub-agents for 4+ capabilities in ONE message — NEVER sequential spawning
 - **[BLOCKING]** ONE canonical artifact — the Feature Spec at `docs/specs/{Bucket}/README.{Feature}.md`; the §5 Mermaid ERD is authored INSIDE it (no separate ERD file, no A-E tree)
 - **[BLOCKING]** Scout holistically FIRST — capability registry MUST exist before plan creation; NEVER re-run scout or plan in a resumed session
-- **[BLOCKING]** Plan decomposes big→small — ONE task per capability Feature Spec; split a capability when body §1-7 >1200 lines OR TCs >40
+- **[BLOCKING]** Plan decomposes big→small — ONE task per capability Feature Spec; split a capability when TCs >40 or distinct module-level capabilities emerge
 - **[BLOCKING]** Per-section authoring: write each section immediately — NEVER accumulate across sections
 - **[REQUIRED]** §1-7 STRICTLY tech-free (no framework names, no language constructs, no class names in prose); identifiers live only in §8 evidence carriers, `[Source: ns/service/id]`, and ` ```mermaid ``` ` blocks — mark `[UNVERIFIED]` not blank
 - **[REQUIRED]** Each sub-agent prompt MUST include: capability name, output path, tech-agnostic contract, SYNC protocols (critical-thinking, evidence-based, incremental-persistence, cross-scope boundary)

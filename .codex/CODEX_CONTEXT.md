@@ -480,7 +480,7 @@ UNIVERSAL RULES:
 ### workflow-idea-to-pbi — Idea to PBI
 - Description: PO/BA idea → grooming-ready backlog. TWO modes: (1) SINGLE-PBI DEEP — one concrete idea/ticket/brief → deep single PBI via idea → draft Feature Spec → TDD test specs → domain → plan → PBI/stories → challenge → DoR → mockup → prioritize; (2) MULTI-OPPORTUNITY DISCOVERY — a raw vision/problem → brainstorm (optionally web-research → deep-research) → RICE opportunity map → user multi-select → light per-opportunity PBI loop → cross-PBI ranked backlog. For idea → ONE provisional Feature Spec only (no backlog) use workflow-idea-to-spec.
 - When To Use: PO/BA wants a grooming-ready PBI backlog from an idea. SINGLE-PBI DEEP: a raw idea — or a handed-off artifact/ticket/brief — through to ONE grooming-ready PBI with a provisional Feature Spec, user stories, TDD test specifications, Dev BA PIC challenge, DoR validation, wireframes, and prioritization. MULTI-OPPORTUNITY DISCOVERY: a raw product vision/problem statement → structured brainstorm → RICE opportunity map → user multi-select → multiple PBIs (light per-opportunity loop) → cross-PBI ranked backlog. For idea → ONE provisional Feature Spec only (no backlog), use workflow-idea-to-spec
-- Sequence: `brainstorm -> web-research -> deep-research -> idea -> spec-discovery -> review-artifact -> refine -> why-review -> spec [mode=draft] -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> spec-clarify -> domain-analysis -> why-review -> plan -> plan-review -> plan-validate -> why-review -> review-artifact --type=pbi -> story -> why-review -> review-artifact --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> design-spec -> prioritize -> docs-update -> workflow-end -> watzup`
+- Sequence: `brainstorm -> web-research -> deep-research -> idea -> spec-discovery -> review-artifact -> refine -> why-review -> spec [mode=draft] -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> spec-clarify -> domain-analysis -> why-review -> plan -> plan-review -> plan-validate -> why-review -> review-artifact --type=pbi -> story -> why-review -> review-artifact --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> design-spec -> prioritize -> docs-update -> feature-presentation -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -537,6 +537,7 @@ After workflow activation, present the full step list and let user deselect irre
 - [x] UI design spec (design-spec) — CONDITIONAL: skip for backend-only PBIs; authors the PBI's tech-agnostic UI specs right after the mockup so every UI PBI carries BOTH a faithful mockup AND UI specs (both gated by SYNC:existing-ui-research)
 - [x] Backlog prioritization (prioritize)
 - [x] Documentation synchronization (docs-update) — near-final sync for specs, workflow-feature docs, and TDD/spec docs
+- [x] Stakeholder presentation (feature-presentation) — synthesize all session ideas/specs/PBIs/stories/design-specs/mockups into ONE standalone HTML slide deck for PO/BA/Dev/QC; embeds each existing -mockup.html via <iframe srcdoc> (never regenerated); gap-fills missing PBIs/mockups via workflow-spec-to-pbi / pbi-mockup run as sub-agents
 
 WHY-REVIEW GATES (repeated, purpose-specific):
 Run in sequence after refine, after spec [mode=tests], after domain-analysis, after plan-validate, and after story (the after-plan-validate gate covers the rationale before review-artifact --type=pbi; review-artifact --type=pbi also self-invokes $why-review --validate-findings internally as a Findings Validation Gate). Challenge the active artifact rationale before the next artifact step:
@@ -596,6 +597,7 @@ CROSS-PBI PRIORITIZE (DISCOVERY MODE):
 HANDOFF:
 At workflow-end, AI MUST ATTENTION present:
 - Summary: single-PBI deep mode → 1 PBI created (test specs created/reviewed, plan, DoR result); discovery mode → N PBIs created, X passed DoR, Y need rework, ranked backlog produced; docs sync completed; any blocking items
+- Stakeholder deck: ONE standalone HTML slide presentation at team-artifacts/presentations/{YYMMDD}-presentation-{slug}.html synthesizing every PBI/story/spec + embedded mockups for PO/BA/Dev/QC review
 - Recommended next workflow: $start-workflow workflow-feature or $start-workflow workflow-big-feature (implement the PBI / top-ranked PBI from the backlog)
 - Any DoR failures: list specific blocking criteria that must be resolved
 UNIVERSAL RULES:
@@ -606,7 +608,7 @@ UNIVERSAL RULES:
 ### workflow-idea-to-spec — Idea to Feature Spec
 - Description: Idea-to-spec — turns a raw idea/vision/problem statement into ONE canonical, provisional Feature Spec (the tech-free 8-section spec + §8 test specs at docs/specs/{Bucket}/README.{Feature}.md, Evidence: TBD until code lands). STOPS at the reviewed Feature Spec — it does NOT produce a PBI backlog. For a backlog, chain workflow-spec-to-pbi afterward. For code→spec (implementation already exists) use workflow-code-to-spec.
 - When To Use: PO/BA wants to turn a raw product idea, vision, or problem statement into ONE canonical (provisional) Feature Spec — spec-driven: idea → framing → Feature Spec (the tech-free 8-section spec + §8 test specs, Evidence: TBD until code lands). STOPS at the reviewed Feature Spec; for a PBI backlog chain workflow-spec-to-pbi next, or use workflow-idea-to-pbi for idea → full backlog in one pass
-- Sequence: `web-research -> deep-research -> brainstorm -> spec-discovery -> domain-analysis -> why-review -> idea -> spec [mode=draft] -> spec [mode=tests] -> review-artifact --type=spec-tests -> review-artifact -> design-spec -> spec-clarify -> why-review -> docs-update -> workflow-end -> watzup`
+- Sequence: `web-research -> deep-research -> brainstorm -> spec-discovery -> domain-analysis -> why-review -> idea -> spec [mode=draft] -> spec [mode=tests] -> review-artifact --type=spec-tests -> review-artifact -> design-spec -> spec-clarify -> why-review -> docs-update -> feature-presentation -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -638,6 +640,7 @@ After workflow activation, auto-select the applicable steps and skip irrelevant 
 - [x] Spec clarification (spec-clarify) — review the authored spec vs the discovered system, brainstorm open questions, audit every hypothesis/decision (OBVIOUS / NON-OBVIOUS / CONFLICTS), and ask the user (ask the user directly) to confirm every non-obvious decision before the spec is finalized
 - [x] Why-Review (why-review) — validate the authored spec's rationale + completeness
 - [x] Docs sync (docs-update) — sync Feature Spec (§8) and derived bucket indexes
+- [x] Stakeholder presentation (feature-presentation) — synthesize the authored Feature Spec(s) + design-specs into ONE standalone HTML slide deck for PO/BA/Dev/QC; SPEC-ONLY: design-spec ASCII wireframes + inventory/states/tokens tables, NO HTML mockups (preserves the spec-only contract)
 
 SPEC AUTHORING FLOW (core mechanic — idea → provisional Feature Spec):
   1. (CONDITIONAL) Run $web-research to discover existing products, competitors, market solutions, and common best-practice patterns for this idea — AUTO-SKIP for internal tools / well-understood domains (record the skip reason).
@@ -655,6 +658,7 @@ SPEC AUTHORING FLOW (core mechanic — idea → provisional Feature Spec):
   13. Run $spec-clarify (AUTHORED-SPEC context) to validate the freshly-authored spec vs the discovered system: walk EVERY applicable validation category (scope & boundaries, actors/roles/permissions, business rules/invariants, data model/lifecycle/states, process/edge/error flows, acceptance-criteria completeness, §8 TC coverage, cross-spec conflicts, non-functional), classify every hypothesis/decision (OBVIOUS / NON-OBVIOUS / CONFLICTS), brainstorm open questions, then a BLOCKING clarification gate that asks the user (ask the user directly) to confirm every NON-OBVIOUS + CONFLICTS + high-impact decision within the budget; confirmed answers are written back into §1-8 + a Decisions Log. Loops $spec [mode=update] when material gaps are found.
   14. Run $why-review — validate the authored spec's rationale and completeness.
   15. Run $docs-update to sync the Feature Spec (§8) and derived bucket indexes.
+  16. Run $feature-presentation to synthesize the authored Feature Spec(s) + design-specs into ONE standalone HTML slide deck for PO/BA/Dev/QC (spec-only: design-spec ASCII visuals + inventory/states/tokens tables, NO HTML mockups — the spec-only contract holds). Output → team-artifacts/presentations/{YYMMDD}-presentation-{slug}.html.
 
 BRAINSTORM STEP REQUIREMENTS:
 - Detect scenario: problem-solving vs new product vs enhancement
@@ -667,6 +671,7 @@ At workflow-end, AI MUST ATTENTION present:
 - Summary: M Feature Specs authored (provisional), §8 TC counts, open questions (confidence < 80%)
 - Feature Specs authored: list the docs/specs/{Bucket}/README.{Feature}.md paths created
 - Provisional note: these specs carry Evidence: TBD + provisional: true until code lands — reconcile via workflow-code-to-spec / spec [mode=update] once implemented
+- Stakeholder deck: ONE standalone HTML slide presentation at team-artifacts/presentations/{YYMMDD}-presentation-{slug}.html synthesizing the Feature Spec(s) + design-spec visuals for PO/BA/Dev/QC review
 - Recommended next workflow: $start-workflow workflow-spec-to-pbi (decompose the Feature Spec(s) into a grooming-ready PBI backlog) OR $start-workflow workflow-feature (implement directly from the spec)
 
 AUTO-SKIP RULES:
@@ -983,7 +988,7 @@ UNIVERSAL RULES:
 
 Session-start reference derived from `.claude/workflows.json` — use it to pick a route on any prompt: run a standard workflow, compose a custom workflow from the step-skills, invoke a single skill, or execute directly.
 
-### Workflow Skills (54 composable steps)
+### Workflow Skills (55 composable steps)
 
 Distinct step-skills used across the workflows above — compose these into a custom workflow when no standard workflow fits.
 
@@ -1002,6 +1007,7 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `dor-gate` | [Code Quality] Use when you need to validate a PBI against Definition of Ready before grooming. |
 | `e2e-test` | [Testing] Use when generating, updating, or maintaining E2E tests from recordings, specs, or code changes. |
 | `excalidraw-diagram` | [Utilities] Use when the user wants to visualize workflows, architectures, or concepts as Excalidraw diagram JSON files. |
+| `feature-presentation` | [Documentation] Use when you need to synthesize all generated specs, PBIs, ideas and mockups into one standalone HTML slide presentation for stakeholders (PO/BA/Dev/QC). |
 | `fix` | [Implementation] Use when you need to analyze and fix issues [INTELLIGENT ROUTING]. Flag: --target={ci\|issue\|logs\|test\|types\|ui} scopes the fix; --target=types resolves TypeScript errors inline. |
 | `harness-setup` | [Quality] Use when setting up an agent quality harness with feedforward guides and feedback sensors. |
 | `idea` | [Project Management] Use when capturing new ideas, feature requests, or concepts for future refinement. |

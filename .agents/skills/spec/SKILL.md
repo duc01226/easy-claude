@@ -115,7 +115,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 - TC IDs live in Section 8 only — never authored in `docs/specs/` directly
 - Section 8 authored via `$spec [mode=tests]`; `$spec [mode=init]` populates it only during initial authoring
-- Size caps: body (sections 1-7) ≤1200 lines, whole file ≤1800 (hard). Split the capability when body>1200 OR TCs>40
+- No line-count cap applies to Feature Specs. Split the capability only when TCs>40 or distinct module-level capabilities emerge.
 - Change History entry required for every functional change (trailing section)
 
 ### M1-M6 Compliance (BLOCKING — applies to every authored spec and every TC)
@@ -253,7 +253,7 @@ This skill owns the **canonical** Feature Spec (§1-8) and its §8 TC registry. 
 - **IMPORTANT MUST ATTENTION [BLOCKING]** EVERY test case MUST carry verifiable code evidence as a `[Source: namespace/service/id]` abstract anchor in its Section 8 hidden carrier — physical `file:line` → provenance sidecar only; sole exception `mode=draft` (`Evidence: TBD` + provisional flag, upgraded to real anchor on first code-sourced run) — why: a TC without evidence is unverifiable and silently rots
 - **IMPORTANT MUST ATTENTION [BLOCKING]** Section 8 is the canonical TC registry — existing TCs MUST NOT be overwritten during `update`; `tests` mode owns generation, `sync` mode reconciles drift — why: integration test code implements §8, so overwriting it orphans real tests
 - **IMPORTANT MUST ATTENTION [BLOCKING]** §1-7 prose is STRICTLY tech-free — no framework/product/language/persistence/messaging/auth names (banned tokens → `spec-principles.md` §3.2); technical identifiers live ONLY in evidence carriers, frontmatter, and mermaid blocks — why: M1/M5 require rebuild-from-scratch on any stack
-- **IMPORTANT MUST ATTENTION [BLOCKING]** Honor M1-M6 mandates (`.claude/skills/shared/sdd-artifact-contract.md`) + canonical TC format (`.claude/skills/shared/tc-format.md`) — any violation FAILS the artifact; size caps: body ≤1200, file ≤1800, split the capability when exceeded
+- **IMPORTANT MUST ATTENTION [BLOCKING]** Honor M1-M6 mandates (`.claude/skills/shared/sdd-artifact-contract.md`) + canonical TC format (`.claude/skills/shared/tc-format.md`) — any violation FAILS the artifact; no line-count cap applies, split only for TC volume or distinct capabilities
 - **IMPORTANT MUST ATTENTION** `INDEX.md`/ERD are DERIVED — flag refresh need in `update`, NEVER trigger `$spec-index` here — why: separation of concerns keeps the canonical spec the only source of truth
 - **IMPORTANT MUST ATTENTION** evidence gate — cite `file:line`/grep for every claim, confidence >80% to act, <60% do NOT recommend; verify AI-generated TC/source anchors against ACTUAL code (grep to confirm) before authoring — why: hallucinated `[Source:]` anchors break traceability
 - **IMPORTANT MUST ATTENTION** cross-service check before concluding any spec/§8 work — scan producers, consumers, sagas, contracts; per touchpoint owner · message · risk (NONE/ADDITIVE/BREAKING) — why: a missing downstream consumer is a silent regression

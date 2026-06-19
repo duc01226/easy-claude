@@ -145,14 +145,14 @@ At `$workflow-end`, AI presents:
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $web-research -> $deep-research -> $brainstorm -> $spec-discovery -> $domain-analysis -> $why-review -> $idea -> $spec [mode=draft] -> $spec [mode=tests] -> $review-artifact --type=spec-tests -> $review-artifact -> $design-spec -> $spec-clarify -> $why-review -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $web-research -> $deep-research -> $brainstorm -> $spec-discovery -> $domain-analysis -> $why-review -> $idea -> $spec [mode=draft] -> $spec [mode=tests] -> $review-artifact --type=spec-tests -> $review-artifact -> $design-spec -> $spec-clarify -> $why-review -> $docs-update -> $feature-presentation -> $workflow-end -> $watzup
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its skill invocation — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
 Activate the `workflow-idea-to-spec` workflow. Run `$start-workflow workflow-idea-to-spec` with the user's prompt as context.
 
 **Steps:**
-$web-research → $deep-research → $brainstorm → $spec-discovery → $domain-analysis → $why-review → $idea → $spec [mode=draft] → $spec [mode=tests] → $review-artifact --type=spec-tests → $review-artifact → $design-spec → $spec-clarify → $why-review → $docs-update → $workflow-end → $watzup
+$web-research → $deep-research → $brainstorm → $spec-discovery → $domain-analysis → $why-review → $idea → $spec [mode=draft] → $spec [mode=tests] → $review-artifact --type=spec-tests → $review-artifact → $design-spec → $spec-clarify → $why-review → $docs-update → $feature-presentation → $workflow-end → $watzup
 
 > **Scale awareness:** When the brainstorm converges on multiple distinct capabilities, this workflow authors one Feature Spec per capability. For 4+ capabilities, spawn one `spec` sub-agent per capability in ONE message (each gets the framing context + output path); the main context assembles and reviews. Use incremental-write patterns to prevent context overrun.
 
