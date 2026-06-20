@@ -279,7 +279,7 @@ Purpose:
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $brainstorm -> $web-research -> $deep-research -> $idea -> $spec-discovery -> $review-artifact -> $refine -> $why-review -> $spec [mode=draft] -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $spec-clarify -> $domain-analysis -> $why-review -> $plan -> $plan-review -> $plan-validate -> $why-review -> $review-artifact --type=pbi -> $story -> $why-review -> $review-artifact --type=story -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $design-spec -> $prioritize -> $docs-update -> $feature-presentation -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $web-research -> $deep-research -> $brainstorm -> $idea -> $spec-discovery -> $review-artifact -> $refine -> $why-review -> $spec [mode=draft] -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $spec-clarify -> $domain-analysis -> $why-review -> $plan -> $plan-review -> $plan-validate -> $why-review -> $review-artifact --type=pbi -> $story -> $why-review -> $review-artifact --type=story -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $design-spec -> $prioritize -> $docs-update -> $feature-presentation -> $workflow-end -> $watzup
 
 > **Mode gating of the canonical sequence above** — **Single-PBI deep mode:** skip $brainstorm + $web-research + $deep-research; run the full deep track (one PBI). **Discovery mode:** run $brainstorm (optionally $web-research → $deep-research), skip $spec [mode=draft], $spec [mode=tests], $review-artifact --type=spec-tests, $spec-clarify, $plan, $plan-review, $plan-validate; loop $idea→/refine→/review-artifact --type=pbi→/story→/review-artifact --type=story→/pbi-challenge→/dor-gate→/pbi-mockup→/design-spec per selected opportunity, then $prioritize cross-PBI.
 
@@ -288,7 +288,7 @@ Purpose:
 Activate the `workflow-idea-to-pbi` workflow. Run `$start-workflow workflow-idea-to-pbi` with the user's prompt as context.
 
 **Steps:**
-$brainstorm → $web-research → $deep-research → $idea → $spec-discovery → $review-artifact → $refine → $why-review → $spec [mode=draft] → $spec [mode=tests] → $why-review → $review-artifact --type=spec-tests → $spec-clarify → $domain-analysis → $why-review → $plan → $plan-review → $plan-validate → $why-review → $review-artifact --type=pbi → $story → $why-review → $review-artifact --type=story → $pbi-challenge → $dor-gate → $pbi-mockup → $design-spec → $prioritize → $docs-update → $feature-presentation → $workflow-end → $watzup
+$web-research → $deep-research → $brainstorm → $idea → $spec-discovery → $review-artifact → $refine → $why-review → $spec [mode=draft] → $spec [mode=tests] → $why-review → $review-artifact --type=spec-tests → $spec-clarify → $domain-analysis → $why-review → $plan → $plan-review → $plan-validate → $why-review → $review-artifact --type=pbi → $story → $why-review → $review-artifact --type=story → $pbi-challenge → $dor-gate → $pbi-mockup → $design-spec → $prioritize → $docs-update → $feature-presentation → $workflow-end → $watzup
 
 > **Conditional / mode-gated steps:**
 >
