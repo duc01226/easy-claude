@@ -507,6 +507,7 @@ MANDATORY IMPORTANT MUST ATTENTION RULES:
 10. Treat AI-generated ideas, PBIs, stories, mockups, and TCs as draft/reference until the owning review or acceptance gate approves them.
 11. DISCOVERY MODE: $brainstorm MUST produce a RICE-scored opportunity map (3–8 items) before any $idea step. The per-opportunity loop (idea → refine → review-artifact --type=pbi → story → review-artifact --type=story → pbi-challenge → dor-gate → pbi-mockup) repeats for EACH selected opportunity — NOT once. spec [mode=draft], spec [mode=tests], and the plan/plan-review/plan-validate cycle stay SINGLE-PBI-DEEP-MODE ONLY.
 12. DISCOVERY MODE: $prioritize at the end is cross-PBI — it ranks ALL PBIs from this session together. This workflow produces a BACKLOG only (no implementation) — hand off to workflow-feature or workflow-big-feature to build the top-ranked PBI.
+13. PRIORITY PROPAGATION & VISIBILITY (MANDATORY, both modes): $prioritize MUST write the computed rank/priority back into every generated PBI's frontmatter `priority` field — never leave a generated PBI without priority. The pbi-mockup generated files AND the feature-presentation deck MUST display each PBI's priority info (rank + RICE/MoSCoW band) — the mockup in its header, the deck in its Scope & backlog slide. This workflow's spec→pbi decomposition half is IDENTICAL to workflow-spec-to-pbi (idea-to-pbi == idea-to-spec + spec-to-pbi).
 
 STEP SELECTION GATE:
 After workflow activation, present the full step list and let user deselect irrelevant ones:
@@ -881,7 +882,7 @@ UNIVERSAL RULES:
 ### workflow-spec-to-pbi — Spec to PBI Backlog
 - Description: Generate a complete, dependency-aware PBI backlog from existing canonical Feature Specs (docs/specs/{Bucket}/). Audits spec freshness, decomposes large Feature Specs by capability and feature, creates PBIs/stories/DoR evidence, and produces a ranked backlog.
 - When To Use: User wants to create all PBIs from an existing Feature Spec, convert a large Feature Spec into a complete prioritized backlog, generate dependent PBIs from docs/specs, split a very big Feature Spec into sprint-ready PBIs, or produce a ranked implementation order from a bucket of Feature Specs.
-- Sequence: `scout -> spec-index -> domain-analysis -> why-review -> spec-clarify -> plan -> plan-review -> plan-validate -> why-review -> refine -> why-review -> review-artifact --type=pbi -> story -> why-review -> review-artifact --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> prioritize -> docs-update -> workflow-end -> watzup`
+- Sequence: `scout -> spec-index -> domain-analysis -> why-review -> spec-clarify -> plan -> plan-review -> plan-validate -> why-review -> refine -> why-review -> review-artifact --type=pbi -> story -> why-review -> review-artifact --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> design-spec -> prioritize -> docs-update -> feature-presentation -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -895,9 +896,12 @@ MANDATORY RULES:
 4. Decompose large Feature Specs into independently deliverable vertical slices. Create explicit shared/foundation PBIs for cross-cutting prerequisites.
 5. For each PBI, include acceptance criteria, story points, dependencies, priority, domain impact, spec [mode=tests] needs, and DoR status. Carry §4 BR-/§3 US- logical IDs as the primary citation spine.
 6. Run domain-analysis when the spec implies new/changed entities, aggregates, invariants, state machines, or cross-service ownership.
-7. Run prioritize once at the end across all generated PBIs to produce a dependency-aware ranked backlog.
-8. Write artifacts immediately after each capability/feature is processed; never hold all PBIs in memory.
-9. Run docs-update after prioritize and before workflow-end so Feature Specs (§8) and derived indexes stay synchronized.
+7. For each UI PBI, run pbi-mockup THEN design-spec (both CONDITIONAL — SKIP for backend-only PBIs with a stated skip reason; both gated by SYNC:existing-ui-research). pbi-mockup produces a faithful HTML mockup matching the current UI system; design-spec authors the PBI's tech-agnostic UI specs. This mirrors workflow-idea-to-pbi so the spec→pbi decomposition half is IDENTICAL across both workflows (idea-to-pbi == idea-to-spec + spec-to-pbi).
+8. Run prioritize once at the end across all generated PBIs to produce a dependency-aware ranked backlog. PRIORITY PROPAGATION (MANDATORY): prioritize MUST write the computed rank/priority back into every generated PBI's frontmatter `priority` field — never leave a generated PBI without priority. Every generated PBI carries priority info.
+9. Write artifacts immediately after each capability/feature is processed; never hold all PBIs in memory.
+10. Run docs-update after prioritize and before workflow-end so Feature Specs (§8) and derived indexes stay synchronized.
+11. Run feature-presentation after docs-update (before workflow-end) to synthesize all generated PBIs/stories/specs/design-specs/mockups into ONE standalone HTML stakeholder deck for PO/BA/Dev/QC; it embeds each existing -mockup.html via <iframe srcdoc> (never regenerated) and MUST surface each PBI's priority/rank in the Scope & backlog slide.
+12. PRIORITY VISIBILITY (MANDATORY): the pbi-mockup generated files AND the feature-presentation deck MUST display each PBI's priority info (rank + RICE/MoSCoW band) — the mockup in its header, the deck in its Scope & backlog slide.
 
 SCALE GATE:
 - 1-3 capabilities: process inline with task tracking.
@@ -908,8 +912,11 @@ SPEC-CLARIFY VALIDATION GATE (after domain-analysis + why-review, before plan / 
 The Feature Spec is canonical INPUT — spec-clarify validates the DECISIONS that drive decomposition WITH the user before any PBI is built, so the backlog is never decomposed from unconfirmed assumptions. Context = EXISTING-SPEC (a vetted full §1-8): it weights the decomposition-driving categories (§3 US/AC, §4 BR/invariants, §5 ERD, §6 flows, §7 permissions, §8 TC coverage) and cross-spec conflicts vs the discovered landscape, classifies each decision OBVIOUS / NON-OBVIOUS / CONFLICTS, and asks the user (ask the user directly, ≤4 options per call, recommended first, multiple calls as needed) to confirm every NON-OBVIOUS + CONFLICTS + high-impact one. It does NOT re-author the canonical spec — confirmed material changes route via $spec [mode=update] FIRST, then decomposition resumes. SCALE NOTE: the budget bounds the question count, not the audit breadth — for 4+ capabilities, validate the cross-cutting / shared decisions plus a sample per capability within the budget rather than exhaustively re-asking each. Spec Validation: questions=4-8 (EXISTING-SPEC context budget — ask ≥4 only when ≥4 genuine decisions surface; never invent filler to hit the minimum).
 
 OUTPUTS:
-- team-artifacts/pbis/{date}-pbi-{slug}.md for each PBI.
+- team-artifacts/pbis/{date}-pbi-{slug}.md for each PBI (each carries a `priority` frontmatter field).
+- team-artifacts/pbis/{date}-pbi-{slug}-mockup.html for each UI PBI (header shows priority/rank).
+- team-artifacts/design-specs/{date}-designspec-{slug}.md for each UI PBI (tech-agnostic UI specs).
 - team-artifacts/backlog/spec-to-pbi-{date}-backlog.md with rank, dependency graph, priority, and recommended order.
+- team-artifacts/presentations/{YYMMDD}-presentation-{slug}.html — the stakeholder deck synthesizing all PBIs (with priority/rank), stories, specs, design-specs, and mockups.
 - plans/reports/spec-to-pbi-{date}-{bucket}.md with source spec coverage and unresolved questions.
 - docs-update report confirming Feature Specs and derived indexes are synchronized.
 UNIVERSAL RULES:

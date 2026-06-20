@@ -50,29 +50,35 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Give stakeholders a realistic, system-matching visual preview of every story's UI — by generating a self-contained HTML mock-up file (one per PBI covering all stories) from finalized PBI/story artifacts, styled from the project's reference design docs, existing UI, components, and real domain entity data — before implementation begins, so layout/UX/state gaps surface while changes are still cheap.
+**Goal:** Give stakeholders a clickable, self-narrating MVP prototype of every story's main-flow UI — by generating a self-contained interactive HTML mock-up file (one per PBI covering all stories) from finalized PBI/story artifacts, styled from the project's reference design docs, existing UI, components, and real domain entity data — before implementation begins, so layout/UX/flow/state gaps surface while changes are still cheap.
 
 **Summary:**
 
 - This is a PRE-implementation preview tool, not a UI builder: only run on finalized PBIs/stories (reviewed, gated); for backend-only PBIs with no UI sections, skip generation and tell the user — do NOT use it for production UI, design specs, or scratch wireframes.
+- Plan first, generate second: enumerate the PBI's main-story/MVP flows into flow-specs and create one todo per flow (Step 2b) BEFORE generating; sign off with a final Demo-Quality review gate (Step 8) auditing the generated prototype.
 - Output is exactly ONE self-contained HTML file per PBI (all stories as tabs/sections), inline CSS/JS, no external deps except Google Fonts, saved alongside the PBI artifact as `{pbi-filename}-mockup.html`.
+- The mock-up is a **scripted clickable prototype** — each main-story flow clicks through end-to-end ("click X → see Y → move to Z") with guided narration (▶ Play / ⏭ Next / ⏮ Prev / ↺ Reset / ⏏ Exit), an explanation panel, and a visible "⚠ Simulated" banner; interactivity is **scripted/simulated only** (canned transitions, illustrative data) — NEVER real auth, persistence, or backend.
 - Fidelity is the whole point — the mock-up must LOOK like the existing app: load the canonical + matched per-app design-system docs (NEW→canonical, REFACTOR→per-app), read real shared/module components for layout patterns, and populate with real domain entity fields and realistic sample data, never Lorem ipsum.
 - Render every defined component state (default/loading/empty/error) as toggleable, keep any accompanying prose/captions tech-agnostic (business terms, not framework/CSS class names) per the M1/M2 mandates, even though the rendered HTML may use real class names internally.
 
 **Workflow:**
 
 1. **Locate Artifacts** — Find PBI and story files in `team-artifacts/pbis/`
-2. **Extract UI Specs** — Parse UI Layout, Wireframe, Components, States sections
+2. **Extract UI Specs** — Parse UI Layout, Wireframe, Components, States, Interaction Flow sections
+2b. **Plan the Demo Flows** — enumerate main-story/MVP flows, author one flow-spec per flow, task tracking one todo per flow ([BLOCKING], before generating)
 3. **Load Design System** — Read module-specific design tokens, colors, typography
 4. **Load Existing UI** — Read existing components, page layouts, and patterns from the project
 5. **Load Domain Entities** — Read entity fields, relationships, and enums for realistic sample data
-6. **Generate HTML** — Create self-contained HTML mockup matching the current system's look and feel
+6. **Generate HTML** — Create self-contained interactive prototype (scripted clickable flows + guided walkthrough) matching the current system's look and feel
 7. **Save** — Write HTML file alongside the PBI artifact
+8. **Demo-Quality Review Gate** — [BLOCKING] audit every flow clicks end-to-end, no dead controls, narration + banner, offline, iframe-safe
 
 **Key Rules:**
 
-- Ask AI to generate an **HTML mock-up** for UI PBIs; do not stop at an ASCII-only mockup.
+- Ask AI to generate an **interactive HTML mock-up** for UI PBIs; do not stop at an ASCII-only or static mockup — every main-story flow is a scripted clickable prototype with guided narration.
 - One HTML file per PBI (all stories shown as sections/tabs)
+- Plan the demo flows (Step 2b) BEFORE generating; sign off with the Demo-Quality gate (Step 8) AFTER
+- Interactivity is **scripted/simulated only** (canned transitions, illustrative data, "⚠ Simulated" banner) — NEVER real `fetch`/auth/persistence/backend; self-contained so it runs inside the deck's `<iframe srcdoc>`
 - Self-contained: inline CSS/JS, no external dependencies except Google Fonts
 - **Must resemble the project's current UI** — read existing component templates and page layouts
 - Design must be based on project reference design docs: `docs/project-reference/design-system/README.md`, `docs/project-reference/design-system/design-system-canonical.md`, and the matched per-app design-system doc from `docs/project-config.json`
@@ -148,10 +154,21 @@ From the PBI and story artifacts, extract:
 | `### Interaction Flow`             | User actions and system responses     |
 | `## Acceptance Criteria`           | GIVEN/WHEN/THEN scenarios for context |
 | `## Description`                   | User role, capability, business value |
+| frontmatter `priority` / `rank`    | PBI priority label + numeric rank — render in the header (Step 4). MANDATORY when present; the mockup MUST carry the same priority info as the backlog. |
 
 If no UI sections exist (backend-only PBI), inform user and skip mockup generation:
 
 > "This PBI has no UI sections (marked as backend-only). No mockup generated."
+
+### Step 2b: [BLOCKING] Plan the Demo Flows (think → plan → many todos BEFORE generating)
+
+> **[BLOCKING] Do NOT generate the mock-up until every main-story flow is planned as a flow-spec and a todo exists per flow.** The mock-up is a clickable, self-narrating prototype of the PBI's main user-story happy paths — plan the journeys first, generate second.
+
+1. **Enumerate the main-story / MVP flows** — from `### Interaction Flow`, the `## Acceptance Criteria` GIVEN/WHEN/THEN scenarios, and each story's "As a / I want / So that". One flow per main user story (MVP happy path) — not every edge case.
+2. **Author one flow-spec per flow** — fill the `references/interactive-demo.md` §1 schema: `id`, business-language `title`, `persona`, `trigger`, ordered `steps[]` where each step = `{ action: "user clicks/selects/types X", result: "screen/state Y appears", explain: "plain-language why" }`, and `endState`. The `explain`/`title` prose stays tech-agnostic (business terms, not class names) per M1/M2.
+3. **task tracking one todo per flow** — so each journey is generated and later verified (Step 8) individually; add the Step 8 Demo-Quality review as the final todo.
+
+> See `references/interactive-demo.md` §1 for the flow-spec schema + a worked example.
 
 ### Step 3: Load Design System Context
 
@@ -233,21 +250,36 @@ Generate a **single self-contained HTML file** with the following structure:
         <!-- Navigation tabs (one per story) -->
         <!-- Story sections with mockup UI -->
         <!-- Component state toggles (default/loading/empty/error) -->
+        <!-- Interactive prototype: screens/states + hotspots + demo control bar + explanation panel + "⚠ Simulated" banner -->
         <script>
             /* Tab navigation */
             /* State toggles */
             /* Theme toggle */
             /* Responsive preview toggle */
+            /* Prototype engine: goTo(stateId) router + hotspots + simulated submit — see references/interactive-demo.md §2 */
+            /* Guided walkthrough: ▶ Play ⏭ Next ⏮ Prev ↺ Reset ⏏ Exit — see references/interactive-demo.md §3 */
         </script>
     </body>
 </html>
 ```
+
+#### Interactive Prototype + Guided Walkthrough
+
+The mock-up is a **scripted clickable prototype** of each planned flow (Step 2b), not a still image. For EVERY flow-spec, render the journey so a stakeholder can click through it and watch it narrate. Mechanics are delegated — do NOT inline the engine here:
+
+1. **Screen/state router + hotspots** — render each flow's screens/states as DOM sections and wire clickable hotspots that `goTo` the next state (`references/interactive-demo.md §2`). Simulated submit → success toast → in-memory row insert; NO real `fetch`/persistence/backend.
+2. **Demo controls + guided walkthrough** — a control bar (`▶ Play · ⏭ Next · ⏮ Prev · ↺ Reset · ⏏ Exit`) auto-/step-walks the flow, spotlighting the active hotspot (`references/interactive-demo.md §3`).
+3. **Explanation panel + "⚠ Simulated" banner** — a persistent panel names the current flow + step (`n / total`) + the step's plain-language `explain`; a visible "⚠ Simulated — illustrative data, no real actions are performed" banner is the scope guard (`references/interactive-demo.md §4`).
+4. **Affordances + a11y** — hotspots visibly highlighted (pulse/outline), disabled controls show a tooltip, demo never traps the user, `prefers-reduced-motion` respected (`references/interactive-demo.md §5`).
+
+> **Scope guard:** interactivity is **scripted/simulated only** (canned transitions, illustrative data) — never real auth, persistence, or backend calls; self-contained so it runs inside the deck's `<iframe srcdoc>` sandbox (`references/interactive-demo.md §6`).
 
 #### HTML Structure Requirements
 
 1. **Header Section:**
     - PBI ID and title
     - Module badge
+    - **Priority badge** — the PBI's priority label + numeric rank from frontmatter (e.g. "Priority: Must Have · Rank #2"). MANDATORY when the PBI carries `priority`/`rank`; the mockup MUST surface the same priority info as the backlog so stakeholders see it on the prototype itself. Omit only when the PBI genuinely has no priority assigned yet.
     - Story count summary
     - Generation date
 
@@ -278,22 +310,22 @@ Generate a **single self-contained HTML file** with the following structure:
 
 #### Component Rendering
 
-Map wireframe components to HTML elements:
+Map wireframe components to HTML elements AND to their scripted demo interaction (the hotspot/transition that advances the flow — `references/interactive-demo.md §2`):
 
-| Wireframe Component | HTML Rendering                             |
-| ------------------- | ------------------------------------------ |
-| Table/Grid          | `<table>` with design system styles        |
-| Form                | `<form>` with labeled inputs               |
-| Button              | `<button>` with primary/secondary variants |
-| Card                | `<div class="card">` with shadow           |
-| List                | `<ul>` or data list                        |
-| Modal/Dialog        | Overlay `<div>` (toggleable)               |
-| Tab panel           | Tab navigation with content panels         |
-| Search/Filter       | Input with icon                            |
-| Status badge        | `<span>` with color coding                 |
-| Empty state         | Centered message with icon                 |
-| Loading state       | Skeleton placeholder or spinner            |
-| Error state         | Error banner with message                  |
+| Wireframe Component | HTML Rendering                             | Demo Interaction (scripted/simulated)                          |
+| ------------------- | ------------------------------------------ | -------------------------------------------------------------- |
+| Table/Grid          | `<table>` with design system styles        | Row click → `goTo` detail screen/state                         |
+| Form                | `<form>` with labeled inputs               | Submit → simulated success toast + in-memory row insert        |
+| Button              | `<button>` with primary/secondary variants | Hotspot → advances the demo to the next screen/state           |
+| Card                | `<div class="card">` with shadow           | Card click → `goTo` the card's detail screen/state             |
+| List                | `<ul>` or data list                        | Item click → `goTo` selected-item screen/state                 |
+| Modal/Dialog        | Overlay `<div>` (toggleable)               | Trigger → open dialog state; confirm/cancel → `goTo` next      |
+| Tab panel           | Tab navigation with content panels         | Tab → switch panel (no nav away)                               |
+| Search/Filter       | Input with icon                            | Apply → simulated filtered result state                        |
+| Status badge        | `<span>` with color coding                 | Non-interactive (illustrative state indicator)                 |
+| Empty state         | Centered message with icon                 | Primary CTA → `goTo` the create/first-action screen/state      |
+| Loading state       | Skeleton placeholder or spinner            | Transient → auto-advances to the loaded screen/state           |
+| Error state         | Error banner with message                  | Retry → `goTo` back to the prior screen/state                  |
 
 ### Step 5: Save HTML File
 
@@ -307,11 +339,15 @@ After generation, output:
 
 ```
 Mockup generated: {path}
+- PBI priority: {priority label} · Rank #{rank}  (or "not yet prioritized")
 - Stories covered: {count}
+- Demo flows: {count} ({flow titles})
 - Components rendered: {list}
 - States included: {default, loading, empty, error}
+- Fidelity vs existing UI: PASS | FAIL
+- Demo quality: PASS | FAIL
 
-Open in browser to preview. Use theme toggle for dark/light mode.
+Open in browser to preview. Click highlighted hotspots or press ▶ Play to walk a flow. Use theme toggle for dark/light mode.
 ```
 
 ---
@@ -337,20 +373,47 @@ If **FAIL**, revise the mockup to match the existing UI and re-validate before h
 
 ---
 
+### Step 8: [BLOCKING] Demo-Quality Review Gate
+
+> **[BLOCKING] This is the final review todo (Step 2b created it).** After fidelity passes, audit the GENERATED interactive prototype's demo quality before handoff. Do NOT report the mock-up as done until this records a result — a prototype with a dead control or a flow that does not click through is not done. Full checklist: `references/interactive-demo.md §7`.
+
+**First, confirm the result SATISFIES the PBI's intent** (not merely that it renders): every main user story in the PBI's `## Acceptance Criteria` / `### Interaction Flow` is represented by a flow-spec demo (coverage — no main story missing), AND each prototype faithfully demonstrates that story's intended behavior end-to-end. Then audit the produced prototype against every planned flow-spec and record an explicit pass/fail:
+
+0. **Satisfies the PBI intent** — every main-story/MVP flow from the acceptance criteria is present and its demo conveys the intended behavior; if a story has no demo or the demo misrepresents it, this gate FAILS regardless of the items below.
+1. **Every main-story flow clicks end-to-end** — each flow's `steps[]` reach its `endState` via real hotspots; no path dead-ends.
+2. **No dead controls** — every button/hotspot advances the demo or is visibly disabled-with-tooltip.
+3. **Narration present + tech-agnostic** — every step shows its plain-language `explain`; copy is business-language (M1/M2), not class names; the "⚠ Simulated — illustrative data, no real actions are performed" banner is visible on every flow.
+4. **Opens offline standalone** — no external `<script src>`; Google Fonts CSS only; no JS console errors.
+5. **Real domain data** — screens/rows use real entity field names + realistic values, never Lorem ipsum.
+6. **iframe-safe** — works self-contained inside an `<iframe srcdoc>` sandbox (no parent-document or network dependency) so the deck can embed it.
+
+Record the outcome in the Step 6 report:
+
+```
+Demo quality: PASS | FAIL — satisfies PBI intent (every main story demoed + faithful) / flows click end-to-end / no dead controls / narration tech-agnostic + banner / offline / real data / iframe-safe? If FAIL: what broke + the fix.
+```
+
+If **FAIL**, fix the prototype (re-author from the flow-spec — cheap) and re-audit before handoff.
+
+---
+
 ## Mockup Quality Checklist
 
 Before completing:
 
 - [ ] HTML file is self-contained (opens correctly without a server)
 - [ ] All stories from PBI are represented as sections/tabs
+- [ ] Every main-story flow (Step 2b) is rendered as a scripted clickable prototype with guided narration
 - [ ] Design is based on `design-system-canonical.md` plus the matched per-app design-system doc when available
 - [ ] Design system colors and typography match the project
 - [ ] Component states are toggleable (where defined in artifact)
 - [ ] Responsive layout works for mobile and desktop
 - [ ] Realistic placeholder data used (not Lorem ipsum)
 - [ ] PBI metadata shown in header (ID, title, module, date)
+- [ ] PBI priority shown in header (priority label + numeric rank from frontmatter) when the PBI is prioritized — the mockup carries the same priority info as the backlog
 - [ ] File saved alongside the PBI artifact
 - [ ] Fidelity validation (Step 7) recorded PASS — mockup matches existing UI tokens, components, layout, and connected flows
+- [ ] Demo-Quality gate (Step 8) recorded PASS — every flow clicks end-to-end, no dead controls, narration + "⚠ Simulated" banner present, offline, iframe-safe
 
 ---
 
@@ -368,13 +431,14 @@ Before completing:
 
 ## Anti-Patterns
 
-| Anti-Pattern                     | Correct Approach                         |
-| -------------------------------- | ---------------------------------------- |
-| Production-quality CSS framework | Simple inline CSS matching design tokens |
-| External dependencies (CDN libs) | Self-contained except Google Fonts       |
-| Pixel-perfect implementation     | Approximate visual representation        |
-| Interactive functionality        | Static mockup with state toggles only    |
-| Lorem ipsum placeholder text     | Realistic domain-specific sample data    |
+| Anti-Pattern                                       | Correct Approach                                                                                  |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Production-quality CSS framework                   | Simple inline CSS matching design tokens                                                          |
+| External dependencies (CDN libs)                   | Self-contained except Google Fonts                                                                |
+| Pixel-perfect implementation                       | Approximate visual representation                                                                 |
+| Real backend/business logic (auth, live API, persistence) | Scripted/simulated prototype interactivity only — clickable nav, simulated transitions, guided demo; NO real business logic or data writes |
+| Dead / non-wired buttons                           | Every control either advances the demo or is visibly disabled-with-tooltip                        |
+| Lorem ipsum placeholder text                       | Realistic domain-specific sample data                                                            |
 
 ---
 
@@ -460,7 +524,7 @@ Before completing:
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Give stakeholders a realistic, system-matching visual preview of every story's UI — built from real domain data and the project's actual design system — before implementation begins, so layout/UX/state gaps surface while changes are still cheap.
+**IMPORTANT MUST ATTENTION Goal:** Give stakeholders a clickable, self-narrating MVP prototype of every story's main-flow UI — built from real domain data and the project's actual design system — before implementation begins, so layout/UX/flow/state gaps surface while changes are still cheap.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -468,7 +532,11 @@ Before completing:
 - **Critical Thinking:** MUST ATTENTION traced proof per claim, confidence >80% to act, NEVER guess.
 
 **IMPORTANT MUST ATTENTION** run ONLY on finalized PBIs/stories (reviewed, challenged, gated); for a backend-only PBI with no UI sections, SKIP generation and tell the user — never fabricate UI — why: a mock-up of an unfinished or UI-less PBI previews the wrong thing.
+**IMPORTANT MUST ATTENTION** PLAN the demo flows BEFORE generating — Step 2b enumerates the PBI's main-story/MVP flows into flow-specs and task trackings one todo per flow; Step 8 [BLOCKING] Demo-Quality gate signs off AFTER — why: think → plan → many todos → generate → final review is the discipline that makes the prototype complete and click-through-verified.
+**IMPORTANT MUST ATTENTION** render each main-story flow as a **scripted clickable prototype** with guided narration (▶ Play · ⏭ Next · ⏮ Prev · ↺ Reset · ⏏ Exit), an explanation panel, and a visible "⚠ Simulated — illustrative data, no real actions are performed" banner; interactivity is **scripted/simulated only** (canned transitions) — NEVER real `fetch`/auth/persistence/backend; self-contained so it runs inside the deck's `<iframe srcdoc>` (mechanics: `references/interactive-demo.md §2–§4`) — why: a clickable prototype conveys behavior at the lowest cost, but a real backend breaks the offline preview-before-code purpose.
 **IMPORTANT MUST ATTENTION** emit exactly ONE self-contained HTML file per PBI (all stories as tabs/sections), inline CSS/JS, no external deps except Google Fonts, saved as `{pbi-filename}-mockup.html` beside the PBI artifact — why: stakeholders open one file with no server, no build step.
+
+**IMPORTANT MUST ATTENTION** render the PBI's priority in the header (priority label + numeric rank from frontmatter) whenever the PBI is prioritized — why: the mockup is a stakeholder-facing prototype and MUST carry the same priority info as the backlog, not just the title; downstream `feature-presentation` reuses it.
 
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting; add a final review todo to verify quality.
 **MANDATORY IMPORTANT MUST ATTENTION** validate route/next-step decisions with the user via a direct user question — never auto-decide complexity for the user.
@@ -488,6 +556,9 @@ Before completing:
 | Evasion                                          | Rebuttal                                                                                   |
 | ------------------------------------------------ | ------------------------------------------------------------------------------------------- |
 | "PBI looks ready, skip the gated/finalized check"| Run only on reviewed-and-gated PBIs. An unfinished PBI previews the wrong thing.            |
+| "A static mockup is faster than a clickable one" | Static conveys layout only, not behavior — the user asked for an MVP demo. Render each flow as a scripted clickable prototype (regenerated from the §1 flow-spec — cheap). |
+| "Skip the flow planning, just generate"          | Step 2b (flow-specs + one todo per flow) is BLOCKING; planning the journeys first is what makes the prototype complete and click-through-verifiable. |
+| "Wire it to a real endpoint so it feels real"    | Interactivity is scripted/simulated only — canned transitions, illustrative data, "⚠ Simulated" banner. NO real `fetch`/auth/persistence/backend. |
 | "Lorem ipsum is faster"                          | Fake data hides real overflow/state gaps. Use real entity field names + realistic values.  |
 | "Generic clean HTML is good enough"              | Fidelity is the point — read design-system docs + 2-3 real components, mimic the actual UI. |
 | "Class names in the notes are fine"              | Prose stays tech-agnostic (M1/M2). Real class names live in the rendered HTML, not captions.|
@@ -496,7 +567,8 @@ Before completing:
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
 
-**IMPORTANT MUST ATTENTION Goal:** realistic, system-matching UI preview from real domain data + the actual design system, BEFORE implementation — so gaps surface while cheap.
+**IMPORTANT MUST ATTENTION Goal:** clickable, self-narrating MVP prototype of every story's main-flow UI from real domain data + the actual design system, BEFORE implementation — so flow/UX/state gaps surface while cheap.
+**IMPORTANT MUST ATTENTION** PLAN flows first (Step 2b flow-specs + one todo per flow), then the Demo-Quality gate signs off (Step 8); each flow is a scripted clickable prototype with guided narration + "⚠ Simulated" banner — interactivity scripted/simulated only, NEVER real backend.
 **IMPORTANT MUST ATTENTION** ONE self-contained HTML per PBI (Google Fonts only), real domain data not Lorem ipsum, every component state toggleable, prose tech-agnostic (M1/M2).
 **IMPORTANT MUST ATTENTION** read design-system docs + real components + domain-entities reference first; cite `file:line` (>80% confidence) — NEVER guess fields or tokens.
 

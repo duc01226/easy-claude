@@ -108,7 +108,7 @@ Activated only when the input is a raw product vision/problem spanning multiple 
 5. **Per-opportunity light loop** (for EACH selected opportunity — NO `spec [mode=draft]`, NO `spec [mode=tests]`, NO `plan`/`plan-review`/`plan-validate`; `domain-analysis` already ran once up front):
    `/idea` → `/refine` → `/review-artifact --type=pbi` → `/story` → `/review-artifact --type=story` → `/pbi-challenge` → `/dor-gate` → `/pbi-mockup` → `/design-spec` (mockup + UI specs skip for backend-only PBIs).
 6. **Scale management.** For 6+ selected opportunities, spawn one sub-agent per opportunity (each gets brainstorm context + its task list); the main context runs `/prioritize` at the end. Update a session summary table after every 3 opportunities.
-7. **Cross-PBI prioritize.** After ALL opportunities are processed, run `/prioritize` across all session PBIs (cross-PBI RICE + dependency graph) → sprint-ready ranked backlog, flagging Must/Should/Could-Have.
+7. **Cross-PBI prioritize.** After ALL opportunities are processed, run `/prioritize` across all session PBIs (cross-PBI RICE + dependency graph) → sprint-ready ranked backlog, flagging Must/Should/Could-Have. `/prioritize` MUST write the resulting rank/priority back into EACH PBI's frontmatter (priority propagation), not only the standalone backlog — so `/pbi-mockup` (header badge) and `/feature-presentation` (Scope & backlog slide) can surface each PBI's priority from the PBI itself.
 
 ### 2. TaskCreate Before Starting
 
@@ -385,7 +385,9 @@ Activate the `workflow-idea-to-pbi` workflow. Run `/start-workflow workflow-idea
 - **MANDATORY IMPORTANT MUST ATTENTION** pbi-challenge must be run by a reviewer different from the drafter
 - **MANDATORY IMPORTANT MUST ATTENTION** dor-gate must pass (PASS or WARN) before pbi-mockup is finalized; for UI PBIs, pbi-mockup AND design-spec both run (mockup first, then UI specs) so the PBI carries a faithful mockup matching the current UI system PLUS UI specs — both skip for backend-only PBIs and both are gated by SYNC:existing-ui-research; the code-producing design lanes are reference-only, not part of this workflow
 - **MANDATORY IMPORTANT MUST ATTENTION** write each artifact immediately — never batch output across steps
+- **MANDATORY IMPORTANT MUST ATTENTION** prioritize must write the resulting rank/priority back into EACH PBI's frontmatter (priority propagation) — not only the standalone backlog — and that priority MUST then surface in the pbi-mockup generated files (header badge) and the feature-presentation deck (Scope & backlog slide, ranked order + priority label per PBI)
 - **MANDATORY IMPORTANT MUST ATTENTION** docs-update runs after prioritize and before workflow-end to sync specs, feature docs, and TDD/spec dashboards
+- **MANDATORY IMPORTANT MUST ATTENTION** feature-presentation runs after docs-update and before workflow-end to synthesize one standalone stakeholder HTML deck (surfacing each PBI's priority/rank)
 - **MANDATORY IMPORTANT MUST ATTENTION** add a final watzup summary: PBI title, DoR result, any blocking items, recommended next step
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.

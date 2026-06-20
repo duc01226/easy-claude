@@ -116,7 +116,7 @@ Order backlog items using data-driven frameworks → ranked list with scores and
 
 5. **Output** prioritized list with scores and rationale
 
-6. **IF PBI files exist** -> optionally update priority field in frontmatter (numeric 1-999)
+6. **IF PBI files exist** -> **MANDATORY priority propagation**: write the resulting priority back into EACH PBI's frontmatter — both the numeric `rank` (1-999, ascending) and the `priority` label (e.g. Must Have / Should Have / Could Have / Won't Have, or the framework's category). Never leave this optional when PBI files exist: a PBI without its priority is incomplete, and downstream consumers (`pbi-mockup` header badge, `feature-presentation` Scope & backlog slide) read priority FROM the PBI frontmatter. Update every ranked PBI, not just the standalone backlog file.
 
 ## Output Format
 
@@ -223,7 +223,7 @@ If gate does NOT fire, the prioritization decision stands; do NOT prompt.
 - **IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting; mark one `in_progress`, `completed` immediately after evidence
 - **IMPORTANT MUST ATTENTION** search codebase/artifacts for 3+ similar patterns before creating new structure; evaluate pattern FIT (same constraints/scope) before copying a nearby example — why: closest example ≠ matching preconditions
 - **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act, <60% DO NOT recommend); NEVER present a guess as fact
-- **IMPORTANT MUST ATTENTION** optionally update PBI file priority fields (numeric 1-999) ONLY after ranking; grep downstream consumers before changing any priority field — why: stale priority refs cascade silently
+- **IMPORTANT MUST ATTENTION** when PBI files exist, propagating the ranking into EACH PBI's frontmatter (numeric `rank` 1-999 + `priority` label) is MANDATORY, not optional — do it after ranking; grep downstream consumers before changing any priority field — why: downstream consumers (`pbi-mockup` header, `feature-presentation` Scope & backlog slide) read priority from PBI frontmatter, and stale/absent priority refs cascade silently
 - **IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
 
 **Anti-Rationalization:**
@@ -234,6 +234,7 @@ If gate does NOT fire, the prioritization decision stands; do NOT prompt.
 | "I'll cite the framework in the rationale" | Tech-agnostic per M1 — justify by value/effort/risk only, never by named stack |
 | "Scores are close enough, I'll pick" | Near-tie fires the gate → `AskUserQuestion` for `/llm-council`, never silently break |
 | "RICE feels right, skip the formula" | Apply the EXACT formula with fixed scales — a defensible rank needs a number   |
+| "The backlog file has the ranking, PBIs don't need it" | When PBI files exist, priority write-back to each PBI frontmatter is MANDATORY — mockup + presentation read priority from the PBI, not the backlog |
 | "Already know the patterns"          | Show `file:line` evidence — no proof = no search                              |
 <!-- SYNC:critical-thinking-mindset:reminder -->
 

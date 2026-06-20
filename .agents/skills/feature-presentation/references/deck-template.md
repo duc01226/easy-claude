@@ -64,9 +64,11 @@ ONE self-contained file. Inline `<style>` and `<script>`. No external `<script s
 ### Per-slide partials (per the Slide Taxonomy)
 
 - **Title / agenda** — feature(s), run date, scope.
+- **How to drive this demo** — early guide slide: click hotspots and use each demo's own ▶ Play / ⏮ ⏭ / ↺ controls (inside the mock-up); ←/→ change slides (see §3b).
 - **Business context** — problem, value, idea→spec narrative, epics.
 - **Scope & backlog** — PBI cards, user stories, acceptance criteria, priorities.
 - **Behavior & rules** — Feature Spec §4 business rules / §5 invariants, §8 test cases.
+- **Demo flows / user journeys** — one slide per main user story: interactive mockup embed + narration strip (see §3b); spec-only → narrated ASCII frames.
 - **UI / mockups** — one of: `<iframe srcdoc>` embed (idea-to-pbi), design-spec ASCII wireframe + Component Inventory / States / Design-Tokens tables (idea-to-spec), or empty-state slide.
 - **QC view** — test specifications, states matrix, edge cases.
 - **Summary / next steps**.
@@ -181,9 +183,86 @@ The `</script>` becomes `&lt;/script&gt;` and the `<script>` becomes `&lt;script
 
 ---
 
+## 3b. Demo-Flow Slide Pattern (interactive journey + narration strip)
+
+One demo slide per main user story (journey). It embeds the **interactive** `pbi-mockup` HTML scoped to that flow via `<iframe srcdoc>` (the same escape-once rule as §3) and overlays a deck-level **narration strip** showing the current step + plain-language explanation (text only). The journey is driven by the mock-up's own controls (▶ Play · ⏮ ⏭ · ↺) **inside** the iframe; the mock-up is self-driving (its engine lives in `pbi-mockup/references/interactive-demo.md` §2–§3) — the deck only navigates slides and adds narration; it does NOT re-implement (or duplicate) interactivity.
+
+```html
+<section class="deck__slide" data-journey="create-goal">
+    <header class="deck__topbar">Demo — Create a goal (Journey 2/5)<span class="deck__counter">7 / 18</span></header>
+    <div class="deck__body deck__body--demo">
+        <div class="deck__embed">
+            <!-- the flow-scoped interactive mockup; escaped &-first, escape-once-unconditionally (§3) -->
+            <iframe srcdoc="{ESCAPED_INTERACTIVE_MOCKUP_HTML}" title="Demo: Create a goal"></iframe>
+        </div>
+        <aside class="deck__narration" aria-live="polite">
+            <p class="deck__narration-step">Step 2 / 4</p>
+            <p class="deck__narration-text">User taps Save; the goal joins the list.</p>
+            <!-- Narration ONLY. The journey's ▶/⏮/⏭/↺ controls live INSIDE the embedded mock-up
+                 (self-driving, interactive-demo.md §3); the deck does not duplicate or re-implement them. -->
+            <p class="deck__sim-note" role="note">⚠ Simulated — illustrative data, no real actions are performed</p>
+        </aside>
+    </div>
+</section>
+```
+
+### Narration / explanation overlay BEM
+
+BEM classes (deck-level narration of an embedded journey): `deck__narration`, `deck__narration-step`, `deck__narration-text`, `deck__sim-note`. (No control classes here by design — the journey controls live inside the embedded mock-up, not the deck.) Narration copy is **tech-agnostic** (business/observable terms, not framework/CSS class names) per M1/M2 — it turns a clickable screen into a *guided* journey a non-technical stakeholder can follow.
+
+### "How to drive this demo" guide slide (one per deck, near the top)
+
+An early slide teaching the viewer how to explore the prototypes, so a non-technical stakeholder is never lost:
+
+```html
+<section class="deck__slide deck__slide--howto">
+    <h2>How to explore this prototype</h2>
+    <ul>
+        <li>Click the highlighted (pulsing) areas inside a demo</li>
+        <li>Inside each demo: ▶ Play to auto-walk a journey · ⏮ ⏭ to step · ↺ to reset</li>
+        <li>← / → (or nav dots) change slides</li>
+    </ul>
+    <p class="deck__sim-note" role="note">⚠ Simulated — illustrative data, no real actions are performed</p>
+</section>
+```
+
+### Engine coexistence — deck nav vs. in-iframe demo
+
+The §2 slide engine is a single global slide router; per-journey interactivity lives INSIDE the embedded iframe. Keep them from fighting:
+
+1. **Do NOT hijack arrow keys while an iframe is focused.** In the keydown handler, bail when focus is inside a demo iframe so `←/→` don't change slides while the user is interacting:
+
+    ```js
+    document.addEventListener('keydown', (e) => {
+        if (document.activeElement && document.activeElement.tagName === 'IFRAME') return; // demo has focus
+        if (e.key === 'ArrowLeft') show(i - 1);
+        else if (e.key === 'ArrowRight') show(i + 1);
+        // …Home/End as in §2
+    });
+    ```
+
+2. **OPTIONAL `postMessage('play')` to auto-start a journey when its slide opens** — a progressive enhancement that MUST degrade gracefully (a strict iframe sandbox may block it; the baseline is always the user clicking inside the frame):
+
+    ```js
+    function onSlideShown(slide) {
+        const frame = slide.querySelector('.deck__embed iframe');
+        if (frame && frame.contentWindow) {
+            try {
+                frame.contentWindow.postMessage('play', '*');
+            } catch (_) {
+                /* sandbox blocked — user clicks ▶ Play inside the frame instead */
+            }
+        }
+    }
+    ```
+
+    Optional only — never a hard dependency. The receiver is the engine's OPTIONAL, inert-when-standalone `message` listener in `pbi-mockup/references/interactive-demo.md` §3 (it calls the walkthrough's `play()` when the parent posts `'play'`). When that listener is absent the post is simply ignored — so the handshake is symmetric (a real receiver exists), not sender-only, and the embedded mock-up stays self-driving with direct clicking as the baseline.
+
+---
+
 ## 4. [BLOCKING] Fidelity Gate
 
-> **[BLOCKING] After the deck is assembled (SKILL.md Step 6), validate its visuals faithfully match the existing UI inventoried in Step 4 before handoff.** Do NOT report the deck as done until this validation records a result — a deck that does not match the current system is not done. (Mirrors `pbi-mockup/SKILL.md:284-301` at deck scope.)
+> **[BLOCKING] After the deck is assembled (SKILL.md Step 6), validate its visuals faithfully match the existing UI inventoried in Step 4 before handoff.** Do NOT report the deck as done until this validation records a result — a deck that does not match the current system is not done. (Mirrors the `pbi-mockup` *Fidelity Validation* gate — Step 7 — at deck scope.)
 
 Validate the produced deck against the inventoried existing UI and record an explicit pass/fail:
 
@@ -192,11 +271,12 @@ Validate the produced deck against the inventoried existing UI and record an exp
 3. **Layout/structure** — slide layouts and embedded visuals match the existing pages of the related features (sidebar / toolbar / card-grid conventions).
 4. **Connected flows** — the deck reflects the entry/exit navigation of the connected feature flows mapped in Step 4.
 5. **Embed integrity** — every `<iframe srcdoc>` renders its mockup (no blank/broken frame from under-encoding); every spec-only feature renders ASCII/tables; every visual-less feature renders an explicit empty-state slide.
+6. **Demo integrity** — every journey/demo slide clicks through end-to-end inside its iframe (each step reaches its end state via real hotspots); no dead controls; the deck narration strip names the current step + explanation and stays tech-agnostic (M1/M2); the "⚠ Simulated" note is visible. Spec-only journeys advance their narrated ASCII frames with the per-step explanation.
 
 Record the outcome in the SKILL.md Step 9 report:
 
 ```
-Fidelity vs existing UI: PASS | FAIL — tokens / components / layout / flows / embeds matched? If FAIL: what diverged + the fix.
+Fidelity vs existing UI: PASS | FAIL — tokens / components / layout / flows / embeds / demos matched? If FAIL: what diverged + the fix.
 ```
 
 If **FAIL**, revise the deck to match the existing UI and re-validate before handoff.
@@ -211,9 +291,12 @@ Before completing:
 - [ ] Inline CSS/JS; no external `<script src>` / `<link rel=stylesheet>` except Google Fonts
 - [ ] Vanilla-JS slide engine works (keyboard ←/→/Home/End, nav dots, counter, theme toggle)
 - [ ] Each existing `-mockup.html` embedded via `<iframe srcdoc>` (escaped `&`-first, escape-once-unconditionally) — not regenerated
-- [ ] Spec-only path renders design-spec ASCII wireframes + inventory/states/tokens tables (no HTML mockups)
+- [ ] One demo-flow slide per main user story: interactive mockup embedded (driven by its own ▶/⏮/⏭/↺ controls) + deck narration strip (current step + explanation, text only) + "⚠ Simulated" note
+- [ ] A "How to drive this demo" guide slide near the top of the deck
+- [ ] Demo integrity: every journey slide clicks through end-to-end inside its iframe; no dead controls; narration present + tech-agnostic
+- [ ] Spec-only path renders design-spec ASCII wireframes + inventory/states/tokens tables (no HTML mockups); spec-only journeys advance narrated ASCII frames
 - [ ] Empty-state slide for any visual-less feature (never a broken/blank iframe)
 - [ ] CSS uses design-system tokens; BEM class names
 - [ ] Real domain entity field names + realistic sample data (not Lorem ipsum)
 - [ ] Saved at `team-artifacts/presentations/{YYMMDD}-presentation-{slug}.html`
-- [ ] Fidelity gate (§4) recorded PASS — tokens, components, layout, flows, embeds matched
+- [ ] Fidelity gate (§4) recorded PASS — tokens, components, layout, flows, embeds, demos matched

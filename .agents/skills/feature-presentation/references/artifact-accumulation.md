@@ -19,6 +19,7 @@ Three modes, in priority order:
     - `team-artifacts/pbis/stories/{YYMMDD}-us-*.md`
     - `team-artifacts/pbis/*-mockup.html` (date-prefixed via their PBI)
     - `team-artifacts/design-specs/{YYMMDD}-designspec-*.md`
+    - `team-artifacts/backlog/*-backlog.md` (the ranked-priority source for the Scope & backlog slide)
     - the plan's `docs/specs/{Bucket}/README.{Feature}.md` outputs
 5. **Multi-day rule (why the range, not today):** a workflow spanning midnight authors specs on day 1 and PBIs on day 2. A single-day `{YYMMDD}` glob silently drops the day-1 artifacts. Always glob the whole created→now range.
 
@@ -40,7 +41,8 @@ Each in-scope artifact feeds one or more stakeholder slide sections:
 | ------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------- |
 | Idea          | `team-artifacts/ideas/{YYMMDD}-*`                   | Business context (problem, value, idea→spec narrative)                                 |
 | Feature Spec  | `docs/specs/{Bucket}/README.{Feature}.md`           | Business context (§1-3); Behavior & rules (§4 rules / §5 invariants); QC view (§8 TCs) |
-| PBI           | `team-artifacts/pbis/{YYMMDD}-pbi-*.md`             | Scope & backlog (PBI cards, acceptance criteria, priority)                             |
+| PBI           | `team-artifacts/pbis/{YYMMDD}-pbi-*.md`             | Scope & backlog (PBI cards in ranked order, each showing its `priority` label + numeric `rank` from frontmatter, plus acceptance criteria) |
+| Backlog       | `team-artifacts/backlog/*-backlog.md`               | Scope & backlog (the ranked order + priority source when PBI frontmatter is thin — reconcile against per-PBI `priority`/`rank`) |
 | User story    | `team-artifacts/pbis/stories/{YYMMDD}-us-*.md`     | Scope & backlog (As-a/I-want/So-that, acceptance criteria)                             |
 | Design-spec   | `team-artifacts/design-specs/{YYMMDD}-designspec-*.md` | UI / mockups (ASCII wireframe + Component Inventory / States / Design-Tokens tables) |
 | Mockup        | `team-artifacts/pbis/*-mockup.html`                 | UI / mockups (embedded via `<iframe srcdoc>` — see `deck-template.md` §3)             |
@@ -74,6 +76,15 @@ Fill missing downstream artifacts so the deck is complete:
 
 The spec-only branch preserves the `idea-to-spec` no-mockup / no-code contract: in that context the deck NEVER generates or embeds an HTML mockup, even if one could be produced.
 
+### Demo flows per branch
+
+| Context        | Journey demo source                                                                                                   |
+| -------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `idea-to-pbi`  | Interactive `pbi-mockup` HTML scoped to the flow, embedded via `<iframe srcdoc>` + deck narration strip (`deck-template.md` §3b). |
+| `idea-to-spec` | **Narrated step-through of design-spec ASCII frames** — a sequence of the design-spec ASCII wireframe states advanced by Next, each with its per-step explanation. NO HTML mockup, NEVER invoke `pbi-mockup`. |
+
+The spec-only narrated-ASCII journey honors the no-mockup / no-code contract while still giving stakeholders a sense of motion — it advances design-spec ASCII frames, it does not render or embed any HTML mockup.
+
 ### Empty-state (F3)
 
 - If scope resolves to **zero artifacts**, emit an explicit empty-state slide rather than failing.
@@ -87,10 +98,25 @@ The accumulation step produces an ordered, stakeholder-sectioned content model:
 
 1. **Title / agenda** — feature(s), run date, resolved scope.
 2. **Business context** — from ideas + Feature Spec §1-3.
-3. **Scope & backlog** — from PBIs + stories.
+3. **Scope & backlog** — from PBIs + stories, presented in ranked order with each PBI's `priority` label + numeric `rank` (read from PBI frontmatter, reconciled against the ranked `team-artifacts/backlog/*-backlog.md` when present). Priority display is MANDATORY when the PBIs are prioritized; if they are not yet prioritized, say so explicitly rather than omitting the field.
 4. **Behavior & rules** — from Feature Spec §4 rules / §5 invariants + §8 test cases.
-5. **UI / mockups** — per the spec-only vs mockup-bearing branch (or empty-state).
-6. **QC view** — from Feature Spec §8 test specifications + states matrix + edge cases.
-7. **Summary / next steps**.
+5. **Journeys / demo flows** — ordered main-story journeys (§6 extraction map); each handed to the render side as an interactive demo-flow slide (or narrated ASCII frames in spec-only context).
+6. **UI / mockups** — per the spec-only vs mockup-bearing branch (or empty-state).
+7. **QC view** — from Feature Spec §8 test specifications + states matrix + edge cases.
+8. **Summary / next steps**.
 
 The render-side (`deck-template.md`) turns this content model into the single standalone HTML deck.
+
+---
+
+## 6. Journey-Extraction Map (main-story flows → ordered journeys)
+
+Extract one **journey** per main user story (MVP happy path — not every edge case). Each journey is an ordered sequence: entry → click steps ("click X → see Y → move to Z") → end state, with one plain-language explanation per step. The render side turns each journey into a demo-flow slide (`deck-template.md` §3b).
+
+| Source artifact + section                                          | What it contributes to the journey                                              |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| PBI `## Acceptance Criteria` GIVEN / WHEN / THEN                    | The entry condition (GIVEN), the user action (WHEN), the observable result (THEN) for each step. |
+| User story `As a / I want / So that`                               | The persona + the journey's goal/title + the business "why" for the explanation. |
+| Mock-up flow-spec (`pbi-mockup/references/interactive-demo.md` §1) | The concrete ordered `steps[]` (`action` → `result` → `explain`) + `endState` — when a `-mockup.html` exists, reuse its flow-specs verbatim so the deck demo == the per-PBI prototype. |
+
+One journey per main story. Keep journey `title`/explanation prose tech-agnostic (business/observable terms, not framework/CSS class names) per M1/M2. In spec-only `idea-to-spec` context, the journey's steps map to design-spec ASCII frames (narrated step-through), never an HTML mockup.

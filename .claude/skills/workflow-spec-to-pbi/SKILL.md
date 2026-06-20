@@ -13,8 +13,11 @@ disable-model-invocation: false
 
 **Primary outputs:**
 
-- `team-artifacts/pbis/{date}-pbi-{slug}.md` for each generated PBI.
+- `team-artifacts/pbis/{date}-pbi-{slug}.md` for each generated PBI — each carries its rank/priority in frontmatter (written back by `/prioritize`).
 - `team-artifacts/backlog/spec-to-pbi-{date}-backlog.md` with priority order and dependency graph.
+- `team-artifacts/pbis/{slug}-mockup.html` for each UI PBI (header surfaces the PBI priority/rank).
+- `team-artifacts/design-specs/{date}-designspec-{slug}.md` for each UI PBI.
+- One standalone HTML stakeholder deck from `/feature-presentation` whose Scope & backlog slide surfaces each PBI's priority/rank.
 - `plans/reports/spec-to-pbi-{date}-{bucket}.md` with coverage matrix and unresolved questions.
 
 **Universal Rules:**
@@ -115,7 +118,8 @@ For each matrix row that needs a new PBI:
 4. Run `/review-artifact --type=story`.
 5. Run `/pbi-challenge`.
 6. Run `/dor-gate`.
-7. Run `/pbi-mockup` only when UI is involved.
+7. Run `/pbi-mockup` only when UI is involved. The generated mockup file MUST surface the PBI's priority/rank (header badge) so the prototype carries the same priority info as the backlog.
+8. Run `/design-spec` only when UI is involved (after `/pbi-mockup`) — mirrors `workflow-idea-to-pbi` so the spec→pbi half is step-for-step IDENTICAL.
 
 Each PBI MUST include:
 
@@ -130,7 +134,7 @@ Each PBI MUST include:
 
 ### 8. Cross-PBI Prioritization
 
-After all PBI loops finish, run `/prioritize` once across the full generated set.
+After all PBI loops finish, run `/prioritize` once across the full generated set. `/prioritize` is NON-OPTIONAL whenever PBIs were generated — a backlog without priority is incomplete.
 
 The backlog artifact MUST include:
 
@@ -140,6 +144,8 @@ The backlog artifact MUST include:
 - RICE or MoSCoW rationale.
 - DoR status per PBI.
 - Remaining open questions.
+
+**PRIORITY PROPAGATION (MANDATORY):** `/prioritize` MUST write the resulting rank/priority back into EACH PBI's frontmatter (`priority:` + numeric rank), not only into the standalone backlog file. Every generated PBI carries its own priority so downstream consumers (`/pbi-mockup`, `/feature-presentation`) can surface it without re-deriving the ranking.
 
 ### 8.5 Near-Final Documentation Synchronization
 
@@ -152,18 +158,29 @@ Purpose:
 - Verify Feature Specs, derived bucket `INDEX.md`, and TDD/spec docs do not drift after PBI generation.
 - Record skipped sub-phases explicitly when no impacted docs exist.
 
+### 8.6 Stakeholder Presentation
+
+Run `/feature-presentation` after `/docs-update` and before `/workflow-end` — mirrors `workflow-idea-to-pbi` so the spec→pbi half is step-for-step IDENTICAL.
+
+The standalone HTML deck MUST:
+
+- Synthesize the generated PBIs, stories, mockups, and design-specs into one stakeholder presentation.
+- Surface each PBI's **priority/rank** in the Scope & backlog slide (ranked order + priority label per PBI card), reusing the priority written back into PBI frontmatter by `/prioritize` and the ranked backlog artifact.
+
 ### 9. Completion Criteria
 
 Workflow can close only when:
 
 - Every spec source item is represented in the coverage matrix.
 - Every generated PBI has dependency and priority fields.
+- `/prioritize` has run and written rank/priority back into EACH PBI's frontmatter (priority propagation), not just the standalone backlog.
 - Shared/foundation PBIs are explicit and ordered before dependents.
 - Domain-analysis findings are attached where domain changes are implied.
 - The final backlog artifact ranks all PBIs and explains what to do first.
 - `/docs-update` has run as the near-final sync gate, with Feature Specs (§8) and derived bucket indexes either updated or explicitly marked unchanged.
+- `/feature-presentation` has run, producing one standalone HTML deck whose Scope & backlog slide surfaces each PBI's priority/rank.
 
-**IMPORTANT MANDATORY Steps:** /scout -> /spec-index -> /domain-analysis -> /why-review -> /spec-clarify -> /plan -> /plan-review -> /plan-validate -> /why-review -> /refine -> /why-review -> /review-artifact --type=pbi -> /story -> /why-review -> /review-artifact --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /prioritize -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /scout -> /spec-index -> /domain-analysis -> /why-review -> /spec-clarify -> /plan -> /plan-review -> /plan-validate -> /why-review -> /refine -> /why-review -> /review-artifact --type=pbi -> /story -> /why-review -> /review-artifact --type=story -> /pbi-challenge -> /dor-gate -> /pbi-mockup -> /design-spec -> /prioritize -> /docs-update -> /feature-presentation -> /workflow-end -> /watzup
 
 > **[BLOCKING]** Each step MUST invoke its Skill tool. Marking a workflow step completed without skill invocation is a workflow violation.
 
@@ -272,5 +289,8 @@ Workflow can close only when:
 - **MUST** decompose big Feature Specs into small PBIs before story generation.
 - **MUST** include dependency, priority, domain impact, and shared-task details.
 - **MUST** write artifacts incrementally after each capability/feature.
-- **MUST** run `/prioritize` once at the end across all generated PBIs.
+- **MUST** run `/prioritize` once at the end across all generated PBIs, and write the resulting rank/priority back into EACH PBI's frontmatter (priority propagation) — not only the standalone backlog.
+- **MUST**, for UI PBIs, run `/pbi-mockup` then `/design-spec` (both UI-conditional) — mirrors `workflow-idea-to-pbi` so the spec→pbi half is step-for-step IDENTICAL.
+- **MUST** surface each PBI's priority/rank in the `/pbi-mockup` generated files (header badge) and in the `/feature-presentation` deck (Scope & backlog slide).
 - **MUST** run `/docs-update` after `/prioritize` and before `/workflow-end` to keep specs, feature docs, and TDD/spec docs synchronized.
+- **MUST** run `/feature-presentation` after `/docs-update` and before `/workflow-end` to synthesize a single standalone stakeholder deck.

@@ -377,6 +377,7 @@ id: PBI-{YYMMDD}-{NNN}
 title: '{Brief descriptive title}'
 module: '{ModuleName — detect from project-config.json modules[]}'
 priority: Must Have | Should Have | Could Have | Won't Have
+rank: { numeric 1-999, ascending — populated/updated by /prioritize during cross-PBI ranking; omit until prioritized }
 story_points: 1 | 2 | 3 | 5 | 8 | 13 | 21
 complexity: Low | Medium | High | Very High
 man_days_traditional: '{ Xd (Yd code + Zd test) — from SP table }'
