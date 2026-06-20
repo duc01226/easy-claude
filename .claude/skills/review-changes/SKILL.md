@@ -50,7 +50,8 @@ description: '[Code Quality] Use when reviewing current changes, staged or unsta
 11. **Phase 5: Docs Triage** — Record stale-doc findings for validation/fix loop
 12. **Phase 6: Why-Review Findings Validation (standalone-only; REQUIRED before any standalone fix)** — Whenever the report contains one or more findings, you MUST invoke the `/why-review` skill (an actual `Skill`-tool call) with `--validate-findings` to verify every finding is correct, proof-backed, reasonable, and best-practice before fixing. This is a genuine skill invocation — re-reading the cited lines yourself, "self-validating," or any inline/manual substitute does NOT satisfy this gate. When this skill is step 1 inside `$workflow-review-changes`, stop after the report; parent step 2 owns findings validation.
 13. **Phase 7: Recursive Fix + Full Re-Review Loop (standalone-only)** — If validated findings remain in standalone mode, auto-fix them, then re-invoke `/review-changes` from Phase 0 with a fresh task breakdown over the full current diff; repeat until an entire review pass has zero findings. When inside `$workflow-review-changes`, parent steps 10-15 own plan/feature-implement/restart.
-14. **Phase 8: Mandatory Final Docs-Update Gate (MANDATORY — runs once the review/fix loop converges clean)** — After the review reaches zero findings and all fixes are applied, ALWAYS invoke `/docs-update` over the full changeset as the terminal step so no stale docs survive. This is unconditional (not gated on a flagged finding) — `/docs-update` independently detects impacted docs the review may not have surfaced. When inside `$workflow-review-changes`, the parent workflow's `/docs-update` step owns this; do not run it locally.
+14. **Phase 7.5: Holistic Standalone Full-Mode Why-Review Gate (standalone-only)** — Once the dimensional review/fix loop converges clean, invoke `/why-review` in **FULL mode** (NOT `--validate-findings`) ONCE over the WHOLE review target combined with the current changes as a single artifact — a real standalone `/why-review` call, the same as a user running `/why-review` against the target directly. The per-file/per-dimension reviewers and the Phase 6 validate-findings gate routinely miss holistic design-rationale and whole-package issues that a standalone full-mode review catches. If it surfaces findings, fix them and re-run Phase 7.5 (run→fix→run) until a full-mode pass returns zero findings. When inside `$workflow-review-changes`, SKIP this — the parent workflow's dedicated standalone `/why-review` step (step 13) owns the holistic pass.
+15. **Phase 8: Mandatory Final Docs-Update Gate (MANDATORY — runs once the review/fix loop converges clean)** — After the review reaches zero findings and all fixes are applied, ALWAYS invoke `/docs-update` over the full changeset as the terminal step so no stale docs survive. This is unconditional (not gated on a flagged finding) — `/docs-update` independently detects impacted docs the review may not have surfaced. When inside `$workflow-review-changes`, the parent workflow's `/docs-update` step owns this; do not run it locally.
 
 **Key Rules:**
 
@@ -184,6 +185,7 @@ Before starting, call TaskCreate with:
 - [ ] `[Review Phase 5] Record stale-doc findings for validation/fix loop` - pending
 - [ ] `[Review Phase 6] Why-review findings validation gate before any fix` - pending **(MANDATORY when findings exist)**
 - [ ] `[Review Phase 7] Auto-fix validated findings and restart /review-changes from Phase 0` - pending **(MANDATORY when validated findings remain)**
+- [ ] `[Review Phase 7.5] Run standalone full-mode /why-review over the whole target+diff; fix and re-run until zero findings` - pending **(MANDATORY when review loop converges clean; standalone-only — skip inside `$workflow-review-changes`)**
 - [ ] `[Review Phase 8] Run /docs-update over full changeset to sync all impacted docs` - pending **(MANDATORY FINAL — always runs once review converges to zero findings; never skipped)**
 
 Update todo status as each phase completes.
@@ -206,7 +208,7 @@ Update todo status as each phase completes.
 2. **Invoke `/goal`** (the actual built-in command, NOT a paraphrase) with a condition that encodes THIS skill's self-recursive loop, e.g.:
 
     ```
-    /goal review-changes self-recursive loop: review the full diff → run /why-review --validate-findings on every finding → SELF-FIX each validated finding → restart /review-changes from Phase 0 over the WHOLE updated diff (combined with the prior fixes, not just the last fix) → loop until one complete review pass finds zero findings; only then run the Phase 8 /docs-update. Do not stop while any validated finding is unfixed or any review pass is non-clean.
+    /goal review-changes self-recursive loop: review the full diff → run /why-review --validate-findings on every finding → SELF-FIX each validated finding → restart /review-changes from Phase 0 over the WHOLE updated diff (combined with the prior fixes, not just the last fix) → loop until one complete review pass finds zero findings → then run Phase 7.5: one standalone FULL-mode /why-review over the whole target+diff (NOT --validate-findings), fixing and re-running until it is clean → only then run the Phase 8 /docs-update. Do not stop while any validated finding is unfixed, any review pass is non-clean, or the holistic full-mode /why-review has unaddressed findings.
     ```
 
 3. The `/goal` Stop hook now blocks stopping until that condition holds and auto-clears when it does — do not tell the user to clear it.
@@ -871,11 +873,33 @@ If `architectureRules` not present in project-config.json, skip silently.
 
 ---
 
+## Phase 7.5: Holistic Standalone Full-Mode Why-Review Gate (MANDATORY when the loop converges clean — standalone-only)
+
+> **Purpose:** The dimensional/per-file reviewers (Phases 2-3.7) and the Phase 6 `--validate-findings` gate are SCOPED — each looks at one file, one dimension, or one supplied finding-list. They routinely miss **whole-package** problems: design-rationale gaps, an alternative the change silently foreclosed, assumptions that only break when the changed files are read together, a pre-mortem failure mode spanning the whole diff. A standalone **full-mode** `/why-review` of the entire review target — exactly what a user gets running `/why-review` against the target by hand — applies the adversarial SKEPTIC pass over the package as one artifact and catches what scoped review cannot. This gate exists because, in practice, `/review-changes` alone has missed issues that a standalone `/why-review` of the same target surfaces immediately.
+
+**Trigger:** The Phase 7 review/fix loop has converged — one full `/review-changes` pass produced zero findings and all validated fixes are applied. This gate runs in **standalone mode only**.
+
+**Parent workflow boundary:** When this skill is invoked as step 1 inside `$workflow-review-changes`, **SKIP Phase 7.5 entirely** — the parent workflow now has its own dedicated standalone `/why-review` step (step 13, after the dimensional review steps and before `/docs-update`) that owns the holistic full-mode pass. Record `Phase 7.5 deferred to parent workflow standalone /why-review step (13).`
+
+**Protocol:**
+
+1. Set the `[Review Phase 7.5]` task to `in_progress`.
+2. **Invoke `/why-review` in FULL mode** — an ACTUAL `Skill`-tool call, NOT `--validate-findings`, NOT a manual/inline self-review — over the **WHOLE review target combined with the current changes** as a single artifact (the full Phase 1 diff plus every Phase 7 fix, read together). Frame it as a standalone holistic review of the target, identical to a user running `/why-review` against that target directly. Let `/why-review` apply its own adversarial mindset (steel-man rejected alternatives, invert stated reasons, stress-test top assumptions, pre-mortem, surface missed alternatives) and its own internal validation/self-recursion.
+3. **If `/why-review` returns CLEAN (zero findings):** record `Phase 7.5: full-mode /why-review of whole target — CLEAN` in the review report and proceed to Phase 8.
+4. **If `/why-review` returns findings:** treat them as validated holistic findings — auto-fix them at the owning layer (same fix discipline as Phase 7), append a `## Phase 7.5 Holistic Fix Cycle {N}` block to the report (findings, files changed, verification), then **re-run Phase 7.5 from step 2** over the full updated target. Repeat run→fix→run until one full-mode `/why-review` pass returns zero findings.
+5. Set the `[Review Phase 7.5]` task to `completed` once a full-mode pass is clean (or the gate was deferred to the parent workflow).
+
+**Stop conditions:** Same as Phase 7 — if the same holistic finding repeats for 3 full-mode passes with no observable progress, or a finding needs product/owner input, stop and ask the user instead of spinning. The Phase -1 `/goal` gate stays OPEN until this gate's loop also converges clean.
+
+> **MANDATORY:** In standalone mode, never advance to Phase 8 or hand off until one full-mode `/why-review` pass over the whole target has returned zero findings (or the gate was explicitly deferred to the parent workflow). A passing dimensional review with a skipped holistic `/why-review` is an INCOMPLETE review — it is exactly the gap this gate closes.
+
+---
+
 ## Phase 8: Mandatory Final Docs-Update Gate (MANDATORY — always runs after the review/fix loop converges clean)
 
 > **Purpose:** Guarantee **no stale docs survive the change**. Phases 5-7 fix only docs the review *flagged* as findings; this terminal gate runs `/docs-update` unconditionally so impacted docs the dimensional review never surfaced still get reconciled against the actual changes. A clean code-review verdict does NOT imply docs are current.
 
-**Trigger:** The review has converged — one full `/review-changes` pass produced zero findings and all validated fixes are applied. This gate ALWAYS runs in standalone mode; it is NOT gated on a flagged staleness finding.
+**Trigger:** The review has converged — one full `/review-changes` pass produced zero findings, all validated fixes are applied, and (standalone) the Phase 7.5 holistic full-mode `/why-review` pass has also returned clean. This gate ALWAYS runs in standalone mode; it is NOT gated on a flagged staleness finding.
 
 **Parent workflow boundary:** When this skill is invoked as step 1 inside `$workflow-review-changes`, do NOT run Phase 8 locally — the parent workflow's own `/docs-update` step (after `/feature-implement` and the restart gate) owns the final docs sync. Record `Phase 8 deferred to parent workflow /docs-update step.`
 
@@ -915,6 +939,7 @@ If `architectureRules` not present in project-config.json, skip silently.
 
 | Skill                      | Relationship                                                                | When to Call                                                                                                |
 | -------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `/why-review`              | **TWO distinct gates** — Phase 6 `--validate-findings` (scoped: verifies the supplied finding-list) AND Phase 7.5 FULL mode (holistic: standalone adversarial review of the whole target+diff that scoped review misses) | Phase 6 whenever findings exist; Phase 7.5 (standalone) once the loop converges clean. Both deferred to the parent's own steps inside `$workflow-review-changes`. |
 | `/docs-update`             | **Mandatory terminal gate (Phase 8)** — final docs sync after the review/fix loop converges; also the primary fix path for flagged staleness | ALWAYS at Phase 8 once review is clean (standalone) — unconditional; AND during Phase 7 for validated staleness findings. Deferred to parent in `$workflow-review-changes`. |
 | `/spec-index`              | **Derived index** — regenerates the bucket `INDEX.md`/ERD FROM the Feature Specs (never a source of truth) | After specs change, to refresh navigation aids — NOT for correcting specs |
 | `/spec [update]`   | **Canonical spec updater** — corrects feature doc §1-8 (the single source of truth) | Called internally by docs-update; call directly for targeted update — and BEFORE docs-update if a spec-was-wrong scenario is detected |
@@ -966,6 +991,11 @@ review-changes (you are here)
   │    → If ANY findings exist: /why-review --validate-findings
   │    → If validated findings remain: auto-fix, verify, then restart /review-changes from Phase 0
   │    → Repeat until a full review invocation has zero findings
+  │
+  ├─ Phase 7.5: [MANDATORY after the loop converges clean — standalone-only] → /why-review FULL mode (NOT --validate-findings)
+  │    → ONE real standalone /why-review of the WHOLE target + diff as a single artifact (what scoped per-file/per-dimension review misses)
+  │    → If it finds issues: fix, then re-run Phase 7.5 until a full-mode pass is clean
+  │    → SKIP inside $workflow-review-changes — the parent's dedicated /why-review step (13) owns this
   │
   ├─ Phase 8: [MANDATORY FINAL after zero findings] → /docs-update over the full changeset
   │    → ALWAYS runs (unconditional) — syncs every impacted doc so none stay stale
@@ -1826,6 +1856,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **MANDATORY** after fixing validated findings in standalone mode, recursively invoke `/review-changes` again from Phase 0 with a brand-new task breakdown and review the full current diff, not only the fixed files; in parent mode, parent steps 10-15 own the fix plan, feature-implement, and full restart
 - **MANDATORY** continue validate → fix → full restart until one complete review invocation has zero findings; standalone mode executes that loop locally, parent mode reports findings to `$workflow-review-changes` for the loop
 - **MANDATORY** documentation staleness check is REQUIRED in every review — flag stale docs even if not auto-fixing
+- **MANDATORY** run the **Phase 7.5 Holistic Standalone Full-Mode Why-Review gate** once the dimensional review/fix loop converges to zero findings, in standalone mode — invoke the `/why-review` skill in FULL mode (an ACTUAL `Skill` call, NOT `--validate-findings`, NOT inline self-review) ONCE over the WHOLE review target combined with the current changes as a single artifact, exactly as a user running `/why-review` against the target directly; fix any findings and re-run until a full-mode pass is clean; deferred only inside `$workflow-review-changes` to the parent's dedicated `/why-review` step (13) — why: the per-file/per-dimension reviewers and the Phase 6 `--validate-findings` gate are scoped and routinely miss whole-package design-rationale/holistic issues that a standalone full-mode `/why-review` of the target catches; a clean dimensional review with a skipped holistic pass is INCOMPLETE
 - **MANDATORY** run the **Phase 8 final `/docs-update` gate** once the review/fix loop converges to zero findings — ALWAYS, unconditional, never skipped on a clean verdict (deferred only inside `$workflow-review-changes` to the parent's docs-update step) — why: a passing code review still leaves docs stale until docs-update reconciles every impacted doc against the actual changes; a clean review with skipped docs-update is INCOMPLETE
 - **MANDATORY** run the **Phase 3.5 Code-Simplifier Optimization gate** whenever the diff includes code files — invoke `/code-simplifier` (report mode) over the changed code files, record its clarity/consistency/maintainability findings in the report, and route them through Phase 6 validation → Phase 7 fix; skip ONLY for docs-only diffs (record the skip reason) — why: correctness review proves it works, the simplifier gate proves it stays cheap to change, and the step is silently dropped without an anchored reminder
 - **MANDATORY** run the **Phase 3.7 Integration-Test-Review Coverage Gate** whenever the diff includes behavior-bearing code — invoke `/integration-test-review` over the FULL change set (production code AND tests); its Gate 7 must map every behavior change to a covering test (integration-first; unit fallback justified) and a spec TC, and every GAP/SPEC-GAP becomes a finding for Phase 6 validation → Phase 7 fix (GAP fix = write the missing test); skip ONLY for docs-only diffs with recorded reason, and defer to the parent's dedicated `/integration-test-review` step inside `$workflow-review-changes` — why: a correct-looking change with no covering test or stale spec ships unprotected behavior; the pairing check alone proves file names, not coverage
@@ -1858,6 +1889,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 | -------------------------------------- | ---------------------------------------------------------------------------------------- |
 | "Too simple for graph blast-radius"    | Phase 0 graph check sets risk order; run it or record graph unavailable.                 |
 | "No findings, skip docs/tests"         | Clean verdict still needs proof that docs/tests were checked or explicitly not relevant.              |
+| "Dimensional review clean, skip the holistic why-review" | Phase 6 `--validate-findings` only checks the supplied finding-list; whole-package design-rationale issues need a standalone FULL-mode `/why-review` of the whole target. Run Phase 7.5 (standalone). |
 | "Finding is obvious, fix now"          | Invoke the `/why-review` skill (`--validate-findings`) first — an actual skill call, not inline self-validation; unvalidated findings are not fixes. |
 | "I already re-checked the lines myself" | Inline re-reading does NOT pass Phase 6. The gate requires a real `/why-review` skill invocation that returns a verdict. |
 | "Only re-check fixed files"            | Fixes can interact with earlier changes; restart `/review-changes` from Phase 0 on the full diff.     |

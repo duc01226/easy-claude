@@ -50,7 +50,7 @@ Session-start reference derived from `.claude/workflows.json` — use it to pick
 | `workflow-idea-to-spec` | turn a raw product idea, vision, or problem statement into one canonical | web-research → deep-research → brainstorm → spec-discovery → domain-analysis → why-review → idea → spec [mode=draft] → spec [mode=tests] → review-artifact --type=spec-tests → review-artifact → design-spec → spec-clarify → why-review → docs-update → feature-presentation → workflow-end → watzup |
 | `workflow-refactor` | restructure, reorganize, clean up | scout → investigate → plan → plan-review → plan-validate → why-review → plan-execute → spec [mode=tests] → why-review → review-artifact --type=spec-tests → spec [mode=sync] → integration-test → integration-test-review → integration-test-verify → workflow-review-changes → production-readiness-review → changelog → test → docs-update → workflow-end → watzup |
 | `workflow-research` | research a topic from web sources, a business/market viability evaluation, a marketing strategy | web-research → deep-research → knowledge-synthesis → knowledge-review → workflow-end |
-| `workflow-review-changes` | review current uncommitted, staged, or unstaged changes before committing | review-changes → why-review → review-architecture → review-domain-entities → performance-review → integration-test-review → security-review → code-simplifier → plan → plan-review → plan-execute → review-changes → docs-update → workflow-end → watzup |
+| `workflow-review-changes` | review current uncommitted, staged, or unstaged changes before committing | review-changes → why-review → review-architecture → review-domain-entities → performance-review → integration-test-review → security-review → code-simplifier → plan → plan-review → plan-execute → review-changes → why-review → docs-update → workflow-end → watzup |
 | `workflow-seed-test-data` | seed test data, implement data seeders, realistic development environment data | scout → investigate → seed-test-data → review-changes → code-simplifier → docs-update → workflow-end → watzup |
 | `workflow-spec-sync` | fixing a bug update test specs, code changes update test specs, pr review update test specs | workflow-review-changes → spec [mode=tests] → why-review → review-artifact --type=spec-tests → spec [mode=sync] → integration-test → integration-test-review → integration-test-verify → test → docs-update → workflow-end |
 | `workflow-spec-to-pbi` | create all pbis from an existing, convert a large feature spec into, dependent pbis from docs/specs | scout → spec-index → domain-analysis → why-review → spec-clarify → plan → plan-review → plan-validate → why-review → refine → why-review → review-artifact --type=pbi → story → why-review → review-artifact --type=story → pbi-challenge → dor-gate → pbi-mockup → prioritize → docs-update → workflow-end → watzup |
@@ -163,6 +163,16 @@ Distinct step-skills used across the workflows above — compose these into a cu
 - **Keep domain concepts out of generic/shared/infrastructure layers.** Reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. Leak compiles + runs → passes review silently while coupling the "reusable" layer to one consumer. Keep shared type domain-free; push domain fields/logic down into the consumer via subclass/composition. — why: a layer coupled to one consumer's domain is no longer reusable.
 
 <!-- /CK:AI-MISTAKE-PREVENTION -->
+
+
+
+
+
+
+
+
+
+
 
 
 

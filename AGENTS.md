@@ -51,6 +51,16 @@ Do not edit manually; update `CLAUDE.md` and re-sync.
 
 
 
+
+
+
+
+
+
+
+
+
+
 # easy-claude - Code Instructions
 
 <!-- SECTION:tldr -->
@@ -1163,7 +1173,7 @@ UNIVERSAL RULES:
 ### workflow-review-changes — Review Current Changes
 - Description: Review uncommitted changes, plan and fix issues, then re-review recursively until clean
 - When To Use: User wants to review current uncommitted, staged, or unstaged changes before committing
-- Sequence: `review-changes -> why-review -> [parallel ⇉ all-return barrier: review-architecture, review-domain-entities*, performance-review, integration-test-review, security-review] -> code-simplifier -> plan -> plan-review -> plan-execute -> review-changes -> docs-update -> workflow-end -> watzup`
+- Sequence: `review-changes -> why-review -> [parallel ⇉ all-return barrier: review-architecture, review-domain-entities*, performance-review, integration-test-review, security-review] -> code-simplifier -> plan -> plan-review -> plan-execute -> review-changes -> why-review -> docs-update -> workflow-end -> watzup`
 - Parallel phase = all-return barrier: spawn ALL members together (one message); advance only after EVERY member returns (a skipped conditional member, marked `*`, counts as returned). A sub-agent completion advances the step identically to an inline call.
 
 Protocol:
@@ -1188,7 +1198,8 @@ PRE-COMMIT REVIEW (RECURSIVE):
 - Report findings with file:line references
 - Output: PASS (safe to commit) or ISSUES FOUND (with list)
 - If ISSUES FOUND: validate findings, plan fixes for validated findings, review and sanity-check the fix plan, implement fixes, then re-run review-changes (step 12)
-- RECURSIVE (CONDITIONAL, INLINE): Step 12 re-runs `review-changes` INLINE in the main session — but ONLY if `plan-execute` actually changed files. If `plan-execute` applied no file changes, skip step 12 and go straight to docs-update. When it runs, loop plan -> plan-execute -> review-changes until one complete review pass has zero findings; stop only when the same validated blocker repeats 3 full invocations with no progress.
+- RECURSIVE (CONDITIONAL, INLINE): Step 12 re-runs `review-changes` INLINE in the main session — but ONLY if `plan-execute` actually changed files. If `plan-execute` applied no file changes, skip step 12 and go straight to the step 13 holistic why-review. When it runs, loop plan -> plan-execute -> review-changes until one complete review pass has zero findings; stop only when the same validated blocker repeats 3 full invocations with no progress.
+- HOLISTIC WHY-REVIEW (step 13, ALWAYS, FULL MODE, INLINE): after the step-12 review-changes loop converges clean, run `why-review` STANDALONE in FULL mode (NOT --validate-findings) over the WHOLE review target combined with the current changes — the complete changeset and the surrounding code/spec/docs it touches reviewed as one artifact, with the full adversarial rationale gate. This is a DIFFERENT lens from the step-2 findings-validation gate and the dimensional reviewers: it catches design-rationale, hidden-coupling, easy-to-change and whole-package gaps the per-file/per-dimension passes miss. If it surfaces findings, re-enter the plan -> plan-execute -> review-changes fix loop, then re-run step 13, looping run -> fix -> run until a complete full-mode why-review pass finds zero new findings (max re-do / 3-repeat-blocker escalation per why-review's own goal gate). Only then proceed to docs-update. This step is the reason the workflow now catches what a standalone why-review of the target would catch but the dimensional batch alone did not.
 - LOGIC REVIEW: Verify changes match their stated intention. Trace business logic paths. Clean code can be wrong code.
 - BUG DETECTION: Check for null safety, boundary conditions, resource leaks, concurrency issues per bug-detection-protocol.
 - TEST SPEC VERIFICATION: Cross-reference changes against TC-{FEATURE}-{NNN} test specifications. Flag untested code paths.
