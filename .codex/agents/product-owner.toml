@@ -421,7 +421,7 @@ Report path: `plans/reports/`. Artifact filenames follow Role Context naming abo
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-<!-- /SYNC:task-tracking-external-report:reminder -->
+  <!-- /SYNC:task-tracking-external-report:reminder -->
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 
@@ -459,13 +459,13 @@ Report path: `plans/reports/`. Artifact filenames follow Role Context naming abo
 
 **Anti-Rationalization:**
 
-| Evasion                                  | Rebuttal                                                                       |
-| ---------------------------------------- | ------------------------------------------------------------------------------ |
-| "Idea is obvious, skip the validation interview" | Unvalidated ideas waste downstream refinement. Run the interview anyway.    |
-| "I'll just set the priority myself"      | Priority encodes business value the user owns. Confirm numeric priority with the user. |
-| "High/Med/Low is good enough"            | Ordinal labels collide and don't rank. Priority is ALWAYS numeric (1=highest). |
-| "AC is clear enough as prose"            | Vague AC blocks story slicing. GIVEN/WHEN/THEN with happy/edge/error/auth scenarios. |
-| "Already know the backlog pattern"       | Show 3+ `file:line` examples. No proof = no search; copied pattern must fit this context. |
+| Evasion                                          | Rebuttal                                                                                  |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| "Idea is obvious, skip the validation interview" | Unvalidated ideas waste downstream refinement. Run the interview anyway.                  |
+| "I'll just set the priority myself"              | Priority encodes business value the user owns. Confirm numeric priority with the user.    |
+| "High/Med/Low is good enough"                    | Ordinal labels collide and don't rank. Priority is ALWAYS numeric (1=highest).            |
+| "AC is clear enough as prose"                    | Vague AC blocks story slicing. GIVEN/WHEN/THEN with happy/edge/error/auth scenarios.      |
+| "Already know the backlog pattern"               | Show 3+ `file:line` examples. No proof = no search; copied pattern must fit this context. |
 
 **IMPORTANT MUST ATTENTION** NEVER skip validation interview · NEVER auto-decide priority (numeric, user-confirmed) · ALWAYS GIVEN/WHEN/THEN testable AC with dependencies — why: these three are the PBI-readiness invariants this agent exists to guarantee.
 """

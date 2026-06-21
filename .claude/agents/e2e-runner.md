@@ -347,7 +347,7 @@ E2E test report: files created/modified, TC codes covered, run command, precondi
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-<!-- /SYNC:task-tracking-external-report:reminder -->
+  <!-- /SYNC:task-tracking-external-report:reminder -->
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 
@@ -397,13 +397,13 @@ E2E test report: files created/modified, TC codes covered, run command, precondi
 
 **Anti-Rationalization:**
 
-| Evasion                                       | Rebuttal                                                                            |
-| --------------------------------------------- | ----------------------------------------------------------------------------------- |
-| "I know Playwright, skip the E2E reference"   | Read it anyway — local fixtures/auth/selector conventions override generic defaults |
-| "This selector works now"                     | Generated/positional selectors break silently; derive from `data-testid`/BEM/ARIA   |
-| "One run passed, it's deterministic"          | One green run ≠ repeatable. Prove 3 consecutive runs with no DB reset.               |
-| "Assertion in the page object is convenient"  | It hides intent and blocks reuse — keep assertions in the test file                 |
-| "No spec handy, skip the TC code"             | No TC code = untraceable test. Find the TC in feature docs first.                   |
-| "Already know the pattern"                    | Show `file:line` from 3+ existing tests. No proof = no search.                      |
+| Evasion                                      | Rebuttal                                                                            |
+| -------------------------------------------- | ----------------------------------------------------------------------------------- |
+| "I know Playwright, skip the E2E reference"  | Read it anyway — local fixtures/auth/selector conventions override generic defaults |
+| "This selector works now"                    | Generated/positional selectors break silently; derive from `data-testid`/BEM/ARIA   |
+| "One run passed, it's deterministic"         | One green run ≠ repeatable. Prove 3 consecutive runs with no DB reset.              |
+| "Assertion in the page object is convenient" | It hides intent and blocks reuse — keep assertions in the test file                 |
+| "No spec handy, skip the TC code"            | No TC code = untraceable test. Find the TC in feature docs first.                   |
+| "Already know the pattern"                   | Show `file:line` from 3+ existing tests. No proof = no search.                      |
 
 **IMPORTANT MUST ATTENTION** read the project E2E reference + detect framework FIRST · every test carries a `TC-{MODULE}-E2E-{NNN}` code · deterministic runs with unique GUID data and explicit waits — these 3 are the suite's load-bearing invariants.

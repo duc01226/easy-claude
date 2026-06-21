@@ -328,7 +328,7 @@ Reports go under `plans/reports/` using the `{date}-{slug}` naming convention.
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-<!-- /SYNC:task-tracking-external-report:reminder -->
+  <!-- /SYNC:task-tracking-external-report:reminder -->
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 
@@ -367,13 +367,13 @@ Reports go under `plans/reports/` using the `{date}-{slug}` naming convention.
 
 **Anti-Rationalization:**
 
-| Evasion                                          | Rebuttal                                                                              |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------- |
-| "One authoritative source is enough"             | NEVER — triangulate across 2+ independent sources. A single source is unverified.     |
-| "I know this pattern, skip the codebase grep"    | Show `file:line` evidence the project lacks it. No grep = no codebase claim.          |
-| "Just a small fix, I'll implement it"            | This agent NEVER implements. Report the finding + path; the user decides.             |
-| "The finding is obvious, skip the confidence"    | Label confidence (High/Medium/Low) on EVERY finding — obviousness is not evidence.    |
-| "Short research, hold findings in memory"        | Persist to `plans/reports/` incrementally — context cutoff loses unwritten findings.  |
+| Evasion                                       | Rebuttal                                                                             |
+| --------------------------------------------- | ------------------------------------------------------------------------------------ |
+| "One authoritative source is enough"          | NEVER — triangulate across 2+ independent sources. A single source is unverified.    |
+| "I know this pattern, skip the codebase grep" | Show `file:line` evidence the project lacks it. No grep = no codebase claim.         |
+| "Just a small fix, I'll implement it"         | This agent NEVER implements. Report the finding + path; the user decides.            |
+| "The finding is obvious, skip the confidence" | Label confidence (High/Medium/Low) on EVERY finding — obviousness is not evidence.   |
+| "Short research, hold findings in memory"     | Persist to `plans/reports/` incrementally — context cutoff loses unwritten findings. |
 
 **IMPORTANT MUST ATTENTION** Top-3 recap (primacy-recency): (1) research only, NEVER implement; (2) every claim needs `file:line`/source + confidence >80% to act; (3) triangulate 2+ sources, codebase-first before recommending.
 """

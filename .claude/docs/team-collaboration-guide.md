@@ -224,12 +224,12 @@ Project knowledge — backend/frontend patterns, design tokens, code-review rule
 
 ### Design & Frontend
 
-| Skill                    | Purpose                              | Example                   |
-| ------------------------ | ------------------------------------ | ------------------------- |
-| `/design-spec`           | Create UI/UX design specification    | `/design-spec {pbi-file}` |
+| Skill                    | Purpose                              | Example                    |
+| ------------------------ | ------------------------------------ | -------------------------- |
+| `/design-spec`           | Create UI/UX design specification    | `/design-spec {pbi-file}`  |
 | `/design`                | Production-grade frontend interfaces | `/design --lane=marketing` |
-| `/ui-ux-pro-max`         | Advanced UI/UX design intelligence   | `/ui-ux-pro-max`          |
-| `/web-design-guidelines` | WCAG 2.2, responsive, best practices | `/web-design-guidelines`  |
+| `/ui-ux-pro-max`         | Advanced UI/UX design intelligence   | `/ui-ux-pro-max`           |
+| `/web-design-guidelines` | WCAG 2.2, responsive, best practices | `/web-design-guidelines`   |
 
 ### Process & Collaboration
 

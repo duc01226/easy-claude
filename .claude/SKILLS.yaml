@@ -1,7 +1,7 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-06-20'
+  last_updated: '2026-06-21'
   total_skills: 153
   total_by_status:
     active: 152
@@ -852,7 +852,7 @@ skills:
         report from PBI and story artifacts.'
       category: other
       has_scripts: false
-      has_references: false
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null

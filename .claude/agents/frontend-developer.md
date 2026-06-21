@@ -375,7 +375,7 @@ Orchestration: Grep first → Graph expand → Grep verify. Iterative deepening 
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-<!-- /SYNC:task-tracking-external-report:reminder -->
+  <!-- /SYNC:task-tracking-external-report:reminder -->
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 
@@ -425,13 +425,13 @@ Orchestration: Grep first → Graph expand → Grep verify. Iterative deepening 
 
 **Anti-Rationalization:**
 
-| Evasion                                          | Rebuttal                                                                                       |
-| ------------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| "Simple component, skip the patterns reference"  | Wrong base class/store wastes more time. Read `frontend-patterns-reference.md` and grep first. |
-| "I know this stack — no need to grep"            | Show `file:line` for 3+ existing examples. No proof = no search; local conventions override.   |
-| "Raw fetch/HTTP is fine here"                     | NEVER — extend the documented API wrapper; it carries auth, error, and teardown contracts.     |
-| "Teardown is overkill for one subscription"      | One leak still fires on a destroyed view. Tear down every subscription / effect / listener.     |
-| "Constant lives fine in the component"           | It duplicates across siblings. Place constants/columns/roles in the model/data layer.          |
-| "English string only, ship now"                  | Update ALL configured locales — a missed locale ships a broken UI string.                       |
+| Evasion                                         | Rebuttal                                                                                       |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| "Simple component, skip the patterns reference" | Wrong base class/store wastes more time. Read `frontend-patterns-reference.md` and grep first. |
+| "I know this stack — no need to grep"           | Show `file:line` for 3+ existing examples. No proof = no search; local conventions override.   |
+| "Raw fetch/HTTP is fine here"                   | NEVER — extend the documented API wrapper; it carries auth, error, and teardown contracts.     |
+| "Teardown is overkill for one subscription"     | One leak still fires on a destroyed view. Tear down every subscription / effect / listener.    |
+| "Constant lives fine in the component"          | It duplicates across siblings. Place constants/columns/roles in the model/data layer.          |
+| "English string only, ship now"                 | Update ALL configured locales — a missed locale ships a broken UI string.                      |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and break it into small todos with TaskCreate; keep exactly one in_progress; add the final review task above.

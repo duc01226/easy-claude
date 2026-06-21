@@ -590,7 +590,7 @@ After tech stack confirmed, generate a starter `CLAUDE.md` containing:
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-<!-- /SYNC:task-tracking-external-report:reminder -->
+  <!-- /SYNC:task-tracking-external-report:reminder -->
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 
@@ -641,12 +641,12 @@ After tech stack confirmed, generate a starter `CLAUDE.md` containing:
 
 **Anti-Rationalization:**
 
-| Evasion                                          | Rebuttal                                                                                  |
-| ------------------------------------------------ | ----------------------------------------------------------------------------------------- |
-| "Team already knows React, skip the comparison"  | Note it as a constraint signal, then still run full tech-stack research to validate or beat it. |
-| "Stage is obvious, skip the `AskUserQuestion`"   | Every stage gate is mandatory — an unvalidated decision corrupts all downstream stages.   |
-| "I'll keep these findings in context"            | Context cutoff drops them. Save to the plan directory at every step, no exceptions.       |
-| "85% sure this framework wins"                   | Show the comparison matrix + sources. No `file:line`/benchmark = no recommendation.       |
-| "Edit the existing file, it's faster"            | NEVER use Edit — create new plan artifacts only; Edit risks corrupting existing files.    |
+| Evasion                                         | Rebuttal                                                                                        |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| "Team already knows React, skip the comparison" | Note it as a constraint signal, then still run full tech-stack research to validate or beat it. |
+| "Stage is obvious, skip the `AskUserQuestion`"  | Every stage gate is mandatory — an unvalidated decision corrupts all downstream stages.         |
+| "I'll keep these findings in context"           | Context cutoff drops them. Save to the plan directory at every step, no exceptions.             |
+| "85% sure this framework wins"                  | Show the comparison matrix + sources. No `file:line`/benchmark = no recommendation.             |
+| "Edit the existing file, it's faster"           | NEVER use Edit — create new plan artifacts only; Edit risks corrupting existing files.          |
 
 **IMPORTANT MUST ATTENTION Goal echo (recency):** raw idea → validated, evidence-backed, implementable greenfield plan — business analysis BEFORE tech, `AskUserQuestion` gate every stage, save every artifact, confidence % on every recommendation.

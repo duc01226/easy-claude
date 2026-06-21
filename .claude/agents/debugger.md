@@ -359,7 +359,7 @@ Name report files under `plans/reports/` via `{date}-{slug}` convention. Concise
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-<!-- /SYNC:task-tracking-external-report:reminder -->
+  <!-- /SYNC:task-tracking-external-report:reminder -->
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 
@@ -418,12 +418,12 @@ Name report files under `plans/reports/` via `{date}-{slug}` convention. Concise
 
 **Anti-Rationalization:**
 
-| Evasion                              | Rebuttal                                                                              |
-| ------------------------------------ | ------------------------------------------------------------------------------------- |
+| Evasion                               | Rebuttal                                                                              |
+| ------------------------------------- | ------------------------------------------------------------------------------------- |
 | "The crash line is obviously the bug" | Crash site = symptom, not cause. Trace backward to the invariant owner before fixing. |
-| "First plausible cause found, fix it" | Build the hypothesis matrix; rule out competing producers with evidence first.         |
-| "Already know the code path"          | Show `file:line` evidence + graph trace. No proof = not traced.                        |
-| "Single-service bug, skip the scan"   | Scan bus consumers + entity events anyway; missing consumer = silent regression.       |
-| "Too small for a report"              | Persist findings to `plans/reports/` per step — context cutoff loses in-memory work.   |
+| "First plausible cause found, fix it" | Build the hypothesis matrix; rule out competing producers with evidence first.        |
+| "Already know the code path"          | Show `file:line` evidence + graph trace. No proof = not traced.                       |
+| "Single-service bug, skip the scan"   | Scan bus consumers + entity events anyway; missing consumer = silent regression.      |
+| "Too small for a report"              | Persist findings to `plans/reports/` per step — context cutoff loses in-memory work.  |
 
 **IMPORTANT MUST ATTENTION** primacy-recency anchors: (1) NEVER guess — trace the path with `file:line` proof, confidence >80% to assert; (2) fix at the invariant-owning layer, never the crash site; (3) check cross-service consumers + run the graph after grep before closing.

@@ -392,7 +392,7 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-<!-- /SYNC:task-tracking-external-report:reminder -->
+  <!-- /SYNC:task-tracking-external-report:reminder -->
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 
@@ -441,14 +441,14 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 
 **Anti-Rationalization:**
 
-| Evasion                                          | Rebuttal                                                                                       |
-| ------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
-| "I'll just hand-edit the mirror — it's faster"   | Mirrors are GENERATED. Edit the source under `.claude/**`, then have the user run `$sync-codex`. |
-| "This SYNC copy is close enough to the others"   | Close enough fails `verify-sync-divergence`. Propagate the exact canonical text to EVERY copy.   |
-| "I'll run `$sync-codex` myself to finish"        | It is `disable-model-invocation: true`. STOP and instruct the USER — never auto-run.            |
-| "That hook/skill/SYNC tag surely exists"         | Surely = guess. Grep to confirm and cite `file:line` — no proof, no claim.                       |
-| "One project name in a generic skill is harmless"| `verify-no-project-residue` fails the build. Use neutral placeholders; push specifics to config. |
-| "Note why this changed for the next reader"      | Meta-log dilutes live instruction. State what IS — history goes to git / `CHANGELOG.md` / ADR.   |
+| Evasion                                           | Rebuttal                                                                                         |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| "I'll just hand-edit the mirror — it's faster"    | Mirrors are GENERATED. Edit the source under `.claude/**`, then have the user run `$sync-codex`. |
+| "This SYNC copy is close enough to the others"    | Close enough fails `verify-sync-divergence`. Propagate the exact canonical text to EVERY copy.   |
+| "I'll run `$sync-codex` myself to finish"         | It is `disable-model-invocation: true`. STOP and instruct the USER — never auto-run.             |
+| "That hook/skill/SYNC tag surely exists"          | Surely = guess. Grep to confirm and cite `file:line` — no proof, no claim.                       |
+| "One project name in a generic skill is harmless" | `verify-no-project-residue` fails the build. Use neutral placeholders; push specifics to config. |
+| "Note why this changed for the next reader"       | Meta-log dilutes live instruction. State what IS — history goes to git / `CHANGELOG.md` / ADR.   |
 
 **IMPORTANT MUST ATTENTION** EDIT SOURCE, NEVER MIRRORS — `.claude/**` + `CLAUDE.md` only; the rest is generated.
 **IMPORTANT MUST ATTENTION** SYNC inline-not-reference — edit the canonical, propagate to ALL copies, verify fence balance.

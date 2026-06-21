@@ -455,7 +455,7 @@ Report path: `plans/reports/`. Artifact filenames follow the Role Context naming
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-<!-- /SYNC:task-tracking-external-report:reminder -->
+  <!-- /SYNC:task-tracking-external-report:reminder -->
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 
@@ -505,13 +505,13 @@ Report path: `plans/reports/`. Artifact filenames follow the Role Context naming
 
 **Anti-Rationalization:**
 
-| Evasion                                        | Rebuttal                                                                     |
-| ---------------------------------------------- | --------------------------------------------------------------------------- |
-| "Requirement is obvious, skip investigation"   | Investigate the existing system first — invented outcomes contradict ship.   |
-| "2 scenarios are enough"                       | Minimum 3 (happy, edge, error) + 1 auth — fewer fails DoR criterion 2.       |
+| Evasion                                        | Rebuttal                                                                        |
+| ---------------------------------------------- | ------------------------------------------------------------------------------- |
+| "Requirement is obvious, skip investigation"   | Investigate the existing system first — invented outcomes contradict ship.      |
+| "2 scenarios are enough"                       | Minimum 3 (happy, edge, error) + 1 auth — fewer fails DoR criterion 2.          |
 | "Self-review covers it, skip `$pbi-challenge`" | Collaborative review surfaces the Dev-BA-PIC technical veto self-review misses. |
-| "I'll describe how to build it"                | Describe the OUTCOME, never the implementation — no solution-speak in a spec. |
-| "PBI looks ready, skip `$dor-gate`"            | All 7 DoR criteria must pass — section presence ≠ DoR-ready.                 |
+| "I'll describe how to build it"                | Describe the OUTCOME, never the implementation — no solution-speak in a spec.   |
+| "PBI looks ready, skip `$dor-gate`"            | All 7 DoR criteria must pass — section presence ≠ DoR-ready.                    |
 
 **[TASK-PLANNING]** Before acting, break the task into small todos with task tracking; add a final review todo; keep exactly one in progress.
 """

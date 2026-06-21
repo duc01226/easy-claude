@@ -456,7 +456,7 @@ Orchestration: Grep first → Graph expand → Grep verify. Iterative deepening 
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-<!-- /SYNC:task-tracking-external-report:reminder -->
+  <!-- /SYNC:task-tracking-external-report:reminder -->
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 
@@ -506,13 +506,13 @@ Orchestration: Grep first → Graph expand → Grep verify. Iterative deepening 
 
 **Anti-Rationalization:**
 
-| Evasion                                       | Rebuttal                                                                          |
-| --------------------------------------------- | --------------------------------------------------------------------------------- |
-| "This file is small, I own it anyway"         | Confirm it is in the phase's File Ownership list — outside = STOP, never assume.   |
-| "Already know the pattern, skip the docs"     | Show `file:line` from 3+ siblings + the read pattern doc. No proof = no search.    |
-| "Tests are slow, report done now"             | Done = type checks + tests green + every success criterion met. No green, no done. |
-| "Just patch where it crashes"                 | Trace to the owning layer; fix at the lowest layer that protects all consumers.   |
-| "Peek at the other phase to be safe"          | Never read parallel-phase files; trust phase-file dependencies, work independent.  |
+| Evasion                                   | Rebuttal                                                                           |
+| ----------------------------------------- | ---------------------------------------------------------------------------------- |
+| "This file is small, I own it anyway"     | Confirm it is in the phase's File Ownership list — outside = STOP, never assume.   |
+| "Already know the pattern, skip the docs" | Show `file:line` from 3+ siblings + the read pattern doc. No proof = no search.    |
+| "Tests are slow, report done now"         | Done = type checks + tests green + every success criterion met. No green, no done. |
+| "Just patch where it crashes"             | Trace to the owning layer; fix at the lowest layer that protects all consumers.    |
+| "Peek at the other phase to be safe"      | Never read parallel-phase files; trust phase-file dependencies, work independent.  |
 
 **IMPORTANT MUST ATTENTION** NEVER modify files outside your phase's File Ownership section — file conflict = STOP and report.
 **IMPORTANT MUST ATTENTION** Cite `file:line` with confidence >80% before acting; never fabricate paths/APIs/behavior.

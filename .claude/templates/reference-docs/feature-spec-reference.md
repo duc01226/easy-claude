@@ -33,7 +33,7 @@ Feature docs path: `docs/specs/{Bucket}/README.{FeatureName}.md` (no line-count 
 
 ## Template Paths
 
-- **Master template:** your configured `workflowPatterns.featureDocTemplate` (default `docs/templates/detailed-feature-spec-template.md`, tech-free 8-section, v4.0). Generated on first SessionStart from `.claude/templates/detailed-feature-spec-template.md` if absent.
+- **Master template:** your configured `workflowPatterns.featureDocTemplate` (default `docs/templates/detailed-feature-spec-template.md`, tech-free 8-section, v4.1). Generated on first SessionStart from `.claude/templates/detailed-feature-spec-template.md` if absent.
 - ~~AI companion template~~ — Deprecated. Single doc per feature.
 
 ## 8-Section Structure
@@ -45,7 +45,15 @@ MUST ATTENTION follow exact section order. **All 8 sections are tech-free** — 
 - 3\. **User Stories & Acceptance Criteria** — `US-{FC}-NN` (As a / I want / So that) each with `AC-{FC}-NN` (Given/When/Then)
 - 4\. **Business Rules** — `BR-{FC}-NN` invariants, validation, state transitions; plain IF/THEN; `[HARD]`/`[SOFT]`; `[Source: rule/{service}/{id}]` per rule group
 - 5\. **Domain Model** — entities, value objects, enums, relationships; Mermaid ERD + business-meaning columns; **plain types only** (text/number/date/yes-no); `[Source: component/{service}/{id}]` per entity. Business-meaningful domain events surface here as occurrences, never as bus/message schemas
-- 6\. **Process Flows** — key user journeys as step tables / simple diagrams (business actions; key screens as business steps/states, not component names)
+- 6\. **Process Flows & Interaction Surface** — key user journeys plus the tech-agnostic UI/UX intent layer so a UI-bearing capability can be re-built on any stack from prose alone. Five subsections:
+    - **6.1 Process Flows** — key user journeys as step tables / simple diagrams (business actions; key screens as business steps/states, not component names)
+    - **6.2 View Inventory** — each view/screen by UX ROLE + purpose, the information it presents, primary actions, and the driving `US-`/`OP-`; describe by role, never by an implementation name
+    - **6.3 Navigation Map** — how a user moves between views (entry points, transitions on business triggers, exits) and how this surface connects to neighbouring features
+    - **6.4 Key UI States** — the distinct observable states per view (default / loading / empty / error / success / permission-gated) as what the user perceives, with the triggering `OP-`/`BR-`
+    - **6.5 Per-Story Interaction Flow** — per `US-{FC}-NN`, the numbered click/action path from intent to observable system response, cross-referenced to `US-`/`OP-`/`BR-`
+
+    §6's interaction surface stays **tech-agnostic intent** (UX-role names + observable states + logical-ID cross-refs) — it names ZERO frameworks/routes/URLs/CSS/component classes; the deep visual fidelity lives in the companion `design-spec`/mockup, whose path is recorded in the optional `design_spec:` / `mockup:` frontmatter keys. Skip §6.2–6.5 only when the feature is backend-only (no UI) and state that reason.
+
 - 7\. **Permissions & Roles** — business RBAC matrix (Role × View/Create/Edit/Delete + scope rules); no auth-implementation detail
 - 8\. **Test Specifications** — `TC-{FEATURE}-{NNN}` BDD, each linked to the `AC-`/`BR-` it proves; MUST ATTENTION carry `Business Intent / Invariant Guarded` and a hidden `Evidence: [Source: namespace/service/id]` carrier + `IntegrationTest:` field (legacy `[Source: FilePath:Line]` DEPRECATED)
 

@@ -203,7 +203,7 @@ memory: project
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-<!-- /SYNC:task-tracking-external-report:reminder -->
+  <!-- /SYNC:task-tracking-external-report:reminder -->
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 
@@ -237,13 +237,13 @@ memory: project
 
 **Anti-Rationalization:**
 
-| Evasion                                        | Rebuttal                                                                          |
-| ---------------------------------------------- | --------------------------------------------------------------------------------- |
-| "This is too minor to journal"                 | Apply the severity gate, do not eyeball it — if it cost real time, document it.    |
-| "I'll write the entry after I finish the fix"  | Write it now to `./docs/journals/` — a deferred entry is a lost entry.            |
-| "The cause is obvious"                         | Trace it — name the fundamental mistake with `file:line` proof, not a guess.       |
-| "Root cause is the test that failed"           | Crash site ≠ cause site. Trace upstream to the owning layer.                       |
-| "A general lesson is enough"                   | Attach ≥1 concrete technical detail — error/metric/trace — or it cannot be acted on. |
+| Evasion                                       | Rebuttal                                                                             |
+| --------------------------------------------- | ------------------------------------------------------------------------------------ |
+| "This is too minor to journal"                | Apply the severity gate, do not eyeball it — if it cost real time, document it.      |
+| "I'll write the entry after I finish the fix" | Write it now to `./docs/journals/` — a deferred entry is a lost entry.               |
+| "The cause is obvious"                        | Trace it — name the fundamental mistake with `file:line` proof, not a guess.         |
+| "Root cause is the test that failed"          | Crash site ≠ cause site. Trace upstream to the owning layer.                         |
+| "A general lesson is enough"                  | Attach ≥1 concrete technical detail — error/metric/trace — or it cannot be acted on. |
 
 **[TASK-PLANNING]** Break the work into small TaskCreate todos before acting; mark one in-progress, complete each immediately after its evidence lands.
 

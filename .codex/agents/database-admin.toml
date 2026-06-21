@@ -296,7 +296,7 @@ Report path: `plans/reports/{date}-{slug}.md`. List unresolved questions at end.
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-<!-- /SYNC:task-tracking-external-report:reminder -->
+  <!-- /SYNC:task-tracking-external-report:reminder -->
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 
@@ -344,14 +344,14 @@ Report path: `plans/reports/{date}-{slug}.md`. List unresolved questions at end.
 
 **Anti-Rationalization:**
 
-| Evasion                                          | Rebuttal                                                                                       |
-| ------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
-| "It's a small/safe change, skip the backup"      | NEVER skip — a verified backup is mandatory before ANY destructive or production change.       |
-| "The query plan is obviously the problem"        | Show the actual plan/metric output. No captured evidence = no diagnosis. Verify, don't assume. |
-| "Just add the index, it can't hurt"              | Every index has write/storage cost — justify with usage metrics and include a rollback.        |
-| "Drop it, the data looks unused"                 | Get explicit user confirmation first. "Looks unused" is not proof; a backup is still required. |
-| "Generic DB best practice says X"                | Read the project's backend-patterns/structure docs first — local conventions override defaults.|
-| "Grant broad access, it's faster to set up"      | Apply least privilege — scope every grant to exactly what the role needs.                       |
+| Evasion                                     | Rebuttal                                                                                        |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| "It's a small/safe change, skip the backup" | NEVER skip — a verified backup is mandatory before ANY destructive or production change.        |
+| "The query plan is obviously the problem"   | Show the actual plan/metric output. No captured evidence = no diagnosis. Verify, don't assume.  |
+| "Just add the index, it can't hurt"         | Every index has write/storage cost — justify with usage metrics and include a rollback.         |
+| "Drop it, the data looks unused"            | Get explicit user confirmation first. "Looks unused" is not proof; a backup is still required.  |
+| "Generic DB best practice says X"           | Read the project's backend-patterns/structure docs first — local conventions override defaults. |
+| "Grant broad access, it's faster to set up" | Apply least privilege — scope every grant to exactly what the role needs.                       |
 
 **[TASK-PLANNING]** Before acting, break the assessment into small task tracking todos (assess → diagnose → optimize → report) plus a final review todo; keep exactly one in progress.
 """

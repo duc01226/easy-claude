@@ -199,7 +199,7 @@ Concise — sacrifice grammar for brevity. List unresolved questions at end. ALW
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-<!-- /SYNC:task-tracking-external-report:reminder -->
+  <!-- /SYNC:task-tracking-external-report:reminder -->
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 
@@ -235,12 +235,12 @@ Concise — sacrifice grammar for brevity. List unresolved questions at end. ALW
 
 **Anti-Rationalization:**
 
-| Evasion                                   | Rebuttal                                                                                    |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------- |
-| "Only `.claude`/config changed, skip all" | Confirm via `git diff --name-only` first — then fast-exit "No documentation impacted".      |
-| "Doc looks stale, just fix it"            | Verify the code change first. Unverified doc edits invent behavior.                         |
-| "This module has no doc — create one"     | NEVER scratch-create a feature doc. Recommend `/spec`; update only impacted sections.       |
-| "Path probably exists"                    | Grep to confirm. No `file:line` proof = no claim.                                           |
-| "Nothing to update, skip the report"      | ALWAYS report what was checked/skipped — silence hides the triage decision.                 |
+| Evasion                                   | Rebuttal                                                                               |
+| ----------------------------------------- | -------------------------------------------------------------------------------------- |
+| "Only `.claude`/config changed, skip all" | Confirm via `git diff --name-only` first — then fast-exit "No documentation impacted". |
+| "Doc looks stale, just fix it"            | Verify the code change first. Unverified doc edits invent behavior.                    |
+| "This module has no doc — create one"     | NEVER scratch-create a feature doc. Recommend `/spec`; update only impacted sections.  |
+| "Path probably exists"                    | Grep to confirm. No `file:line` proof = no claim.                                      |
+| "Nothing to update, skip the report"      | ALWAYS report what was checked/skipped — silence hides the triage decision.            |
 
 **IMPORTANT MUST ATTENTION** (recency anchor — top 3) NEVER fabricate paths/behavior — investigate + cite `file:line` (>80% confidence) · NEVER scratch-create feature docs — recommend `/spec` · verify the code change BEFORE fixing any stale doc and map references BEFORE removing a section.

@@ -3637,7 +3637,7 @@ The mirror compensates by **baking what hooks deliver (and what Claude carries s
 
 | Behavior on Claude Code                                   | How the mirror delivers it to a hookless tool                                                                    |
 | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| The workflow catalog is baked statically into `CLAUDE.md` | Catalog written into `.codex/CODEX_CONTEXT.md` as static text                                                     |
+| The workflow catalog is baked statically into `CLAUDE.md` | Catalog written into `.codex/CODEX_CONTEXT.md` as static text                                                    |
 | Static `lessons.md` read contract                         | Replaced by an explicit `CODEX:PROJECT-REFERENCE-LOADING` gate telling Codex to open the reference docs itself   |
 | Static project-config + reference-doc read contract       | A loading gate instructs the tool to read `docs/project-config.json` + `docs/project-reference/**` at task start |
 | `/skill` slash invocation                                 | Rewritten to Codex's `$skill` invocation syntax; `Agent(...)` → `spawn_agent`, `subagent_type` → `agent_type`    |
@@ -3646,9 +3646,9 @@ So the mirror is not a copy — it is a **transform** that converts hook-depende
 
 ### 13.3 The Sync Skills
 
-| Skill                   | Scope                                                                                                             | Mechanics                                                                                                                                                                                                                                                                                                                                                                                              |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **`sync-codex`**        | Full Claude → Codex mirror                                                                                        | `npm run codex:sync` (or the skill without npm). `disable-model-invocation: true` — **user-invoked only, never auto-runs.** Sequential, fail-fast stages.                                                                                                                                                                                                                                            |
+| Skill            | Scope                      | Mechanics                                                                                                                                                 |
+| ---------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`sync-codex`** | Full Claude → Codex mirror | `npm run codex:sync` (or the skill without npm). `disable-model-invocation: true` — **user-invoked only, never auto-runs.** Sequential, fail-fast stages. |
 
 **`sync-codex`'s stages** (mutate first, verify-only after, any failure aborts): **migrate** (agents/skills/notifications) → **hooks** (`.codex/hooks.json`) → **context** (`CODEX_CONTEXT.md` + `AGENTS.md`) → **tests** → **wf-cycle** → **sk-proto** → **residue** → **sdd**. The sync is not "done" until all five verifiers pass (four run as dedicated stages — wf-cycle, sk-proto, residue, sdd; the `verify-sync-divergence` oracle runs via its unit test in the `tests` stage) — a stale or non-portable mirror **fails the pipeline** rather than shipping silently.
 
@@ -3743,21 +3743,21 @@ A 10x faster code generator that produces incorrect code 20% of the time is wors
 
 The framework elevates the AI from a code autocomplete tool to a **strategic development partner**:
 
-| Traditional AI Coding Tool   | This Framework                                                                                      |
-| ---------------------------- | --------------------------------------------------------------------------------------------------- |
-| Generates code from prompts  | Investigates codebase, then generates code matching existing patterns                               |
-| No memory between sessions   | Learned lessons persist and prevent repeated mistakes                                               |
-| Implements immediately       | Plans, validates with user, reviews plan, then implements                                           |
-| Uses generic patterns        | Reads project-specific patterns from reference docs                                                 |
-| Works on existing code only  | Guides greenfield inception AND big-feature research                                                |
-| Single-shot responses        | Multi-step workflows with quality gates at each stage                                               |
-| User must remember all rules | Hooks inject rules automatically — human memory not required                                        |
-| Loads all context upfront    | JIT context injection — right docs at right time (context eng.)                                     |
-| One-pass generation          | Multi-pass review: feature-implement→simplify→review→code-review→sre (prompt eng.)                  |
-| Skills work in isolation     | Plan-aware skills (Step 0) read prior workflow outputs automatically                                |
-| Manual workflow progression  | Skill chain navigation (Next Steps) auto-recommends next action                                     |
-| Artifacts flow unchecked     | Review gate skills validate PBIs, stories, and test specs mid-flow                                  |
-| Locked to one tool & repo    | One source compiles to verified Codex mirrors; config-driven, any repo                              |
+| Traditional AI Coding Tool   | This Framework                                                                     |
+| ---------------------------- | ---------------------------------------------------------------------------------- |
+| Generates code from prompts  | Investigates codebase, then generates code matching existing patterns              |
+| No memory between sessions   | Learned lessons persist and prevent repeated mistakes                              |
+| Implements immediately       | Plans, validates with user, reviews plan, then implements                          |
+| Uses generic patterns        | Reads project-specific patterns from reference docs                                |
+| Works on existing code only  | Guides greenfield inception AND big-feature research                               |
+| Single-shot responses        | Multi-step workflows with quality gates at each stage                              |
+| User must remember all rules | Hooks inject rules automatically — human memory not required                       |
+| Loads all context upfront    | JIT context injection — right docs at right time (context eng.)                    |
+| One-pass generation          | Multi-pass review: feature-implement→simplify→review→code-review→sre (prompt eng.) |
+| Skills work in isolation     | Plan-aware skills (Step 0) read prior workflow outputs automatically               |
+| Manual workflow progression  | Skill chain navigation (Next Steps) auto-recommends next action                    |
+| Artifacts flow unchecked     | Review gate skills validate PBIs, stories, and test specs mid-flow                 |
+| Locked to one tool & repo    | One source compiles to verified Codex mirrors; config-driven, any repo             |
 
 **For greenfield projects**, the AI becomes a full Solution Architect — conducting market research, evaluating tech stacks with confidence percentages, modeling domains with DDD, and collaborating with the user at every decision point. The AI earns trust through structured thinking, not just fast output.
 

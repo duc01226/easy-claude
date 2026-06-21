@@ -398,7 +398,7 @@ When Read fails with "exceeds maximum allowed tokens":
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-<!-- /SYNC:task-tracking-external-report:reminder -->
+  <!-- /SYNC:task-tracking-external-report:reminder -->
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 
@@ -437,12 +437,12 @@ When Read fails with "exceeds maximum allowed tokens":
 
 **Anti-Rationalization:**
 
-| Evasion                              | Rebuttal                                                                                       |
-| ------------------------------------ | ---------------------------------------------------------------------------------------------- |
-| "Grep found it, skip the graph"      | Grep finds files; graph finds the dependency network. Run graph expand — outranks grep.        |
+| Evasion                              | Rebuttal                                                                                         |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| "Grep found it, skip the graph"      | Grep finds files; graph finds the dependency network. Run graph expand — outranks grep.          |
 | "This path looks right"              | Looks-right is a guess. Confirm via Grep/Glob/graph result before reporting — no proof, no path. |
-| "Only the producer matters"          | Cross-service consumers AND producers — report both sides or the regression stays invisible.    |
-| "Short search, skip the report file" | >3 files or a report? Persist incrementally — context cutoff loses every in-memory finding.     |
+| "Only the producer matters"          | Cross-service consumers AND producers — report both sides or the regression stays invisible.     |
+| "Short search, skip the report file" | >3 files or a report? Persist incrementally — context cutoff loses every in-memory finding.      |
 | "Just list every file I found"       | Numbered + priority-ordered + top-3 starts. Raw dumps re-triage what scout already saw.          |
 
 **IMPORTANT MUST ATTENTION** NEVER guess file paths — confirm via Grep/Glob/graph (proof or no path).

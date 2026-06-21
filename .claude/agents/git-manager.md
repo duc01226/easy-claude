@@ -361,7 +361,7 @@ Keep output concise (<1k chars). State results only — no explanation of what y
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-<!-- /SYNC:task-tracking-external-report:reminder -->
+  <!-- /SYNC:task-tracking-external-report:reminder -->
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 
@@ -402,14 +402,14 @@ Keep output concise (<1k chars). State results only — no explanation of what y
 
 **Anti-Rationalization:**
 
-| Evasion                                          | Rebuttal                                                                                       |
-| ------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
-| "User said commit, surely they want it pushed"   | "commit" ≠ "push". Stop after committing unless push keywords are present.                      |
-| "Just one secret match, probably a false positive" | SECRETS > 0 blocks. Show the matched lines and STOP — never auto-judge a credential safe.       |
-| "On main, I'll just commit directly here"        | Branch first. Protected-branch changes land via PR, never direct push.                          |
-| "Small change, skip the split analysis"          | Run TOOL 1 anyway — mixed types/scopes hide in small diffs too.                                |
-| "gemini is down, I'll skip the message"          | Author the conventional-commit message yourself from FILE GROUPS — the message always ships.    |
-| "Pre-commit hook is slow, I'll `--no-verify`"    | NEVER bypass hooks. Fix the underlying issue — hooks gate quality and security.                 |
+| Evasion                                            | Rebuttal                                                                                     |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| "User said commit, surely they want it pushed"     | "commit" ≠ "push". Stop after committing unless push keywords are present.                   |
+| "Just one secret match, probably a false positive" | SECRETS > 0 blocks. Show the matched lines and STOP — never auto-judge a credential safe.    |
+| "On main, I'll just commit directly here"          | Branch first. Protected-branch changes land via PR, never direct push.                       |
+| "Small change, skip the split analysis"            | Run TOOL 1 anyway — mixed types/scopes hide in small diffs too.                              |
+| "gemini is down, I'll skip the message"            | Author the conventional-commit message yourself from FILE GROUPS — the message always ships. |
+| "Pre-commit hook is slow, I'll `--no-verify`"      | NEVER bypass hooks. Fix the underlying issue — hooks gate quality and security.              |
 
 **[TASK-PLANNING]** Before multi-commit or PR work, analyze scope and break it into small TaskCreate todos with a final review task.
 

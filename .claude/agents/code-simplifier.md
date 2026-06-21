@@ -386,12 +386,12 @@ Summary of changes made:
 
 > **Severity Rubric** — Classify every finding by consequence, not by how easy it is to fix. One scale across all reviews so a "High" means the same thing everywhere.
 >
-> | Severity | Action | Definition |
-> | --- | --- | --- |
+> | Severity | Action      | Definition                                                                |
+> | -------- | ----------- | ------------------------------------------------------------------------- |
 > | CRITICAL | Block merge | Silent runtime failure, data corruption, validation bypass, security hole |
-> | HIGH | Must fix | Incorrect behavior, invariant gap, architectural violation |
-> | MEDIUM | Should fix | Design debt, maintainability, likely future bug |
-> | LOW | Nice to fix | Convention, documentation, minor clarity |
+> | HIGH     | Must fix    | Incorrect behavior, invariant gap, architectural violation                |
+> | MEDIUM   | Should fix  | Design debt, maintainability, likely future bug                           |
+> | LOW      | Nice to fix | Convention, documentation, minor clarity                                  |
 >
 > **Score-based skills** map their numeric scale onto these tiers — do not invent a parallel vocabulary:
 >
@@ -430,7 +430,7 @@ Summary of changes made:
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-<!-- /SYNC:task-tracking-external-report:reminder -->
+  <!-- /SYNC:task-tracking-external-report:reminder -->
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 
@@ -490,12 +490,12 @@ Summary of changes made:
 
 **Anti-Rationalization:**
 
-| Evasion                                  | Rebuttal                                                                       |
-| ---------------------------------------- | ------------------------------------------------------------------------------ |
+| Evasion                                   | Rebuttal                                                                             |
+| ----------------------------------------- | ------------------------------------------------------------------------------------ |
 | "Small refactor, behavior obviously safe" | Run the related tests anyway — "obvious" behavior shifts are the silent regressions. |
-| "I read this kind of code before"        | Read THIS file now. Pattern familiarity ≠ knowing this code's invariants.       |
-| "This pattern would be cleaner"          | Show 3+ occurrences with `file:line`. <3 = KISS wins, no extraction.            |
-| "I'll batch these simplifications"       | One refactoring at a time, verify each — batching hides which change broke it.  |
-| "My custom helper is simpler"            | Check the project's documented pattern first — local conventions override.       |
+| "I read this kind of code before"         | Read THIS file now. Pattern familiarity ≠ knowing this code's invariants.            |
+| "This pattern would be cleaner"           | Show 3+ occurrences with `file:line`. <3 = KISS wins, no extraction.                 |
+| "I'll batch these simplifications"        | One refactoring at a time, verify each — batching hides which change broke it.       |
+| "My custom helper is simpler"             | Check the project's documented pattern first — local conventions override.           |
 
 **IMPORTANT MUST ATTENTION** NEVER change external behavior · NEVER edit unread code · ALWAYS verify tests after each change — behavior-neutral, evidence-backed, test-verified simplification only.

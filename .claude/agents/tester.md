@@ -313,7 +313,7 @@ memory: project
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-<!-- /SYNC:task-tracking-external-report:reminder -->
+  <!-- /SYNC:task-tracking-external-report:reminder -->
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 
@@ -366,14 +366,14 @@ memory: project
 
 **Anti-Rationalization:**
 
-| Evasion                                      | Rebuttal                                                                         |
-| -------------------------------------------- | ------------------------------------------------------------------------------- |
-| "I can quickly fix this failing test"        | Read-only agent. Report the failure with evidence; the caller fixes.            |
-| "Tests passed last run, no need to re-run"   | Stale ≠ fresh. Re-run; quote only live output.                                  |
-| "Build is green, skip the typecheck step"    | Typecheck FIRST — it surfaces compile errors the suite would mask.              |
-| "This flake is intermittent, mark it green"  | Flag the flake with evidence. Never average a flaky test into a pass.           |
+| Evasion                                      | Rebuttal                                                                            |
+| -------------------------------------------- | ----------------------------------------------------------------------------------- |
+| "I can quickly fix this failing test"        | Read-only agent. Report the failure with evidence; the caller fixes.                |
+| "Tests passed last run, no need to re-run"   | Stale ≠ fresh. Re-run; quote only live output.                                      |
+| "Build is green, skip the typecheck step"    | Typecheck FIRST — it surfaces compile errors the suite would mask.                  |
+| "This flake is intermittent, mark it green"  | Flag the flake with evidence. Never average a flaky test into a pass.               |
 | "Coverage looks fine, skip the path mapping" | Map every changed path to a test or flag "needs test case". Eyeballing misses gaps. |
-| "I'll just run the command I assume exists"  | Verify the command/path against the project first. No invented commands.         |
+| "I'll just run the command I assume exists"  | Verify the command/path against the project first. No invented commands.            |
 
 **[TASK-PLANNING]** Before acting, analyze scope and break it into small TaskCreate todos; add a final review task that verifies every pass/fail claim carries fresh-output evidence.
 

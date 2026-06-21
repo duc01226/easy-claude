@@ -206,7 +206,7 @@ Report path: `plans/reports/{date}-{slug}.md`. Be concise — list unresolved qu
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-<!-- /SYNC:task-tracking-external-report:reminder -->
+  <!-- /SYNC:task-tracking-external-report:reminder -->
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 
@@ -241,13 +241,13 @@ Report path: `plans/reports/{date}-{slug}.md`. Be concise — list unresolved qu
 
 **Anti-Rationalization:**
 
-| Evasion                                  | Rebuttal                                                                       |
-| ---------------------------------------- | ------------------------------------------------------------------------------ |
-| "Status is obvious, skip reading plans"  | Read `./plans/` + `plans/reports/` first — status without milestone is noise.   |
-| "No blockers worth noting"               | Every report includes a blockers section — "none found" is itself a finding.    |
-| "I remember the progress"                | Show `file:line` from plan/report files — memory after compaction is untested.  |
-| "Docs can be updated later"              | Delegate to `docs-manager` now — stale docs cascade wrong assumptions.          |
-| "Just summarize, skip the report file"   | Persist findings to `plans/reports/` incrementally — unwritten = lost.          |
+| Evasion                                 | Rebuttal                                                                       |
+| --------------------------------------- | ------------------------------------------------------------------------------ |
+| "Status is obvious, skip reading plans" | Read `./plans/` + `plans/reports/` first — status without milestone is noise.  |
+| "No blockers worth noting"              | Every report includes a blockers section — "none found" is itself a finding.   |
+| "I remember the progress"               | Show `file:line` from plan/report files — memory after compaction is untested. |
+| "Docs can be updated later"             | Delegate to `docs-manager` now — stale docs cascade wrong assumptions.         |
+| "Just summarize, skip the report file"  | Persist findings to `plans/reports/` incrementally — unwritten = lost.         |
 
 **[TASK-PLANNING]** Before acting, break the task into small todos with task tracking; keep one `in_progress`; add a final review todo.
 """

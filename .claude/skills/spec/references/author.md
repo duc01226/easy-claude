@@ -11,7 +11,7 @@ Every author-mode run sources from ONE of two inputs. Resolve which before any e
 
 **`mode=draft` (idea → provisional spec):** the implementation does not exist yet, so the code-extraction phases (Step 1-INIT.* greps, graph trace, evidence verification) are **skipped**. Instead:
 
-1. Derive §1-7 (Overview, Glossary, User Stories & AC, Business Rules, Domain Model, Process Flows, Permissions & Roles) from the supplied idea/requirement/prompt — SAME 8-section tech-free template (`docs/templates/detailed-feature-spec-template.md`), SAME M1-M6 prose rules, SAME size caps. Draft does NOT get a lighter template — only a lighter evidence obligation.
+1. Derive §1-7 (Overview, Glossary, User Stories & AC, Business Rules, Domain Model, Process Flows & Interaction Surface, Permissions & Roles) from the supplied idea/requirement/prompt — SAME 8-section tech-free template (`docs/templates/detailed-feature-spec-template.md`), SAME M1-M6 prose rules, SAME size caps. Draft does NOT get a lighter template — only a lighter evidence obligation. For a UI-bearing idea, populate §6.2–6.5 (View Inventory, Navigation Map, Key UI States, Per-Story Interaction Flow) per the §6 sub-procedure above from the idea text, and record any companion `design_spec:`/`mockup:` path supplied with the idea in YAML frontmatter; backend-only ideas state the §6 skip reason explicitly.
 2. Author §8 TC **shells** in the canonical `tc-format.md` template (Objective, GWT, AC, Test Data, Edge Cases) but set **`Evidence: TBD`** and **`Status: Planned`** — these are reference-only until code lands.
 3. Flag the spec provisional: add `provisional: true` to YAML frontmatter and a header banner `> **DRAFT — provisional spec, unverified until code lands. §8 evidence is TBD.**`.
 4. State the next step explicitly: *"Reconcile against real code via `/spec [mode=update]` once implemented — that run upgrades every `Evidence: TBD` to a real `[Source:]` anchor and clears the provisional flag."*
@@ -110,11 +110,23 @@ All feature documentation MUST follow this section order. The doc is **tech-free
 | 3   | User Stories & Acceptance Criteria   | PO, BA, QA  |
 | 4   | Business Rules                       | BA, Dev, QA |
 | 5   | Domain Model                         | BA, Dev     |
-| 6   | Process Flows                        | BA, QA      |
+| 6   | Process Flows & Interaction Surface  | BA, QA, UX  |
 | 7   | Permissions & Roles                  | BA, Dev     |
 | 8   | Test Specifications                  | QA, Dev     |
 
 Plus YAML frontmatter (header/metadata). Domain events appear in Section 5 / Section 6 only as business-meaningful occurrences, never as bus/message schemas.
+
+### Section 6 — Process Flows & Interaction Surface authoring sub-procedure
+
+§6 carries a tech-agnostic interaction surface alongside the process flows, per the `SYNC:ui-intent-layer` block (carried in `spec/SKILL.md`). Author every UI-bearing spec's §6 with these subsections; describe everything by UX ROLE, observable state, and logical-ID cross-ref — NEVER by framework/route/CSS/component-class name (M1-clean):
+
+- **6.1 Process Flows** — the existing step tables + business-trigger flow diagrams (unchanged content).
+- **6.2 View Inventory** — one row per view by its UX role and purpose (e.g. "View Inventory" listing "list of items", "item editor", "confirmation step"): what information it presents, primary actions, and the driving `US-`/`OP-`.
+- **6.3 Navigation Map** — how a user moves between views: entry points, transitions (business triggers), exits; trace how this surface connects to neighbouring already-built features.
+- **6.4 Key UI States** — the distinct observable states per view (empty, loading, populated, error, success, permission-denied) described as what the user perceives, cross-referenced to the triggering `OP-`/`BR-`.
+- **6.5 Per-Story Interaction Flow** — per `US-{FC}-NN`: the numbered click/action path from intent to outcome (actor action → observable system response), cross-referenced to the logical IDs the spec already owns.
+
+When a companion `design-spec`/mockup exists, record its path in the spec frontmatter (`design_spec:` / `mockup:`) so the spec stays the navigable hub; keep deep visual fidelity (layout, tokens, pixel detail) OUT of §6 and in that companion. **Skip §6.2–6.5 ONLY** when the feature is backend-only (no UI) — state that reason explicitly in §6.
 
 ### Stakeholder Quick Navigation
 
@@ -160,7 +172,8 @@ Plus YAML frontmatter (header/metadata). Domain events appear in Section 5 / Sec
 > 1. **§4 Business Rules** — if the bug violated or mis-stated a rule, correct ONLY that rule's wording (preserve its `BR-{FC}-NNN` ID verbatim, keep its [HARD]/[SOFT] tag). If the spec documented the *buggy* behavior (Spec Bug per the bugfix SPEC-BUG GATE), fix the rule to the intended behavior.
 > 2. **§3 Acceptance Criteria** — adjust ONLY the AC the fix changes; add a new `AC-{FC}-NN` if the fix guarantees a new behavior. Preserve existing AC IDs.
 > 3. **§8 Test Specifications** — add the regression `TC-{FC}-NNN` guarding the fix (GIVEN bug repro / WHEN fixed path / THEN correct outcome) + its `IntegrationTest: {File}::{Method}` once the regression test exists (Status `Untested` until it lands).
-> 4. Do NOT re-extract the domain model, re-scout the whole module, or rewrite §1/§2/§5/§6/§7.
+> 4. **§6 Interaction Surface** — touch ONLY if the fix changed an observable UI behavior the spec records (a view's role, a navigation transition, an observable state, or a per-story click-path); then correct ONLY that affected §6.2–6.5 line, M1-clean. Otherwise leave §6 alone.
+> 5. Do NOT re-extract the domain model, re-scout the whole module, or rewrite §1/§2/§5/§7 (or §6 beyond the scoped line in item 4).
 >
 > Scale doc work to change size — full INIT/UPDATE extraction is FORBIDDEN in AMEND.
 
@@ -359,7 +372,8 @@ After extraction is complete, fold the extracted content into the 8 business sec
 | Phase B rules      | Section 4 (Business Rules, BR-XX) + Section 3 (the acceptance criteria they constrain)                         |
 | Phase C operations | Section 3 (User Stories & AC — the business need behind each operation) + Section 8 (Test Specs) — **NOT** a Commands/API section |
 | Phase D events     | Section 5 (Domain Model — as business-meaningful occurrences) + Section 8 (integration Test Specs) — **NEVER** as bus/message schemas |
-| Phase E journeys   | Section 6 (Process Flows) + Section 3 (User Stories & AC) + Section 8 (Test Specs)                             |
+| Phase E journeys   | Section 6 (§6.1 Process Flows) + Section 3 (User Stories & AC) + Section 8 (Test Specs)                        |
+| UI interaction surface (UI-bearing features) | Section 6 (§6.2 View Inventory, §6.3 Navigation Map, §6.4 Key UI States, §6.5 Per-Story Interaction Flow) per the §6 sub-procedure — UX roles + observable states + `US-`/`OP-`/`BR-` cross-refs only; record companion `design_spec:`/`mockup:` frontmatter when present; backend-only specs state the §6 skip |
 | Auth rules         | Section 7 (Permissions & Roles — business RBAC matrix, no auth-implementation detail)                          |
 
 **[BLOCKING] Section 8 Readiness Gate** — Before writing Section 8 (Test Specifications), verify foundational sections are complete:
@@ -429,7 +443,7 @@ When audit mode is triggered:
 
 1. Read `docs/specs/{Bucket}/README.{Feature}.md` frontmatter → `last_updated`
 2. Run `git log --since="{last_updated}" --name-only -- {module-source-root}/`
-3. If changed files found → flag sections using Phase 1.5 impact mapping table
+3. If changed files found → flag sections using Phase 1.5 impact mapping table — this includes flagging **§6 (Process Flows & Interaction Surface)** STALE when changed UI-affecting source implies a new/changed view, navigation, observable state, or click-path the spec's §6.2–6.5 no longer reflects.
 4. Output `docs/specs/{Bucket}/AUDIT-{date}.md`:
 
     ```markdown
@@ -440,6 +454,7 @@ When audit mode is triggered:
     | Section                    | Status     | Changed Source Files            | Action              |
     | -------------------------- | ---------- | ------------------------------- | ------------------- |
     | Section 5 (Domain Model)   | ⚠️ STALE   | EntityX (changed 2026-04-18)    | Re-extract entities |
+    | Section 6 (Interaction Surface) | ⚠️ STALE | ViewY (changed 2026-04-18)  | Refresh §6.2–6.5 (view/nav/state/click-path) |
     | Section 4 (Business Rules) | ✅ Current | —                               | —                   |
     ```
 
@@ -521,7 +536,8 @@ When UPDATING existing feature docs (not from scratch):
 | Change Type            | Impacted Sections                                                                |
 | ---------------------- | -------------------------------------------------------------------------------- |
 | New entity property    | 5 (Domain Model), 4 (Business Rules if it adds a constraint)                      |
-| New capability/operation | 3 (User Stories & AC), 4 (Business Rules), 6 (Process Flows if a new journey)   |
+| New capability/operation | 3 (User Stories & AC), 4 (Business Rules), 6 (§6.1 Process Flows if a new journey) |
+| UI behavior change (new/changed view, navigation, observable state, or click-path) | 6 (§6.2 View Inventory, §6.3 Navigation Map, §6.4 Key UI States, §6.5 Per-Story Interaction Flow — refresh the affected interaction-surface subsections); refresh companion `design_spec:`/`mockup:` frontmatter if the linked artifact moved |
 | New access/role rule   | 7 (Permissions & Roles)                                                          |
 | New filter/query       | 3 (User Stories & AC — a view/search story)                                      |
 | Any new functionality  | **8 (Test Specifications)** — MANDATORY                                          |

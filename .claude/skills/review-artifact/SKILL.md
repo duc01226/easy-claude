@@ -144,6 +144,7 @@ Select the checklist + output template by artifact type. Pass `--type={pbi|story
 | 3   | **Responsive behavior defined** — how the component adapts across breakpoints is documented                                                   | Are breakpoint behaviors defined?                   | Are ALL breakpoints covered, or only desktop and mobile? Tablet-specific layouts are the most frequently omitted. Are content truncation / overflow behaviors specified?                        |
 | 4   | **Accessibility requirements noted** — WCAG-relevant requirements (color contrast, keyboard nav, ARIA) are documented                         | Are accessibility notes present?                    | Are requirements specific (WCAG level, contrast ratio) or vague ("should be accessible")? Vague accessibility notes produce non-compliant implementations. Is keyboard navigation flow defined? |
 | 5   | **Interaction patterns documented** — animations, transitions, and user interaction flows are specified                                       | Are interaction behaviors described?                | Are timing and easing values specified? Is behavior defined for both forward and reverse interactions (e.g., open AND close)? Unspecified interactions are implemented inconsistently.          |
+| 6   | **Linked from the Feature Spec** — the design-spec path is recorded in the governing Feature Spec frontmatter `design_spec:` key so the spec stays the navigable hub | Is the design-spec path present in the Feature Spec frontmatter `design_spec:` (or `mockup:`) key? | Does the recorded path resolve to THIS design-spec, and does the design-spec deepen the spec's tech-agnostic §6 interaction surface (same UX-role view names / observable states) rather than diverge from it? An unlinked design-spec is an orphan — FAIL. Contract: `SYNC:ui-intent-layer` (inlined in this skill). |
 
 ### Test Spec Review (`--type=spec-tests`)
 
@@ -167,6 +168,7 @@ Select the checklist + output template by artifact type. Pass `--type={pbi|story
 | 10  | **TC format completeness** — Every TC has Related Behaviors anchor table and IntegrationTest field                                  | Does every TC include a Related Behaviors anchor table and `IntegrationTest:` field? | For Tested-status TCs, is `IntegrationTest` populated with **≥1** covering test link `{TestFile}::{MethodName}` (or a test-filter expression) — not `Untested`? A TC may list several covering tests; never require exactly one. |
 | 11  | **Preservation Tests (bugfix context)** — When fixing a bug, at least 1 TC verifies the pre-fix behavior is no longer reproducible | If this is a bugfix: is there a TC that would have CAUGHT the bug before the fix? | Does the preservation TC assert the exact broken behavior (not just "no exception")?                        |
 | 12  | **Invariant / Property TCs (Spec-Loop rule 1)** — an Invariant/Property TC category exists, and EACH `[HARD]` §4 rule / §5 invariant has ≥1 universally-quantified property TC plus a boundary counter-case | Is there a property/invariant TC category, and does every `[HARD]`/§5 rule appear in it? | Are properties universally quantified ("for ALL inputs in range X, Y holds") with a boundary counter-case that would FAIL if the invariant breaks — not a single happy example? |
+| 13  | **§6 Interaction surface present (UI-bearing specs)** — the governing Feature Spec carries a non-empty §6 interaction surface (6.2 View Inventory + 6.3 Navigation Map + 6.4 Key UI States + 6.5 Per-Story Interaction Flow); a backend-only (no-UI) feature instead states the skip reason in §6 | For a UI-bearing feature, are §6.2–6.5 present and non-empty (views by UX role, navigation, observable states, per-story flow)? For a backend-only feature, is the skip reason stated? | Is each UI behavior cross-referenced to `US-`/`OP-`/`BR-`, and is the prose **M1-clean** — naming ZERO frameworks/routes/URLs/CSS/component classes (those belong only in the linked `design-spec`)? An empty §6 on a UI feature, or framework/route/CSS leakage in §6 prose, is a FAIL. Contract: `SYNC:ui-intent-layer` (inlined in this skill). |
 
 > **[BLOCKING] Spec-Loop property coverage (`--type=spec-tests`):** The reviewer MUST verify the Invariant/Property TC category exists and that every `[HARD]` §4 rule / §5 invariant maps to ≥1 universally-quantified property TC plus a boundary counter-case (example-only coverage is a finding). A missing property category — or any `[HARD]`/§5 rule with only example TCs and no property TC — is a **blocking artifact finding** (Required check #12 FAIL → NEEDS WORK).
 
@@ -706,6 +708,22 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:ai-mistake-prevention -->
 
+<!-- SYNC:ui-intent-layer -->
+
+> **[BLOCKING] Capture a tech-agnostic UI/UX intent layer in every UI-bearing spec — a reader must be able to visualize how the feature works without naming any technology.** When the feature has a user interface, the spec MUST ATTENTION carry an interaction-surface section so the application — not just its API — can be rebuilt on any stack:
+>
+> 1. **View Inventory** — list each view/screen by its UX ROLE and purpose (e.g. "list of items", "item editor", "confirmation step") and what information it presents. Describe by role, never by an implementation name.
+> 2. **Navigation Map** — how a user moves between views: entry points, transitions, and exits. Trace how this surface connects to neighboring features already in the system.
+> 3. **Key observable UI States** — the distinct states a user can observe per view (empty, loading, populated, error, success, permission-denied, etc.) — described as what the user perceives, not how it is rendered.
+> 4. **Per-story interaction flow** — for each user story, the step-by-step click/action path from intent to outcome, cross-referenced to the logical IDs the spec already owns (`US-`/`OP-`/`BR-`).
+> 5. **Couple to the companion design artifact** — keep deep visual fidelity (layout, tokens, pixel detail) OUT of the spec; it lives in the linked `design-spec`/mockup. Record that companion's path in the spec frontmatter so the spec stays the navigable hub.
+>
+> **M1-clean (NON-NEGOTIABLE):** the prose names ZERO frameworks, routes/URLs, CSS, or component-class names — only roles, information, states, and flows. Technology detail belongs in the companion design artifact, never here.
+>
+> **Skip ONLY** when the feature is backend-only (no UI) — state that reason explicitly in the section.
+
+<!-- /SYNC:ui-intent-layer -->
+
 <!-- SYNC:severity-rubric -->
 
 > **Severity Rubric** — Classify every finding by consequence, not by how easy it is to fix. One scale across all reviews so a "High" means the same thing everywhere.
@@ -772,6 +790,12 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **MANDATORY** Score-based skills (sre 0-2, perf two-axis) map onto the same four tiers — no parallel severity vocabulary.
 
 <!-- /SYNC:severity-rubric:reminder -->
+
+<!-- SYNC:ui-intent-layer:reminder -->
+
+- **MANDATORY** For UI-bearing specs, author/maintain the tech-agnostic interaction-surface layer (View Inventory + Navigation Map + observable UI States + per-story `US-/OP-/BR-`-traced flow); keep deep visual fidelity in the linked `design-spec`/mockup recorded in frontmatter; name ZERO frameworks/routes/CSS/component classes; skip ONLY for backend-only features with a stated reason.
+
+<!-- /SYNC:ui-intent-layer:reminder -->
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
 

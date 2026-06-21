@@ -526,12 +526,12 @@ python .claude/scripts/code_graph query tests_for <function> --json     # Test c
 
 > **Severity Rubric** — Classify every finding by consequence, not by how easy it is to fix. One scale across all reviews so a "High" means the same thing everywhere.
 >
-> | Severity | Action | Definition |
-> | --- | --- | --- |
+> | Severity | Action      | Definition                                                                |
+> | -------- | ----------- | ------------------------------------------------------------------------- |
 > | CRITICAL | Block merge | Silent runtime failure, data corruption, validation bypass, security hole |
-> | HIGH | Must fix | Incorrect behavior, invariant gap, architectural violation |
-> | MEDIUM | Should fix | Design debt, maintainability, likely future bug |
-> | LOW | Nice to fix | Convention, documentation, minor clarity |
+> | HIGH     | Must fix    | Incorrect behavior, invariant gap, architectural violation                |
+> | MEDIUM   | Should fix  | Design debt, maintainability, likely future bug                           |
+> | LOW      | Nice to fix | Convention, documentation, minor clarity                                  |
 >
 > **Score-based skills** map their numeric scale onto these tiers — do not invent a parallel vocabulary:
 >
@@ -823,7 +823,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-<!-- /SYNC:task-tracking-external-report:reminder -->
+  <!-- /SYNC:task-tracking-external-report:reminder -->
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 
@@ -889,14 +889,14 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 **Anti-Rationalization:**
 
-| Evasion                              | Rebuttal                                                                                  |
-| ------------------------------------ | ----------------------------------------------------------------------------------------- |
+| Evasion                              | Rebuttal                                                                                         |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------ |
 | "I'll just implement this directly"  | This agent plans only — produce `plan.md` + `phase-XX-*.md`; NEVER implement or manual plan-mode switching. |
-| "Already know the codebase"          | Show `file:line` evidence from this session. No grep proof = no search; investigate first. |
-| "Too simple for a plan"              | Simple + wrong assumptions = wasted execution. Plan anyway; still create the task breakdown. |
-| "This phase is close enough"         | Run the 5-point granularity gate — exact paths, ≤5 files, ≤3h, no TBDs — or split it.       |
-| "Skip plan-review, the plan is fine" | Every plan claim is a hypothesis until `$plan-review` verifies it; run it after creation.   |
-| "User will figure out the options"   | Present options + recommendation via a direct user question; never silently decide for them.    |
+| "Already know the codebase"          | Show `file:line` evidence from this session. No grep proof = no search; investigate first.       |
+| "Too simple for a plan"              | Simple + wrong assumptions = wasted execution. Plan anyway; still create the task breakdown.     |
+| "This phase is close enough"         | Run the 5-point granularity gate — exact paths, ≤5 files, ≤3h, no TBDs — or split it.            |
+| "Skip plan-review, the plan is fine" | Every plan claim is a hypothesis until `$plan-review` verifies it; run it after creation.        |
+| "User will figure out the options"   | Present options + recommendation via a direct user question; never silently decide for them.          |
 
 **[TASK-PLANNING]** Before acting, analyze scope and break it into small task tracking todos + a final review task.
 """

@@ -1624,3 +1624,42 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **MANDATORY** Append iteration evidence after execution; emit a Goal Satisfaction matrix (PASS/FAIL/BLOCKED) before reporting PASS; loop on validated FAIL; escalate repeated no-progress or blockers. NEVER store secrets in goal files.
 
 ---
+
+## SYNC:ui-intent-layer
+
+> **[BLOCKING] Capture a tech-agnostic UI/UX intent layer in every UI-bearing spec — a reader must be able to visualize how the feature works without naming any technology.** When the feature has a user interface, the spec MUST ATTENTION carry an interaction-surface section so the application — not just its API — can be rebuilt on any stack:
+>
+> 1. **View Inventory** — list each view/screen by its UX ROLE and purpose (e.g. "list of items", "item editor", "confirmation step") and what information it presents. Describe by role, never by an implementation name.
+> 2. **Navigation Map** — how a user moves between views: entry points, transitions, and exits. Trace how this surface connects to neighboring features already in the system.
+> 3. **Key observable UI States** — the distinct states a user can observe per view (empty, loading, populated, error, success, permission-denied, etc.) — described as what the user perceives, not how it is rendered.
+> 4. **Per-story interaction flow** — for each user story, the step-by-step click/action path from intent to outcome, cross-referenced to the logical IDs the spec already owns (`US-`/`OP-`/`BR-`).
+> 5. **Couple to the companion design artifact** — keep deep visual fidelity (layout, tokens, pixel detail) OUT of the spec; it lives in the linked `design-spec`/mockup. Record that companion's path in the spec frontmatter so the spec stays the navigable hub.
+>
+> **M1-clean (NON-NEGOTIABLE):** the prose names ZERO frameworks, routes/URLs, CSS, or component-class names — only roles, information, states, and flows. Technology detail belongs in the companion design artifact, never here.
+>
+> **Skip ONLY** when the feature is backend-only (no UI) — state that reason explicitly in the section.
+
+---
+
+## SYNC:ui-intent-layer:full
+
+> **[BLOCKING] The interaction-surface (UI/UX intent) layer — full authoring + maintenance contract.** A behavior-only spec reconstructs an API, not an application. For true spec-driven rebuild ("recreate the app on any stack, or build an MVP demo"), a UI-bearing spec MUST ATTENTION also capture the stack-agnostic information architecture and interaction model. Author and KEEP IN SYNC:
+>
+> 1. **View Inventory** — every view/screen named by its UX ROLE and purpose, plus the information each presents and the primary actions it offers. Group related views into the flows they serve. Describe roles and information, never implementation names.
+> 2. **Navigation Map** — the directed connections between views: entry points (how a user arrives), in-feature transitions (which action leads where), and exits. Include how this surface attaches to adjacent existing features so the new surface fits the current system rather than floating apart.
+> 3. **Key observable UI States** — per view, the distinct states a user can perceive: empty / first-run, loading / pending, populated, partial, error / recovery, success / confirmation, and permission- or role-gated variants. State each as a user-observable condition, not a rendering mechanism.
+> 4. **Per-story interaction flow** — for each user story, the ordered action path from the user's intent to the observable outcome, with branch points for the key states above. Cross-reference every step to the logical IDs the spec already owns (`US-` user stories, `OP-` operations, `BR-` business rules) so the UI layer stays traceable to behavior — never a parallel, drifting narrative.
+> 5. **Companion design artifact coupling** — deep visual fidelity (layout grids, spacing, color/typography tokens, exact pixel/responsive detail) does NOT belong in the spec; it lives in the linked `design-spec`/mockup. Record the companion artifact's path in the spec frontmatter so a reader reaches it in one hop, and so the spec remains the navigable hub of the feature.
+> 6. **Maintenance contract** — when behavior changes (new story, changed operation, altered rule), update the affected View Inventory entries, Navigation Map edges, observable States, and interaction flows in the same change. An audit that finds behavior without a corresponding interaction-surface entry (or vice versa) reports the layer as stale.
+>
+> **M1-clean (NON-NEGOTIABLE):** every line names ZERO frameworks, libraries, routes/URLs, CSS, selectors, or component-class names. Use only UX roles, the information shown, observable states, and action flows. Any technology-specific detail belongs in the companion design artifact, never in the spec prose. A spec that names a stack here has broken its tech-free rebuild contract.
+>
+> **Skip ONLY** when the feature is genuinely backend-only (no user-facing surface) — and then state that reason explicitly in the section so the skip is auditable, not an omission.
+
+---
+
+## SYNC:ui-intent-layer:reminder
+
+- **MANDATORY** For UI-bearing specs, author/maintain the tech-agnostic interaction-surface layer (View Inventory + Navigation Map + observable UI States + per-story `US-/OP-/BR-`-traced flow); keep deep visual fidelity in the linked `design-spec`/mockup recorded in frontmatter; name ZERO frameworks/routes/CSS/component classes; skip ONLY for backend-only features with a stated reason.
+
+---

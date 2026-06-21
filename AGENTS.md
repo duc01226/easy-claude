@@ -656,6 +656,7 @@ PROJECT CONTEXT: Apply the shared SDD Artifact Contract from shared/sdd-artifact
    • AMBIGUOUS: Ask user: "Did the spec ever correctly document this behavior?"
    SIGNAL: Spec MATCHES buggy code → Spec Bug. Spec says X but code does Y → Code Bug.
 7. Write test specs ($spec [mode=tests]): Create TC specs asserting the CORRECT (fixed) expected behavior — not the buggy behavior. These become the regression guard.
+7b. UI-INTENT / INTERACTION-SURFACE REFRESH — CONDITIONAL: only when the fix changes user-facing behavior (else state the skip reason — backend-only fix, no §6 change). When user-facing behavior changed, run $spec (ui-intent intent) alongside the spec [mode=sync] reconciliation to refresh the affected Feature Spec §6 interaction surface — View Inventory, Key UI States, and the per-story click-path the bug touched — and link the governing design-spec so the §6 interaction-surface stays in sync with the corrected behavior.
 8. Review test specs with $review-artifact --type=spec-tests
 9. WRITE INTEGRATION TEST — RED phase: Implement integration test(s) based on the bug reproduction spec. Run the test(s) — they MUST FAIL. A passing test means it does NOT actually catch the bug. Never proceed to fix until the test(s) fail.
 10. Fix the identified issue
@@ -694,6 +695,7 @@ Step 0: auto-detect mode, map changed services → App Bucket, confirm capabilit
 Scale gate: 4+ capabilities = MUST spawn one spec sub-agent per capability in ONE message.
 ONE canonical artifact: docs/specs/{Bucket}/README.{Feature}.md (tech-free 8-section Feature Spec; §5 holds the Mermaid ERD INLINE). No separate A-E engineering tree — code is the technical source of truth. Derived bucket INDEX.md/ERD are optional regenerable aids (spec-index mode=index).
 Update mode: git diff → impact map → spec [mode=update] (§1-7) → spec [mode=tests] (§8) → review-artifact --type=spec-tests → spec [mode=sync] (§8 ↔ test code) → optional spec-index index refresh.
+UI-INTENT / INTERACTION-SURFACE REFRESH — CONDITIONAL: only when the changed code carries user-facing behavior (else state the skip reason — backend-only change, no §6 change). When user-facing behavior is present, the spec authoring step MUST refresh the Feature Spec §6 interaction surface from the implemented code — View Inventory, Key UI States, and the per-story click-path — and link the governing design-spec so the §6 interaction-surface stays coupled to the real UI; backend-only capabilities skip it.
 New PBI/requirement update mode: run dor-gate when a new/changed PBI is being made implementation-ready; run pbi-mockup only for UI/user-journey changes.
 Audit mode: compare Feature Spec git-history timestamps vs source-code git log → staleness reports.
 See .claude/skills/workflow-code-to-spec/SKILL.md for full protocol.
@@ -747,6 +749,7 @@ FEATURE IMPLEMENTATION PROTOCOL:
 8. Implement with $plan-execute (backend + frontend) — guided by test specs
 8b. Domain Entity Review — CONDITIONAL: if domain entity files created/modified, run $review-domain-entities before updating test specs to catch DDD quality issues early.
 9. Update test specs to catch implementation gaps with $spec [mode=tests]. Review with $review-artifact --type=spec-tests. Sync §8 TCs ↔ integration test code with $spec [mode=sync].
+9b. UI-INTENT / INTERACTION-SURFACE REFRESH — CONDITIONAL: only when the feature adds or changes user-facing behavior (else state the skip reason — backend-only feature, no §6 change). When user-facing behavior is present, run $spec (ui-intent intent) alongside the spec [mode=sync] step to refresh the affected Feature Spec §6 interaction surface — View Inventory, Key UI States, and the per-story click-path — and link the governing $design-spec so the §6 interaction-surface and the design-spec stay coupled to what was actually built.
 10. Generate/update integration tests with $integration-test — creates actual test files from TC specifications — then verify with $integration-test-review and $integration-test-verify.
 11. Review the full change set with $workflow-review-changes (simplification, code quality, UI, architecture, and patterns compliance).
 12. SRE review for production readiness with $production-readiness-review; security review with $security-review.
@@ -937,8 +940,8 @@ After workflow activation, present the full step list and let user deselect irre
 - [x] Story review (review-artifact --type=story)
 - [x] Dev BA PIC challenge (pbi-challenge)
 - [x] Definition of Ready gate (dor-gate)
-- [x] PBI mockup/wireframe (pbi-mockup) — CONDITIONAL: skip for backend-only PBIs; the mockup MUST faithfully match the current UI system (gated by existing-UI-research)
-- [x] UI design spec (design-spec) — CONDITIONAL: skip for backend-only PBIs; authors the PBI's tech-agnostic UI specs right after the mockup so every UI PBI carries BOTH a faithful mockup AND UI specs (both gated by SYNC:existing-ui-research)
+- [x] PBI mockup/wireframe (pbi-mockup) — CONDITIONAL: skip for backend-only PBIs; the mockup MUST faithfully match the current UI system (gated by existing-UI-research) AND link back to the governing Feature Spec §6 interaction surface (View Inventory / Key UI States / per-story click-path) so the mockup is traceable to §6
+- [x] UI design spec (design-spec) — CONDITIONAL: skip for backend-only PBIs; authors the PBI's tech-agnostic UI specs right after the mockup so every UI PBI carries BOTH a faithful mockup AND UI specs (both gated by SYNC:existing-ui-research), and the design-spec's View Inventory / Key UI States / per-story click-path must link back to (and stay consistent with) the governing Feature Spec §6 interaction surface
 - [x] Backlog prioritization (prioritize)
 - [x] Documentation synchronization (docs-update) — near-final sync for specs, workflow-feature docs, and TDD/spec docs
 - [x] Stakeholder presentation (feature-presentation) — synthesize all session ideas/specs/PBIs/stories/design-specs/mockups into ONE standalone HTML slide deck for PO/BA/Dev/QC; embeds each existing -mockup.html via <iframe srcdoc> (never regenerated); gap-fills missing PBIs/mockups via workflow-spec-to-pbi / pbi-mockup run as sub-agents
@@ -1040,7 +1043,7 @@ After workflow activation, auto-select the applicable steps and skip irrelevant 
 - [x] Feature Spec test specs (spec [mode=tests]) — author §8 TC-{FEATURE}-{NNN} behavioral test cases (Evidence: TBD, Status: Planned)
 - [x] Test-spec review (review-artifact --type=spec-tests)
 - [x] Feature Spec review (review-artifact) — quality-check the authored Feature Spec
-- [x] UI design spec (design-spec) — CONDITIONAL, UI ideas only: author tech-agnostic UI specs for the spec'd capability; NO mockup, NO PBI/backlog (spec-only contract preserved); gated by SYNC:existing-ui-research so specs faithfully match the current UI system. SKIP for backend-only ideas
+- [x] UI design spec (design-spec) — CONDITIONAL, UI ideas only: author tech-agnostic UI specs for the spec'd capability AND couple them to the governing Feature Spec §6 interaction surface — the design-spec's View Inventory / Key UI States / per-story click-path must link back to (and stay consistent with) §6; NO mockup, NO PBI/backlog (spec-only contract preserved); gated by SYNC:existing-ui-research so specs faithfully match the current UI system. SKIP for backend-only ideas
 - [x] Spec clarification (spec-clarify) — review the authored spec vs the discovered system, brainstorm open questions, audit every hypothesis/decision (OBVIOUS / NON-OBVIOUS / CONFLICTS), and ask the user (ask the user directly) to confirm every non-obvious decision before the spec is finalized
 - [x] Why-Review (why-review) — validate the authored spec's rationale + completeness
 - [x] Docs sync (docs-update) — sync Feature Spec (§8) and derived bucket indexes
@@ -1267,6 +1270,7 @@ Use after code changes, bug fixes, or PR reviews to keep test specs in sync.
 1. Review what changed (git diff or PR diff)
 2. Update test specs in the Feature Spec §8 (Test Specifications) using $spec [mode=tests] — §8 is the canonical in-place home; there is no separate dashboard (retired 2026-06-10)
 3. Sync §8 ↔ integration test code via $spec [mode=sync] (forward: §8 TCs → test code)
+3b. UI-INTENT / INTERACTION-SURFACE REFRESH — CONDITIONAL: only when the changed behavior is user-facing (else state the skip reason — backend-only change, no §6 change). When user-facing behavior changed, run $spec (ui-intent intent) alongside the spec [mode=sync] step to refresh the affected Feature Spec §6 interaction surface — View Inventory, Key UI States, and the per-story click-path — and link the governing design-spec so the §6 interaction-surface stays in sync with the changed behavior.
 4. Generate/update integration tests for changed TCs
 5. Run tests to verify
 
@@ -1297,7 +1301,7 @@ MANDATORY RULES:
 4. Decompose large Feature Specs into independently deliverable vertical slices. Create explicit shared/foundation PBIs for cross-cutting prerequisites.
 5. For each PBI, include acceptance criteria, story points, dependencies, priority, domain impact, spec [mode=tests] needs, and DoR status. Carry §4 BR-/§3 US- logical IDs as the primary citation spine.
 6. Run domain-analysis when the spec implies new/changed entities, aggregates, invariants, state machines, or cross-service ownership.
-7. For each UI PBI, run pbi-mockup THEN design-spec (both CONDITIONAL — SKIP for backend-only PBIs with a stated skip reason; both gated by SYNC:existing-ui-research). pbi-mockup produces a faithful HTML mockup matching the current UI system; design-spec authors the PBI's tech-agnostic UI specs. This mirrors workflow-idea-to-pbi so the spec→pbi decomposition half is IDENTICAL across both workflows (idea-to-pbi == idea-to-spec + spec-to-pbi).
+7. For each UI PBI, run pbi-mockup THEN design-spec (both CONDITIONAL — SKIP for backend-only PBIs with a stated skip reason; both gated by SYNC:existing-ui-research). pbi-mockup produces a faithful HTML mockup matching the current UI system; design-spec authors the PBI's tech-agnostic UI specs. Both MUST link back to the governing Feature Spec §6 interaction surface — the mockup and the design-spec's View Inventory / Key UI States / per-story click-path must trace to (and stay consistent with) §6. This mirrors workflow-idea-to-pbi so the spec→pbi decomposition half is IDENTICAL across both workflows (idea-to-pbi == idea-to-spec + spec-to-pbi).
 8. Run prioritize once at the end across all generated PBIs to produce a dependency-aware ranked backlog. PRIORITY PROPAGATION (MANDATORY): prioritize MUST write the computed rank/priority back into every generated PBI's frontmatter `priority` field — never leave a generated PBI without priority. Every generated PBI carries priority info.
 9. Write artifacts immediately after each capability/feature is processed; never hold all PBIs in memory.
 10. Run docs-update after prioritize and before workflow-end so Feature Specs (§8) and derived indexes stay synchronized.

@@ -207,12 +207,12 @@ memory: project
 
 > **Severity Rubric** — Classify every finding by consequence, not by how easy it is to fix. One scale across all reviews so a "High" means the same thing everywhere.
 >
-> | Severity | Action | Definition |
-> | --- | --- | --- |
+> | Severity | Action      | Definition                                                                |
+> | -------- | ----------- | ------------------------------------------------------------------------- |
 > | CRITICAL | Block merge | Silent runtime failure, data corruption, validation bypass, security hole |
-> | HIGH | Must fix | Incorrect behavior, invariant gap, architectural violation |
-> | MEDIUM | Should fix | Design debt, maintainability, likely future bug |
-> | LOW | Nice to fix | Convention, documentation, minor clarity |
+> | HIGH     | Must fix    | Incorrect behavior, invariant gap, architectural violation                |
+> | MEDIUM   | Should fix  | Design debt, maintainability, likely future bug                           |
+> | LOW      | Nice to fix | Convention, documentation, minor clarity                                  |
 >
 > **Score-based skills** map their numeric scale onto these tiers — do not invent a parallel vocabulary:
 >
@@ -245,7 +245,7 @@ memory: project
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-<!-- /SYNC:task-tracking-external-report:reminder -->
+  <!-- /SYNC:task-tracking-external-report:reminder -->
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 
@@ -292,13 +292,13 @@ memory: project
 
 **Anti-Rationalization:**
 
-| Evasion                                    | Rebuttal                                                                            |
-| ------------------------------------------ | ----------------------------------------------------------------------------------- |
-| "One strong source is enough"              | NEVER cite a single source as authoritative — every factual claim needs 2+ independent sources. |
-| "This blog states it clearly, just cite it" | Blogs/forums are Tier 3/4 — corroborate against a Tier 1/2 anchor first or flag the gap. |
-| "I'll batch the write-up at the end"       | Append findings to the report after EACH step — a cutoff loses all in-memory work.  |
-| "Search returned nothing, I'll infer it"   | State "No evidence found" — inference is not evidence; never fabricate to fill a gap. |
-| "Confidence is obvious, skip the score"    | Every finding states a score (95/80/60/<60%); <60% is DO-NOT-RECOMMEND, not silence. |
+| Evasion                                     | Rebuttal                                                                                        |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| "One strong source is enough"               | NEVER cite a single source as authoritative — every factual claim needs 2+ independent sources. |
+| "This blog states it clearly, just cite it" | Blogs/forums are Tier 3/4 — corroborate against a Tier 1/2 anchor first or flag the gap.        |
+| "I'll batch the write-up at the end"        | Append findings to the report after EACH step — a cutoff loses all in-memory work.              |
+| "Search returned nothing, I'll infer it"    | State "No evidence found" — inference is not evidence; never fabricate to fill a gap.           |
+| "Confidence is obvious, skip the score"     | Every finding states a score (95/80/60/<60%); <60% is DO-NOT-RECOMMEND, not silence.            |
 
 > **[IMPORTANT — primacy-recency tail]** The 3 rules to never break: (1) every claim → 2+ independent sources + `[N]` citation; (2) empty search → "No evidence found", NEVER fabricate; (3) write findings to `plans/reports/` after EACH step.
 

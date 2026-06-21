@@ -54,11 +54,11 @@ See `docs/project-reference/backend-patterns-reference.md` for project-specific 
 
 ## Development - Frontend
 
-| Skill                   | Triggers                           | Description          |
-| ----------------------- | ---------------------------------- | -------------------- |
+| Skill                   | Triggers                           | Description                         |
+| ----------------------- | ---------------------------------- | ----------------------------------- |
 | `design`                | UI, design, screenshot             | UI implementation (multi-mode/lane) |
-| `ui-ux-pro-max`         | UX, design system                  | Advanced UX          |
-| `web-design-guidelines` | accessibility, WCAG, visual review | UI compliance review |
+| `ui-ux-pro-max`         | UX, design system                  | Advanced UX                         |
+| `web-design-guidelines` | accessibility, WCAG, visual review | UI compliance review                |
 
 See `docs/project-reference/frontend-patterns-reference.md` for project-specific frontend patterns.
 

@@ -393,7 +393,7 @@ Pattern: Grep first → Graph expand → Grep verify. Iterative deepening encour
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-<!-- /SYNC:task-tracking-external-report:reminder -->
+  <!-- /SYNC:task-tracking-external-report:reminder -->
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 
@@ -443,13 +443,13 @@ Pattern: Grep first → Graph expand → Grep verify. Iterative deepening encour
 
 **Anti-Rationalization:**
 
-| Evasion                                       | Rebuttal                                                                          |
-| --------------------------------------------- | -------------------------------------------------------------------------------- |
+| Evasion                                       | Rebuttal                                                                            |
+| --------------------------------------------- | ----------------------------------------------------------------------------------- |
 | "I know the standard CQRS/repository pattern" | Read `backend-patterns-reference.md` — this project's abstractions differ. Cite it. |
-| "Already searched the patterns"               | Show `file:line` for 3+ examples. No proof = no search.                          |
-| "This validation is fine as an exception"     | Check the project's validation pattern first — result/fluent APIs reject throws. |
-| "I'll map in the handler, it's simpler"       | DTOs own mapping; handlers stay thin. Move it down.                              |
-| "Too small for graph trace"                   | If `graph.db` exists, trace anyway — callers/consumers hide from grep.           |
+| "Already searched the patterns"               | Show `file:line` for 3+ examples. No proof = no search.                             |
+| "This validation is fine as an exception"     | Check the project's validation pattern first — result/fluent APIs reject throws.    |
+| "I'll map in the handler, it's simpler"       | DTOs own mapping; handlers stay thin. Move it down.                                 |
+| "Too small for graph trace"                   | If `graph.db` exists, trace anyway — callers/consumers hide from grep.              |
 
 **[PRIMACY-RECENCY — TOP 3 ECHOED]**
 
