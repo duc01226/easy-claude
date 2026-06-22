@@ -67,14 +67,14 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ### Modes (resolve mode FIRST — BLOCKING)
 
-| Mode     | Use when…                                                          | Body            |
-| -------- | ------------------------------------------------------------------ | --------------- |
-| `draft`  | Author a provisional spec from an idea/requirement/prompt — **no code yet** (TDD-first, §8 `Evidence: TBD`, provisional marker) | `references/author.md` |
-| `init`   | No `docs/specs/{Bucket}/` exists — author a full 8-section spec from source | `references/author.md` |
-| `update` | Docs exist + code changed — section-impact-mapped updates          | `references/author.md` |
-| `audit`  | `--audit` flag or user asks — staleness report per section (never mutates docs) | `references/author.md` |
-| `amend`  | `[mode=amend]` from the bugfix workflow — minimal regression-scoped §3/§4/§8 touch only | `references/author.md` |
-| `tests`  | Generate or update Section 8 `TC-{FEATURE}-{NNN}` test specifications | `references/tests.md`  |
+| Mode     | Use when…                                                                                                                                       | Body                   |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| `draft`  | Author a provisional spec from an idea/requirement/prompt — **no code yet** (TDD-first, §8 `Evidence: TBD`, provisional marker)                 | `references/author.md` |
+| `init`   | No `docs/specs/{Bucket}/` exists — author a full 8-section spec from source                                                                     | `references/author.md` |
+| `update` | Docs exist + code changed — section-impact-mapped updates                                                                                       | `references/author.md` |
+| `audit`  | `--audit` flag or user asks — staleness report per section (never mutates docs)                                                                 | `references/author.md` |
+| `amend`  | `[mode=amend]` from the bugfix workflow — minimal regression-scoped §3/§4/§8 touch only                                                         | `references/author.md` |
+| `tests`  | Generate or update Section 8 `TC-{FEATURE}-{NNN}` test specifications                                                                           | `references/tests.md`  |
 | `sync`   | Reconcile §8 TCs ↔ integration test code (forward/reverse/harvest, orphan, staleness); `harvest` captures a SPEC-SILENT invariant into §4/§5/§8 | `references/sync.md`   |
 
 **Mode resolution (do this before any work):**
@@ -87,7 +87,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 - **[BLOCKING]** Read `docs/project-reference/spec-principles.md` — repo-local prose/evidence rules (§3 prose scope + §3.2 banned prose-token list). For the AI-implementability criteria + tech-agnostic mandates, read `.claude/skills/shared/sdd-artifact-contract.md` ("AI-Implementability Gate" + mandates M1-M6) — those are the canonical authority, not the local stub.
 - **[BLOCKING]** EVERY test case MUST carry verifiable code evidence as a `[Source: namespace/service/id]` abstract anchor in its Section 8 hidden carrier — physical `file:line` lives only in the provenance sidecar.
-  > **Exception (`mode=draft`):** an idea-sourced spec has no code yet — its §8 TCs carry `Evidence: TBD` (reference-only) and the spec is flagged provisional (`provisional: true` frontmatter + a "DRAFT — unverified until code lands" header banner). The first `update`/`init` run against real code MUST upgrade every `TBD` to a real `[Source:]` anchor and clear the provisional flag. This mirrors existing TDD-first handling — it relaxes evidence ONLY for draft, never for code-sourced modes.
+    > **Exception (`mode=draft`):** an idea-sourced spec has no code yet — its §8 TCs carry `Evidence: TBD` (reference-only) and the spec is flagged provisional (`provisional: true` frontmatter + a "DRAFT — unverified until code lands" header banner). The first `update`/`init` run against real code MUST upgrade every `TBD` to a real `[Source:]` anchor and clear the provisional flag. This mirrors existing TDD-first handling — it relaxes evidence ONLY for draft, never for code-sourced modes.
 - **[BLOCKING]** Section 8 is the **canonical TC registry** — §8 TCs are the source of truth; integration test code implements them. The `tests` mode owns generation; `sync` mode reconciles drift; the author modes (`draft`/`init`) populate §8 at authoring time (`draft` with `Evidence: TBD`, `init` with real `[Source:]`) and MUST NOT overwrite existing TCs during UPDATE.
 - Authored docs MUST match the master template's **8 tech-free sections** (Overview, Glossary, User Stories & AC, Business Rules, Domain Model, Process Flows & Interaction Surface, Permissions & Roles, Test Specifications) + YAML frontmatter — zero technical terms in prose, size caps enforced.
 - **[BLOCKING] Canonical TC format authority:** `.claude/skills/shared/tc-format.md` (GWT template, Evidence carrier, decade-numbering, Preservation Tests). **M1-M6 mandates:** `.claude/skills/shared/sdd-artifact-contract.md` — any violation FAILS the artifact.
@@ -153,15 +153,16 @@ This skill owns the **canonical** Feature Spec (§1-8) and its §8 TC registry. 
 
 ## Related Skills
 
-| Skill                              | Relationship                                                                                    | When to Call                                                                                        |
-| ---------------------------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `$spec-index`                      | **Derived consumer** — assembles a regenerable navigation index/ERD FROM these Feature Specs (never a source of truth) | AFTER specs exist — (re)generate the bucket `INDEX.md` / cross-capability ERD over the canonical specs |
-| `$review-artifact --type=spec-tests` | **Reviewer** — audits TC coverage in Section 8                                                | After `spec [mode=tests]`, to validate TC completeness and GIVEN/WHEN/THEN quality                  |
-| `$integration-test`                | **End consumer** — generates test code from TCs in Section 8                                    | After `spec [mode=tests]`, to produce actual integration test files                                 |
-| `$docs-update`                     | **Orchestrator** — calls this skill as Phase 2                                                  | Run `$docs-update` for full chain sync; it calls `$spec` internally                                 |
-| `$review-changes`                  | **Trigger** — detects feature doc staleness                                                     | Calls `$docs-update` when a business doc is stale relative to code changes                          |
+| Skill                                | Relationship                                                                                                           | When to Call                                                                                           |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `$spec-index`                        | **Derived consumer** — assembles a regenerable navigation index/ERD FROM these Feature Specs (never a source of truth) | AFTER specs exist — (re)generate the bucket `INDEX.md` / cross-capability ERD over the canonical specs |
+| `$review-artifact --type=spec-tests` | **Reviewer** — audits TC coverage in Section 8                                                                         | After `spec [mode=tests]`, to validate TC completeness and GIVEN/WHEN/THEN quality                     |
+| `$integration-test`                  | **End consumer** — generates test code from TCs in Section 8                                                           | After `spec [mode=tests]`, to produce actual integration test files                                    |
+| `$docs-update`                       | **Orchestrator** — calls this skill as Phase 2                                                                         | Run `$docs-update` for full chain sync; it calls `$spec` internally                                    |
+| `$review-changes`                    | **Trigger** — detects feature doc staleness                                                                            | Calls `$docs-update` when a business doc is stale relative to code changes                             |
 
 ---
+
 > **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
 
 <!-- SYNC:ui-intent-layer -->
@@ -285,14 +286,14 @@ This skill owns the **canonical** Feature Spec (§1-8) and its §8 TC registry. 
 
 **Anti-Rationalization:**
 
-| Evasion                                          | Rebuttal                                                                                           |
-| ------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| "Mode is obvious, skip the `references/` body"   | The body owns gates + output contract — running from memory drifts. Read it every time.            |
-| "This TC's source is clear, skip the anchor"     | No `[Source:]` carrier (or `Evidence: TBD` for non-draft) = unverifiable TC. Add the anchor.        |
-| "`update` — just regenerate Section 8"           | §8 is canonical; integration tests implement it. NEVER overwrite — `sync` reconciles drift.        |
-| "One tech name in prose is harmless"             | One banned token fails M1 and breaks rebuild-on-any-stack. Move it to an evidence carrier.          |
-| "Small spec, skip task tracking"                 | Skip depth, NEVER skip tracking — context loss wipes un-tracked progress.                           |
-| "Index looks stale, I'll just run `$spec-index`" | Not this skill's job — flag the refresh need; derived artifacts regenerate separately.              |
+| Evasion                                          | Rebuttal                                                                                     |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| "Mode is obvious, skip the `references/` body"   | The body owns gates + output contract — running from memory drifts. Read it every time.      |
+| "This TC's source is clear, skip the anchor"     | No `[Source:]` carrier (or `Evidence: TBD` for non-draft) = unverifiable TC. Add the anchor. |
+| "`update` — just regenerate Section 8"           | §8 is canonical; integration tests implement it. NEVER overwrite — `sync` reconciles drift.  |
+| "One tech name in prose is harmless"             | One banned token fails M1 and breaks rebuild-on-any-stack. Move it to an evidence carrier.   |
+| "Small spec, skip task tracking"                 | Skip depth, NEVER skip tracking — context loss wipes un-tracked progress.                    |
+| "Index looks stale, I'll just run `$spec-index`" | Not this skill's job — flag the refresh need; derived artifacts regenerate separately.       |
 
 **[TASK-PLANNING]** MUST ATTENTION analyze task scope and break into small todo tasks/sub-tasks via task tracking before acting.
 

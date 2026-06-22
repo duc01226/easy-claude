@@ -212,26 +212,28 @@ Per step: `TaskUpdate in_progress` → **invoke `Skill` tool** → complete skil
 
 ---
 
-## Workflow-in-Workflow Gate (HARD GATE — NO EXCEPTIONS)
+## Workflow-in-Workflow Gate (HARD GATE)
 
-Some workflow steps ARE themselves full workflows. Running them inline causes the parent session to absorb the entire nested workflow's tool calls, file reads, and sub-agent reports — guaranteed context overflow on long sequences.
+Some workflow steps ARE themselves full workflows. The DEFAULT for a step that activates a multi-step workflow is sub-agent delegation — running it inline causes the parent session to absorb the entire nested workflow's tool calls, file reads, and sub-agent reports (context overflow on long sequences). The sub-agent runs the nested workflow in isolation and returns ONLY a `SYNC:subagent-return-contract` summary (full findings to `plans/reports/`).
 
-**Steps requiring sub-agent delegation (hard gate):**
-
-| Step                       | Workflow activated        | Step count source                                    | Agent type      |
-| -------------------------- | ------------------------- | ---------------------------------------------------- | --------------- |
-| `/workflow-review-changes` | `workflow-review-changes` | `len(workflows["workflow-review-changes"].sequence)` | `code-reviewer` |
-
-**Protocol when these steps appear in the active workflow sequence:**
+**Default protocol (sub-agent delegation) for a nested-workflow step:**
 
 1. NEVER invoke via inline `Skill` tool call
-2. Spawn via `Agent` tool: `subagent_type: "code-reviewer"`
+2. Spawn via `Agent` tool with the appropriate `subagent_type`
 3. Agent prompt must include: current git diff context + feature/task description
 4. Sub-agent runs the full nested workflow in its isolated context
 5. Return ONLY SYNC:subagent-return-contract summary — write full findings to `plans/reports/`
 6. Main agent reads `plans/reports/` file only when resolving specific blockers
 
-> The ⚠️ **[WORKFLOW-IN-WORKFLOW GATE]** is model-driven: apply it yourself whenever the next step is one of the above — no hook emits this warning.
+**EXCEPTION — `workflow-review-changes` runs INLINE in the main session (never a sub-agent):**
+
+| Step                       | Workflow activated        | Execution mode                  | Why                                                                                          |
+| -------------------------- | ------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------- |
+| `/workflow-review-changes` | `workflow-review-changes` | **INLINE — main session agent** | Its Step 0 `/goal` gate binds the session Stop hook + its step-12 re-review is inline by design; a sub-agent cannot own the Stop hook, so delegating it silently breaks the unabandonable review→fix→re-review loop. Context stays bounded because its OWN steps 3–7 reviewers are sub-agents writing to `plans/reports/`. |
+
+When `/workflow-review-changes` appears in any workflow sequence (e.g. `workflow-feature`, `workflow-bugfix`, `workflow-refactor`), invoke it via the `Skill` tool INLINE — do NOT spawn it as an `Agent` sub-agent.
+
+> The ⚠️ **[WORKFLOW-IN-WORKFLOW GATE]** is model-driven: apply it (default sub-agent, or the `workflow-review-changes` inline exception) yourself whenever the next step activates a nested workflow — no hook emits this warning.
 
 ---
 
