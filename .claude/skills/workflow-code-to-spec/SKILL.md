@@ -50,6 +50,9 @@ Resolve service→bucket assignments from the canonical table in [`docs/project-
 - Confirm mode via `AskUserQuestion` BEFORE any action — NEVER skip Step 0
 - Invoke `Skill` tool for EACH step — NEVER batch-complete or mark done without invocation
 - Spawn sub-agents for 4+ capabilities in ONE message — NEVER sequential
+- Every spec carries the THREE layers needed for stack-agnostic rebuild: business logic (§1-7), UI/UX interaction surface (§6.2-6.5 for UI-bearing features), and test specs (§8) — a spec missing any layer is incomplete
+- Trace the FULL vertical chain (UI → API → handler → domain → event → read model → UI) per capability and reconcile it (Step 1-INIT.4.6) — a layer-parallel inventory silently misses seam behavior; nothing-missed requires the end-to-end trace
+- For multi-bucket/whole-project scope, maintain the resumable Coverage Ledger (Step B.3) and clear the Whole-Project Completeness Gate before `/workflow-end`
 - §1-7 of every Feature Spec are STRICTLY tech-free; the §5 Mermaid ERD is authored **inside** the Feature Spec — there is no separate ERD file
 - Write findings incrementally after each section — NEVER hold in memory
 - If shared skills/workflows/hooks/sync tooling changed, run `npm run codex:sync` before `/workflow-end` or record explicit N/A evidence; verify generated mirrors are current.
@@ -97,26 +100,66 @@ Starting from zero: no `docs/specs/{Bucket}/README.{Feature}.md` for the target 
 /scout
   → Holistic codebase map — capability registry, entry points, integration boundaries
   → Identify the set of capabilities in scope (one Feature Spec each)
-  → TaskCreate: "scout — enumerate capabilities + entry points for {Bucket}"
+  → **Full-chain awareness:** map not just backend layers but the complete vertical slice per
+     capability — UI view/action → API → handler → domain entity/rule → event → consumer/read model
+     → UI outcome. The detailed per-capability trace + reconciliation gate runs inside
+     `/spec [mode=init]` Step 1-INIT.4.6 (use `graph-connect-api` for frontend→backend links,
+     `graph-trace` for backend flow); scout just confirms both ends (frontend + backend) are in scope
+     so no seam is invisible at planning time.
+  → TaskCreate: "scout — enumerate capabilities + full FE→BE→domain entry points for {Bucket}"
 
 ## Step B — Size Evaluation and Divide-and-Conquer Planning (MANDATORY — runs BEFORE plan)
 
 **[BLOCKING GATE]** Before writing any plan, evaluate scope and recursively decompose until
-each capability is an independently authorable Feature Spec.
+each capability is an independently authorable Feature Spec. **The task may be huge — an entire
+project's worth of code-to-spec is the explicit worst case. Size it honestly first, then break it
+into many small, independently-completable units; never start authoring against an unsized scope.**
 
-ESTIMATE:
-  capability_count = count of distinct capabilities found in scout
-  IF capability_count > 10:
-    → SPLIT into groups: max 10 capabilities per run, run groups sequentially
-  IF 4 ≤ capability_count ≤ 10:
-    → Sub-agents mandatory (one spec sub-agent per capability)
-  IF capability_count ≤ 3:
-    → Single-session authoring
+### B.1 — Classify scope breadth FIRST
+
+| Scope | Signal | Strategy |
+| ----- | ------ | -------- |
+| **Single capability** | one feature named / one diff | single-session authoring |
+| **Single bucket** | one module/service | per-capability decomposition within the bucket |
+| **Whole project** | "all specs", "the whole project", "every feature", no bucket named | **enumerate ALL buckets × ALL capabilities → build the Coverage Ledger (B.3) → run bucket-by-bucket across resumable sessions** |
+
+### B.2 — Estimate per run
+
+```
+capability_count = count of distinct capabilities in the current scope
+  IF capability_count > 10:  → SPLIT into groups: max 10 capabilities per run, run groups sequentially
+  IF 4 ≤ capability_count ≤ 10: → Sub-agents mandatory (one spec sub-agent per capability)
+  IF capability_count ≤ 3:   → Single-session authoring
+```
 
 **Recursive decomposition rule:** Feature Specs have no line-count cap. If a single capability has
 >40 TCs or contains distinct module-level capabilities, split the capability into sibling specs.
 
-TaskCreate: "size-evaluation — count capabilities, decide split strategy"
+### B.3 — Whole-Project Coverage Ledger [BLOCKING for whole-project scope; recommended for multi-bucket]
+
+When the scope spans more than one bucket, a single session cannot hold it — so coverage MUST be
+tracked in a **persistent, resumable ledger on disk**, not in memory or the task list alone. This is
+the guard for "the whole-project code-to-spec works flawlessly and nothing is missed."
+
+1. **Enumerate the full target set:** for every bucket (App Bucket Mapping), list every capability
+   discovered in scout. This is the denominator — the complete set that MUST end with a Feature Spec.
+2. **Write the ledger** to `plans/reports/code-to-spec-coverage-{date}.md`:
+
+   | Bucket | Capability | Spec path | §1-7 | §6 (UI) | §8 TCs | Chain trace | Status |
+   | ------ | ---------- | --------- | :--: | :-----: | :----: | :---------: | ------ |
+   | {Bucket} | {Capability} | docs/specs/{Bucket}/README.{Feature}.md | ⬜ | ⬜ | 0 | ⬜ | NOT STARTED |
+
+3. **Update the ledger row after each capability completes** (incremental persistence — never batch).
+   `Status` ∈ NOT STARTED → IN PROGRESS → SPEC DONE → REVIEWED. `§6 (UI)` is `n/a` for backend-only.
+4. **Resume rule:** on any session start / after compaction, read the ledger FIRST, re-glob
+   `docs/specs/**` to confirm, and continue from the first non-REVIEWED row — NEVER re-author a done
+   capability, NEVER re-run scout for already-enumerated buckets.
+5. **[BLOCKING] Whole-Project Completeness Gate (before `/workflow-end`):** every row is `REVIEWED`,
+   OR carries an explicit, recorded deferral reason. A bucket/capability discovered in scout but
+   absent from `docs/specs/**` with no deferral reason = the workflow is NOT complete. Report the
+   final coverage as `{reviewed}/{total} capabilities` in `/watzup`.
+
+TaskCreate: "size-evaluation — classify scope breadth, count capabilities, build coverage ledger (whole-project), decide split strategy"
 
 ## Step C — Plan
 
@@ -534,6 +577,9 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 - **[BLOCKING]** Spawn sub-agents for 4+ capabilities in ONE message — NEVER sequential spawning
 - **[BLOCKING]** ONE canonical artifact — the Feature Spec at `docs/specs/{Bucket}/README.{Feature}.md`; the §5 Mermaid ERD is authored INSIDE it (no separate ERD file, no A-E tree)
 - **[BLOCKING]** Scout holistically FIRST — capability registry MUST exist before plan creation; NEVER re-run scout or plan in a resumed session
+- **[BLOCKING]** Trace the FULL vertical chain per capability (UI → API → handler → domain/rule → event → consumer → read model → UI) and pass the Step 1-INIT.4.6 reconciliation gate — no orphan UI, no orphan operation, event + read-side closure; a BROKEN chain is a spec-correctness finding, never silently dropped
+- **[BLOCKING]** Every spec ships all three rebuild layers — business logic (§1-7) + UI/UX interaction surface (§6.2-6.5, or stated backend-only skip) + test specs (§8); a UI feature missing §6 fails review
+- **[BLOCKING]** Whole-project / multi-bucket scope → size it via Step B (classify breadth → build the resumable Coverage Ledger), and clear the Whole-Project Completeness Gate (every capability REVIEWED or explicitly deferred) before `/workflow-end` — report `{reviewed}/{total}` in `/watzup`
 - **[BLOCKING]** Plan decomposes big→small — ONE task per capability Feature Spec; split a capability when TCs >40 or distinct module-level capabilities emerge
 - **[BLOCKING]** Per-section authoring: write each section immediately — NEVER accumulate across sections
 - **[REQUIRED]** §1-7 STRICTLY tech-free (no framework names, no language constructs, no class names in prose); identifiers live only in §8 evidence carriers, `[Source: ns/service/id]`, and ` ```mermaid ``` ` blocks — mark `[UNVERIFIED]` not blank

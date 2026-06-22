@@ -313,6 +313,48 @@ grep -rn "{message-bus-and-event-markers}" {module-source-root}/ --include="{bac
 
 Use graph output to enumerate: outbound events (produces), inbound events (consumes), cross-service reactions. Feed all findings into **Section 5 (Domain Model)** as business-meaningful occurrences (e.g. "Order Placed" → owner notified, order becomes active) and into **Section 8 (Test Specifications)** as integration test cases — NEVER as bus/message/payload schemas (those live in code).
 
+#### Step 1-INIT.4.6: Full-Chain Vertical Trace [BLOCKING — the completeness backbone]
+
+**Why this step exists:** Phases A–D enumerate each layer *in isolation* (entities, rules, operations, events). A spec authored from layer-parallel inventories silently misses behavior that lives only in the *seams* — a UI action whose handler was never enumerated, a write operation that no screen ever invokes (dead or headless?), a read model populated by an event with no documented producer. **A correct, nothing-missed spec requires tracing the COMPLETE vertical slice front-to-back for every user-facing capability**, not just listing the layers. This is the operative guard for "the spec is correct and nothing is missed."
+
+**For EACH user-facing capability (and each background/event-driven flow), trace the full chain end-to-end:**
+
+```
+UI view / entry point
+  → user action (click / submit / navigation)
+    → API call / route
+      → command OR query handler (application layer)
+        → domain entity + business rule(s) invoked / invariant enforced
+          → persistence (state change)
+          → domain/integration event emitted (if any)
+            → consumer(s) / saga / background reaction
+              → read model / projection updated
+  → API response
+    → UI observable state change (success / error / empty / loading / permission-denied)
+```
+
+**Tooling (use in this order; each link must be evidenced, never inferred):**
+
+1. **Frontend→backend links — `graph-connect-api`** (or grep the UI service/data layer for API call sites): map each view/screen action to the backend route/operation it invokes. This is the seam Phase C (backend-only) and Phase E (UI-only) each see from one side; this step JOINS them.
+2. **Backend flow — `graph-trace`** (`python .claude/scripts/code_graph trace {entry-file} --direction both --json`): from each handler, trace down to entity/rule and outward to events/consumers. Reuse the 1-INIT.4.5 cross-service output for the event tail.
+3. **Read-side closure:** for every write that emits an event, trace to the projection/read model and to the view that displays it — so the chain returns to the UI, not just to persistence.
+
+**Output — Full-Chain Trace Map** (working note in `.ai/workspace/analysis/{Module}-chain-map.md`; folds into §6 flows + §8 TCs):
+
+| Chain ID | UI view + action | API/operation | Handler | Entity + BR enforced | Event(s) | Consumer/read-model | UI outcome state | Status |
+| -------- | ---------------- | ------------- | ------- | -------------------- | -------- | ------------------- | ---------------- | ------ |
+| CH-{MOD}-01 | {view} · {action} | {operation} | {OP-id} | {entity} · {BR-id} | {event or —} | {consumer/projection or —} | {success/error state} | COMPLETE / BROKEN |
+
+**[GATE — BLOCKING before Phase E / §6 / §8] Chain Reconciliation — flag every unmatched link:**
+
+- [ ] **No orphan UI:** every view/action in the UI inventory maps to ≥1 backend operation — an action with no backend link is either dead UI or a missing-operation discovery (investigate, don't drop).
+- [ ] **No orphan operation:** every write/read operation from the Use Case Inventory (Step 1-INIT.1.5) appears in ≥1 chain — surfaced in a view, OR explicitly justified as headless (background/integration/API-only) with the reason recorded.
+- [ ] **Event closure:** every emitted domain/integration event has both a traced producer AND ≥1 consumer/read-model (or is recorded as fire-and-observe with no consumer by design); no event dead-ends silently.
+- [ ] **Read-side closure:** every event-driven projection/read model terminates at a view or a documented downstream consumer — the chain returns to an observable outcome.
+- [ ] **BROKEN links surfaced, never hidden:** any chain that cannot be completed end-to-end is recorded `Status: BROKEN` with the missing link named and confidence stated — a BROKEN chain is a spec-correctness finding, not an omission.
+
+**Feeds:** each `COMPLETE` chain → one §6.5 Per-Story Interaction Flow + ≥1 §8 TC spanning the full slice (not a handler-only TC); each `BROKEN`/headless chain → an explicit note in §6 (or the §6 backend-only skip reason) and a `Status: Planned`/flagged TC. **Skip the UI columns ONLY** for a backend-only module (no UI) — still trace operation → entity → event → consumer → read model and run the operation/event/read-side reconciliation rows.
+
 #### Step 1-INIT.5: Events & Jobs Extraction (Phase D)
 
 For each event handler and bus consumer:
@@ -786,6 +828,7 @@ Flag items requiring implementation assumptions:
 - **S3 (User Stories & Acceptance Criteria):** Every US-XX has ≥1 AC-XX with explicit success AND failure outcome in Given/When/Then. Vague AC → INCOMPLETE.
 - **S4 (Business Rules):** Every BR-XX needs: trigger condition, rule content, error message, `[Source: rule/{service}/{RuleName}]`. Missing field → flag.
 - **S3↔S4 linkage:** Every acceptance criterion that enforces a constraint references the BR-XX it enforces. AC with an unstated rule → flag.
+- **S6 (Process Flows & Interaction Surface — UI/UX re-implementability):** For every UI-bearing capability, §6.2 View Inventory, §6.3 Navigation Map, §6.4 Key UI States, and §6.5 Per-Story Interaction Flow are all present and M1-clean (UX roles/states/flows only — zero framework/route/CSS/component-class names). Every US-XX with a user-facing outcome has a §6.5 click-path; every view lists its observable states; the companion `design_spec:`/`mockup:` path is recorded in frontmatter when one exists. Missing/partial §6 on a UI feature (with no explicit backend-only skip reason) → INCOMPLETE — the app cannot be rebuilt on another stack from business logic + tests alone without the interaction surface.
 - **S7 (Permissions & Roles):** Permission matrix with explicit role × action × condition cells. Blank cells → flag.
 - **Concrete examples:** ≥1 example (input + expected output) per core operation. Abstract-only → LOW.
 
@@ -824,6 +867,7 @@ See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6
 - [ ] **Split criteria** — no line-count cap applies; split when TCs>40 or distinct module-level capabilities emerge (follow split procedure in Key Principles)
 - [ ] **No code details** in sections 1-7 (no file paths, no source-code types, no command/handler/API/message names)
 - [ ] **Acceptance criteria reference BR-{FC}-NN** IDs they enforce
+- [ ] **§6 Interaction Surface complete for UI-bearing features** — §6.2 View Inventory, §6.3 Navigation Map, §6.4 Key UI States, §6.5 Per-Story Interaction Flow all present, M1-clean, and `US-`/`OP-`/`BR-`-cross-referenced; companion `design_spec:`/`mockup:` recorded in frontmatter; backend-only features state the §6 skip reason explicitly (so the spec carries business logic + tests + UI/UX = re-implementable on any stack)
 
 ### Test Case Evidence (MANDATORY)
 
@@ -867,6 +911,7 @@ See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6
 - [ ] [Actor-gate] Every actor in actor catalog appears in ≥1 Phase E journey
 - [ ] [TC-gate] Section 8 TC count ≥ Grand Total from Use Case Inventory
 - [ ] [Source-gate] Every Phase C entry and every Phase E journey has `[Source: namespace/service/id]` abstract anchor
+- [ ] [Chain-gate] Full-Chain Reconciliation (Step 1-INIT.4.6) passed — no orphan UI, no orphan operation, event + read-side closure verified; every BROKEN chain recorded as a spec-correctness finding (never silently dropped)
 
 ## Standalone Chain
 

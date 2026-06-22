@@ -191,8 +191,8 @@ Build actor catalog: `[Role1, Role2,...]`. Authorization TC minimum = actor coun
 
 1. Grep commands/queries using project patterns from `docs/project-config.json` and the referenced architecture/test docs.
 2. Grep entities and domain events
-3. Trace: Controller → Command → Handler → Entity → Event Handler
-4. Identify testable behaviors from implementation
+3. **Trace the full vertical chain, not just the backend slice:** UI view + action → API/route → command/query handler → entity + business rule → persistence → event → consumer/read model → UI observable outcome. Reuse the Full-Chain Trace Map authored by `spec [mode=init]` (`.ai/workspace/analysis/{Module}-chain-map.md`, Step 1-INIT.4.6) when it exists; otherwise build the chain with `graph-connect-api` (frontend→backend links) + `graph-trace` (backend→entity→event). A TC that asserts only a handler in isolation misses the seam behavior the chain reveals.
+4. Identify testable behaviors from implementation — at least one **end-to-end chain TC** (decade 061–069, UI/User-journey) per `COMPLETE` chain that spans intent → outcome across the full slice, in addition to the per-operation TCs
 
 **Update mode (post-change / post-bugfix / post-PR):**
 
@@ -313,6 +313,7 @@ TC Blast Radius Analysis:
 | Permission coverage | TC count for authorization                                    | ≥ actor_count × 2                              | {n}    | PASS/FAIL |
 | Invariant coverage  | **Property TC** count guarding §4 [HARD] rules + §5 invariants | ≥ count([HARD] BR) + count(§5 entity invariants) | {n}    | PASS/FAIL |
 | Transition coverage | Valid + invalid transition TCs for each §5 lifecycle state     | ≥ 2 per stateful entity (≥1 valid, ≥1 invalid) | {n}    | PASS/FAIL |
+| Chain coverage      | End-to-end chain TC (decade 061–069) per `COMPLETE` user-facing chain (Full-Chain Trace Map) | ≥ 1 per COMPLETE UI-bearing chain | {n} | PASS/FAIL |
 | Total floor         | Total planned TCs                                             | ≥ N + M + K (Grand Total)                      | {n}    | PASS/FAIL |
 
 > **Count properties, not operations.** The Invariant-coverage row counts TCs that ASSERT a universally-quantified property (per the imported Test-Complete Gate), NOT TCs that merely name an invariant in the per-TC field. A §4 [HARD] rule or §5 invariant with zero property TC = FAIL even when every operation/actor row passes. The Transition-coverage row operationalizes `sdd-artifact-contract.md` → Test-Complete Gate ("every state transition maps to ≥1 valid AND ≥1 invalid transition TC"); also confirm every integration event has an idempotency TC (covered under Event/job coverage).
