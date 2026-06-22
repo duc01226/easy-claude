@@ -102,7 +102,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Read first:** `docs/project-reference/feature-spec-reference.md`, `docs/project-reference/spec-system-reference.md`, and `docs/project-reference/spec-principles.md`. For behavior/public-contract changes, also read `docs/project-reference/workflow-spec-test-code-cycle-reference.md`.
 
-**8 sections (exact order):** 1. Overview · 2. Glossary · 3. User Stories & Acceptance Criteria · 4. Business Rules · 5. Domain Model · 6. Process Flows & Interaction Surface · 7. Permissions & Roles · 8. Test Specifications — then a trailing Change History. No technical sections (Commands/Events/API/Cross-Service/Performance/Troubleshooting) — code is the technical source of truth.
+**8 sections (exact order):** 1. Overview · 2. Glossary · 3. User Stories & Acceptance Criteria · 4. Business Rules · 5. Domain Model · 6. Process Flows & Interaction Surface · 7. Permissions & Roles · 8. Test Specifications. No technical sections (Commands/Events/API/Cross-Service/Performance/Troubleshooting) — code is the technical source of truth.
 
 > §6 carries a tech-agnostic interaction surface (views/nav/observable states/per-story click-paths) per the `SYNC:ui-intent-layer` block this skill carries; backend-only specs state the skip reason explicitly. This does NOT contradict "No technical sections" — the interaction surface is tech-agnostic INTENT (UX roles, information, states, flows), not a technical "UI Pages" section; M1-clean keeps it free of framework/route/CSS/component-class names.
 
@@ -118,7 +118,6 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - TC IDs live in Section 8 only — never authored in `docs/specs/` directly
 - Section 8 authored via `$spec [mode=tests]`; `$spec [mode=init]` populates it only during initial authoring
 - No line-count cap applies to Feature Specs. Split the capability only when TCs>40 or distinct module-level capabilities emerge.
-- Change History entry required for every functional change (trailing section)
 
 ### M1-M6 Compliance (BLOCKING — applies to every authored spec and every TC)
 
