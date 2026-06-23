@@ -445,6 +445,18 @@
   path: feature-implement/SKILL.md
   removal_after: null
   status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
+  description: '[Documentation] Use when you need to synthesize all generated specs,
+    PBIs, ideas and mockups into one standalone HTML slide presentation for stakeholders
+    (PO/BA/Dev/QC).'
+  has_references: true
+  has_scripts: false
+  name: feature-presentation
+  path: feature-presentation/SKILL.md
+  removal_after: null
+  status: active
 - category: frontend
   deprecated_by: null
   deprecated_since: null
@@ -812,7 +824,7 @@
   deprecated_since: null
   description: '[Project Management] Use when you need to generate an HTML mockup
     report from PBI and story artifacts.'
-  has_references: false
+  has_references: true
   has_scripts: false
   name: pbi-mockup
   path: pbi-mockup/SKILL.md
@@ -1245,7 +1257,10 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Dev Data] Use when you need to implement or enhance test data seeders
-    that simulate QC happy-path scenarios via application-layer commands.'
+    that simulate QC happy-path scenarios via application-layer commands. Flag: --mode=review
+    reviews a target seeder (or the current changes / current work-context result)
+    against every universal seed-data rule AND the project-specific seeder conventions
+    — read-only, evidence-backed PASS/FAIL.'
   has_references: false
   has_scripts: false
   name: seed-test-data

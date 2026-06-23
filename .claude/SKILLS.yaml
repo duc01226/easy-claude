@@ -1,7 +1,7 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-06-21'
+  last_updated: '2026-06-23'
   total_skills: 153
   total_by_status:
     active: 152
@@ -1184,7 +1184,10 @@ skills:
     - name: seed-test-data
       path: seed-test-data/SKILL.md
       description: '[Dev Data] Use when you need to implement or enhance test data
-        seeders that simulate QC happy-path scenarios via application-layer commands.'
+        seeders that simulate QC happy-path scenarios via application-layer commands.
+        Flag: --mode=review reviews a target seeder (or the current changes / current
+        work-context result) against every universal seed-data rule AND the project-specific
+        seeder conventions — read-only, evidence-backed PASS/FAIL.'
       category: other
       has_scripts: false
       has_references: false
