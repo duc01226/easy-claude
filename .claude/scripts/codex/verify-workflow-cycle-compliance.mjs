@@ -135,7 +135,7 @@ const GOAL_CONTRACT_FILE_REQUIRED_SECTIONS = [
 
 // --- workflow-review-changes inline-in-main-session execution policy -----------------------------
 // workflow-review-changes is the documented EXCEPTION to "nested workflow -> sub-agent": its Step 0
-// `/goal` gate binds the session Stop hook and its step-12 re-review is inline by design, so a
+// `/goal` gate binds the session Stop hook and its step-14 re-review is inline by design, so a
 // sub-agent cannot host it without silently dropping the unabandonable review->fix->re-review loop.
 // These checks assert the canonical `.claude` surfaces DECLARE the inline mandate and carry NO
 // residual whole-workflow sub-agent mandate. `.agents/**` mirrors are owned by the sync tooling
