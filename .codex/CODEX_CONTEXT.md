@@ -1041,7 +1041,7 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `plan-validate` | [Planning] Use when you need to validate a plan with critical questions interview. |
 | `prioritize` | [Project Management] Use when you need to prioritize backlog items using RICE, MoSCoW, or Value-Effort frameworks. |
 | `production-readiness-review` | [Code Quality] Use when reviewing service-layer and API changes for production readiness. |
-| `prove-fix` | [Code Quality] Use when you need to prove fix correctness with code proof traces, confidence scoring, and stack-trace-style evidence chains. |
+| `prove-fix` | [Code Quality] Use when you need to prove fix correctness with adversarial code proof traces — a skeptic tries to DISPROVE the fix and trace all related paths first, with confidence scoring and stack-trace-style evidence chains, so confidence is earned by surviving attack, not by confirming it works. |
 | `refine` | [Project Management] Use when converting ideas to PBIs, validating problem hypotheses, adding acceptance criteria, or refining requirements. |
 | `review-architecture` | [Code Quality] Use when reviewing architecture compliance for layers, messaging, service boundaries, CQRS, repos, and entity events. |
 | `review-artifact` | [Code Quality] Use when you need to review artifact quality (PBI, user story, test spec, design spec) before handoff. Supports --type={pbi\|story\|spec-tests\|design}. |

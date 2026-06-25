@@ -1,7 +1,7 @@
 ---
 name: prove-fix
-version: 1.1.0
-description: '[Code Quality] Use when you need to prove fix correctness with code proof traces, confidence scoring, and stack-trace-style evidence chains.'
+version: 1.2.0
+description: '[Code Quality] Use when you need to prove fix correctness with adversarial code proof traces — a skeptic tries to DISPROVE the fix and trace all related paths first, with confidence scoring and stack-trace-style evidence chains, so confidence is earned by surviving attack, not by confirming it works.'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -15,27 +15,32 @@ description: '[Code Quality] Use when you need to prove fix correctness with cod
 
 ## Quick Summary
 
-**Goal:** Block shipping an unproven fix — build a code proof trace (like a debugger stack trace) for each fix change with confidence percentages, so every code change carries a `file:line` evidence chain and confidence score and a fix ships only when its correctness is proven (≥80%), not assumed.
+**Goal:** Block shipping an unproven fix — adopt a SKEPTIC's stance and try to DISPROVE the fix first, then build a code proof trace (like a debugger stack trace) for each change with confidence percentages, so every code change carries a `file:line` evidence chain that survived a genuine refutation attempt and a fix ships only when its correctness is proven (≥80%), never assumed.
 
 **Summary:**
 
-- Runs AFTER `/fix` (never before) as the non-negotiable verification gate between `/fix` and `/code-simplifier`; build a stack-trace-style proof chain (symptom → trigger path → root cause → fix mechanism → why-correct → edge cases → side effects) per change, every arrow carrying `file:line`.
-- Score each change with the points rubric (root cause +25, fix mechanism +20, pattern precedent +15, framework +10, edge cases +5 each, side effects +10, no regressions +5) → ≥80% ship, 60-79% flag, <60% BLOCK; pattern precedent (1+ working example) and edge cases (error/null/concurrent) are required, not optional.
-- Map every fix part to a primary/contributing/latent root cause from the hypothesis matrix and prove ALL feeder paths are closed; finish with cross-change checks (interaction, completeness, regression, dependency, performance incl. paging/index DB protocol) and a final verdict.
+- **Default stance is SKEPTIC, not validator** — your job is to find why the fix is WRONG or INCOMPLETE, not to confirm it works. The skill name ("prove-fix") and the points rubric both bias toward confirmation; the Adversarial Verification Mindset below forces a reset so confidence is *earned by surviving attack*, not awarded for coherence.
+- Runs AFTER `/fix` (never before) as the non-negotiable verification gate between `/fix` and `/code-simplifier`; build a stack-trace-style proof chain (symptom → trigger path → root cause → fix mechanism → why-correct → **refutation attempt** → edge cases → side effects) per change, every arrow carrying `file:line`.
+- For EACH change, first run a **Refutation Pass** (construct the strongest case the fix is wrong/incomplete: counter-cases, unclosed feeder paths, wrong layer, regression risk, "test passes for the wrong reason") before scoring — a change that has not been genuinely attacked cannot exceed 79%.
+- **Trace ALL related things** — every caller, consumer, sibling/alternate path, feeder path, downstream dependent, and shared-state writer that the change touches; an un-enumerated related path is an unproven path and caps confidence below 80%.
+- Score each change with the points rubric (root cause +25, fix mechanism +20, pattern precedent +15, framework +10, edge cases +5 each, side effects +10, no regressions +5) → ≥80% ship, 60-79% flag, <60% BLOCK; pattern precedent (1+ working example), edge cases (error/null/concurrent), and a survived refutation pass are required, not optional.
+- Map every fix part to a primary/contributing/latent root cause from the hypothesis matrix and prove ALL feeder paths are closed; finish with the **Anti-Bias Gate** + cross-change checks (interaction, completeness, regression, dependency, performance incl. paging/index DB protocol) and a final verdict.
 - After the verdict, resolve the active Goal Contract: map each proof trace to its success criterion, update the Goal Satisfaction matrix — a SHIP verdict does NOT close work while any required criterion remains FAIL.
 
 **Workflow:**
 
 1. **Inventory** — List every code change made by the fix (file:line, before/after)
-2. **Trace** — For each change, build a proof chain tracing from symptom → root cause → fix
-3. **Score** — Assign confidence percentage per change with evidence
-4. **Verify** — Cross-check fix against edge cases and side effects
+2. **Trace + Refute** — For each change, build a proof chain (symptom → root cause → fix) AND run a refutation pass that tries to break it before believing it
+3. **Score** — Assign confidence percentage per change with evidence; confidence is earned by surviving refutation, not awarded for coherence
+4. **Verify** — Anti-Bias Gate + cross-check fix against edge cases, side effects, and ALL related paths
 5. **Verdict** — Overall fix confidence and any remaining risks
 
 **Key Rules:**
 
+- **Default stance is SKEPTIC, not validator** — actively try to DISPROVE each change before scoring it; "looks correct" is the bias this gate exists to break
 - Every claim MUST ATTENTION have `file:line` evidence — no exceptions
-- Each change gets its OWN proof trace and confidence score
+- Each change gets its OWN proof trace, refutation pass, and confidence score
+- A change that has not been genuinely attacked (refutation pass) cannot exceed 79%
 - If ANY change scores below 80%, flag it and recommend additional investigation
 - Always run this proof-trace step after `/fix` — **non-negotiable**, never skip it
 
@@ -66,6 +71,51 @@ Post-fix verification skill building evidence-based proof chains for every code 
 - Before fix applied (use `/debug-investigate` instead)
 - New feature verification (use `/test` instead)
 - Code quality review (use `/code-review` instead)
+
+---
+
+## Adversarial Verification Mindset (NON-NEGOTIABLE)
+
+**Default stance: SKEPTIC, not validator. Your job is to prove the fix is WRONG or INCOMPLETE — and only conclude it is correct when every attack fails.**
+
+> **Confirmation-bias trap (acute for THIS skill):** The skill is literally named "prove-fix", you arrive immediately after `/fix` (you may have written the fix yourself), and the scoring rubric *awards points for verified items* — three forces that all pull toward confirming the fix works. A reviewer who already endorsed the fix cannot also be its skeptic without a forced reset. This section is that reset. — why: "build a proof FOR X" silently becomes "find reasons X is right"; real verification is "try to break X and report what survived".
+
+**Reframe the goal:** Do NOT set out to demonstrate the fix is correct. Set out to demonstrate it is BROKEN. Confidence is whatever is left standing *after* a genuine attempt to break it — never a tally of agreements.
+
+### Refutation Techniques (apply ALL per change before scoring)
+
+| Technique | Think (try to make the fix FAIL) |
+| --- | --- |
+| Counter-case hunt | Find ONE input/state/timing where the "fixed" code still produces the symptom. If you cannot, prove the input domain is exhausted — don't assume it. |
+| Test-passes-for-wrong-reason | Does the regression test pass because the fix is correct, or because the test is weak (asserts the example, not the invariant; mocks away the bug; never executes the fixed line)? |
+| Unclosed feeder path | Name every OTHER producer/caller/event/job/cache that can write the observed final state. Did the fix close ALL of them, or just the one you reproduced? |
+| Wrong-layer challenge | Argue the fix patches a symptom site, not the invariant owner. Would the bug recur through a sibling path that bypasses this fix? |
+| Regression injection | Assume the fix introduced a NEW bug. Where would it be? (changed scope, broadened catch, altered ordering, new query without paging/index.) |
+| Steel-man "no fix" | Argue the original code was actually correct and the real bug is elsewhere. If that argument has any legs, the root cause is unproven. |
+| Contrarian verdict | Before writing the score, argue in 2 sentences that this change should be BLOCKED. Then choose the stronger of ship-vs-block. |
+
+### Forbidden Patterns
+
+| Forbidden | Required correction |
+| --- | --- |
+| "Fix is obviously correct" | Obviousness is the illusion this gate breaks. Run the refutation pass anyway. |
+| "Reproduction test passes → proven" | A passing example ≠ a closed invariant. Attack the test before trusting it. |
+| Award points for coherence | Points require *survived attack*, not a plausible-sounding chain. |
+| "I wrote the fix, I know it works" | Author ≠ reviewer. Reset to skeptic; attack your own change hardest. |
+| Stop at the path you reproduced | Enumerate ALL feeder/related paths; an un-attacked path is an unproven path. |
+
+### Anti-Bias Gate (MANDATORY before any SHIP/SHIP-WITH-CAVEATS verdict)
+
+Complete ALL of these — per change — before writing the final verdict (MUST ATTENTION):
+
+- [ ] Ran the Refutation Pass (≥1 genuine counter-case attempt, recorded with `file:line` evidence of why it fails to reproduce)
+- [ ] Attacked the regression test itself — confirmed it fails on the *un-fixed* code and asserts the invariant, not the example
+- [ ] Enumerated ALL related/feeder paths and proved each is closed or explicitly listed as unverified
+- [ ] Stated the strongest argument the fix is at the WRONG layer, and rebutted it with evidence
+- [ ] Named ≥1 plausible NEW regression the change could introduce, and ruled it out with evidence
+- [ ] Wrote the contrarian (BLOCK) argument and explained why ship still wins
+
+Any box unchecked → verification is NOT complete; confidence is capped at 79% (flag, do not ship). NEVER round an un-refuted change up to 80%.
 
 ---
 
@@ -129,6 +179,20 @@ WHY THIS FIX IS CORRECT:
   → Framework behavior: [file:line or doc reference] confirms expected behavior
   → Forward convergence: [origin/trigger] -> [corrected transformations] -> [observed final output no longer stale/wrong]
 
+RELATED PATHS TRACED (all related things — none left un-attacked):
+  → Callers/consumers of changed symbol: [file:line list] — [each unaffected/updated, with evidence]
+  → Other feeder paths that write the final state: [file:line list] — [each closed / explicitly unverified]
+  → Sibling/alternate paths (retry, async, cache, background, alternate UI/API): [file:line] — [status]
+  → Downstream dependents (graph trace --direction downstream when graph.db exists): [evidence]
+
+REFUTATION ATTEMPT (try to break it — REQUIRED before scoring):
+  → Strongest counter-case attempted: [input/state/timing] → [why it does NOT reproduce, with file:line]
+  → Test attacked: [does the regression test fail on un-fixed code? assert invariant or just the example?] — [file:line]
+  → Wrong-layer challenge: [strongest argument this is a symptom patch] → [rebuttal with file:line, or CONCEDED]
+  → New-regression hunt: [most plausible bug the change could introduce] → [ruled out with file:line, or OPEN]
+  → Contrarian verdict (2 sentences arguing BLOCK): [...] → [why ship still wins, or why it does not]
+  → Survived attack? [YES — all attacks failed / NO — finding(s): ...]
+
 EDGE CASES CHECKED:
   → [edge case 1]: [verified/not-verified] — [evidence]
   → [edge case 2]: [verified/not-verified] — [evidence]
@@ -136,21 +200,25 @@ EDGE CASES CHECKED:
 SIDE EFFECTS:
   → [None / List of potential side effects with evidence]
 
-CONFIDENCE: [X%]
+CONFIDENCE: [X%]  (earned by surviving the refutation pass, NOT by tallying agreements)
+  Survived attacks: [list of attacks attempted that failed to break the fix]
   Verified: [list of verified items]
-  Not verified: [list of unverified items, if any]
+  Not verified / un-attacked: [list of unverified items — each caps confidence below 80%]
 ```
 
 ### Proof Trace Rules
 
 1. **Every arrow (→) MUST ATTENTION have a `file:line` reference** — no exceptions
 2. **TRIGGER PATH must be traceable** — someone should be able to follow it step-by-step in the code
-3. **Hypothesis matrix mapping is REQUIRED for bugfixes** — every fix part maps to a primary/contributing/latent root cause or is flagged as unrelated scope
-4. **Feeder paths must be accounted for** — prove the fix closes every path that can write the final observed state, or explicitly list remaining unverified paths
-5. **Pattern precedent is REQUIRED** — find at least 1 working example of the same pattern elsewhere in the codebase
-6. **Edge cases MUST ATTENTION be enumerated** — at minimum: error path, null/empty input, concurrent access
-7. **Side effects MUST ATTENTION be assessed** — what else could this change affect?
-8. **Spec-loop evidence is REQUIRED for a complete proof** (canonical: `SYNC:spec-loop-discipline`) — the proof MUST carry, with `file:line`: (a) the **regression property TC** guarding the fixed invariant — a universally-quantified property ("for ALL inputs in {domain}, {invariant} holds") + boundary counter-case, not just the reproduction example; (b) **mutation-kill evidence** for the fixed core-logic line — show a surviving mutant on that line is now killed (MUTATION-SCORE bar, not line-coverage %); (c) a **Dual-Feedback entry** — the spec rule restored/added AND the guarding test that feeds it back. A proof trace missing any of (a)/(b)/(c) is INCOMPLETE — cap its confidence below the 80% ship threshold until the spec-loop evidence is supplied.
+3. **REFUTATION ATTEMPT is REQUIRED and must be GENUINE** — you MUST try to break the fix (counter-case, weak-test, wrong-layer, new-regression, contrarian) before scoring. A trace with an empty or token refutation pass is INCOMPLETE and caps confidence at 79%. Default to "broken until proven otherwise", not "correct until disproven".
+4. **RELATED PATHS must be fully traced ("all related things")** — enumerate every caller, consumer, sibling/alternate path, feeder path, downstream dependent, and shared-state writer the change touches; an un-enumerated related path is an unproven path and caps confidence below 80%.
+5. **Hypothesis matrix mapping is REQUIRED for bugfixes** — every fix part maps to a primary/contributing/latent root cause or is flagged as unrelated scope
+6. **Feeder paths must be accounted for** — prove the fix closes every path that can write the final observed state, or explicitly list remaining unverified paths
+7. **Pattern precedent is REQUIRED** — find at least 1 working example of the same pattern elsewhere in the codebase
+8. **Edge cases MUST ATTENTION be enumerated** — at minimum: error path, null/empty input, concurrent access
+9. **Side effects MUST ATTENTION be assessed** — what else could this change affect?
+10. **The regression test MUST be attacked, not trusted** — confirm it FAILS on the un-fixed code and asserts the protected invariant (not just the reproduction example, not a mock that hides the bug, and the fixed line actually executes). A test you did not try to break is not evidence.
+11. **Spec-loop evidence is REQUIRED for a complete proof** (canonical: `SYNC:spec-loop-discipline`) — the proof MUST carry, with `file:line`: (a) the **regression property TC** guarding the fixed invariant — a universally-quantified property ("for ALL inputs in {domain}, {invariant} holds") + boundary counter-case, not just the reproduction example; (b) **mutation-kill evidence** for the fixed core-logic line — show a surviving mutant on that line is now killed (MUTATION-SCORE bar, not line-coverage %); (c) a **Dual-Feedback entry** — the spec rule restored/added AND the guarding test that feeds it back. A proof trace missing any of (a)/(b)/(c) is INCOMPLETE — cap its confidence below the 80% ship threshold until the spec-loop evidence is supplied.
 
 ---
 
@@ -181,15 +249,24 @@ Award points for each verified item:
 
 **Total possible: 100+** (normalize to percentage)
 
+> **[SKEPTIC GATE — applied AFTER the additive score]** The rubric measures evidence *gathered*; it does not measure whether the fix *survived attack*. Apply these caps regardless of the additive total — a high tally never overrides a failed/missing attack:
+>
+> - Refutation Pass not genuinely attempted, or any related/feeder path left un-enumerated → **cap at 79%** (flag, do not ship).
+> - Any refutation attack succeeded (counter-case reproduces, test is weak, wrong layer, open regression) → that is a **finding**: score reflects the unresolved defect (typically <60%, BLOCK) until the finding is closed.
+> - Contrarian (BLOCK) argument is stronger than the ship argument → **BLOCK**, route back to `/debug-investigate` or `/fix`.
+>
+> Confidence is what remains *after* the attack — never the additive tally alone.
+
 ---
 
 ## Step 4: Cross-Verification
 
 After individual proof traces, perform cross-change verification:
 
+0. **Anti-Bias Gate (MANDATORY first)** — Complete every box of the Anti-Bias Gate (from the Adversarial Verification Mindset section) for the change set as a whole before any SHIP verdict. An unchecked box means verification is incomplete — go back, do not ship.
 1. **Interaction check** — Do the changes interact with each other? Could one change break another?
-2. **Completeness check** — Does the combined fix address ALL reported symptoms?
-3. **Regression check** — Could the combined changes introduce new bugs?
+2. **Completeness check** — Does the combined fix address ALL reported symptoms? Steel-man "the bug is still present somewhere" — what would prove it?
+3. **Regression check** — Could the combined changes introduce new bugs? Assume they did; where?
 4. **Dependency check** — Are there other code paths that depend on the changed behavior?
 5. **Performance regression check** — Does the fix introduce performance issues?
 
@@ -210,12 +287,20 @@ FIX VERIFICATION VERDICT
 
 Overall Confidence: [X%]
 
+Anti-Bias Gate: [ALL boxes checked? YES/NO — if NO, verdict CANNOT be SHIP]
+
 Changes Summary:
-  #1: [description] — [X%] ✅/⚠️/❌
-  #2: [description] — [X%] ✅/⚠️/❌
-  #N: [description] — [X%] ✅/⚠️/❌
+  #1: [description] — [X%] ✅/⚠️/❌ — refutation: [survived / finding: ...]
+  #2: [description] — [X%] ✅/⚠️/❌ — refutation: [survived / finding: ...]
+  #N: [description] — [X%] ✅/⚠️/❌ — refutation: [survived / finding: ...]
 
 Symbols: ✅ ≥80% (ship) | ⚠️ 60-79% (flag) | ❌ <60% (block)
+
+Attacks that FAILED to break the fix (these earn the confidence):
+  - [attack]: [why it could not reproduce — file:line]
+
+Attacks that SUCCEEDED (open findings — block until closed):
+  - [attack]: [the defect it exposed — file:line] (or "none")
 
 Remaining Risks:
   - [risk 1]: [likelihood] × [impact] — [mitigation]
@@ -265,18 +350,42 @@ WHY THIS FIX IS CORRECT:
   → Pattern precedent: effect.ts:120 (moveApplicationToNextState) uses same inner pattern
   → Framework: NgRx effects auto-resubscribe on ERROR but NOT on COMPLETION
 
+RELATED PATHS TRACED:
+  → Callers of SavePersonInCharge effect: container:892 only — verified no other dispatcher
+  → Other effects sharing the dead-stream bug: grep catchError outside switchMap →
+     effect.ts:300 (SaveJobOpening), effect.ts:355 (ChangeStage) have SAME bug —
+     ⚠ NOT fixed by this change; listed as unverified/out-of-scope feeder paths
+  → Downstream consumers of LoadCandidateDetailsAction: reducer.ts:88 — unaffected (no contract change)
+
+REFUTATION ATTEMPT:
+  → Counter-case: a SECOND error after the fix → inner catchError re-catches; outer survives (verified effect.ts:52)
+  → Test attacked: spec fails on un-fixed code (effect completes, no SetCandidateDetails emitted) AND asserts
+     the effect still emits on the 2nd call — invariant, not just the one example (effect.spec.ts:140-176)
+  → Wrong-layer challenge: could fix at component? NO — effect owns the stream lifetime invariant; component patch
+     would leave SaveJobOpening/ChangeStage broken. Layer confirmed correct.
+  → New-regression hunt: broadened catch could swallow a real error → ruled out, same error branch returns
+     same action, only scope moved (effect.ts:52 vs :64)
+  → Contrarian: "BLOCK — two sibling effects still carry the bug." → Ship THIS change (correct + tested) but
+     the sibling paths are a SEPARATE finding to route back to /fix, not a reason to block this one.
+  → Survived attack? YES for this change — but surfaced 2 un-fixed sibling feeder paths as findings.
+
 EDGE CASES:
   → 403 Forbidden: verified — returns SetCandidateDetails with isAllowDisplayed=false
   → Network timeout: verified — returns EMPTY, effect survives
   → Multiple rapid requests: verified — switchMap cancels previous (unchanged)
 
 SIDE EFFECTS:
-  → None — same error handling logic, only scope changed
+  → None for this effect — same error handling logic, only scope changed
 
-CONFIDENCE: 95%
+CONFIDENCE: 90% (this change), with a BLOCKING completeness finding
+  Survived attacks: counter-case, weak-test, wrong-layer, new-regression all failed to break it
   Verified: root cause, fix mechanism, pattern precedent, framework source, all edge cases
-  Not verified: behavior under specific proxy/auth middleware errors (very unlikely)
+  Not verified / open finding: SaveJobOpening (effect.ts:300) and ChangeStage (effect.ts:355) share the
+     identical bug and are NOT fixed — the original symptom ("UI doesn't refresh after ... changing stage")
+     is only PARTIALLY resolved. Completeness check FAILS until those are fixed too.
 ```
+
+> **What the skeptic stance bought here:** a confirmation-biased pass would have scored this 95% ("root cause found, test passes, ship it") and shipped a fix that leaves two-thirds of the reported symptom alive. The refutation pass + "trace all related things" caught the sibling feeder paths the reproduction never exercised.
 
 ---
 
@@ -533,7 +642,10 @@ This skill is the **mandatory verification gate** between `/fix` and `/code-simp
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** block shipping an unproven fix — build a `file:line` proof trace (debugger-style: symptom → root cause → fix mechanism → why-correct → edge cases → side effects) and confidence score per change, so a fix ships only when correctness is PROVEN (≥80%), never assumed.
+**IMPORTANT MUST ATTENTION Goal:** block shipping an unproven fix — adopt a SKEPTIC's stance and try to DISPROVE the fix first, then build a `file:line` proof trace (debugger-style: symptom → root cause → fix mechanism → why-correct → refutation attempt → edge cases → side effects) and confidence score per change, so a fix ships only when correctness SURVIVES a genuine attack (≥80%), never when it merely looks correct.
+
+**IMPORTANT MUST ATTENTION** default stance is SKEPTIC, NOT validator — your job is to find why the fix is WRONG/INCOMPLETE, not confirm it works; run the Refutation Pass (counter-case, weak-test, wrong-layer, new-regression, contrarian) and complete the Anti-Bias Gate per change BEFORE any SHIP verdict; a change that has not been genuinely attacked is capped at 79%. — why: the skill name, the post-`/fix` context, and the points rubric all bias toward confirmation; confidence must be earned by surviving attack, not awarded for coherence.
+**IMPORTANT MUST ATTENTION** trace ALL related things — every caller, consumer, sibling/alternate path, feeder path, downstream dependent, and shared-state writer the change touches; an un-enumerated related path is an unproven path and caps confidence below 80%. — why: the reproduction exercises one path; the bug often survives through the paths you never traced.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -572,7 +684,11 @@ This skill is the **mandatory verification gate** between `/fix` and `/code-simp
 | "Line coverage is green"                      | Coverage ≠ kill. Show the surviving mutant on the fixed line is now killed (mutation score).      |
 | "I'll just patch where it crashes"            | Crash site ≠ cause site. Trace backward, fix the lowest invariant owner that protects all paths.  |
 | "Score is 75%, close enough to ship"          | <80% BLOCKS. Flag to user or return to `/debug-investigate` — never round a confidence up.        |
+| "I'm building the proof FOR the fix"          | That's confirmation bias. Build the proof AGAINST it — attack first, score what survives.         |
+| "I wrote this fix, I know it's right"         | Author ≠ reviewer. Reset to skeptic and attack your own change hardest of all.                    |
+| "Didn't really try to break it, but it's fine"| No genuine refutation pass → capped at 79%. An un-attacked fix is unproven, not proven.           |
+| "Only traced the path I reproduced"           | Trace ALL related/feeder/sibling paths. The bug usually survives where you never looked.          |
 
-**IMPORTANT MUST ATTENTION** run AFTER `/fix` only; every arrow carries `file:line`; score ≥80% to ship, <60% BLOCK — these three are the gate. (primacy-recency echo of the top three)
+**IMPORTANT MUST ATTENTION** be a SKEPTIC — try to DISPROVE the fix and trace ALL related paths; run AFTER `/fix` only; every arrow carries `file:line`; confidence is what survives the attack (≥80% to ship, <60% BLOCK) — these are the gate. (primacy-recency echo of the top three)
 
 **[TASK-PLANNING]** Before acting, analyze task scope and break it into small `TaskCreate` todos systematically before starting — this is very important.
