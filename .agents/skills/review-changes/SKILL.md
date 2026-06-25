@@ -843,7 +843,7 @@ If `architectureRules` not present in project-config.json, skip silently.
 
 > **MANDATORY:** REQUIRED todo task whenever findings exist. Register via task tracking as `[Review Phase 6] Why-review findings validation gate` (already in Phase task list above). Do NOT fix, docs-update, commit, or hand off until this gate passes CLEAN or reaches an explicit blocked state.
 
-**Trigger:** Any finding produced (Critical, High, Medium, OR Low). Skip ONLY when report verdict is unconditional PASS with literally zero findings.
+**Trigger:** Any finding produced (Critical, High, Medium, OR Low). A Medium or Low severity NEVER exempts a finding — even a single low-severity nit, naming note, or "minor" suggestion triggers the full `$why-review --validate-findings` gate. The ONLY skip is a literally empty finding set (unconditional PASS, zero findings of any severity). — why: severity is itself a finding claim the gate must validate; letting "it's only Low" bypass validation is exactly the inflation/false-positive the gate exists to catch.
 
 > **UNCONDITIONAL INVOCATION:** If even one finding exists, the `$why-review` skill MUST be invoked via the skill invocation before any fix, docs-update, commit, or handoff. There is NO inline alternative — manually re-reading the cited `file:line`s, re-tracing in your head, or declaring the findings "already validated" does NOT count. The only way to pass this gate is an actual `$why-review --validate-findings` skill call that returns a verdict.
 
@@ -1926,6 +1926,8 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 | "No findings, skip docs/tests"         | Clean verdict still needs proof that docs/tests were checked or explicitly not relevant.              |
 | "Dimensional review clean, skip the holistic why-review" | Phase 6 `--validate-findings` only checks the supplied finding-list; whole-package design-rationale issues need a standalone FULL-mode `$why-review` of the whole target. Run Phase 7.5 (standalone). |
 | "Finding is obvious, fix now"          | Invoke the `$why-review` skill (`--validate-findings`) first — an actual skill call, not inline self-validation; unvalidated findings are not fixes. |
+| "Only Low/Medium nits, skip validation" | Phase 6 triggers on ANY severity (Critical→Low). The gate is unconditional whenever ≥1 finding exists; severity does not exempt it. |
+| "Findings look correct and reasonable already" | That judgment IS the validation the `$why-review` skill must perform — making it yourself is the confirmation bias the gate exists to break. Invoke the skill. |
 | "I already re-checked the lines myself" | Inline re-reading does NOT pass Phase 6. The gate requires a real `$why-review` skill invocation that returns a verdict. |
 | "Only re-check fixed files"            | Fixes can interact with earlier changes; restart `$review-changes` from Phase 0 on the full diff.     |
 | "Sub-agent already reviewed"           | Main report must integrate raw findings and not override or filter them.                              |
@@ -1957,6 +1959,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 **IMPORTANT MUST ATTENTION** graph blast-radius runs first when `.code-graph/graph.db` exists.
 **IMPORTANT MUST ATTENTION** every claim needs `file:line` proof; every stale docs/tests decision needs evidence.
+**IMPORTANT MUST ATTENTION** ANY finding in standalone mode (Critical / High / Medium / OR Low) → you MUST invoke the `$why-review` skill via the skill invocation with `--validate-findings <report-path>` BEFORE any fix, docs-update, commit, or handoff; an actual skill call is the ONLY way to pass — inline self-validation, re-reading the cited lines, or declaring findings "already validated" do NOT count; task tracking the `[Review Phase 6]` gate the moment the first finding lands. Inside `$workflow-review-changes`, defer to parent step 2. — why: an unvalidated finding inherits the reviewer's confirmation bias and severity inflation, so fixing it before validation ships the wrong change.
 **IMPORTANT MUST ATTENTION Goal:** Ensure every reviewed change is defect-free, evidence-backed, convention-aligned, and synchronized with required tests/docs before handoff; when code files changed, also prove the code stays easy to change.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->

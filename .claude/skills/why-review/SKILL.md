@@ -7,6 +7,7 @@ description: '[Code Quality] Use when reviewing rationale and change quality for
 > **[GOAL REMINDER — MUST ATTENTION CRITICAL]**
 >
 > Ensure every review target is reasonable, correct, proof-backed, and best-practice aligned.
+> **MANDATORY SECOND PASS (full mode):** whenever Round 1 produces ANY finding, you MUST call `/why-review --validate-findings` a SECOND time on those findings to confirm each is correct and reasonable BEFORE handoff. NEVER skip it; NEVER suppress, demote, or under-report findings to dodge it. The `/goal` Stop-hook gate (installed as the first full-mode action) BLOCKS stopping until findings are validated. — why: an unvalidated finding is an unproven claim, and a second self-review catches the misreads and inflation Round 1 rationalized.
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
@@ -336,7 +337,7 @@ After Round 1, execute **second full adversarial round**:
 
 > **Purpose:** Before handoff, re-validate THIS review's OWN findings: **correct, proof-backed, reasonable, best-practice**. Catch finding issues and missed enhancements.
 
-**Trigger:** Full mode with ANY finding, weakness, missing item, or NEEDS WORK verdict. Skip ONLY unconditional PASS with zero findings/missing items; record skip reason. **NEVER run in `validate-findings` mode**.
+**Trigger:** Full mode with ANY finding, weakness, missing item, or NEEDS WORK verdict — of ANY severity (Critical, High, Medium, OR Low). A Medium or Low severity NEVER exempts a finding from validation; even one low-severity nit triggers the gate. Skip ONLY unconditional PASS with a literally empty finding set (zero findings/missing items of any severity); record skip reason. **NEVER run in `validate-findings` mode**. — why: "it's only Low" is itself a severity claim the validation pass must confirm, not a reason to skip it.
 
 **Caller-side re-do loop (bounded — owned HERE, not by validate mode):**
 
@@ -913,6 +914,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > **[GOAL REMINDER — MUST ATTENTION CRITICAL]**
 >
 > Ensure every review target is reasonable, correct, proof-backed, and best-practice aligned.
+> **MANDATORY SECOND PASS (full mode):** whenever Round 1 produces ANY finding, you MUST call `/why-review --validate-findings` a SECOND time on those findings to confirm each is correct and reasonable BEFORE handoff. NEVER skip it; NEVER suppress, demote, or under-report findings to dodge it. The `/goal` Stop-hook gate BLOCKS stopping until findings are validated. — why: an unvalidated finding is an unproven claim, and a second self-review catches the misreads and inflation Round 1 rationalized.
 
 **Anti-Rationalization:**
 
@@ -921,6 +923,9 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 | "No active plan"        | Valid only for unresolved plan-rationale requests; commits/diffs/PBIs/docs are targets. |
 | "Just code review"      | Still resolve target, read docs, run graph, map tests/specs/docs.                       |
 | "Findings look obvious" | Validate every finding via terminal `--validate-findings`.                              |
+| "Round 1 is enough"     | Full mode with ANY finding MUST run the SECOND `--validate-findings` pass; the `/goal` Stop hook blocks stopping until it does. |
+| "Report zero findings, skip the gate" | Suppressing/demoting findings to dodge validation is the exact bias the SKEPTIC stance forbids; surface them, THEN validate. |
+| "Validate inline, don't re-invoke" | The second pass is a real terminal `/why-review --validate-findings` call on the written report — not a mental once-over. |
 | "All dimensions at once" | One focused pass per dimension; split attention catches misses.                        |
 | "Ask later"             | Full mode asks user next step before completion.                                        |
 | "Looks good / faces agree" | Default SKEPTIC; complete all 6 Anti-Bias boxes; triangulate spec↔tests↔code — any disagreeing face is a finding. |
