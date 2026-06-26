@@ -30,6 +30,11 @@
  *               relocated into the refine skill.
  *   TC-CP-007 — graph-grep-suggester hook's post-grep "run a graph trace, grep can't find
  *               callers/consumers/events" mandate relocated into the scout skill.
+ *   TC-CP-009 — the integration-test execution-discipline rules (verify the WHOLE system,
+ *               never hack seed data / drive through real use-case paths, /debug-investigate
+ *               the root cause on failure, 60s runtime cap, loop until green) are present in
+ *               EVERY integration-test-family skill (write / review / verify / workflow), so the
+ *               family runs/diagnoses/clears a suite identically regardless of entry point.
  *
  * The 4 per-context inject hooks (design-system-canonical-guide / figma-context-extractor /
  * ba-refinement-context / graph-grep-suggester) are now presence-asserted by TC-CP-004..007
@@ -176,6 +181,42 @@ module.exports = {
                 'Post-Grep Trace Trigger',
                 'grep CANNOT find',
             ]),
+        },
+        {
+            name: '[content-presence] TC-CP-009 integration-test execution-discipline rules present in EVERY integration-test-family skill',
+            fn: () => {
+                // The five load-bearing rules the user requires across the whole integration-test
+                // family. Each is a verbatim fragment of SYNC:integration-test-execution-discipline.
+                // Keyed per-rule (not the literal block prose) so a phrasing tweak that PRESERVES the
+                // rule still passes, but DROPPING a rule from any family skill fails loudly.
+                const rules = {
+                    'verify-whole-system': 'Verify the WHOLE system passes',
+                    'real-use-case-no-seed-hack': 'NEVER hack seed data',
+                    'debug-investigate-on-failure': '`/debug-investigate` the root cause',
+                    'sixty-second-cap': '60-second runtime cap',
+                    'loop-until-green': 'Loop until the whole suite is green',
+                };
+                // Every integration-test-family skill — write (integration-test), review, verify,
+                // and the workflow that chains them. Adding a family skill without these rules
+                // (or dropping one here) must surface as a failure, not a silent gap.
+                const familySkills = [
+                    'integration-test',
+                    'integration-test-review',
+                    'integration-test-verify',
+                    'workflow-write-integration-test',
+                ];
+                const missing = [];
+                for (const skill of familySkills) {
+                    const body = readSkill(skill);
+                    for (const [rule, phrase] of Object.entries(rules)) {
+                        if (!body.includes(phrase)) missing.push(`${skill} → missing rule "${rule}" ("${phrase}")`);
+                    }
+                }
+                assertTrue(missing.length === 0,
+                    `integration-test execution-discipline rule drift:\n  ${missing.join('\n  ')}\n` +
+                    `Fix: re-sync SYNC:integration-test-execution-discipline ` +
+                    `(py -3 .claude/scripts/sync-update-blocks.py integration-test-execution-discipline).`);
+            },
         },
     ],
 };
