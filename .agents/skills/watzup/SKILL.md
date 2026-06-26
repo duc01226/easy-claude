@@ -54,10 +54,11 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Summary:**
 
-- This is a strictly READ-ONLY wrap-up — review/summarize current branch commits and flag findings; NEVER edit, fix, or implement, including never editing the docs/specs you flag.
-- Three required gates after the change summary: doc-staleness check (path→doc mapping table), spec-driven health check (only when business code changed), and root-cause lesson extraction (name the failure mode, not the symptom; universal rule, not project-specific).
-- Lessons go to `$learn` only after user confirmation; surface-level "always check file X" notes are noise, not lessons.
-- `$understand` is the mandatory final handoff and MUST run before the a direct user question Next Steps prompt — if `$understand` is unavailable, stop and report the blocker rather than skipping.
+- **READ-ONLY contract** — review/summarize current-branch commits and FLAG findings only; NEVER edit, fix, implement, or update the docs/specs you flag — why: watzup is a handoff, not an edit pass.
+- **Main steps in order:** (1) **Review** recent commits — what changed/added/removed; (2) **Summarize** impact + quality; (3) **Doc-staleness gate** — path→doc mapping table; (4) **Spec-driven health check** — feature-spec root → spec staleness → feature-docs freshness (ONLY when business code changed); (5) **Root-cause lesson extraction** — surface mistakes → name failure mode (not symptom) → universal rule → ask user; (6) **`$understand` handoff** (mandatory final); (7) **a direct user question Next Steps**.
+- **Three required gates** after the change summary: doc-staleness check, spec-driven health check (business-code-only), root-cause lesson extraction — NEVER skip a gate because the change "looks small".
+- Lessons go to `$learn` ONLY after user confirmation; surface-level "always check file X" notes are noise, not lessons.
+- `$understand` is the mandatory final handoff and MUST run BEFORE the a direct user question Next Steps prompt — if unavailable, STOP and report the blocker, NEVER skip — why: the developer's exit context is the explanation, not the raw diff.
 
 **Workflow:**
 

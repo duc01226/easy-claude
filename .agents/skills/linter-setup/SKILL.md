@@ -54,10 +54,9 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Summary:**
 
-- Detect the stack first (from `plan.md` / architecture report), then research each tool category (linter, formatter, type checker, static analyzer, dependency scanner, architecture fitness) via QUERY TEMPLATES — NEVER hardcode tool names; present top 2-3 options per category through a direct user question and let the user pick.
-- Configure with the STRICTEST reasonable defaults (loosen ONLY with explicit user approval), always emit a stack-agnostic `.editorconfig`, and add tool cache dirs to `.gitignore`.
-- Wire BOTH a pre-commit hook (formatter→linter→type-check, staged-files-only, <30s) AND a matching CI quality gate — the local and CI checks MUST NOT diverge.
-- Prove it works: fire the pre-commit hook with an intentional violation and confirm it blocks the commit before declaring complete.
+- **Purpose** — install the full computational feedback sensor layer for the detected stack so no code change reaches main unguarded: strict-by-default, research-driven (NEVER hardcode tools), local-and-CI with zero divergence, proven to block.
+- **Main steps, in order:** (1) **Detect stack** — read `plan.md` → architecture report → tech-stack report, write `stack-profile.md`; a direct user question if a critical field is undetectable. (2) **Research each tool category** — linter, formatter, type checker, static analyzer, dependency scanner, architecture fitness — via QUERY TEMPLATES; score top 3; present top 2-3 per category via a direct user question, user picks. (3) **Install & configure** — STRICTEST reasonable defaults (loosen ONLY with explicit user approval), document what each rule catches, add cache dirs to `.gitignore`, ALWAYS emit a stack-agnostic `.editorconfig`. (4) **Wire the pre-commit hook** — formatter→linter→type-check, staged-files-only, <30s; document setup in `README.md`. (5) **Configure the CI quality gate** to MIRROR the hook (format→lint→type→static→dep-scan), coverage diagnostic-only. (6) **Verify** — fire the hook with an INTENTIONAL violation, confirm it blocks before declaring complete. (7) **Next steps** — a direct user question to continue to `$harness-setup`.
+- **Non-negotiables** — research-driven tool choice (NEVER hardcode), strict-by-default, local↔CI zero divergence, prove the gate blocks before done.
 
 **Output:** Config files at project root + pre-commit hook config + CI quality gate step + `.editorconfig`.
 
@@ -273,6 +272,8 @@ a direct user question:
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Every code change is caught by an automated quality sensor — both locally (fast feedback) AND in CI (enforcement gate) — before it reaches main, with ZERO divergence between the two, by installing the full sensor layer (linter, formatter, type checker, static analyzer, dependency scanner, architecture fitness, pre-commit hook, CI gate) for the detected stack.
+
+**IMPORTANT MUST ATTENTION Main steps (in order — do not skip):** (1) detect stack → (2) research tool categories, present 2-3 per category via a direct user question → (3) install & configure strict + `.editorconfig` + `.gitignore` → (4) wire pre-commit hook (format→lint→type, staged-only, <30s) → (5) mirror it in a CI quality gate → (6) verify the hook blocks an INTENTIONAL violation → (7) offer `$harness-setup` next.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 

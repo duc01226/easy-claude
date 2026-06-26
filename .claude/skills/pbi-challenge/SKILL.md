@@ -19,10 +19,11 @@ description: '[Code Quality] Use when you need an AI-assisted Dev BA PIC review 
 
 **Summary:**
 
-- This is a CROSS-PERSON review, not self-review: a *different* reviewer (Dev BA PIC) challenges the BA drafter's PBI — never run on your own draft (use `/review-artifact --type=pbi` for that). The whole value is external skepticism that breaks the drafter's blind spots.
-- Confirm the auto-detected module via `AskUserQuestion` BEFORE loading domain docs (Step 2) — wrong module = wrong entity context = false APPROVE; then load domain-entities-reference + relevant `docs/specs/{App}/` feature docs.
-- The M1-M6 Compliance Gate is BLOCKING and drives the verdict: any M1-M5 mandate failure forces REQUEST_REVISION with a challenge prompt naming the violated mandate ID + exact section/line/AC citation; an APPROVE over an M1-M5 violation is itself defective.
-- Order matters to fight automation bias: present Challenge Prompts FIRST so the Dev BA PIC forms their own view, THEN the AI Verdict (APPROVE / REQUEST_REVISION / ESCALATE_TO_LEAD); challenges must be SPECIFIC with suggested answers, and the human records the final decision via `AskUserQuestion`.
+- **Main steps (8):** (1) locate the BA drafter's PBI draft → (2) auto-detect module, **confirm via `AskUserQuestion` BEFORE loading domain docs** (domain-entities-reference + `docs/specs/{App}/` + BR-{MOD} rules) → (3) Technical Feasibility analysis (architecture fit, entity conflicts, cross-service, complexity vs SP) → (4) AC Quality analysis (vagueness detector + M1-M6 checks) → (5) Cross-Cutting Concerns (auth matrix, seed data, migration, performance, UI Layout) → (6) generate SPECIFIC challenge prompts with suggested answers → (7) present Challenge Prompts FIRST, THEN AI Verdict (APPROVE / REQUEST_REVISION / ESCALATE_TO_LEAD) → (8) human records final decision via `AskUserQuestion`.
+- CROSS-PERSON review, NOT self-review: a *different* reviewer (Dev BA PIC) challenges the BA drafter's PBI — NEVER your own draft (route self-review to `/review-artifact --type=pbi`). — why: external skepticism breaks blind spots that self-review rationalizes away.
+- M1-M6 Compliance Gate is BLOCKING and drives the verdict (runs inside Steps 4-5): any M1-M5 mandate failure forces REQUEST_REVISION with a challenge prompt naming the violated mandate ID + exact section/line/AC; an APPROVE over an M1-M5 violation is itself defective.
+- Order fights automation bias: Challenge Prompts FIRST so the Dev BA PIC forms their own view, THEN the AI Verdict; challenges must be SPECIFIC with suggested answers, never vague.
+- AI provides ANALYSIS; the human makes the DECISION via `AskUserQuestion` — never auto-approve or auto-reject.
 
 **Key distinction:** Collaborative review tool (drafter → reviewer flow), NOT self-review (use `/review-artifact --type=pbi` for AI self-review).
 
@@ -480,6 +481,8 @@ If ANY check fails → AI Verdict is REQUEST_REVISION; tag each violated mandate
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Break drafter confirmation bias before grooming — surface every architectural-feasibility, vague-AC, missing-auth, cross-service, and M1-M6 gap as a specific challenge prompt so an INFEASIBLE or under-specified PBI never reaches grooming with a false APPROVE.
+
+**IMPORTANT MUST ATTENTION Main steps (8, in order):** (1) locate PBI draft → (2) detect + **confirm module via `AskUserQuestion` before loading domain docs** → (3) Technical Feasibility → (4) AC Quality (+ M1-M6 checks) → (5) Cross-Cutting Concerns (auth/seed/migration/perf/UI Layout) → (6) generate SPECIFIC challenge prompts → (7) Challenge Prompts FIRST, then AI Verdict → (8) human records decision via `AskUserQuestion`. NEVER skip, reorder, or merge steps without explicit user approval — why: the prompts-before-verdict and module-confirm ordering is what defeats automation bias and false APPROVE.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries) — MUST ATTENTION each canonical body still governs:**
 

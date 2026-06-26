@@ -19,10 +19,11 @@ description: '[Code Quality] Use when you need to review integration tests for a
 
 **Summary:**
 
-- The review target is the CHANGE, not the test files: collect BOTH changed production code AND changed test files — Gates 1-6 judge test quality, Gate 7 maps every behavior-changing production file to a covering test (integration-first; unit only with recorded justification) and a spec TC. An uncovered changed behavior is a HIGH finding minimum.
-- Read the handler/service source (and feature docs) BEFORE judging any assertion. FAIL smoke-only, existence-only (not-null), dead (always-true), copy-paste, and DI-resolution-only tests; require unique IDs + async polling + 3 consecutive green runs to call tests repeatable/verified.
-- Gate 6 three-way sync uses the source-of-truth hierarchy (feature docs > test-spec docs > impl code > test code): NEVER fix a test to match broken code, NEVER self-resolve a three-way conflict — escalate via `AskUserQuestion`.
-- Don't just report gaps — Phase 5 WRITES the missing test (and runs `/spec [mode=tests]` for SPEC-GAPs), then a full fresh re-review runs after every validated fix cycle until a clean pass returns 0 CRITICAL/0 HIGH.
+- **Purpose:** Review target is the CHANGE (collect BOTH changed production code AND changed test files), never just the test files — Gates 1-6 judge test quality, Gate 7 maps every behavior-changing production file to a covering test (integration-first; unit only with recorded justification) + spec TC. Uncovered changed behavior = HIGH finding minimum.
+- **The 7 Gates (main review steps):** G1 Assertion Value — mutation-score, record the Mutation Probe Ledger (no ledger = FAIL); G2 Data State — assert specific DB fields with async polling; G3 Repeatability — unique IDs, additive-only, 3 consecutive green runs; G4 Domain Logic — read handler, assert ONLY fields it writes; G5 Spec Traceability — `TestSpec` annotation → TC in spec docs (1 TC → many tests is correct); G6 Three-Way Sync — feature-docs > test-spec docs > code > test, escalate conflicts; G7 Change Coverage — every behavior-changing file → covering test + non-stale §8 TC.
+- **The phase pipeline (run ALL, `TaskCreate` each):** P0 Scope-detect → P1 Collect (split prod vs test files) → P2 Gate Review (Gates 1-6 per file, Gate 7 across set) → P3 Spec Cross-Check (both directions) → P4 Initial Report → P5 Fix ALL Crit/High + WRITE missing tests → P6 Validated-fix + full fresh re-review until 0 Crit/0 High → P7 Build & run ALL tests → P8 Failure Investigation → P9 Why-Review self-validation.
+- **Read handler/service source (and feature docs) BEFORE judging any assertion.** FAIL smoke-only, existence-only (not-null), dead (always-true), copy-paste, and DI-resolution-only tests — why: assertion quality is unknowable without knowing what the handler actually writes.
+- **Don't just report gaps — fix them.** Gate 6: NEVER fix a test to match broken code, NEVER self-resolve a three-way conflict (escalate via `AskUserQuestion`). Phase 5 WRITES the missing test (runs `/spec [mode=tests]` for SPEC-GAPs); a full fresh re-review runs after every validated fix cycle until a clean pass returns 0 CRITICAL/0 HIGH.
 
 **Scope:** The FULL change set — changed production code AND changed test files — from uncommitted changes (default), user-specified files, or a user-specified diff (branch/PR). The review target is never "just the test files".
 
@@ -797,6 +798,38 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:test-failure-fault-adjudication -->
 
+<!-- SYNC:spec-tests-code-triangulation -->
+
+> **Spec ↔ Tests ↔ Code Triangulation** — The unit of review is the WHOLE PACKAGE (spec + tests + code), not the diff alone. Load all three faces together and reason mutual-consistency FIRST, before any isolated per-file check.
+>
+> 1. **Locate all three faces** for the changed behavior: the governing Feature Spec section(s) (§3 ACs / §4 BRs / §8 TCs), the tests that guard it, and the production code. A missing face is a finding (SPEC-GAP / TEST-GAP / DEAD-SPEC).
+> 2. **Triangulate pairwise** — classify which face is wrong on every disagreement:
+>     - code vs spec → CODE-EXTRA / SPEC-STALE / CODE-WRONG (a [HARD] §4 rule or §5 invariant with no enforcing path is CODE-WRONG).
+>     - tests vs spec → TEST-GAP / SPEC-SILENT.
+>     - tests vs code → TEST-GAP / WEAK-TEST (a test that survives a deliberately broken invariant).
+> 3. **Capture hidden rules** — an invariant the code enforces but the spec never states (SPEC-SILENT) is surfaced as a finding, added into §3/§4/§8, and guarded with a test: the enrichment loop, never a silent pass.
+> 4. **Re-review after enrichment** — when triangulation adds spec content or a test, re-review the package against the enriched spec; converge only when a full pass surfaces no new disagreement.
+>
+> NEVER mark PASS while any face disagrees without a logged finding. The diff is the entry point; the package is the unit of judgment.
+
+<!-- /SYNC:spec-tests-code-triangulation -->
+
+<!-- SYNC:spec-drift-adjudication -->
+
+> **Spec drift adjudication (code-wrong vs spec-stale).** Whenever changed behavior diverges from a canonical Feature Spec (business rule, acceptance criterion, flow, state transition, or §8 TC under `docs/specs/`), you MUST NOT silently pick a side. Adjudicate per `shared/sdd-artifact-contract.md` → **Drift Gates**:
+>
+> 1. **Detect** — compare the change against the spec's documented intent. No divergence → record `Spec in sync` and move on.
+> 2. **Classify** the divergence:
+>    - **CODE-WRONG** — the spec correctly states intended behavior and the change violates it → BLOCKING finding; fix the code/test against intended behavior (write/adjust a regression TC first).
+>    - **SPEC-STALE** — the change is the new intended behavior and the spec now documents the old/wrong behavior → update the spec FIRST via `/spec [mode=update]`, then sync `/spec [mode=tests]` + `/spec [mode=sync]`.
+>    - **AMBIGUOUS** — intended behavior is unclear → `AskUserQuestion` (or the canonical spec owner) before editing either side.
+>    - **SPEC-SILENT** — the code correctly enforces an invariant/behavior that NO canonical spec artifact (§3 AC, §4 BR, §5 invariant, §8 TC) states → not drift but an UNWRITTEN rule discovered by review. ENRICH the spec via the **Invariant Harvest** pass (`/spec [mode=sync] direction=harvest` → `spec/references/sync.md`): prove it is always-true (≥2 enforcement points or a rejecting guard), express it as a universally-quantified property, then add the rule to §4 (or §3/§5) AND a §8 TC via `/spec [update]` + `/spec [mode=tests]` and add the guarding test. A discovered invariant left only in code (or only in tests) is INCOMPLETE — this is the highest-value capture (the rule nobody wrote down).
+> 3. **Never normalize drift just because code/tests are green** — green can encode the drift itself. Reconcile to canonical intent, never to whichever side currently passes.
+>
+> A behavior-changing review/implementation that leaves a spec divergence unadjudicated is INCOMPLETE; an unwritten-but-enforced invariant left uncaptured (no §4/§8 entry) is equally INCOMPLETE.
+
+<!-- /SYNC:spec-drift-adjudication -->
+
 <!-- SYNC:ai-mistake-prevention -->
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
@@ -1027,6 +1060,10 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 **IMPORTANT MUST ATTENTION Goal:** Ensure the review target (changed production code) is covered by tests that protect real business behavior with correct data assertions, infinite repeatability, and spec alignment — verify every behavior change has a covering test (integration-first, unit fallback) so specs ↔ tests ↔ code stay aligned (spec-driven development).
 
+**IMPORTANT MUST ATTENTION 7 Gates (judge every one):** G1 Assertion Value (mutation-score + Mutation Probe Ledger) · G2 Data State (assert DB fields, async-poll) · G3 Repeatability (unique IDs, 3 green runs) · G4 Domain Logic (read handler, assert only fields it writes) · G5 Spec Traceability (TC annotation → spec docs; 1 TC → many tests OK) · G6 Three-Way Sync (feature-docs > test-spec > code > test; escalate conflicts) · G7 Change Coverage (every behavior-changing file → covering test + non-stale §8 TC).
+
+**IMPORTANT MUST ATTENTION Phases (run ALL, `TaskCreate` each, one `in_progress`):** P0 Scope-detect → P1 Collect (split prod vs test) → P2 Gate Review → P3 Spec Cross-Check (both directions) → P4 Initial Report → P5 Fix ALL Crit/High + WRITE missing tests → P6 Validated-fix + full fresh re-review until 0 Crit/0 High → P7 Build & run ALL tests → P8 Failure Investigation → P9 Why-Review self-validation.
+
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
 - **Critical Thinking:** Traced `file:line` proof per claim; confidence >80% to act.
@@ -1034,6 +1071,8 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **Double Round-Trip Review:** Validated-fix then full fresh re-review until clean.
 - **Repeatable Test Principle:** Unique IDs, additive-only, no cleanup; ALWAYS async-poll DB asserts.
 - **Source/Test Drift Check:** Source change → reinspect affected tests for intended behavior.
+- **Spec↔Tests↔Code Triangulation:** the unit of review is the WHOLE PACKAGE (spec §3/§4/§8 + tests + code) — load all three, reason mutual-consistency first; a disagreeing or missing face is a logged finding, NEVER a silent PASS.
+- **Spec Drift Adjudication:** on behavior divergence from a canonical spec, classify CODE-WRONG / SPEC-STALE / AMBIGUOUS / SPEC-SILENT and harvest unwritten invariants into §4/§8 + a guarding test — NEVER normalize drift to whichever side is green.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Nested Task Creation:** Expand child phases, link parent, one `in_progress`.
 - **Project Reference Docs Guide:** Read required project docs (ALWAYS `lessons.md`) before target work.

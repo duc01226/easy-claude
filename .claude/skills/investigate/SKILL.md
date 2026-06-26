@@ -10,6 +10,8 @@ version: 2.2.1
 
 **Summary:**
 
+- **Purpose:** read-only, evidence-backed map of how existing code works — the next decision/fix rests on verified flow, never assumption.
+- **Main steps (run in order):** Phase 0 Classify (quick / deep / debug / recommendation) → Discovery (Entities > Commands > Events > Controllers) → Graph Expand (2-3 key files, main agent only) → Knowledge Graph (per-file doc) → Flow Mapping (entry → exit + side effects) → Analysis (business rules / validation / authz / error paths) → Synthesis (deep scope → analysis file) → Present (structured findings + deeper-dive offer).
 - Classify scope FIRST (Phase 0: quick / deep / debug / recommendation) — depth and deliverables (analysis file, validation chain) flow from this, so never skip straight to grepping.
 - Graph is MANDATORY, not optional: the main agent MUST run at least one `code_graph` command on 2-3 key files before concluding — graph surfaces callers, bus consumers, and importers that grep alone misses (sub-agents cannot use graph).
 - Stay strictly READ-ONLY and cite `file:line` for every claim; unverified statements MUST be marked "inferred", and recommending any code change forces the full validation chain (all impls/registrations/usages/cross-service impact + confidence declaration).
@@ -630,6 +632,8 @@ Find working reference → compare implementations → identify differences → 
 
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting; mark one `in_progress`, complete each immediately after its evidence lands.
 - **MANDATORY IMPORTANT MUST ATTENTION** Phase 0: classify scope (quick / deep / debug / recommendation) before acting — depth, analysis file, and validation chain all flow from this; DECLARE scope before skipping any step.
+- **MANDATORY IMPORTANT MUST ATTENTION** run the main steps in order — Classify → Discovery → Graph Expand → Knowledge Graph → Flow Mapping → Analysis → Synthesis → Present; quick scope may skip the analysis file but NEVER the graph command — why: each step feeds the next, and skipping graph leaves the call/event/import edges unmapped.
+- **MANDATORY IMPORTANT MUST ATTENTION** `--mode=explain` → deliver a one-way developer narrative (WHAT → PURPOSE → HOW → WHY-this-way → IMPACT), tuned by coding level, written to git-ignored `tmp/understand/{branch}.md` (the chat is the deliverable — announce the ledger path); NEVER ask the user a question, NEVER skip by coding level, NEVER relax the evidence/graph/READ-ONLY gate — why: explain mode changes only the deliverable shape, not the proof discipline.
 - **MANDATORY IMPORTANT MUST ATTENTION** read required project docs first (always `lessons.md`; `project-structure-reference.md` for architecture) — project conventions override generic framework assumptions — why: local patterns differ from framework defaults and silently invalidate generic reasoning.
 - **MANDATORY IMPORTANT MUST ATTENTION** grep 3+ similar patterns and read the actual implementations before concluding — NEVER assume code works as named; verify by reading — why: a name promises behavior the body may not deliver.
 - **MANDATORY IMPORTANT MUST ATTENTION** evaluate pattern FIT before reusing a nearby example — confirm the new context shares the same base classes, scope, lifetime, and preconditions — why: closest example ≠ matching constraints.

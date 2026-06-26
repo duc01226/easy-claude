@@ -54,10 +54,11 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Summary:**
 
-- This is the penultimate state-closure step (runs before `$watzup`); workflow end is model-driven — it completes when all the current task list items are done, NO hook clears state on completion (residual `.ck-workflow-state.json` is only cleared by `session-init` on explicit `/clear`).
-- Gate before closing: run the integration-test coverage check on changed business-logic files (handlers/commands/services/controllers) — if any lacks a matching test, MUST surface via a direct user question, never silent-skip.
-- When a diff exists, ALWAYS print the one-way four-part comprehension recap (what changed / purpose / how / why), depth throttled by `codingLevel` (`CK_CODING_LEVEL` → `.claude/.ck.json` → default 3); skip only when there are no changes. The recap never quizzes and never blocks — deeper explanation is the standalone `$understand` skill.
-- Sync the knowledge graph only if `.code-graph/` exists, then announce `Workflow [name] completed` so the next prompt gets fresh detection.
+- **Purpose:** penultimate state-closure step (runs before `$watzup`) — close the active workflow cleanly so the next prompt gets fresh detection, AND leave the developer understanding what changed without re-reading the diff.
+- **Main steps (ordered):** (1) integration-test coverage check on changed business-logic files; (2) spec ↔ TDD-test sync gate (`spec-tdd-test-sync-gate`) BEFORE task-completion verification; (3) sync knowledge graph if `.code-graph/` exists; (4) mark this task `completed`; (5) print the diff-gated one-way comprehension recap (what / purpose / how / why); (6) announce `Workflow [name] completed`; (7) confirm state cleared.
+- **Blocking gates:** coverage gap (changed handler/command/service/controller with no matching test) OR unadjudicated spec-vs-code drift → MUST surface via a direct user question, NEVER silent-skip; workflow MUST NOT report `completed` while drift is unadjudicated.
+- **Model-driven close:** completes once ALL the current task list items done AND the sync gate recorded synced-or-accepted-as-is; NO hook clears state (residual `.ck-workflow-state.json` cleared only by `session-init` on explicit `/clear`).
+- **Recap depth** throttled by `codingLevel` (`CK_CODING_LEVEL` → `.claude/.ck.json` → default 3); skip recap ONLY when there is no diff. The recap never quizzes and never blocks — deeper explanation is the standalone `$understand` skill.
 
 **Workflow:**
 
@@ -243,6 +244,7 @@ Finalize and close the active workflow, clearing state so the next user prompt t
 - **Critical Thinking:** MUST ATTENTION traced `file:line` proof per claim; confidence >80% to act; NEVER guess as fact.
 - **Project Reference Docs Guide:** MUST ATTENTION read required project-reference docs (ALWAYS `lessons.md`) before target work.
 
+**IMPORTANT MUST ATTENTION Main steps (run in order, NEVER skip/merge):** (1) integration-test coverage check → (2) spec ↔ TDD-test sync gate BEFORE task-completion verification → (3) sync knowledge graph if `.code-graph/` exists → (4) mark this task `completed` → (5) diff-gated comprehension recap → (6) announce `Workflow [name] completed` → (7) confirm state cleared — why: AI keeps forgetting the skill's own steps; surfacing the ordered list prevents silent step-loss under long context.
 **IMPORTANT MUST ATTENTION** when the workflow changed code (diff present), print the comprehension recap — what changed / purpose / how it works / why — grouped by behaviour not file, optimized for easiest learning; depth throttled by `codingLevel` (`CK_CODING_LEVEL` → `.claude/.ck.json` → default 3), NEVER fully skip when changes exist — why: the developer must understand the work without re-reading the diff
 **IMPORTANT MUST ATTENTION** the spec ↔ TDD-test sync gate runs BEFORE task-completion verification — NEVER report the workflow `completed` while a behavior-vs-spec divergence is unadjudicated; reconcile via `$spec [mode=sync]` or capture an explicit accept-as-is reason — why: green tests do not normalize spec drift; the feedback half of the loop closes here
 **IMPORTANT MUST ATTENTION** run the integration-test coverage check on changed business-logic files (handlers/commands/queries/services/controllers/resolvers/event processors) — if ANY lacks a matching test, surface via a direct user question; NEVER silent-skip — why: business-logic change without coverage ships an unguarded regression path

@@ -52,12 +52,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Block any plan from reaching implementation unless it is hallucination-free (every existing-code claim proven at `file:line`) and implementation-ready (every step concrete, small enough to code from immediately) — by auto-reviewing implementation plans for validity, correctness, and best practices. **Recursive:** when any findings exist, validate findings with `$why-review --validate-findings`, fix only validated findings in plan files, and rerun the full plan review until no findings remain.
 
-**Summary:**
+**Summary:** AI self-review (automatic, NOT a user interview like `$plan-validate`) that gates a plan before implementation.
 
-- Review as a SKEPTIC, not a validator: every existing-code claim in the plan needs `file:line` proof (Anti-Hallucination Gate), and every phase must clear the "Detailed & Small Enough" granularity gate (≤5 files, ≤3h, no planning verbs) — too vague → detail it, too big → break it.
-- Detect the plan type FIRST (Phase 0) so the right focus applies — bugfix plans MANDATE the Behavioral Delta Matrix; security/performance/refactor/contract/infra each add their own targeted checks.
-- Findings are never fixed blindly: run the `$why-review --validate-findings` gate BEFORE editing any `plan.md`/`phase-*.md`, fix only validated findings, then restart the FULL review with a fresh, zero-memory sub-agent — loop until a clean pass with zero findings.
-- No arbitrary round cap; a clean pass ends the loop immediately. Escalate via a direct user question only when the same blocker survives 3 consecutive full re-reviews with no progress.
+- **Purpose:** review as a SKEPTIC, not validator — every existing-code claim needs `file:line` proof (Anti-Hallucination Gate); every phase must clear the "Detailed & Small Enough" granularity gate (≤5 files, ≤3h, no planning verbs) — too vague → detail it, too big → break it.
+- **Main steps (run in order):** Phase 0 detect plan type → Step 1 read `plan.md` + `goal.md` + all `phase-*.md`, extract requirements/steps/files/risks → Step 2 evaluate the 4 checklist groups: **Validity** (summary, requirements, steps, files) · **Correctness** (Granularity Gate + Anti-Hallucination/Code-Proof Gate + spec/TC coverage + Goal-Contract mapping) · **Best Practices** (YAGNI/KISS/DRY/architecture) · **Completeness** (risks, testing, success criteria, security, graph-dependency) → run the 11 Adversarial techniques + Anti-Bias Gate + 7 Plan Dimensions → graph-trace each modified file (when graph.db exists) → Step 3 score PASS/WARN/FAIL → Step 4 output result → Step 5 recursive validate-fix-re-review loop.
+- **Detect plan type FIRST (Phase 0)** so the right focus applies — bugfix MANDATES the Behavioral Delta Matrix; security/performance/refactor/contract/infra/data-schema each add targeted checks.
+- **Findings are never fixed blindly:** run the `$why-review --validate-findings` gate BEFORE editing any `plan.md`/`phase-*.md`, fix only validated findings at the smallest responsible location, then restart the FULL review with a fresh, zero-memory sub-agent — loop until a clean pass with zero findings.
+- **No arbitrary round cap;** a clean pass ends the loop immediately. Escalate via a direct user question only when the same blocker survives 3 consecutive full re-reviews with no progress, or a finding needs product/owner judgment.
 
 **Workflow:**
 
@@ -1084,6 +1085,8 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Block any plan reaching implementation unless hallucination-free (every existing-code claim proven at `file:line`) AND implementation-ready (every step concrete, small enough to code from immediately) — recursive review until a complete pass finds zero findings.
+
+**IMPORTANT MUST ATTENTION Main steps (run in order, one task each):** Phase 0 detect plan type → Step 1 read `plan.md`/`goal.md`/all `phase-*.md` → Step 2 evaluate the 4 checklist groups (Validity · Correctness [Granularity + Anti-Hallucination + spec/TC coverage + Goal-Contract mapping] · Best Practices · Completeness) + 11 Adversarial techniques + Anti-Bias Gate + 7 Plan Dimensions + graph-trace each modified file → Step 3 score PASS/WARN/FAIL → Step 4 output result → Step 5 recursive `$why-review`-validate → fix validated findings → full re-review until zero findings — why: AI keeps forgetting the skill's own step pipeline; this is the read-this-if-nothing-else order.
 
 **IMPORTANT MUST ATTENTION** Protocols in force (concise digest of the SYNC/shared blocks this skill carries) — each line is a signpost to its canonical body above; NEVER treat the digest as a substitute for the full block, and ALWAYS apply every protocol below in full:
 

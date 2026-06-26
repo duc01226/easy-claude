@@ -19,6 +19,8 @@ description: '[Project Management] Use when capturing new ideas, feature request
 
 **Summary:**
 
+- **Purpose:** capture a raw idea as a structured, validated backlog artifact — preserve problem intent, leak no solution/stack, hand a clean narrative to `/refine`.
+- **Main steps/tasks (run in order):** (1) Gather info — problem/value/users/scope; (2) Generate artifact `IDEA-{YYMMDD}-{NNN}`, status `draft`, from `idea-template.md`; (3) Capture problem statement/value/users; (4) Detect project module via `Glob("docs/specs/*/README.md")` (silent; prompt only if ambiguous); (5) Load feature context (8-12K token budget — entities, BR-/TC- patterns); (6) Save to canonical path; (6.5) **Discovery Interview** — 3-5 `AskUserQuestion`; (7) **Validate** — 2-3 `AskUserQuestion`; (8) Suggest next → `/refine`.
 - Two interview gates are NON-NEGOTIABLE: Discovery Interview (Step 6.5, 3-5 `AskUserQuestion` items incl. the always-on testability question) AND Validation (Step 7, 2-3 items) — never skip either even for "simple" ideas.
 - Keep the problem statement strictly tech-agnostic (M1): name no framework/product/language/pattern, and do NOT assign logical IDs — the downstream PBI inherits the clean narrative and owns `FR-`/`BR-` assignment.
 - Auto-detect the project module silently via `Glob("docs/specs/*/README.md")` and load feature context (8-12K token budget); prompt only when ambiguous. Greenfield (no real code dirs) → skip module detection and NEVER ask about tech stack.
@@ -340,6 +342,8 @@ Module detected: "Module context from {module} will be used during refinement."
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Turn a vague product idea into a validated, tech-agnostic, module-anchored backlog artifact ready for `/refine` to convert into a PBI — preserving problem intent without leaking solution or stack choices.
+
+**IMPORTANT MUST ATTENTION — Main steps (run in order, NEVER skip/reorder):** (1) Gather info; (2) Generate artifact `IDEA-{YYMMDD}-{NNN}` draft from `idea-template.md`; (3) Capture problem/value/users; (4) Detect module via `Glob("docs/specs/*/README.md")`; (5) Load feature context (8-12K budget); (6) Save to canonical path; (6.5) Discovery Interview (`AskUserQuestion` 3-5); (7) Validate (`AskUserQuestion` 2-3); (8) Suggest next → `/refine`. — why: AI keeps dropping the skill's own mid-pipeline steps; the two gates and module detection are the most-forgotten.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 

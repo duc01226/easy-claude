@@ -19,10 +19,12 @@ description: '[Architecture] Use when you need to research, analyze, and compare
 
 **Summary:**
 
-- Requirements come BEFORE research: load prior business/domain/PBI artifacts, map business signals to technical requirements, and gate on user confirmation (`AskUserQuestion`) before any WebSearch.
-- Evaluate every stack layer (backend, frontend, database, messaging, infra, auth) independently — minimum 3 WebSearched options per layer, each with cited evidence (URL, benchmark, case study), never familiarity.
-- Score with the weighted 8-criteria matrix (High=3x / Medium=2x / Low=1x), then rank each layer with a confidence %; capped <=200-line report goes to `{plan-dir}/research/tech-stack-comparison.md`.
-- The end-of-skill user validation interview (5-8 questions) is mandatory and never skipped — only confirmed decisions get written to `phase-02-tech-stack.md` as `status: confirmed`.
+- **Purpose:** act as a solution architect — derive technical requirements from business analysis, research the current market, and produce a per-layer comparison report so the team commits to a stack fit for scale/budget/skills/timeline, NOT familiarity.
+- **All 7 main steps (run in order):** (1) Load Business Context → (2) Derive Technical Requirements + user-confirm → (3) Research Per Layer (WebSearch 3+ options each) → (4) Deep Comparison Matrix → (5) Weighted Score & Ranking → (6) Generate Report → (7) User Validation Interview.
+- Requirements come BEFORE research: load prior business/domain/PBI artifacts (Step 1), map business signals to technical requirements (Step 2), and gate on user confirmation (`AskUserQuestion`) before any WebSearch (Step 3).
+- Evaluate every stack layer (backend, frontend, database, messaging, infra, auth) independently — minimum 3 WebSearched options per layer, each with cited evidence (URL, benchmark, case study), never familiarity (Steps 3-4).
+- Score with the weighted 8-criteria matrix (High=3x / Medium=2x / Low=1x), then rank each layer with a confidence %; capped <=200-line report goes to `{plan-dir}/research/tech-stack-comparison.md` (Steps 5-6).
+- The end-of-skill user validation interview (5-8 questions) is mandatory and never skipped — only confirmed decisions get written to `phase-02-tech-stack.md` as `status: confirmed` (Step 7).
 
 **Workflow:**
 
@@ -243,6 +245,8 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** deliver user-confirmed, per-layer tech stack — each choice backed by 3+ researched options, weighted 8-criteria scoring, cited evidence, confidence % — so team commits to a stack fit for scale, budget, skills, timeline, NOT familiarity.
+
+**IMPORTANT MUST ATTENTION — run ALL 7 steps in declared order, none skipped:** (1) Load Business Context → (2) Derive Technical Requirements (+ `AskUserQuestion` confirm) → (3) Research Per Layer (WebSearch 3+ options each) → (4) Deep Comparison Matrix → (5) Weighted Score & Ranking (confidence %) → (6) Generate Report (<=200 lines) → (7) User Validation Interview (5-8 questions, write `status: confirmed`) — why: AI keeps collapsing this into "just pick a stack" and dropping requirements-derivation, scoring, and the confirmation gate that make the choice defensible.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 

@@ -19,10 +19,11 @@ description: '[Planning] Use when you need to validate a plan with critical ques
 
 **Summary:**
 
-- Classify the plan first (Phase 0: bugfix/feature/migration/refactor/other) — the type weights which question categories fire, and any fix/bug/regression/broken/defect keyword makes the Preservation question BLOCKING (never skip it).
-- The output is a real `AskUserQuestion` interview, not a self-answer: honor the `questions` MIN-MAX range from `## Plan Context`, give 2-4 concrete options per question, and treat the Preservation "Unsure" answer as BLOCKED → route to `/plan`.
-- If the plan introduces new tech/packages, you MUST probe whether alternatives were evaluated before accepting the choice.
-- Persist results by adding only a `## Validation Summary` (confirmed decisions + action items) to `plan.md` — NEVER edit phase files; close by offering implement/refine/skip via `AskUserQuestion`.
+- **Purpose:** validate a finished plan via a critical-questions interview so every assumption-laden decision and every preservation-critical behavior is user-confirmed BEFORE implementation — no unstated assumption silently reaches code.
+- **Main steps (run in order):** Phase 0 Detect Plan Type → resolve plan path (`$ARGUMENTS` / `## Plan Context` / ask) → load `mode` + `questions` range as hard constraints → Step 1 Read `plan.md` + all `phase-*.md`, flag decisions/assumptions/risks/tradeoffs → Step 2 Extract topics across 8 categories (Architecture, Assumptions, Tradeoffs, Risks, Scope, New Tech/Lib, Test Specs, Preservation) → Step 3 Generate questions (2-4 concrete options each, surface implicit decisions) → Step 4 Interview via `AskUserQuestion` (≤4 per call) → Step 5 Document answers → offer implement/refine/skip.
+- **Phase 0 weights everything:** plan type (bugfix/feature/migration/refactor/other) decides which question categories fire; any fix/bug/regression/broken/defect keyword makes the Preservation question BLOCKING — never skip it.
+- **The output is a REAL interview, not a self-answer:** honor the `questions` MIN-MAX range from `## Plan Context`, give 2-4 concrete options per question, treat the Preservation "Unsure" answer as BLOCKED → route to `/plan`; if the plan adds new tech/packages, probe whether alternatives were evaluated before accepting the choice.
+- **Persist results narrowly:** add ONLY a `## Validation Summary` (confirmed decisions + action items) to `plan.md` — NEVER edit phase files; close by offering implement/refine/skip via `AskUserQuestion`.
 
 **Workflow:**
 
@@ -35,10 +36,10 @@ description: '[Planning] Use when you need to validate a plan with critical ques
 
 **Key Rules:**
 
-- MUST ATTENTION use `AskUserQuestion` — NEVER auto-decide on behalf of user
-- NEVER ask about non-decision points — only genuine choices affecting implementation
-- Bugfix plans ALWAYS trigger Preservation question (keywords: fix, bug, regression, broken, defect)
-- NEVER modify phase files — only document what needs updating
+- MUST ATTENTION use `AskUserQuestion` — NEVER auto-decide on behalf of user — why: the user owns every assumption-laden choice, not the agent
+- Ask ONLY about genuine choices affecting implementation — NEVER about non-decision points — why: noise questions burn the interview budget and erode trust
+- Bugfix plans ALWAYS trigger the Preservation question (keywords: fix, bug, regression, broken, defect) — why: an unverified preserved-correctness invariant is a silent regression
+- Persist via a `## Validation Summary` on `plan.md` — NEVER modify phase files — why: phase files are the plan's source of truth; validation is a read-then-annotate pass
 
 ## First Principle — Easy to Change
 
@@ -444,6 +445,8 @@ After validation:
 - **Plan Quality:** include `## Test Specifications` with TC-{FEATURE}-{NNN} IDs per phase.
 - **Cross-Service Check:** scan producers, consumers, sagas, contracts; flag breaking-change risk.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+
+**IMPORTANT MUST ATTENTION** run the main steps IN ORDER — Phase 0 Detect Plan Type → resolve plan path → load `mode` + `questions` range → Step 1 Read `plan.md` + all `phase-*.md` (flag decisions/assumptions/risks/tradeoffs) → Step 2 Extract topics (8 categories) → Step 3 Generate questions (2-4 options each) → Step 4 Interview via `AskUserQuestion` (≤4 per call) → Step 5 Document answers → offer implement/refine/skip — why: the pipeline IS the work; never collapse or skip a step from memory
 
 **IMPORTANT MUST ATTENTION** validate decisions with the user via `AskUserQuestion` — NEVER auto-decide or self-answer; completing without ≥1 question is a protocol violation — why: the user owns every assumption-laden choice, not the agent
 **IMPORTANT MUST ATTENTION** detect plan type FIRST (Phase 0) BEFORE generating questions — bugfix keywords (fix, bug, regression, broken, defect) make the Preservation question BLOCKING, never skipped — why: detection drives which categories fire and the Preservation gate

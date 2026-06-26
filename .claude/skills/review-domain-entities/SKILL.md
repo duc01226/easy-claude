@@ -17,27 +17,31 @@ description: '[DDD Quality] Use when you need to review domain entities and valu
 
 **Goal:** Detect DDD design quality violations in domain entities and value objects across any technology stack — adapting to project-specific patterns via config/reference docs discovery — so domain entities and value objects preserve invariants, aggregate boundaries, and discovered DDD conventions.
 
-**Summary:**
+**Summary:** read-this-if-nothing-else digest — the skill's main steps in order:
 
-- Phase 0 is the gate: discover the project's real entity/VO base classes, validation API, and domain exception type FIRST — discovered conventions override every generic DDD rule, and wrong base classes mean the wrong checklist.
-- Run the mandatory high-signal grep patterns (hidden `validate()` overrides, leaked persistence/business logic, missing identity markers) BEFORE reading individual files, and write every grep result to the report immediately.
-- Apply the per-file checklist A–L (entity-vs-VO classification, VO immutability/structural equality, anemic-model detection, aggregate-by-ID, navigation serialization safety, ubiquitous language) — append findings per file, never batch.
-- Findings drive a validation-first loop: validate via why-review (Phase 5 gate) before any fix, then restart a full review after validated fixes; a clean pass ENDS the review and every finding needs `file:line` evidence at confidence >80%.
+- **Phase 0 (gate):** discover the project's real entity/VO base classes, validation API, domain exception type + blast radius FIRST — discovered conventions override every generic DDD rule. — why: wrong base classes = wrong checklist, every downstream finding is noise.
+- **Phase 1:** create the report, run the mandatory high-signal grep patterns (hidden `validate()` overrides, leaked persistence/business logic, missing identity markers) BEFORE reading individual files, write every grep result immediately, categorize files (root/entity/VO/unknown).
+- **Phase 2:** per-file checklist A–L (entity-vs-VO classification, base-class compliance, VO immutability/structural equality, anemic-model detection, domain invariants, invariant→property-TC Dual-Feedback, aggregate-by-ID, navigation serialization safety, domain events, query expressions, ubiquitous language, OOP) — append findings per file, NEVER batch.
+- **Phase 3 → 4:** holistic cross-entity synthesis in the current pass, then final report with health score (`100 − (CRIT×25 + HIGH×10 + MED×3 + LOW×1)`); 10+ entity files → switch to parallel `code-reviewer` sub-agents automatically.
+- **Phase 5 (validation-first loop):** validate via `/why-review` gate before any fix, fix only validated findings, then restart the FULL review; a clean pass ENDS the review. Every finding needs `file:line` at confidence >80%. Close with `AskUserQuestion` next-steps.
 
 **Workflow:**
 
-1. **Phase 0** — Discover project stack + entity patterns + blast radius **(MANDATORY FIRST)**
-2. **Phase 1** — Collect entity files; run mandatory grep patterns; create report
-3. **Phase 2** — Entity-by-entity DDD review (universal checklist + project-specific rules)
-4. **Phase 3** — Holistic synthesis in the current review pass; fresh context only after validated fixes or explicit high-risk synthesis trigger
-5. **Phase 4** — Final report: critical issues, health score, recommendations
+1. **Phase 0** — Discover project stack + entity/VO base classes + validation API + domain exception type + blast radius **(MANDATORY FIRST)**
+2. **Phase 1** — Create report; run mandatory grep patterns BEFORE per-file reads; write results immediately; categorize files
+3. **Phase 2** — Entity-by-entity DDD review (per-file checklist A–L + project-specific rules); append per file, never batch
+4. **Phase 3** — Holistic cross-entity synthesis in the current pass; fresh-context sub-agent only after validated fixes or explicit high-risk trigger
+5. **Phase 4** — Final report: critical issues, health score, refactoring priority, recommendations
+6. **Phase 5** — Why-Review self-validation gate (MANDATORY when findings exist) → validate → fix validated → restart full review until clean → `AskUserQuestion` next-steps
+7. **Scale rule** — 10+ entity files → parallel `code-reviewer` sub-agents, then consolidate
 
 **Key Rules:**
 
-- MUST ATTENTION discover project base classes in Phase 0 — NEVER assume generic patterns apply
-- MUST ATTENTION run mandatory grep patterns in Phase 1 BEFORE reading individual files
-- A clean review pass ENDS the review. When findings exist, validate them before fixing; do not spend a fresh-context pass re-reviewing the same findings before validation/fix.
-- NEVER report finding without `file:line` evidence
+- MUST ATTENTION discover project base classes in Phase 0 — NEVER assume generic patterns apply — why: wrong base classes = wrong checklist.
+- MUST ATTENTION run mandatory grep patterns in Phase 1 BEFORE reading individual files — why: highest-signal violations surface fastest and seed the report.
+- MUST ATTENTION validate findings via the Phase 5 `/why-review` gate before any fix, then restart the full review after validated fixes — a clean pass ENDS the review — why: every fix invalidates the prior verdict and AI reports inherit confirmation bias.
+- NEVER report a finding without `file:line` evidence at confidence >80% — why: unproven findings inflate severity downstream.
+- MUST ATTENTION append findings per file and persist to `plans/reports/` incrementally; 10+ entity files → parallel sub-agents — why: batched writes vanish on context/budget cutoff.
 
 **Severity Classification:**
 

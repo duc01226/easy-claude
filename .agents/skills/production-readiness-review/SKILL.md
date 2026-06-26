@@ -54,6 +54,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Summary:**
 
+- **Main steps (in order):** (1) **Resolve scope** — args else `git diff --name-only` uncommitted; backend service/API files only, skip frontend/tests/docs/config-only. (2) **Score 12 criteria 0-2** across the 4 dimensions. (3) **Map score → verdict** (/24). (4) **Structural Impact Analysis** — graph gate (blast-radius, `tests_for`, downstream trace) when `graph.db` exists. (5) **Validated Fix + Full Re-Review** loop on any finding. (6) **Emit the SRE Review Results report** — `file:line` evidence per score. Execute in order; NEVER skip/merge a step — why: untracked steps get silently merged and gaps reach production.
 - Score 12 criteria 0-2 across four dimensions (Observability/8, Reliability/8, Data Integrity/4, DB Performance/4) for a /24 PASS (19-24) / NEEDS WORK (13-18) / NOT READY (0-12) verdict — every score needs `file:line` evidence or it is 0.
 - The DB Performance Protocol is MANDATORY and non-advisory: ALL list queries must paginate (no unbounded GetAll/ToList) and ALL filter fields, foreign keys, and sort columns must have matching indexes.
 - VERDICT is advisory only; the graph gate, validated-fix full re-review, and DB Performance Protocol are NEVER skippable regardless of change size — and when batched (≥10 files), re-score all 12 criteria holistically from combined cross-batch evidence, never by averaging per-batch scores.
@@ -836,6 +837,8 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Ensure service/API changes are production-ready for observability, reliability, data integrity, and database performance — score each dimension on service/API changes so working code that can be debugged, monitored, and rolled back ships, and operational technical debt does not.
+
+**IMPORTANT MUST ATTENTION — Main steps (execute in order, NEVER skip/merge):** (1) Resolve scope (args else uncommitted `git diff`; backend service/API only, skip frontend/tests/docs/config-only) → (2) Score the 12 criteria 0-2 across the 4 dimensions → (3) Map score → /24 verdict → (4) Structural Impact Analysis graph gate when `graph.db` exists → (5) Validated Fix + Full Re-Review loop on any finding → (6) Emit the SRE Review Results report with `file:line` evidence per score — why: AI repeatedly forgets the graph gate and the re-review loop and stops at scoring.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries; each is a signpost — the canonical body above governs, NEVER skip one):**
 

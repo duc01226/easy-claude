@@ -19,10 +19,11 @@ description: '[Fix & Debug] Use when investigating a bug''s root cause — repro
 
 **Summary:**
 
-- This is investigation-ONLY — never patch here; classify the bug type FIRST (Phase 0, BLOCKING) to route to the right agent and decide which evidence matters before tracing anything.
-- Trace end-to-start: name Frame 0 (observed final state), walk backward reader → storage/projection → writer → consumer/job → producer, and enumerate ALL feeder paths — the bug enters where bad state is WRITTEN, not where it crashes.
-- Every root-cause claim carries `Confidence: X%` + `file:line` proof; below 60% you report "hypothesis, not confirmed" with named evidence gaps, never a guess.
-- The `/why-review` gate is non-negotiable: run it in the SAME session/main agent before declaring confirmed; 2 rounds without passing → STOP and escalate via `AskUserQuestion`. Run a graph trace when `graph.db` exists — it surfaces bus/event consumers grep cannot see.
+- **Purpose — investigation-ONLY:** pin the root cause, NEVER patch here; the deliverable is a `/why-review`-validated cause handed to `/fix`, or an honest "hypothesis, not confirmed."
+- **Main steps in order (the digest):** (0) **Classify** bug type — Phase 0, BLOCKING — routes to `debugger` / `performance-optimizer` / `security-auditor` and decides which evidence matters; (1) **Reproduce** with evidence (error/stack/screenshot); (2) **Hypothesize** 2-3 ranked theories + the evidence that confirms/contradicts each; (3) **Trace END-to-START** — name Frame 0 (observed final state), walk reader → storage/projection → writer → consumer/job → producer, enumerate ALL feeder paths; (4) **Confirm** one cause explains ALL symptoms via the hypothesis matrix, no bypass paths; (5) **Validate** through the `/why-review` gate; (6) **Report** the confidence-tagged finding + hand off to `/fix` → `/prove-fix` runs after the fix.
+- **Core discipline:** the bug enters where bad state is WRITTEN, not where it crashes — fix at the LOWEST invariant-owning layer, NEVER the crash site.
+- **Evidence law:** every root-cause claim carries `Confidence: X%` + `file:line` proof; below 60% report "hypothesis, not confirmed" with named gaps, NEVER a guess. Run a graph trace when `graph.db` exists — it surfaces bus/event consumers grep cannot see.
+- **`/why-review` gate is non-negotiable:** run it in the SAME session/main agent before declaring confirmed; 2 rounds without passing → STOP and escalate via `AskUserQuestion`.
 
 **Workflow:**
 

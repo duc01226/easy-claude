@@ -52,19 +52,22 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Produce a defensible ranked ordering of 3+ backlog items using RICE, MoSCoW, or Value-Effort frameworks so the team works highest-value items first — every rank backed by a score and tech-agnostic rationale (value/effort/risk/impact).
 
-**Summary:**
+**Summary:** PURPOSE — rank 3+ backlog items so the team works highest-value first; every rank = a score + tech-agnostic rationale. The main steps/tasks, in order:
 
-- Require 3+ items first; pick the framework by the decision tree — RICE when quantitative data exists, MoSCoW for stakeholder must/should/could alignment, Value-Effort 2x2 for a quick call — default RICE when unsure.
-- Score with the exact framework formula (RICE = Reach×Impact×Confidence ÷ Effort using the fixed Impact/Confidence scales and story-point Effort), then rank descending (RICE), by band (MoSCoW), or by quadrant (V-E).
-- Keep every rationale tech-agnostic per M1: justify by value/effort/risk/business impact, never by named stack, framework, or design pattern.
-- On a near-tie (top-2 RICE within 15%, same-band MoSCoW overlap, or flagged stakeholder disagreement), the gate fires — use a direct user question to offer `$llm-council` escalation vs. accepting the ranking; otherwise end without prompting.
+- **Step 1-2 Collect & Select** — require 3+ items FIRST (fewer → discuss directly, NEVER force a framework); pick framework by decision tree — RICE = quantitative data exists, MoSCoW = stakeholder must/should/could alignment, Value-Effort 2x2 = quick call; default RICE when unsure.
+- **Step 3 Score** — apply the EXACT framework formula (RICE = Reach×Impact×Confidence ÷ Effort, fixed Impact/Confidence scales, story-point Effort); NEVER invent ad-hoc scores.
+- **Step 4-5 Rank & Output** — rank descending (RICE) / by band (MoSCoW) / by quadrant (V-E); emit prioritized table with scores + Do-first/Plan-next/Defer recommendations.
+- **Step 6 Propagate (MANDATORY when PBI files exist)** — write rank (1-999, ascending) + priority label back into EACH PBI's frontmatter; `pbi-mockup`/`feature-presentation` read priority from there.
+- **Cross-cutting — tech-agnostic (M1):** justify every rank by value/effort/risk/business impact, NEVER by named stack/framework/pattern. **Tie gate:** near-tie (top-2 RICE within 15%, same-band MoSCoW overlap, flagged stakeholder disagreement) → a direct user question offering `$llm-council`; else end without prompting.
 
 **Workflow:**
 
-1. **Collect Items** — Read from files or parse inline list (minimum 3 items)
+1. **Collect Items** — read from files or parse inline list (minimum 3 items)
 2. **Select Framework** — RICE (quantitative), MoSCoW (stakeholder alignment), Value-Effort (quick decision)
-3. **Score Each Item** — Apply framework criteria and calculate scores
-4. **Rank and Report** — Output prioritized table with rationale and recommendations
+3. **Score Each Item** — apply framework criteria and calculate scores
+4. **Rank & Report** — output prioritized table with rationale and recommendations
+5. **Propagate Priority** — IF PBI files exist → MANDATORY: write `rank` + `priority` label back into EACH PBI frontmatter
+6. **Tie Gate** — near-tie → a direct user question (`$llm-council` vs accept); else end without prompting
 
 **Key Rules:**
 
@@ -252,6 +255,8 @@ If gate does NOT fire, the prioritization decision stands; do NOT prompt.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 
 - **IMPORTANT MUST ATTENTION** require 3+ items BEFORE ranking; fewer than 3 → discuss directly, NEVER force a framework — why: ranking 1-2 items adds ceremony without signal
+- **IMPORTANT MUST ATTENTION** select the framework by the decision tree — RICE for quantitative data, MoSCoW for stakeholder must/should/could alignment, Value-Effort 2x2 for a quick call; default RICE when unsure, ask the user when ambiguous — why: matching framework to the decision type is what makes the ranking defensible
+- **IMPORTANT MUST ATTENTION** emit the prioritized table (scores + rationale) AND Do-first/Plan-next/Defer recommendations — NEVER stop at raw scores — why: the consumable output is the ranked table plus an action call, not a number column
 - **IMPORTANT MUST ATTENTION** keep every rationale tech-agnostic per M1 — justify by value/effort/risk/business impact, NEVER by named stack/framework/product/language/design-pattern; effort may cite story points + relative complexity only — why: spec-principles §3 BLOCKING, a tech-named rationale leaks implementation into a priority call
 - **IMPORTANT MUST ATTENTION** score with the EXACT framework formula (RICE = Reach×Impact×Confidence ÷ Effort, fixed Impact/Confidence scales, story-point Effort), then rank descending (RICE) / by band (MoSCoW) / by quadrant (V-E) — NEVER invent ad-hoc scores — why: a defensible rank needs a reproducible number
 - **IMPORTANT MUST ATTENTION** on a near-tie (top-2 RICE within 15%, same-band MoSCoW overlap, flagged stakeholder disagreement) the gate FIRES — use a direct user question to offer `$llm-council` escalation vs. accepting the ranking; if the gate does NOT fire, end WITHOUT prompting — why: tie-breaking is a judgment call the user owns, but a clear winner needs no interruption

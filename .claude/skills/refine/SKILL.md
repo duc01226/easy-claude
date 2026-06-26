@@ -19,6 +19,8 @@ description: '[Project Management] Use when converting ideas to PBIs, validating
 
 **Summary:**
 
+- **Purpose:** turn a raw idea into a groomable, Definition-of-Ready PBI a team can build without re-asking what or why.
+- **Main steps — run in order, track EACH (AI keeps forgetting sub-phases):** Phase 0 locate active plan → 1 idea intake + module detect → 2 domain research → 3 problem-hypothesis validation (GATE) → 4 BABOK elicitation → 5 BDD acceptance criteria → 5.1 AI-SDD M1-M5 gate (BLOCKING) → 5.5 testability assessment → 6 prioritization + draft estimate → 7 validation interview (GATE, 3-5 Qs) → 7.5 RE-DERIVE estimate vs locked scope → 8 PBI artifact generation.
 - Two gates are NON-OPTIONAL: validate the problem hypothesis (Phase 3) before building, and run the 3-5 question validation interview (Phase 7) before writing the PBI — the user decides assumptions, scope, and dependencies, never the AI.
 - Acceptance criteria are BDD GIVEN/WHEN/THEN (min 3: happy/edge/error) and MUST satisfy the AI-SDD M1-M5 gate (Phase 5.1): tech-agnostic Business Intent, logical FR-/BR- IDs first, observable single-interpretation ACs, rebuild-from-scratch validity.
 - Estimate twice: Phase 6 drafts story points/man-days against draft scope, then Phase 7.5 RE-DERIVES them against the locked post-interview scope (per SYNC:estimation-framework) — shipping stale Phase 6 numbers is the cardinal failure.
@@ -28,13 +30,17 @@ description: '[Project Management] Use when converting ideas to PBIs, validating
 
 | Phase | Name                | Key Activity                     | Output                 |
 | ----- | ------------------- | -------------------------------- | ---------------------- |
+| 0     | Locate Active Plan  | Load `plan.md` if in workflow    | Plan context           |
 | 1     | Idea Intake         | Load artifact, detect module     | Context loaded         |
 | 2     | Domain Research     | WebSearch market/competitors     | Research summary       |
-| 3     | Problem Hypothesis  | Validate problem exists          | Confirmed hypothesis   |
+| 3     | Problem Hypothesis (GATE) | Validate problem exists       | Confirmed hypothesis   |
 | 4     | Elicitation         | Apply BABOK techniques           | Requirements extracted |
 | 5     | Acceptance Criteria | Write BDD scenarios              | GIVEN/WHEN/THEN        |
-| 6     | Prioritization      | Apply RICE/MoSCoW + Story Points | Priority + estimate    |
-| 7     | Validation          | Interview user (MANDATORY)       | Assumptions confirmed  |
+| 5.1   | AI-SDD Gate (M1-M5) | Tech-agnostic, FR/BR IDs first   | Mandate-compliant ACs  |
+| 5.5   | Testability         | Test approach + per-AC outlines  | Test seed for `/spec`  |
+| 6     | Prioritization      | RICE/MoSCoW + DRAFT Story Points | Priority + draft est.  |
+| 7     | Validation (GATE)   | Interview user (MANDATORY, 3-5Q) | Assumptions confirmed  |
+| 7.5   | Re-estimate         | RE-DERIVE vs LOCKED scope        | Final estimate         |
 | 8     | PBI Generation      | Create artifact                  | PBI file saved         |
 
 **Key Rules:**
@@ -929,7 +935,8 @@ For domain PBIs: detect module from `docs/specs/` directory names, extract busin
 
 ## Closing Reminders
 
-- **IMPORTANT MUST ATTENTION Goal:** emit a Definition-of-Ready PBI — problem-validated, tech-agnostic, with testable acceptance criteria, estimates, and a Dependencies table — so a team can build it without re-asking what or why
+- **IMPORTANT MUST ATTENTION Goal:** transform a raw idea into a Definition-of-Ready PBI — problem-validated, tech-agnostic, with testable acceptance criteria, estimates, and a Dependencies table — so a team can build it without re-asking what or why.
+- **IMPORTANT MUST ATTENTION — run + track EVERY step (AI forgets sub-phases):** Phase 0 locate active plan → 1 idea intake + module detect → 2 domain research → 3 problem-hypothesis GATE → 4 BABOK elicitation → 5 BDD acceptance criteria → 5.1 AI-SDD M1-M5 BLOCKING gate → 5.5 testability → 6 prioritization + DRAFT estimate → 7 validation interview GATE → 7.5 RE-DERIVE estimate vs locked scope → 8 PBI generation — NEVER skip, reorder, or merge a phase without explicit user approval.
 
 **Protocols in force — MUST ATTENTION (concise digest of the SYNC/shared blocks this skill carries):**
 

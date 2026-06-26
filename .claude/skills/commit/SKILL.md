@@ -6,7 +6,7 @@ description: '[Git] Use when asked to "commit", "stage and commit", "save change
 
 ## Quick Summary
 
-**Goal:** Stage changes and create well-structured git commits following Conventional Commits format.
+**Goal:** Stage changes and create well-structured git commits following Conventional Commits format — and, when code changed, gate the commit on a user-confirmed `integration-test-verify` run (default No → verify first).
 
 **Workflow:**
 
@@ -358,9 +358,19 @@ Spawn `git-manager` after committing when user says "push", "create PR", or "ope
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Critical Thinking:** traced `file:line` proof per claim; confidence >80% to act, never guess.
 
+- **MANDATORY MUST ATTENTION — AI KEEPS FORGETTING:** code changed? `AskUserQuestion` whether `integration-test-verify` ran BEFORE committing — default **No → verify first**, only **Yes** commits — why: prevents committing unverified code
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting
 - **MANDATORY IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
 - **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 - **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
+
+**Anti-Rationalization:**
+
+| Evasion                                          | Rebuttal                                                                                                  |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| "The user said commit, so just commit"           | Code changed → run the Test-Verify Gate first. `AskUserQuestion` whether `integration-test-verify` ran; default No → verify before committing. |
+| "Tests probably passed already"                  | Probably ≠ confirmed. Ask the user; default No runs verify. Only an explicit Yes commits without verifying. |
+| "It's a small change, skip the verify question"  | Size doesn't decide — any code that might need tests triggers the gate. Skip only docs/specs/config-only diffs. |
+| "Asking is annoying, I'll just proceed"          | The confirmation is the point — AI keeps committing unverified code. Ask every time code changed.        |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.

@@ -54,10 +54,11 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Summary:**
 
-- Gate-first skill: check Activation Guards before any work — proceed ONLY in `workflow-greenfield-init` / `workflow-big-feature` AND when grep finds NO existing base/abstract/infrastructure scaffolding; otherwise SKIP and mark the step completed.
-- Scope is architecture-infrastructure creation (base classes, interfaces, DI, repos, cross-cutting), NOT feature implementation — read the plan, adapt the Backend/Frontend/UI checklists to the detected tech stack, and confirm the final checklist via a direct user question before generating code.
-- Stand up the production-readiness foundations (code-quality tooling, error handling, loading state, Docker, integration points) and delegate ALL sensor setup to `$linter-setup` then `$harness-setup` — never hand-configure linters/hooks here.
-- Enforce OOP/SOLID on every base class and HARD-BLOCK the handoff to `$feature-implement` until the Verification Gate passes — all 5 foundations verified plus `$linter-setup` and `$harness-setup` complete.
+- **Gate-first:** check Activation Guards before any work — proceed ONLY in `workflow-greenfield-init` / `workflow-big-feature` AND when grep finds NO existing base/abstract/infrastructure scaffolding; otherwise SKIP and mark the step completed.
+- **Main steps (do ALL, in order):** (1) Read Plan — parse tech stack, architecture decisions, domain model; (2) Generate Scaffolding Checklist from the Backend + Frontend/UI categories; (3) Validate Against Plan — every architecture decision has a scaffolding item; (4) Present to User via a direct user question to confirm the checklist; (5) Scaffold — create all base classes, interfaces, abstractions, infra code + the 5 production-readiness foundations; (6) Verify — build/compile + OOP/SOLID compliance + Verification Gate. Then invoke `$linter-setup` → `$harness-setup`, then a direct user question handoff.
+- **Scope:** architecture-infrastructure creation (base classes, interfaces, DI, repos, cross-cutting), NOT feature implementation — checklists are TEMPLATES: adapt naming to the detected tech stack, skip irrelevant items, add plan-specific ones.
+- **Production-readiness:** stand up all 5 foundations (code-quality tooling, error handling, loading state, Docker, integration points) and delegate ALL sensor setup to `$linter-setup` then `$harness-setup` — never hand-configure linters/hooks here. — why: a checklist of installs is not a harness.
+- **Hard gate:** enforce OOP/SOLID on every base class and HARD-BLOCK the handoff to `$feature-implement` until the Verification Gate passes — all 5 foundations verified plus `$linter-setup` and `$harness-setup` complete.
 
 **Purpose:** Scaffolded project copy-ready as starter template. All base code, utilities, interfaces, infrastructure services created — best-practice setup, generic functions any feature story reuses.
 
@@ -496,6 +497,8 @@ Run ALL verification checklists from the production readiness protocol:
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Produce a copy-ready, OOP/SOLID-compliant architecture foundation — base classes, infrastructure abstractions, and quality-gate tooling — that every feature story reuses before implementation starts.
+
+**MUST ATTENTION — Main steps (execute ALL, in order; AI keeps forgetting these):** (1) Read Plan → (2) Generate Scaffolding Checklist (Backend + Frontend/UI categories) → (3) Validate Against Plan → (4) Present to User via a direct user question → (5) Scaffold base classes/interfaces/infra + 5 production-readiness foundations → (6) Verify (build + OOP/SOLID + Verification Gate) → invoke `$linter-setup` → `$harness-setup` → a direct user question handoff. NEVER skip, reorder, or merge a step without explicit user approval.
 
 **MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 

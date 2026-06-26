@@ -52,12 +52,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Lower the cost of the next change — cut coupling, hidden state, duplicated knowledge, unclear intent — by simplifying and refining code for clarity, consistency, and maintainability without altering any observable behavior. — why: every simplification serves future change cost, not aesthetics.
 
-**Summary:**
+**Summary:** (read-this-if-nothing-else digest — purpose + every main step)
 
-- Skeptical-first MUTATOR, not a suggester: grep all usages + trace consumers (graph downstream when graph.db exists) and cite `file:line` before touching anything — apply a simplification ONLY when certain it preserves behavior, never when unsure.
-- Detect artifact type in Phase 0 first; HARD-SKIP generated/migration/vendor files; reason by the 5 Simplification Dimensions (readability, DRY/abstraction ≥3 occurrences, right-responsibility-lowest-layer, complexity reduction, DB paging+indexes) — every technique answers one test: does this make the next change cheaper?
-- Apply one refactoring type at a time and verify tests after each change; then run the Self-Recursive Loop (analyze → simplify → verify) until zero findings remain or a no-progress/unsafe/owner-decision stop condition hits — do NOT spawn a fresh-context reviewer for your own findings.
-- This skill owns review of its own output: when it changed any file, run the Self-Review Gate by self-invoking `$code-review` scoped to ONLY those changed files (recursion-safe leaf — NEVER `$review-changes`); skip + log the reason when nothing changed.
+- **Purpose — skeptical-first MUTATOR, not a suggester:** grep all usages + trace consumers (graph downstream when graph.db exists) and cite `file:line` BEFORE touching anything; apply a simplification ONLY when certain it preserves behavior, never when unsure. — why: an unverified "safe" rewrite silently breaks a downstream consumer.
+- **Main steps, run in order:** (1) **Phase 0 Detect** artifact type (backend/frontend/test/config) + scope; (2) **Identify Targets** — recent git changes or named files, HARD-SKIP generated/migration/vendor; (3) **Analyze** via the 5 Simplification Dimensions; (4) **Apply** one refactoring type at a time (KISS/DRY/YAGNI, behavior-preserving); (5) **Verify** related tests after EACH change; (6) **Self-Recursive Loop** (analyze→simplify→verify) until zero findings or a no-progress/unsafe/owner-decision stop hits — do NOT spawn a fresh-context reviewer for your own findings; (7) **Self-Review Gate**.
+- **The 5 Simplification Dimensions (step 3):** readability · DRY/abstraction (≥3 occurrences, YAGNI gate) · right-responsibility-lowest-layer (Entity > Domain Service > App Service > Controller) · complexity reduction (flatten nesting, extract >20-line methods) · DB paging+indexes — every technique answers ONE test: does this make the next change cheaper?
+- **Self-Review Gate (step 7) — this skill owns review of its own output:** when it changed any file, self-invoke `$code-review` scoped to ONLY those changed files (recursion-safe leaf — NEVER `$review-changes`); skip + log the reason when nothing changed. — why: the simplifier rewrites code after the main review batch, so its output ships unreviewed without this gate.
+- **Read FIRST:** `docs/project-reference/code-review-rules.md` (anti-patterns/checklists) then `project-structure-reference.md` — before any modification.
 
 > **MANDATORY IMPORTANT MUST ATTENTION** Plan task to READ:
 >
@@ -578,6 +579,8 @@ Rules:
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** lower the cost of the next change — cut coupling, hidden state, duplicated knowledge, unclear intent — by simplifying and refining code for clarity, consistency, maintainability WITHOUT altering any observable behavior. — why: every simplification serves future change cost, not aesthetics.
+
+**IMPORTANT MUST ATTENTION Main steps (run in declared order, never skip/merge):** (1) Phase 0 Detect artifact type + scope → (2) Identify Targets (skip generated/migration/vendor) → (3) Analyze via the 5 Dimensions → (4) Apply one refactoring type at a time → (5) Verify tests after EACH change → (6) Self-Recursive Loop until zero findings → (7) Self-Review Gate (`$code-review` on changed files). — why: AI keeps forgetting the skill's own steps; surfacing them here is the recency anchor.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 

@@ -52,19 +52,20 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Prove the reviewed integration tests (written by `$integration-test`, reviewed by `$integration-test-review`) pass repeatably — 3 consecutive green runs without DB reset, using project-configured run commands — with every pass/fail claim backed by actual test-runner output, never assumption.
 
-**Summary:**
+**Summary:** read-this-if-nothing-else digest of the 5 main steps —
 
-- Read `docs/project-config.json` → `integrationTestVerify` FIRST and obey its `quickRunCommand` / reference docs — this skill is language-agnostic, so NEVER hardcode `dotnet test`; missing section → Fallback Mode.
-- Gate on a healthy system before running: run `systemCheckCommand`, and STOP (point user at `startupScript`) when infrastructure/services aren't ready — unreliable system means unreliable results.
-- Pass requires 3 consecutive green runs of each relevant suite WITHOUT DB reset; any failure restarts the sequence from run 1, and only actual runner output (Passed/Failed/Skipped counts + names) proves the result.
-- On failure, diagnose test-bug vs service-bug and fix at the root layer — NEVER weaken assertions, add skip annotations, or mutate domain data to make red go green.
+- **Step 1 — Read config FIRST:** load `docs/project-config.json` → `integrationTestVerify`, obey its `quickRunCommand` / `referenceDocs` — language-agnostic, so NEVER hardcode `dotnet test`; missing section → Fallback Mode. — why: a hardcoded runner breaks on any non-default stack.
+- **Step 2 — Gate on a healthy system:** run `systemCheckCommand`; STOP and point user at `startupScript` when infra/services aren't ready. — why: an unreliable system yields unreliable green/red that proves nothing.
+- **Step 3 — Determine test projects:** discover via `testProjectPattern` glob > `testProjects` list > git auto-detect; run only projects the change touches.
+- **Step 4 — Run the 3-run gate, fan out when many isolated projects:** each relevant suite passes 3 consecutive green runs WITHOUT DB reset; any failure restarts from run 1. When several independent, per-DB-isolated projects exist, fan out one `integration-tester` sub-agent per project/group in parallel → barrier on ALL returns → aggregate; suites sharing a DB run sequentially. — why: parallel runs over a shared DB cross-contaminate and silently break the no-reset guarantee.
+- **Step 5 — Report from real output, fix at root:** report Passed/Failed/Skipped counts + failing names (only actual runner output proves a result); on failure diagnose test-bug vs service-bug and fix at the owning layer — NEVER weaken assertions, add skips, or mutate domain data to force green.
 
 **Workflow:**
 
 1. **Read Config** — Load `docs/project-config.json` → `integrationTestVerify` section for project-specific run guidance
 2. **System Check** — Verify required system is healthy before running
 3. **Determine Test Projects** — Discover via `testProjectPattern` glob, `testProjects` list, or git auto-detect
-4. **Run Tests** — Execute `quickRunCommand` on determined test projects for 3 consecutive runs
+4. **Run Tests** — Execute `quickRunCommand` on determined test projects for 3 consecutive runs; fan out parallel `integration-tester` sub-agents when many isolated projects must run
 5. **Report** — Pass/fail counts, failed test names, next steps on failure
 
 **Key Rules:**
@@ -76,6 +77,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - If config says local infrastructure, databases, services, or full system startup is required, treat that as a blocking prerequisite
 - On test failure → diagnose root cause: test bug or service bug. NEVER weaken assertions.
 - Verification only passes after 3 consecutive successful runs of each relevant suite/project without DB reset
+- When many independent, isolated test projects must run, fan out one `integration-tester` sub-agent per project (or balanced group) in parallel to speed it up — barrier on all returns, then aggregate; fall back to sequential when suites share a DB or aren't isolated
 - Always report exact failure counts and names — "all passed" requires evidence
 
 **Be skeptical. Apply critical thinking. Every pass/fail claim needs actual test runner output.**
@@ -218,6 +220,26 @@ Or run all at once using the solution filter if supported:
 
 **Capture output for every run**: count Passed, Failed, Skipped. Note: skipped tests marked with the configured framework's skip annotation are expected and not a failure.
 
+### Parallel execution across multiple test projects (sub-agent fan-out)
+
+> **AI agent note:** When the determined set (Step 3) has **many independent test projects**, do NOT run them one-by-one in the foreground — **fan out one `integration-tester` sub-agent per project (or per balanced group of projects)** in a single message so they run concurrently, then advance only after EVERY sub-agent returns (all-return barrier). This collapses wall-clock from sum-of-suites to slowest-single-suite.
+
+Apply this only when it is actually safe and worthwhile:
+
+- **Threshold.** Skip the fan-out for 1–2 small projects (orchestration overhead outweighs the gain); use it once there are several projects or any long-running suite.
+- **Isolation is mandatory.** Parallel suites MUST NOT share mutable state. Fan out only when each project targets its **own isolated DB/schema/container/namespace** (or the project config / reference docs confirm per-suite isolation). If suites share one database, concurrent runs cross-contaminate state and silently break the "3 consecutive green runs without DB reset" guarantee → run those **sequentially** instead. When unsure, ask the user or default to sequential.
+- **Each sub-agent owns the full gate for its assignment.** Every sub-agent runs its project(s) through the complete **3-consecutive-green-runs-without-DB-reset** sequence, captures real runner output (Passed/Failed/Skipped counts + failing names), and returns that evidence — partial or single-run results are not acceptable.
+- **Each sub-agent inherits this same discipline.** No weakened assertions, no skip annotations, no domain-data hacks; on failure it diagnoses test-bug vs service-bug at the root layer (per the On Test Failure Protocol).
+- **Barrier + aggregate.** Wait for all sub-agents, then merge their per-project tables into the single Step 5 report. Any one project failing its 3-run gate fails the overall verification.
+
+```
+# Conceptual fan-out (one sub-agent per project / balanced group), launched together:
+integration-tester → {testProject1}  → 3-run gate → returns counts + failing names
+integration-tester → {testProject2}  → 3-run gate → returns counts + failing names
+integration-tester → {testProject3}  → 3-run gate → returns counts + failing names
+# ... barrier: aggregate all returns into Step 5 report
+```
+
 ---
 
 ## Step 5: Report Results
@@ -351,6 +373,38 @@ If a test fails because the system is unavailable → report as "system not read
 > Reconcile to intended behavior, never to whichever side currently passes — green can encode the very bug.
 
 <!-- /SYNC:test-failure-fault-adjudication -->
+
+<!-- SYNC:spec-tests-code-triangulation -->
+
+> **Spec ↔ Tests ↔ Code Triangulation** — The unit of review is the WHOLE PACKAGE (spec + tests + code), not the diff alone. Load all three faces together and reason mutual-consistency FIRST, before any isolated per-file check.
+>
+> 1. **Locate all three faces** for the changed behavior: the governing Feature Spec section(s) (§3 ACs / §4 BRs / §8 TCs), the tests that guard it, and the production code. A missing face is a finding (SPEC-GAP / TEST-GAP / DEAD-SPEC).
+> 2. **Triangulate pairwise** — classify which face is wrong on every disagreement:
+>     - code vs spec → CODE-EXTRA / SPEC-STALE / CODE-WRONG (a [HARD] §4 rule or §5 invariant with no enforcing path is CODE-WRONG).
+>     - tests vs spec → TEST-GAP / SPEC-SILENT.
+>     - tests vs code → TEST-GAP / WEAK-TEST (a test that survives a deliberately broken invariant).
+> 3. **Capture hidden rules** — an invariant the code enforces but the spec never states (SPEC-SILENT) is surfaced as a finding, added into §3/§4/§8, and guarded with a test: the enrichment loop, never a silent pass.
+> 4. **Re-review after enrichment** — when triangulation adds spec content or a test, re-review the package against the enriched spec; converge only when a full pass surfaces no new disagreement.
+>
+> NEVER mark PASS while any face disagrees without a logged finding. The diff is the entry point; the package is the unit of judgment.
+
+<!-- /SYNC:spec-tests-code-triangulation -->
+
+<!-- SYNC:spec-drift-adjudication -->
+
+> **Spec drift adjudication (code-wrong vs spec-stale).** Whenever changed behavior diverges from a canonical Feature Spec (business rule, acceptance criterion, flow, state transition, or §8 TC under `docs/specs/`), you MUST NOT silently pick a side. Adjudicate per `shared/sdd-artifact-contract.md` → **Drift Gates**:
+>
+> 1. **Detect** — compare the change against the spec's documented intent. No divergence → record `Spec in sync` and move on.
+> 2. **Classify** the divergence:
+>    - **CODE-WRONG** — the spec correctly states intended behavior and the change violates it → BLOCKING finding; fix the code/test against intended behavior (write/adjust a regression TC first).
+>    - **SPEC-STALE** — the change is the new intended behavior and the spec now documents the old/wrong behavior → update the spec FIRST via `$spec [mode=update]`, then sync `$spec [mode=tests]` + `$spec [mode=sync]`.
+>    - **AMBIGUOUS** — intended behavior is unclear → a direct user question (or the canonical spec owner) before editing either side.
+>    - **SPEC-SILENT** — the code correctly enforces an invariant/behavior that NO canonical spec artifact (§3 AC, §4 BR, §5 invariant, §8 TC) states → not drift but an UNWRITTEN rule discovered by review. ENRICH the spec via the **Invariant Harvest** pass (`$spec [mode=sync] direction=harvest` → `spec/references/sync.md`): prove it is always-true (≥2 enforcement points or a rejecting guard), express it as a universally-quantified property, then add the rule to §4 (or §3/§5) AND a §8 TC via `$spec [update]` + `$spec [mode=tests]` and add the guarding test. A discovered invariant left only in code (or only in tests) is INCOMPLETE — this is the highest-value capture (the rule nobody wrote down).
+> 3. **Never normalize drift just because code/tests are green** — green can encode the drift itself. Reconcile to canonical intent, never to whichever side currently passes.
+>
+> A behavior-changing review/implementation that leaves a spec divergence unadjudicated is INCOMPLETE; an unwritten-but-enforced invariant left uncaptured (no §4/§8 entry) is equally INCOMPLETE.
+
+<!-- /SYNC:spec-drift-adjudication -->
 
 <!-- SYNC:integration-test-execution-discipline -->
 
@@ -487,6 +541,8 @@ If a test fails because the system is unavailable → report as "system not read
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
 - **Source/Test Drift:** On source change, reconcile affected tests vs source-bug from evidence.
+- **Spec↔Tests↔Code Triangulation:** judge the WHOLE PACKAGE (spec §3/§4/§8 + tests + code) for mutual consistency; a disagreeing or missing face is a logged finding, NEVER a silent pass.
+- **Spec Drift Adjudication:** on behavior divergence from a canonical spec, classify CODE-WRONG / SPEC-STALE / AMBIGUOUS / SPEC-SILENT and harvest unwritten invariants into §4/§8 + a guarding test — NEVER normalize drift to whichever side is green.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Nested Task Creation:** Expand child phases and link parent when nested; one `in_progress`.
 - **Task Tracking & External Report:** Bootstrap tracking; persist plan/review findings to `plans/reports/` incrementally.
@@ -497,7 +553,9 @@ If a test fails because the system is unavailable → report as "system not read
 **IMPORTANT MUST ATTENTION** use `quickRunCommand` from config — NEVER hardcode `dotnet test` or any language-specific command — why: this skill is language-agnostic and one repo's runner is another's wrong tool.
 **IMPORTANT MUST ATTENTION** read project-specific integration-test reference docs/scripts named by `referenceDocs` before any test command — Codex has no hook injection, so it must open these files directly.
 **IMPORTANT MUST ATTENTION** gate on a healthy system before running — run `systemCheckCommand`, and STOP (point user at `startupScript`) when infrastructure/services aren't ready — why: an unreliable system produces unreliable green/red results that prove nothing.
+**IMPORTANT MUST ATTENTION** determine the test-project set BEFORE running — `testProjectPattern` glob > `testProjects` list > git auto-detect — and run only projects the change touches unless the user asks for all — why: running irrelevant suites wastes the gate and muddies the result.
 **IMPORTANT MUST ATTENTION** pass requires 3 consecutive green runs of each relevant suite WITHOUT DB reset; any single failure restarts the sequence from run 1 — why: a one-off green run hides order-dependent and state-leak flakiness.
+**IMPORTANT MUST ATTENTION** when the set has several independent, per-DB-isolated projects, fan out one `integration-tester` sub-agent per project/balanced group in parallel, barrier on ALL returns, then aggregate into the Step 5 report — each sub-agent owns its full 3-run gate and returns real counts + failing names; suites sharing a DB run sequentially — why: parallel runs over a shared DB cross-contaminate state and silently break the no-reset guarantee.
 **IMPORTANT MUST ATTENTION** show actual runner output (Passed/Failed/Skipped counts + failing names) — "all passed" without evidence is theater, not verification — confidence >80% to claim PASS, and that confidence rests on the captured output, never assumption.
 **IMPORTANT MUST ATTENTION** on failure, diagnose test-bug vs service-bug at the responsible layer BEFORE any edit — fix the root cause; report service bugs as findings, do NOT silently fix — why: patching the symptom site leaves the real defect live.
 **IMPORTANT MUST ATTENTION** to make red go green NEVER weaken/remove assertions, add skip annotations, or mutate domain data outside real use-case paths — instead fix the assertion setup or the handler, then re-run the full 3-run sequence — why: a test that no longer protects its invariant is worse than no test.

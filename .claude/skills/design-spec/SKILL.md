@@ -15,7 +15,15 @@ description: '[Project Management] Use when you need to create UI/UX design spec
 
 ## Quick Summary
 
-**Goal:** Create structured UI/UX design specification documents from requirements or PBIs for developer handoff.
+**Goal:** Produce a structured, tech-agnostic UI/UX design specification from a requirement/PBI/story/wireframe so a developer can rebuild the UI on ANY stack — every component, state, design token, responsive rule, and accessibility need documented and linked back to the governing Feature Spec.
+
+**Summary (read this if nothing else — PURPOSE + every main step):**
+
+- **Purpose** — translate requirements into a developer-ready UI/UX spec (component inventory, states, design tokens, responsive behavior, accessibility), tech-agnostic: name components by UX role, never by framework/library class.
+- **Step 0–0b — research first:** inventory existing related screens/components + map connected flows, record in §1 so the spec matches the live UI system; if a governing Feature Spec exists, seed from its §6 interaction surface and reuse its view + observable-state vocabulary verbatim. — why: divergent vocabulary breaks the navigable spec↔design hub.
+- **Step 1–2 — read & route input, set complexity:** Figma URL → `/figma-design`; image/screenshot → visual analysis tooling; wireframe/sketch → `--mode=wireframe`; PBI/text → extract requirements. Pick Quick Spec (§1–4) vs Full Spec (§1–7, +Flow Diagram for multi-page).
+- **Step 3–6 — author the body:** build component inventory (new vs existing), define all 7 states + interactions, extract design tokens (reuse design-system), document responsive breakpoints (mobile 320–767 / tablet 768–1023 / desktop 1024+).
+- **Step 7–8 — save & link back:** write the artifact to `team-artifacts/design-specs/`, then set the governing Feature Spec's `design_spec:`/`mockup:` frontmatter to the saved path — frontmatter only, never the §1–8 body. — why: `review-artifact --type=design` fails if the path is not recorded.
 
 **Workflow:**
 
@@ -488,7 +496,15 @@ For an accessibility-audit deliverable, produce this checklist report and save i
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Create structured, tech-agnostic UI/UX design specification documents from requirements or PBIs for developer handoff.
+**IMPORTANT MUST ATTENTION Goal:** Produce a structured, tech-agnostic UI/UX design specification from a requirement/PBI/story/wireframe so a developer can rebuild the UI on ANY stack — every component, state, design token, responsive rule, and accessibility need documented and linked back to the governing Feature Spec.
+
+**IMPORTANT MUST ATTENTION main steps (do not forget any):**
+
+- **Step 0–0b first** — inventory existing related UI + map connected flows (record in §1); seed from the governing Feature Spec's §6 and reuse its view/state vocabulary verbatim — why: reinventing what exists or renaming spec terms breaks the navigable hub.
+- **Step 1–2** — route by input type (Figma→`/figma-design`, image→visual analysis, wireframe→`--mode=wireframe`, PBI/text→extract), then set Quick (§1–4) vs Full (§1–7) complexity.
+- **Step 3–6** — author component inventory (new vs existing), all 7 states + interactions, design tokens (reuse design-system), responsive breakpoints.
+- **Step 7–8** — save to `team-artifacts/design-specs/`, then set the governing Feature Spec's `design_spec:`/`mockup:` frontmatter to the saved path (frontmatter only) — why: the link-back gate fails without it.
+- **M1–M5 gate (BLOCKING)** — business-level component names, no code-prop refs in prose, cross-ref behavior by logical ID (`OP-`/`BR-`/`FR-`), one testable interpretation per state, rebuildable from spec alone — why: a tech-leaking spec cannot be rebuilt on another stack.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -501,6 +517,16 @@ For an accessibility-audit deliverable, produce this checklist report and save i
 - **MANDATORY IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
 - **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 - **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
+
+**Anti-Rationalization:**
+
+| Evasion                                          | Rebuttal                                                                                              |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| "I'll skip the existing-UI inventory and design" | Step 0 is BLOCKING — inventory existing screens/flows first or the spec contradicts the live UI.     |
+| "Naming the framework component is clearer"       | M1/M2 FAIL — name by UX role; framework/CSS names live only in Evidence/frontmatter/Mermaid.         |
+| "The spec already names views — I'll re-partition"| Reuse §6 view + state vocabulary verbatim; renaming breaks the navigable spec↔design hub.            |
+| "Saved the file — done"                           | Step 8 link-back is required; set the spec's `design_spec:` frontmatter or `review-artifact` fails.   |
+| "'Show feedback' describes the error state"       | M4 FAIL — every state needs one observable completion marker, not a vague phrase.                     |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using TaskCreate.
 

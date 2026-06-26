@@ -58,6 +58,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - Drive the review through a throwaway `.ai/workspace/changelog-notes-*.md` notes file (categorize Added/Changed/Fixed/Deprecated/Removed/Security), then DELETE it in the final cleanup step — a leftover notes file is an anti-pattern.
 - Always write the entry under `[Unreleased]` (create the section if absent), grouped by module/feature rather than per-file, preserving existing entries.
 - Cite affected logical IDs (`FR-`/`BR-`/`TC-`) in `**Refs**` and prefix any breaking change with `**BREAKING:**` plus a one-line migration/impact note; omit the Breaking block when there is none.
+- **Main steps (in order):** locate `CHANGELOG.md` (root `./CHANGELOG.md` preferred, `./docs/CHANGELOG.md` fallback, else create at root) → gather changed files via `git diff` (PR / commit / range mode) → create categorized notes file → review EVERY changed file for business impact + categorize → holistic read of notes → write the grouped entry under `[Unreleased]` → update + preserve existing entries → delete the notes file. NEVER skip the per-file review — uncategorized changes get silently dropped.
 
 **Workflow:**
 
@@ -395,6 +396,8 @@ See `references/keep-a-changelog-format.md` for format specification.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Critical Thinking:** Traced `file:line` proof per claim, confidence >80% to act.
 - **Project Reference Docs:** Read required project-reference docs (always `lessons.md`) before target work.
+
+**IMPORTANT MUST ATTENTION — main steps (run in order, NEVER skip/merge):** locate `CHANGELOG.md` → gather changed files (`git diff` PR/commit/range) → create categorized notes → review EVERY changed file + categorize Added/Changed/Fixed/Deprecated/Removed/Security → holistic read of notes → write grouped entry under `[Unreleased]` (preserve existing) → delete the notes file — why: AI keeps forgetting the skill's own steps and silently drops the review or cleanup.
 
 **IMPORTANT MUST ATTENTION** use business-focused language, group by module/feature — name the user-facing capability, NEVER the class/file/enum/migration — why: changelog readers track impact, not implementation (see Business Focus table).
 **IMPORTANT MUST ATTENTION** cite `FR-`/`BR-`/`TC-` logical IDs in `**Refs**`; prefix every breaking change with `**BREAKING:**` + one-line migration/impact note; omit the Breaking block when none — why: readers need traceability and a migration signal, not noise.

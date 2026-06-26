@@ -54,9 +54,10 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Summary:**
 
-- Always run tests through the `tester` subagent — never invoke test commands directly — then analyze its summary report.
-- This skill is strictly READ-ONLY: report pass/fail counts, failing-test names, and the report path; stop at reporting and NEVER start implementing fixes (that is `$fix`'s job).
-- After the run, resolve the active Goal Contract and append verification evidence (command, exact counts, report path) to the goal file's Iteration Log, updating the Goal Satisfaction matrix; record "No active goal" inline when none exists. Never copy sensitive fixture data into the goal file.
+- **Purpose:** give the user the TRUE test state — accurate pass/fail verdict, exact counts, failing-test names, report path — without applying any fix.
+- **Main steps (run in order):** (1) **Delegate** — launch the `tester` subagent with the test scope from arguments; NEVER invoke test commands directly. (2) **Analyze** — review the subagent's summary report; identify failures and patterns. (3) **Report** — summarize pass/fail counts, highlight failing tests, cite the report path. (4) **Goal evidence** — resolve the active Goal Contract, append verification evidence, update the Goal Satisfaction matrix.
+- READ-ONLY: stop at reporting; NEVER start implementing fixes — why: fixing is `$fix`'s job and mixing it into the report hides the true test state.
+- After the run, append verification evidence (command, exact counts, report path) to the goal file's Iteration Log and update the Goal Satisfaction matrix; record "No active goal — evidence reported inline only." when none exists; NEVER copy sensitive fixture data into the goal file — why: the goal file is the durable PASS/FAIL ledger, not a secrets store.
 
 **Workflow:**
 

@@ -58,10 +58,11 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Summary:**
 
-- Resolve the mode FIRST (draft/init/update/audit/amend/tests/sync) — an explicit `[mode=<x>]` wins, else infer from request + repo state; when ambiguous ask via a direct user question before any mutating mode, then read the matching `references/{author,tests,sync}.md` body and never run a mode from memory.
-- §1-7 prose is STRICTLY tech-free (no framework/product/language/persistence/auth names per `spec-principles.md` §3.2); technical identifiers live ONLY in evidence carriers — Section 8 is the canonical TC registry (`TC-{FEATURE}-{NNN}`) and must never be overwritten during `update`.
-- Every TC carries verifiable `[Source: namespace/service/id]` evidence — the sole exception is `mode=draft`, where idea-sourced specs use `Evidence: TBD` + provisional flag, upgraded to real anchors on the first code-sourced run.
-- Honor the M1-M6 mandates (`sdd-artifact-contract.md`) and canonical TC format (`shared/tc-format.md`); `INDEX.md`/ERD are derived artifacts — flag refresh need in `update` but never trigger `$spec-index` here.
+- **Purpose:** one skill owns the whole Feature Spec lifecycle across 7 modes — `draft | init | update | audit | amend | tests | sync` — producing/maintaining a tech-free 8-section business Feature Spec whose §8 TC registry is the single source of truth, traceable to integration test code, so any team can rebuild the feature on any stack from the spec alone.
+- **Main steps (every run):** (1) resolve mode FIRST — explicit `[mode=<x>]` wins, else infer from request + repo state, ambiguous → a direct user question before any mutating mode; (2) read the matching `references/{author,tests,sync}.md` body — NEVER run a mode from memory; (3) task tracking-break the work (one task per file read) before starting; (4) execute the mode's procedure/gates from its body; (5) cross-service check before concluding.
+- **§1-7 prose STRICTLY tech-free** — no framework/product/language/persistence/messaging/auth names (banned tokens → `spec-principles.md` §3.2); technical identifiers live ONLY in evidence carriers, frontmatter, and mermaid blocks. — why: M1/M5 require rebuild-on-any-stack from prose alone.
+- **§8 is the canonical TC registry** (`TC-{FEATURE}-{NNN}`) — every TC carries verifiable `[Source: namespace/service/id]` evidence (sole exception `mode=draft` → `Evidence: TBD` + provisional flag, upgraded to a real anchor on the first code-sourced run); NEVER overwrite existing TCs during `update` — `tests` owns generation, `sync` reconciles drift.
+- **Honor M1-M6 mandates** (`sdd-artifact-contract.md`) + canonical TC format (`shared/tc-format.md`) — any violation FAILS the artifact; `INDEX.md`/ERD are DERIVED — flag refresh need in `update`, NEVER trigger `$spec-index` here. — why: separation of concerns keeps the canonical spec the only source of truth.
 
 > **Renamed:** formerly `/feature-spec` (and earlier `/feature-docs`); the former `/spec-tests` skill is now folded in as `mode=tests` / `mode=sync`. Those names no longer resolve as slash commands — use `$spec` with the matching mode.
 
@@ -223,6 +224,38 @@ This skill owns the **canonical** Feature Spec (§1-8) and its §8 TC registry. 
 
 <!-- /SYNC:critical-thinking-mindset -->
 
+<!-- SYNC:spec-tests-code-triangulation -->
+
+> **Spec ↔ Tests ↔ Code Triangulation** — The unit of review is the WHOLE PACKAGE (spec + tests + code), not the diff alone. Load all three faces together and reason mutual-consistency FIRST, before any isolated per-file check.
+>
+> 1. **Locate all three faces** for the changed behavior: the governing Feature Spec section(s) (§3 ACs / §4 BRs / §8 TCs), the tests that guard it, and the production code. A missing face is a finding (SPEC-GAP / TEST-GAP / DEAD-SPEC).
+> 2. **Triangulate pairwise** — classify which face is wrong on every disagreement:
+>     - code vs spec → CODE-EXTRA / SPEC-STALE / CODE-WRONG (a [HARD] §4 rule or §5 invariant with no enforcing path is CODE-WRONG).
+>     - tests vs spec → TEST-GAP / SPEC-SILENT.
+>     - tests vs code → TEST-GAP / WEAK-TEST (a test that survives a deliberately broken invariant).
+> 3. **Capture hidden rules** — an invariant the code enforces but the spec never states (SPEC-SILENT) is surfaced as a finding, added into §3/§4/§8, and guarded with a test: the enrichment loop, never a silent pass.
+> 4. **Re-review after enrichment** — when triangulation adds spec content or a test, re-review the package against the enriched spec; converge only when a full pass surfaces no new disagreement.
+>
+> NEVER mark PASS while any face disagrees without a logged finding. The diff is the entry point; the package is the unit of judgment.
+
+<!-- /SYNC:spec-tests-code-triangulation -->
+
+<!-- SYNC:spec-drift-adjudication -->
+
+> **Spec drift adjudication (code-wrong vs spec-stale).** Whenever changed behavior diverges from a canonical Feature Spec (business rule, acceptance criterion, flow, state transition, or §8 TC under `docs/specs/`), you MUST NOT silently pick a side. Adjudicate per `shared/sdd-artifact-contract.md` → **Drift Gates**:
+>
+> 1. **Detect** — compare the change against the spec's documented intent. No divergence → record `Spec in sync` and move on.
+> 2. **Classify** the divergence:
+>    - **CODE-WRONG** — the spec correctly states intended behavior and the change violates it → BLOCKING finding; fix the code/test against intended behavior (write/adjust a regression TC first).
+>    - **SPEC-STALE** — the change is the new intended behavior and the spec now documents the old/wrong behavior → update the spec FIRST via `$spec [mode=update]`, then sync `$spec [mode=tests]` + `$spec [mode=sync]`.
+>    - **AMBIGUOUS** — intended behavior is unclear → a direct user question (or the canonical spec owner) before editing either side.
+>    - **SPEC-SILENT** — the code correctly enforces an invariant/behavior that NO canonical spec artifact (§3 AC, §4 BR, §5 invariant, §8 TC) states → not drift but an UNWRITTEN rule discovered by review. ENRICH the spec via the **Invariant Harvest** pass (`$spec [mode=sync] direction=harvest` → `spec/references/sync.md`): prove it is always-true (≥2 enforcement points or a rejecting guard), express it as a universally-quantified property, then add the rule to §4 (or §3/§5) AND a §8 TC via `$spec [update]` + `$spec [mode=tests]` and add the guarding test. A discovered invariant left only in code (or only in tests) is INCOMPLETE — this is the highest-value capture (the rule nobody wrote down).
+> 3. **Never normalize drift just because code/tests are green** — green can encode the drift itself. Reconcile to canonical intent, never to whichever side currently passes.
+>
+> A behavior-changing review/implementation that leaves a spec divergence unadjudicated is INCOMPLETE; an unwritten-but-enforced invariant left uncaptured (no §4/§8 entry) is equally INCOMPLETE.
+
+<!-- /SYNC:spec-drift-adjudication -->
+
 <!-- SYNC:ai-mistake-prevention -->
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
@@ -271,6 +304,8 @@ This skill owns the **canonical** Feature Spec (§1-8) and its §8 TC registry. 
 - **Cross-Service Check:** ALWAYS scan producers, consumers, sagas, contracts before concluding; missing consumer = silent regression.
 - **Evidence:** cite `file:line` for every claim; confidence >80% to act, <60% NEVER recommend.
 - **Critical Thinking:** apply critical + sequential thinking; NEVER present a guess as fact.
+- **Spec↔Tests↔Code Triangulation:** the unit of judgment is the WHOLE PACKAGE (spec §3/§4/§8 + tests + code) — reason mutual-consistency first; a disagreeing or missing face is a logged finding, NEVER a silent pass.
+- **Spec Drift Adjudication:** on behavior divergence from a canonical spec, classify CODE-WRONG / SPEC-STALE / AMBIGUOUS / SPEC-SILENT and harvest unwritten invariants into §4/§8 + a guarding test — NEVER normalize drift to whichever side is green.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 
 - **IMPORTANT MUST ATTENTION [BLOCKING]** Resolve the mode FIRST and read its `references/{author,tests,sync}.md` body — NEVER run `draft`/`init`/`update`/`audit`/`amend`/`tests`/`sync` from memory; ambiguous → a direct user question before any mutating mode — why: each mode's gates + output contract live in its body, not in this entry skill

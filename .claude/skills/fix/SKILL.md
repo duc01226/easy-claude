@@ -20,10 +20,12 @@ disable-model-invocation: false
 
 **Summary:**
 
-- Router first: with `--target={ci|issue|logs|test|types|ui}` jump to that self-contained inline branch (each runs its own diagnosis + `/prove-fix`); no flag = run the full diagnose→fix spine.
-- Diagnose before patching — trace the symptom end-to-start to the invariant-owning layer (hypothesis matrix + forward convergence proof), and NEVER fix at the crash site: the crash site is a symptom, the cause enters at a lower layer.
-- Two hard gates that cannot be skipped: the Confidence & Evidence Gate (declare `Confidence: X%` + `file:line`, STOP if <60%) and the 🛑 Validate-Before-Fix approval (present root cause + plan via `AskUserQuestion` before any code change — skip approval only inside a workflow).
-- Standalone (no parent workflow) self-assembles the minimum spine: `debug-investigate → fix + prove-fix → conditional /spec correctness check → /review-changes (production code) → /why-review`; inside a workflow this whole contract is SKIPPED.
+- **Purpose:** an intelligent fix router that cures the disease, not the symptom — diagnose root cause with evidence, fix at the lowest invariant-owning layer, prove it with `/prove-fix`, then keep spec + tests + code in sync.
+- **Router first (`--target=`):** with `--target={ci|issue|logs|test|types|ui}` jump to that self-contained inline branch (each runs its own diagnosis + `/prove-fix`); no flag = run the full diagnose→fix spine. — why: branches must not re-run §1/§2 of the standalone spine.
+- **Main steps (no-flag spine):** scout (parallel subagents) → diagnose root cause end-to-start (`debug-investigate`, `file:line` evidence, hypothesis matrix, forward convergence proof) → Confidence & Evidence Gate → plan with impact analysis → 🛑 Validate-Before-Fix approval → implement at the owning layer → `/prove-fix` → conditional `/spec` correctness check → `/review-changes` (production code) → `/why-review` terminal sign-off.
+- **Two hard gates that cannot be skipped:** the Confidence & Evidence Gate (declare `Confidence: X%` + `file:line`, STOP if <60%) and the 🛑 Validate-Before-Fix approval (present root cause + plan via `AskUserQuestion` before any code change — skip approval only inside a workflow).
+- **Diagnose before patching:** trace the symptom end-to-start to the invariant-owning layer, and NEVER fix at the crash site — the crash site is a symptom, the cause enters at a lower layer.
+- **Mode + skip rules:** default mode HARD (full rigor) unless ALL 5 trivial-bug opt-out conditions hold; standalone (no parent workflow) self-assembles the minimum spine `debug-investigate → fix + prove-fix → /spec correctness check → /review-changes (production code) → /why-review`; inside a workflow this whole contract is SKIPPED. — why: standalone has no sequence supplying diagnosis, spec sync, or review.
 
 **Workflow:**
 

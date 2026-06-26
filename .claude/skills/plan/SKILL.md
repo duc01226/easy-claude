@@ -20,10 +20,11 @@ disable-model-invocation: false
 
 **Summary:**
 
-- PLANNING ONLY — never implement or execute code; this skill produces `plan.md` + per-phase files plus a `goal.md` Goal Contract, then hands off.
-- Default mode is HARD (full rigor: parallel researcher subagents, project-reference docs, 3-round `/plan-review`); opt to fast mode ONLY when every trivial-task condition holds.
-- Every phase must pass the 5-point granularity check ("Can I start coding RIGHT NOW?"), carry `## Test Specifications` with TC IDs, and use bottom-up estimation (phase-hours drive man-days; SP derived).
-- Two mandatory gates: detect any new tech/lib and create a validation task before approval, and ALWAYS run `/plan-review` after creation — confirm with the user via `AskUserQuestion` before any next step.
+- PLANNING ONLY — NEVER implement/execute code; produce `plan.md` + per-phase `phase-XX` files + a `goal.md` Goal Contract, then hand off.
+- **Main pipeline (the steps AI keeps forgetting):** pre-check active/suggested plan → bootstrap Goal Contract (`goal.md`) → parallel `researcher` subagents → codebase + project-reference analysis (scout if docs absent) → `planner` subagent writes `plan.md` + `phase-XX` files (Alternatives, Rationale, UI Layout, Test Specs) → post-plan granularity self-check → mandatory final tasks.
+- **`--mode={ci|cro}` routing:** `ci` plans a fix from a GitHub Actions run/log (loads `references/mode-ci.md`); `cro` plans conversion-rate optimization (25-item framework, `references/mode-cro.md`); default (no flag) = standard flow. Mode only ADDS a reference payload — SAME engine, SAME `/plan-review` gate, SAME `planner` agent.
+- Default mode HARD (parallel subagents, project-reference docs, 3-round `/plan-review`); fast mode ONLY when EVERY trivial-task condition holds. Every phase passes the 5-point granularity check ("Can I start coding RIGHT NOW?"), carries `## Test Specifications` with TC IDs, uses bottom-up estimation (phase-hours drive man-days; SP DERIVED).
+- **Mandatory final tasks + gates:** write Test Specs per phase → `/plan-validate` → `/plan-review` (3-round) → `/why-review` (standalone) → re-estimate vs finalized phases; New Tech/Lib gate before approval; `AskUserQuestion` confirm before any next step.
 
 **Workflow:**
 
@@ -793,6 +794,9 @@ After creating all phase files, run **recursive decomposition loop**:
 **MANDATORY IMPORTANT MUST ATTENTION** for `.claude` skills/hooks/workflows/sync work, plans MUST include generated-mirror sync action or explicit no-sync evidence — why: a silently stale mirror diverges from source.
 **MANDATORY IMPORTANT MUST ATTENTION** NEVER skip `/plan-review` after plan creation — run it standalone or as the workflow step; standalone `/plan` also appends `/review-changes` as a final task.
 **IMPORTANT MUST ATTENTION** search 3+ existing patterns and read target code BEFORE planning; cite `file:line`; run graph trace when `.code-graph/graph.db` exists — why: local conventions override generic framework defaults.
+**MANDATORY IMPORTANT MUST ATTENTION** run the full main pipeline in order — pre-check plan → bootstrap `goal.md` → parallel `researcher` subagents → codebase + project-reference analysis (scout if docs absent) → `planner` writes `plan.md` + `phase-XX` → granularity self-check → mandatory final tasks; NEVER skip a step because it seems obvious — why: the skipped step (Goal Contract, granularity, test specs) is the one AI silently drops.
+**MANDATORY IMPORTANT MUST ATTENTION** queue the final-task block on EVERY plan — Test Specs per phase → `/plan-validate` → `/plan-review` (3-round) → `/why-review` (standalone only) → re-estimate vs finalized phases (flag `SHOULD-RESCOPE` when delta >50%).
+**IMPORTANT MUST ATTENTION** `--mode={ci|cro}` only ADDS a domain reference load (`references/mode-ci.md` / `mode-cro.md`) + intake on top of the SAME engine, gate, and `planner` agent — default (no flag) runs the standard flow byte-for-byte; NEVER let a mode replace the engine or skip `/plan-review`.
 
 **Anti-Rationalization:**
 
@@ -805,6 +809,8 @@ After creating all phase files, run **recursive decomposition loop**:
 | "Only existing libs, skip the gate"| Prove it — grep manifests. Any new tech/lib → WebSearch + `AskUserQuestion` before approval. |
 | "I'll just estimate SP directly"   | SP is DERIVED from bottom-up phase hours, never the driver. Σh/6 × productivity first.   |
 | "It's a `.claude` change, no sync" | State the mirror action or explicit no-sync evidence — stale mirrors fail the oracle.    |
+| "`--mode=ci`, so skip the normal flow" | Mode only ADDS a reference payload — same engine, same `/plan-review`, same `planner` agent. |
+| "Plan's done, skip the final tasks"| Test Specs → `/plan-validate` → `/plan-review` → `/why-review` → re-estimate are MANDATORY, not optional. |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break into small todo tasks and sub-tasks via TaskCreate.
 

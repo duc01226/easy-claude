@@ -24,7 +24,8 @@ context-budget: high
 
 **Summary:**
 
-- Code being clean is not the verdict — security spans ten domains (D1 OWASP app code, D2 secrets ALWAYS, D3 dependencies, D4 third-party vetting, D5 host/VPS, D6 frontend, D7 API boundaries, D8 infra, D9 CI/CD, D10 AI/agent); resolve the scope mode first (`changes`/`full`/`deps`/`vet`/`host`), then run the matching domain checklists.
+- **Main steps (run in order):** (1) **Scope** — resolve mode (`changes`/`full`/`deps`/`vet`/`host`) + select domains; (2) **Audit** — run each in-scope D1–D10 checklist with `file:line` / command-output evidence; (3) **Report** — findings with severity + confidence + remediation to `plans/reports/security-review-{YYMMDD}-{HHmm}-{slug}.md`; (4) **Validate Findings** — `/why-review --validate-findings` BEFORE any fix; (5) **Fix + Full Re-Review** — fix only validated findings, then restart the FULL review from Scope with a fresh `security-auditor` sub-agent (never `code-reviewer`). — why: AI keeps forgetting the skill's own pipeline; surface every step or steps silently merge/skip.
+- Code being clean is not the verdict — security spans ten domains (D1 OWASP app code, D2 secrets ALWAYS, D3 dependencies, D4 third-party vetting, D5 host/VPS, D6 frontend, D7 API boundaries, D8 infra, D9 CI/CD, D10 AI/agent); resolve the scope mode first (`changes`/`full`/`deps`/`vet`/`host`), then run the matching domain checklists. — why: nine non-code domains each can be the breach the clean-code verdict misses.
 - Every finding needs `file:line` or exact command+output evidence with severity and confidence; if you cannot prove exploitability with a trace, say "potential risk, not confirmed" — never "looks secure" without proof.
 - D4 third-party vetting is a hard gate BEFORE the first install/clone/run (install-time is infection-time), and D2 secrets runs in every mode regardless — automation does not bypass either.
 - Findings are not fix-eligible until `/why-review --validate-findings` confirms them; after any validated fix, restart the FULL review from Scope (fresh `security-auditor` sub-agent, not `code-reviewer`), never a targeted re-check of only the changed files.
@@ -842,6 +843,8 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Ensure reviewed scope resists credible security failures — authorization, injection, data, dependency/supply-chain, configuration, pipeline, host-level risks — proven with evidence before handoff.
+
+**IMPORTANT MUST ATTENTION Main steps (run in declared order, none skipped/merged):** Scope (resolve mode + select domains) → Audit (run each in-scope D1–D10 checklist with `file:line`/command-output evidence) → Report (severity + confidence + remediation to `plans/reports/`) → Validate Findings (`/why-review --validate-findings` BEFORE any fix) → Fix + Full Re-Review (fix validated-only, then restart the FULL review from Scope with a fresh `security-auditor`, never `code-reviewer`). — why: surfacing every step at the recency anchor stops the pipeline collapsing after the long middle.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 

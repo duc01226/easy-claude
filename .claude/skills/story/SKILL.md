@@ -19,11 +19,12 @@ description: '[Project Management] Use when creating user stories from PBIs, sli
 
 **Summary:**
 
-- Slice VERTICALLY (thin end-to-end), never horizontally (backend/frontend split) — apply SPIDR (Spike/Paths/Interfaces/Data/Rules) to break anything SP >8 (MUST) or >5 (SHOULD) until each story is INVEST-valid.
-- Every story is tech-agnostic and rebuild-from-scratch (AI-SDD M1-M5): no framework/class/file names in prose, carry the inherited `FR-`/`BR-` logical ID plus a `[Source: namespace/service/id]` abstract anchor — reject and rework on any STOP condition.
-- Write min 3 GIVEN/WHEN/THEN scenarios (happy + edge + error) PLUS a mandatory authorization scenario per story; every criterion has exactly one observable interpretation.
-- Estimate bottom-up (phase-hours → days × productivity factor; SP DERIVED, never the driver) with explicit test_count and blast-radius pass; emit the full `man_days_*` / `risk_*` / `blast_radius` frontmatter.
-- Always emit a Story Dependencies table (no orphan stories) and run the MANDATORY `AskUserQuestion` validation interview before handoff.
+- **Main steps (the pipeline):** (1) read PBI + active plan, load domain context — module, entities, BR-IDs; (2) identify VERTICAL end-to-end slices; (3) SPIDR-split anything SP >8 (MUST) / >5 (SHOULD) until INVEST-valid; (4) write each story with min 3 GWT scenarios + 1 authorization scenario; (5) estimate bottom-up (Blast-Radius pre-pass → phase-hours → days; SP DERIVED) and emit full estimate frontmatter; (6) emit Story Dependencies table (no orphans); (7) run MANDATORY `AskUserQuestion` validation; (8) save to `team-artifacts/pbis/stories/{YYMMDD}-ba-story-{slug}.md`; (9) suggest `/spec [mode=tests]` next.
+- Slice VERTICALLY (thin end-to-end), NEVER horizontally (backend/frontend split) — apply SPIDR (Spike/Paths/Interfaces/Data/Rules) until each story is INVEST-valid — why: horizontal slices delay deliverable user value.
+- Every story is tech-agnostic + rebuild-from-scratch (AI-SDD M1-M5): no framework/class/file names in prose, carry the inherited `FR-`/`BR-` logical ID plus a `[Source: namespace/service/id]` abstract anchor (NEVER `file:line`) — reject and rework on any STOP condition.
+- Min 3 GIVEN/WHEN/THEN scenarios (happy + edge + error) PLUS a mandatory authorization scenario per story; every criterion has exactly ONE observable interpretation.
+- Estimate bottom-up (phase-hours → days × productivity factor; SP DERIVED, never the driver) with explicit `test_count` and Blast-Radius pass; emit full `man_days_*` / `risk_*` / `blast_radius` / `estimate_reasoning` frontmatter — why: SP-first anchors to a guess, downstream `/prioritize`+`/plan` read these fields.
+- Story Dependencies table is mandatory (no orphan stories) and the `AskUserQuestion` validation interview runs before handoff — NEVER auto-decide slicing/scope/effort.
 
 > **MANDATORY IMPORTANT MUST ATTENTION** Plan ToDo Task to READ the following project-specific reference docs:
 >
@@ -843,6 +844,8 @@ Example for a "Create Invoice" story:
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** produce sprint-ready, INVEST-valid user stories — tech-agnostic, testable GWT criteria, evidence-cited estimates, dependency-mapped — that a team with zero codebase knowledge can implement on any stack.
+
+**IMPORTANT MUST ATTENTION Main steps (execute in order, NEVER skip):** read PBI + active plan + domain context → identify VERTICAL slices → SPIDR-split (SP >8 MUST / >5 SHOULD) → write INVEST stories with min 3 GWT + 1 auth scenario → estimate bottom-up (Blast-Radius pre-pass, SP DERIVED) + full frontmatter → emit Story Dependencies table (no orphans) → MANDATORY `AskUserQuestion` validation → save to `team-artifacts/pbis/stories/` → suggest `/spec [mode=tests]`.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries) — MUST ATTENTION honor each canonical body, NEVER skip one:**
 

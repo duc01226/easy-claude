@@ -19,10 +19,11 @@ description: '[Research] Use when deeply researching top sources from web-resear
 
 **Summary:**
 
-- This skill is the deep-dive stage that consumes the prior web-research source map (`.claude/tmp/_sources-{slug}.md`) and turns prioritized Tier 1-2 sources into structured findings — it is not a fresh search.
-- Discipline is everything: cap WebFetch at 8 calls, prioritize authoritative sources covering gaps, and capture date/author/methodology per source so confidence can be defended later.
-- Cross-validation drives the confidence score — agreement across 2+ sources is high confidence, disagreement is flagged as a discrepancy with both positions, and a lone source is explicitly marked "single source, unverified".
-- The deliverable is the evidence base at `.claude/tmp/_evidence-{slug}.md` with inline citations, an Unresolved Discrepancies section, and a Gaps Remaining section — never collapse conflicts or hide what couldn't be verified.
+- **Purpose:** deep-dive stage that consumes the prior web-research source map (`.claude/tmp/_sources-{slug}.md`) and turns prioritized Tier 1-2 sources into structured findings — NOT a fresh search.
+- **Main steps (do in order):** (1) Load source map, prioritize Tier 1-2 / high-relevance / gap-covering sources; (2) Fetch top 5-8 sources via WebFetch (cap 8); (3) Extract findings — key claims, data points, quotes, methodology + date/author/source-type per source; (4) Cross-validate findings across sources; (5) Build evidence base at `.claude/tmp/_evidence-{slug}.md`.
+- **Discipline:** cap WebFetch at 8 calls, spend them on authoritative sources covering gaps, capture date/author/methodology per source — why: confidence must be defendable later, not asserted from memory.
+- **Cross-validation drives the confidence score:** 2+ sources agree = high confidence, disagreement = flagged discrepancy with both positions, lone source = "single source, unverified".
+- **Deliverable:** evidence base at `.claude/tmp/_evidence-{slug}.md` with inline citations, an `## Unresolved Discrepancies` section, and a `## Gaps Remaining` section — NEVER collapse conflicts or hide what couldn't be verified.
 
 **Workflow:**
 

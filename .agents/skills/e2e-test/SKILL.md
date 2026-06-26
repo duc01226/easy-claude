@@ -54,10 +54,11 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Summary:**
 
-- Read `docs/project-reference/e2e-test-reference.md` + the `e2eTesting` block of `docs/project-config.json` FIRST, then detect the framework from project files — never assume a stack or invent a TC-annotation marker.
-- Every test carries its `TC-{MODULE}-E2E-{NNN}` code traced to a spec, structured with the Page Object Model (locators/actions in the page class, assertions in the test).
-- Selector priority is semantic/BEM > data-testid > ARIA/role > visible text; AVOID generated classes, `:nth-child`, and XPath.
-- Generate unique self-sufficient data (GUID/timestamp), never depend on pre-existing DB state, never tear down seeded data; spawn the `e2e-runner` sub-agent for generation and baseline updates.
+- **Purpose:** turn recordings/specs/code changes into maintainable, spec-traceable E2E tests that break ONLY when intended business behavior breaks — never on cosmetic UI churn.
+- **Main steps (in order):** (1) detect the E2E framework from project files; (2) read `docs/project-reference/e2e-test-reference.md` + the `e2eTesting` block of `docs/project-config.json` FIRST — never assume a stack or invent a TC-annotation marker; (3) load `TC-{MODULE}-E2E-{NNN}` specs from `docs/specs/`; (4) generate/update tests via Page Object Model (spawn the `e2e-runner` sub-agent); (5) run tests with the project's configured command; (6) update `e2e-test-reference.md` with learnings.
+- Every test carries its `TC-{MODULE}-E2E-{NNN}` code traced to the §8 invariant/behavior it guards, structured with Page Object Model (locators/actions in the page class, assertions in the test).
+- Selector priority semantic/BEM > data-testid > ARIA/role > visible text; AVOID generated classes, `:nth-child`, XPath.
+- Generate unique self-sufficient data (GUID/timestamp); NEVER depend on pre-existing DB state, NEVER tear down seeded data; pick a workflow via a direct user question when not already in one.
 
 **Workflow:**
 
@@ -337,6 +338,7 @@ Generate and maintain E2E tests using project's configured testing framework.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Critical Thinking:** Traced `file:line` proof per claim, confidence >80% to act, NEVER guess as fact.
 
+**IMPORTANT MUST ATTENTION — Main steps (execute in order, track each):** (1) detect E2E framework from project files; (2) read `e2e-test-reference.md` + `e2eTesting` config FIRST; (3) load `TC-{MODULE}-E2E-{NNN}` specs from `docs/specs/`; (4) generate/update tests via Page Object Model through the `e2e-runner` sub-agent; (5) run tests with the configured command; (6) update `e2e-test-reference.md` with learnings — why: AI keeps dropping the skill's own step sequence under long context.
 **IMPORTANT MUST ATTENTION** read `docs/project-reference/e2e-test-reference.md` + the `e2eTesting` block of `docs/project-config.json` FIRST, then detect the framework from project files — NEVER assume a stack — why: the configured framework, paths, run commands, and TC format are project-specific, not framework defaults.
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act, <60% DO NOT recommend) — NEVER speculate without proof.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting; mark one `in_progress`, set `completed` immediately after each finishes; add a final review todo.

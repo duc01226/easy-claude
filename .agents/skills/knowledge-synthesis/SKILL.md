@@ -45,10 +45,11 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Summary:**
 
-- Synthesizes a report FROM an existing evidence base (`.claude/tmp/_evidence-{slug}.md` + `_sources-{slug}.md` from deep-research) — this skill does not gather sources, it consolidates them into `docs/knowledge/research/{slug}.md`.
-- The enforced template (`.claude/templates/research-report-template.md`) is non-negotiable: every section MUST appear, and the Knowledge Gaps section can never be omitted — a missing gaps section manufactures false confidence.
-- Citation discipline is the core gate: every factual claim carries an inline `[N]`, every Sources-table entry is referenced at least once, and there are zero orphan citations or orphan sources.
-- Close with an honest confidence rollup (weighted average of finding scores) that prominently flags any <60% finding, then clean up `.claude/tmp/` working files.
+- **Purpose:** consolidate an EXISTING evidence base (`.claude/tmp/_evidence-{slug}.md` + `_sources-{slug}.md` from deep-research) into one fully-cited report at `docs/knowledge/research/{slug}.md` — this skill does NOT gather sources, it synthesizes them — why: gathering already happened upstream; re-researching here invents findings.
+- **Main steps, in order:** (1) **Load evidence** — inventory findings, confidence scores, unresolved discrepancies, remaining gaps; (2) **Load template** (`.claude/templates/research-report-template.md`) — every section required; (3) **Synthesize** — map findings into each section with inline `[N]` citations + per-finding confidence, note cross-cutting patterns/contradictions in Analysis; (4) **Citation audit** — zero orphan citations, zero orphan sources; (5) **Confidence summary** — importance-weighted rollup flagging every <60% finding; then clean up `.claude/tmp/` working files.
+- Enforced template is non-negotiable — every section MUST appear, Knowledge Gaps NEVER omitted — why: a missing gaps section manufactures false confidence.
+- Citation discipline is the core gate — every claim inline `[N]`, every Sources-table row referenced ≥1×, Tier 4 (unverified) NEVER cited as fact, 2+ independent sources per factual claim.
+- Synthesize FROM evidence only — NEVER fabricate, add, or upgrade findings beyond gathered evidence — why: invented findings poison the report's trust.
 
 **Workflow:**
 
