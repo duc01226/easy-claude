@@ -1,7 +1,7 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-06-23'
+  last_updated: '2026-06-26'
   total_skills: 153
   total_by_status:
     active: 152
@@ -977,7 +977,10 @@ skills:
     - name: prove-fix
       path: prove-fix/SKILL.md
       description: '[Code Quality] Use when you need to prove fix correctness with
-        code proof traces, confidence scoring, and stack-trace-style evidence chains.'
+        adversarial code proof traces — a skeptic tries to DISPROVE the fix and trace
+        all related paths first, with confidence scoring and stack-trace-style evidence
+        chains, so confidence is earned by surviving attack, not by confirming it
+        works.'
       category: other
       has_scripts: false
       has_references: false

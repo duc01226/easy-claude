@@ -714,6 +714,22 @@ integration-test (you are here)
 
 <!-- /SYNC:source-test-drift-check -->
 
+<!-- SYNC:test-failure-fault-adjudication -->
+
+> **Test-Failure Fault Adjudication** — When a test fails (or you are debugging or fixing a failure), the job is to determine *who is at fault — the source code or the test code*. Getting that verdict right matters more than turning the suite green. Binds every debug / fix / test skill identically.
+>
+> 1. **Root-cause first — never guess, never patch the symptom.** `/debug-investigate` and trace the failure end-to-start to its actual cause before touching either side. A green-again suite is NOT the goal; a correct verdict on what was actually wrong is.
+> 2. **Triangulate against the spec AND the source.** If a governing Feature Spec covers the behavior (e.g. `docs/specs/**` — §3 ACs / §4 BRs / §5 invariants / §8 TCs), it is the tiebreaker for *intended* behavior — compare BOTH the production source and the failing test against it. With no spec, the documented intent / acceptance criteria / caller contract is the reference. Decide from this evidence whether the SOURCE is wrong or the TEST is wrong.
+> 3. **Classify who is at fault, then fix the wrong side at its root:**
+>     - **SOURCE-WRONG** — production code violates the spec's intended behavior or a clear invariant → fix the source at the owning layer; keep or strengthen the test that caught it.
+>     - **TEST-WRONG** — the test encodes a stale or incorrect assertion, setup, or expectation that contradicts intended behavior → fix the test at its root. NEVER weaken an assertion, add a skip, or relax a timeout to force green.
+>     - NEVER change a test to match broken source, and NEVER change source to satisfy a broken test. (Migration code excluded — schema/data migrations are one-time execution paths, not core application logic.)
+> 4. **Ask the user when intended behavior is unclear.** If no spec covers the behavior, the spec is silent, or the spec is ambiguous about which side is correct, STOP and `AskUserQuestion` (or consult the canonical spec owner) before editing either side — never silently pick source or test just to make the suite pass.
+>
+> Reconcile to intended behavior, never to whichever side currently passes — green can encode the very bug.
+
+<!-- /SYNC:test-failure-fault-adjudication -->
+
 <!-- SYNC:ai-mistake-prevention -->
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:

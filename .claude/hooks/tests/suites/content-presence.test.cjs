@@ -35,6 +35,11 @@
  *               the root cause on failure, 60s runtime cap, loop until green) are present in
  *               EVERY integration-test-family skill (write / review / verify / workflow), so the
  *               family runs/diagnoses/clears a suite identically regardless of entry point.
+ *   TC-CP-010 — the test-failure fault-adjudication rules (root-cause first, triangulate the
+ *               failure against spec AND source, classify SOURCE-WRONG vs TEST-WRONG, and
+ *               AskUserQuestion when intended behavior is unclear) are present in EVERY
+ *               debug/fix/test-family skill, so every entry point decides WHO is at fault the
+ *               same way instead of silently editing whichever side makes the suite green.
  *
  * The 4 per-context inject hooks (design-system-canonical-guide / figma-context-extractor /
  * ba-refinement-context / graph-grep-suggester) are now presence-asserted by TC-CP-004..007
@@ -216,6 +221,53 @@ module.exports = {
                     `integration-test execution-discipline rule drift:\n  ${missing.join('\n  ')}\n` +
                     `Fix: re-sync SYNC:integration-test-execution-discipline ` +
                     `(py -3 .claude/scripts/sync-update-blocks.py integration-test-execution-discipline).`);
+            },
+        },
+        {
+            name: '[content-presence] TC-CP-010 test-failure fault-adjudication rules present in EVERY debug/fix/test-family skill',
+            fn: () => {
+                // The load-bearing rules the user requires across the whole debug/fix/test family:
+                // when a test fails, root-cause it, triangulate the failure against the spec AND the
+                // source to decide whether the SOURCE or the TEST is at fault, and ask the user when
+                // the spec is silent/ambiguous. Keyed per-rule (verbatim fragments of
+                // SYNC:test-failure-fault-adjudication) so a phrasing tweak that PRESERVES a rule
+                // still passes, but DROPPING a rule from any family skill fails loudly.
+                const rules = {
+                    'who-is-at-fault': 'who is at fault — the source code or the test code',
+                    'root-cause-first': 'Root-cause first',
+                    'triangulate-spec-and-source': 'Triangulate against the spec AND the source',
+                    'classify-source-wrong': 'SOURCE-WRONG',
+                    'classify-test-wrong': 'TEST-WRONG',
+                    'ask-user-when-unclear': 'Ask the user when intended behavior is unclear',
+                };
+                // Every debug/fix/test-family skill — investigate, fix, prove-fix, the test runner,
+                // the integration-test trio, e2e, UI/webapp testing, and the bugfix workflow.
+                // Adding a family skill without these rules (or dropping one here) must surface as
+                // a failure, not a silent gap.
+                const familySkills = [
+                    'debug-investigate',
+                    'fix',
+                    'prove-fix',
+                    'test',
+                    'integration-test',
+                    'integration-test-review',
+                    'integration-test-verify',
+                    'e2e-test',
+                    'test-ui',
+                    'webapp-testing',
+                    'workflow-bugfix',
+                ];
+                const missing = [];
+                for (const skill of familySkills) {
+                    const body = readSkill(skill);
+                    for (const [rule, phrase] of Object.entries(rules)) {
+                        if (!body.includes(phrase)) missing.push(`${skill} → missing rule "${rule}" ("${phrase}")`);
+                    }
+                }
+                assertTrue(missing.length === 0,
+                    `test-failure fault-adjudication rule drift:\n  ${missing.join('\n  ')}\n` +
+                    `Fix: re-sync SYNC:test-failure-fault-adjudication ` +
+                    `(py -3 .claude/scripts/sync-update-blocks.py test-failure-fault-adjudication).`);
             },
         },
     ],

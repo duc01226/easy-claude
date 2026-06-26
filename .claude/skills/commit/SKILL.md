@@ -1,6 +1,6 @@
 ---
 name: commit
-version: 2.1.0
+version: 2.2.0
 description: '[Git] Use when asked to "commit", "stage and commit", "save changes", or after completing implementation tasks. Flag: --push (a.k.a. "commit and push") stages + commits + pushes to remote in one shot.'
 ---
 
@@ -14,13 +14,15 @@ description: '[Git] Use when asked to "commit", "stage and commit", "save change
 2. **Stage Changes** — Add relevant files (specific or all)
 3. **Identify Reviewers** — from git history, list relevant reviewers (last author per touched file vs `HEAD`, excluding the commit author) and the area each must focus on — computed BEFORE the commit so the block can be embedded in the message body
 4. **Generate Message** — Detect type (feat/fix/refactor/etc.), extract scope from paths, write subject, add a detailed body structured as **purpose/kind → what changed → how it works**, and append the **Reviewers** block from step 3
-5. **Commit** — Create commit with HEREDOC (title + detailed summary + Reviewers block + attribution footer)
-6. **Verify** — Confirm with git status and git log
+5. **Test-Verify Gate** — When staged changes include code that might need tests, confirm with the user (`AskUserQuestion`, default **No**) whether they ran `integration-test-verify`. Default = run verify first; only **Yes** lets the commit proceed
+6. **Commit** — Create commit with HEREDOC (title + detailed summary + Reviewers block + attribution footer)
+7. **Verify** — Confirm with git status and git log
 
 **Key Rules:**
 
 - Write a detailed body — **purpose/kind → what changed → how it works** — so the next human reading `git log`/`git blame` understands the change without opening the diff. As detailed as the change needs (wrap ~72 chars); no title-only commits for non-trivial changes
 - Embed a **Reviewers** block in the commit message — the per-area reviewers (last author per touched file vs `HEAD`, commit author excluded) — computed BEFORE committing so it lives in the message body, not just as a side report
+- When staged changes include code that might need tests, **gate the commit on test verification** — ask the user whether `integration-test-verify` was run (default **No → run verify first**); only an explicit **Yes** proceeds straight to commit
 - Stop after the commit; push only when the user explicitly requests it (or passes `--push` / says "commit and push" → stage + commit + push via `git-manager`)
 - Never commit secrets, credentials, or .env files
 - Never use `--amend` or `--no-verify` unless explicitly requested
@@ -184,6 +186,32 @@ Structure body in three parts (omit a part only when genuinely empty):
 | Normal (feature/fix, single area)    | Purpose + 2–5 "what" bullets + a short "how it works"                                    |
 | Complex (cross-cutting, subtle bug)  | Purpose + grouped "what" + a full "how it works" that spells out the key invariant / edge case / why-this-over-that |
 
+### Step 3.5: Test-Verify Gate (blocking — only when code changed)
+
+Before committing, decide whether the staged changes carry **code that might need tests**. This gate protects against committing untested behaviour changes.
+
+**Trigger detection** — run `git diff --cached --name-only` and classify the staged files:
+
+- **Code that might need tests** → any change to production/source code: backend service source, frontend app source, shared libraries, scripts, hooks (`.cjs`), or other executable logic (resolve concrete source roots from `docs/project-config.json` / the project structure reference).
+- **NOT a trigger (skip the gate)** → the staged set is _only_ docs (`docs/**`, `*.md`), specs (`docs/specs/**`), test-spec/config text, changelog, or other non-executable content with no source-code change.
+
+**If the gate is NOT triggered:** log `Test-Verify Gate: skipped (no code changes staged)` and continue to Step 4.
+
+**If the gate IS triggered:** STOP and ask the user with `AskUserQuestion` (default option is **No**):
+
+> Header: `Test verify`
+> Question: `Staged code changes may need tests. Did you run integration-test-verify and did it pass?`
+> Options (in order — first is the default):
+> 1. `No — run verify before commit` (Recommended) — do NOT commit yet; invoke the `integration-test-verify` skill, let it run, and only proceed to Step 4 if it passes. If it fails, surface the failures and stop (no commit).
+> 2. `Yes — already verified` — the user confirms integration tests were run and passed; proceed directly to Step 4 (Commit).
+
+Rules:
+
+- **Default is No.** If the user does not actively choose "Yes", treat it as No and run verification first — never commit unverified code on assumption.
+- **Yes is an explicit user assertion** that `integration-test-verify` was run and passed; honour it and commit.
+- Re-run this gate only once per commit; after a `No → verify passes`, proceed to commit without re-asking.
+- This gate is independent of `--push`: it runs before the commit in every mode.
+
 ### Step 4: Commit
 
 Use HEREDOC for proper formatting:
@@ -242,6 +270,7 @@ Generated by AI
 ## Critical Rules
 
 - **ALWAYS stage all unstaged changes** before committing — run `git add .` (or specific files) so nothing is left behind
+- **Test-Verify Gate (Step 3.5):** when staged changes include code that might need tests, ask the user whether `integration-test-verify` was run — **default No → run verify before committing**; only an explicit **Yes** commits without first running verify. Skip the gate only when the staged set is docs/specs/config with no source-code change
 - **Stop after the commit; push** to remote only when the user explicitly requests it
 - **Review staged changes** before committing
 - **Never commit** secrets, credentials, or .env files

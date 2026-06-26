@@ -259,12 +259,12 @@ memory: project
 
 > **Severity Rubric** — Classify every finding by consequence, not by how easy it is to fix. One scale across all reviews so a "High" means the same thing everywhere.
 >
-> | Severity | Action      | Definition                                                                |
-> | -------- | ----------- | ------------------------------------------------------------------------- |
+> | Severity | Action | Definition |
+> | --- | --- | --- |
 > | CRITICAL | Block merge | Silent runtime failure, data corruption, validation bypass, security hole |
-> | HIGH     | Must fix    | Incorrect behavior, invariant gap, architectural violation                |
-> | MEDIUM   | Should fix  | Design debt, maintainability, likely future bug                           |
-> | LOW      | Nice to fix | Convention, documentation, minor clarity                                  |
+> | HIGH | Must fix | Incorrect behavior, invariant gap, architectural violation |
+> | MEDIUM | Should fix | Design debt, maintainability, likely future bug |
+> | LOW | Nice to fix | Convention, documentation, minor clarity |
 >
 > **Score-based skills** map their numeric scale onto these tiers — do not invent a parallel vocabulary:
 >
@@ -534,10 +534,10 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 >
 > 1. **Detect** — compare the change against the spec's documented intent. No divergence → record `Spec in sync` and move on.
 > 2. **Classify** the divergence:
->     - **CODE-WRONG** — the spec correctly states intended behavior and the change violates it → BLOCKING finding; fix the code/test against intended behavior (write/adjust a regression TC first).
->     - **SPEC-STALE** — the change is the new intended behavior and the spec now documents the old/wrong behavior → update the spec FIRST via `/spec [mode=update]`, then sync `/spec [mode=tests]` + `/spec [mode=sync]`.
->     - **AMBIGUOUS** — intended behavior is unclear → `AskUserQuestion` (or the canonical spec owner) before editing either side.
->     - **SPEC-SILENT** — the code correctly enforces an invariant/behavior that NO canonical spec artifact (§3 AC, §4 BR, §5 invariant, §8 TC) states → not drift but an UNWRITTEN rule discovered by review. ENRICH the spec via the **Invariant Harvest** pass (`/spec [mode=sync] direction=harvest` → `spec/references/sync.md`): prove it is always-true (≥2 enforcement points or a rejecting guard), express it as a universally-quantified property, then add the rule to §4 (or §3/§5) AND a §8 TC via `/spec [update]` + `/spec [mode=tests]` and add the guarding test. A discovered invariant left only in code (or only in tests) is INCOMPLETE — this is the highest-value capture (the rule nobody wrote down).
+>    - **CODE-WRONG** — the spec correctly states intended behavior and the change violates it → BLOCKING finding; fix the code/test against intended behavior (write/adjust a regression TC first).
+>    - **SPEC-STALE** — the change is the new intended behavior and the spec now documents the old/wrong behavior → update the spec FIRST via `/spec [mode=update]`, then sync `/spec [mode=tests]` + `/spec [mode=sync]`.
+>    - **AMBIGUOUS** — intended behavior is unclear → `AskUserQuestion` (or the canonical spec owner) before editing either side.
+>    - **SPEC-SILENT** — the code correctly enforces an invariant/behavior that NO canonical spec artifact (§3 AC, §4 BR, §5 invariant, §8 TC) states → not drift but an UNWRITTEN rule discovered by review. ENRICH the spec via the **Invariant Harvest** pass (`/spec [mode=sync] direction=harvest` → `spec/references/sync.md`): prove it is always-true (≥2 enforcement points or a rejecting guard), express it as a universally-quantified property, then add the rule to §4 (or §3/§5) AND a §8 TC via `/spec [update]` + `/spec [mode=tests]` and add the guarding test. A discovered invariant left only in code (or only in tests) is INCOMPLETE — this is the highest-value capture (the rule nobody wrote down).
 > 3. **Never normalize drift just because code/tests are green** — green can encode the drift itself. Reconcile to canonical intent, never to whichever side currently passes.
 >
 > A behavior-changing review/implementation that leaves a spec divergence unadjudicated is INCOMPLETE; an unwritten-but-enforced invariant left uncaptured (no §4/§8 entry) is equally INCOMPLETE.
@@ -583,7 +583,8 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
 - **MANDATORY** Persist plan/review findings to `plans/reports/` incrementally and synthesize from disk.
-  <!-- /SYNC:task-tracking-external-report:reminder -->
+
+<!-- /SYNC:task-tracking-external-report:reminder -->
 
 <!-- SYNC:project-reference-docs-guide:reminder -->
 
