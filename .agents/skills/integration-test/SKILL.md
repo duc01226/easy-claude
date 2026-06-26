@@ -421,6 +421,7 @@ Mode = REVIEW: audit existing integration tests for quality, flaky patterns, bes
 - MUST ATTENTION flag **missing retry for eventual consistency** — message bus / event handler / background job state without polling wrapper
 - MUST ATTENTION flag **hardcoded delays** — `Thread.Sleep()`, `Task.Delay()` instead of condition-based polling
 - MUST ATTENTION flag **race conditions** — tests modifying shared state without isolation (same entity ID, same user context)
+- MUST ATTENTION flag **shared mutable data** (see `SYNC:test-data-isolation`) — assertions hung off a shared mutable entity another test can change, OR off a parent a bulk re-sync/recompute/rebuild/cascade consumer can wipe → not parallel-safe, even without your test mutating it
 - MUST ATTENTION flag **non-unique test data** — hardcoded strings/IDs instead of unique generators
 - MUST ATTENTION flag **time-dependent assertions** — `DateTime.Now` without time abstraction
 
@@ -517,8 +518,9 @@ Test fails
 │   │   ├── Async assertion without polling → TEST BUG (add async polling/retry)
 │   │   ├── Non-unique test data collision → TEST BUG (use unique name generator)
 │   │   └── Race condition in handler → CODE BUG
-│   └── Wrong count/order?
-│       ├── Test data leak from other tests → TEST BUG (isolation)
+│   └── Wrong/empty count when path under test is provably innocent?
+│       ├── Test data leak from other tests → TEST BUG (isolation: own fresh per-test data, not a shared mutable entity)
+│       ├── Shared parent wiped by cross-cutting consumer (bulk re-sync, recompute, cascade) → TEST BUG (isolation) — suspect FIRST, grep other tests + consumers before blaming code
 │       └── Logic error in query → CODE BUG
 ├── Validation error (expected success)?
 │   ├── Test sends invalid data → TEST BUG
@@ -854,6 +856,18 @@ integration-test (you are here)
 
 <!-- /SYNC:repeatable-test-principle -->
 
+<!-- SYNC:test-data-isolation -->
+
+> **Parallel-Safe Test Isolation** — Tests MUST run in parallel and still pass; no test's data may be affected by any other test. `repeatable-test-principle` guards a test against its OWN prior runs; THIS guards it against OTHER concurrent tests, including indirect corruption through a shared parent + a cross-cutting consumer.
+>
+> 1. **Own fresh data per test:** Each test creates its own entities with unique IDs, down to the root it asserts on. NEVER assert against a shared mutable entity another test can change; only immutable reference/lookup data may be shared — why: shared mutable state is the single point another test corrupts.
+> 2. **Isolate at the highest mutated entity:** Own a private instance of the highest-level entity (aggregate root/parent) any test mutates. Sharing is safe only for data no test ever writes — why: a writable shared parent is contended ground two tests fight over.
+> 3. **Account for cross-cutting consumers:** A bulk re-sync, recompute, projection rebuild, or cascade any test triggers over a shared parent can rewrite or wipe every entity beneath it — so sharing that parent is unsafe EVEN WHEN your test never mutates it directly — why: the corruption arrives through a consumer, not the path under test.
+> 4. **Suspect contamination FIRST on contradiction:** When a test fails intermittently, or its result contradicts the traced behavior of the path under test (the path is provably innocent yet state is wrong), rule out cross-test interference BEFORE blaming the code under test — why: the innocent path takes the blame for another test's writes.
+> 5. **Prove isolation by search, not assumption:** Grep every OTHER test touching the same shared data AND every consumer that fans out over it; cite `file:line` evidence. Absence of a sharer is a finding to prove, not assume — why: isolation claimed without a search is unverified.
+
+<!-- /SYNC:test-data-isolation -->
+
 <!-- SYNC:integration-test-execution-discipline -->
 
 > **Integration Test Execution Discipline** — How the integration-test family (write · review · verify) runs, diagnoses, and clears a suite. Binds `$integration-test`, `$integration-test-review`, and `$integration-test-verify` identically.
@@ -1078,6 +1092,7 @@ integration-test (you are here)
 - **Understand Code First:** read existing code and grep 3+ patterns before writing.
 - **Graph Impact Analysis:** run blast-radius when graph.db exists; flag stale impacted files.
 - **Repeatable Test Principle:** unique data, additive-only, no reset — pass 3 consecutive runs.
+- **Parallel-Safe Test Isolation:** own fresh per-test data; never a shared mutable entity; account for cross-cutting consumers that wipe a shared parent; suspect contamination FIRST on contradiction; prove isolation by grep.
 - **Red Flag Stop Conditions:** escalate on low confidence, large blast radius, breaking change.
 - **Rationalization Prevention:** reject step-skipping evasions; show grep evidence, plan anyway.
 - **Incremental Persistence:** persist findings to `plans/reports/` after each file, never in memory.
@@ -1099,6 +1114,7 @@ integration-test (you are here)
 - **MANDATORY IMPORTANT MUST ATTENTION** for any handler enforcing a `[HARD]` §4 rule or §5 invariant, generate a Pattern 9 property/metamorphic test + boundary counter-case tied to a §8 Invariant/Property TC — why: example tests guard fixed points; the rule must fail across its whole input domain (mutation-kill, not line-coverage)
 - **MANDATORY IMPORTANT MUST ATTENTION** NEVER create `Queries/` or `Commands/` folders — instead organize by domain feature — why: CQRS-type folders fragment a domain across directories
 - **MANDATORY IMPORTANT MUST ATTENTION** NEVER mark done after one green run — verification requires 3 consecutive `$integration-test-verify` passes WITHOUT a DB reset — why: one run proves only the current run, not repeatability
+- **MANDATORY IMPORTANT MUST ATTENTION** make every test parallel-safe — own fresh per-test data down to the root it asserts on, NEVER a shared mutable entity; account for cross-cutting consumers (bulk re-sync/recompute/rebuild/cascade) that wipe a shared parent; on a contradiction between a provably-innocent path and wrong state, suspect cross-test interference FIRST and prove isolation by grepping other tests + consumers — why: shared mutable state lets another test silently corrupt your data and the innocent path takes the blame
 - **MANDATORY IMPORTANT MUST ATTENTION** `review`/`verify` are lightweight in-skill MODES — invoke the standalone `$integration-test-review` and `$integration-test-verify` skills for the heavier workflow gates — why: name-collision; modes are not the sibling skills
 - **MANDATORY IMPORTANT MUST ATTENTION** a direct user question — validate workflow/route decisions with the user. NEVER auto-decide complexity.
 - **MANDATORY IMPORTANT MUST ATTENTION** passing code/tests NEVER outrank canonical spec intent — instead reach adjudication-required with evidence before changing spec/test/code on a behavior mismatch — why: a green test can encode a regression
@@ -1113,6 +1129,9 @@ integration-test (you are here)
 | "Smoke test is fine for now"       | Smoke-only FORBIDDEN. Assert specific field values.                                                  |
 | "Repo setup is faster"             | Direct repository data hacks create invalid state. Use real use-case paths or valid seeded fixtures. |
 | "One green run is enough"          | Verification requires 3 consecutive passing runs without DB reset.                                   |
+| "It shares an existing entity, that's fine" | Shared mutable state is the single point another test corrupts. Own fresh per-test data; only immutable lookup data may be shared. |
+| "My path doesn't mutate that parent" | A cross-cutting consumer can wipe the shared parent without you touching it. Sharing it is unsafe even without direct mutation. |
+| "The path under test is correct, so the test is right" | Provably-innocent path + wrong state = suspect cross-test interference FIRST. Grep other tests + cross-cutting consumers before blaming the code. |
 | "REVIEW: one pass is enough"       | Low confidence → spawn fresh sub-agent. Never declare PASS after Round 1.                            |
 | "Skip task creation, it's obvious" | task tracking is non-negotiable. Tracking prevents context loss.                                        |
 | "Split this TC so tests map 1:1"   | One business TC → MANY tests is the expected shape. Splitting breaks spec business orientation (M1/M5). |
