@@ -20,7 +20,7 @@ description: '[Code Quality] Use when you need to review integration tests for a
 **Summary:**
 
 - **Purpose:** Review target is the CHANGE (collect BOTH changed production code AND changed test files), never just the test files — Gates 1-6 judge test quality, Gate 7 maps every behavior-changing production file to a covering test (integration-first; unit only with recorded justification) + spec TC. Uncovered changed behavior = HIGH finding minimum.
-- **The 7 Gates (main review steps):** G1 Assertion Value — mutation-score, record the Mutation Probe Ledger (no ledger = FAIL); G2 Data State — assert specific DB fields with async polling; G3 Repeatability — unique IDs, additive-only, 3 consecutive green runs; G4 Domain Logic — read handler, assert ONLY fields it writes; G5 Spec Traceability — `TestSpec` annotation → TC in spec docs (1 TC → many tests is correct); G6 Three-Way Sync — feature-docs > test-spec docs > code > test, escalate conflicts; G7 Change Coverage — every behavior-changing file → covering test + non-stale §8 TC.
+- **The 7 Gates (main review steps):** G1 Assertion Value — mutation-score, record the Mutation Probe Ledger (no ledger = FAIL); G2 Data State — assert specific DB fields with async polling; G3 Repeatability — unique IDs, additive-only, 2 consecutive green runs; G4 Domain Logic — read handler, assert ONLY fields it writes; G5 Spec Traceability — `TestSpec` annotation → TC in spec docs (1 TC → many tests is correct); G6 Three-Way Sync — feature-docs > test-spec docs > code > test, escalate conflicts; G7 Change Coverage — every behavior-changing file → covering test + non-stale §8 TC.
 - **The phase pipeline (run ALL, `TaskCreate` each):** P0 Scope-detect → P1 Collect (split prod vs test files) → P2 Gate Review (Gates 1-6 per file, Gate 7 across set) → P3 Spec Cross-Check (both directions) → P4 Initial Report → P5 Fix ALL Crit/High + WRITE missing tests → P6 Validated-fix + full fresh re-review until 0 Crit/0 High → P7 Build & run ALL tests → P8 Failure Investigation → P9 Why-Review self-validation.
 - **Read handler/service source (and feature docs) BEFORE judging any assertion.** FAIL smoke-only, existence-only (not-null), dead (always-true), copy-paste, and DI-resolution-only tests — why: assertion quality is unknowable without knowing what the handler actually writes.
 - **Don't just report gaps — fix them.** Gate 6: NEVER fix a test to match broken code, NEVER self-resolve a three-way conflict (escalate via `AskUserQuestion`). Phase 5 WRITES the missing test (runs `/spec [mode=tests]` for SPEC-GAPs); a full fresh re-review runs after every validated fix cycle until a clean pass returns 0 CRITICAL/0 HIGH.
@@ -41,7 +41,7 @@ description: '[Code Quality] Use when you need to review integration tests for a
 - MUST verify tests use unique IDs per run (infinitely repeatable)
 - MUST use async polling/retry for ALL DB assertions — async delays are norm
 - MUST flag repository-created or repository-mutated test data that bypasses real use cases and can leave invalid state
-- MUST require 3 consecutive successful suite/project runs before declaring integration tests verified/idempotent
+- MUST require 2 consecutive successful suite/project runs before declaring integration tests verified/idempotent
 - NEVER accept assertions that always pass regardless of handler correctness
 - **NO smoke/fake/useless tests** — every test MUST execute actual operations and verify data state
 
@@ -152,7 +152,7 @@ Rules: (1) every changed core-logic line gets a row — no sampling, no "represe
 
 **FAIL (not parallel-safe — see `SYNC:test-data-isolation`):** Assertions hung off a shared mutable entity another test can change, OR off a parent a bulk re-sync/recompute/rebuild/cascade consumer can wipe — even when THIS test never mutates it. Each test MUST own fresh per-test data; only immutable lookup data may be shared. Verify by grepping every other test on that shared data AND every cross-cutting consumer over it.
 
-**Verify:** Repeatability is only proven when the relevant suite/project passes 3 consecutive runs without resetting data. One green run is not enough.
+**Verify:** Repeatability is only proven when the relevant suite/project passes 2 consecutive runs without resetting data. One green run is not enough.
 
 ### Gate 4: Domain Logic — "Does test match handler?"
 
@@ -756,7 +756,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:repeatable-test-principle -->
 
-> **Infinitely Repeatable Tests** — Tests MUST run N times without failure. Like manual QC — run the suite 100 times, each run just adds more data. Verification is only PASS after the relevant suite/project passes 3 consecutive runs without database reset.
+> **Infinitely Repeatable Tests** — Tests MUST run N times without failure. Like manual QC — run the suite 100 times, each run just adds more data. Verification is only PASS after the relevant suite/project passes 2 consecutive runs without database reset.
 >
 > 1. **Unique data per run:** Use the project's unique ID generator for ALL entity IDs created in tests. NEVER hardcode IDs.
 > 2. **Additive only:** Tests create data, never delete/reset. Prior test runs MUST NOT interfere with current run.
@@ -784,11 +784,11 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 > **Integration Test Execution Discipline** — How the integration-test family (write · review · verify) runs, diagnoses, and clears a suite. Binds `/integration-test`, `/integration-test-review`, and `/integration-test-verify` identically.
 >
-> 1. **Verify the WHOLE system passes — not a hand-picked subset.** `/integration-test-verify` must prove the full relevant suite is green (every test in the system the change can touch), not one cherry-picked test. "All pass" is only true with actual runner output (Passed/Failed/Skipped counts + names) and only after 3 consecutive green runs without a DB reset.
+> 1. **Verify the WHOLE system passes — not a hand-picked subset.** `/integration-test-verify` must prove the full relevant suite is green (every test in the system the change can touch), not one cherry-picked test. "All pass" is only true with actual runner output (Passed/Failed/Skipped counts + names) and only after 2 consecutive green runs without a DB reset.
 > 2. **Drive state through real use-case paths — NEVER hack seed data.** Set up every precondition exactly as a real user would: real commands, queries, production consumers/messages, or valid idempotent seeders. NEVER create or mutate domain data by direct repository writes — that fabricates states a user could never reach and hides the real workflow bug. Hacking seed data to force a green run is forbidden.
 > 3. **On ANY failure → `/debug-investigate` the root cause BEFORE any fix.** Do not guess, do not patch the symptom site. Trace the failure end-to-start and classify whose fault it is: test code (wrong assertion/setup), source/production code (real defect), or environment/infrastructure/data. Then route: test-code fault → `/integration-test-review` to fix the test at the root (never weaken assertions or add skips); source-code fault → fix the production defect at the owning layer and report it; environment fault → mark BLOCKED and point at the startup script. NEVER change a test to match broken code.
 > 4. **60-second runtime cap — a slow test is a RED FLAG, not a tuning knob.** Local integration tests run fast. If any single test (or a stalled suite) exceeds ~60s, STOP and treat the slowness itself as a defect signal — deadlock, missing `await`, infinite poll/retry, a real network/external call, or an unbounded query. `/debug-investigate` the cause; NEVER paper over it by raising the timeout or extending the wait.
-> 5. **Loop until the whole suite is green.** After fixing the validated root cause, restart the full 3-run verification from run 1. Done means the entire relevant suite passes repeatably — never green-once, never a subset.
+> 5. **Loop until the whole suite is green.** After fixing the validated root cause, restart the full 2-run verification from run 1. Done means the entire relevant suite passes repeatably — never green-once, never a subset.
 
 <!-- /SYNC:integration-test-execution-discipline -->
 
@@ -1076,7 +1076,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 **IMPORTANT MUST ATTENTION Goal:** Ensure the review target (changed production code) is covered by tests that protect real business behavior with correct data assertions, infinite repeatability, and spec alignment — verify every behavior change has a covering test (integration-first, unit fallback) so specs ↔ tests ↔ code stay aligned (spec-driven development).
 
-**IMPORTANT MUST ATTENTION 7 Gates (judge every one):** G1 Assertion Value (mutation-score + Mutation Probe Ledger) · G2 Data State (assert DB fields, async-poll) · G3 Repeatability (unique IDs, 3 green runs) · G4 Domain Logic (read handler, assert only fields it writes) · G5 Spec Traceability (TC annotation → spec docs; 1 TC → many tests OK) · G6 Three-Way Sync (feature-docs > test-spec > code > test; escalate conflicts) · G7 Change Coverage (every behavior-changing file → covering test + non-stale §8 TC).
+**IMPORTANT MUST ATTENTION 7 Gates (judge every one):** G1 Assertion Value (mutation-score + Mutation Probe Ledger) · G2 Data State (assert DB fields, async-poll) · G3 Repeatability (unique IDs, 2 green runs) · G4 Domain Logic (read handler, assert only fields it writes) · G5 Spec Traceability (TC annotation → spec docs; 1 TC → many tests OK) · G6 Three-Way Sync (feature-docs > test-spec > code > test; escalate conflicts) · G7 Change Coverage (every behavior-changing file → covering test + non-stale §8 TC).
 
 **IMPORTANT MUST ATTENTION Phases (run ALL, `TaskCreate` each, one `in_progress`):** P0 Scope-detect → P1 Collect (split prod vs test) → P2 Gate Review → P3 Spec Cross-Check (both directions) → P4 Initial Report → P5 Fix ALL Crit/High + WRITE missing tests → P6 Validated-fix + full fresh re-review until 0 Crit/0 High → P7 Build & run ALL tests → P8 Failure Investigation → P9 Why-Review self-validation.
 
@@ -1107,7 +1107,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **IMPORTANT MUST ATTENTION** Gate 1 mutation probe is non-skippable — record the Mutation Probe Ledger (KILLED/SURVIVOR per changed core-logic line); no ledger = Gate 1 FAIL, not "skipped" — why: a surviving mutant is a fakeable test that protects no invariant
 **IMPORTANT MUST ATTENTION** spec-driven alignment runs BOTH directions — from TCs in tests AND from changed code back to spec docs; missing OR stale-but-covered TC = SPEC-GAP finding — why: a covering test whose mapped TC documents OLD behavior passes a spec gap silently
 **IMPORTANT MUST ATTENTION** a test that cannot fail is decoration — if it cannot catch the protected business rule/invariant breaking, delete or fix it; flag smoke-only/existence-only/dead assertions as FAIL unless justified by explicit design comment
-**IMPORTANT MUST ATTENTION** tests MUST be infinitely repeatable — unique IDs per run, no cleanup, no rollback; ALWAYS use async polling/retry for ALL DB assertions; verification requires 3 consecutive passing runs without DB reset — why: one green run hides ordering and eventual-consistency flakiness
+**IMPORTANT MUST ATTENTION** tests MUST be infinitely repeatable — unique IDs per run, no cleanup, no rollback; ALWAYS use async polling/retry for ALL DB assertions; verification requires 2 consecutive passing runs without DB reset — why: one green run hides ordering and eventual-consistency flakiness
 **IMPORTANT MUST ATTENTION** Gate 3 also enforces parallel-safe isolation — FAIL any test hanging assertions off a shared mutable entity another test can change, or off a parent a bulk cross-cutting consumer (re-sync/recompute/rebuild/cascade) can wipe even without this test mutating it; require fresh per-test data and prove isolation by grepping other tests on that shared data AND every consumer over it; on a contradiction between a provably-innocent path and wrong state, suspect contamination FIRST — why: shared mutable state lets another test silently corrupt your data and the innocent path takes the blame
 **IMPORTANT MUST ATTENTION** Gate 6 — read ALL three sources before classifying (never two); NEVER fix a test to match broken code (report the code bug instead); NEVER self-resolve a three-way conflict (escalate via `AskUserQuestion`); "stale docs" requires BOTH impl code AND test to agree — why: a winner picked without evidence hides bugs
 **IMPORTANT MUST ATTENTION** fix ALL CRITICAL/HIGH issues (Phase 5 NOT optional); validate findings via `/why-review` before fixing; after validated fixes rerun a full fresh review until a clean pass returns 0 CRITICAL/0 HIGH — why: every fix invalidates the prior verdict

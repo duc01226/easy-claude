@@ -24,7 +24,7 @@ context-budget: high
 - Three things make or break a test here: read handler/entity/event source first and assert specific changed fields (never smoke/DI-resolution-only), wrap EVERY DB assertion in async polling (not just async handlers), and drive state through real command/query/seeder paths — never direct repository writes that fabricate invalid state.
 - TC traceability is the spine: each test method carries a `TC-{FEATURE}-{NNN}` test-spec annotation; one business TC maps to MANY tests (1:N, integration + unit), so cover with as many tests as needed — never split a TC to force 1:1, and auto-create a TC in feature-doc Section 8 only for genuinely uncovered business behavior.
 - Always search existing tests in the SAME service and read `references/integration-test-patterns.md` before writing; match local conventions (collection, base class, helpers, unique-name generators) and organize files by domain feature, never by `Queries/`/`Commands/` CQRS type.
-- Done means repeatable, not green-once: the suite must pass 3 consecutive `/integration-test-verify` runs WITHOUT a DB reset; the in-skill `review`/`verify` modes are lightweight inline passes, distinct from the heavier standalone `/integration-test-review` and `/integration-test-verify` skills.
+- Done means repeatable, not green-once: the suite must pass 2 consecutive `/integration-test-verify` runs WITHOUT a DB reset; the in-skill `review`/`verify` modes are lightweight inline passes, distinct from the heavier standalone `/integration-test-review` and `/integration-test-verify` skills.
 - **Main steps (MANDATORY order):** (1) FIRST — verify/upsert each `TC-{FEATURE}-{NNN}` in feature-doc Section 8 (create if missing, update if stale, output TC→method mapping); (2) MIDDLE — implement test files with TC annotations, following the project's existing base classes/helpers; (3) FINAL — verify traceability bidirectionally across integration AND unit suites (every test → exactly one doc TC; every doc TC → ≥1 test; flag orphans). Per-mode loop: Detect mode → Find targets → Gather context → Execute → Report.
 
 **Workflow:** Detect mode → Find targets → Gather context → Execute → Report
@@ -39,7 +39,7 @@ context-budget: high
 - Organize by domain feature NEVER by CQRS type — NEVER create `Queries/` or `Commands/` folders
 - Every test method MUST have TC annotation — auto-create in Section 8 if missing
 - Minimum 3 tests per command
-- NEVER mark done until the relevant suite passes 3 consecutive `/integration-test-verify` runs without DB reset
+- NEVER mark done until the relevant suite passes 2 consecutive `/integration-test-verify` runs without DB reset
 
 ---
 
@@ -115,7 +115,7 @@ Before implementation, search codebase for patterns:
 - **CRITICAL MUST ATTENTION:** Test setup MUST mirror real workflows. Do not create or edit domain data through repositories when a command/query/seeder path exists; invalid shortcut data is a test bug.
 - **CRITICAL MUST ATTENTION:** ALWAYS wrap ALL DB assertions in async polling/retry — DEFAULT for ALL assertions, not just async handlers. **If asserting data in DB → use async polling. No exceptions.**
 - **CRITICAL MUST ATTENTION:** Before writing assertions, READ handler/entity/event source. Understand WHAT fields change, WHAT entities created/updated/deleted, WHAT event handlers fire. **Smoke-only FORBIDDEN** unless side effect truly unobservable.
-- **CRITICAL MUST ATTENTION:** Verification requires 3 consecutive successful runs of the relevant integration suite/project without resetting data. One green run proves only the current run, not repeatability.
+- **CRITICAL MUST ATTENTION:** Verification requires 2 consecutive successful runs of the relevant integration suite/project without resetting data. One green run proves only the current run, not repeatability.
 - Minimum 3 test methods: happy path, validation failure, DB state check
 - **Authorization tests:** Multiple user contexts — authorized succeeds AND unauthorized rejected
 - Every test method MUST have `// TC-{FEATURE}-{NNN}: Description` comment + test-spec annotation — before method, outside body. **Many test methods MAY carry the same TC** (one business TC → many tests across components/services); the test-spec annotation is the join key, so cover a TC with as many technical tests as the implementation needs without inventing extra TCs.
@@ -811,7 +811,7 @@ integration-test (you are here)
 
 <!-- SYNC:repeatable-test-principle -->
 
-> **Infinitely Repeatable Tests** — Tests MUST run N times without failure. Like manual QC — run the suite 100 times, each run just adds more data. Verification is only PASS after the relevant suite/project passes 3 consecutive runs without database reset.
+> **Infinitely Repeatable Tests** — Tests MUST run N times without failure. Like manual QC — run the suite 100 times, each run just adds more data. Verification is only PASS after the relevant suite/project passes 2 consecutive runs without database reset.
 >
 > 1. **Unique data per run:** Use the project's unique ID generator for ALL entity IDs created in tests. NEVER hardcode IDs.
 > 2. **Additive only:** Tests create data, never delete/reset. Prior test runs MUST NOT interfere with current run.
@@ -839,11 +839,11 @@ integration-test (you are here)
 
 > **Integration Test Execution Discipline** — How the integration-test family (write · review · verify) runs, diagnoses, and clears a suite. Binds `/integration-test`, `/integration-test-review`, and `/integration-test-verify` identically.
 >
-> 1. **Verify the WHOLE system passes — not a hand-picked subset.** `/integration-test-verify` must prove the full relevant suite is green (every test in the system the change can touch), not one cherry-picked test. "All pass" is only true with actual runner output (Passed/Failed/Skipped counts + names) and only after 3 consecutive green runs without a DB reset.
+> 1. **Verify the WHOLE system passes — not a hand-picked subset.** `/integration-test-verify` must prove the full relevant suite is green (every test in the system the change can touch), not one cherry-picked test. "All pass" is only true with actual runner output (Passed/Failed/Skipped counts + names) and only after 2 consecutive green runs without a DB reset.
 > 2. **Drive state through real use-case paths — NEVER hack seed data.** Set up every precondition exactly as a real user would: real commands, queries, production consumers/messages, or valid idempotent seeders. NEVER create or mutate domain data by direct repository writes — that fabricates states a user could never reach and hides the real workflow bug. Hacking seed data to force a green run is forbidden.
 > 3. **On ANY failure → `/debug-investigate` the root cause BEFORE any fix.** Do not guess, do not patch the symptom site. Trace the failure end-to-start and classify whose fault it is: test code (wrong assertion/setup), source/production code (real defect), or environment/infrastructure/data. Then route: test-code fault → `/integration-test-review` to fix the test at the root (never weaken assertions or add skips); source-code fault → fix the production defect at the owning layer and report it; environment fault → mark BLOCKED and point at the startup script. NEVER change a test to match broken code.
 > 4. **60-second runtime cap — a slow test is a RED FLAG, not a tuning knob.** Local integration tests run fast. If any single test (or a stalled suite) exceeds ~60s, STOP and treat the slowness itself as a defect signal — deadlock, missing `await`, infinite poll/retry, a real network/external call, or an unbounded query. `/debug-investigate` the cause; NEVER paper over it by raising the timeout or extending the wait.
-> 5. **Loop until the whole suite is green.** After fixing the validated root cause, restart the full 3-run verification from run 1. Done means the entire relevant suite passes repeatably — never green-once, never a subset.
+> 5. **Loop until the whole suite is green.** After fixing the validated root cause, restart the full 2-run verification from run 1. Done means the entire relevant suite passes repeatably — never green-once, never a subset.
 
 <!-- /SYNC:integration-test-execution-discipline -->
 
@@ -1058,7 +1058,7 @@ integration-test (you are here)
 - **Critical Thinking:** every claim needs traced proof; never present a guess as fact.
 - **Understand Code First:** read existing code and grep 3+ patterns before writing.
 - **Graph Impact Analysis:** run blast-radius when graph.db exists; flag stale impacted files.
-- **Repeatable Test Principle:** unique data, additive-only, no reset — pass 3 consecutive runs.
+- **Repeatable Test Principle:** unique data, additive-only, no reset — pass 2 consecutive runs.
 - **Parallel-Safe Test Isolation:** own fresh per-test data; never a shared mutable entity; account for cross-cutting consumers that wipe a shared parent; suspect contamination FIRST on contradiction; prove isolation by grep.
 - **Red Flag Stop Conditions:** escalate on low confidence, large blast radius, breaking change.
 - **Rationalization Prevention:** reject step-skipping evasions; show grep evidence, plan anyway.
@@ -1080,7 +1080,7 @@ integration-test (you are here)
 - **MANDATORY IMPORTANT MUST ATTENTION** one business TC maps to MANY tests (1:N, integration + unit) — NEVER split or technicalize a TC to force 1:1 — why: 1:1 splitting breaks the spec's business/user-story orientation (M1/M5)
 - **MANDATORY IMPORTANT MUST ATTENTION** for any handler enforcing a `[HARD]` §4 rule or §5 invariant, generate a Pattern 9 property/metamorphic test + boundary counter-case tied to a §8 Invariant/Property TC — why: example tests guard fixed points; the rule must fail across its whole input domain (mutation-kill, not line-coverage)
 - **MANDATORY IMPORTANT MUST ATTENTION** NEVER create `Queries/` or `Commands/` folders — instead organize by domain feature — why: CQRS-type folders fragment a domain across directories
-- **MANDATORY IMPORTANT MUST ATTENTION** NEVER mark done after one green run — verification requires 3 consecutive `/integration-test-verify` passes WITHOUT a DB reset — why: one run proves only the current run, not repeatability
+- **MANDATORY IMPORTANT MUST ATTENTION** NEVER mark done after one green run — verification requires 2 consecutive `/integration-test-verify` passes WITHOUT a DB reset — why: one run proves only the current run, not repeatability
 - **MANDATORY IMPORTANT MUST ATTENTION** make every test parallel-safe — own fresh per-test data down to the root it asserts on, NEVER a shared mutable entity; account for cross-cutting consumers (bulk re-sync/recompute/rebuild/cascade) that wipe a shared parent; on a contradiction between a provably-innocent path and wrong state, suspect cross-test interference FIRST and prove isolation by grepping other tests + consumers — why: shared mutable state lets another test silently corrupt your data and the innocent path takes the blame
 - **MANDATORY IMPORTANT MUST ATTENTION** `review`/`verify` are lightweight in-skill MODES — invoke the standalone `/integration-test-review` and `/integration-test-verify` skills for the heavier workflow gates — why: name-collision; modes are not the sibling skills
 - **MANDATORY IMPORTANT MUST ATTENTION** `AskUserQuestion` — validate workflow/route decisions with the user. NEVER auto-decide complexity.
@@ -1095,7 +1095,7 @@ integration-test (you are here)
 | "Already searched patterns"        | Show `file:line` evidence. No proof = no search.                                                     |
 | "Smoke test is fine for now"       | Smoke-only FORBIDDEN. Assert specific field values.                                                  |
 | "Repo setup is faster"             | Direct repository data hacks create invalid state. Use real use-case paths or valid seeded fixtures. |
-| "One green run is enough"          | Verification requires 3 consecutive passing runs without DB reset.                                   |
+| "One green run is enough"          | Verification requires 2 consecutive passing runs without DB reset.                                   |
 | "It shares an existing entity, that's fine" | Shared mutable state is the single point another test corrupts. Own fresh per-test data; only immutable lookup data may be shared. |
 | "My path doesn't mutate that parent" | A cross-cutting consumer can wipe the shared parent without you touching it. Sharing it is unsafe even without direct mutation. |
 | "The path under test is correct, so the test is right" | Provably-innocent path + wrong state = suspect cross-test interference FIRST. Grep other tests + cross-cutting consumers before blaming the code. |

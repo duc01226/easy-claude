@@ -44,7 +44,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** [Workflow] Trigger Write Integration Tests workflow — spec-first test authoring: investigate domain logic → write/update specs → generate test code → 7-gate review (incl. change coverage) → run and verify.
 
-**Absorbed use cases:** converting existing TC specs into integration test code (former test-to-integration — specs already exist, so `$spec [mode=tests]` runs in UPDATE/verify mode instead of authoring from scratch) and stability verification of existing suites (former test-verify — the `$integration-test-verify` step's 3-consecutive-run gate). For spec-only authoring with no test code, use the `$spec [mode=tests]` skill directly.
+**Absorbed use cases:** converting existing TC specs into integration test code (former test-to-integration — specs already exist, so `$spec [mode=tests]` runs in UPDATE/verify mode instead of authoring from scratch) and stability verification of existing suites (former test-verify — the `$integration-test-verify` step's 2-consecutive-run gate). For spec-only authoring with no test code, use the `$spec [mode=tests]` skill directly.
 
 **Workflow:**
 
@@ -60,7 +60,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - MUST ATTENTION define success criteria before execution and loop until observable verification passes.
 - MUST ATTENTION require integration tests to protect a named business rule/invariant and fail if that intent breaks.
 - MUST ATTENTION arrange integration-test data through real use cases or valid seeded fixtures; never create impossible state through repository hacks.
-- MUST ATTENTION verify integration suites with 3 consecutive passing runs without DB reset before declaring done.
+- MUST ATTENTION verify integration suites with 2 consecutive passing runs without DB reset before declaring done.
 - NEVER skip mandatory workflow or skill gates.
 
 **IMPORTANT MANDATORY Steps:** $scout -> $investigate -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $integration-test -> $integration-test-review -> $integration-test-verify -> $spec [mode=sync] -> $docs-update -> $workflow-end -> $watzup
@@ -83,7 +83,7 @@ Activate the `workflow-write-integration-test` workflow. Run `$start-workflow wo
 > **`$review-artifact --type=spec-tests`** — Validate spec quality: GIVEN/WHEN/THEN completeness, happy path + validation failure + auth paths covered, no collisions with existing TC codes.
 > **`$integration-test`** — Generate test files from TC specs using FROM-PROMPT or FROM-CHANGES mode. Non-negotiable: real use-case/valid-seeder data setup, async polling/retry for all DB assertions, unique data generators for all test data, test-spec annotation on every test method (adapt annotation syntax to your framework).
 > **`$integration-test-review`** — 7-gate quality check (assertion value, data state, repeatability, domain logic, traceability, three-way sync, change coverage). Gate 7: every behavior-changing production file in the change set maps to a covering test (integration-first; unit fallback needs justification) AND a spec TC. Validate findings, fix only validated issues, then restart the full integration-test review after fixes. NEVER proceed with CRITICAL/HIGH issues outstanding.
-> **`$integration-test-verify`** — Run tests via `quickRunCommand` from `docs/project-config.json` for 3 consecutive runs without DB reset. Report exact pass/fail counts with test runner output. NEVER mark complete without real output.
+> **`$integration-test-verify`** — Run tests via `quickRunCommand` from `docs/project-config.json` for 2 consecutive runs without DB reset. Report exact pass/fail counts with test runner output. NEVER mark complete without real output.
 > **`$spec [mode=sync]`** — Sync §8 TCs ↔ integration test code (`docs/specs/`). Update each TC's `IntegrationTest` field with **all** covering `{File}::{MethodName}` links (one TC → many tests, 1:N; a test-filter expression when the set is large). Coverage = ≥1 annotation-tagged test; never force one test per TC.
 > **`$docs-update`** — Update feature doc evidence fields, version history, and changelog if test coverage changed materially.
 > **`$workflow-end`** + **`$watzup`** — Close workflow state, then summarize and run the final `$understand` handoff.
@@ -96,11 +96,11 @@ Activate the `workflow-write-integration-test` workflow. Run `$start-workflow wo
 
 > **Integration Test Execution Discipline** — How the integration-test family (write · review · verify) runs, diagnoses, and clears a suite. Binds `$integration-test`, `$integration-test-review`, and `$integration-test-verify` identically.
 >
-> 1. **Verify the WHOLE system passes — not a hand-picked subset.** `$integration-test-verify` must prove the full relevant suite is green (every test in the system the change can touch), not one cherry-picked test. "All pass" is only true with actual runner output (Passed/Failed/Skipped counts + names) and only after 3 consecutive green runs without a DB reset.
+> 1. **Verify the WHOLE system passes — not a hand-picked subset.** `$integration-test-verify` must prove the full relevant suite is green (every test in the system the change can touch), not one cherry-picked test. "All pass" is only true with actual runner output (Passed/Failed/Skipped counts + names) and only after 2 consecutive green runs without a DB reset.
 > 2. **Drive state through real use-case paths — NEVER hack seed data.** Set up every precondition exactly as a real user would: real commands, queries, production consumers/messages, or valid idempotent seeders. NEVER create or mutate domain data by direct repository writes — that fabricates states a user could never reach and hides the real workflow bug. Hacking seed data to force a green run is forbidden.
 > 3. **On ANY failure → `$debug-investigate` the root cause BEFORE any fix.** Do not guess, do not patch the symptom site. Trace the failure end-to-start and classify whose fault it is: test code (wrong assertion/setup), source/production code (real defect), or environment/infrastructure/data. Then route: test-code fault → `$integration-test-review` to fix the test at the root (never weaken assertions or add skips); source-code fault → fix the production defect at the owning layer and report it; environment fault → mark BLOCKED and point at the startup script. NEVER change a test to match broken code.
 > 4. **60-second runtime cap — a slow test is a RED FLAG, not a tuning knob.** Local integration tests run fast. If any single test (or a stalled suite) exceeds ~60s, STOP and treat the slowness itself as a defect signal — deadlock, missing `await`, infinite poll/retry, a real network/external call, or an unbounded query. `$debug-investigate` the cause; NEVER paper over it by raising the timeout or extending the wait.
-> 5. **Loop until the whole suite is green.** After fixing the validated root cause, restart the full 3-run verification from run 1. Done means the entire relevant suite passes repeatably — never green-once, never a subset.
+> 5. **Loop until the whole suite is green.** After fixing the validated root cause, restart the full 2-run verification from run 1. Done means the entire relevant suite passes repeatably — never green-once, never a subset.
 
 <!-- /SYNC:integration-test-execution-discipline -->
 

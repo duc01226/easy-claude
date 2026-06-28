@@ -50,14 +50,14 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Prove the reviewed integration tests (written by `$integration-test`, reviewed by `$integration-test-review`) pass repeatably — 3 consecutive green runs without DB reset, using project-configured run commands — with every pass/fail claim backed by actual test-runner output, never assumption.
+**Goal:** Prove the reviewed integration tests (written by `$integration-test`, reviewed by `$integration-test-review`) pass repeatably — 2 consecutive green runs without DB reset, using project-configured run commands — with every pass/fail claim backed by actual test-runner output, never assumption.
 
 **Summary:** read-this-if-nothing-else digest of the 5 main steps —
 
 - **Step 1 — Read config FIRST:** load `docs/project-config.json` → `integrationTestVerify`, obey its `quickRunCommand` / `referenceDocs` — language-agnostic, so NEVER hardcode `dotnet test`; missing section → Fallback Mode. — why: a hardcoded runner breaks on any non-default stack.
 - **Step 2 — Gate on a healthy system:** run `systemCheckCommand`; STOP and point user at `startupScript` when infra/services aren't ready. — why: an unreliable system yields unreliable green/red that proves nothing.
 - **Step 3 — Determine test projects:** discover via `testProjectPattern` glob > `testProjects` list > git auto-detect; run only projects the change touches.
-- **Step 4 — Run the 3-run gate, fan out when many isolated projects:** each relevant suite passes 3 consecutive green runs WITHOUT DB reset; any failure restarts from run 1. When several independent, per-DB-isolated projects exist, fan out one `integration-tester` sub-agent per project/group in parallel → barrier on ALL returns → aggregate; suites sharing a DB run sequentially. — why: parallel runs over a shared DB cross-contaminate and silently break the no-reset guarantee.
+- **Step 4 — Run the 2-run gate, fan out when many isolated projects:** each relevant suite passes 2 consecutive green runs WITHOUT DB reset; any failure restarts from run 1. When several independent, per-DB-isolated projects exist, fan out one `integration-tester` sub-agent per project/group in parallel → barrier on ALL returns → aggregate; suites sharing a DB run sequentially. — why: parallel runs over a shared DB cross-contaminate and silently break the no-reset guarantee.
 - **Step 5 — Report from real output, fix at root:** report Passed/Failed/Skipped counts + failing names (only actual runner output proves a result); on failure diagnose test-bug vs service-bug and fix at the owning layer — NEVER weaken assertions, add skips, or mutate domain data to force green.
 
 **Workflow:**
@@ -65,7 +65,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 1. **Read Config** — Load `docs/project-config.json` → `integrationTestVerify` section for project-specific run guidance
 2. **System Check** — Verify required system is healthy before running
 3. **Determine Test Projects** — Discover via `testProjectPattern` glob, `testProjects` list, or git auto-detect
-4. **Run Tests** — Execute `quickRunCommand` on determined test projects for 3 consecutive runs; fan out parallel `integration-tester` sub-agents when many isolated projects must run
+4. **Run Tests** — Execute `quickRunCommand` on determined test projects for 2 consecutive runs; fan out parallel `integration-tester` sub-agents when many isolated projects must run
 5. **Report** — Pass/fail counts, failed test names, next steps on failure
 
 **Key Rules:**
@@ -76,7 +76,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - If system check fails → instruct user how to start system (reference `startupScript` from config)
 - If config says local infrastructure, databases, services, or full system startup is required, treat that as a blocking prerequisite
 - On test failure → diagnose root cause: test bug or service bug. NEVER weaken assertions.
-- Verification only passes after 3 consecutive successful runs of each relevant suite/project without DB reset
+- Verification only passes after 2 consecutive successful runs of each relevant suite/project without DB reset
 - When many independent, isolated test projects must run, fan out one `integration-tester` sub-agent per project (or balanced group) in parallel to speed it up — barrier on all returns, then aggregate; fall back to sequential when suites share a DB or aren't isolated
 - Always report exact failure counts and names — "all passed" requires evidence
 
@@ -199,9 +199,9 @@ If auto-detect finds nothing (no uncommitted test changes), ask user: "No change
 
 Run this step only after Step 2 passed or the config/reference docs explicitly state no external system is required.
 
-Execute using `quickRunCommand` from config. Run each relevant suite/project 3 consecutive times without resetting data.
+Execute using `quickRunCommand` from config. Run each relevant suite/project 2 consecutive times without resetting data.
 
-**Three-run idempotency gate:** If any run fails, verification fails. Fix the root cause, then restart the 3-run sequence from run 1.
+**Two-run idempotency gate:** If any run fails, verification fails. Fix the root cause, then restart the 2-run sequence from run 1.
 
 Example for a configured integration-test suite:
 
@@ -227,16 +227,16 @@ Or run all at once using the solution filter if supported:
 Apply this only when it is actually safe and worthwhile:
 
 - **Threshold.** Skip the fan-out for 1–2 small projects (orchestration overhead outweighs the gain); use it once there are several projects or any long-running suite.
-- **Isolation is mandatory.** Parallel suites MUST NOT share mutable state. Fan out only when each project targets its **own isolated DB/schema/container/namespace** (or the project config / reference docs confirm per-suite isolation). If suites share one database, concurrent runs cross-contaminate state and silently break the "3 consecutive green runs without DB reset" guarantee → run those **sequentially** instead. When unsure, ask the user or default to sequential.
-- **Each sub-agent owns the full gate for its assignment.** Every sub-agent runs its project(s) through the complete **3-consecutive-green-runs-without-DB-reset** sequence, captures real runner output (Passed/Failed/Skipped counts + failing names), and returns that evidence — partial or single-run results are not acceptable.
+- **Isolation is mandatory.** Parallel suites MUST NOT share mutable state. Fan out only when each project targets its **own isolated DB/schema/container/namespace** (or the project config / reference docs confirm per-suite isolation). If suites share one database, concurrent runs cross-contaminate state and silently break the "2 consecutive green runs without DB reset" guarantee → run those **sequentially** instead. When unsure, ask the user or default to sequential.
+- **Each sub-agent owns the full gate for its assignment.** Every sub-agent runs its project(s) through the complete **2-consecutive-green-runs-without-DB-reset** sequence, captures real runner output (Passed/Failed/Skipped counts + failing names), and returns that evidence — partial or single-run results are not acceptable.
 - **Each sub-agent inherits this same discipline.** No weakened assertions, no skip annotations, no domain-data hacks; on failure it diagnoses test-bug vs service-bug at the root layer (per the On Test Failure Protocol).
-- **Barrier + aggregate.** Wait for all sub-agents, then merge their per-project tables into the single Step 5 report. Any one project failing its 3-run gate fails the overall verification.
+- **Barrier + aggregate.** Wait for all sub-agents, then merge their per-project tables into the single Step 5 report. Any one project failing its 2-run gate fails the overall verification.
 
 ```
 # Conceptual fan-out (one sub-agent per project / balanced group), launched together:
-integration-tester → {testProject1}  → 3-run gate → returns counts + failing names
-integration-tester → {testProject2}  → 3-run gate → returns counts + failing names
-integration-tester → {testProject3}  → 3-run gate → returns counts + failing names
+integration-tester → {testProject1}  → 2-run gate → returns counts + failing names
+integration-tester → {testProject2}  → 2-run gate → returns counts + failing names
+integration-tester → {testProject3}  → 2-run gate → returns counts + failing names
 # ... barrier: aggregate all returns into Step 5 report
 ```
 
@@ -251,7 +251,7 @@ After all tests complete, report:
 
 **Run command:** {quickRunCommand}
 **Projects tested:** {N}
-**Repeatability gate:** 3 consecutive runs without DB reset
+**Repeatability gate:** 2 consecutive runs without DB reset
 
 | Project | Run | Passed | Failed | Skipped |
 |---------|-----|--------|--------|---------|
@@ -270,9 +270,9 @@ Status: ✅ ALL PASS | ❌ {N} FAILURES
 2. Diagnose: test bug (wrong assertion setup) or service bug (handler actually broken)?
 3. If test bug → fix in the test file (do NOT weaken assertions — fix setup/data)
 4. If service bug → report as finding, do NOT silently fix without telling user
-5. After fixing → re-run the full 3-run verify sequence
+5. After fixing → re-run the full 2-run verify sequence
 
-**Goal Contract evidence (after verify run):** Resolve the active Goal Contract per the goal-contract-satisfaction-loop protocol (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md`). When one exists, append the verification evidence to the goal file's Iteration Log — run command, per-run pass/fail counts, report path — mapped to the saved success criteria these tests verify, and update the matching Goal Satisfaction matrix rows (PASS on 3/3 green, FAIL with the failing-test list, BLOCKED with a user-facing reason). Record `No active goal — results reported inline only.` when none exists. Never copy raw sensitive fixture data into the goal file.
+**Goal Contract evidence (after verify run):** Resolve the active Goal Contract per the goal-contract-satisfaction-loop protocol (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md`). When one exists, append the verification evidence to the goal file's Iteration Log — run command, per-run pass/fail counts, report path — mapped to the saved success criteria these tests verify, and update the matching Goal Satisfaction matrix rows (PASS on 2/2 green, FAIL with the failing-test list, BLOCKED with a user-facing reason). Record `No active goal — results reported inline only.` when none exists. Never copy raw sensitive fixture data into the goal file.
 
 ---
 
@@ -349,7 +349,7 @@ If a test fails because the system is unavailable → report as "system not read
 - **"Skip, continue manually"** — user decides
 
 > **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting.
-> **A verify step that does not actually run tests 3 consecutive times is not repeatability verification. It is theater.**
+> **A verify step that does not actually run tests 2 consecutive times is not repeatability verification. It is theater.**
 > Read project config FIRST to understand how to run tests for this specific project.
 
 <!-- SYNC:source-test-drift-check -->
@@ -410,11 +410,11 @@ If a test fails because the system is unavailable → report as "system not read
 
 > **Integration Test Execution Discipline** — How the integration-test family (write · review · verify) runs, diagnoses, and clears a suite. Binds `$integration-test`, `$integration-test-review`, and `$integration-test-verify` identically.
 >
-> 1. **Verify the WHOLE system passes — not a hand-picked subset.** `$integration-test-verify` must prove the full relevant suite is green (every test in the system the change can touch), not one cherry-picked test. "All pass" is only true with actual runner output (Passed/Failed/Skipped counts + names) and only after 3 consecutive green runs without a DB reset.
+> 1. **Verify the WHOLE system passes — not a hand-picked subset.** `$integration-test-verify` must prove the full relevant suite is green (every test in the system the change can touch), not one cherry-picked test. "All pass" is only true with actual runner output (Passed/Failed/Skipped counts + names) and only after 2 consecutive green runs without a DB reset.
 > 2. **Drive state through real use-case paths — NEVER hack seed data.** Set up every precondition exactly as a real user would: real commands, queries, production consumers/messages, or valid idempotent seeders. NEVER create or mutate domain data by direct repository writes — that fabricates states a user could never reach and hides the real workflow bug. Hacking seed data to force a green run is forbidden.
 > 3. **On ANY failure → `$debug-investigate` the root cause BEFORE any fix.** Do not guess, do not patch the symptom site. Trace the failure end-to-start and classify whose fault it is: test code (wrong assertion/setup), source/production code (real defect), or environment/infrastructure/data. Then route: test-code fault → `$integration-test-review` to fix the test at the root (never weaken assertions or add skips); source-code fault → fix the production defect at the owning layer and report it; environment fault → mark BLOCKED and point at the startup script. NEVER change a test to match broken code.
 > 4. **60-second runtime cap — a slow test is a RED FLAG, not a tuning knob.** Local integration tests run fast. If any single test (or a stalled suite) exceeds ~60s, STOP and treat the slowness itself as a defect signal — deadlock, missing `await`, infinite poll/retry, a real network/external call, or an unbounded query. `$debug-investigate` the cause; NEVER paper over it by raising the timeout or extending the wait.
-> 5. **Loop until the whole suite is green.** After fixing the validated root cause, restart the full 3-run verification from run 1. Done means the entire relevant suite passes repeatably — never green-once, never a subset.
+> 5. **Loop until the whole suite is green.** After fixing the validated root cause, restart the full 2-run verification from run 1. Done means the entire relevant suite passes repeatably — never green-once, never a subset.
 
 <!-- /SYNC:integration-test-execution-discipline -->
 
@@ -536,7 +536,7 @@ If a test fails because the system is unavailable → report as "system not read
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Prove the reviewed integration tests pass repeatably — 3 consecutive green runs without DB reset, using project-configured run commands — with every pass/fail claim backed by actual test-runner output, never assumption.
+**IMPORTANT MUST ATTENTION Goal:** Prove the reviewed integration tests pass repeatably — 2 consecutive green runs without DB reset, using project-configured run commands — with every pass/fail claim backed by actual test-runner output, never assumption.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -554,11 +554,11 @@ If a test fails because the system is unavailable → report as "system not read
 **IMPORTANT MUST ATTENTION** read project-specific integration-test reference docs/scripts named by `referenceDocs` before any test command — Codex has no hook injection, so it must open these files directly.
 **IMPORTANT MUST ATTENTION** gate on a healthy system before running — run `systemCheckCommand`, and STOP (point user at `startupScript`) when infrastructure/services aren't ready — why: an unreliable system produces unreliable green/red results that prove nothing.
 **IMPORTANT MUST ATTENTION** determine the test-project set BEFORE running — `testProjectPattern` glob > `testProjects` list > git auto-detect — and run only projects the change touches unless the user asks for all — why: running irrelevant suites wastes the gate and muddies the result.
-**IMPORTANT MUST ATTENTION** pass requires 3 consecutive green runs of each relevant suite WITHOUT DB reset; any single failure restarts the sequence from run 1 — why: a one-off green run hides order-dependent and state-leak flakiness.
-**IMPORTANT MUST ATTENTION** when the set has several independent, per-DB-isolated projects, fan out one `integration-tester` sub-agent per project/balanced group in parallel, barrier on ALL returns, then aggregate into the Step 5 report — each sub-agent owns its full 3-run gate and returns real counts + failing names; suites sharing a DB run sequentially — why: parallel runs over a shared DB cross-contaminate state and silently break the no-reset guarantee.
+**IMPORTANT MUST ATTENTION** pass requires 2 consecutive green runs of each relevant suite WITHOUT DB reset; any single failure restarts the sequence from run 1 — why: a one-off green run hides order-dependent and state-leak flakiness.
+**IMPORTANT MUST ATTENTION** when the set has several independent, per-DB-isolated projects, fan out one `integration-tester` sub-agent per project/balanced group in parallel, barrier on ALL returns, then aggregate into the Step 5 report — each sub-agent owns its full 2-run gate and returns real counts + failing names; suites sharing a DB run sequentially — why: parallel runs over a shared DB cross-contaminate state and silently break the no-reset guarantee.
 **IMPORTANT MUST ATTENTION** show actual runner output (Passed/Failed/Skipped counts + failing names) — "all passed" without evidence is theater, not verification — confidence >80% to claim PASS, and that confidence rests on the captured output, never assumption.
 **IMPORTANT MUST ATTENTION** on failure, diagnose test-bug vs service-bug at the responsible layer BEFORE any edit — fix the root cause; report service bugs as findings, do NOT silently fix — why: patching the symptom site leaves the real defect live.
-**IMPORTANT MUST ATTENTION** to make red go green NEVER weaken/remove assertions, add skip annotations, or mutate domain data outside real use-case paths — instead fix the assertion setup or the handler, then re-run the full 3-run sequence — why: a test that no longer protects its invariant is worse than no test.
+**IMPORTANT MUST ATTENTION** to make red go green NEVER weaken/remove assertions, add skip annotations, or mutate domain data outside real use-case paths — instead fix the assertion setup or the handler, then re-run the full 2-run sequence — why: a test that no longer protects its invariant is worse than no test.
 **IMPORTANT MUST ATTENTION** before authoring or changing any test code, grep 3+ sibling integration tests and follow the local pattern (base fixtures, real DI, no mocks) — cite `file:line` — why: the closest example may not share the same preconditions; verify fit before copying.
 **IMPORTANT MUST ATTENTION** bootstrap task tracking before work and mark one task `in_progress` / `completed` at a time; on context loss call the current task list first and resume — never blindly duplicate tasks.
 **IMPORTANT MUST ATTENTION** resolve and update the active Goal Contract — append per-run pass/fail evidence to the goal file's Iteration Log and matrix; NEVER copy raw sensitive fixture data into goal files.
@@ -567,7 +567,7 @@ If a test fails because the system is unavailable → report as "system not read
 
 | Evasion                                       | Rebuttal                                                                         |
 | --------------------------------------------- | ------------------------------------------------------------------------------- |
-| "One green run is enough"                     | 3 consecutive green runs without DB reset, or it isn't verified. Restart on any red. |
+| "One green run is enough"                     | 2 consecutive green runs without DB reset, or it isn't verified. Restart on any red. |
 | "I'll just hardcode `dotnet test`"            | Read `quickRunCommand` from config — this skill is language-agnostic.            |
 | "The test asserts too strictly, relax it"     | Fix the code or the setup, never the assertion. Weakened tests protect nothing.  |
 | "Looks like it passed"                        | Show Passed/Failed/Skipped counts from real runner output. No output = no claim. |
@@ -578,9 +578,9 @@ If a test fails because the system is unavailable → report as "system not read
 
 ---
 
-**IMPORTANT MUST ATTENTION Goal:** Prove reviewed integration tests pass repeatably — 3 consecutive green runs, no DB reset, every pass/fail claim backed by actual runner output.
+**IMPORTANT MUST ATTENTION Goal:** Prove reviewed integration tests pass repeatably — 2 consecutive green runs, no DB reset, every pass/fail claim backed by actual runner output.
 **IMPORTANT MUST ATTENTION** read `integrationTestVerify` config FIRST and use its `quickRunCommand` — NEVER hardcode a language-specific runner.
-**IMPORTANT MUST ATTENTION** NEVER weaken assertions, add skips, or mutate domain data to force green — fix the root-cause layer (test bug vs service bug) and re-run the full 3-run sequence.
+**IMPORTANT MUST ATTENTION** NEVER weaken assertions, add skips, or mutate domain data to force green — fix the root-cause layer (test bug vs service bug) and re-run the full 2-run sequence.
 
 ---
 

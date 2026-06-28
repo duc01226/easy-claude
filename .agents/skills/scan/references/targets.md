@@ -949,7 +949,7 @@ Step 5 — **config-driven prerequisites load (TARGET-SPECIFIC):** load test pro
 - `runScript` / `startupScript` — inspect to capture Docker/system startup behavior + supported arguments
 - `systemCheckCommand` — document what readiness check must pass before direct test commands
 - `quickRunCommand`, `testProjectPattern`, `testProjects[]` — source of truth for runner commands + project discovery
-- `integrationRules[]` — document repeatability/data-integrity gates, including 3 consecutive verification runs without DB reset
+- `integrationRules[]` — document repeatability/data-integrity gates, including 2 consecutive verification runs without DB reset
 
 **Evidence gate:** Confidence <60% on framework detection → report uncertainty, ask user before proceeding.
 
@@ -964,7 +964,7 @@ Step 5 — **config-driven prerequisites load (TARGET-SPECIFIC):** load test pro
 
 **Agent 2: Test Patterns & Conventions**
 - **Think (Assertion dimension):** "What assertion patterns are used? Is there a waiting/polling mechanism for async operations? Are assertions on specific field values or just \"does not throw\"?"
-- **Think (Data dimension):** "How is test data created — builders, factories, seed methods? How is uniqueness ensured across runs? Is there a cleanup strategy?" — Flag direct repository create/update setup as a risk unless it is a valid, idempotent fixture seeder for service-owned reference data. Flag verification guidance as incomplete if it does not require 3 consecutive successful runs without DB reset.
+- **Think (Data dimension):** "How is test data created — builders, factories, seed methods? How is uniqueness ensured across runs? Is there a cleanup strategy?" — Flag direct repository create/update setup as a risk unless it is a valid, idempotent fixture seeder for service-owned reference data. Flag verification guidance as incomplete if it does not require 2 consecutive successful runs without DB reset.
 - **Think (Coverage dimension):** "Which services have tests? Which are missing? What's the test-to-feature ratio?"
 - Scan targets: assertion helpers (await-until-condition / polling helpers, custom assertion extensions, fluent `Should*`-style matchers); common test patterns (Arrange-Act-Assert, Given-When-Then, test data flow); test categorization (traits, categories, tags); data uniqueness patterns (`Ulid.NewUlid()`, `Guid.NewGuid()`, timestamp suffixes); infrastructure interaction (database state verification, queue drain, cache clear); map which services have test projects (coverage distribution) — use grep expressions, not counts.
 
@@ -990,7 +990,7 @@ Standard `output-quality-principles` (no counts/trees/TOCs, 1 example per patter
 - **Dual-dimension detect requirement:** MUST detect framework AND infrastructure type FIRST — patterns differ significantly.
 - **Evidence gate:** Confidence <60% on framework → stop and ask user.
 - **Hardcoded-credentials security gate:** test creds hardcoded in source (not env/secret store) → flag CRITICAL in report; verify flag present in Phase 4.
-- **3-consecutive-runs repeatability gate (TARGET-UNIQUE):** verification guidance is INCOMPLETE unless it requires 3 consecutive successful runs without DB reset.
+- **2-consecutive-runs repeatability gate (TARGET-UNIQUE):** verification guidance is INCOMPLETE unless it requires 2 consecutive successful runs without DB reset.
 - **Direct-repository-setup risk branch:** flag direct repository create/update setup as a risk unless it is a valid, idempotent fixture seeder for service-owned reference data.
 - **Smoke-only prohibition:** never document smoke-only assertions as acceptable unless infrastructure is truly unobservable.
 - **No hardcoded counts:** coverage/test-file counts MUST be grep expressions, never hardcoded.

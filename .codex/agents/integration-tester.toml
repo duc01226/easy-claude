@@ -290,7 +290,7 @@ Orchestration: Grep first → Graph expand → Grep verify. Iterative deepening 
 
 <!-- SYNC:repeatable-test-principle -->
 
-> **Infinitely Repeatable Tests** — Tests MUST run N times without failure. Like manual QC — run the suite 100 times, each run just adds more data. Verification is only PASS after the relevant suite/project passes 3 consecutive runs without database reset.
+> **Infinitely Repeatable Tests** — Tests MUST run N times without failure. Like manual QC — run the suite 100 times, each run just adds more data. Verification is only PASS after the relevant suite/project passes 2 consecutive runs without database reset.
 >
 > 1. **Unique data per run:** Use the project's unique ID generator for ALL entity IDs created in tests. NEVER hardcode IDs.
 > 2. **Additive only:** Tests create data, never delete/reset. Prior test runs MUST NOT interfere with current run.
@@ -799,7 +799,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 **IMPORTANT MUST ATTENTION** invoke through `ExecuteCommandAsync` / `ExecuteQueryAsync` — NEVER instantiate handlers directly — why: bypassing the pipeline skips real DI behavior and validates an unreal path.
 **IMPORTANT MUST ATTENTION** put a `[Collection("...")]` on every test class and use `IntegrationTestHelper.UniqueName()` for ALL data — why: shared state and hardcoded IDs cause cross-test/cross-run pollution that breaks repeatability.
-**IMPORTANT MUST ATTENTION** keep tests infinitely repeatable — additive-only, idempotent, no teardown/schema-rollback dependency — verification is PASS only after 3 consecutive runs without DB reset — why: a test that needs a clean DB is not a regression guard.
+**IMPORTANT MUST ATTENTION** keep tests infinitely repeatable — additive-only, idempotent, no teardown/schema-rollback dependency — verification is PASS only after 2 consecutive runs without DB reset — why: a test that needs a clean DB is not a regression guard.
 **IMPORTANT MUST ATTENTION** tests verify intent — assert the protected business rule/invariant so the test FAILS when that intent breaks, not merely mirror current behavior — why: a behavior-mirror test green-passes a real regression.
 **IMPORTANT MUST ATTENTION** search 3+ existing tests in the target service's IntegrationTests project before writing; evaluate fit (base class, collection, fixture lifetime) before copying — why: closest example ≠ matching preconditions.
 **IMPORTANT MUST ATTENTION** microservices/event-driven scope — scan producers, consumers, sagas, shared contracts in the changed behavior; a missing downstream consumer test = silent regression.

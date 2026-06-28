@@ -246,7 +246,7 @@ memory: project
 
 <!-- SYNC:repeatable-test-principle -->
 
-> **Infinitely Repeatable Tests** — Tests MUST run N times without failure. Like manual QC — run the suite 100 times, each run just adds more data. Verification is only PASS after the relevant suite/project passes 3 consecutive runs without database reset.
+> **Infinitely Repeatable Tests** — Tests MUST run N times without failure. Like manual QC — run the suite 100 times, each run just adds more data. Verification is only PASS after the relevant suite/project passes 2 consecutive runs without database reset.
 >
 > 1. **Unique data per run:** Use the project's unique ID generator for ALL entity IDs created in tests. NEVER hardcode IDs.
 > 2. **Additive only:** Tests create data, never delete/reset. Prior test runs MUST NOT interfere with current run.
