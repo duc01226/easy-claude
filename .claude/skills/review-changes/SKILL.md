@@ -1,6 +1,6 @@
 ---
 name: review-changes
-version: 2.7.0
+version: 2.8.0
 description: '[Code Quality] Use when reviewing current changes, staged or unstaged diffs, or branch-to-branch diffs.'
 ---
 
@@ -662,12 +662,13 @@ Before approving, verify artifacts are **easy to read, maintain, understand**:
 
 ### 5. Performance (MUST ATTENTION)
 
-- No O(n²) complexity where O(n) or O(1) is possible (use lookup structures)
-- No N+1 query patterns (batch load related data before iterating)
-- Pagination for all list queries (never fetch unbounded result sets)
-- Parallel operations where independent (not forced sequential)
+> Concise hot-path pass — OOM first, then structure, then batching. Deep multi-dimension analysis belongs to `/performance-review`; flag here, route there if it needs measurement.
+
+- **[MOST IMPORTANT] OOM / out-of-memory bad practices** — bound EVERY result set (page/limit/cursor); no unbounded read-all / `SELECT *`, no full materialization before paging/filtering, stream/chunk instead of buffering a whole export, no blobs/large-JSON/tracked entities loaded for list views, no unbounded cache/accumulator, no accidental multiple enumeration. Reduce rows AT THE SOURCE — row COUNT before row SIZE
+- **Best data structure & algorithm for the stack** — O(1) `Set`/`Map`/dict lookup instead of linear `find`/`includes`/`contains` inside a loop; no O(n²) where O(n log n)/O(n)/O(1) exists
+- **Batch once, or parallelize — never serial fan-out** — collapse per-item query/API/cache calls into one batched call (`IN`/bulk/aggregate/prefetch); run independent calls bounded-parallel, not sequential awaits (preserve ordering/authorization)
+- No N+1 query patterns (batch load related data before iterating); query patterns have appropriate indexes
 - Async/await used correctly (no blocking in async context)
-- Query patterns have appropriate indexes
 
 ### 6. Common Issues (MUST ATTENTION)
 
