@@ -78,6 +78,7 @@ test('migrate-claude-to-codex mirrors skills and injects protocol block', async 
                 'Agent({ subagent_type: "architect", prompt: "review" })',
                 'Agent(review-architecture, subagent_type="code-reviewer", ...)',
                 'Use the specialized subagent_type when one exists.',
+                'STOP and `AskUserQuestion` whether integration-test-verify ran.',
                 ''
             ].join('\n'),
             'utf8'
@@ -185,6 +186,8 @@ test('migrate-claude-to-codex mirrors skills and injects protocol block', async 
         assert.match(mirroredSkill, /spawn_agent\(\{ agent_type: "architect"/);
         assert.match(mirroredSkill, /spawn_agent\(review-architecture, agent_type="code-reviewer"/);
         assert.match(mirroredSkill, /Use the specialized agent_type when one exists\./);
+        assert.match(mirroredSkill, /STOP and ask the user directly whether integration-test-verify ran\./);
+        assert.doesNotMatch(mirroredSkill, /a direct user question/);
         assert.doesNotMatch(mirroredSkill, /\bAgent\(|\bsubagent_type\b/);
         assert.equal(mirroredReadme, 'Legacy $code-simplifier note.\n');
         assert.equal(mirroredPackageLock, '{\n  "lockfileVersion": 3\n}\n');

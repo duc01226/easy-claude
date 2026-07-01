@@ -169,7 +169,7 @@ Before saving any lesson, critically evaluate whether a doc update alone is suff
 2. **Ask:** "Could this mistake recur if the AI forgets this lesson?" If yes → needs more than a doc update
 3. **Ask:** "Can this be caught automatically by a test or hook?" If yes → recommend hook/test
 4. **Evaluate Static Protocol Lesson promotion** (see below)
-5. **Present options to user** with a direct user question:
+5. **Present options to user** with ask the user directly:
     - "Doc update only" — save to the best-fit reference file (default for most lessons)
     - "Doc + prompt rule" — also add to `development-rules.md` so all agents see it
     - "Doc + Static Protocol Lesson" — also add to shared protocol lessons (see criteria below)
@@ -302,7 +302,7 @@ Run these 2 tasks at the end of every `$learn` operation:
     - **Universality** — How often does this apply? (every session vs rare edge case)
     - **Recurrence risk** — How likely is the AI to repeat this mistake without the reminder?
 3. Score each: **HIGH** (keep as-is), **MEDIUM** (candidate to condense), **LOW** (candidate to remove)
-4. Present to user with a direct user question: "Budget exceeded. Recommend removing/condensing these LOW/MEDIUM items: [list]. Approve?"
+4. Present to user with ask the user directly: "Budget exceeded. Recommend removing/condensing these LOW/MEDIUM items: [list]. Approve?"
 5. On approval: condense MEDIUM items (shorten wording), remove LOW items, then save new lesson
 6. On rejection: ask user which to remove/condense
 

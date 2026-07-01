@@ -64,7 +64,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Mode 1: Create Agent
 
-1. **Clarify** — a direct user question: purpose, read-only vs read-write, model preference, memory needs
+1. **Clarify** — ask the user directly: purpose, read-only vs read-write, model preference, memory needs
 2. **Check Existing** — Glob `.claude/agents/*.md` for similar agents. Avoid duplication.
 3. **Scaffold** — Create `.claude/agents/{name}.md` using frontmatter template below
 4. **Write System Prompt** — Structure: `## Role` → `## Workflow` → `## Key Rules` → `## Output`

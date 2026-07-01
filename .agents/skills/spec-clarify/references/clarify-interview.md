@@ -14,7 +14,7 @@
    each, run the audit prompts to surface encoded assumptions / defaults / scope-boundaries / ambiguities.
 4. Classify each surfaced item **OBVIOUS / NON-OBVIOUS / CONFLICTS** (per `SKILL.md` Step 2). OBVIOUS items are
    documented-and-proceeded; **NON-OBVIOUS + CONFLICTS + high-impact** items become gate questions.
-5. Take gate questions to the user via a direct user question: **ask ≥MIN when ≥MIN real decisions exist**, never
+5. Take gate questions to the user by asking the user directly: **ask ≥MIN when ≥MIN real decisions exist**, never
    exceed MAX, ≤4 options per call, recommended option first, issue multiple calls when there are >4 decisions.
    When fewer than MIN genuine decisions exist, ask only the genuine ones and record "below-MIN: only N real
    decisions surfaced" — NEVER invent filler questions to hit MIN.

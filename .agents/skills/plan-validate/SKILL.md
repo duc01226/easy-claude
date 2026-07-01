@@ -55,10 +55,10 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Summary:**
 
 - **Purpose:** validate a finished plan via a critical-questions interview so every assumption-laden decision and every preservation-critical behavior is user-confirmed BEFORE implementation — no unstated assumption silently reaches code.
-- **Main steps (run in order):** Phase 0 Detect Plan Type → resolve plan path (`$ARGUMENTS` / `## Plan Context` / ask) → load `mode` + `questions` range as hard constraints → Step 1 Read `plan.md` + all `phase-*.md`, flag decisions/assumptions/risks/tradeoffs → Step 2 Extract topics across 8 categories (Architecture, Assumptions, Tradeoffs, Risks, Scope, New Tech/Lib, Test Specs, Preservation) → Step 3 Generate questions (2-4 concrete options each, surface implicit decisions) → Step 4 Interview via a direct user question (≤4 per call) → Step 5 Document answers → offer implement/refine/skip.
+- **Main steps (run in order):** Phase 0 Detect Plan Type → resolve plan path (`$ARGUMENTS` / `## Plan Context` / ask) → load `mode` + `questions` range as hard constraints → Step 1 Read `plan.md` + all `phase-*.md`, flag decisions/assumptions/risks/tradeoffs → Step 2 Extract topics across 8 categories (Architecture, Assumptions, Tradeoffs, Risks, Scope, New Tech/Lib, Test Specs, Preservation) → Step 3 Generate questions (2-4 concrete options each, surface implicit decisions) → Step 4 Interview by asking the user directly (≤4 per call) → Step 5 Document answers → offer implement/refine/skip.
 - **Phase 0 weights everything:** plan type (bugfix/feature/migration/refactor/other) decides which question categories fire; any fix/bug/regression/broken/defect keyword makes the Preservation question BLOCKING — never skip it.
 - **The output is a REAL interview, not a self-answer:** honor the `questions` MIN-MAX range from `## Plan Context`, give 2-4 concrete options per question, treat the Preservation "Unsure" answer as BLOCKED → route to `$plan`; if the plan adds new tech/packages, probe whether alternatives were evaluated before accepting the choice.
-- **Persist results narrowly:** add ONLY a `## Validation Summary` (confirmed decisions + action items) to `plan.md` — NEVER edit phase files; close by offering implement/refine/skip via a direct user question.
+- **Persist results narrowly:** add ONLY a `## Validation Summary` (confirmed decisions + action items) to `plan.md` — NEVER edit phase files; close by offering implement/refine/skip by asking the user directly.
 
 **Workflow:**
 
@@ -71,7 +71,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Key Rules:**
 
-- MUST ATTENTION use a direct user question — NEVER auto-decide on behalf of user — why: the user owns every assumption-laden choice, not the agent
+- MUST ATTENTION use ask the user directly — NEVER auto-decide on behalf of user — why: the user owns every assumption-laden choice, not the agent
 - Ask ONLY about genuine choices affecting implementation — NEVER about non-decision points — why: noise questions burn the interview budget and erode trust
 - Bugfix plans ALWAYS trigger the Preservation question (keywords: fix, bug, regression, broken, defect) — why: an unverified preserved-correctness invariant is a silent regression
 - Persist via a `## Validation Summary` on `plan.md` — NEVER modify phase files — why: phase files are the plan's source of truth; validation is a read-then-annotate pass
@@ -191,11 +191,11 @@ Options (multi-select):
 
 - Option 2 selected → `plan.md` Preservation Inventory MUST cite Preservation TC asserting new behavior is intended
 - Option 4 selected → return BLOCKED status, recommend `$plan` before proceeding
-- Option 3 selected → a direct user question follow-up: "Confirm: current code has NO preserved invariant? [Yes, every input broken / No, missed some — re-investigate]"
+- Option 3 selected → ask the user directly follow-up: "Confirm: current code has NO preserved invariant? [Yes, every input broken / No, missed some — re-investigate]"
 
 ### Step 4: Interview User
 
-Use a direct user question — NEVER skip or auto-answer.
+Use ask the user directly — NEVER skip or auto-answer.
 
 **Rules:**
 
@@ -237,7 +237,7 @@ After validation:
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing, use a direct user question to present:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing, use ask the user directly to present:
 
 - **"$feature-implement (Recommended)"** — Begin implementation with validated plan
 - **"$refine"** — If plan needs PBI refinement first
@@ -245,7 +245,7 @@ After validation:
 
 ---
 
-> **[BLOCKING]** MUST ATTENTION use a direct user question to interview user. Completing without asking ≥1 question = violation.
+> **[BLOCKING]** MUST ATTENTION use ask the user directly to interview user. Completing without asking ≥1 question = violation.
 
 > **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. For simple tasks, AI MUST ATTENTION ask user whether to skip.
 
@@ -305,7 +305,7 @@ After validation:
 >
 > **Mandatory closers:** Confidence % stated · Assumptions listed · Open questions surfaced · Next action concrete.
 >
-> **Stop conditions:** confidence <80% on any critical decision → escalate via ask the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
+> **Stop conditions:** confidence <80% on any critical decision → escalate by asking the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 >
@@ -481,9 +481,9 @@ After validation:
 - **Cross-Service Check:** scan producers, consumers, sagas, contracts; flag breaking-change risk.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 
-**IMPORTANT MUST ATTENTION** run the main steps IN ORDER — Phase 0 Detect Plan Type → resolve plan path → load `mode` + `questions` range → Step 1 Read `plan.md` + all `phase-*.md` (flag decisions/assumptions/risks/tradeoffs) → Step 2 Extract topics (8 categories) → Step 3 Generate questions (2-4 options each) → Step 4 Interview via a direct user question (≤4 per call) → Step 5 Document answers → offer implement/refine/skip — why: the pipeline IS the work; never collapse or skip a step from memory
+**IMPORTANT MUST ATTENTION** run the main steps IN ORDER — Phase 0 Detect Plan Type → resolve plan path → load `mode` + `questions` range → Step 1 Read `plan.md` + all `phase-*.md` (flag decisions/assumptions/risks/tradeoffs) → Step 2 Extract topics (8 categories) → Step 3 Generate questions (2-4 options each) → Step 4 Interview by asking the user directly (≤4 per call) → Step 5 Document answers → offer implement/refine/skip — why: the pipeline IS the work; never collapse or skip a step from memory
 
-**IMPORTANT MUST ATTENTION** validate decisions with the user via a direct user question — NEVER auto-decide or self-answer; completing without ≥1 question is a protocol violation — why: the user owns every assumption-laden choice, not the agent
+**IMPORTANT MUST ATTENTION** validate decisions with the user by asking the user directly — NEVER auto-decide or self-answer; completing without ≥1 question is a protocol violation — why: the user owns every assumption-laden choice, not the agent
 **IMPORTANT MUST ATTENTION** detect plan type FIRST (Phase 0) BEFORE generating questions — bugfix keywords (fix, bug, regression, broken, defect) make the Preservation question BLOCKING, never skipped — why: detection drives which categories fire and the Preservation gate
 **IMPORTANT MUST ATTENTION** NEVER modify phase files — persist results by adding ONLY a `## Validation Summary` (confirmed decisions + action items) to `plan.md` — why: phase files are the plan's source of truth and validation is a read-then-annotate pass
 
@@ -505,14 +505,14 @@ After validation:
 | "Preservation doesn't apply here"  | If title has fix/bug/regression/broken/defect → ALWAYS applies.     |
 | "Phase 0 not needed"               | Detection drives the Preservation gate. NEVER skip.                 |
 | "Only ask a few questions"         | Use the `questions` range from Plan Context. Never go below min.    |
-| "I'll just answer for the user"    | a direct user question is mandatory. Self-answer = no validation.        |
+| "I'll just answer for the user"    | ask the user directly is mandatory. Self-answer = no validation.        |
 | "New library is obviously fine"    | Probe whether alternatives were evaluated before accepting it.      |
 | "I'll edit the phase files inline" | NEVER. Add only a `## Validation Summary` to `plan.md`.             |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
 
 **IMPORTANT MUST ATTENTION** detect plan type (Phase 0) FIRST — bugfix keywords make Preservation BLOCKING.
-**IMPORTANT MUST ATTENTION** validate with the user via a direct user question — NEVER auto-decide.
+**IMPORTANT MUST ATTENTION** validate with the user by asking the user directly — NEVER auto-decide.
 **IMPORTANT MUST ATTENTION** NEVER modify phase files — add only a `## Validation Summary` to `plan.md`.
 
 ---

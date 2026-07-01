@@ -55,7 +55,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Summary:**
 
 - **Purpose:** an automated quality gate (NOT a collaborative review — `$pbi-challenge` is for that) running two checklists — the 7 Required DoR criteria (story template, testable AC, wireframes, UI design, AI pre-review, story points, dependencies) AND the M1-M6 compliance gate; ANY single failure across either set returns FAIL.
-- **Main steps (run in order):** (1) Locate PBI in `team-artifacts/pbis/` or active plan; (2) apply the self-contained DoR 7-criteria checklist; (3) parse each PBI section against all 7 items (template format, GIVEN/WHEN/THEN AC ×3+, wireframes, UI design, AI pre-review, story-point frontmatter, dependencies table); (4) run the M1-M6 mandate gate; (5) verify estimation frontmatter; (6) classify PASS/FAIL; (7) emit the DoR Gate Result template, then route via a direct user question.
+- **Main steps (run in order):** (1) Locate PBI in `team-artifacts/pbis/` or active plan; (2) apply the self-contained DoR 7-criteria checklist; (3) parse each PBI section against all 7 items (template format, GIVEN/WHEN/THEN AC ×3+, wireframes, UI design, AI pre-review, story-point frontmatter, dependencies table); (4) run the M1-M6 mandate gate; (5) verify estimation frontmatter; (6) classify PASS/FAIL; (7) emit the DoR Gate Result template, then route by asking the user directly.
 - The DoR is self-contained here (BA Refinement Context section) — no external protocol file needed; every verdict MUST cite the concrete PBI section + line/AC, and a PASS over any M1-M5 violation is itself defective.
 - Verify story-point estimation frontmatter (Fibonacci 1-21 + complexity, man-days range, blast-radius) per the SYNC estimation framework; story points >13 trigger a SHOULD-SPLIT WARN (NOT a FAIL).
 - Carriers are EXEMPT from M1/M2 — flag source-identifier leakage ONLY in narrative prose, never inside `[Source: ...]` / `**Evidence**` / frontmatter / ` ```mermaid``` ` carriers.
@@ -165,7 +165,7 @@ If ANY box fails → DoR result is FAIL; list each violated mandate ID with its 
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use a direct user question to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use ask the user directly to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
 
 - **"$prioritize (Recommended)"** — If PASS: PBI is grooming-ready; prioritize into the backlog
 - **"$refine"** — If FAIL: revise PBI
@@ -400,14 +400,14 @@ If ANY box fails → DoR result is FAIL; list each violated mandate ID with its 
 - **Estimation:** bottom-up phase hours drive man-days; SP derived; >13 SHOULD-SPLIT.
 - **Critical Thinking:** traced proof per claim, confidence >80% to act, never guess.
 
-**IMPORTANT MUST ATTENTION** run the gate steps in order — Locate PBI → apply self-contained DoR 7-criteria → evaluate each criterion against the PBI → run the M1-M6 mandate gate → verify estimation frontmatter → classify PASS/FAIL → emit result template → route a direct user question; NEVER skip the M1-M6 gate or the estimation check. — why: a skipped sub-check silently passes an unready story.
+**IMPORTANT MUST ATTENTION** run the gate steps in order — Locate PBI → apply self-contained DoR 7-criteria → evaluate each criterion against the PBI → run the M1-M6 mandate gate → verify estimation frontmatter → classify PASS/FAIL → emit result template → route ask the user directly; NEVER skip the M1-M6 gate or the estimation check. — why: a skipped sub-check silently passes an unready story.
 **MANDATORY IMPORTANT MUST ATTENTION** FAIL blocks grooming — ANY of the 7 required criteria OR any M1-M5 mandate fails → return FAIL, name the violated ID with its concrete PBI section + line/AC citation. NEVER PASS over an M1-M5 violation — a PASS over one is itself defective. — why: an unready story poisons grooming and ships ambiguity downstream.
 **IMPORTANT MUST ATTENTION** automated quality gate, NOT collaborative review — run both checklists (7 required + M1-M6); route `$pbi-challenge` for collaborative review. — why: conflating gate with review lets soft-pass judgments through a hard gate.
 **IMPORTANT MUST ATTENTION** cite `file:line`/section evidence for EVERY verdict (confidence >80% to act, <60% DO NOT decide) — every check references the concrete PBI section + line/AC; NEVER guess a criterion's status. — why: an uncited PASS/FAIL is unauditable and pattern-matched, not verified.
 **IMPORTANT MUST ATTENTION** carriers EXEMPT from M1/M2 — source identifiers are CORRECT inside `[Source: ...]`, `**Evidence**`, `**IntegrationTest**`, YAML frontmatter, ` ```mermaid ``` `; flag leakage ONLY in PBI narrative prose (banned tokens: `spec-principles.md` §3.2). — why: flagging a carrier as a violation is a false FAIL that blocks a ready PBI.
 **IMPORTANT MUST ATTENTION** verify story-point frontmatter per the SYNC estimation framework — Fibonacci 1-21 + complexity, bottom-up `man_days` range, blast-radius; story points >13 → SHOULD-SPLIT WARN, NOT a FAIL. — why: a WARN escalated to a FAIL wrongly blocks a groomable large story.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks via task tracking BEFORE starting; add a final review todo verifying every verdict cites its PBI section/line.
-**MANDATORY IMPORTANT MUST ATTENTION** emit the DoR Gate Result template (checklist table + Blocking Items + Verdict), then route via a direct user question — never auto-decide the next step.
+**MANDATORY IMPORTANT MUST ATTENTION** emit the DoR Gate Result template (checklist table + Blocking Items + Verdict), then route by asking the user directly — never auto-decide the next step.
 
 **Anti-Rationalization:**
 
@@ -417,7 +417,7 @@ If ANY box fails → DoR result is FAIL; list each violated mandate ID with its 
 | "M1-M5 is minor, the rest passes — PASS overall" | ANY M1-M5 violation = FAIL. A PASS over an M1-M5 violation is itself defective.                   |
 | "Source name in `[Source: ...]` — flag it M1/M2" | Carriers are EXEMPT. Flag leakage ONLY in narrative prose, never in evidence carriers.            |
 | "Story points >13, fail the gate"                | >13 SP = SHOULD-SPLIT WARN, not a FAIL. Do not escalate a WARN to a FAIL.                         |
-| "Skip a direct user question, result is obvious"      | NEVER auto-decide. Emit the result template, then route via a direct user question — the user decides. |
+| "Skip ask the user directly, result is obvious"      | NEVER auto-decide. Emit the result template, then route by asking the user directly — the user decides. |
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
 
@@ -427,7 +427,7 @@ If ANY box fails → DoR result is FAIL; list each violated mandate ID with its 
 
 **IMPORTANT MUST ATTENTION** FAIL blocks grooming on ANY required-criterion or M1-M5 failure — name the violated ID + cite PBI section/line; NEVER PASS over an M1-M5 violation.
 **IMPORTANT MUST ATTENTION** cite `file:line`/section for EVERY verdict (>80% confidence to act); NEVER guess a check's status.
-**IMPORTANT MUST ATTENTION** emit the DoR Gate Result template, then route via a direct user question — never auto-decide.
+**IMPORTANT MUST ATTENTION** emit the DoR Gate Result template, then route by asking the user directly — never auto-decide.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Hookless Prompt Protocol Mirror (Auto-Synced)

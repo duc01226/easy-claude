@@ -234,7 +234,7 @@ Emit this table linking each interactive component to the feature operations/rul
 
 - **Always display confidence level** for wireframe interpretation (analysis is 70-80% accurate).
 - **Always recommend human review** before proceeding to implementation.
-- If confidence <70%: ask clarifying questions about ambiguous elements via a direct user question.
+- If confidence <70%: ask clarifying questions about ambiguous elements by asking the user directly.
 
 ## Output Format
 
@@ -409,7 +409,7 @@ For an accessibility-audit deliverable, produce this checklist report and save i
 
 ## Workflow Recommendation
 
-> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use a direct user question to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
+> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use ask the user directly to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
 >
 > 1. **Run the design sequence** (Recommended) — `$design-spec` → `$design --lane=product` (product UIs) or `$design --lane=marketing` (marketing/creative) → `$workflow-review-changes`
 > 2. **Execute `$design-spec` directly** — run this skill standalone

@@ -291,7 +291,7 @@ After sub-agent returns:
 1. **Read** report from `plans/reports/code-review-rerun{N}-{date}.md`
 2. **Integrate** findings as `## Re-Review {N} Findings` — DO NOT filter or override
 3. **If findings remain:** validate the new finding set before any additional fixes
-4. **Repeat only after another fix cycle:** restart the full review again after validated fixes are applied; if the same blocker repeats across 3 full invocations with no progress, escalate via a direct user question
+4. **Repeat only after another fix cycle:** restart the full review again after validated fixes are applied; if the same blocker repeats across 3 full invocations with no progress, escalate by asking the user directly
 
 ## Clean Code Rules (MUST ATTENTION CHECK)
 
@@ -409,7 +409,7 @@ SITUATION?
 
 ## Workflow Recommendation
 
-> **MANDATORY — NO EXCEPTIONS:** If NOT already in a workflow, use a direct user question to ask user:
+> **MANDATORY — NO EXCEPTIONS:** If NOT already in a workflow, use ask the user directly to ask user:
 >
 > 1. **Activate `workflow-review-changes` workflow** (Recommended) — full review → validated fix cycle → re-review until clean
 > 2. **Execute `$code-review` directly** — run standalone
@@ -456,7 +456,7 @@ If `architectureRules` absent in project-config.json → skip silently.
 
 ## Next Steps
 
-**MANDATORY — NO EXCEPTIONS** after completing, use a direct user question:
+**MANDATORY — NO EXCEPTIONS** after completing, use ask the user directly:
 
 - **"$fix (Recommended)"** — review found issues needing fixes
 - **"$watzup"** — review clean, wrap up session
@@ -701,7 +701,7 @@ If `architectureRules` absent in project-config.json → skip silently.
 >
 > **Mandatory closers:** Confidence % stated · Assumptions listed · Open questions surfaced · Next action concrete.
 >
-> **Stop conditions:** confidence <80% on any critical decision → escalate via ask the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
+> **Stop conditions:** confidence <80% on any critical decision → escalate by asking the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 >
@@ -826,7 +826,7 @@ If `architectureRules` absent in project-config.json → skip silently.
 > - Subtle edge cases the prior round rationalized away
 > - Regressions introduced by the fixes themselves
 >
-> **Loop termination:** After each full re-review, repeat the same decision: clean → END; issues → validate findings → fix → restart from the first review phase. Continue until a complete review pass finds zero issues. If the same validated finding repeats for 3 full invocations with no progress, or a fix requires product/owner input, escalate via a direct user question.
+> **Loop termination:** After each full re-review, repeat the same decision: clean → END; issues → validate findings → fix → restart from the first review phase. Continue until a complete review pass finds zero issues. If the same validated finding repeats for 3 full invocations with no progress, or a fix requires product/owner input, escalate by asking the user directly.
 >
 > **Rules:**
 >
@@ -864,7 +864,7 @@ If `architectureRules` absent in project-config.json → skip silently.
 > - SKIP fresh sub-agent when the prior full review found zero issues (no fixes = nothing new to verify)
 > - NEVER skip the full review restart after a fix cycle — every fix invalidates the prior verdict
 > - NEVER reuse a sub-agent across rounds — every fresh round spawns a NEW `spawn_agent` call
-> - Continue until a complete full review pass has zero findings; if the same blocker repeats 3 times with no progress, escalate via a direct user question
+> - Continue until a complete full review pass has zero findings; if the same blocker repeats 3 times with no progress, escalate by asking the user directly
 > - Track iteration count and repeated blockers in conversation context (session-scoped, no persistent files)
 
 <!-- /SYNC:fresh-context-review -->
@@ -1345,7 +1345,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 - **MANDATORY** Nested Task Expansion Contract — when invoked inside a workflow, STILL expand internal phases via task tracking with `[N.M] $skill-name — phase` prefix and `TaskUpdate(parentTaskId, addBlockedBy: [childIds])` linkage. Workflow row is container, not substitute.
 - **MANDATORY** break work into small todo tasks using task tracking BEFORE starting
-- **MANDATORY** validate decisions with user via a direct user question — never auto-decide
+- **MANDATORY** validate decisions with user by asking the user directly — never auto-decide
 - **MANDATORY** add final review task to verify work quality
 - **MANDATORY MUST ATTENTION** search for project-specific reference docs BEFORE reviewing (coding standards, architecture, test conventions)
 - **MANDATORY MUST ATTENTION** Phase 0: detect change type FIRST — route auth/perf files to specialized sub-agents before general review

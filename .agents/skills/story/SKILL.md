@@ -54,12 +54,12 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Summary:**
 
-- **Main steps (the pipeline):** (1) read PBI + active plan, load domain context — module, entities, BR-IDs; (2) identify VERTICAL end-to-end slices; (3) SPIDR-split anything SP >8 (MUST) / >5 (SHOULD) until INVEST-valid; (4) write each story with min 3 GWT scenarios + 1 authorization scenario; (5) estimate bottom-up (Blast-Radius pre-pass → phase-hours → days; SP DERIVED) and emit full estimate frontmatter; (6) emit Story Dependencies table (no orphans); (7) run MANDATORY a direct user question validation; (8) save to `team-artifacts/pbis/stories/{YYMMDD}-ba-story-{slug}.md`; (9) suggest `$spec [mode=tests]` next.
+- **Main steps (the pipeline):** (1) read PBI + active plan, load domain context — module, entities, BR-IDs; (2) identify VERTICAL end-to-end slices; (3) SPIDR-split anything SP >8 (MUST) / >5 (SHOULD) until INVEST-valid; (4) write each story with min 3 GWT scenarios + 1 authorization scenario; (5) estimate bottom-up (Blast-Radius pre-pass → phase-hours → days; SP DERIVED) and emit full estimate frontmatter; (6) emit Story Dependencies table (no orphans); (7) run MANDATORY ask the user directly validation; (8) save to `team-artifacts/pbis/stories/{YYMMDD}-ba-story-{slug}.md`; (9) suggest `$spec [mode=tests]` next.
 - Slice VERTICALLY (thin end-to-end), NEVER horizontally (backend/frontend split) — apply SPIDR (Spike/Paths/Interfaces/Data/Rules) until each story is INVEST-valid — why: horizontal slices delay deliverable user value.
 - Every story is tech-agnostic + rebuild-from-scratch (AI-SDD M1-M5): no framework/class/file names in prose, carry the inherited `FR-`/`BR-` logical ID plus a `[Source: namespace/service/id]` abstract anchor (NEVER `file:line`) — reject and rework on any STOP condition.
 - Min 3 GIVEN/WHEN/THEN scenarios (happy + edge + error) PLUS a mandatory authorization scenario per story; every criterion has exactly ONE observable interpretation.
 - Estimate bottom-up (phase-hours → days × productivity factor; SP DERIVED, never the driver) with explicit `test_count` and Blast-Radius pass; emit full `man_days_*` / `risk_*` / `blast_radius` / `estimate_reasoning` frontmatter — why: SP-first anchors to a guess, downstream `$prioritize`+`$plan` read these fields.
-- Story Dependencies table is mandatory (no orphan stories) and the a direct user question validation interview runs before handoff — NEVER auto-decide slicing/scope/effort.
+- Story Dependencies table is mandatory (no orphan stories) and the ask the user directly validation interview runs before handoff — NEVER auto-decide slicing/scope/effort.
 
 > **MANDATORY IMPORTANT MUST ATTENTION** Plan ToDo Task to READ the following project-specific reference docs:
 >
@@ -537,7 +537,7 @@ After creating user stories, validate with user.
 ### Process
 
 1. Generate 2-4 questions focused on slicing quality, scenarios, and dependencies
-2. Use a direct user question tool to interview
+2. Use ask the user directly tool to interview
 3. Document in story artifact under `## Validation Summary`
 4. Update stories based on answers (split if needed)
 
@@ -596,7 +596,7 @@ Example for a "Create Invoice" story:
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use a direct user question to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use ask the user directly to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
 - **"$spec [mode=tests] (Recommended)"** — Generate test specifications from stories
 - **"$pbi-mockup"** — Generate HTML mockup report from PBI and stories
 - **"$plan-validate"** — If stories need validation against plan
@@ -815,7 +815,7 @@ Example for a "Create Invoice" story:
 >
 > **Mandatory closers:** Confidence % stated · Assumptions listed · Open questions surfaced · Next action concrete.
 >
-> **Stop conditions:** confidence <80% on any critical decision → escalate via ask the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
+> **Stop conditions:** confidence <80% on any critical decision → escalate by asking the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 >
@@ -880,7 +880,7 @@ Example for a "Create Invoice" story:
 
 **IMPORTANT MUST ATTENTION Goal:** produce sprint-ready, INVEST-valid user stories — tech-agnostic, testable GWT criteria, evidence-cited estimates, dependency-mapped — that a team with zero codebase knowledge can implement on any stack.
 
-**IMPORTANT MUST ATTENTION Main steps (execute in order, NEVER skip):** read PBI + active plan + domain context → identify VERTICAL slices → SPIDR-split (SP >8 MUST / >5 SHOULD) → write INVEST stories with min 3 GWT + 1 auth scenario → estimate bottom-up (Blast-Radius pre-pass, SP DERIVED) + full frontmatter → emit Story Dependencies table (no orphans) → MANDATORY a direct user question validation → save to `team-artifacts/pbis/stories/` → suggest `$spec [mode=tests]`.
+**IMPORTANT MUST ATTENTION Main steps (execute in order, NEVER skip):** read PBI + active plan + domain context → identify VERTICAL slices → SPIDR-split (SP >8 MUST / >5 SHOULD) → write INVEST stories with min 3 GWT + 1 auth scenario → estimate bottom-up (Blast-Radius pre-pass, SP DERIVED) + full frontmatter → emit Story Dependencies table (no orphans) → MANDATORY ask the user directly validation → save to `team-artifacts/pbis/stories/` → suggest `$spec [mode=tests]`.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries) — MUST ATTENTION honor each canonical body, NEVER skip one:**
 
@@ -900,7 +900,7 @@ Example for a "Create Invoice" story:
 **MANDATORY IMPORTANT MUST ATTENTION** slice VERTICALLY (thin end-to-end), NEVER horizontally (backend/frontend split) — why: horizontal slices delay deliverable user value.
 **MANDATORY IMPORTANT MUST ATTENTION** search existing component libraries and domain vocabulary BEFORE proposing new components/entities (>=80% match = reuse); use the project's own entity names — why: duplicate UI/domain code = wrong tier and fragments the codebase.
 **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` (or grep/graph) evidence with a confidence % for every claim about existing code/entities — >80% to act, <80% verify first — why: AI hallucinates entity/API names; unverified scoping mis-slices the story.
-**MANDATORY IMPORTANT MUST ATTENTION** validate stories with the user via a direct user question before handoff — NEVER auto-decide slicing/scope/effort — why: silent assumptions on ambiguous scope ship the wrong stories.
+**MANDATORY IMPORTANT MUST ATTENTION** validate stories with the user by asking the user directly before handoff — NEVER auto-decide slicing/scope/effort — why: silent assumptions on ambiguous scope ship the wrong stories.
 **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify every story against its AC scenarios, the dependency table, and the Quality Checklist.
 
 **Anti-Rationalization:**
@@ -912,7 +912,7 @@ Example for a "Create Invoice" story:
 | "Happy path is enough"                    | Min 3 scenarios + a mandatory authorization scenario per story. Edge + error + auth are NOT optional. |
 | "+tests covers the test cost"             | Compute `test_count` explicitly per driver (auth matrix, validation, states). Hand-wave is the #1 estimate failure. |
 | "Independent story, skip the dep table"   | No orphan stories — every story appears in the dependency table, even if `independent`.        |
-| "Slicing is obvious, skip validation"     | a direct user question validation is MANDATORY, not optional. The user confirms slicing/scope/effort. |
+| "Slicing is obvious, skip validation"     | ask the user directly validation is MANDATORY, not optional. The user confirms slicing/scope/effort. |
 
 **IMPORTANT MUST ATTENTION** AI-SDD M1-M5 tech-agnostic + dependency table + bottom-up estimate are the three rules this skill must never skip — re-anchored here (recency) and in the Quick Summary (primacy).
 ````

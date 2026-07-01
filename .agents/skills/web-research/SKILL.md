@@ -159,7 +159,7 @@ Note gaps for the `deep-research` step.
 
 ## Workflow Recommendation
 
-> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use a direct user question to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
+> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use ask the user directly to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
 >
 > 1. **Activate `workflow-research` workflow** (Recommended) — web-research → deep-research → synthesis → review
 > 2. **Execute `$web-research` directly** — run this skill standalone
@@ -168,7 +168,7 @@ Note gaps for the `deep-research` step.
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use a direct user question to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use ask the user directly to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
 
 - **"$deep-research (Recommended)"** — Deep-dive into top sources
 - **"$business-evaluation"** — If evaluating business viability
@@ -256,7 +256,7 @@ Note gaps for the `deep-research` step.
 **MANDATORY IMPORTANT MUST ATTENTION** the deliverable is the intermediate source map at `.claude/tmp/_sources-{slug}.md` (sources table + Gaps Identified), NOT a synthesized report — hand it off to `deep-research`; mine the set for gaps (missing perspectives, missing quantitative data, stale recency) so the next step knows where to dig.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting; add a final review todo task to verify work quality; transition one task at a time.
 **IMPORTANT MUST ATTENTION** persist intermediate findings/results to a report file in `plans/reports/` for complex or lengthy work — why: external memory prevents context loss and is itself the deliverable.
-**MANDATORY IMPORTANT MUST ATTENTION** if NOT already in a workflow, validate the route with the user via a direct user question — NEVER auto-decide "simple enough to skip"; the user decides workflow vs. standalone `$web-research`.
+**MANDATORY IMPORTANT MUST ATTENTION** if NOT already in a workflow, validate the route with the user by asking the user directly — NEVER auto-decide "simple enough to skip"; the user decides workflow vs. standalone `$web-research`.
 **IMPORTANT MUST ATTENTION** every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% verify first) — NEVER speculate without proof.
 
 **Anti-Rationalization:**

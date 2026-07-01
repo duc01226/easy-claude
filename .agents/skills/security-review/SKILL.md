@@ -423,7 +423,7 @@ Every finding: `[severity] [confidence %] [file:line OR command+output] [finding
 2. **Findings exist:** run `$why-review --validate-findings <security-report-path>` before any fix; do not spawn a fresh sub-agent only to re-review the same findings before validation/fix
 3. **After validated fixes:** restart the full security review from Scope over the full current security target. If the restarted review needs a fresh reviewer, spawn a NEW `security-auditor` sub-agent (`agent_type: "security-auditor"`) — ZERO memory of prior rounds. Include in prompt: the domain checklist set (D1–D10) selected for the scope mode, OWASP Top 10 2025, auth flows, injection risks, dependency CVEs/supply-chain, microservices boundary security.
 4. **Repeat:** if issues remain, validate the new findings before more fixes, then restart the full review after fixes with a brand-new task breakdown
-5. **Stop:** A clean review pass ENDS the review. If the same blocker repeats across 3 full invocations with no progress, escalate via a direct user question.
+5. **Stop:** A clean review pass ENDS the review. If the same blocker repeats across 3 full invocations with no progress, escalate by asking the user directly.
 
 > Run `python .claude/scripts/code_graph query callers_of <function> --json` to trace all entry points into sensitive functions.
 
@@ -449,7 +449,7 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 
 ## Workflow Recommendation
 
-> **MANDATORY — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST use a direct user question to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
+> **MANDATORY — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST use ask the user directly to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
 >
 > 1. **Run audit chain** (Recommended for audits) — $scout → $security-review → $watzup
 > 2. **Activate `workflow-review-changes` workflow** — full review → fix → test loop
@@ -518,7 +518,7 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 
 ## Next Steps
 
-**MANDATORY — NO EXCEPTIONS** after completing this skill, you MUST use a direct user question to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
+**MANDATORY — NO EXCEPTIONS** after completing this skill, you MUST use ask the user directly to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
 
 - **"$production-readiness-review (Recommended)"** — Production readiness review
 - **"$performance-review"** — Analyze performance next
@@ -905,7 +905,7 @@ When graph DB available, use `trace` to analyze data flow paths for security rev
 **IMPORTANT MUST ATTENTION** restarted review spawns a fresh `security-auditor` sub-agent with zero memory — NEVER `code-reviewer` — why: `code-reviewer` lacks OWASP/auth-flow/injection/CVE/boundary protocols and misses security-specific issues.
 **IMPORTANT MUST ATTENTION** confirmed host compromise → isolate first, rotate EVERY credential that touched the host, rebuild from a clean image — NEVER trust an in-place "cleaned" rooted box — why: rootkits hide from the tools you would clean with.
 **IMPORTANT MUST ATTENTION** every confirmed finding that changes intended behavior feeds BOTH the spec (§4/§5 invariant) AND a guarding negative test — a code-only fix is INCOMPLETE — why: undocumented + untested security rules become tribal knowledge that regresses silently.
-**IMPORTANT MUST ATTENTION** break work into small todo tasks via task tracking BEFORE starting; persist findings incrementally to `plans/reports/security-review-{YYMMDD}-{HHmm}-{slug}.md`; add a final review todo; validate workflow choice via a direct user question — never auto-decide.
+**IMPORTANT MUST ATTENTION** break work into small todo tasks via task tracking BEFORE starting; persist findings incrementally to `plans/reports/security-review-{YYMMDD}-{HHmm}-{slug}.md`; add a final review todo; validate workflow choice by asking the user directly — never auto-decide.
 **IMPORTANT MUST ATTENTION** when `.code-graph/graph.db` exists, run ≥1 graph command (`callers_of` on sensitive functions, `trace --direction downstream` for blast-radius) before concluding — why: reachability proves or rules out exploitability and drives severity.
 
 **Anti-Rationalization:**

@@ -58,7 +58,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - **Step 3 Score** — apply the EXACT framework formula (RICE = Reach×Impact×Confidence ÷ Effort, fixed Impact/Confidence scales, story-point Effort); NEVER invent ad-hoc scores.
 - **Step 4-5 Rank & Output** — rank descending (RICE) / by band (MoSCoW) / by quadrant (V-E); emit prioritized table with scores + Do-first/Plan-next/Defer recommendations.
 - **Step 6 Propagate (MANDATORY when PBI files exist)** — write rank (1-999, ascending) + priority label back into EACH PBI's frontmatter; `pbi-mockup`/`feature-presentation` read priority from there.
-- **Cross-cutting — tech-agnostic (M1):** justify every rank by value/effort/risk/business impact, NEVER by named stack/framework/pattern. **Tie gate:** near-tie (top-2 RICE within 15%, same-band MoSCoW overlap, flagged stakeholder disagreement) → a direct user question offering `$llm-council`; else end without prompting.
+- **Cross-cutting — tech-agnostic (M1):** justify every rank by value/effort/risk/business impact, NEVER by named stack/framework/pattern. **Tie gate:** near-tie (top-2 RICE within 15%, same-band MoSCoW overlap, flagged stakeholder disagreement) → ask the user directly offering `$llm-council`; else end without prompting.
 
 **Workflow:**
 
@@ -67,7 +67,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 3. **Score Each Item** — apply framework criteria and calculate scores
 4. **Rank & Report** — output prioritized table with rationale and recommendations
 5. **Propagate Priority** — IF PBI files exist → MANDATORY: write `rank` + `priority` label back into EACH PBI frontmatter
-6. **Tie Gate** — near-tie → a direct user question (`$llm-council` vs accept); else end without prompting
+6. **Tie Gate** — near-tie → ask the user directly (`$llm-council` vs accept); else end without prompting
 
 **Key Rules:**
 
@@ -216,7 +216,7 @@ Order backlog items using data-driven frameworks → ranked list with scores and
 - Multi-stakeholder disagreement flagged in input → gate fires
 - None of the above → gate does NOT fire; skill ends without prompting
 
-**MANDATORY ATTENTION** — when the gate fires, you MUST use a direct user question to present these options (identical preamble pattern to architecture-design's `## Next Steps` MANDATORY ATTENTION block):
+**MANDATORY ATTENTION** — when the gate fires, you MUST use ask the user directly to present these options (identical preamble pattern to architecture-design's `## Next Steps` MANDATORY ATTENTION block):
 
 - **"Escalate to $llm-council (Recommended)"** — Tie/disagreement detected. Run 11 sub-agent council (5 advisors + 5 reviewers + chairman). Council's Contrarian + Outsider lenses are well-suited to multi-PBI ranking ties. Cheaper alternatives: `$why-review`, `$plan-validate` (use these instead if the tie is narrow but stakes are routine).
 - **"Skip — accept current ranking"** — Acknowledge the tie; proceed with current ranking.
@@ -259,7 +259,7 @@ If gate does NOT fire, the prioritization decision stands; do NOT prompt.
 - **IMPORTANT MUST ATTENTION** emit the prioritized table (scores + rationale) AND Do-first/Plan-next/Defer recommendations — NEVER stop at raw scores — why: the consumable output is the ranked table plus an action call, not a number column
 - **IMPORTANT MUST ATTENTION** keep every rationale tech-agnostic per M1 — justify by value/effort/risk/business impact, NEVER by named stack/framework/product/language/design-pattern; effort may cite story points + relative complexity only — why: spec-principles §3 BLOCKING, a tech-named rationale leaks implementation into a priority call
 - **IMPORTANT MUST ATTENTION** score with the EXACT framework formula (RICE = Reach×Impact×Confidence ÷ Effort, fixed Impact/Confidence scales, story-point Effort), then rank descending (RICE) / by band (MoSCoW) / by quadrant (V-E) — NEVER invent ad-hoc scores — why: a defensible rank needs a reproducible number
-- **IMPORTANT MUST ATTENTION** on a near-tie (top-2 RICE within 15%, same-band MoSCoW overlap, flagged stakeholder disagreement) the gate FIRES — use a direct user question to offer `$llm-council` escalation vs. accepting the ranking; if the gate does NOT fire, end WITHOUT prompting — why: tie-breaking is a judgment call the user owns, but a clear winner needs no interruption
+- **IMPORTANT MUST ATTENTION** on a near-tie (top-2 RICE within 15%, same-band MoSCoW overlap, flagged stakeholder disagreement) the gate FIRES — use ask the user directly to offer `$llm-council` escalation vs. accepting the ranking; if the gate does NOT fire, end WITHOUT prompting — why: tie-breaking is a judgment call the user owns, but a clear winner needs no interruption
 - **IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting; mark one `in_progress`, `completed` immediately after evidence
 - **IMPORTANT MUST ATTENTION** search codebase/artifacts for 3+ similar patterns before creating new structure; evaluate pattern FIT (same constraints/scope) before copying a nearby example — why: closest example ≠ matching preconditions
 - **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act, <60% DO NOT recommend); NEVER present a guess as fact
@@ -272,7 +272,7 @@ If gate does NOT fire, the prioritization decision stands; do NOT prompt.
 | ------------------------------------ | ----------------------------------------------------------------------------- |
 | "Only 2 items, just rank them"       | Below the 3-item floor → discuss directly; a framework adds ceremony, not signal |
 | "I'll cite the framework in the rationale" | Tech-agnostic per M1 — justify by value/effort/risk only, never by named stack |
-| "Scores are close enough, I'll pick" | Near-tie fires the gate → a direct user question for `$llm-council`, never silently break |
+| "Scores are close enough, I'll pick" | Near-tie fires the gate → ask the user directly for `$llm-council`, never silently break |
 | "RICE feels right, skip the formula" | Apply the EXACT formula with fixed scales — a defensible rank needs a number   |
 | "The backlog file has the ranking, PBIs don't need it" | When PBI files exist, priority write-back to each PBI frontmatter is MANDATORY — mockup + presentation read priority from the PBI, not the backlog |
 | "Already know the patterns"          | Show `file:line` evidence — no proof = no search                              |

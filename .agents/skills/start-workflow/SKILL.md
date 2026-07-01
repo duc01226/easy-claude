@@ -277,7 +277,7 @@ When `$workflow-review-changes` appears in any workflow sequence (e.g. `workflow
 **IMPORTANT MANDATORY Steps:** detect-workflow -> analyze-best-match -> auto-select-execution-path -> activate-workflow -> create-task-tracking -> execute-sequence
 
 > **[MANDATORY]** task tracking FIRST — break every workflow into tasks before any action. NEVER skip.
-> **[MANDATORY]** Auto-select the best path for auto-detected workflows; do not use a direct user question for workflow-selection confirmation. Explicit workflow invocation executes directly.
+> **[MANDATORY]** Auto-select the best path for auto-detected workflows; do not use ask the user directly for workflow-selection confirmation. Explicit workflow invocation executes directly.
 > **[MANDATORY]** skill invocation REQUIRED per step — NEVER mark a task `completed` without invoking it.
 
 <!-- SYNC:ai-mistake-prevention -->

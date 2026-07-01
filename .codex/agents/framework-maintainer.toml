@@ -322,7 +322,7 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 >
 > **Mandatory closers:** Confidence % stated · Assumptions listed · Open questions surfaced · Next action concrete.
 >
-> **Stop conditions:** confidence <80% on any critical decision → escalate via ask the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
+> **Stop conditions:** confidence <80% on any critical decision → escalate by asking the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 >
@@ -438,7 +438,7 @@ Trust but verify (`file:line` evidence) · Fail closed not open (`exit 2` when i
 **IMPORTANT MUST ATTENTION** bootstrap task tracking before edits — one task `in_progress` at a time, mark `completed` immediately after evidence; for multi-file/audit work persist findings incrementally to `plans/reports/` — why: context exhaustion silently loses all findings without an external memory file.
 **IMPORTANT MUST ATTENTION** SYNC integrity — any change to inline protocol text applies to EVERY copy in the same change; regenerate catalogs (`generate_catalogs.py`) and extend hook/codex tests when behavior changes — why: a divergent copy fails the `verify-sync-divergence` oracle and a stale catalog fails the build.
 **IMPORTANT MUST ATTENTION** no meta-log in AI-facing files (`CLAUDE.md` / `AGENTS.md` / agent `.md` / `SKILL.md` / `.claude/docs/**`) — state the current truth only; never write change-history or provenance ("formerly", "removed in the … refactor", "now embedded"). History → git / `CHANGELOG.md` / `docs/adr/**` / `plans/reports/**`
-**IMPORTANT MUST ATTENTION** apply sequential-thinking on ambiguous/multi-file framework work — state confidence %, list assumptions, surface open questions; escalate via a direct user question when confidence <80% on any critical decision.
+**IMPORTANT MUST ATTENTION** apply sequential-thinking on ambiguous/multi-file framework work — state confidence %, list assumptions, surface open questions; escalate by asking the user directly when confidence <80% on any critical decision.
 
 **Anti-Rationalization:**
 

@@ -55,11 +55,11 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Summary:**
 
-- **Main steps (Phases 0→7) — the read-this-if-nothing-else map:** **P0 Session Setup** (a direct user question detect scenario + role + how-much-known) → **P1 Problem Framing / Diamond-1 diverge** (POV statement → 5 Whys/Fishbone → JTBD job stories → 5–10 HMW) → **P2 Opportunity Framing / Diamond-1 converge** (OST / Lean Canvas / Blue-Ocean ERRC / Value-Prop Canvas) → **P3 Ideation / Diamond-2 diverge** (SCAMPER → Crazy 8s → Brainwriting 6-3-5 → Impact Mapping → Analogy = 25–40 raw ideas, zero judgment) → **P4 Evaluation / Diamond-2 converge** (Dot Vote → RICE → Kano → 2×2 → MoSCoW = ranked 3–5 shortlist) → **P5 Hypothesis Validation** (Problem + Value card + Riskiest-Assumption Test + cheapest test + Build-Measure-Learn per top-3) → **P6 Decision** (ONE opinionated recommendation + trade-offs) → **P7 Documentation & Handoff**. Multi-Opportunity Discovery mode swaps P6 for a ranked 3–8-item RICE opportunity map.
-- Run a direct user question Phase 0 FIRST to detect scenario (Problem-Solving / New Product / Enhancement / Multi-Opportunity Discovery), role (PO / BA / Mixed), and how-much-is-known — each scenario routes a different technique sequence (see Scenario Cheat Sheets) — why: misclassifying here derails every downstream phase.
+- **Main steps (Phases 0→7) — the read-this-if-nothing-else map:** **P0 Session Setup** (ask the user directly to detect scenario + role + how-much-known) → **P1 Problem Framing / Diamond-1 diverge** (POV statement → 5 Whys/Fishbone → JTBD job stories → 5–10 HMW) → **P2 Opportunity Framing / Diamond-1 converge** (OST / Lean Canvas / Blue-Ocean ERRC / Value-Prop Canvas) → **P3 Ideation / Diamond-2 diverge** (SCAMPER → Crazy 8s → Brainwriting 6-3-5 → Impact Mapping → Analogy = 25–40 raw ideas, zero judgment) → **P4 Evaluation / Diamond-2 converge** (Dot Vote → RICE → Kano → 2×2 → MoSCoW = ranked 3–5 shortlist) → **P5 Hypothesis Validation** (Problem + Value card + Riskiest-Assumption Test + cheapest test + Build-Measure-Learn per top-3) → **P6 Decision** (ONE opinionated recommendation + trade-offs) → **P7 Documentation & Handoff**. Multi-Opportunity Discovery mode swaps P6 for a ranked 3–8-item RICE opportunity map.
+- Run ask the user directly Phase 0 FIRST to detect scenario (Problem-Solving / New Product / Enhancement / Multi-Opportunity Discovery), role (PO / BA / Mixed), and how-much-is-known — each scenario routes a different technique sequence (see Scenario Cheat Sheets) — why: misclassifying here derails every downstream phase.
 - Strictly separate diverge (Phases 1 & 3 — generate, "Yes, and…", zero judgment) from converge (Phases 2 & 4 — narrow, RICE/Kano/MoSCoW scoring); mixing the two modes is the Golden Rule violation that kills idea output.
 - Never stop at a raw or flat idea list: every top-3 candidate MUST carry a problem + value hypothesis card, an identified riskiest assumption (RAT), and the single cheapest validation test designed before any build commitment.
-- Close with an opinionated decision (Phase 6 — recommend ONE option with trade-offs, not a menu), every claim evidence-backed at >80% confidence, then offer handoff via a direct user question to `$idea`, `$refine`, `$plan`, etc. — EXCEPT in **Multi-Opportunity Discovery mode**, where convergence RANKS the opportunity map (3–8 RICE-scored items) and hands off via multi-select to a per-opportunity PBI loop instead of picking ONE winner.
+- Close with an opinionated decision (Phase 6 — recommend ONE option with trade-offs, not a menu), every claim evidence-backed at >80% confidence, then offer handoff by asking the user directly to `$idea`, `$refine`, `$plan`, etc. — EXCEPT in **Multi-Opportunity Discovery mode**, where convergence RANKS the opportunity map (3–8 RICE-scored items) and hands off via multi-select to a per-opportunity PBI loop instead of picking ONE winner.
 
 **Four Scenarios:**
 
@@ -93,7 +93,7 @@ Discover ──► Define               Develop ──► Deliver
 
 ## Phase 0: Session Setup (MANDATORY)
 
-Use a direct user question to detect scenario, role, and constraints before any technique.
+Use ask the user directly to detect scenario, role, and constraints before any technique.
 
 ### 0.1 — Scenario Detection
 
@@ -153,7 +153,7 @@ because peak-season backlogs delay fulfillment,
 but the current system shows raw order data with no ranking or comparison.
 ```
 
-Use a direct user question to validate:
+Use ask the user directly to validate:
 
 - "Is this the core problem, or a symptom of a deeper problem?"
 - "Who specifically experiences this? How often? What's the cost?"
@@ -601,7 +601,7 @@ Time to validation: [Days/weeks]
 | 2    | ...         | ...                    | ...   | ...    | ...        | ...    | ...  | ...  |
 ```
 
-**Multi-select handoff:** present the ranked map via a direct user question with `multiSelect: true` — "Which opportunities should we develop into PBIs?". The selected opportunities feed the **per-opportunity PBI loop** in `workflow-idea-to-pbi` (each selected opportunity → idea → refine → review → story → challenge → DoR → mockup, then a final cross-PBI prioritize). Do NOT author PBIs, specs, or plans inside this skill — the discovery mode's deliverable is the scored, multi-selected opportunity map only.
+**Multi-select handoff:** present the ranked map by asking the user directly with `multiSelect: true` — "Which opportunities should we develop into PBIs?". The selected opportunities feed the **per-opportunity PBI loop** in `workflow-idea-to-pbi` (each selected opportunity → idea → refine → review → story → challenge → DoR → mockup, then a final cross-PBI prioritize). Do NOT author PBIs, specs, or plans inside this skill — the discovery mode's deliverable is the scored, multi-selected opportunity map only.
 
 ---
 
@@ -816,7 +816,7 @@ Create markdown summary report:
 
 ## Workflow Integration
 
-After brainstorm session concludes, use a direct user question to present next steps:
+After brainstorm session concludes, use ask the user directly to present next steps:
 
 | Next Step              | When                                                        | Skill/Workflow          |
 | ---------------------- | ----------------------------------------------------------- | ----------------------- |
@@ -828,7 +828,7 @@ After brainstorm session concludes, use a direct user question to present next s
 | `$domain-analysis`     | Idea touches domain entities, need model first              | `domain-analysis` skill |
 | Continue brainstorming | More scenarios to explore                                   | Stay in this session    |
 
-**Multi-Opportunity Discovery handoff:** when run in discovery mode, do NOT pick a single next step — instead present the ranked 3–8-item RICE opportunity map (written to `plans/{plan-dir}/brainstorm-opportunity-map.md`) via a direct user question with `multiSelect: true`, then hand the selected opportunities to `workflow-idea-to-pbi`'s per-opportunity PBI loop. `workflow-idea-to-pbi` consumes this opportunity map directly.
+**Multi-Opportunity Discovery handoff:** when run in discovery mode, do NOT pick a single next step — instead present the ranked 3–8-item RICE opportunity map (written to `plans/{plan-dir}/brainstorm-opportunity-map.md`) by asking the user directly with `multiSelect: true`, then hand the selected opportunities to `workflow-idea-to-pbi`'s per-opportunity PBI loop. `workflow-idea-to-pbi` consumes this opportunity map directly.
 
 ---
 
@@ -874,7 +874,7 @@ After brainstorm session concludes, use a direct user question to present next s
 >
 > **Mandatory closers:** Confidence % stated · Assumptions listed · Open questions surfaced · Next action concrete.
 >
-> **Stop conditions:** confidence <80% on any critical decision → escalate via ask the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
+> **Stop conditions:** confidence <80% on any critical decision → escalate by asking the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 >
@@ -922,20 +922,20 @@ After brainstorm session concludes, use a direct user question to present next s
 - **Critical Thinking:** traced `file:line` proof; confidence >80% to act; never guess.
 - **Sequential Thinking:** multi-step Thought N/M with REVISION/BRANCH/HYPOTHESIS markers, confidence closer.
 
-- **MANDATORY IMPORTANT MUST ATTENTION** detect scenario + role + how-much-known via a direct user question Phase 0 FIRST — each scenario routes a different technique sequence — why: misclassifying scenario derails every downstream phase.
+- **MANDATORY IMPORTANT MUST ATTENTION** detect scenario + role + how-much-known by asking the user directly Phase 0 FIRST — each scenario routes a different technique sequence — why: misclassifying scenario derails every downstream phase.
 - **MANDATORY IMPORTANT MUST ATTENTION** separate diverge (Phases 1 & 3, generate, "Yes, and…", zero judgment) from converge (Phases 2 & 4, narrow + score) — NEVER evaluate ideas while generating them — why: mixing the two modes is the Golden Rule violation that kills creative output.
 - **MANDATORY IMPORTANT MUST ATTENTION** NEVER stop at a raw or flat idea list — every top-3 candidate carries a problem + value hypothesis card, an identified riskiest assumption (RAT), and the single cheapest validation test designed before any build commitment — why: 42% of features fail from no market need; validate before building.
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting; mark each `completed` immediately, add a final review todo — why: long brainstorm sessions lose context without external task tracking.
 - **MANDATORY IMPORTANT MUST ATTENTION** search 3+ existing patterns first — read `docs/specs/` for domain (codebase) or `WebSearch` for market/competitor context (greenfield) before ideating — why: ideas ungrounded in domain or market evidence score on gut feel, not fit.
 - **MANDATORY IMPORTANT MUST ATTENTION** cite evidence for every claim, confidence >80% to recommend; RICE Confidence is a multiplier, not optional — why: low-evidence ideas without a Confidence score get over-ranked.
-- **MANDATORY IMPORTANT MUST ATTENTION** close with ONE opinionated recommendation + trade-offs (Phase 6) — never a flat menu of options — why: a menu pushes the decision back on the team and invites HiPPO bias. EXCEPTION — **Multi-Opportunity Discovery mode** (selected in Phase 0): do NOT pick ONE; instead RANK a 3–8-item RICE opportunity map, write it to `plans/{plan-dir}/brainstorm-opportunity-map.md`, and hand off via a direct user question `multiSelect: true` to `workflow-idea-to-pbi`'s per-opportunity PBI loop — why: each opportunity becomes a separate downstream PBI, so collapsing to one would discard the backlog the discovery workflow exists to produce.
-- **MANDATORY IMPORTANT MUST ATTENTION** use a direct user question for all user decisions and handoff routing (`$idea`, `$refine`, `$plan`) — never auto-decide — why: the user owns scenario, prioritization, and next-step choices.
+- **MANDATORY IMPORTANT MUST ATTENTION** close with ONE opinionated recommendation + trade-offs (Phase 6) — never a flat menu of options — why: a menu pushes the decision back on the team and invites HiPPO bias. EXCEPTION — **Multi-Opportunity Discovery mode** (selected in Phase 0): do NOT pick ONE; instead RANK a 3–8-item RICE opportunity map, write it to `plans/{plan-dir}/brainstorm-opportunity-map.md`, and hand off by asking the user directly `multiSelect: true` to `workflow-idea-to-pbi`'s per-opportunity PBI loop — why: each opportunity becomes a separate downstream PBI, so collapsing to one would discard the backlog the discovery workflow exists to produce.
+- **MANDATORY IMPORTANT MUST ATTENTION** use ask the user directly for all user decisions and handoff routing (`$idea`, `$refine`, `$plan`) — never auto-decide — why: the user owns scenario, prioritization, and next-step choices.
 
 **Anti-Rationalization:**
 
 | Evasion                                          | Rebuttal                                                                              |
 | ------------------------------------------------ | ------------------------------------------------------------------------------------- |
-| "Scenario is obvious, skip Phase 0 detection"    | Misclassified scenario routes the wrong technique sequence. Run a direct user question first. |
+| "Scenario is obvious, skip Phase 0 detection"    | Misclassified scenario routes the wrong technique sequence. Run ask the user directly first. |
 | "Just list the ideas, evaluation can wait"       | A flat idea list is the deliverable failure. Score, rank, and hypothesis-test the top 3. |
 | "Skip the RAT — the idea is clearly good"        | "Clearly good" is HiPPO bias. Design the cheapest test before any build commitment.   |
 | "Diverge and converge together to save time"     | Mixing modes kills creative output — the Golden Rule violation. Keep phases separate. |

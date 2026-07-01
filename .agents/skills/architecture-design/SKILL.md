@@ -149,7 +149,7 @@ Map signals to architecture constraints:
 
 ### Quality-Attribute Scenarios (quantify — these drive the style choice)
 
-Qualitative "Must/Should" cannot decide between, e.g., modular monolith vs microservices. Capture **measurable** targets; ask user for any unknown via a direct user question (guess acceptable only when labelled an assumption with confidence %). These targets become ADR-recorded budgets `review-architecture` Category 9 later checks changes against. — why: a style chosen without numbers is a guess, not an enforceable decision.
+Qualitative "Must/Should" cannot decide between, e.g., modular monolith vs microservices. Capture **measurable** targets; ask user for any unknown by asking the user directly (guess acceptable only when labelled an assumption with confidence %). These targets become ADR-recorded budgets `review-architecture` Category 9 later checks changes against. — why: a style chosen without numbers is a guess, not an enforceable decision.
 
 | Quality attribute     | Scenario (stimulus → measurable response)                             | Target (fill in) |
 | --------------------- | -------------------------------------------------------------------- | ---------------- |
@@ -164,7 +164,7 @@ Qualitative "Must/Should" cannot decide between, e.g., modular monolith vs micro
 
 **Rule:** any target left unknown is explicit `Unresolved question` (Step 11), NEVER a silent omission — an architecture chosen without scale numbers is a guess, not a decision.
 
-**MANDATORY IMPORTANT MUST ATTENTION** validate derived requirements with user via a direct user question before proceeding.
+**MANDATORY IMPORTANT MUST ATTENTION** validate derived requirements with user by asking the user directly before proceeding.
 
 ---
 
@@ -246,7 +246,7 @@ WebSearch top 3 frontend architecture styles. Candidates:
 
 > **Skip if:** Backend-only project, no frontend component.
 
-Research, recommend project design system architecture. Use a direct user question for each decision.
+Research, recommend project design system architecture. Use ask the user directly for each decision.
 
 ### 4B-1: Styling Approach
 
@@ -285,7 +285,7 @@ WebSearch top 3 styling approaches for confirmed frontend framework:
 | Breakpoints | 320/768/1024/1280 / Custom              | Standard           |
 | Grid system | CSS Grid / Flexbox / Framework grid     | CSS Grid + Flexbox |
 
-**MANDATORY IMPORTANT MUST ATTENTION** validate all UI system decisions with user via a direct user question before proceeding to Step 5.
+**MANDATORY IMPORTANT MUST ATTENTION** validate all UI system decisions with user by asking the user directly before proceeding to Step 5.
 
 ---
 
@@ -583,7 +583,7 @@ graph TB
 
 ## Step 12: User Validation Interview
 
-**MANDATORY IMPORTANT MUST ATTENTION** present findings, ask 8-12 questions via a direct user question:
+**MANDATORY IMPORTANT MUST ATTENTION** present findings, ask 8-12 questions by asking the user directly:
 
 ### Required Questions
 
@@ -645,7 +645,7 @@ docs/adr/{NNNN}-{slug}.md                       # One ADR per hard-to-reverse de
 ---
 
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting.
-**MANDATORY IMPORTANT MUST ATTENTION** validate EVERY architecture recommendation with user via a direct user question — never auto-decide.
+**MANDATORY IMPORTANT MUST ATTENTION** validate EVERY architecture recommendation with user by asking the user directly — never auto-decide.
 **MANDATORY IMPORTANT MUST ATTENTION** include confidence % and evidence citations for all claims.
 **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.
 
@@ -653,7 +653,7 @@ docs/adr/{NNNN}-{slug}.md                       # One ADR per hard-to-reverse de
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use a direct user question to present these options. NEVER skip because the task seems "simple" or "obvious" — the user decides:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use ask the user directly to present these options. NEVER skip because the task seems "simple" or "obvious" — the user decides:
 
 - **"$plan (Recommended)"** — Create implementation plan from architecture design
 - **"$refine"** — If need to create PBIs first
@@ -661,7 +661,7 @@ docs/adr/{NNNN}-{slug}.md                       # One ADR per hard-to-reverse de
 
 ### Council escalation (always-offer, second prompt)
 
-After the existing `## Next Steps` prompt above resolves, present a **second**, independent a direct user question call (NEVER merge into the first):
+After the existing `## Next Steps` prompt above resolves, present a **second**, independent ask the user directly call (NEVER merge into the first):
 
 - **"Skip council — proceed (Recommended)"** — Continue with the architecture decision as-is. Recommended default.
 - **"Escalate to $llm-council"** — Run 11 sub-agent council (5 advisors + 5 reviewers + chairman). Use when this architecture pick is hard to reverse and you need adversarial framing. Cheaper alternatives: `$why-review`, `$plan-validate` (run these first if you haven't).
@@ -700,7 +700,7 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 
 **MANDATORY IMPORTANT MUST ATTENTION** execute ALL 12 main steps in order, tracking each — 1 Load Context (+mode) · 2 Derive Requirements (+quantified scenarios) · 3 Backend · 4 Frontend · 4B UI System (skip if backend-only) · 5 Library Ecosystem · 6 Testing · 7 CI/CD · 8 Observability · 9 Code Quality (+Scaffold Handoff table) · 10 Dependency Risk · 11 Generate Report (+ADRs) · 12 User Validation — NEVER skip, reorder, or merge a step without explicit user approval — why: the model keeps forgetting its own steps and silently drops mandatory gates.
 **MANDATORY IMPORTANT MUST ATTENTION** research min 3 options per architecture concern with cited web evidence (stars, last release, downloads, CVE scan) — NEVER recommend from familiarity alone — why: familiarity bias ships unmaintained or insecure dependencies.
-**MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via a direct user question (Step 12) — NEVER auto-decide a hard-to-reverse choice — why: the user owns hard-to-reverse decisions; the architect proposes, the user confirms.
+**MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user by asking the user directly (Step 12) — NEVER auto-decide a hard-to-reverse choice — why: the user owns hard-to-reverse decisions; the architect proposes, the user confirms.
 **MANDATORY IMPORTANT MUST ATTENTION** quantify Step-2 quality-attribute scenarios (latency p95/p99, throughput, SLO, RPO/RTO, growth, concurrency) — any unknown target becomes an explicit `Unresolved question`, NEVER a silent guess — why: a style chosen without numbers is a guess, not an enforceable decision.
 **MANDATORY IMPORTANT MUST ATTENTION** brownfield: FIRST read project reference docs + accepted ADRs, constrain research to the existing stack, and NEVER re-litigate a settled ADR-recorded decision without a superseding-ADR rationale — why: re-deciding a recorded choice churns the codebase and breaks downstream conformance checks.
 **MANDATORY IMPORTANT MUST ATTENTION** search 3+ existing patterns/ADRs before proposing any new style or pattern; cite `file:line` (or URL/benchmark) evidence and a confidence % for EVERY claim — confidence >80% to recommend, <60% DO NOT recommend — why: speculation without proof is forbidden output.
@@ -748,7 +748,7 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 >
 > **Mandatory closers:** Confidence % stated · Assumptions listed · Open questions surfaced · Next action concrete.
 >
-> **Stop conditions:** confidence <80% on any critical decision → escalate via ask the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
+> **Stop conditions:** confidence <80% on any critical decision → escalate by asking the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 >
@@ -772,7 +772,7 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 <!-- /SYNC:ai-mistake-prevention -->
 
 **MANDATORY IMPORTANT MUST ATTENTION** use task tracking to break ALL work into small tasks BEFORE starting.
-**MANDATORY IMPORTANT MUST ATTENTION** use a direct user question at EVERY decision point — never assume user preferences.
+**MANDATORY IMPORTANT MUST ATTENTION** use ask the user directly at EVERY decision point — never assume user preferences.
 **MANDATORY IMPORTANT MUST ATTENTION** research top 3 options per architecture concern, compare with evidence, present report with recommendation + confidence %.
 
 > **External Memory:** For complex or lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report file in `plans/reports/` — prevents context loss and serves as deliverable.

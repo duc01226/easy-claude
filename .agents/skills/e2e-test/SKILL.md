@@ -58,7 +58,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - **Main steps (in order):** (1) detect the E2E framework from project files; (2) read `docs/project-reference/e2e-test-reference.md` + the `e2eTesting` block of `docs/project-config.json` FIRST — never assume a stack or invent a TC-annotation marker; (3) load `TC-{MODULE}-E2E-{NNN}` specs from `docs/specs/`; (4) generate/update tests via Page Object Model (spawn the `e2e-runner` sub-agent); (5) run tests with the project's configured command; (6) update `e2e-test-reference.md` with learnings.
 - Every test carries its `TC-{MODULE}-E2E-{NNN}` code traced to the §8 invariant/behavior it guards, structured with Page Object Model (locators/actions in the page class, assertions in the test).
 - Selector priority semantic/BEM > data-testid > ARIA/role > visible text; AVOID generated classes, `:nth-child`, XPath.
-- Generate unique self-sufficient data (GUID/timestamp); NEVER depend on pre-existing DB state, NEVER tear down seeded data; pick a workflow via a direct user question when not already in one.
+- Generate unique self-sufficient data (GUID/timestamp); NEVER depend on pre-existing DB state, NEVER tear down seeded data; pick a workflow by asking the user directly when not already in one.
 
 **Workflow:**
 
@@ -233,7 +233,7 @@ Spawn `e2e-runner` sub-agent for:
 
 ## Workflow Recommendation
 
-> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use a direct user question to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
+> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use ask the user directly to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
 >
 > 1. **Activate `e2e --source=changes` workflow** (Recommended) — scout → e2e-test → test → watzup
 > 2. **Execute `$e2e-test` directly** — run this skill standalone
@@ -276,7 +276,7 @@ Generate and maintain E2E tests using project's configured testing framework.
 >     - **SOURCE-WRONG** — production code violates the spec's intended behavior or a clear invariant → fix the source at the owning layer; keep or strengthen the test that caught it.
 >     - **TEST-WRONG** — the test encodes a stale or incorrect assertion, setup, or expectation that contradicts intended behavior → fix the test at its root. NEVER weaken an assertion, add a skip, or relax a timeout to force green.
 >     - NEVER change a test to match broken source, and NEVER change source to satisfy a broken test. (Migration code excluded — schema/data migrations are one-time execution paths, not core application logic.)
-> 4. **Ask the user when intended behavior is unclear.** If no spec covers the behavior, the spec is silent, or the spec is ambiguous about which side is correct, STOP and a direct user question (or consult the canonical spec owner) before editing either side — never silently pick source or test just to make the suite pass.
+> 4. **Ask the user when intended behavior is unclear.** If no spec covers the behavior, the spec is silent, or the spec is ambiguous about which side is correct, STOP and ask the user directly (or consult the canonical spec owner) before editing either side — never silently pick source or test just to make the suite pass.
 >
 > Reconcile to intended behavior, never to whichever side currently passes — green can encode the very bug.
 

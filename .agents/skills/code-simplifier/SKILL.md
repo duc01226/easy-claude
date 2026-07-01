@@ -276,7 +276,7 @@ Used standalone (outside a review workflow), this self-review gate is sufficient
 
 ## Workflow Recommendation
 
-> **MANDATORY — NO EXCEPTIONS:** If NOT already in workflow, use a direct user question to ask user. Do NOT decide this is "simple enough to skip" — the user decides:
+> **MANDATORY — NO EXCEPTIONS:** If NOT already in workflow, use ask the user directly to ask user. Do NOT decide this is "simple enough to skip" — the user decides:
 >
 > 1. **Activate `workflow-review-changes` workflow** (Recommended) — full review-changes restart gate → validated fix cycle (plan → plan-review → feature-implement) → re-review → docs
 > 2. **Execute `$code-simplifier` directly** — run standalone (this skill self-reviews its own changes via the Self-Review Gate)
@@ -285,7 +285,7 @@ Used standalone (outside a review workflow), this self-review gate is sufficient
 
 ## Next Steps
 
-**MANDATORY — NO EXCEPTIONS** after completing, use a direct user question:
+**MANDATORY — NO EXCEPTIONS** after completing, use ask the user directly:
 
 - **"$workflow-review-changes (Recommended)"** — Review all changes before commit
 - **"$code-review"** — Full code review
@@ -608,7 +608,7 @@ Rules:
 - **MANDATORY IMPORTANT MUST ATTENTION** preserve ALL invariants — NEVER weaken, delete, or trivialize a property/mutation test guarding a `[HARD]` §4 rule or §5 invariant; a behavior change is a Dual-Feedback finding (feed spec AND tests, re-review) — report and stop, never ship silently. — why: green tests on a weakened bar are not a pass.
 - **MANDATORY IMPORTANT MUST ATTENTION** verify ALL affected outputs and tests pass after EACH change (apply one refactoring type at a time) — one build green ≠ all green. — why: multi-stack changes regress the stack you didn't check.
 - **MANDATORY IMPORTANT MUST ATTENTION** Self-Review Gate — when this skill changed code, self-invoke `$code-review` scoped to ONLY the changed files (recursion-safe leaf skill; NEVER `$review-changes` — it recurses into `$code-simplifier`); skip + log the reason when nothing changed. The simplifier owns review of its own output. — why: the simplifier rewrites code after the main review batch, so its output ships unreviewed without this gate.
-- **MANDATORY** validate route decisions with the user via a direct user question when outside a workflow — never auto-decide "simple enough to skip".
+- **MANDATORY** validate route decisions with the user by asking the user directly when outside a workflow — never auto-decide "simple enough to skip".
 
 **Anti-Rationalization:**
 

@@ -56,19 +56,19 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 - BLOCK on the `$linter-setup` prerequisite first — computational sensors (linters, hooks, CI gates) MUST exist before any phase runs; this skill never installs them itself.
 - Walk phases A→F as a hard barrier sequence: detect stack → author feedforward guides (CLAUDE.md conventions, anti-patterns, pattern catalog) → confirm computational sensors → wire inferential review skills to lifecycle gates → define behaviour/test strategy → emit inventory.
-- Treat every feedforward-guide and sensor choice as a direct user question-gated — never auto-decide content — why: harness conventions bind every future agent and silent choices propagate.
+- Treat every feedforward-guide and sensor choice as ask the user directly-gated — never auto-decide content — why: harness conventions bind every future agent and silent choices propagate.
 - Write `.ai/workspace/harness/harness-inventory.md` incrementally (append per phase, never held in memory) — keep it a LIVING document updated as new sensors are added.
 
 **Main steps (run in order — each BLOCKS the next):**
 
 1. **Guards** — BLOCK until `$linter-setup` verified (linter config + pre-commit hook + CI gate present); detect existing inventory (enhance, never skip).
-2. **Phase A — Stack Detection** — read plan / architecture-design / tech-stack reports; write `stack-profile.md`; a direct user question on any undetectable field.
-3. **Phase B — Feedforward Guides** — author/enhance CLAUDE.md/AGENTS.md (architecture patterns, anti-patterns, naming, module boundaries) + skill-activation rules + `docs/architecture/*` notes + pattern catalog; confirm via a direct user question.
+2. **Phase A — Stack Detection** — read plan / architecture-design / tech-stack reports; write `stack-profile.md`; ask the user directly on any undetectable field.
+3. **Phase B — Feedforward Guides** — author/enhance CLAUDE.md/AGENTS.md (architecture patterns, anti-patterns, naming, module boundaries) + skill-activation rules + `docs/architecture/*` notes + pattern catalog; confirm by asking the user directly.
 4. **Phase C — Computational Sensors** — confirm `$linter-setup` outputs; list config paths (invoke `$linter-setup` if any missing).
 5. **Phase D — Inferential Sensors** — wire review skills to lifecycle gates (`$why-review` pre-impl · `$code-review` pre-commit · `$review-domain-entities` post-impl · `$production-readiness-review` + `$security-review` pre-release · `$scan-codebase-health` recurring); record under "## Review Gates".
 6. **Phase E — Behaviour Harness** — pick spec format, define test pyramid + approved fixtures, gate on mutation score (NEVER line %), add property/behavior coverage; write `test-strategy.md`.
-7. **Phase F — Inventory Report** — append `harness-inventory.md` (feedforward + computational/inferential sensors + open gaps); present via a direct user question.
-8. **Next Steps** — a direct user question: `$feature-implement` (recommended) · `$why-review` · skip.
+7. **Phase F — Inventory Report** — append `harness-inventory.md` (feedforward + computational/inferential sensors + open gaps); present by asking the user directly.
+8. **Next Steps** — ask the user directly: `$feature-implement` (recommended) · `$why-review` · skip.
 
 **Produces:**
 
@@ -92,13 +92,13 @@ Before running any phases, verify `$linter-setup` completed by checking for:
 - Pre-commit hook config (e.g., `.husky/`, `.pre-commit-config.yaml`)
 - CI quality gate definition
 
-If any missing → a direct user question: "$linter-setup appears incomplete. Computational feedback sensors must be in place before harness setup. Run $linter-setup first, then return here?"
+If any missing → ask the user directly: "$linter-setup appears incomplete. Computational feedback sensors must be in place before harness setup. Run $linter-setup first, then return here?"
 **BLOCK** Phase A/B/C/D/E until linter-setup verification passes.
 
 **Check 2 — Existing harness inventory:**
 Check for `.ai/workspace/harness/harness-inventory.md`
 
-- If found → a direct user question: "Harness inventory already exists — re-run to enhance existing harness, or skip?"
+- If found → ask the user directly: "Harness inventory already exists — re-run to enhance existing harness, or skip?"
 - Proceed even when `CLAUDE.md`/`AGENTS.md` present — those are feedforward guides this skill may enhance, NEVER signals to skip
 
 ---
@@ -117,7 +117,7 @@ Extract:
 
 Write detection result to `.ai/workspace/harness/stack-profile.md`.
 
-If any field undetectable → a direct user question to confirm before proceeding.
+If any field undetectable → ask the user directly to confirm before proceeding.
 
 ---
 
@@ -151,7 +151,7 @@ For each guide type, check if it exists; if not, create or enhance:
 - Document each pattern chosen in `$architecture-design` with DO/DON'T examples
 - Anchor to actual project files once scaffolding produces them
 
-Present list of guides created/updated via a direct user question: "Feedforward guides above will be created/enhanced. Confirm or adjust?"
+Present list of guides created/updated by asking the user directly: "Feedforward guides above will be created/enhanced. Confirm or adjust?"
 
 ---
 
@@ -171,7 +171,7 @@ Output: confirmation that computational sensors are in place, with file paths li
 
 ## Phase D — Inferential Feedback Sensors
 
-Configure which AI review skills fire at each lifecycle stage. Present to user via a direct user question:
+Configure which AI review skills fire at each lifecycle stage. Present to user by asking the user directly:
 "Which inferential sensors should be mandatory vs optional for this repository?"
 
 **Pre-implementation (planning gate):**
@@ -205,7 +205,7 @@ Define the project's behaviour harness plan:
 
 **Functional spec format:**
 
-- a direct user question: "Feature documentation format?" Options: feature-spec (8-section tech-free), TDD specs only, lightweight ADRs
+- ask the user directly: "Feature documentation format?" Options: feature-spec (8-section tech-free), TDD specs only, lightweight ADRs
 - Establish `docs/specs/` or equivalent spec home
 
 **Test strategy pyramid:**
@@ -222,7 +222,7 @@ Define the project's behaviour harness plan:
 **Test-strength sensors (NOT a line-coverage gate):**
 
 - **Line coverage is a diagnostic only — NEVER gate a build on it.** Low coverage is a useful NEGATIVE signal (an area is untested → investigate); high coverage is NOT evidence of quality (lines can execute with no meaningful assertion). Report it as a diagnostic; do not fail CI on a coverage %.
-- **Mutation score is the real test-strength metric — gate on this.** a direct user question: "Configure a mutation-testing tool (e.g. Stryker / PITest / mutmut, per stack) as the CI test-quality gate?" A surviving mutant = a fault your tests did not catch = a missing/weak assertion. Add a minimum mutation-score threshold to CI as the computational test-strength sensor.
+- **Mutation score is the real test-strength metric — gate on this.** ask the user directly: "Configure a mutation-testing tool (e.g. Stryker / PITest / mutmut, per stack) as the CI test-quality gate?" A surviving mutant = a fault your tests did not catch = a missing/weak assertion. Add a minimum mutation-score threshold to CI as the computational test-strength sensor.
 - **Property coverage (optional second sensor):** each named business invariant guarded by ≥1 property/metamorphic test. Track which invariants have a property test; an unguarded invariant is a gap to fill.
 - **Keep behavior/change-coverage (meaningful, not a %):** every behavior-changing file must have a test that asserts the changed outcome — see `$integration-test-review` Gate 7. This is the right notion of "coverage"; the line-% is not.
 
@@ -277,13 +277,13 @@ Stack: {detected stack from Phase A}
 | {area not yet harnessed} | {reason} | {LOW/MED/HIGH} |
 ```
 
-Present inventory to user for review via a direct user question.
+Present inventory to user for review by asking the user directly.
 
 ---
 
 ## Next Steps
 
-a direct user question:
+ask the user directly:
 
 - **"$feature-implement (Recommended)"** — Begin implementing the project plan with full harness in place
 - **"$why-review"** — Review harness design rationale before proceeding
@@ -368,7 +368,7 @@ a direct user question:
 **IMPORTANT MUST ATTENTION Main steps (in order — each BLOCKS the next):** Guards (verify `$linter-setup`) → A Stack Detection (`stack-profile.md`) → B Feedforward Guides (CLAUDE.md patterns/anti-patterns/naming/boundaries + skill-activation rules + pattern catalog) → C Computational Sensors (confirm linter/hook/CI) → D Inferential Sensors (wire `$why-review`, `$code-review`, `$review-domain-entities`, `$production-readiness-review`, `$security-review`, `$scan-codebase-health` to gates) → E Behaviour Harness (spec format + test pyramid + mutation-score gate + `test-strategy.md`) → F Inventory Report (`harness-inventory.md`) → Next Steps. NEVER skip or reorder — why: each phase consumes the prior phase's verified output.
 
 **IMPORTANT MUST ATTENTION** BLOCK on the `$linter-setup` prerequisite first — ALWAYS verify computational sensors (linter config, pre-commit hook, CI gate) exist before any phase runs — why: keep quality left; cheapest gates must precede inferential ones, and this skill never installs them itself
-**IMPORTANT MUST ATTENTION** NEVER auto-decide feedforward-guide or sensor content — present the draft and confirm via a direct user question — why: harness conventions bind every future agent; silent choices propagate to all later sessions
+**IMPORTANT MUST ATTENTION** NEVER auto-decide feedforward-guide or sensor content — present the draft and confirm by asking the user directly — why: harness conventions bind every future agent; silent choices propagate to all later sessions
 **IMPORTANT MUST ATTENTION** write `.ai/workspace/harness/harness-inventory.md` incrementally (append after each phase) — NEVER hold findings in memory — why: long context drifts and silently drops findings
 **IMPORTANT MUST ATTENTION** walk phases A→F as a hard barrier sequence — NEVER skip or reorder; each phase BLOCKS the next until its guard passes — why: a later phase consumes the prior phase's verified output
 **IMPORTANT MUST ATTENTION** gate the behaviour harness on mutation score + property coverage — NEVER fail a build on a line-coverage % — why: lines execute without asserting intent, so coverage % is a diagnostic only, never a quality gate
@@ -383,12 +383,12 @@ a direct user question:
 | Evasion                                         | Rebuttal                                                                                  |
 | ----------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | "Linter probably set up — skip the prereq check" | Grep for the config files. No `file:line` proof = BLOCK Phase A/B/C/D/E until verified.   |
-| "I'll pick the obvious linter myself"            | NEVER auto-decide — present top 2-3 via a direct user question; the user owns binding conventions. |
+| "I'll pick the obvious linter myself"            | NEVER auto-decide — present top 2-3 by asking the user directly; the user owns binding conventions. |
 | "High line coverage means tests are strong"      | Coverage is a diagnostic, not a gate. Gate on mutation score; lines run without asserting. |
 | "Inventory's small, I'll hold it in memory"      | Append per phase to the inventory file — context loss silently drops findings.            |
 | "CLAUDE.md exists, harness already done"         | CLAUDE.md is a feedforward guide to ENHANCE, never a signal to skip phases.               |
 
-**IMPORTANT MUST ATTENTION** BLOCK on `$linter-setup` before any phase · NEVER auto-decide harness content (a direct user question-gate) · gate behaviour on mutation score, NEVER on line-coverage %.
+**IMPORTANT MUST ATTENTION** BLOCK on `$linter-setup` before any phase · NEVER auto-decide harness content (ask the user directly-gate) · gate behaviour on mutation score, NEVER on line-coverage %.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Hookless Prompt Protocol Mirror (Auto-Synced)

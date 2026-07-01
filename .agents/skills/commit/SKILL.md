@@ -49,7 +49,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 2. **Stage Changes** — Add relevant files (specific or all)
 3. **Identify Reviewers** — from git history, list relevant reviewers (last author per touched file vs `HEAD`, excluding the commit author) and the area each must focus on — computed BEFORE the commit so the block can be embedded in the message body
 4. **Generate Message** — Detect type (feat/fix/refactor/etc.), extract scope from paths, write subject, add a detailed body structured as **purpose/kind → what changed → how it works**, and append the **Reviewers** block from step 3
-5. **Test-Verify Gate** — When staged changes include code that might need tests, confirm with the user (a direct user question, default **No**) whether they ran `integration-test-verify`. Default = run verify first; only **Yes** lets the commit proceed
+5. **Test-Verify Gate** — When staged changes include code that might need tests, confirm with the user (ask the user directly, default **No**) whether they ran `integration-test-verify`. Default = run verify first; only **Yes** lets the commit proceed
 6. **Commit** — Create commit with HEREDOC (title + detailed summary + Reviewers block + attribution footer)
 7. **Verify** — Confirm with git status and git log
 
@@ -232,7 +232,7 @@ Before committing, decide whether the staged changes carry **code that might nee
 
 **If the gate is NOT triggered:** log `Test-Verify Gate: skipped (no code changes staged)` and continue to Step 4.
 
-**If the gate IS triggered:** STOP and ask the user with a direct user question (default option is **No**):
+**If the gate IS triggered:** STOP and ask the user with ask the user directly (default option is **No**):
 
 > Header: `Test verify`
 > Question: `Staged code changes may need tests. Did you run integration-test-verify and did it pass?`
@@ -393,7 +393,7 @@ Spawn `git-manager` after committing when user says "push", "create PR", or "ope
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Critical Thinking:** traced `file:line` proof per claim; confidence >80% to act, never guess.
 
-- **MANDATORY MUST ATTENTION — AI KEEPS FORGETTING:** code changed? a direct user question whether `integration-test-verify` ran BEFORE committing — default **No → verify first**, only **Yes** commits — why: prevents committing unverified code
+- **MANDATORY MUST ATTENTION — AI KEEPS FORGETTING:** code changed? ask the user directly whether `integration-test-verify` ran BEFORE committing — default **No → verify first**, only **Yes** commits — why: prevents committing unverified code
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting
 - **MANDATORY IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
 - **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
@@ -403,7 +403,7 @@ Spawn `git-manager` after committing when user says "push", "create PR", or "ope
 
 | Evasion                                          | Rebuttal                                                                                                  |
 | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
-| "The user said commit, so just commit"           | Code changed → run the Test-Verify Gate first. a direct user question whether `integration-test-verify` ran; default No → verify before committing. |
+| "The user said commit, so just commit"           | Code changed → run the Test-Verify Gate first. ask the user directly whether `integration-test-verify` ran; default No → verify before committing. |
 | "Tests probably passed already"                  | Probably ≠ confirmed. Ask the user; default No runs verify. Only an explicit Yes commits without verifying. |
 | "It's a small change, skip the verify question"  | Size doesn't decide — any code that might need tests triggers the gate. Skip only docs/specs/config-only diffs. |
 | "Asking is annoying, I'll just proceed"          | The confirmation is the point — AI keeps committing unverified code. Ask every time code changed.        |

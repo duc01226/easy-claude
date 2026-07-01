@@ -55,10 +55,10 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Summary:**
 
 - **READ-ONLY contract** — review/summarize current-branch commits and FLAG findings only; NEVER edit, fix, implement, or update the docs/specs you flag — why: watzup is a handoff, not an edit pass.
-- **Main steps in order:** (1) **Review** recent commits — what changed/added/removed; (2) **Summarize** impact + quality; (3) **Doc-staleness gate** — path→doc mapping table; (4) **Spec-driven health check** — feature-spec root → spec staleness → feature-docs freshness (ONLY when business code changed); (5) **Root-cause lesson extraction** — surface mistakes → name failure mode (not symptom) → universal rule → ask user; (6) **`$understand` handoff** (mandatory final); (7) **a direct user question Next Steps**.
+- **Main steps in order:** (1) **Review** recent commits — what changed/added/removed; (2) **Summarize** impact + quality; (3) **Doc-staleness gate** — path→doc mapping table; (4) **Spec-driven health check** — feature-spec root → spec staleness → feature-docs freshness (ONLY when business code changed); (5) **Root-cause lesson extraction** — surface mistakes → name failure mode (not symptom) → universal rule → ask user; (6) **`$understand` handoff** (mandatory final); (7) **ask the user directly Next Steps**.
 - **Three required gates** after the change summary: doc-staleness check, spec-driven health check (business-code-only), root-cause lesson extraction — NEVER skip a gate because the change "looks small".
 - Lessons go to `$learn` ONLY after user confirmation; surface-level "always check file X" notes are noise, not lessons.
-- `$understand` is the mandatory final handoff and MUST run BEFORE the a direct user question Next Steps prompt — if unavailable, STOP and report the blocker, NEVER skip — why: the developer's exit context is the explanation, not the raw diff.
+- `$understand` is the mandatory final handoff and MUST run BEFORE the ask the user directly Next Steps prompt — if unavailable, STOP and report the blocker, NEVER skip — why: the developer's exit context is the explanation, not the raw diff.
 
 **Workflow:**
 
@@ -216,7 +216,7 @@ Wait for user confirmation before invoking `$learn`.
 
 **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** before presenting these options, invoke `$understand` as the final mandatory todo task using the watzup summary and current change set as scope. If `$understand` is unavailable, stop and report that blocker instead of silently skipping the handoff.
 
-After `$understand` completes, MUST ATTENTION use a direct user question to present these options. NEVER skip because task seems "simple" or "obvious" — the user decides:
+After `$understand` completes, MUST ATTENTION use ask the user directly to present these options. NEVER skip because task seems "simple" or "obvious" — the user decides:
 
 - **"$workflow-end (Recommended)"** — Complete and close the active workflow
 - **"$commit"** — Commit changes if not using workflow
@@ -374,11 +374,11 @@ After `$understand` completes, MUST ATTENTION use a direct user question to pres
 
 **IMPORTANT MUST ATTENTION** stay READ-ONLY — only FLAG findings; NEVER edit, fix, implement, or update the docs/specs you flag — why: watzup is a review/handoff, not an edit pass; flagging-then-fixing silently breaks the read-only contract.
 **IMPORTANT MUST ATTENTION** run ALL three required gates after the change summary — doc-staleness (path→doc table), spec-driven health check (only when business code changed), root-cause lesson extraction — NEVER skip a gate because the change "looks small" — why: stale docs and missed lessons compound silently across sessions.
-**IMPORTANT MUST ATTENTION** invoke `$understand` as the FINAL mandatory handoff BEFORE the a direct user question Next Steps prompt; if `$understand` is unavailable, STOP and report the blocker — NEVER silently skip the handoff — why: the developer's exit context is the explanation, not the raw diff.
+**IMPORTANT MUST ATTENTION** invoke `$understand` as the FINAL mandatory handoff BEFORE the ask the user directly Next Steps prompt; if `$understand` is unavailable, STOP and report the blocker — NEVER silently skip the handoff — why: the developer's exit context is the explanation, not the raw diff.
 
 **IMPORTANT MUST ATTENTION** extract lessons by ROOT CAUSE (the reasoning/assumption failure), NOT the symptom; write each as a universal rule that holds on ≥3 codebases; surface-level "always check file X" notes are noise — why: only root-cause prevention compounds across sessions.
 **IMPORTANT MUST ATTENTION** send lessons to `$learn` ONLY after explicit user confirmation — NEVER auto-persist or self-edit instruction files — why: lesson capture is a durable instruction change the user must own.
-**IMPORTANT MUST ATTENTION** use a direct user question for the Next Steps decision — NEVER auto-decide the route even when it "seems obvious" — why: the user owns the workflow-end / commit / continue choice.
+**IMPORTANT MUST ATTENTION** use ask the user directly for the Next Steps decision — NEVER auto-decide the route even when it "seems obvious" — why: the user owns the workflow-end / commit / continue choice.
 **IMPORTANT MUST ATTENTION** break work into small todo tasks with task tracking BEFORE starting (one task per file read), keep exactly one `in_progress`, and add a final review todo to verify work quality — why: long files exhaust context; granular tasks survive compaction.
 **IMPORTANT MUST ATTENTION** cite `file:line` proof or traced evidence with a confidence % for every claim/finding (>80% to act, <80% verify first) — NEVER present a guess as fact — why: an unverified staleness/lesson flag misleads the developer's next decision.
 **IMPORTANT MUST ATTENTION** grep/glob to verify any referenced doc, path, or API actually exists before flagging it — NEVER hallucinate a doc mapping or count — why: AI invents file paths and method names; the change summary must match the real diff.
@@ -390,7 +390,7 @@ After `$understand` completes, MUST ATTENTION use a direct user question to pres
 | ------------------------------------------------ | --------------------------------------------------------------------------------------------- |
 | "Doc looks fine, skip the staleness gate"        | Run the path→doc table anyway — staleness is silent; flag or output `No doc updates needed`.   |
 | "No real mistakes this session, skip lessons"    | Still run the gate — output `No AI mistakes identified` only after honest self-review.         |
-| "It's obvious next they want a commit, just do it" | NEVER auto-decide — present the a direct user question options; the user owns the route.           |
+| "It's obvious next they want a commit, just do it" | NEVER auto-decide — present the ask the user directly options; the user owns the route.           |
 | "I can just fix this stale doc while I'm here"    | READ-ONLY — flag only. Fixing here breaks the contract; the user decides.                      |
 | "Small change, skip `$understand`"               | `$understand` is the mandatory handoff — run it or report the blocker; never skip.             |
 

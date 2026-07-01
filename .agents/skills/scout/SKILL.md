@@ -54,11 +54,11 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Summary:**
 
-- **Main step pipeline (run in order, never merge):** Phase 0 classify scope → Step 1 analyze request (extract entities/keywords/file-types) → Step 2 spawn parallel `scout` subagents (grep/glob) → Step 3 graph-expand 2-3 key files (YOU, main agent) → Step 4 low-result check (<5 files → broader re-pass) → Step 5 synthesize numbered prioritized list → a direct user question for next step.
+- **Main step pipeline (run in order, never merge):** Phase 0 classify scope → Step 1 analyze request (extract entities/keywords/file-types) → Step 2 spawn parallel `scout` subagents (grep/glob) → Step 3 graph-expand 2-3 key files (YOU, main agent) → Step 4 low-result check (<5 files → broader re-pass) → Step 5 synthesize numbered prioritized list → ask the user directly for next step.
 - Classify scope FIRST (Phase 0: backend/frontend/full-stack) so you spawn only the agents you need — never the default 3 when the prompt names one layer.
 - Sub-agents do the parallel grep/glob; only YOU (main agent) run the graph commands afterward — graph expansion on 2-3 key files is MANDATORY when `.code-graph/graph.db` exists and is the step that finds what grep can't.
 - This is discovery, not analysis: return prioritized file paths fast (3-5 min), no content deep-dives — that's `investigate`'s job.
-- If <5 files surface, re-examine keywords and run a second pass with broader synonyms before synthesizing; close by asking the user (a direct user question) which next step to take.
+- If <5 files surface, re-examine keywords and run a second pass with broader synonyms before synthesizing; close by asking the user (ask the user directly) which next step to take.
 
 **Workflow:**
 
@@ -296,7 +296,7 @@ Combine grep + graph into numbered, prioritized file list (see Results Format).
 
 ## Workflow Recommendation
 
-> **MANDATORY MUST ATTENTION — NO EXCEPTIONS:** If NOT already in workflow, MUST ATTENTION use a direct user question to ask user:
+> **MANDATORY MUST ATTENTION — NO EXCEPTIONS:** If NOT already in workflow, MUST ATTENTION use ask the user directly to ask user:
 >
 > 1. **Activate `investigation` workflow** (Recommended) — scout → investigate
 > 2. **Execute `$scout` directly** — run this skill standalone
@@ -305,7 +305,7 @@ Combine grep + graph into numbered, prioritized file list (see Results Format).
 
 ## Next Steps
 
-**MANDATORY MUST ATTENTION — NO EXCEPTIONS** after completing, MUST ATTENTION use a direct user question to present:
+**MANDATORY MUST ATTENTION — NO EXCEPTIONS** after completing, MUST ATTENTION use ask the user directly to present:
 
 - **"$investigate (Recommended)"** — Deep-dive into discovered files
 - **"$plan"** — If scouted files sufficient to start planning
@@ -586,7 +586,7 @@ Combine grep + graph into numbered, prioritized file list (see Results Format).
 
 **MUST ATTENTION** every protocol above is in force for this scout — honor its canonical body, not just the digest line.
 
-**IMPORTANT MUST ATTENTION** execute the FULL step pipeline in declared order — Phase 0 classify scope → Step 1 analyze request (entities/keywords/file-types) → Step 2 spawn parallel `scout` subagents → Step 3 graph-expand 2-3 key files (YOU) → Step 4 low-result check → Step 5 synthesize numbered prioritized list → a direct user question next step; NEVER skip or merge a step — why: AI forgets the skill's own steps and ships a partial, under-searched map.
+**IMPORTANT MUST ATTENTION** execute the FULL step pipeline in declared order — Phase 0 classify scope → Step 1 analyze request (entities/keywords/file-types) → Step 2 spawn parallel `scout` subagents → Step 3 graph-expand 2-3 key files (YOU) → Step 4 low-result check → Step 5 synthesize numbered prioritized list → ask the user directly next step; NEVER skip or merge a step — why: AI forgets the skill's own steps and ships a partial, under-searched map.
 
 **IMPORTANT MUST ATTENTION** run Phase 0 classification BEFORE spawning agents — scope (backend/frontend/full-stack) determines agent count; never spawn the default 3 when the prompt names one layer — why: extra agents waste budget and dilute focus
 **IMPORTANT MUST ATTENTION** graph expand is the MANDATORY step that finds what grep cannot — run at least ONE graph command (`connections`/`callers_of`/`trace --direction both`) on 2-3 key files when `.code-graph/graph.db` exists; NEVER skip it — why: structural relationships > text matches, and sub-agents cannot run graph — only you can
@@ -598,7 +598,7 @@ Combine grep + graph into numbered, prioritized file list (see Results Format).
 **MUST ATTENTION** sub-agents return a SUMMARY only (≤10 finding bullets + `Full report:` path), writing full findings incrementally to `plans/reports/` — NEVER hold all results in memory or request full sub-agent output inline — why: context cutoff mid-run loses every in-memory finding; disk writes survive compaction
 **MUST ATTENTION** bootstrap task tracking BEFORE target work — the current task list first on context loss, one task `in_progress` at a time, expand child phases when nested under a workflow row — why: compaction wipes prior-work memory; resume from state, never duplicate
 **MUST ATTENTION** read required project-reference docs (always `lessons.md`; `domain-entities-reference.md` for business entities) BEFORE searching — project conventions override generic framework assumptions
-**MUST ATTENTION** use a direct user question after completing (investigation workflow vs standalone, then $investigate vs $plan vs skip) — NEVER auto-proceed to the next step — why: the user owns scope; assuming standalone skips the workflow they wanted
+**MUST ATTENTION** use ask the user directly after completing (investigation workflow vs standalone, then $investigate vs $plan vs skip) — NEVER auto-proceed to the next step — why: the user owns scope; assuming standalone skips the workflow they wanted
 **MUST ATTENTION** for non-trivial bug/regression scouts, surface End-to-Start trace candidates (reader → storage → writer → consumer → producer) and enumerate every feeder path — why: starting at the first suspicious file collapses multiple producers into one false "flow"
 
 **Anti-Rationalization:**

@@ -369,7 +369,7 @@ The skill auto-derives categories from file paths. For repositories without `.cl
 
 ## Workflow Recommendation
 
-> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, use a direct user question to ask the user:
+> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, use ask the user directly to ask the user:
 >
 > 1. **Execute `$release-doc` directly (Recommended)** — Standalone analysis and doc generation
 > 2. **Run `$production-readiness-review` + `$quality-gate` first** — Pre-release quality gate, then release doc
@@ -378,7 +378,7 @@ The skill auto-derives categories from file paths. For repositories without `.cl
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, use a direct user question to present:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, use ask the user directly to present:
 
 - **"$release-notes (Recommended)"** — Generate consumer-facing release notes from the same range
 - **"$commit"** — Commit the generated release doc to version control

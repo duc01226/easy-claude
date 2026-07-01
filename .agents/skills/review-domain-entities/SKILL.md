@@ -58,7 +58,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - **Phase 1:** create the report, run the mandatory high-signal grep patterns (hidden `validate()` overrides, leaked persistence/business logic, missing identity markers) BEFORE reading individual files, write every grep result immediately, categorize files (root/entity/VO/unknown).
 - **Phase 2:** per-file checklist A–L (entity-vs-VO classification, base-class compliance, VO immutability/structural equality, anemic-model detection, domain invariants, invariant→property-TC Dual-Feedback, aggregate-by-ID, navigation serialization safety, domain events, query expressions, ubiquitous language, OOP) — append findings per file, NEVER batch.
 - **Phase 3 → 4:** holistic cross-entity synthesis in the current pass, then final report with health score (`100 − (CRIT×25 + HIGH×10 + MED×3 + LOW×1)`); 10+ entity files → switch to parallel `code-reviewer` sub-agents automatically.
-- **Phase 5 (validation-first loop):** validate via `$why-review` gate before any fix, fix only validated findings, then restart the FULL review; a clean pass ENDS the review. Every finding needs `file:line` at confidence >80%. Close with a direct user question next-steps.
+- **Phase 5 (validation-first loop):** validate via `$why-review` gate before any fix, fix only validated findings, then restart the FULL review; a clean pass ENDS the review. Every finding needs `file:line` at confidence >80%. Close with ask the user directly next-steps.
 
 **Workflow:**
 
@@ -67,7 +67,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 3. **Phase 2** — Entity-by-entity DDD review (per-file checklist A–L + project-specific rules); append per file, never batch
 4. **Phase 3** — Holistic cross-entity synthesis in the current pass; fresh-context sub-agent only after validated fixes or explicit high-risk trigger
 5. **Phase 4** — Final report: critical issues, health score, refactoring priority, recommendations
-6. **Phase 5** — Why-Review self-validation gate (MANDATORY when findings exist) → validate → fix validated → restart full review until clean → a direct user question next-steps
+6. **Phase 5** — Why-Review self-validation gate (MANDATORY when findings exist) → validate → fix validated → restart full review until clean → ask the user directly next-steps
 7. **Scale rule** — 10+ entity files → parallel `code-reviewer` sub-agents, then consolidate
 
 **Key Rules:**
@@ -445,7 +445,7 @@ After sub-agent returns:
 1. Read the sub-agent report
 2. Integrate as `## Re-Review {N} Findings` in main report — NEVER filter or override
 3. If findings remain: validate the new finding set before any additional fixes
-4. Repeat only after another validated-finding fix cycle; if the same blocker repeats across 3 full invocations with no progress, escalate via a direct user question
+4. Repeat only after another validated-finding fix cycle; if the same blocker repeats across 3 full invocations with no progress, escalate by asking the user directly
 5. Final verdict MUST incorporate every review pass that actually ran
 
 ---
@@ -618,7 +618,7 @@ Report: plans/reports/domain-entities-review-{date}-{slug}.md
 
 ## Next Steps
 
-MUST ATTENTION use a direct user question after completing to present:
+MUST ATTENTION use ask the user directly after completing to present:
 
 - **`$fix` (Recommended if FAIL)** — Fix critical and high-priority issues
 - **`$scan --target=domain-entities`** — Update domain-entities-reference.md (scan mode)
@@ -792,7 +792,7 @@ If no domain entity files match in changes mode → announce "No domain entity c
 > - Subtle edge cases the prior round rationalized away
 > - Regressions introduced by the fixes themselves
 >
-> **Loop termination:** After each full re-review, repeat the same decision: clean → END; issues → validate findings → fix → restart from the first review phase. Continue until a complete review pass finds zero issues. If the same validated finding repeats for 3 full invocations with no progress, or a fix requires product/owner input, escalate via a direct user question.
+> **Loop termination:** After each full re-review, repeat the same decision: clean → END; issues → validate findings → fix → restart from the first review phase. Continue until a complete review pass finds zero issues. If the same validated finding repeats for 3 full invocations with no progress, or a fix requires product/owner input, escalate by asking the user directly.
 >
 > **Rules:**
 >
@@ -830,7 +830,7 @@ If no domain entity files match in changes mode → announce "No domain entity c
 > - SKIP fresh sub-agent when the prior full review found zero issues (no fixes = nothing new to verify)
 > - NEVER skip the full review restart after a fix cycle — every fix invalidates the prior verdict
 > - NEVER reuse a sub-agent across rounds — every fresh round spawns a NEW `spawn_agent` call
-> - Continue until a complete full review pass has zero findings; if the same blocker repeats 3 times with no progress, escalate via a direct user question
+> - Continue until a complete full review pass has zero findings; if the same blocker repeats 3 times with no progress, escalate by asking the user directly
 > - Track iteration count and repeated blockers in conversation context (session-scoped, no persistent files)
 
 <!-- /SYNC:fresh-context-review -->

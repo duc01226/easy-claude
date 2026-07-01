@@ -257,9 +257,9 @@ mistakes compound through later tasks.
 
 ---
 
-## Next Steps (Standalone: MUST ATTENTION ask user via a direct user question. Skip if inside workflow.)
+## Next Steps (Standalone: MUST ATTENTION ask user by asking the user directly. Skip if inside workflow.)
 
-> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If this skill was called **outside a workflow**, MUST ATTENTION use a direct user question to present these options. Do NOT skip because task seems "simple" or "obvious" — user decides:
+> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If this skill was called **outside a workflow**, MUST ATTENTION use ask the user directly to present these options. Do NOT skip because task seems "simple" or "obvious" — user decides:
 
 - **"Proceed with full workflow (Recommended)"** — Detect best workflow to continue from here (feature implemented). Ensures review, testing, docs steps aren't skipped.
 - **"$code-simplifier"** — Simplify and clean up implementation
@@ -520,7 +520,7 @@ mistakes compound through later tasks.
 - **MANDATORY IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
 - **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
 - **MANDATORY IMPORTANT MUST ATTENTION** add final review todo task to verify work quality
-- **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via a direct user question — never auto-decide
+- **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user by asking the user directly — never auto-decide
 - **MANDATORY IMPORTANT MUST ATTENTION** NEVER skip `code-reviewer` review or test execution on non-trivial change
 
 **[TASK-PLANNING]** Before acting, analyze task scope and systematically break into small todo tasks and sub-tasks via task tracking.

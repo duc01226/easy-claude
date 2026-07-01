@@ -557,13 +557,13 @@ For each changed file, identify related documentation:
 - Flag missing docs for new features or components that should be documented
 - **Flag in the report** with the specific stale section and what changed. Do not fix yet; Phase 6 must validate the finding before Phase 7 invokes `$docs-update` or applies doc edits.
 
-**Spec Drift Adjudication (REQUIRED when behavior changed):** Apply `SYNC:spec-drift-adjudication`. For every behavior-bearing change, compare it against the canonical Feature Spec under `docs/specs/` and classify any divergence as **CODE-WRONG** (change violates an intended spec rule/AC/invariant → BLOCKING finding, fix code/test), **SPEC-STALE** (intentional behavior change the spec no longer reflects → route to `$spec [update]` + `$spec [mode=tests] [update]`), **AMBIGUOUS** (a direct user question before editing either side), or **SPEC-SILENT** (code correctly enforces an invariant no spec artifact states → ENRICH: add the §4 BR/§3 AC + a §8 TC via `$spec [update]` + `$spec [mode=tests]`, then a guarding test). Record the verdict per changed behavior (`Spec in sync` when no divergence). Do not normalize drift just because code/tests pass. This is the bidirectional generalization of the post-bugfix "Was spec wrong?" check — it runs for ALL behavior-changing reviews, not only post-bugfix. Flag findings here; Phase 6 validates and Phase 7 fixes (CODE-WRONG fixes route through the fix loop; SPEC-STALE and SPEC-SILENT fixes route to the canonical spec updater before `$docs-update`).
+**Spec Drift Adjudication (REQUIRED when behavior changed):** Apply `SYNC:spec-drift-adjudication`. For every behavior-bearing change, compare it against the canonical Feature Spec under `docs/specs/` and classify any divergence as **CODE-WRONG** (change violates an intended spec rule/AC/invariant → BLOCKING finding, fix code/test), **SPEC-STALE** (intentional behavior change the spec no longer reflects → route to `$spec [update]` + `$spec [mode=tests] [update]`), **AMBIGUOUS** (ask the user directly before editing either side), or **SPEC-SILENT** (code correctly enforces an invariant no spec artifact states → ENRICH: add the §4 BR/§3 AC + a §8 TC via `$spec [update]` + `$spec [mode=tests]`, then a guarding test). Record the verdict per changed behavior (`Spec in sync` when no divergence). Do not normalize drift just because code/tests pass. This is the bidirectional generalization of the post-bugfix "Was spec wrong?" check — it runs for ALL behavior-changing reviews, not only post-bugfix. Flag findings here; Phase 6 validates and Phase 7 fixes (CODE-WRONG fixes route through the fix loop; SPEC-STALE and SPEC-SILENT fixes route to the canonical spec updater before `$docs-update`).
 
 **Correctness & Bug Detection:** Apply `SYNC:bug-detection` — null safety, boundaries, error handling, resource cleanup, concurrency.
 
 **Test Spec Verification:** Apply `SYNC:test-spec-verification` — locate specs, verify coverage, flag gaps.
 
-**Integration Test Sync:** Apply `SYNC:integration-test-sync-check` — surface missing tests via a direct user question.
+**Integration Test Sync:** Apply `SYNC:integration-test-sync-check` — surface missing tests by asking the user directly.
 
 **Translation Sync:** Apply `SYNC:translation-sync-check` — for multilingual UI text changes, require translation updates or explicit user risk acceptance.
 
@@ -732,7 +732,7 @@ For bugfix, failed-verification, stale/incorrect final output, regression, or be
 - New feature/component added → flag if corresponding doc missing
 - Test specs reflect current behavior after changes
 - API changes reflected in relevant API docs or specs
-- **Spec-drift adjudication** (`SYNC:spec-drift-adjudication`): for every behavior-changing file, decide whether a divergence from the canonical Feature Spec is CODE-WRONG (change is the defect — BLOCKING, fix code/test), SPEC-STALE (change is intended — update spec via `$spec [update]` first), AMBIGUOUS (intended behavior unclear — a direct user question before editing either side), or SPEC-SILENT (code correctly enforces an invariant no spec artifact states — enrich: add §4 BR/§3 AC + §8 TC + guarding test). Do not flag a divergence as a one-directional "stale doc" without naming which side is canonical. Unadjudicated behavior-vs-spec divergence is a FAIL; an unwritten-but-enforced invariant left uncaptured is equally a FAIL.
+- **Spec-drift adjudication** (`SYNC:spec-drift-adjudication`): for every behavior-changing file, decide whether a divergence from the canonical Feature Spec is CODE-WRONG (change is the defect — BLOCKING, fix code/test), SPEC-STALE (change is intended — update spec via `$spec [update]` first), AMBIGUOUS (intended behavior unclear — ask the user directly before editing either side), or SPEC-SILENT (code correctly enforces an invariant no spec artifact states — enrich: add §4 BR/§3 AC + §8 TC + guarding test). Do not flag a divergence as a one-directional "stale doc" without naming which side is canonical. Unadjudicated behavior-vs-spec divergence is a FAIL; an unwritten-but-enforced invariant left uncaptured is equally a FAIL.
 
 ### 8. M1-M6 Compliance Gate — Code-to-Spec Drift (BLOCKING, MUST ATTENTION)
 
@@ -773,7 +773,7 @@ Provide feedback in this format:
 
 **Spec Drift Adjudication:** (Behavior-changing changes only — per `SYNC:spec-drift-adjudication`)
 
-- `<behavior/file>` → CODE-WRONG | SPEC-STALE | AMBIGUOUS | SPEC-SILENT — verdict + routed fix (`$spec [update]`, regression TC, a direct user question, or enrich-spec: add §4 BR/§3 AC + §8 TC + guarding test)
+- `<behavior/file>` → CODE-WRONG | SPEC-STALE | AMBIGUOUS | SPEC-SILENT — verdict + routed fix (`$spec [update]`, regression TC, ask the user directly, or enrich-spec: add §4 BR/§3 AC + §8 TC + guarding test)
 - `Spec in sync` — if changed behavior matches the canonical Feature Spec
 - `No behavior change — N/A` — if the diff is docs/tooling/style only
 
@@ -816,7 +816,7 @@ type(scope): description
 
 ## Workflow Recommendation
 
-> **MANDATORY — NO EXCEPTIONS:** If NOT already in a workflow, MUST use a direct user question to ask user. Do NOT judge task complexity or decide "simple enough to skip" — user decides, not you:
+> **MANDATORY — NO EXCEPTIONS:** If NOT already in a workflow, MUST use ask the user directly to ask user. Do NOT judge task complexity or decide "simple enough to skip" — user decides, not you:
 >
 > 1. **Activate `workflow-review-changes` workflow** (Recommended) — run the canonical workflow from `.claude/workflows.json`; it sequences this skill, findings validation, parallel reviewers, `code-simplifier` self-review, fix-plan cycle, full re-review restart, docs, and handoff.
 > 2. **Execute `$review-changes` directly** — run this skill standalone
@@ -860,7 +860,7 @@ If `architectureRules` not present in project-config.json, skip silently.
     - **HAS ISSUES** — why-review demotes/removes a finding, flags a missing or inaccurate proof, OR surfaces a new finding issue / enhancement opportunity → go to step 5.
 5. **Reconcile:** UPDATE own finalized report — revise severities, remove false positives, add the surfaced findings/enhancements, and record a `## Why-Review Validation Notes` section citing what changed and why.
 6. **RE-DO `$why-review --validate-findings`** on the UPDATED report (return to step 2) — re-validation is required ONLY because the report changed. Each pass is terminal (validate mode never recurses); the loop is owned and bounded HERE. Repeat until a why-review round comes back CLEAN, or **max 2 re-do rounds** (3 total validate passes) is reached.
-7. **If still not CLEAN after the cap:** record unresolved items under `## Why-Review Validation — Unresolved` and escalate to the user via a direct user question instead of silently looping.
+7. **If still not CLEAN after the cap:** record unresolved items under `## Why-Review Validation — Unresolved` and escalate to the user by asking the user directly instead of silently looping.
 
 **Skip conditions (record explicit reason if skipping):**
 
@@ -955,7 +955,7 @@ If `architectureRules` not present in project-config.json, skip silently.
 
 ## Next Steps
 
-**MANDATORY — NO EXCEPTIONS** after completing this skill, MUST use a direct user question to present options. Do NOT skip because task seems "simple" or "obvious" — user decides:
+**MANDATORY — NO EXCEPTIONS** after completing this skill, MUST use ask the user directly to present options. Do NOT skip because task seems "simple" or "obvious" — user decides:
 
 - **"$code-review (Recommended)"** — Deeper code quality review
 - **"$watzup"** — Wrap up session and review all changes
@@ -1047,7 +1047,7 @@ review-changes (you are here)
 >
 > 1. **MUST ATTENTION Phase 0 graph blast-radius FIRST** — NEVER skip; informs entire review order
 > 2. **Findings trigger validate → fix → full restart.** Run `$why-review --validate-findings`, fix validated findings, then rerun `$review-changes` from Phase 0 until a full pass has zero findings.
-> 3. **MUST ATTENTION task tracking ALL phases** before starting; missing tests MUST surface via a direct user question — NOT silently logged
+> 3. **MUST ATTENTION task tracking ALL phases** before starting; missing tests MUST surface by asking the user directly — NOT silently logged
 
 > **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. Prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
 
@@ -1138,7 +1138,7 @@ review-changes (you are here)
 >
 > **Mandatory closers:** Confidence % stated · Assumptions listed · Open questions surfaced · Next action concrete.
 >
-> **Stop conditions:** confidence <80% on any critical decision → escalate via ask the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
+> **Stop conditions:** confidence <80% on any critical decision → escalate by asking the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 >
@@ -1263,7 +1263,7 @@ review-changes (you are here)
 > - Subtle edge cases the prior round rationalized away
 > - Regressions introduced by the fixes themselves
 >
-> **Loop termination:** After each full re-review, repeat the same decision: clean → END; issues → validate findings → fix → restart from the first review phase. Continue until a complete review pass finds zero issues. If the same validated finding repeats for 3 full invocations with no progress, or a fix requires product/owner input, escalate via a direct user question.
+> **Loop termination:** After each full re-review, repeat the same decision: clean → END; issues → validate findings → fix → restart from the first review phase. Continue until a complete review pass finds zero issues. If the same validated finding repeats for 3 full invocations with no progress, or a fix requires product/owner input, escalate by asking the user directly.
 >
 > **Rules:**
 >
@@ -1301,7 +1301,7 @@ review-changes (you are here)
 > - SKIP fresh sub-agent when the prior full review found zero issues (no fixes = nothing new to verify)
 > - NEVER skip the full review restart after a fix cycle — every fix invalidates the prior verdict
 > - NEVER reuse a sub-agent across rounds — every fresh round spawns a NEW `spawn_agent` call
-> - Continue until a complete full review pass has zero findings; if the same blocker repeats 3 times with no progress, escalate via a direct user question
+> - Continue until a complete full review pass has zero findings; if the same blocker repeats 3 times with no progress, escalate by asking the user directly
 > - Track iteration count and repeated blockers in conversation context (session-scoped, no persistent files)
 
 <!-- /SYNC:fresh-context-review -->
@@ -1536,10 +1536,10 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > 1. From changed files → identify **business logic files**: handlers, commands, queries, services, controllers, resolvers, event processors. Naming varies by stack — infer from project conventions (e.g., `*Service.*`, `*Handler.*`, `*Controller.*`, `*Command.*`, `*Query.*`, `*Resolver.*`). Exclude migration files: schema/data migrations are one-time execution paths, not core application logic.
 > 2. For each identified file → search for a corresponding test file. Infer test naming from existing tests in the project (e.g., `*.test.ts`, `*Tests.java`, `*_test.py`, `*.spec.js`, `*Tests.cs`). Check standard test directories (`tests/`, `spec/`, `__tests__/`, or adjacent test projects/packages).
 > 3. If test EXISTS → check if test methods cover changed behavior (new methods/parameters/logic paths)
-> 4. If test MISSING → **MANDATORY**: use a direct user question: "Business logic file `{file}` has no integration tests — run `$integration-test` before proceeding, or confirm tests already written?" Options: "Run `$integration-test` first" (Recommended) | "Tests already written/updated — proceed"
+> 4. If test MISSING → **MANDATORY**: use ask the user directly: "Business logic file `{file}` has no integration tests — run `$integration-test` before proceeding, or confirm tests already written?" Options: "Run `$integration-test` first" (Recommended) | "Tests already written/updated — proceed"
 > 5. Severity: **HIGH** — missing tests for changed business logic MUST be surfaced to the user; do NOT silently flag and continue
 >
-> **Surface every business-logic change that lacks test coverage for an explicit a direct user question decision — never silently skip. — why: a silent skip ships untested business logic to production.**
+> **Surface every business-logic change that lacks test coverage for an explicit user decision — never silently skip. — why: a silent skip ships untested business logic to production.**
 
 <!-- /SYNC:integration-test-sync-check -->
 
@@ -1550,7 +1550,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > 1. Determine multilingual mode from project config: `localization.enabled === true` and `supportedLocales.length > 1`
 > 2. Detect UI-facing file changes via extensions/path patterns (`.ts`, `.tsx`, `.html`, `.css`, `.scss` plus `localization.uiPathPatterns` when configured)
 > 3. For multilingual UI changes, verify translation resource diffs exist (`localization.translationFilePatterns` when configured)
-> 4. If translation updates are missing → **MANDATORY**: use a direct user question: "UI text changed in a multilingual project, but translation updates were not detected. Run translation sync now or proceed with explicit risk acceptance?" Options: "Run translation sync first" (Recommended) | "Proceed with explicit risk acceptance"
+> 4. If translation updates are missing → **MANDATORY**: use ask the user directly: "UI text changed in a multilingual project, but translation updates were not detected. Run translation sync now or proceed with explicit risk acceptance?" Options: "Run translation sync first" (Recommended) | "Proceed with explicit risk acceptance"
 > 5. Severity: **HIGH** — no silent pass for multilingual UI text changes without explicit translation-sync decision
 >
 > **Do NOT silently skip. Multilingual UI text changes require explicit translation-sync confirmation.**
@@ -1669,7 +1669,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > 2. **Classify** the divergence:
 >    - **CODE-WRONG** — the spec correctly states intended behavior and the change violates it → BLOCKING finding; fix the code/test against intended behavior (write/adjust a regression TC first).
 >    - **SPEC-STALE** — the change is the new intended behavior and the spec now documents the old/wrong behavior → update the spec FIRST via `$spec [mode=update]`, then sync `$spec [mode=tests]` + `$spec [mode=sync]`.
->    - **AMBIGUOUS** — intended behavior is unclear → a direct user question (or the canonical spec owner) before editing either side.
+>    - **AMBIGUOUS** — intended behavior is unclear → ask the user directly (or the canonical spec owner) before editing either side.
 >    - **SPEC-SILENT** — the code correctly enforces an invariant/behavior that NO canonical spec artifact (§3 AC, §4 BR, §5 invariant, §8 TC) states → not drift but an UNWRITTEN rule discovered by review. ENRICH the spec via the **Invariant Harvest** pass (`$spec [mode=sync] direction=harvest` → `spec/references/sync.md`): prove it is always-true (≥2 enforcement points or a rejecting guard), express it as a universally-quantified property, then add the rule to §4 (or §3/§5) AND a §8 TC via `$spec [update]` + `$spec [mode=tests]` and add the guarding test. A discovered invariant left only in code (or only in tests) is INCOMPLETE — this is the highest-value capture (the rule nobody wrote down).
 > 3. **Never normalize drift just because code/tests are green** — green can encode the drift itself. Reconcile to canonical intent, never to whichever side currently passes.
 >
@@ -1761,13 +1761,13 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:integration-test-sync-check:reminder -->
 
-**IMPORTANT MUST ATTENTION** check changed logic files for matching tests. Surface missing tests via a direct user question — mandatory, not advisory.
+**IMPORTANT MUST ATTENTION** check changed logic files for matching tests. Surface missing tests by asking the user directly — mandatory, not advisory.
 
 <!-- /SYNC:integration-test-sync-check:reminder -->
 
 <!-- SYNC:translation-sync-check:reminder -->
 
-**IMPORTANT MUST ATTENTION** for multilingual UI text changes, verify translation updates. If missing, require explicit user decision via a direct user question.
+**IMPORTANT MUST ATTENTION** for multilingual UI text changes, verify translation updates. If missing, require explicit user decision by asking the user directly.
 
 <!-- /SYNC:translation-sync-check:reminder -->
 
@@ -1864,7 +1864,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **Logic And Intention Review:** WHAT code does matches WHY changed.
 - **Bug Detection:** null, boundaries, error handling, resource cleanup.
 - **Test Spec Verification:** map changed paths to test cases.
-- **Integration Test Sync:** missing tests surface via a direct user question.
+- **Integration Test Sync:** missing tests surface by asking the user directly.
 - **Translation Sync:** multilingual UI text changes need translation updates.
 - **Category Review Thinking:** derive categories from file + change nature.
 - **Graph-Assisted Investigation:** run graph trace on key files.
@@ -1880,11 +1880,11 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 >
 > 1. **MUST ATTENTION Phase -1 `/goal` self-recursive review-loop gate is the FIRST ACTION (standalone)** — install it before Phase 0 so stopping is blocked until a whole-diff review pass is clean; Phase 0 graph blast-radius is the first *review* step. Skip Phase -1 only inside `$workflow-review-changes` (parent owns the goal).
 > 2. **MUST ATTENTION findings follow the active ownership boundary, and validated findings are SELF-FIXED, not handed back.** Standalone mode runs Phase 6 validate → Phase 7 self-fix → full whole-diff `$review-changes` restart (combined with prior fixes, not just the last fix), looping until zero findings; inside `$workflow-review-changes`, stop after the report and hand findings to parent step 2, then parent steps 10-15 own plan/feature-implement/restart.
-> 3. **MUST ATTENTION task tracking ALL phases** before starting; missing tests MUST surface via a direct user question
+> 3. **MUST ATTENTION task tracking ALL phases** before starting; missing tests MUST surface by asking the user directly
 
 - **MANDATORY** Nested Task Expansion Contract — when invoked inside a workflow, STILL expand internal phases via task tracking with `[N.M] $review-changes — phase` prefix and `TaskUpdate(parentTaskId, addBlockedBy: [childIds])` linkage. Workflow row is container, not substitute.
 - **MANDATORY** break work into small todo tasks using task tracking BEFORE starting
-- **MANDATORY** validate decisions with user via a direct user question — NEVER auto-decide
+- **MANDATORY** validate decisions with user by asking the user directly — NEVER auto-decide
 - **MANDATORY** add final review todo task to verify work quality
 - **MANDATORY** discover and READ project-specific reference docs before starting
 - **MANDATORY** Phase 0 graph blast-radius is FIRST step — NEVER skip it
@@ -1896,15 +1896,15 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **MANDATORY** run the **Phase 8 final `$docs-update` gate** once the review/fix loop converges to zero findings — ALWAYS, unconditional, never skipped on a clean verdict (deferred only inside `$workflow-review-changes` to the parent's docs-update step) — why: a passing code review still leaves docs stale until docs-update reconciles every impacted doc against the actual changes; a clean review with skipped docs-update is INCOMPLETE
 - **MANDATORY** run the **Phase 3.5 Code-Simplifier Optimization gate** whenever the diff includes code files — invoke `$code-simplifier` (report mode) over the changed code files, record its clarity/consistency/maintainability findings in the report, and route them through Phase 6 validation → Phase 7 fix; skip ONLY for docs-only diffs (record the skip reason) — why: correctness review proves it works, the simplifier gate proves it stays cheap to change, and the step is silently dropped without an anchored reminder
 - **MANDATORY** run the **Phase 3.7 Integration-Test-Review Coverage Gate** whenever the diff includes behavior-bearing code — invoke `$integration-test-review` over the FULL change set (production code AND tests); its Gate 7 must map every behavior change to a covering test (integration-first; unit fallback justified) and a spec TC, and every GAP/SPEC-GAP becomes a finding for Phase 6 validation → Phase 7 fix (GAP fix = write the missing test); skip ONLY for docs-only diffs with recorded reason, and defer to the parent's dedicated `$integration-test-review` step inside `$workflow-review-changes` — why: a correct-looking change with no covering test or stale spec ships unprotected behavior; the pairing check alone proves file names, not coverage
-- **MANDATORY** missing tests for changed business logic MUST surface to user via a direct user question — NOT silently logged
-- **MANDATORY** run the **Phase 6 Why-Review Findings Validation Gate** whenever ANY finding exists in standalone mode — invoke the `$why-review` skill through the skill invocation with `--validate-findings` (terminal mode, same session; an ACTUAL skill call — re-reading the cited lines yourself or any inline/manual self-validation does NOT satisfy this gate). The moment the first finding is recorded, register `[Review Phase 6] Why-review findings validation gate — invoke $why-review` via task tracking so it is never forgotten. Verify every finding is correct, proof-backed, reasonable, and best-practice; RE-DO it ONLY if it surfaces finding issues or enhancement opportunities (max 2 re-dos, then escalate via a direct user question); then Phase 7 fixes validated findings and restarts this skill. Inside `$workflow-review-changes`, do not run Phase 6/7 locally; parent step 2 and steps 10-15 own those gates.
+- **MANDATORY** missing tests for changed business logic MUST surface to user by asking the user directly — NOT silently logged
+- **MANDATORY** run the **Phase 6 Why-Review Findings Validation Gate** whenever ANY finding exists in standalone mode — invoke the `$why-review` skill through the skill invocation with `--validate-findings` (terminal mode, same session; an ACTUAL skill call — re-reading the cited lines yourself or any inline/manual self-validation does NOT satisfy this gate). The moment the first finding is recorded, register `[Review Phase 6] Why-review findings validation gate — invoke $why-review` via task tracking so it is never forgotten. Verify every finding is correct, proof-backed, reasonable, and best-practice; RE-DO it ONLY if it surfaces finding issues or enhancement opportunities (max 2 re-dos, then escalate by asking the user directly); then Phase 7 fixes validated findings and restarts this skill. Inside `$workflow-review-changes`, do not run Phase 6/7 locally; parent step 2 and steps 10-15 own those gates.
 - **MANDATORY** follow declared step order; NEVER skip, reorder, or merge steps without explicit user approval
 - **MANDATORY** every skipped step includes explicit reason; every completed step includes concise evidence
 - **MANDATORY** Report-driven — write every finding to `plans/reports/code-review-{date}-{slug}.md` incrementally as each file/dimension is reviewed, NOT in one final batch — why: the report is external memory AND the deliverable; findings held only in context are lost on compaction
 - **MANDATORY** Evidence Gate — back every claim, finding, and recommendation with `file:line` proof or a traced call chain plus a confidence read (>80% act, 60-80% verify first, <60% DO NOT recommend); speculation is FORBIDDEN output and "insufficient evidence" is a valid verdict — why: an unproven finding wastes the author's time and erodes trust in the whole report
 - **MANDATORY** Convention-before-flag — grep 3+ existing examples before flagging ANY pattern, naming, or style violation; codebase convention wins over textbook rules — why: flagging against a rule the project never adopted manufactures false positives
 - **MANDATORY** Enforce YAGNI / KISS / DRY / Clean Code on changed code — flag speculative generality, needless complexity, and duplicated knowledge; 3+ similar patterns = MANDATORY extraction, 2+ same-kind violations = a structural finding (not individual nits) — why: these are the day-to-day forms of the Easy-to-Change success metric
-- **MANDATORY** Spec Drift Adjudication runs for EVERY behavior-changing review (not only post-bugfix) — classify each divergence CODE-WRONG / SPEC-STALE / AMBIGUOUS / SPEC-SILENT and route the owed fix (CODE-WRONG → fix code + regression TC; SPEC-STALE/SPEC-SILENT → `$spec [update]` + `$spec [mode=tests]`; AMBIGUOUS → a direct user question); record `Spec in sync` when none — why: passing code and tests can still silently normalize a spec violation
+- **MANDATORY** Spec Drift Adjudication runs for EVERY behavior-changing review (not only post-bugfix) — classify each divergence CODE-WRONG / SPEC-STALE / AMBIGUOUS / SPEC-SILENT and route the owed fix (CODE-WRONG → fix code + regression TC; SPEC-STALE/SPEC-SILENT → `$spec [update]` + `$spec [mode=tests]`; AMBIGUOUS → ask the user directly); record `Spec in sync` when none — why: passing code and tests can still silently normalize a spec violation
 - **MANDATORY** Dual-Feedback Ledger — every behavior-changing finding must feed BOTH the spec AND the tests; a blank or bare-"N/A" cell on either axis = FAIL (each N/A carries its reason inline) — why: fixing only the code leaves the spec or its TC stale and the gap reopens next change
 - **MANDATORY** Bugfix Debugger Trace Gate (§6.5) — for bugfix / regression / failed-verification / stale-output / behavior-changing fixes, FAIL the review unless an End→Start debugger trace, enumerated feeder paths, hypothesis matrix, lowest-owning-fix-layer justification, and forward-convergence + regression-test proof are all present — why: a fix without a trace patches the symptom site and the bug recurs
 - **MANDATORY** Fresh-Context Gate (Phase 3) is review-ONLY — it may ADD findings but NEVER fixes or validates them, NEVER re-reviews known findings, and does NOT run merely because Phase 7 restarted; any non-zero finding set flows straight to Phase 6 — why: re-reviewing known findings burns context without adding signal

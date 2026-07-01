@@ -58,7 +58,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - **Main steps in order (the digest):** (0) **Classify** bug type — Phase 0, BLOCKING — routes to `debugger` / `performance-optimizer` / `security-auditor` and decides which evidence matters; (1) **Reproduce** with evidence (error/stack/screenshot); (2) **Hypothesize** 2-3 ranked theories + the evidence that confirms/contradicts each; (3) **Trace END-to-START** — name Frame 0 (observed final state), walk reader → storage/projection → writer → consumer/job → producer, enumerate ALL feeder paths; (4) **Confirm** one cause explains ALL symptoms via the hypothesis matrix, no bypass paths; (5) **Validate** through the `$why-review` gate; (6) **Report** the confidence-tagged finding + hand off to `$fix` → `$prove-fix` runs after the fix.
 - **Core discipline:** the bug enters where bad state is WRITTEN, not where it crashes — fix at the LOWEST invariant-owning layer, NEVER the crash site.
 - **Evidence law:** every root-cause claim carries `Confidence: X%` + `file:line` proof; below 60% report "hypothesis, not confirmed" with named gaps, NEVER a guess. Run a graph trace when `graph.db` exists — it surfaces bus/event consumers grep cannot see.
-- **`$why-review` gate is non-negotiable:** run it in the SAME session/main agent before declaring confirmed; 2 rounds without passing → STOP and escalate via a direct user question.
+- **`$why-review` gate is non-negotiable:** run it in the SAME session/main agent before declaring confirmed; 2 rounds without passing → STOP and escalate by asking the user directly.
 
 **Workflow:**
 
@@ -199,7 +199,7 @@ NEVER declare a confirmed root cause straight from investigation. Run `$why-revi
 
 - `$why-review` PASSES → declare confirmed, proceed to `$fix`
 - `$why-review` finds GAPS/risks → collect additional evidence, repeat
-- 2 validation rounds without passing → STOP, escalate to user via a direct user question
+- 2 validation rounds without passing → STOP, escalate to user by asking the user directly
 
 ## ⚠️ MANDATORY: Post-Fix Verification
 
@@ -224,7 +224,7 @@ After `$fix` applies changes, `$prove-fix` MUST be run — builds code proof tra
 
 ## Workflow Recommendation
 
-**MUST ATTENTION — NO EXCEPTIONS:** Not in workflow? Use a direct user question:
+**MUST ATTENTION — NO EXCEPTIONS:** Not in workflow? Use ask the user directly:
 
 1. **Activate `workflow-bugfix` workflow** (Recommended) — scout → investigate → debug → plan → fix → prove-fix → review → test
 2. **Execute `$debug-investigate` directly** — standalone
@@ -233,7 +233,7 @@ After `$fix` applies changes, `$prove-fix` MUST be run — builds code proof tra
 
 ## Next Steps (Standalone only — skip if inside workflow)
 
-**MUST ATTENTION** use a direct user question after completing. NEVER auto-decide next step:
+**MUST ATTENTION** use ask the user directly after completing. NEVER auto-decide next step:
 
 - **"Proceed with full workflow (Recommended)"** — detect best workflow to continue from here
 - **"$fix"** — apply fix based on debug findings
@@ -343,7 +343,7 @@ After `$fix` applies changes, `$prove-fix` MUST be run — builds code proof tra
 >     - **SOURCE-WRONG** — production code violates the spec's intended behavior or a clear invariant → fix the source at the owning layer; keep or strengthen the test that caught it.
 >     - **TEST-WRONG** — the test encodes a stale or incorrect assertion, setup, or expectation that contradicts intended behavior → fix the test at its root. NEVER weaken an assertion, add a skip, or relax a timeout to force green.
 >     - NEVER change a test to match broken source, and NEVER change source to satisfy a broken test. (Migration code excluded — schema/data migrations are one-time execution paths, not core application logic.)
-> 4. **Ask the user when intended behavior is unclear.** If no spec covers the behavior, the spec is silent, or the spec is ambiguous about which side is correct, STOP and a direct user question (or consult the canonical spec owner) before editing either side — never silently pick source or test just to make the suite pass.
+> 4. **Ask the user when intended behavior is unclear.** If no spec covers the behavior, the spec is silent, or the spec is ambiguous about which side is correct, STOP and ask the user directly (or consult the canonical spec owner) before editing either side — never silently pick source or test just to make the suite pass.
 >
 > Reconcile to intended behavior, never to whichever side currently passes — green can encode the very bug.
 
@@ -429,7 +429,7 @@ After `$fix` applies changes, `$prove-fix` MUST be run — builds code proof tra
 >
 > **Mandatory closers:** Confidence % stated · Assumptions listed · Open questions surfaced · Next action concrete.
 >
-> **Stop conditions:** confidence <80% on any critical decision → escalate via ask the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
+> **Stop conditions:** confidence <80% on any critical decision → escalate by asking the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 >
@@ -654,7 +654,7 @@ After `$fix` applies changes, `$prove-fix` MUST be run — builds code proof tra
 
 <!-- SYNC:red-flag-stop-conditions -->
 
-> **Red Flag Stop Conditions** — STOP and escalate to user via ask the user directly when:
+> **Red Flag Stop Conditions** — STOP and escalate to user by asking the user directly when:
 >
 > 1. Confidence drops below 60% on any critical decision
 > 2. Changes would affect >20 files (blast radius too large)
@@ -777,7 +777,7 @@ After `$fix` applies changes, `$prove-fix` MUST be run — builds code proof tra
 **IMPORTANT MUST ATTENTION** NEVER fix at the crash site — trace full data flow origin → crash, fix at the lowest invariant-owning layer that protects ALL downstream consumers — why: the crash site is a symptom; scattered guards at consumers signal nobody owns the invariant.
 **MUST ATTENTION** trace END-to-START — name Frame 0 (observed final state), walk reader → storage/projection → writer → consumer/job → producer, enumerate ALL feeder paths, build the hypothesis matrix BEFORE proposing any fix — why: the bug enters where bad state is WRITTEN, not where it crashes.
 **MUST ATTENTION** every root-cause claim carries `Confidence: X%` + `file:line` proof; <60% → report "hypothesis, not confirmed" with named evidence gaps, NEVER a guess — why: self-confirmed findings rationalize their own gaps.
-**MUST ATTENTION** NEVER declare a confirmed root cause without passing the `$why-review` gate (SAME session, SAME main agent, NO sub-agent); 2 rounds without passing → STOP, escalate via a direct user question.
+**MUST ATTENTION** NEVER declare a confirmed root cause without passing the `$why-review` gate (SAME session, SAME main agent, NO sub-agent); 2 rounds without passing → STOP, escalate by asking the user directly.
 **MUST ATTENTION** search 3+ existing patterns and READ the actual code before concluding — cite `file:line`; inference alone is insufficient — why: trial-and-error and assumed APIs hallucinate causes.
 **MUST ATTENTION** run a graph trace when `graph.db` exists — `callers_of` / `importers_of` / `tests_for` / `trace` reveal MESSAGE_BUS consumers and event handlers grep cannot see — why: cross-service chains are invisible to text search.
 **MUST ATTENTION** prove convergence FORWARD after choosing the fix layer — walk start → end, map each root cause to a fix part and each fix part to a test/proof; `$prove-fix` MUST run after `$fix` applies changes.

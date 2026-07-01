@@ -29,7 +29,7 @@ If the user names specs/features, widen the in-scope set to those named artifact
 
 ### C. Standalone + no prompt — ask
 
-If invoked standalone with no prompt/scope and no resolvable `activePlan`, use a direct user question to ask which specs/ideas to present. NEVER silently guess scope.
+If invoked standalone with no prompt/scope and no resolvable `activePlan`, use ask the user directly to ask which specs/ideas to present. NEVER silently guess scope.
 
 ---
 

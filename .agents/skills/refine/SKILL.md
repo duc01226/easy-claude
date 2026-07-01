@@ -145,7 +145,7 @@ Use WebSearch with domain terms. Summarize in max 3 bullets (market context, com
 
 ## Phase 3: Problem Hypothesis Validation
 
-Validate hypothesis with user via ask the user directly. 42% of startups fail from no market need — validate before building.
+Validate hypothesis with user by asking the user directly. 42% of startups fail from no market need — validate before building.
 
 **Skip:** `--skip-hypothesis`, validated hypothesis exists, bug fix/tech debt.
 
@@ -265,7 +265,7 @@ See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6
 
 ### Phase 5.5: Testability Assessment
 
-Use a direct user question with 2-3 questions:
+Use ask the user directly with 2-3 questions:
 
 1. "Which testing approach fits this PBI?"
     - TDD-first: Write test specs before implementation (Recommended for complex features)
@@ -332,7 +332,7 @@ Generate 3-5 questions covering assumptions, scope, dependencies, edge cases. Us
 | **Data Migration**  | "Does this change entity schema? Is data transformation needed?"            |
 
 1. Generate 3-5 questions from assumptions, scope, dependencies
-2. Use a direct user question to interview
+2. Use ask the user directly to interview
 3. Document in PBI under `## Validation Summary`
 4. Update PBI based on answers
 
@@ -392,7 +392,7 @@ Compute `delta_pct = (new_likely_days - draft_likely_days) / draft_likely_days �
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `\|delta\| ≤ 20%` | Keep draft estimate. Note `reestimate_delta_pct: <signed>` + `reestimate_reason: "within tolerance, no change"` in PBI frontmatter for transparency.                                                                                                                                                                         |
 | `\|delta\| > 20%` | UPDATE `story_points`, `complexity`, `man_days_traditional`, `man_days_ai`. Add `reestimate_delta_pct: <signed>` + 1-line `reestimate_reason` explaining what changed (e.g., "auth scope confirmed wider", "seed data dropped per validation").                                                                              |
-| `\|delta\| > 50%` | UPDATE values AND flag `SHOULD-RESCOPE`. Surface to user via a direct user question BEFORE Phase 8 writes the PBI: "Re-estimate is +/-X% vs original. Options: (a) accept new estimate as-is, (b) split into 2 PBIs, (c) trim scope back to original estimate, (d) defer." Record the user's decision in `## Validation Summary`. |
+| `\|delta\| > 50%` | UPDATE values AND flag `SHOULD-RESCOPE`. Surface to user by asking the user directly BEFORE Phase 8 writes the PBI: "Re-estimate is +/-X% vs original. Options: (a) accept new estimate as-is, (b) split into 2 PBIs, (c) trim scope back to original estimate, (d) defer." Record the user's decision in `## Validation Summary`. |
 
 ### Output
 
@@ -681,7 +681,7 @@ For domain PBIs: detect module from `docs/specs/` directory names, extract busin
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION** after completing this skill, use a direct user question to present these options. NEVER skip because task seems "simple" or "obvious":
+**MANDATORY IMPORTANT MUST ATTENTION** after completing this skill, use ask the user directly to present these options. NEVER skip because task seems "simple" or "obvious":
 
 - **"$why-review (Recommended)"** — Validate design rationale, alternatives, risk assessment before `$story` or implementation
 - **"$domain-analysis"** — If PBI creates/modifies domain entities, model bounded contexts before writing stories
@@ -920,7 +920,7 @@ For domain PBIs: detect module from `docs/specs/` directory names, extract busin
 >
 > **Mandatory closers:** Confidence % stated · Assumptions listed · Open questions surfaced · Next action concrete.
 >
-> **Stop conditions:** confidence <80% on any critical decision → escalate via ask the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
+> **Stop conditions:** confidence <80% on any critical decision → escalate by asking the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 >
@@ -985,7 +985,7 @@ For domain PBIs: detect module from `docs/specs/` directory names, extract busin
 - **IMPORTANT MUST ATTENTION** Phase 3 problem-hypothesis validation + Phase 7 validation interview (3-5 questions) are NON-OPTIONAL for new features — user decides assumptions/scope/dependencies, AI NEVER auto-decides — why: 42% of products fail from no market need; a silent AI assumption ships an unvalidated build
 - **IMPORTANT MUST ATTENTION** Phase 7.5 RE-DERIVES `story_points`/`complexity`/`man_days_traditional`/`man_days_ai` against the LOCKED post-interview scope (per `SYNC:estimation-framework`) — NEVER ship stale Phase 6 draft numbers — why: pre-validation guesses are the #1 source of unreliable velocity data
 - **MANDATORY IMPORTANT MUST ATTENTION** break work into small tasks via task tracking BEFORE starting; mark one `in_progress`, complete it before the next; on context loss the current task list first — why: compaction wipes prior-work memory, resume don't duplicate
-- **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via a direct user question — NEVER auto-decide
+- **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user by asking the user directly — NEVER auto-decide
 - **IMPORTANT MUST ATTENTION** acceptance criteria are BDD GIVEN/WHEN/THEN (min 3: happy/edge/error) and MUST satisfy the Phase 5.1 AI-SDD M1-M5 gate — tech-agnostic Business Intent, logical `FR-`/`BR-` IDs first, observable single-interpretation ACs, rebuild-from-scratch validity — why: a reader who must guess a rule/limit/role re-implements the wrong behavior
 - **IMPORTANT MUST ATTENTION** every PBI MUST include `story_points`, `complexity`, `man_days_traditional`, `man_days_ai` frontmatter AND a complete Dependencies table (`must-before`/`can-parallel`/`blocked-by`/`independent`) — fill even when `independent`
 - **IMPORTANT MUST ATTENTION** keep PBI Business Intent prose tech-agnostic — NO framework/product/language/design-pattern names; implementation hints go ONLY in `## Implementation Notes`, source refs ONLY in `[Source: namespace/service/id]` evidence carriers — why: a tech-leaked spec is not rebuildable on another stack (M1/M2)

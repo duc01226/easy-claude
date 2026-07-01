@@ -59,7 +59,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Summary:**
 
 - **Purpose:** one skill owns the whole Feature Spec lifecycle across 7 modes — `draft | init | update | audit | amend | tests | sync` — producing/maintaining a tech-free 8-section business Feature Spec whose §8 TC registry is the single source of truth, traceable to integration test code, so any team can rebuild the feature on any stack from the spec alone.
-- **Main steps (every run):** (1) resolve mode FIRST — explicit `[mode=<x>]` wins, else infer from request + repo state, ambiguous → a direct user question before any mutating mode; (2) read the matching `references/{author,tests,sync}.md` body — NEVER run a mode from memory; (3) task tracking-break the work (one task per file read) before starting; (4) execute the mode's procedure/gates from its body; (5) cross-service check before concluding.
+- **Main steps (every run):** (1) resolve mode FIRST — explicit `[mode=<x>]` wins, else infer from request + repo state, ambiguous → ask the user directly before any mutating mode; (2) read the matching `references/{author,tests,sync}.md` body — NEVER run a mode from memory; (3) task tracking-break the work (one task per file read) before starting; (4) execute the mode's procedure/gates from its body; (5) cross-service check before concluding.
 - **§1-7 prose STRICTLY tech-free** — no framework/product/language/persistence/messaging/auth names (banned tokens → `spec-principles.md` §3.2); technical identifiers live ONLY in evidence carriers, frontmatter, and mermaid blocks. — why: M1/M5 require rebuild-on-any-stack from prose alone.
 - **§8 is the canonical TC registry** (`TC-{FEATURE}-{NNN}`) — every TC carries verifiable `[Source: namespace/service/id]` evidence (sole exception `mode=draft` → `Evidence: TBD` + provisional flag, upgraded to a real anchor on the first code-sourced run); NEVER overwrite existing TCs during `update` — `tests` owns generation, `sync` reconciles drift.
 - **Honor M1-M6 mandates** (`sdd-artifact-contract.md`) + canonical TC format (`shared/tc-format.md`) — any violation FAILS the artifact; `INDEX.md`/ERD are DERIVED — flag refresh need in `update`, NEVER trigger `$spec-index` here. — why: separation of concerns keeps the canonical spec the only source of truth.
@@ -81,7 +81,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Mode resolution (do this before any work):**
 
 1. Parse the mode from the invocation: explicit `[mode=<x>]` arg wins; else infer from request + repo state ("from idea/requirements/prompt", "draft spec", "no code yet" → `draft`; no `docs/specs/{Bucket}/` AND code exists to source from → `init`; docs exist + diff → `update`; "audit/stale" → `audit`; bugfix caller → `amend`; "write/update test specs", "TCs" → `tests`; "sync tests", "reconcile §8 with tests" → `sync`). **`draft` vs `init`:** both author a new spec, but `draft` sources from idea/requirement text (no code → `Evidence: TBD`, provisional) while `init` sources from existing code (real `[Source:]` evidence). "No docs" alone does NOT imply `init` — check whether code exists to source from. `draft` never auto-overwrites existing §8 TCs.
-2. If ambiguous, present the detected mode via a direct user question before proceeding — NEVER auto-start a mutating mode.
+2. If ambiguous, present the detected mode by asking the user directly before proceeding — NEVER auto-start a mutating mode.
 3. **Read the matching `references/` body** — it is the single source of truth for that mode's procedure, gates, and output contract. Do not run a mode from memory.
 
 **Key Rules (all modes):**
@@ -134,7 +134,7 @@ This skill owns the **canonical** Feature Spec (§1-8) and its §8 TC registry. 
 
 ## Workflow Recommendation
 
-> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use a direct user question to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
+> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use ask the user directly to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
 >
 > 1. **Activate `workflow-feature` workflow** (Recommended) — spec-driven with tests by default: scout → investigate → spec-discovery → domain-analysis → why-review → spec → spec-clarify → plan → plan-review → plan-validate → why-review → spec [mode=tests] → why-review → review-artifact --type=spec-tests → plan → plan-review → feature-implement → review-domain-entities → spec [mode=tests] → why-review → review-artifact --type=spec-tests → spec [mode=sync] → integration-test → integration-test-review → integration-test-verify → workflow-review-changes → production-readiness-review → security-review → changelog → test → docs-update → workflow-end → watzup
 > 2. **Execute `$spec` directly** — run this skill standalone in the resolved mode
@@ -143,7 +143,7 @@ This skill owns the **canonical** Feature Spec (§1-8) and its §8 TC registry. 
 
 ## Next Steps
 
-**[BLOCKING]** After completing, use a direct user question to present options. Do NOT skip — user decides:
+**[BLOCKING]** After completing, use ask the user directly to present options. Do NOT skip — user decides:
 
 - **"$spec [mode=tests] (Recommended)"** — Generate/update Section 8 test specs for the documented features (if you just authored/updated a spec)
 - **"$spec [mode=sync]"** — Reconcile Section 8 TCs ↔ integration test code
@@ -248,7 +248,7 @@ This skill owns the **canonical** Feature Spec (§1-8) and its §8 TC registry. 
 > 2. **Classify** the divergence:
 >    - **CODE-WRONG** — the spec correctly states intended behavior and the change violates it → BLOCKING finding; fix the code/test against intended behavior (write/adjust a regression TC first).
 >    - **SPEC-STALE** — the change is the new intended behavior and the spec now documents the old/wrong behavior → update the spec FIRST via `$spec [mode=update]`, then sync `$spec [mode=tests]` + `$spec [mode=sync]`.
->    - **AMBIGUOUS** — intended behavior is unclear → a direct user question (or the canonical spec owner) before editing either side.
+>    - **AMBIGUOUS** — intended behavior is unclear → ask the user directly (or the canonical spec owner) before editing either side.
 >    - **SPEC-SILENT** — the code correctly enforces an invariant/behavior that NO canonical spec artifact (§3 AC, §4 BR, §5 invariant, §8 TC) states → not drift but an UNWRITTEN rule discovered by review. ENRICH the spec via the **Invariant Harvest** pass (`$spec [mode=sync] direction=harvest` → `spec/references/sync.md`): prove it is always-true (≥2 enforcement points or a rejecting guard), express it as a universally-quantified property, then add the rule to §4 (or §3/§5) AND a §8 TC via `$spec [update]` + `$spec [mode=tests]` and add the guarding test. A discovered invariant left only in code (or only in tests) is INCOMPLETE — this is the highest-value capture (the rule nobody wrote down).
 > 3. **Never normalize drift just because code/tests are green** — green can encode the drift itself. Reconcile to canonical intent, never to whichever side currently passes.
 >
@@ -308,7 +308,7 @@ This skill owns the **canonical** Feature Spec (§1-8) and its §8 TC registry. 
 - **Spec Drift Adjudication:** on behavior divergence from a canonical spec, classify CODE-WRONG / SPEC-STALE / AMBIGUOUS / SPEC-SILENT and harvest unwritten invariants into §4/§8 + a guarding test — NEVER normalize drift to whichever side is green.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 
-- **IMPORTANT MUST ATTENTION [BLOCKING]** Resolve the mode FIRST and read its `references/{author,tests,sync}.md` body — NEVER run `draft`/`init`/`update`/`audit`/`amend`/`tests`/`sync` from memory; ambiguous → a direct user question before any mutating mode — why: each mode's gates + output contract live in its body, not in this entry skill
+- **IMPORTANT MUST ATTENTION [BLOCKING]** Resolve the mode FIRST and read its `references/{author,tests,sync}.md` body — NEVER run `draft`/`init`/`update`/`audit`/`amend`/`tests`/`sync` from memory; ambiguous → ask the user directly before any mutating mode — why: each mode's gates + output contract live in its body, not in this entry skill
 - **IMPORTANT MUST ATTENTION [BLOCKING]** EVERY test case MUST carry verifiable code evidence as a `[Source: namespace/service/id]` abstract anchor in its Section 8 hidden carrier — physical `file:line` → provenance sidecar only; sole exception `mode=draft` (`Evidence: TBD` + provisional flag, upgraded to real anchor on first code-sourced run) — why: a TC without evidence is unverifiable and silently rots
 - **IMPORTANT MUST ATTENTION [BLOCKING]** Section 8 is the canonical TC registry — existing TCs MUST NOT be overwritten during `update`; `tests` mode owns generation, `sync` mode reconciles drift — why: integration test code implements §8, so overwriting it orphans real tests
 - **IMPORTANT MUST ATTENTION [BLOCKING]** §1-7 prose is STRICTLY tech-free — no framework/product/language/persistence/messaging/auth names (banned tokens → `spec-principles.md` §3.2); technical identifiers live ONLY in evidence carriers, frontmatter, and mermaid blocks — why: M1/M5 require rebuild-from-scratch on any stack

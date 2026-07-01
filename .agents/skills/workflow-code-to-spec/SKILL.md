@@ -82,7 +82,7 @@ Resolve service→bucket assignments from the canonical table in [`docs/project-
 
 - MUST ATTENTION define success criteria before execution and loop until observable verification passes.
 - MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
-- Confirm mode via a direct user question BEFORE any action — NEVER skip Step 0
+- Confirm mode by asking the user directly BEFORE any action — NEVER skip Step 0
 - Invoke skill invocation for EACH step — NEVER batch-complete or mark done without invocation
 - Spawn sub-agents for 4+ capabilities in ONE message — NEVER sequential
 - Every spec carries the THREE layers needed for stack-agnostic rebuild: business logic (§1-7), UI/UX interaction surface (§6.2-6.5 for UI-bearing features), and test specs (§8) — a spec missing any layer is incomplete
@@ -96,7 +96,7 @@ Resolve service→bucket assignments from the canonical table in [`docs/project-
 
 ## Step 0 — Mode Detection (MANDATORY FIRST)
 
-Use a direct user question to confirm mode before any action.
+Use ask the user directly to confirm mode before any action.
 
 **Auto-detection rules:**
 
@@ -457,7 +457,7 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 **IMPORTANT MANDATORY Steps:** $scout -> $plan -> $plan-review -> $plan-validate -> $spec -> $spec [mode=tests] -> $review-artifact --type=spec-tests -> $review-artifact -> $docs-update -> $workflow-end -> $watzup
 
 > **[BLOCKING]** Invoke skill invocation for EACH step — NEVER batch-complete, NEVER mark done without skill invocation.
-> **[BLOCKING]** Confirm mode via a direct user question BEFORE any action — NEVER skip Step 0.
+> **[BLOCKING]** Confirm mode by asking the user directly BEFORE any action — NEVER skip Step 0.
 > **[BLOCKING]** Spawn sub-agents for 4+ capabilities in ONE message — NEVER sequential spawning.
 > **[BLOCKING — Context Compaction / Session Resume]** At any session start or after context compaction: (1) the current task list FIRST — resume existing, NEVER create duplicates; (2) re-glob `docs/specs/{Bucket}/` to see which capabilities already have a Feature Spec — skip those; (3) NEVER re-run `$scout` or `$plan` in a resumed session.
 > **[BLOCKING]** Read `docs/project-reference/spec-principles.md` before running any author/update/audit step — it is the shared spec quality baseline (tech-agnostic rule + banned-token list).
@@ -607,7 +607,7 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 - **Incremental Persistence:** persist findings to `plans/reports/` per section; NEVER hold in memory.
 - **Sub-Agent Return Contract:** sub-agents return summary only; NEVER request full output inline.
 
-- **[BLOCKING]** Confirm mode via a direct user question BEFORE any action — NEVER skip Step 0
+- **[BLOCKING]** Confirm mode by asking the user directly BEFORE any action — NEVER skip Step 0
 - **[BLOCKING]** Invoke skill invocation for EACH step — NEVER batch-complete or mark done without invocation
 - **[BLOCKING]** Spawn sub-agents for 4+ capabilities in ONE message — NEVER sequential spawning
 - **[BLOCKING]** ONE canonical artifact — the Feature Spec at `docs/specs/{Bucket}/README.{Feature}.md`; the §5 Mermaid ERD is authored INSIDE it (no separate ERD file, no A-E tree)

@@ -58,7 +58,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - **Ten ordered steps (do all, none skippable):** 0 locate active plan + `domain-entities-reference.md` → 1 load business context (nouns→entities, verbs→events) → 2 identify bounded contexts → 3 model entities & aggregates → 4 map relationships → 5 domain events → 6 generate Mermaid ERD → 7 user-validation interview → 8 entity-change assessment vs reference doc → 9 update `plan.md` `## Domain Model`.
 - Drive the model from business artifacts, not guesses: load plan/PBI/business-eval inputs and `domain-entities-reference.md`, then extract nouns→entities, verbs→events, roles, and processes before classifying anything.
 - Every concept passes the Entity-vs-VO matrix and aggregate boundary rules (≤5 entities, one transaction, reference-by-ID only, root is the sole mutation entry) — flag primitive obsession and anemic models as you go.
-- User validation is non-skippable: present bounded contexts and the Mermaid ERD, then run the 5-8 question a direct user question interview to confirm boundaries, aggregate roots, and event flows before marking the model confirmed.
+- User validation is non-skippable: present bounded contexts and the Mermaid ERD, then run the 5-8 question ask the user directly interview to confirm boundaries, aggregate roots, and event flows before marking the model confirmed.
 - Close the loop on persistence: reconcile findings against `domain-entities-reference.md` (new/modified/deprecated), update the `## Domain Model` section of `plan.md`, and keep cross-context communication event-driven with `{AggregateNoun}{PastTenseVerb}` naming and no cross-service FKs.
 
 **Workflow:**
@@ -643,7 +643,7 @@ Group related entities using DDD principles. Apply context boundary signals from
 - Two entities with same name but different invariants? → separate contexts
 - Can this context be worked on without understanding the other? → good separation
 
-**MANDATORY IMPORTANT MUST ATTENTION** present identified contexts to user via a direct user question:
+**MANDATORY IMPORTANT MUST ATTENTION** present identified contexts to user by asking the user directly:
 
 - "I identified {N} bounded contexts: {list}. Does this grouping make sense?"
 - Options: Agree (Recommended) | Merge {X} and {Y} | Split {Z} | Add missing context
@@ -776,7 +776,7 @@ erDiagram
 
 ### Step 7: User Validation Interview
 
-**MANDATORY IMPORTANT MUST ATTENTION** present domain model and ask 5-8 questions via a direct user question:
+**MANDATORY IMPORTANT MUST ATTENTION** present domain model and ask 5-8 questions by asking the user directly:
 
 #### Required Questions
 
@@ -806,7 +806,7 @@ After user confirms, update report with final decisions and mark as `status: con
 1. **Identify new entities** — in analysis but not in reference doc
 2. **Identify modified entities** — changed fields, relationships, or bounded context assignment
 3. **Identify deprecated entities** — in reference doc but no longer needed by feature
-4. **Present changes to user** via a direct user question:
+4. **Present changes to user** by asking the user directly:
     - "Domain entity changes detected: {N} new, {N} modified, {N} deprecated. Proceed with updating domain-entities-reference.md?"
     - Options: Approve all (Recommended) | Review each change | Skip update
 
@@ -861,7 +861,7 @@ Report must be **≤250 lines**. Use tables over prose.
 ---
 
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting.
-**MANDATORY IMPORTANT MUST ATTENTION** validate EVERY bounded context and key relationship with user via a direct user question.
+**MANDATORY IMPORTANT MUST ATTENTION** validate EVERY bounded context and key relationship with user by asking the user directly.
 **MANDATORY IMPORTANT MUST ATTENTION** include Mermaid ERD and confidence % for all architectural decisions.
 **MANDATORY IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality.
 
@@ -869,7 +869,7 @@ Report must be **≤250 lines**. Use tables over prose.
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, use a direct user question to present these options:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, use ask the user directly to present these options:
 
 - **"$review-domain-entities (Recommended)"** — Review DDD quality of entities modeled/modified in this analysis (anemic model, VO classification, invariant enforcement, aggregate boundaries)
 - **"$tech-stack-research"** — Research tech stack based on domain model
@@ -878,7 +878,7 @@ Report must be **≤250 lines**. Use tables over prose.
 
 ### Council escalation (always-offer, second prompt)
 
-After the existing `## Next Steps` prompt above resolves, present a **second**, independent a direct user question call (do NOT merge into the first):
+After the existing `## Next Steps` prompt above resolves, present a **second**, independent ask the user directly call (do NOT merge into the first):
 
 - **"Skip council — proceed with model (Recommended)"** — Continue with the bounded contexts / aggregate boundaries as drawn. Recommended default.
 - **"Escalate to $llm-council"** — Run 11 sub-agent council (5 advisors + 5 reviewers + chairman). Best applied when bounded-context splits or aggregate boundaries are contested (multiple defensible cuts), the model touches >=3 services, or invariants span aggregates. DDD boundary decisions are hard to reverse once consumers depend on them. Cheaper alternatives: `$why-review`, `$plan-validate` (run these first if you haven't).
@@ -886,7 +886,7 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 ---
 
 **MANDATORY IMPORTANT MUST ATTENTION** use task tracking to break ALL work into small tasks BEFORE starting.
-**MANDATORY IMPORTANT MUST ATTENTION** use a direct user question at EVERY decision point — validate every bounded context and entity relationship with user.
+**MANDATORY IMPORTANT MUST ATTENTION** use ask the user directly at EVERY decision point — validate every bounded context and entity relationship with user.
 **MANDATORY IMPORTANT MUST ATTENTION** produce ERD diagram (Mermaid) and domain model report with confidence %.
 
 > **External Memory:** For complex or lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report file in `plans/reports/` — prevents context loss and serves as deliverable.
@@ -950,7 +950,7 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 - **Critical Thinking:** Traced proof per claim; confidence >80% to act, NEVER guess as fact.
 
 **IMPORTANT MUST ATTENTION** run ALL ten ordered steps, none skippable: 0 locate plan + reference → 1 load context → 2 bounded contexts → 3 entities/aggregates → 4 relationships → 5 domain events → 6 Mermaid ERD → 7 user-validation interview → 8 entity-change assessment → 9 update `plan.md` — why: AI keeps dropping Step 0 (plan load) and Step 9 (plan update), leaving the model un-anchored and un-persisted.
-**IMPORTANT MUST ATTENTION** validate EVERY bounded context + key relationship with user via a direct user question — NEVER auto-decide a boundary — why: DDD boundaries are hard to reverse once consumers depend on them; one wrong cut costs days of rework.
+**IMPORTANT MUST ATTENTION** validate EVERY bounded context + key relationship with user by asking the user directly — NEVER auto-decide a boundary — why: DDD boundaries are hard to reverse once consumers depend on them; one wrong cut costs days of rework.
 **IMPORTANT MUST ATTENTION** domain events ALWAYS follow `{AggregateNoun}{PastTenseVerb}` naming — NEVER command-style (`CancelOrder`) or generic (`OrderStatusChanged`) — why: command/generic names hide what happened and break consumer routing.
 **IMPORTANT MUST ATTENTION** NEVER place cross-service FK in the ERD — use ID reference (`{Entity}Id` string/ULID) + event-driven sync only — why: cross-service FK couples schemas and blocks independent deployment.
 
@@ -967,7 +967,7 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 
 | Evasion                                          | Rebuttal                                                                          |
 | ------------------------------------------------ | --------------------------------------------------------------------------------- |
-| "Boundaries are obvious, skip user validation"   | User validation is non-skippable — run the 5-8 question a direct user question interview. |
+| "Boundaries are obvious, skip user validation"   | User validation is non-skippable — run the 5-8 question ask the user directly interview. |
 | "Already know the entities, skip reference doc"  | Show `file:line` from `domain-entities-reference.md`. No proof = not checked.      |
 | "This concept is clearly an entity"              | Run the Entity-vs-VO matrix anyway — state confidence %. Pattern-matching skips context. |
 | "Small model, skip task tracking"                | Still task tracking first. Skip depth, never skip tracking.                         |

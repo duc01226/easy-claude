@@ -300,7 +300,7 @@ See `references/keep-a-changelog-format.md` for format specification.
 
 ## Workflow Recommendation
 
-> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use a direct user question to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
+> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use ask the user directly to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
 >
 > 1. **Activate `workflow-feature` workflow** (Recommended) — scout → investigate → plan → feature-implement → review → changelog
 > 2. **Execute `$changelog` directly** — run this skill standalone
@@ -309,7 +309,7 @@ See `references/keep-a-changelog-format.md` for format specification.
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use a direct user question to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use ask the user directly to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
 
 - **"$test (Recommended)"** — Run tests after changelog update
 - **"$docs-update"** — Update docs if needed
@@ -407,7 +407,7 @@ See `references/keep-a-changelog-format.md` for format specification.
 **IMPORTANT MUST ATTENTION** verify each business-impact claim against the actual diff (`file:line`), confidence >80% to act, <80% re-read the diff first — NEVER speculate impact from a filename — why: a misread diff ships a wrong user-facing claim.
 **IMPORTANT MUST ATTENTION** find the existing `CHANGELOG.md` before writing — root `./CHANGELOG.md` preferred, fallback `./docs/CHANGELOG.md` — NEVER create a new changelog in `docs/` when root exists — why: a split changelog fragments release history.
 **IMPORTANT MUST ATTENTION** break work into small task tracking todos BEFORE starting (one per file read), keep one `in_progress`, mark `completed` immediately, add a final review todo — why: long diffs exhaust context and lose findings.
-**IMPORTANT MUST ATTENTION** validate route/skip decisions with the user via a direct user question — never auto-decide a workflow is "too simple to need".
+**IMPORTANT MUST ATTENTION** validate route/skip decisions with the user by asking the user directly — never auto-decide a workflow is "too simple to need".
 
 **Anti-Rationalization:**
 

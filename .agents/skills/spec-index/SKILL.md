@@ -57,7 +57,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Summary:**
 
 - **Purpose:** a DERIVED-aid assembler ONLY — reads §1 Overview, §5 Domain Model Mermaid, §8 TCs from existing Feature Specs to build `INDEX.md` (default) + optional cross-capability `{Bucket}.erd.md` + optional `{Bucket}.reimplementation-guide.md`; it NEVER authors business content. The Feature Spec stays the source of truth.
-- **Main steps (run in order):** **Step 0** Scope Gate — a direct user question (bucket + mode + artifacts), BLOCKING before any read; no `README.*.md` specs → STOP, route to `$spec`. **Step 1** Read source specs — extract capability name+link, §1 summary, §8 feature code/TC count/status, §5 Mermaid entities+relationships. **Step 2** Assemble aids — 2a `INDEX.md` catalog, 2b cross-capability ERD, 2c reimplementation guide. **Step 3** Stamp & Write — DERIVED banner + date, write each artifact immediately (never accumulate in context). **Step 4** Verify — no retired artifacts, every link resolves, banner present, prose tech-free, no canonical claims.
+- **Main steps (run in order):** **Step 0** Scope Gate — ask the user directly (bucket + mode + artifacts), BLOCKING before any read; no `README.*.md` specs → STOP, route to `$spec`. **Step 1** Read source specs — extract capability name+link, §1 summary, §8 feature code/TC count/status, §5 Mermaid entities+relationships. **Step 2** Assemble aids — 2a `INDEX.md` catalog, 2b cross-capability ERD, 2c reimplementation guide. **Step 3** Stamp & Write — DERIVED banner + date, write each artifact immediately (never accumulate in context). **Step 4** Verify — no retired artifacts, every link resolves, banner present, prose tech-free, no canonical claims.
 - **Modes:** `index` (default — regenerate derived aids) · `audit` (report which derived aids are stale vs their source specs).
 - Hard prohibition is the load-bearing rule: never emit the retired A-E engineering tree, `M##` dirs, `00-module-registry.md`, `01-domain-erd.md`, `06-reimplementation-guide.md`, or `docs/specs/README.md`/`PRIORITY-INDEX.md`. Use the `{Bucket}.*` filenames instead — why: an A-E bundle becomes a second source of truth competing with the Feature Spec.
 - Every generated file carries the `> DERIVED — regenerate via $spec-index; do NOT hand-edit` banner, links each row/entity back to its source spec, and keeps INDEX/ERD prose tech-free — only the reimplementation guide may name a target stack.
@@ -95,7 +95,7 @@ Derived aids are organized by **App Bucket** (matches the single-home spec tree)
 
 ## Step 0 — Scope Gate (MANDATORY FIRST)
 
-Before reading anything, use a direct user question. Confirm:
+Before reading anything, use ask the user directly. Confirm:
 
 | Dimension      | Question                                                                                                  | Auto-Default                  |
 | -------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------- |
@@ -205,7 +205,7 @@ If a user explicitly asks for an A-E bundle, explain it is retired and offer the
 
 ## Next Steps
 
-**[BLOCKING]** After completing, use a direct user question — DO NOT skip:
+**[BLOCKING]** After completing, use ask the user directly — DO NOT skip:
 
 - **"$docs-update (Recommended)"** — sync the Feature Specs + Section 8 if any source content was found stale during indexing
 - **"$watzup"** — wrap up if index generation is the final step
@@ -295,7 +295,7 @@ A **derived-index generator** over the single-home spec tree. The canonical know
 ## Closing Reminders
 
 - **IMPORTANT MUST ATTENTION Goal:** Give readers a regenerable, single-writer navigation layer (catalog + cross-capability ERD + rebuild guide) assembled FROM the canonical Feature Specs — so a bucket can be browsed or replatformed without ever forking a second, hand-maintained source of truth
-- **IMPORTANT MUST ATTENTION Main steps (in order):** Step 0 Scope Gate (a direct user question bucket+mode+artifacts, BLOCKING) → Step 1 Read source specs (§1 summary, §8 code/TC count/status, §5 Mermaid) → Step 2 Assemble (2a `INDEX.md`, 2b ERD, 2c reimplementation guide) → Step 3 Stamp & Write (DERIVED banner + date, write each immediately) → Step 4 Verify (no retired artifacts, links resolve, banner present, prose tech-free) — why: AI keeps forgetting the skill owns this fixed sequence; NEVER skip or reorder without user approval
+- **IMPORTANT MUST ATTENTION Main steps (in order):** Step 0 Scope Gate (ask the user directly bucket+mode+artifacts, BLOCKING) → Step 1 Read source specs (§1 summary, §8 code/TC count/status, §5 Mermaid) → Step 2 Assemble (2a `INDEX.md`, 2b ERD, 2c reimplementation guide) → Step 3 Stamp & Write (DERIVED banner + date, write each immediately) → Step 4 Verify (no retired artifacts, links resolve, banner present, prose tech-free) — why: AI keeps forgetting the skill owns this fixed sequence; NEVER skip or reorder without user approval
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries — MUST ATTENTION each canonical body above):**
 
@@ -305,7 +305,7 @@ A **derived-index generator** over the single-home spec tree. The canonical know
 
 - **IMPORTANT MUST ATTENTION [BLOCKING]** Output is DERIVED — never emit `M##`/A-E/`00-module-registry`/`01-domain-erd`/`06-reimplementation-guide`/QA-dashboard files (see Hard Prohibitions); use `{Bucket}.*` filenames instead — why: an A-E bundle becomes a second source of truth competing with the Feature Spec
 - **IMPORTANT MUST ATTENTION [BLOCKING]** The Feature Spec (`docs/specs/{Bucket}/README.{Feature}.md`) is the source of truth — this skill assembles, never authors, business content — why: a derived aid that asserts canonical authority corrupts the single-writer contract
-- **IMPORTANT MUST ATTENTION [BLOCKING]** Confirm bucket + mode + artifacts via a direct user question BEFORE Step 1 — NEVER auto-start; if the bucket has no `README.*.md` specs, STOP and route to `$spec` instead of fabricating a spec to index
+- **IMPORTANT MUST ATTENTION [BLOCKING]** Confirm bucket + mode + artifacts by asking the user directly BEFORE Step 1 — NEVER auto-start; if the bucket has no `README.*.md` specs, STOP and route to `$spec` instead of fabricating a spec to index
 - **IMPORTANT MUST ATTENTION [BLOCKING]** Context compaction/session resume → the current task list FIRST; resume existing tasks, never re-run a completed generation pass — why: summaries describe intent, not filesystem state
 - **IMPORTANT MUST ATTENTION [BLOCKING]** Stamp the DERIVED banner + regenerate date on every generated file; write after each artifact, never accumulate large outputs in context
 - **IMPORTANT MUST ATTENTION [REQUIRED]** INDEX/ERD prose tech-agnostic (read `spec-principles.md` §3 banned-token list FIRST); only a reimplementation guide may name a target stack (rebuild-guide exception)
@@ -332,7 +332,7 @@ A **derived-index generator** over the single-home spec tree. The canonical know
 > **[IMPORTANT]** Break into many small todo tasks systematically before starting — this is critical.
 
 **IMPORTANT MUST ATTENTION** Output is DERIVED + regenerable — never a second source of truth; the Feature Spec is canonical.
-**IMPORTANT MUST ATTENTION** Confirm bucket + mode + artifacts via a direct user question BEFORE any read; no specs → STOP, route to `$spec`.
+**IMPORTANT MUST ATTENTION** Confirm bucket + mode + artifacts by asking the user directly BEFORE any read; no specs → STOP, route to `$spec`.
 **IMPORTANT MUST ATTENTION** Cite `file:line` for every extracted field; mark `[UNVERIFIED]` rather than guessing; never emit retired A-E/`M##`/QA-dashboard files.
 
 ---

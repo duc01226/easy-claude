@@ -54,7 +54,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Key Rules:**
 
 - For monorepos, ask user which project if not specified
-- Always ask which env files to copy via ask the user directly
+- Always ask which env files to copy by asking the user directly
 - Handle error codes (BRANCH_CHECKED_OUT, WORKTREE_EXISTS, etc.) gracefully
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
@@ -77,7 +77,7 @@ node .claude/scripts/worktree.cjs info --json
 - `envFiles`: array of .env\* files found
 - `dirtyState`: boolean
 
-### Step 2: Gather Info via ask the user directly
+### Step 2: Gather Info by asking the user directly
 
 **Detect branch prefix from user's description:**
 

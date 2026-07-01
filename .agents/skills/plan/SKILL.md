@@ -59,7 +59,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - **Main pipeline (the steps AI keeps forgetting):** pre-check active/suggested plan → bootstrap Goal Contract (`goal.md`) → parallel `researcher` subagents → codebase + project-reference analysis (scout if docs absent) → `planner` subagent writes `plan.md` + `phase-XX` files (Alternatives, Rationale, UI Layout, Test Specs) → post-plan granularity self-check → mandatory final tasks.
 - **`--mode={ci|cro}` routing:** `ci` plans a fix from a GitHub Actions run/log (loads `references/mode-ci.md`); `cro` plans conversion-rate optimization (25-item framework, `references/mode-cro.md`); default (no flag) = standard flow. Mode only ADDS a reference payload — SAME engine, SAME `$plan-review` gate, SAME `planner` agent.
 - Default mode HARD (parallel subagents, project-reference docs, 3-round `$plan-review`); fast mode ONLY when EVERY trivial-task condition holds. Every phase passes the 5-point granularity check ("Can I start coding RIGHT NOW?"), carries `## Test Specifications` with TC IDs, uses bottom-up estimation (phase-hours drive man-days; SP DERIVED).
-- **Mandatory final tasks + gates:** write Test Specs per phase → `$plan-validate` → `$plan-review` (3-round) → `$why-review` (standalone) → re-estimate vs finalized phases; New Tech/Lib gate before approval; a direct user question confirm before any next step.
+- **Mandatory final tasks + gates:** write Test Specs per phase → `$plan-validate` → `$plan-review` (3-round) → `$why-review` (standalone) → re-estimate vs finalized phases; New Tech/Lib gate before approval; ask the user directly confirm before any next step.
 
 **Workflow:**
 
@@ -114,7 +114,7 @@ below — if a downstream rule raises change cost, this principle wins.
 
 ## New Tech/Lib Gate (MANDATORY for all plans)
 
-**MANDATORY IMPORTANT MUST ATTENTION** after plan creation, detect new tech/packages/libraries not in project. If found: task tracking per lib → WebSearch top 3 alternatives → compare (fit, size, community, learning curve, license) → recommend with confidence % → a direct user question to confirm. **Skip if** plan uses only existing dependencies.
+**MANDATORY IMPORTANT MUST ATTENTION** after plan creation, detect new tech/packages/libraries not in project. If found: task tracking per lib → WebSearch top 3 alternatives → compare (fit, size, community, learning curve, license) → recommend with confidence % → ask the user directly to confirm. **Skip if** plan uses only existing dependencies.
 
 ## Greenfield Mode
 
@@ -222,7 +222,7 @@ After plan creation, offer validation interview to confirm decisions before impl
 | `auto`   | Automatically execute `$plan-validate {plan-path}`                              |
 | `off`    | Skip validation step entirely                                                   |
 
-**If mode is `prompt`:** Use a direct user question tool with options above.
+**If mode is `prompt`:** Use ask the user directly tool with options above.
 **If user chooses validation or mode is `auto`:** Execute `$plan-validate {plan-path}` SlashCommand.
 
 ## Output Requirements
@@ -288,7 +288,7 @@ After plan creation, offer validation interview to confirm decisions before impl
     2. **Task: "Run $plan-validate"** — Trigger `$plan-validate` skill to interview user with critical questions and validate plan assumptions
     3. **Task: "Run $plan-review"** — Trigger `$plan-review` skill with deep 3-round protocol (R1: checklist, R2: code-proof trace, R3: adversarial simulation). Review depth based on SP: ≤3 → 2 rounds min, 4-8 → 3 rounds, >8 → 3 rounds + code-proof mandatory.
     4. **Task: "Run $why-review (standalone only)"** — If NOT inside a workflow, trigger `$why-review` to validate design rationale, alternatives considered, and risk assessment in plan. Skip if a workflow already includes `$why-review` in its sequence.
-    5. **Task: "Re-evaluate estimation against finalized plan"** — Pre-completion estimates anchor on scope guesses; finalized phases reveal true cost. After phases/TCs/decisions are locked: (a) re-derive `bottom_up_hours = Σ phase_hours` from finalized phase files; (b) recompute `likely_days`, `risk_margin_pct`, `min-max range` per `SYNC:estimation-framework`; (c) compare to current frontmatter `man_days_traditional` / `story_points`. If `|delta| > 20%` → UPDATE frontmatter, add `reestimate_delta_pct: <signed>` + 1-line `reestimate_reason`. If `|delta| > 50%` → flag `SHOULD-RESCOPE` and surface to user via a direct user question before implementation.
+    5. **Task: "Re-evaluate estimation against finalized plan"** — Pre-completion estimates anchor on scope guesses; finalized phases reveal true cost. After phases/TCs/decisions are locked: (a) re-derive `bottom_up_hours = Σ phase_hours` from finalized phase files; (b) recompute `likely_days`, `risk_margin_pct`, `min-max range` per `SYNC:estimation-framework`; (c) compare to current frontmatter `man_days_traditional` / `story_points`. If `|delta| > 20%` → UPDATE frontmatter, add `reestimate_delta_pct: <signed>` + 1-line `reestimate_reason`. If `|delta| > 50%` → flag `SHOULD-RESCOPE` and surface to user by asking the user directly before implementation.
 
 ## Important Notes
 
@@ -304,9 +304,9 @@ After plan creation, offer validation interview to confirm decisions before impl
 >
 > If already running inside a workflow (e.g., `workflow-feature`, `workflow-bugfix`), skip this — workflow sequence handles `$review-changes` at appropriate step.
 
-## Next Steps (Standalone: MUST ATTENTION ask user via a direct user question. Skip if inside workflow.)
+## Next Steps (Standalone: MUST ATTENTION ask user by asking the user directly. Skip if inside workflow.)
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, MUST ATTENTION use a direct user question to present these options. Do NOT skip because task seems "simple" or "obvious" — user decides:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, MUST ATTENTION use ask the user directly to present these options. Do NOT skip because task seems "simple" or "obvious" — user decides:
 
 - **"Proceed with full workflow (Recommended)"** — Detect best workflow to continue from here (plan created). Ensures review, validation, implementation, testing steps aren't skipped.
 - **"$why-review"** — Validate design rationale in plan before implementation (standalone only — skipped when workflow includes it)
@@ -427,7 +427,7 @@ After creating all phase files, run **recursive decomposition loop**:
 >
 > **Mandatory closers:** Confidence % stated · Assumptions listed · Open questions surfaced · Next action concrete.
 >
-> **Stop conditions:** confidence <80% on any critical decision → escalate via ask the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
+> **Stop conditions:** confidence <80% on any critical decision → escalate by asking the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 >
@@ -821,9 +821,9 @@ After creating all phase files, run **recursive decomposition loop**:
 **IMPORTANT MUST ATTENTION** default mode HARD — opt out to fast mode ONLY when ALL trivial-task conditions hold — why: skipping rigor on a non-trivial task costs more rework than rigor saves.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks via task tracking BEFORE starting; add a final review todo; on context loss call the current task list first — never duplicate tasks.
 **MANDATORY IMPORTANT MUST ATTENTION** bootstrap the Goal Contract (`goal.md` from `goal-contract-template.md`) BEFORE investigation; every phase success criterion maps to a saved goal criterion. Redact secrets.
-**MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user via a direct user question — NEVER auto-decide because a task seems "obvious"; the user decides the next step.
+**MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user by asking the user directly — NEVER auto-decide because a task seems "obvious"; the user decides the next step.
 **MANDATORY IMPORTANT MUST ATTENTION** every phase passes the 5-point granularity check ("Can I start coding RIGHT NOW?") — failing phases → sub-plan (max depth 3).
-**MANDATORY IMPORTANT MUST ATTENTION** detect new tech/lib not in project → task tracking per lib → WebSearch top 3 → compare → recommend with confidence % → a direct user question — why: an unvetted dependency is an irreversible decision exposed too early.
+**MANDATORY IMPORTANT MUST ATTENTION** detect new tech/lib not in project → task tracking per lib → WebSearch top 3 → compare → recommend with confidence % → ask the user directly — why: an unvetted dependency is an irreversible decision exposed too early.
 **MANDATORY IMPORTANT MUST ATTENTION** estimation is bottom-up — phase hours drive `man_days_traditional` (`Σh/6 × productivity_factor`); SP DERIVED, never the driver; UI cost usually dominates; emit full `estimate_reasoning` frontmatter.
 **MANDATORY IMPORTANT MUST ATTENTION** every phase carries `## Test Specifications` with `TC-{FEATURE}-{NNN}` IDs; map every functional requirement to ≥1 TC (or explicit `Evidence: TBD` for TDD-first).
 **MANDATORY IMPORTANT MUST ATTENTION** for `.claude` skills/hooks/workflows/sync work, plans MUST include generated-mirror sync action or explicit no-sync evidence — why: a silently stale mirror diverges from source.
@@ -841,7 +841,7 @@ After creating all phase files, run **recursive decomposition loop**:
 | "I already know the codebase"      | Show `file:line` from 3+ patterns + graph trace. No proof = not read.                    |
 | "Phase is clear enough"            | Run the 5-point granularity check: "Can I start coding RIGHT NOW?" — else sub-plan.      |
 | "Plan looks good, skip review"     | NEVER skip `$plan-review` — fresh eyes catch author blind spots.                         |
-| "Only existing libs, skip the gate"| Prove it — grep manifests. Any new tech/lib → WebSearch + a direct user question before approval. |
+| "Only existing libs, skip the gate"| Prove it — grep manifests. Any new tech/lib → WebSearch + ask the user directly before approval. |
 | "I'll just estimate SP directly"   | SP is DERIVED from bottom-up phase hours, never the driver. Σh/6 × productivity first.   |
 | "It's a `.claude` change, no sync" | State the mirror action or explicit no-sync evidence — stale mirrors fail the oracle.    |
 | "`--mode=ci`, so skip the normal flow" | Mode only ADDS a reference payload — same engine, same `$plan-review`, same `planner` agent. |

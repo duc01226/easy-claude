@@ -334,7 +334,7 @@ Per item: **PASS / FAIL / N/A** with `file:line` evidence and confidence (>80% r
 
 ## Workflow Recommendation
 
-> **MUST ATTENTION — NOT IN WORKFLOW YET:** Use a direct user question:
+> **MUST ATTENTION — NOT IN WORKFLOW YET:** Use ask the user directly:
 >
 > 1. **Activate `workflow-seed-test-data`** (Recommended) — scout → investigate → seed-test-data → review-changes → code-simplifier → docs-update
 > 2. **Execute `$seed-test-data` directly** — run this skill standalone
@@ -343,7 +343,7 @@ Per item: **PASS / FAIL / N/A** with `file:line` evidence and confidence (>80% r
 
 ## Next Steps
 
-> **MUST ATTENTION** after completing (Generate mode): use a direct user question — do NOT skip. Step 7 self-review (`--mode=review`) MUST have run on the changed code BEFORE these:
+> **MUST ATTENTION** after completing (Generate mode): use ask the user directly — do NOT skip. Step 7 self-review (`--mode=review`) MUST have run on the changed code BEFORE these:
 
 - **"$workflow-review-changes (Recommended)"** — final step: review all changes before commit (runs AFTER the `--mode=review` convention self-audit)
 - **"$integration-test"** — write tests verifying idempotency and count compliance

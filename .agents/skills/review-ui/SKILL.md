@@ -414,7 +414,7 @@ Update report with final sections:
 
 ## Workflow Recommendation
 
-> **MANDATORY — NO EXCEPTIONS:** If NOT already in a workflow, MUST use a direct user question to ask user. Do NOT judge task complexity or decide "simple enough to skip" — user decides, not you:
+> **MANDATORY — NO EXCEPTIONS:** If NOT already in a workflow, MUST use ask the user directly to ask user. Do NOT judge task complexity or decide "simple enough to skip" — user decides, not you:
 >
 > 1. **Activate `workflow-review-changes` workflow** (Recommended) — run the canonical workflow from `.claude/workflows.json`; it sequences UI review through `$review-changes`, findings validation, parallel reviewers, `code-simplifier` self-review, fix-plan cycle, full re-review restart, docs, and handoff.
 > 2. **Execute `$review-ui` directly** — run this skill standalone
@@ -423,7 +423,7 @@ Update report with final sections:
 
 ## Next Steps
 
-**MANDATORY — NO EXCEPTIONS:** After completing, use a direct user question to present:
+**MANDATORY — NO EXCEPTIONS:** After completing, use ask the user directly to present:
 
 - **"$code-simplifier" (Recommended)** — Simplify and refine the styling/component code
 - **"$web-design-guidelines"** — Generic accessibility / UX checklist for a11y depth
@@ -462,7 +462,7 @@ Before reporting ANY work done:
 > - NEVER reuse a sub-agent across rounds — every iteration that uses sub-agents spawns a NEW `spawn_agent` call
 > - NEVER fix unvalidated findings; validate first using the caller's validation gate
 > - NEVER skip the full review restart after a validated fix cycle — every fix invalidates the prior verdict
-> - Continue until a complete full review pass has zero findings; if the same blocker repeats across 3 full invocations with no progress, escalate via a direct user question
+> - Continue until a complete full review pass has zero findings; if the same blocker repeats across 3 full invocations with no progress, escalate by asking the user directly
 > - Track iteration count in conversation context (session-scoped, no persistent files)
 
 <!-- /OVERRIDE:fresh-context-review -->
@@ -781,7 +781,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 >
 > **Mandatory closers:** Confidence % stated · Assumptions listed · Open questions surfaced · Next action concrete.
 >
-> **Stop conditions:** confidence <80% on any critical decision → escalate via ask the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
+> **Stop conditions:** confidence <80% on any critical decision → escalate by asking the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 >
@@ -846,7 +846,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > - Subtle edge cases the prior round rationalized away
 > - Regressions introduced by the fixes themselves
 >
-> **Loop termination:** After each full re-review, repeat the same decision: clean → END; issues → validate findings → fix → restart from the first review phase. Continue until a complete review pass finds zero issues. If the same validated finding repeats for 3 full invocations with no progress, or a fix requires product/owner input, escalate via a direct user question.
+> **Loop termination:** After each full re-review, repeat the same decision: clean → END; issues → validate findings → fix → restart from the first review phase. Continue until a complete review pass finds zero issues. If the same validated finding repeats for 3 full invocations with no progress, or a fix requires product/owner input, escalate by asking the user directly.
 >
 > **Rules:**
 >
@@ -1145,7 +1145,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **MUST ATTENTION** run at least ONE graph command on key files when graph.db exists
 **MUST ATTENTION** NEVER fix code — review and report only
 **MUST ATTENTION** apply `Think:` reasoning prompt before checking each category — derive violations, don't recite checklists
-**MUST ATTENTION** use a direct user question to present next steps after completing review
+**MUST ATTENTION** use ask the user directly to present next steps after completing review
 
 **Anti-Rationalization:**
 

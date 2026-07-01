@@ -122,7 +122,7 @@ Try in order:
 
 1. Git: timestamp of first commit on feature branch → timestamp of last commit (or merge commit). Convert to working days (8h business days, exclude weekends).
 2. PR: open time → merge time. Same conversion.
-3. Ask user via a direct user question: "Git suggests N working days from first commit to merge. How much was actual coding time? (excludes meetings, code-review wait, context switches, vacations)"
+3. Ask user by asking the user directly: "Git suggests N working days from first commit to merge. How much was actual coding time? (excludes meetings, code-review wait, context switches, vacations)"
 
 ALWAYS surface the gap between elapsed time and reported coding time — they are different signals.
 

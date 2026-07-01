@@ -58,7 +58,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - **Main steps (run in order):** Phase 0 detect plan type → Step 1 read `plan.md` + `goal.md` + all `phase-*.md`, extract requirements/steps/files/risks → Step 2 evaluate the 4 checklist groups: **Validity** (summary, requirements, steps, files) · **Correctness** (Granularity Gate + Anti-Hallucination/Code-Proof Gate + spec/TC coverage + Goal-Contract mapping) · **Best Practices** (YAGNI/KISS/DRY/architecture) · **Completeness** (risks, testing, success criteria, security, graph-dependency) → run the 11 Adversarial techniques + Anti-Bias Gate + 7 Plan Dimensions → graph-trace each modified file (when graph.db exists) → Step 3 score PASS/WARN/FAIL → Step 4 output result → Step 5 recursive validate-fix-re-review loop.
 - **Detect plan type FIRST (Phase 0)** so the right focus applies — bugfix MANDATES the Behavioral Delta Matrix; security/performance/refactor/contract/infra/data-schema each add targeted checks.
 - **Findings are never fixed blindly:** run the `$why-review --validate-findings` gate BEFORE editing any `plan.md`/`phase-*.md`, fix only validated findings at the smallest responsible location, then restart the FULL review with a fresh, zero-memory sub-agent — loop until a clean pass with zero findings.
-- **No arbitrary round cap;** a clean pass ends the loop immediately. Escalate via a direct user question only when the same blocker survives 3 consecutive full re-reviews with no progress, or a finding needs product/owner judgment.
+- **No arbitrary round cap;** a clean pass ends the loop immediately. Escalate by asking the user directly only when the same blocker survives 3 consecutive full re-reviews with no progress, or a finding needs product/owner judgment.
 
 **Workflow:**
 
@@ -81,7 +81,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - **PASS**: Proceed to implementation
 - **WARN**: Proceed with caution, note gaps
 - **FAIL (any findings)**: Validate findings with `$why-review --validate-findings`, fix only validated plan issues, then **re-run the FULL review from the start**. Repeat this self-loop — no maximum round count, no forced minimum — until a complete pass finds ZERO findings.
-- **No-progress safety (not a round cap)**: only if the SAME blocker survives 3 consecutive full re-reviews with no progress, STOP and escalate to user via a direct user question. A clean pass ends the loop immediately, even on round 1.
+- **No-progress safety (not a round cap)**: only if the SAME blocker survives 3 consecutive full re-reviews with no progress, STOP and escalate to user by asking the user directly. A clean pass ends the loop immediately, even on round 1.
 - **Constructive**: Focus on implementation-blocking issues, not pedantic details
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
@@ -480,7 +480,7 @@ After the sub-agent returns:
 1. **Read** the sub-agent's report
 2. **Integrate** findings as `## Re-Review {N} Findings` in the main report — DO NOT filter or override
 3. **If FAIL, WARN, or any findings remain:** run the Findings Validation Gate, fix only validated actionable findings in plan files, then restart the full plan-review protocol from the first review step
-4. **Repeated blocker cap:** if the same blocker repeats across 3 full invocations with no progress, escalate via a direct user question
+4. **Repeated blocker cap:** if the same blocker repeats across 3 full invocations with no progress, escalate by asking the user directly
 5. **Final verdict** must incorporate findings from ALL review passes that actually ran
 
 ### Flow
@@ -523,7 +523,7 @@ After the sub-agent returns:
 
 ### Iteration Rules
 
-1. **Repeated blocker cap** — continue until a complete full review pass has zero findings; if the same blocker repeats across 3 full invocations with no progress, STOP and escalate to user via a direct user question
+1. **Repeated blocker cap** — continue until a complete full review pass has zero findings; if the same blocker repeats across 3 full invocations with no progress, STOP and escalate to user by asking the user directly
 2. **Track round count** — log "Plan review Round N (full re-review)" at the start of each cycle
 3. **Zero findings = exit** — proceed only when a complete plan-review pass has no findings. WARN remains a finding unless it is explicitly accepted as non-actionable by the user/owner.
 4. **Diminishing scope** — each round should find FEWER issues. If Round N finds MORE than Round N-1, STOP and escalate
@@ -535,14 +535,14 @@ After the sub-agent returns:
     - Over-engineering → simplify, remove unnecessary complexity
     - Missing TC mappings → add TC references or "TBD" with rationale
 7. **After each validated fix cycle** — rerun the full plan-review protocol from the first review step; when that restarted protocol uses agents, spawn NEW Agent calls and never reuse prior agents
-8. **No silent fallback** — if the same blocker repeats across 3 full invocations with no progress, escalate via a direct user question. NEVER fall back to any prior protocol.
+8. **No silent fallback** — if the same blocker repeats across 3 full invocations with no progress, escalate by asking the user directly. NEVER fall back to any prior protocol.
 
 ## Next Steps
 
 - **If PASS with zero findings**: Announce "Plan review complete. Proceeding with next workflow step."
 - **If WARN or other findings remain**: Run the Findings Validation Gate; fix only validated actionable findings in plan files, or ask the user to explicitly accept non-actionable risk before proceeding.
 - **If FAIL**: Run the Findings Validation Gate, fix only validated actionable findings in plan files, then rerun the full plan-review protocol recursively.
-- **If repeated blocker cap is reached**: List remaining issues. STOP. Ask user to fix or regenerate plan via a direct user question.
+- **If repeated blocker cap is reached**: List remaining issues. STOP. Ask user to fix or regenerate plan by asking the user directly.
 
 ## Important Notes
 
@@ -553,16 +553,16 @@ After the sub-agent returns:
 
 ---
 
-## Skill Interconnection (Standalone: MUST ATTENTION ask user via a direct user question. Skip if inside workflow.)
+## Skill Interconnection (Standalone: MUST ATTENTION ask user by asking the user directly. Skip if inside workflow.)
 
-**MANDATORY — NO EXCEPTIONS** after completing this skill, you MUST use a direct user question to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
+**MANDATORY — NO EXCEPTIONS** after completing this skill, you MUST use ask the user directly to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
 
 - **"Proceed with full workflow (Recommended)"** — I'll detect the best workflow to continue from here (plan reviewed). This ensures validation, implementation, testing, and docs steps aren't skipped.
 - **"$plan-validate"** — Interview user to confirm plan assumptions
 - **"$feature-implement" or "$plan-execute"** — If plan is approved and ready for implementation
 - **"Skip, continue manually"** — user decides
 
-> **[BLOCKING]** This is a validation gate. MUST ATTENTION use a direct user question to present review findings and get user confirmation. Completing without asking at least one question is a violation.
+> **[BLOCKING]** This is a validation gate. MUST ATTENTION use ask the user directly to present review findings and get user confirmation. Completing without asking at least one question is a violation.
 
 > **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI must ask user whether to skip.
 
@@ -648,7 +648,7 @@ After the sub-agent returns:
 > - SKIP fresh sub-agent when the prior full review found zero issues (no fixes = nothing new to verify)
 > - NEVER skip the full review restart after a fix cycle — every fix invalidates the prior verdict
 > - NEVER reuse a sub-agent across rounds — every fresh round spawns a NEW `spawn_agent` call
-> - Continue until a complete full review pass has zero findings; if the same blocker repeats 3 times with no progress, escalate via a direct user question
+> - Continue until a complete full review pass has zero findings; if the same blocker repeats 3 times with no progress, escalate by asking the user directly
 > - Track iteration count and repeated blockers in conversation context (session-scoped, no persistent files)
 
 <!-- /SYNC:fresh-context-review -->
@@ -705,7 +705,7 @@ After the sub-agent returns:
 >
 > **Mandatory closers:** Confidence % stated · Assumptions listed · Open questions surfaced · Next action concrete.
 >
-> **Stop conditions:** confidence <80% on any critical decision → escalate via ask the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
+> **Stop conditions:** confidence <80% on any critical decision → escalate by asking the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 >
@@ -762,7 +762,7 @@ After the sub-agent returns:
 > - Subtle edge cases the prior round rationalized away
 > - Regressions introduced by the fixes themselves
 >
-> **Loop termination:** After each full re-review, repeat the same decision: clean → END; issues → validate findings → fix → restart from the first review phase. Continue until a complete review pass finds zero issues. If the same validated finding repeats for 3 full invocations with no progress, or a fix requires product/owner input, escalate via a direct user question.
+> **Loop termination:** After each full re-review, repeat the same decision: clean → END; issues → validate findings → fix → restart from the first review phase. Continue until a complete review pass finds zero issues. If the same validated finding repeats for 3 full invocations with no progress, or a fix requires product/owner input, escalate by asking the user directly.
 >
 > **Rules:**
 >
@@ -1111,10 +1111,10 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **MANDATORY IMPORTANT MUST ATTENTION** detect plan type FIRST (Phase 0) — bugfix MANDATES the Behavioral Delta Matrix (≥3 rows, ≥1 outside the bug report, any REGRESSION → FAIL until a preservation test covers it); security/perf/refactor/contract/infra each add their own focus.
 **MANDATORY IMPORTANT MUST ATTENTION** spec-loop scheduling — plan must schedule property/invariant test specs for every `[HARD]` §4 rule / §5 invariant + a MUTATION-SCORE quality bar; FAIL a plan targeting a line-coverage % instead of a mutation-score bar.
 **MANDATORY IMPORTANT MUST ATTENTION** when ANY finding exists, run `$why-review --validate-findings` BEFORE editing any `plan.md`/`phase-*.md`; fix ONLY validated findings at the smallest responsible location, then restart the FULL review with a fresh zero-memory sub-agent — loop until a clean pass; NEVER edit plan files before this gate passes — why: unvalidated fixes corrupt the plan and waste review rounds.
-**MANDATORY IMPORTANT MUST ATTENTION** no arbitrary round cap — a clean pass ends the loop immediately; escalate via a direct user question ONLY when the SAME blocker survives 3 consecutive full re-reviews with no progress, or a finding needs product/owner judgment.
+**MANDATORY IMPORTANT MUST ATTENTION** no arbitrary round cap — a clean pass ends the loop immediately; escalate by asking the user directly ONLY when the SAME blocker survives 3 consecutive full re-reviews with no progress, or a finding needs product/owner judgment.
 **MANDATORY IMPORTANT MUST ATTENTION** bootstrap task tracking task breakdown BEFORE reads/grep/edits (one task per file read); persist findings to `plans/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` incrementally and synthesize from disk; add a final review task — why: long plan files exhaust context, the report file is ground truth.
 **MANDATORY IMPORTANT MUST ATTENTION** run a graph trace on each "files to modify" entry when `.code-graph/graph.db` exists; flag any downstream file NOT listed in the plan as "potentially missed" — why: catches cross-service/event-handler impact the author overlooked.
-**MANDATORY IMPORTANT MUST ATTENTION** standalone runs end with a direct user question presenting findings + next-step options; skip ONLY inside a workflow.
+**MANDATORY IMPORTANT MUST ATTENTION** standalone runs end with ask the user directly presenting findings + next-step options; skip ONLY inside a workflow.
 **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every finding (confidence >80% to act, <60% DO NOT recommend); NEVER mark PASS while any spec/test/code face disagrees without a logged finding.
 **MANDATORY IMPORTANT MUST ATTENTION** READ before reviewing: `.claude/docs/development-rules.md`, `docs/project-reference/code-review-rules.md`, `lessons.md`, plus skill-specific pattern refs (backend/frontend/integration-test).
 

@@ -402,7 +402,7 @@ E2E test report: files created/modified, TC codes covered, run command, precondi
 | -------------------------------------------- | ----------------------------------------------------------------------------------- |
 | "I know Playwright, skip the E2E reference"  | Read it anyway — local fixtures/auth/selector conventions override generic defaults |
 | "This selector works now"                    | Generated/positional selectors break silently; derive from `data-testid`/BEM/ARIA   |
-| "One run passed, it's deterministic"         | One green run is not repeatable. Prove 2 consecutive runs with no DB reset.              |
+| "One run passed, it's deterministic"         | One green run is not repeatable. Prove 2 consecutive runs with no DB reset.         |
 | "Assertion in the page object is convenient" | It hides intent and blocks reuse — keep assertions in the test file                 |
 | "No spec handy, skip the TC code"            | No TC code = untraceable test. Find the TC in feature docs first.                   |
 | "Already know the pattern"                   | Show `file:line` from 3+ existing tests. No proof = no search.                      |

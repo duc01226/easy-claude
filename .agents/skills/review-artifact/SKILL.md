@@ -377,7 +377,7 @@ After sub-agent returns:
 1. **Read** the sub-agent's report
 2. **Integrate** findings as `## Re-Review {N} Findings` in the main report — DO NOT filter or override
 3. **If NEEDS WORK:** fix actionable artifact findings, then restart the full artifact review from the beginning
-4. **Repeated blocker cap:** if the same blocker repeats across 3 full invocations with no progress, escalate via a direct user question
+4. **Repeated blocker cap:** if the same blocker repeats across 3 full invocations with no progress, escalate by asking the user directly
 5. **Final verdict** must incorporate findings from ALL review passes that actually ran
 
 ## IMPORTANT Task Planning Notes (MUST ATTENTION FOLLOW)
@@ -510,7 +510,7 @@ After sub-agent returns:
 > - Subtle edge cases the prior round rationalized away
 > - Regressions introduced by the fixes themselves
 >
-> **Loop termination:** After each full re-review, repeat the same decision: clean → END; issues → validate findings → fix → restart from the first review phase. Continue until a complete review pass finds zero issues. If the same validated finding repeats for 3 full invocations with no progress, or a fix requires product/owner input, escalate via a direct user question.
+> **Loop termination:** After each full re-review, repeat the same decision: clean → END; issues → validate findings → fix → restart from the first review phase. Continue until a complete review pass finds zero issues. If the same validated finding repeats for 3 full invocations with no progress, or a fix requires product/owner input, escalate by asking the user directly.
 >
 > **Rules:**
 >
@@ -548,7 +548,7 @@ After sub-agent returns:
 > - SKIP fresh sub-agent when the prior full review found zero issues (no fixes = nothing new to verify)
 > - NEVER skip the full review restart after a fix cycle — every fix invalidates the prior verdict
 > - NEVER reuse a sub-agent across rounds — every fresh round spawns a NEW `spawn_agent` call
-> - Continue until a complete full review pass has zero findings; if the same blocker repeats 3 times with no progress, escalate via a direct user question
+> - Continue until a complete full review pass has zero findings; if the same blocker repeats 3 times with no progress, escalate by asking the user directly
 > - Track iteration count and repeated blockers in conversation context (session-scoped, no persistent files)
 
 <!-- /SYNC:fresh-context-review -->

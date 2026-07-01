@@ -99,7 +99,7 @@ If `FIGMA_ACCESS_TOKEN` environment variable exists:
 
 If no MCP and no API token:
 
-1. Ask user via a direct user question: "Please screenshot the Figma frame and paste here"
+1. Ask user by asking the user directly: "Please screenshot the Figma frame and paste here"
 2. Analyze via `visual analysis tooling` skill with design extraction prompts
 3. Extract: approximate colors, fonts, spacing, layout, components
 

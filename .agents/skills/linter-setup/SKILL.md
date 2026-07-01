@@ -55,7 +55,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Summary:**
 
 - **Purpose** — install the full computational feedback sensor layer for the detected stack so no code change reaches main unguarded: strict-by-default, research-driven (NEVER hardcode tools), local-and-CI with zero divergence, proven to block.
-- **Main steps, in order:** (1) **Detect stack** — read `plan.md` → architecture report → tech-stack report, write `stack-profile.md`; a direct user question if a critical field is undetectable. (2) **Research each tool category** — linter, formatter, type checker, static analyzer, dependency scanner, architecture fitness — via QUERY TEMPLATES; score top 3; present top 2-3 per category via a direct user question, user picks. (3) **Install & configure** — STRICTEST reasonable defaults (loosen ONLY with explicit user approval), document what each rule catches, add cache dirs to `.gitignore`, ALWAYS emit a stack-agnostic `.editorconfig`. (4) **Wire the pre-commit hook** — formatter→linter→type-check, staged-files-only, <30s; document setup in `README.md`. (5) **Configure the CI quality gate** to MIRROR the hook (format→lint→type→static→dep-scan), coverage diagnostic-only. (6) **Verify** — fire the hook with an INTENTIONAL violation, confirm it blocks before declaring complete. (7) **Next steps** — a direct user question to continue to `$harness-setup`.
+- **Main steps, in order:** (1) **Detect stack** — read `plan.md` → architecture report → tech-stack report, write `stack-profile.md`; ask the user directly if a critical field is undetectable. (2) **Research each tool category** — linter, formatter, type checker, static analyzer, dependency scanner, architecture fitness — via QUERY TEMPLATES; score top 3; present top 2-3 per category by asking the user directly, user picks. (3) **Install & configure** — STRICTEST reasonable defaults (loosen ONLY with explicit user approval), document what each rule catches, add cache dirs to `.gitignore`, ALWAYS emit a stack-agnostic `.editorconfig`. (4) **Wire the pre-commit hook** — formatter→linter→type-check, staged-files-only, <30s; document setup in `README.md`. (5) **Configure the CI quality gate** to MIRROR the hook (format→lint→type→static→dep-scan), coverage diagnostic-only. (6) **Verify** — fire the hook with an INTENTIONAL violation, confirm it blocks before declaring complete. (7) **Next steps** — ask the user directly to continue to `$harness-setup`.
 - **Non-negotiables** — research-driven tool choice (NEVER hardcode), strict-by-default, local↔CI zero divergence, prove the gate blocks before done.
 
 **Output:** Config files at project root + pre-commit hook config + CI quality gate step + `.editorconfig`.
@@ -94,7 +94,7 @@ CI Provider/Tooling: {github-actions/gitlab-ci/azure-pipelines/etc}
 Test Framework: {framework}
 ```
 
-If any critical field undetectable → a direct user question to confirm before research.
+If any critical field undetectable → ask the user directly to confirm before research.
 
 ---
 
@@ -117,7 +117,7 @@ For each tech stack layer detected, research these TOOL CATEGORIES using the que
 
 1. Search with query template (WebSearch if available, otherwise apply knowledge with explicit confidence %)
 2. Score top 3 candidates: community adoption, last release date, CI integration ease, config complexity
-3. Present via a direct user question: "For {category} in {language}, which tool?" — top 2-3 as options + brief pros/cons
+3. Present by asking the user directly: "For {category} in {language}, which tool?" — top 2-3 as options + brief pros/cons
 
 **IMPORTANT:** Confidence in current ecosystem <80% (fast-moving ecosystem, unfamiliar stack) → use WebSearch to verify before presenting options. — why: tool ecosystems churn fast; stale recommendations cargo-cult dead tools.
 
@@ -130,7 +130,7 @@ After user selects tools per category:
 1. Generate install command for detected package manager
 2. Generate config file with STRICTEST reasonable defaults
     - Rationale: starting strict is easier to loosen than starting loose is to tighten
-    - Loosen ONLY with explicit user approval via a direct user question
+    - Loosen ONLY with explicit user approval by asking the user directly
 3. Document what each enabled rule catches and why (one line per rule group)
 4. Generate sample config file: `.{tool}rc`, `{tool}.config.{ext}`, `pyproject.toml` section, etc.
 5. Add tool cache directories to `.gitignore`
@@ -195,7 +195,7 @@ Detect CI provider/tooling from repository files:
 - `Jenkinsfile` → Jenkins
 - `bitbucket-pipelines.yml` → Bitbucket Pipelines
 
-If not detected → a direct user question: "Which CI provider/tooling does this repository use?"
+If not detected → ask the user directly: "Which CI provider/tooling does this repository use?"
 
 Generate CI job/step that:
 
@@ -205,7 +205,7 @@ Generate CI job/step that:
 4. Runs type checker (fail on any error)
 5. Runs static analyzer (fail on threshold: configurable complexity and duplication)
 6. Runs dependency vulnerability scanner (fail on HIGH/CRITICAL CVEs)
-7. Reports line-coverage as a DIAGNOSTIC only — NEVER fail the build on a coverage %. Low coverage is a useful untested-area signal; high coverage is not evidence of quality. If a test-strength gate is wanted, a direct user question: "Configure a mutation-testing tool (e.g. Stryker / PITest / mutmut, per stack) as the CI test-quality gate?" — gate on mutation score (surviving mutant = missing/weak assertion), with line-coverage reported but ungated. Keep behavior/change-coverage (each behavior-changing file has a test asserting the changed outcome) as the meaningful coverage notion.
+7. Reports line-coverage as a DIAGNOSTIC only — NEVER fail the build on a coverage %. Low coverage is a useful untested-area signal; high coverage is not evidence of quality. If a test-strength gate is wanted, ask the user directly: "Configure a mutation-testing tool (e.g. Stryker / PITest / mutmut, per stack) as the CI test-quality gate?" — gate on mutation score (surviving mutant = missing/weak assertion), with line-coverage reported but ungated. Keep behavior/change-coverage (each behavior-changing file has a test asserting the changed outcome) as the meaningful coverage notion.
 
 **MANDATORY:** CI gate must match pre-commit hooks. If a check runs locally, it runs in CI. No divergence.
 
@@ -226,7 +226,7 @@ After all config files generated, verify MUST ATTENTION each item:
 
 ## Next Steps
 
-a direct user question:
+ask the user directly:
 
 - **"$harness-setup continues (Recommended)"** — Set up feedforward guides + inferential sensors to complete the outer harness
 - **"$feature-implement"** — Skip harness inventory and begin implementation
@@ -273,7 +273,7 @@ a direct user question:
 
 **IMPORTANT MUST ATTENTION Goal:** Every code change is caught by an automated quality sensor — both locally (fast feedback) AND in CI (enforcement gate) — before it reaches main, with ZERO divergence between the two, by installing the full sensor layer (linter, formatter, type checker, static analyzer, dependency scanner, architecture fitness, pre-commit hook, CI gate) for the detected stack.
 
-**IMPORTANT MUST ATTENTION Main steps (in order — do not skip):** (1) detect stack → (2) research tool categories, present 2-3 per category via a direct user question → (3) install & configure strict + `.editorconfig` + `.gitignore` → (4) wire pre-commit hook (format→lint→type, staged-only, <30s) → (5) mirror it in a CI quality gate → (6) verify the hook blocks an INTENTIONAL violation → (7) offer `$harness-setup` next.
+**IMPORTANT MUST ATTENTION Main steps (in order — do not skip):** (1) detect stack → (2) research tool categories, present 2-3 per category by asking the user directly → (3) install & configure strict + `.editorconfig` + `.gitignore` → (4) wire pre-commit hook (format→lint→type, staged-only, <30s) → (5) mirror it in a CI quality gate → (6) verify the hook blocks an INTENTIONAL violation → (7) offer `$harness-setup` next.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -281,12 +281,12 @@ a direct user question:
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 
 **IMPORTANT MUST ATTENTION** use QUERY TEMPLATES in Tool Research — NEVER hardcode tool names in the research phase; research the detected stack's current ecosystem and present options — why: tool ecosystems churn fast, hardcoded names cargo-cult dead tools.
-**IMPORTANT MUST ATTENTION** present top 2-3 options per category via a direct user question — let the user pick; NEVER auto-select — why: tool choice is a team-owned decision, not the skill's.
+**IMPORTANT MUST ATTENTION** present top 2-3 options per category by asking the user directly — let the user pick; NEVER auto-select — why: tool choice is a team-owned decision, not the skill's.
 **IMPORTANT MUST ATTENTION** verify the pre-commit hook fires with an INTENTIONAL violation (add a lint error, attempt commit, confirm it blocks) before marking complete — why: an unproven gate is no gate.
 **IMPORTANT MUST ATTENTION** CI gate MUST match pre-commit hooks — if a check runs locally it runs in CI, no divergence — why: divergent local/CI checks let violations slip through one path.
 
-**MUST ATTENTION** detect the stack FIRST (`plan.md` → architecture report → tech-stack report); if a critical field is undetectable, a direct user question before research — why: every downstream tool choice depends on the stack profile.
-**MUST ATTENTION** configure with the STRICTEST reasonable defaults; loosen ONLY with explicit user approval via a direct user question — why: starting strict is easier to loosen than starting loose is to tighten.
+**MUST ATTENTION** detect the stack FIRST (`plan.md` → architecture report → tech-stack report); if a critical field is undetectable, ask the user directly before research — why: every downstream tool choice depends on the stack profile.
+**MUST ATTENTION** configure with the STRICTEST reasonable defaults; loosen ONLY with explicit user approval by asking the user directly — why: starting strict is easier to loosen than starting loose is to tighten.
 **MUST ATTENTION** ALWAYS emit a stack-agnostic `.editorconfig` and add tool cache dirs to `.gitignore` — why: editorconfig is the one truly portable cross-tool baseline; cached artifacts must never be committed.
 **MUST ATTENTION** order hooks formatter→linter→type-check, staged-files-only, <30s; defer slow checks (static analysis, full type-check) to CI — why: a slow hook gets bypassed, killing local feedback.
 **MUST ATTENTION** report line-coverage as a DIAGNOSTIC only — NEVER fail the build on a coverage %; gate on mutation score if a test-strength gate is wanted — why: high coverage is not evidence of assertion quality.
@@ -301,14 +301,14 @@ a direct user question:
 
 | Evasion                                          | Rebuttal                                                                                            |
 | ------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| "I know the best linter for this stack"          | Ecosystems churn — research current options, present 2-3 via a direct user question. Hardcoding = stale. |
+| "I know the best linter for this stack"          | Ecosystems churn — research current options, present 2-3 by asking the user directly. Hardcoding = stale. |
 | "Strict defaults are too aggressive, loosen now" | Start strict; loosen ONLY with explicit user approval. Easier to loosen than to tighten later.      |
 | "Hook works, no need to test it"                 | Fire an INTENTIONAL violation and confirm it blocks. Unproven gate = no gate.                       |
 | "Local checks are enough, skip CI"               | CI gate MUST mirror pre-commit. No divergence — a local-only check is bypassable.                   |
 | "Coverage % is high, gate on it"                 | Coverage is diagnostic only. Gate on mutation score; high coverage ≠ strong assertions.            |
 | "Simple stack, skip task tracking"               | Still bootstrap task tracking. Skip depth, never skip tracking.                                      |
 
-**IMPORTANT MUST ATTENTION** use QUERY TEMPLATES — NEVER hardcode tool names; present top 2-3 via a direct user question.
+**IMPORTANT MUST ATTENTION** use QUERY TEMPLATES — NEVER hardcode tool names; present top 2-3 by asking the user directly.
 **IMPORTANT MUST ATTENTION** prove the pre-commit hook blocks an intentional violation before declaring complete.
 **IMPORTANT MUST ATTENTION** CI gate must match pre-commit hooks — zero divergence between local and CI checks.
 

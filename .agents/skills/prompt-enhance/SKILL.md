@@ -80,7 +80,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 Compress and enhance this file:
 <target>$ARGUMENTS</target>
 
-No file? Ask via a direct user question. Text passed (not file path)? Apply caveman compression directly and output result.
+No file? Ask by asking the user directly. Text passed (not file path)? Apply caveman compression directly and output result.
 
 ---
 

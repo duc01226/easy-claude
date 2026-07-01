@@ -51,7 +51,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 | ONE concrete idea / ticket / brief                           | **Single-PBI Deep**             | full track incl. `spec [mode=draft]` + `spec [mode=tests]` + `plan`/`plan-review`/`plan-validate` → 1 deeply-groomed PBI. SKIP `brainstorm`/`web-research`/`deep-research`.                                            |
 | Raw product vision / problem spanning multiple opportunities | **Multi-Opportunity Discovery** | `brainstorm` (optionally `web-research` → `deep-research`) → RICE map → multi-select → light per-opportunity loop → cross-PBI `prioritize`. `spec [mode=draft]` + `spec [mode=tests]` + `plan` cycle are **deep-mode only — never per opportunity**; `domain-analysis` runs once up front. |
 
-When the input is ambiguous, ask via a direct user question before step 1.
+When the input is ambiguous, ask by asking the user directly before step 1.
 
 **Workflow:**
 
@@ -137,7 +137,7 @@ Mark skipped steps as completed immediately. In single-PBI deep mode, deselect `
 Activated only when the input is a raw product vision/problem spanning multiple opportunities (folded in from the former product-discovery workflow).
 
 1. **Brainstorm → opportunity map.** Run `$brainstorm` with Double Diamond (problem framing → opportunity framing → ideation → convergence). Output a **RICE-scored opportunity map** of 3–8 items to `plans/{plan-dir}/brainstorm-opportunity-map.md`.
-2. **Multi-select.** Present the map via a direct user question (`multiSelect: true`): "Which opportunities should we develop into PBIs?"
+2. **Multi-select.** Present the map by asking the user directly (`multiSelect: true`): "Which opportunities should we develop into PBIs?"
 3. **Opportunity-map why-review gate** (before the loop): challenge whether the top-ranked opportunities are the right problems, whether RICE Reach/Impact are founded or speculative, run a pre-mortem, and name systemic alternatives. FAIL on a high-ranked opportunity → drop it or revisit framing; WARN → document and proceed with user acknowledgment.
 4. **Task decomposition gate.** Call task tracking for EVERY task (N opportunities × 9 loop steps = N×9 minimum) BEFORE processing any opportunity — never start the loop without a complete task list.
 5. **Per-opportunity light loop** (for EACH selected opportunity — NO `spec [mode=draft]`, NO `spec [mode=tests]`, NO `plan`/`plan-review`/`plan-validate`; `domain-analysis` already ran once up front):

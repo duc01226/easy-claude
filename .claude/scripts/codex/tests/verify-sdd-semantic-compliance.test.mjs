@@ -494,7 +494,7 @@ test("runChecks passes positive SDD fixture", async () => {
       ],
       [
         ".agents/skills/spec/references/sync.md",
-        "emergency recovery AskUserQuestion recovery report from-integration-tests",
+        "emergency recovery ask the user directly recovery report from-integration-tests",
       ],
       [
         ".claude/skills/spec/references/spec-tests-template.md",

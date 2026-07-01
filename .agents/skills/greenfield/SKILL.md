@@ -66,7 +66,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 - PLANNING ONLY: never implement code
 - Every stage saves artifacts to plan directory
-- **MANDATORY IMPORTANT MUST ATTENTION** every stage requires a direct user question validation before proceeding
+- **MANDATORY IMPORTANT MUST ATTENTION** every stage requires ask the user directly validation before proceeding
 - Delegate architecture decisions to `solution-architect` agent
 - Present 2-4 options for every major decision with confidence %
 - **Business-First Protocol:** Tech stack is NEVER asked upfront. Business analysis (steps 1-5) + domain modeling (step 6) must complete first. Tech stack is derived from requirements through research and presented as a comparison report with options.
@@ -132,7 +132,7 @@ After completion, recommend next step: `$feature-implement` to scaffold the proj
 ---
 
 **MANDATORY IMPORTANT MUST ATTENTION** use task tracking to break ALL work into small tasks BEFORE starting.
-**MANDATORY IMPORTANT MUST ATTENTION** use a direct user question at EVERY stage — validate decisions before proceeding.
+**MANDATORY IMPORTANT MUST ATTENTION** use ask the user directly at EVERY stage — validate decisions before proceeding.
 **MANDATORY IMPORTANT MUST ATTENTION** NEVER ask tech stack upfront — business analysis and domain modeling first.
 
 <!-- SYNC:ai-mistake-prevention -->

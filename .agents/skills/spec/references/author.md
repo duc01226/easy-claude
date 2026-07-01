@@ -145,7 +145,7 @@ When a companion `design-spec`/mockup exists, record its path in the spec frontm
 
 1. Check `docs/specs/{Bucket}/` exists (or `--audit` flag)
 2. If auto-detected module, check entire `docs/specs/` tree
-3. Present detected mode via a direct user question before proceeding — NEVER auto-start
+3. Present detected mode by asking the user directly before proceeding — NEVER auto-start
 
 **Mode routing:**
 
@@ -427,7 +427,7 @@ After extraction is complete, fold the extracted content into the 8 business sec
 | S5 Domain Model            | Yes — TCs assert entity/field state   | ≥1 entity with business-meaning cols  |
 | S7 Permissions & Roles     | Yes — TCs must include access checks  | Role-permission matrix present        |
 
-If 2 or more of these sections are missing or empty → use a direct user question to ask user whether to proceed with placeholder TCs or halt and complete foundational sections first.
+If 2 or more of these sections are missing or empty → use ask the user directly to ask user whether to proceed with placeholder TCs or halt and complete foundational sections first.
 
 **[BLOCKING] Section 8 Quantity Gate (runs after Readiness Gate):**
 
@@ -832,7 +832,7 @@ Flag items requiring implementation assumptions:
 - **S7 (Permissions & Roles):** Permission matrix with explicit role × action × condition cells. Blank cells → flag.
 - **Concrete examples:** ≥1 example (input + expected output) per core operation. Abstract-only → LOW.
 
-If >3 INCOMPLETE items → HALT, present gap list via ask the user directly before completing.
+If >3 INCOMPLETE items → HALT, present gap list by asking the user directly before completing.
 
 _Reference: `.claude/skills/shared/sdd-artifact-contract.md` → "AI-Implementability Gate" (and mandate M4) for the AI-implementability criteria. `docs/project-reference/spec-principles.md` carries only repo-local prose/evidence rules._
 

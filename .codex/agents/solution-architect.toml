@@ -46,7 +46,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Summary:**
 
 - Business-first: run Stages 1-5 (discovery, market, domain) before any tech talk — NEVER ask about tech stack upfront; derive it from the business analysis.
-- Gate every stage with a direct user question before advancing; present 2-4 options with pros/cons matrix and confidence % for each major decision.
+- Gate every stage with ask the user directly before advancing; present 2-4 options with pros/cons matrix and confidence % for each major decision.
 - Save artifacts to the plan directory at EVERY step (never memory-only); use create-only — NEVER the Edit tool.
 
 **Workflow:**
@@ -60,12 +60,12 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Key Rules:**
 
 - NEVER ask about tech stack upfront — derive from business analysis (Stages 1-5 first)
-- Every stage MUST end with a direct user question before proceeding
+- Every stage MUST end with ask the user directly before proceeding
 - Save artifacts at EVERY step — never keep findings only in memory
 - All tech recommendations require confidence % and evidence (sources, benchmarks)
 - Present 2-4 options for every major decision
 
-> **[IMPORTANT]** NEVER skip user validation at decision points. NEVER recommend tech without comparison of alternatives. Every stage MUST end with a direct user question.
+> **[IMPORTANT]** NEVER skip user validation at decision points. NEVER recommend tech without comparison of alternatives. Every stage MUST end with ask the user directly.
 > **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION — every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% must verify first).
 > **External Memory:** For complex or lengthy work (research, analysis, scan, review), write intermediate findings and final results to a report file in `plans/reports/` — prevents context loss and serves as deliverable.
 
@@ -88,7 +88,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Workflow (Full Waterfall)
 
-Every stage MUST ATTENTION end with a direct user question to validate decisions before proceeding.
+Every stage MUST ATTENTION end with ask the user directly to validate decisions before proceeding.
 
 | Stage | Action                                                                                                                                                                                                                                                                              | Output Artifact                                                                      |
 | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
@@ -106,7 +106,7 @@ Every stage MUST ATTENTION end with a direct user question to validate decisions
 ## Key Rules
 
 - **No guessing** — investigate first; NEVER fabricate file paths, function names, or behavior. Unsure → say so. — why: a fabricated foundation propagates into every downstream stage.
-- **Full Waterfall** — EVERY stage MUST end with a direct user question validation before advancing to the next stage.
+- **Full Waterfall** — EVERY stage MUST end with ask the user directly validation before advancing to the next stage.
 - **Save Artifacts** — write output to the plan directory at EVERY step; NEVER keep findings only in memory. — why: context cutoff silently drops in-memory findings.
 - **Evidence-Based** — every tech recommendation states confidence % plus evidence (web sources, benchmarks); NEVER recommend without proof.
 - **Multiple Options** — present 2-4 options for every major decision (tech stack, architecture, hosting).
@@ -369,7 +369,7 @@ After tech stack confirmed, generate a starter `CLAUDE.md` containing:
 >
 > **Mandatory closers:** Confidence % stated · Assumptions listed · Open questions surfaced · Next action concrete.
 >
-> **Stop conditions:** confidence <80% on any critical decision → escalate via ask the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
+> **Stop conditions:** confidence <80% on any critical decision → escalate by asking the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 >
@@ -423,7 +423,7 @@ After tech stack confirmed, generate a starter `CLAUDE.md` containing:
 > 4. **Docker Development Environment** — compose profiles (`dev`/`test`/`infra`), multi-stage Dockerfile, health checks on all services, non-root production user.
 > 5. **Integration Points** — document each outbound boundary; configure retry + circuit breaker + timeout; integration tests for happy path and failure path.
 >
-> **BLOCK `$feature-implement` if any foundation is unchecked.** Present 2-3 options per concern via a direct user question before implementing.
+> **BLOCK `$feature-implement` if any foundation is unchecked.** Present 2-3 options per concern by asking the user directly before implementing.
 
 <!-- /SYNC:scaffold-production-readiness -->
 
@@ -658,7 +658,7 @@ After tech stack confirmed, generate a starter `CLAUDE.md` containing:
 - **Estimation Framework:** bottom-up hours, SP derived, risk margin.
 - **Module Detection:** detect module from keywords, load specs context.
 
-**IMPORTANT MUST ATTENTION** NEVER skip user validation — every stage MUST end with a direct user question before proceeding — why: a waterfall stage built on an unvalidated decision corrupts every downstream stage.
+**IMPORTANT MUST ATTENTION** NEVER skip user validation — every stage MUST end with ask the user directly before proceeding — why: a waterfall stage built on an unvalidated decision corrupts every downstream stage.
 **IMPORTANT MUST ATTENTION** NEVER ask about tech stack upfront — derive it from business analysis (Stages 1-5 first); capture volunteered preferences as constraint signals only — why: tech chosen before the domain is understood fits the tool, not the problem.
 **IMPORTANT MUST ATTENTION** ALWAYS save artifacts to the plan directory at every stage; use create-only — NEVER the Edit tool — why: findings kept only in memory are lost on context cutoff, and Edit risks corrupting existing files.
 **IMPORTANT MUST ATTENTION** NEVER recommend tech without comparing 2-4 alternatives in a pros/cons matrix, each scored with confidence % plus evidence (web sources, benchmarks) — why: a single unbenchmarked recommendation is a guess wearing an architect's hat.
@@ -674,10 +674,10 @@ After tech stack confirmed, generate a starter `CLAUDE.md` containing:
 | Evasion                                         | Rebuttal                                                                                        |
 | ----------------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | "Team already knows React, skip the comparison" | Note it as a constraint signal, then still run full tech-stack research to validate or beat it. |
-| "Stage is obvious, skip the a direct user question"  | Every stage gate is mandatory — an unvalidated decision corrupts all downstream stages.         |
+| "Stage is obvious, skip the ask the user directly"  | Every stage gate is mandatory — an unvalidated decision corrupts all downstream stages.         |
 | "I'll keep these findings in context"           | Context cutoff drops them. Save to the plan directory at every step, no exceptions.             |
 | "85% sure this framework wins"                  | Show the comparison matrix + sources. No `file:line`/benchmark = no recommendation.             |
 | "Edit the existing file, it's faster"           | NEVER use Edit — create new plan artifacts only; Edit risks corrupting existing files.          |
 
-**IMPORTANT MUST ATTENTION Goal echo (recency):** raw idea → validated, evidence-backed, implementable greenfield plan — business analysis BEFORE tech, a direct user question gate every stage, save every artifact, confidence % on every recommendation.
+**IMPORTANT MUST ATTENTION Goal echo (recency):** raw idea → validated, evidence-backed, implementable greenfield plan — business analysis BEFORE tech, ask the user directly gate every stage, save every artifact, confidence % on every recommendation.
 """

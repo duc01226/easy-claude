@@ -95,7 +95,7 @@ Read the first 512 bytes of each file. If it contains `<!-- Fill in your project
 
 ## Step 3: Offer Scan Options
 
-Use a direct user question to present:
+Use ask the user directly to present:
 
 1. **"Run $claude-md-init + all configured scan skills" (Recommended for first-time init)** -- Generates CLAUDE.md from config, then runs scan skills for configured docs
 2. **"Run configured scan skills only"** -- Runs scan skills without CLAUDE.md generation

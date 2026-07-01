@@ -58,7 +58,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - Runs after market-analysis: pull its market data in as evidence rather than re-deriving market sizing here — this skill judges viability, it does not research the market.
 - Every artifact is evidence-gated — all 9 BMC blocks cite proof, every financial number carries an assumption + source, and each of the 5+ risks needs mitigation AND a residual-risk entry; an unbacked number or block fails the gate.
 - The verdict is the load-bearing output: a 1-10 viability score, an explicit confidence tier (95/80/60/<60%) with its evidence basis, a Pursue/Pivot/Pause/Pass call, and the single key condition that must hold to succeed — bias toward skepticism, never optimism.
-- Write the result to `docs/knowledge/strategy/business/{slug}.md` via the enforced `.claude/templates/business-evaluation-template.md`, then use a direct user question to route next (domain-analysis recommended) — never auto-decide.
+- Write the result to `docs/knowledge/strategy/business/{slug}.md` via the enforced `.claude/templates/business-evaluation-template.md`, then use ask the user directly to route next (domain-analysis recommended) — never auto-decide.
 
 **Workflow:**
 
@@ -166,7 +166,7 @@ Write to `docs/knowledge/strategy/business/{descriptive-slug}.md` using enforced
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use a direct user question to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use ask the user directly to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
 
 - **"$domain-analysis (Recommended)"** — Analyze domain model from business evaluation
 - **"$plan"** — If ready to plan implementation
@@ -234,7 +234,7 @@ Write to `docs/knowledge/strategy/business/{descriptive-slug}.md` using enforced
 
 **IMPORTANT MUST ATTENTION** every claim, financial number, BMC block, and verdict carries evidence + confidence % (95/80/60/<60) — NEVER present a guess as fact — why: an unbacked number turns the go/no-go into optimism dressed as analysis.
 **IMPORTANT MUST ATTENTION** bias toward skepticism on the verdict — NEVER round optimism up; surface the single key condition that must hold and the residual risk if it fails — why: a falsely-rosy Pursue burns capital that an honest Pause would save.
-**IMPORTANT MUST ATTENTION** validate the next route with user via a direct user question — NEVER auto-decide domain-analysis/plan — why: this skill judges viability, the human owns the go/no-go.
+**IMPORTANT MUST ATTENTION** validate the next route with user by asking the user directly — NEVER auto-decide domain-analysis/plan — why: this skill judges viability, the human owns the go/no-go.
 
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting; keep one `in_progress`, mark `completed` with evidence; add a final review todo — why: untracked multi-step work loses state on compaction.
 **MANDATORY IMPORTANT MUST ATTENTION** consume market data FROM market-analysis as evidence — NEVER re-derive market sizing here — why: this skill judges viability, it does not research the market; duplicated sizing diverges from the source.
@@ -253,9 +253,9 @@ Write to `docs/knowledge/strategy/business/{descriptive-slug}.md` using enforced
 | "Skip a BMC block — not relevant"        | Every block cites proof or states why N/A explicitly; silent omission fails the gate. |
 | "Estimate the number, source it later"   | No assumption + source = no number. Fill the assumptions table before the verdict.    |
 | "5 risks is a lot, 2 covers it"          | Minimum 5, each with residual risk. Thin risk lists hide the real downside.           |
-| "Recommendation is clear, skip the ask"  | Still a direct user question for the next route — the human owns go/no-go.                  |
+| "Recommendation is clear, skip the ask"  | Still ask the user directly for the next route — the human owns go/no-go.                  |
 
-**IMPORTANT MUST ATTENTION** evidence + confidence % on every number — NEVER present a guess as fact. **IMPORTANT MUST ATTENTION** bias toward skepticism — NEVER round optimism up. **IMPORTANT MUST ATTENTION** a direct user question for the next route — NEVER auto-decide.
+**IMPORTANT MUST ATTENTION** evidence + confidence % on every number — NEVER present a guess as fact. **IMPORTANT MUST ATTENTION** bias toward skepticism — NEVER round optimism up. **IMPORTANT MUST ATTENTION** ask the user directly for the next route — NEVER auto-decide.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Hookless Prompt Protocol Mirror (Auto-Synced)

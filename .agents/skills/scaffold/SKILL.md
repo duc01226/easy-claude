@@ -55,7 +55,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Summary:**
 
 - **Gate-first:** check Activation Guards before any work — proceed ONLY in `workflow-greenfield-init` / `workflow-big-feature` AND when grep finds NO existing base/abstract/infrastructure scaffolding; otherwise SKIP and mark the step completed.
-- **Main steps (do ALL, in order):** (1) Read Plan — parse tech stack, architecture decisions, domain model; (2) Generate Scaffolding Checklist from the Backend + Frontend/UI categories; (3) Validate Against Plan — every architecture decision has a scaffolding item; (4) Present to User via a direct user question to confirm the checklist; (5) Scaffold — create all base classes, interfaces, abstractions, infra code + the 5 production-readiness foundations; (6) Verify — build/compile + OOP/SOLID compliance + Verification Gate. Then invoke `$linter-setup` → `$harness-setup`, then a direct user question handoff.
+- **Main steps (do ALL, in order):** (1) Read Plan — parse tech stack, architecture decisions, domain model; (2) Generate Scaffolding Checklist from the Backend + Frontend/UI categories; (3) Validate Against Plan — every architecture decision has a scaffolding item; (4) Present to User by asking the user directly to confirm the checklist; (5) Scaffold — create all base classes, interfaces, abstractions, infra code + the 5 production-readiness foundations; (6) Verify — build/compile + OOP/SOLID compliance + Verification Gate. Then invoke `$linter-setup` → `$harness-setup`, then ask the user directly handoff.
 - **Scope:** architecture-infrastructure creation (base classes, interfaces, DI, repos, cross-cutting), NOT feature implementation — checklists are TEMPLATES: adapt naming to the detected tech stack, skip irrelevant items, add plan-specific ones.
 - **Production-readiness:** stand up all 5 foundations (code-quality tooling, error handling, loading state, Docker, integration points) and delegate ALL sensor setup to `$linter-setup` then `$harness-setup` — never hand-configure linters/hooks here. — why: a checklist of installs is not a harness.
 - **Hard gate:** enforce OOP/SOLID on every base class and HARD-BLOCK the handoff to `$feature-implement` until the Verification Gate passes — all 5 foundations verified plus `$linter-setup` and `$harness-setup` complete.
@@ -93,7 +93,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 1. **Read Plan** — Parse the implementation plan for architecture decisions, tech stack, and domain model
 2. **Generate Scaffolding Checklist** — Produce a checklist of all required base classes and infrastructure from the Backend + Frontend checklists below
 3. **Validate Against Plan** — Ensure every architecture decision in the plan has corresponding scaffolding items
-4. **Present to User** — Use a direct user question to confirm checklist before generating code
+4. **Present to User** — Use ask the user directly to confirm checklist before generating code
 5. **Scaffold** — Create all base classes, interfaces, abstractions, and infrastructure code
 6. **Verify** — Compile/build to ensure no syntax errors; validate OOP/SOLID compliance
 
@@ -229,7 +229,7 @@ where each control fires at the right lifecycle stage and produces signals the a
 
 > **Scaffold Production Readiness** — See `<!-- SYNC:scaffold-production-readiness -->` block above for full inline protocol.
 
-Every scaffolded project MUST ATTENTION include these 5 foundations. AI must detect the tech stack from the plan/architecture report and present 2-3 options per concern via a direct user question.
+Every scaffolded project MUST ATTENTION include these 5 foundations. AI must detect the tech stack from the plan/architecture report and present 2-3 options per concern by asking the user directly.
 
 ### 1. Code Quality Tooling
 
@@ -292,7 +292,7 @@ The checklists above are **templates**. Before scaffolding:
 2. **Adapt naming** — Match target framework and language conventions
 3. **Skip irrelevant items** — Not every project needs every item (e.g., skip IFileStorageService if no file uploads)
 4. **Add project-specific items** — The plan may require additional base classes not in the template
-5. **Use a direct user question** — Confirm final checklist with user before generating code
+5. **Use ask the user directly** — Confirm final checklist with user before generating code
 
 ## Output
 
@@ -320,7 +320,7 @@ Run ALL verification checklists from the production readiness protocol:
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use a direct user question to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use ask the user directly to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
 
 - **"$feature-implement (Recommended)"** — Begin implementing feature stories on top of the scaffolding
 - **"$workflow-review-changes"** — Review scaffolding code before proceeding
@@ -391,7 +391,7 @@ Run ALL verification checklists from the production readiness protocol:
 > 4. **Docker Development Environment** — compose profiles (`dev`/`test`/`infra`), multi-stage Dockerfile, health checks on all services, non-root production user.
 > 5. **Integration Points** — document each outbound boundary; configure retry + circuit breaker + timeout; integration tests for happy path and failure path.
 >
-> **BLOCK `$feature-implement` if any foundation is unchecked.** Present 2-3 options per concern via a direct user question before implementing.
+> **BLOCK `$feature-implement` if any foundation is unchecked.** Present 2-3 options per concern by asking the user directly before implementing.
 
 <!-- /SYNC:scaffold-production-readiness -->
 
@@ -498,7 +498,7 @@ Run ALL verification checklists from the production readiness protocol:
 
 **IMPORTANT MUST ATTENTION Goal:** Produce a copy-ready, OOP/SOLID-compliant architecture foundation — base classes, infrastructure abstractions, and quality-gate tooling — that every feature story reuses before implementation starts.
 
-**MUST ATTENTION — Main steps (execute ALL, in order; AI keeps forgetting these):** (1) Read Plan → (2) Generate Scaffolding Checklist (Backend + Frontend/UI categories) → (3) Validate Against Plan → (4) Present to User via a direct user question → (5) Scaffold base classes/interfaces/infra + 5 production-readiness foundations → (6) Verify (build + OOP/SOLID + Verification Gate) → invoke `$linter-setup` → `$harness-setup` → a direct user question handoff. NEVER skip, reorder, or merge a step without explicit user approval.
+**MUST ATTENTION — Main steps (execute ALL, in order; AI keeps forgetting these):** (1) Read Plan → (2) Generate Scaffolding Checklist (Backend + Frontend/UI categories) → (3) Validate Against Plan → (4) Present to User by asking the user directly → (5) Scaffold base classes/interfaces/infra + 5 production-readiness foundations → (6) Verify (build + OOP/SOLID + Verification Gate) → invoke `$linter-setup` → `$harness-setup` → ask the user directly handoff. NEVER skip, reorder, or merge a step without explicit user approval.
 
 **MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -515,12 +515,12 @@ Run ALL verification checklists from the production readiness protocol:
 **MANDATORY IMPORTANT MUST ATTENTION** BLOCK `$feature-implement` until the Verification Gate passes — all 5 production-readiness foundations verified AND both `$linter-setup` and `$harness-setup` complete — why: code shipped without quality gates is technical debt from day one.
 **MANDATORY IMPORTANT MUST ATTENTION** delegate ALL sensor setup to `$linter-setup` then `$harness-setup` — NEVER hand-configure linters/formatters/pre-commit hooks in this skill — why: a checklist of installs is not a harness; the harness skills wire each control to its lifecycle stage.
 **MANDATORY IMPORTANT MUST ATTENTION** enforce OOP/SOLID on EVERY base class (SRP per concern, depend on abstractions, small focused interfaces, no unused methods subclasses must override) — why: a god/concrete base class propagates its design flaw into every feature story that inherits it.
-**MANDATORY IMPORTANT MUST ATTENTION** the checklists are TEMPLATES — self-investigate the chosen tech stack, adapt naming to framework conventions, skip irrelevant items, and confirm the final checklist via a direct user question before generating code — NEVER auto-decide scope — why: scaffolding the wrong stack's idioms forces a costly rewrite before any feature lands.
+**MANDATORY IMPORTANT MUST ATTENTION** the checklists are TEMPLATES — self-investigate the chosen tech stack, adapt naming to framework conventions, skip irrelevant items, and confirm the final checklist by asking the user directly before generating code — NEVER auto-decide scope — why: scaffolding the wrong stack's idioms forces a costly rewrite before any feature lands.
 **MANDATORY IMPORTANT MUST ATTENTION** evaluate fit before copying a nearby pattern — closest example ≠ matching preconditions; verify the new context shares the same base classes, scope, and lifetime — why: a foundation lifted from a mismatched context fails silently.
 **MANDATORY IMPORTANT MUST ATTENTION** gate the build on mutation score, NOT a line-coverage % — line coverage is a DIAGNOSTIC only (low = useful untested signal, high ≠ quality) — why: tests can execute lines without asserting intent, so a coverage gate rewards hollow tests.
 **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` proof + confidence % for EVERY claim (>80% to act, <60% DO NOT recommend) — NEVER present a guess as fact — why: speculation without evidence is the root of hallucinated foundations.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting, mark one `in_progress`, mark `completed` immediately after evidence lands, and add a final review todo — why: external task state survives context compaction; memory does not.
-**MANDATORY IMPORTANT MUST ATTENTION** after scaffold, present `$feature-implement` vs `$workflow-review-changes` vs skip via a direct user question — the user decides; do NOT skip because it "seems obvious" — why: the user owns the handoff decision.
+**MANDATORY IMPORTANT MUST ATTENTION** after scaffold, present `$feature-implement` vs `$workflow-review-changes` vs skip by asking the user directly — the user decides; do NOT skip because it "seems obvious" — why: the user owns the handoff decision.
 
 **Anti-Rationalization (Closing — reject these excuses):**
 

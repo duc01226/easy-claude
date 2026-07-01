@@ -149,7 +149,7 @@ Write to `.claude/tmp/_evidence-{slug}.md`:
 
 ## Workflow Recommendation
 
-> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use a direct user question to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
+> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use ask the user directly to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
 >
 > 1. **Activate `workflow-research` workflow** (Recommended) — web-research → deep-research → synthesis → review
 > 2. **Execute `$deep-research` directly** — run this skill standalone
@@ -158,7 +158,7 @@ Write to `.claude/tmp/_evidence-{slug}.md`:
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use a direct user question to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use ask the user directly to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
 
 - **"$business-evaluation (Recommended)"** — Evaluate business viability from research
 - **"$knowledge-synthesis"** — If synthesizing research report
@@ -234,7 +234,7 @@ Write to `.claude/tmp/_evidence-{slug}.md`:
 **IMPORTANT MUST ATTENTION** verify AI-generated facts/quotes/numbers against the actual fetched source before recording — NEVER fabricate a citation, stat, or quote — why: a hallucinated source corrupts the whole evidence base silently.
 **IMPORTANT MUST ATTENTION** break work into small task tracking todos BEFORE starting; keep one `in_progress`; add a final review todo verifying every finding is cited and confidence-scored.
 **IMPORTANT MUST ATTENTION** write intermediate findings incrementally to `.claude/tmp/_evidence-{slug}.md` (External Memory) — NEVER hold the full evidence base in context only — why: context loss before the final write loses all extracted findings.
-**IMPORTANT MUST ATTENTION** validate route decisions with the user via a direct user question — never auto-decide whether to run the workflow vs. this skill standalone.
+**IMPORTANT MUST ATTENTION** validate route decisions with the user by asking the user directly — never auto-decide whether to run the workflow vs. this skill standalone.
 
 **Anti-Rationalization:**
 

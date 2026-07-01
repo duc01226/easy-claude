@@ -263,7 +263,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 >
 > **Mandatory closers:** Confidence % stated · Assumptions listed · Open questions surfaced · Next action concrete.
 >
-> **Stop conditions:** confidence <80% on any critical decision → escalate via ask the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
+> **Stop conditions:** confidence <80% on any critical decision → escalate by asking the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 >
@@ -326,7 +326,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 > - Subtle edge cases the prior round rationalized away
 > - Regressions introduced by the fixes themselves
 >
-> **Loop termination:** After each full re-review, repeat the same decision: clean → END; issues → validate findings → fix → restart from the first review phase. Continue until a complete review pass finds zero issues. If the same validated finding repeats for 3 full invocations with no progress, or a fix requires product/owner input, escalate via a direct user question.
+> **Loop termination:** After each full re-review, repeat the same decision: clean → END; issues → validate findings → fix → restart from the first review phase. Continue until a complete review pass finds zero issues. If the same validated finding repeats for 3 full invocations with no progress, or a fix requires product/owner input, escalate by asking the user directly.
 >
 > **Rules:**
 >
@@ -364,7 +364,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 > - SKIP fresh sub-agent when the prior full review found zero issues (no fixes = nothing new to verify)
 > - NEVER skip the full review restart after a fix cycle — every fix invalidates the prior verdict
 > - NEVER reuse a sub-agent across rounds — every fresh round spawns a NEW `spawn_agent` call
-> - Continue until a complete full review pass has zero findings; if the same blocker repeats 3 times with no progress, escalate via a direct user question
+> - Continue until a complete full review pass has zero findings; if the same blocker repeats 3 times with no progress, escalate by asking the user directly
 > - Track iteration count and repeated blockers in conversation context (session-scoped, no persistent files)
 
 <!-- /SYNC:fresh-context-review -->
@@ -567,7 +567,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > 2. **Classify** the divergence:
 >    - **CODE-WRONG** — the spec correctly states intended behavior and the change violates it → BLOCKING finding; fix the code/test against intended behavior (write/adjust a regression TC first).
 >    - **SPEC-STALE** — the change is the new intended behavior and the spec now documents the old/wrong behavior → update the spec FIRST via `$spec [mode=update]`, then sync `$spec [mode=tests]` + `$spec [mode=sync]`.
->    - **AMBIGUOUS** — intended behavior is unclear → a direct user question (or the canonical spec owner) before editing either side.
+>    - **AMBIGUOUS** — intended behavior is unclear → ask the user directly (or the canonical spec owner) before editing either side.
 >    - **SPEC-SILENT** — the code correctly enforces an invariant/behavior that NO canonical spec artifact (§3 AC, §4 BR, §5 invariant, §8 TC) states → not drift but an UNWRITTEN rule discovered by review. ENRICH the spec via the **Invariant Harvest** pass (`$spec [mode=sync] direction=harvest` → `spec/references/sync.md`): prove it is always-true (≥2 enforcement points or a rejecting guard), express it as a universally-quantified property, then add the rule to §4 (or §3/§5) AND a §8 TC via `$spec [update]` + `$spec [mode=tests]` and add the guarding test. A discovered invariant left only in code (or only in tests) is INCOMPLETE — this is the highest-value capture (the rule nobody wrote down).
 > 3. **Never normalize drift just because code/tests are green** — green can encode the drift itself. Reconcile to canonical intent, never to whichever side currently passes.
 >
@@ -670,7 +670,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **IMPORTANT MUST ATTENTION** Stay spec-only — flag missing requirements, gold-plating, and misread intent; NEVER comment on code quality, style, or architecture. — why: that scope belongs to code-reviewer; duplicating it dilutes this gate's distinct value.
 **IMPORTANT MUST ATTENTION** Every PASS carries `file:line` evidence; every FAIL carries evidence of absence (grep showing the requirement is unimplemented). — why: an unevidenced PASS is a guess, and a guess passes wrong code.
 **IMPORTANT MUST ATTENTION** Declare confidence on each verdict — >80% to mark PASS/FAIL, <60% DO NOT conclude; output "Insufficient evidence. Verified: [...]. Not verified: [...]." instead. — why: certainty without evidence is the root of hallucinated compliance.
-**IMPORTANT MUST ATTENTION** Flag ambiguous requirements `UNCLEAR` — NEVER guess intent; escalate via a direct user question when the spec owner must adjudicate. — why: a guessed requirement silently passes a wrong implementation.
+**IMPORTANT MUST ATTENTION** Flag ambiguous requirements `UNCLEAR` — NEVER guess intent; escalate by asking the user directly when the spec owner must adjudicate. — why: a guessed requirement silently passes a wrong implementation.
 **IMPORTANT MUST ATTENTION** Trace ALL code paths when verifying — code existing is NOT code executing; check early exits, error branches, and conditional skips, not just the happy path. — why: a requirement satisfied only on a dead branch is still unmet.
 **IMPORTANT MUST ATTENTION** Adjudicate spec drift — code-vs-spec divergence is CODE-WRONG (fix code) or SPEC-STALE (update spec first); NEVER normalize drift just because code/tests are green. — why: green can encode the drift itself.
 **IMPORTANT MUST ATTENTION** Search 3+ existing patterns and read the actual changed files before concluding — match the spec's documented intent against what the code does, not what the report claims. — why: pattern fit and intent are invisible from the diff alone.

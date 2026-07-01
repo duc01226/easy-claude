@@ -62,7 +62,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Workflow:**
 
-1. **Resolve scope** — anchor on `activePlan`, accumulate its full artifact set across the plan's created→now date range (every `{YYMMDD}` in range, NOT just today); custom prompt widens; standalone + no prompt → a direct user question.
+1. **Resolve scope** — anchor on `activePlan`, accumulate its full artifact set across the plan's created→now date range (every `{YYMMDD}` in range, NOT just today); custom prompt widens; standalone + no prompt → ask the user directly.
 2. **Gap-fill (smart routing — sub-agent)** — spec lacks PBIs → `workflow-spec-to-pbi` AS A SUB-AGENT; PBIs lack mockups (mockup-bearing workflow) → `pbi-mockup`. Spec-only `idea-to-spec` → SKIP mockup generation.
 3. **Load project design context** — baseline + matched per-app design-system docs via `project-config.json`.
 4. **[BLOCKING] Inventory existing UI + map connected flows** — `SYNC:existing-ui-research`.
@@ -139,7 +139,7 @@ Determine which artifacts the deck synthesizes. See `references/artifact-accumul
 1. **Default (active-plan anchor):** Read `activePlan` from `/tmp/ck-session-{id}.json` (set by `.claude/scripts/set-active-plan.cjs`). Accumulate the plan's FULL artifact set across the plan's **created→now date range** — glob `team-artifacts/{ideas,pbis,pbis/stories,design-specs}` and `*-mockup.html` for EVERY `{YYMMDD}` in that range, plus the plan's `docs/specs` outputs.
     - **Multi-day rule:** a workflow that spans midnight authors specs on day 1 and PBIs on day 2 — a single-day `{YYMMDD}` glob silently drops day-1 artifacts. Glob over the whole created→now range, never just today.
 2. **Custom prompt:** If the user names specs/features, widen scope to those named artifacts (plus their dependents).
-3. **Standalone + no prompt:** Use a direct user question to ask which specs/ideas to present — never silently guess scope.
+3. **Standalone + no prompt:** Use ask the user directly to ask which specs/ideas to present — never silently guess scope.
 
 ### Step 2: Gap-Fill (Smart Routing — Sub-Agent)
 
@@ -281,7 +281,7 @@ Component tiers: common (slide shell, nav) — domain-shared (mockup/wireframe e
 | Feature with no mockup AND no design-spec      | Empty-state slide ("No mockup/design-spec available") — never blank iframe |
 | Demo iframe focused while navigating slides    | Don't hijack arrow keys while a demo iframe is focused (Step 6 / `deck-template.md` §3b) |
 | Workflow spans midnight (multi-day)            | Glob over plan's created→now range, not just today's `{YYMMDD}` (Step 1) |
-| Standalone invocation with no prompt/scope     | a direct user question which specs/ideas to present (Step 1)                   |
+| Standalone invocation with no prompt/scope     | ask the user directly which specs/ideas to present (Step 1)                   |
 
 ---
 
@@ -320,7 +320,7 @@ A synthesis deck is a *different artifact at a different altitude* than a per-PB
 
 ## Workflow Recommendation
 
-> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use a direct user question to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
+> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use ask the user directly to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
 >
 > 1. **Activate `workflow-idea-to-pbi` workflow** (Recommended) — includes the presentation deck as a late step.
 > 2. **Activate `workflow-idea-to-spec` workflow** — spec-only path; deck degrades to design-spec visuals.
@@ -330,7 +330,7 @@ A synthesis deck is a *different artifact at a different altitude* than a per-PB
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use a direct user question to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use ask the user directly to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
 
 - **"Open the deck"** — open the standalone HTML in a browser to review with stakeholders
 - **"$prioritize"** — prioritize the synthesized PBIs in the backlog
@@ -415,7 +415,7 @@ A synthesis deck is a *different artifact at a different altitude* than a per-PB
 **IMPORTANT MUST ATTENTION** spec-only `idea-to-spec` → design-spec ASCII wireframes + inventory/states/tokens tables + a narrated step-through of ASCII frames ONLY; NEVER generate HTML mockups, NEVER invoke `pbi-mockup` — why: full mockups break the spec-only no-code contract.
 
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting; add a final review todo to verify quality.
-**MANDATORY IMPORTANT MUST ATTENTION** validate route/next-step decisions with the user via a direct user question — standalone + no prompt → ask which specs/ideas to present, never silently guess scope.
+**MANDATORY IMPORTANT MUST ATTENTION** validate route/next-step decisions with the user by asking the user directly — standalone + no prompt → ask which specs/ideas to present, never silently guess scope.
 
 **Domain rules this skill must not skip:**
 

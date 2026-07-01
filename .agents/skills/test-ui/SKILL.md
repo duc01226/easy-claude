@@ -140,7 +140,7 @@ After auth injection, the browser session persists. Run tests normally with the 
 - Use `visual analysis tooling` to analyze all screenshots and visual elements.
 - Generate a comprehensive report in Markdown format, embedding all screenshots directly in the report.
 - Finally respond to the user with a concise summary of findings and recommendations.
-- Use a direct user question tool to ask if user wants to preview the report with `/preview` slash command.
+- Use ask the user directly tool to ask if user wants to preview the report with `/preview` slash command.
 
 ## Output Requirements
 
@@ -194,7 +194,7 @@ How to write reports:
 >     - **SOURCE-WRONG** — production code violates the spec's intended behavior or a clear invariant → fix the source at the owning layer; keep or strengthen the test that caught it.
 >     - **TEST-WRONG** — the test encodes a stale or incorrect assertion, setup, or expectation that contradicts intended behavior → fix the test at its root. NEVER weaken an assertion, add a skip, or relax a timeout to force green.
 >     - NEVER change a test to match broken source, and NEVER change source to satisfy a broken test. (Migration code excluded — schema/data migrations are one-time execution paths, not core application logic.)
-> 4. **Ask the user when intended behavior is unclear.** If no spec covers the behavior, the spec is silent, or the spec is ambiguous about which side is correct, STOP and a direct user question (or consult the canonical spec owner) before editing either side — never silently pick source or test just to make the suite pass.
+> 4. **Ask the user when intended behavior is unclear.** If no spec covers the behavior, the spec is silent, or the spec is ambiguous about which side is correct, STOP and ask the user directly (or consult the canonical spec owner) before editing either side — never silently pick source or test just to make the suite pass.
 >
 > Reconcile to intended behavior, never to whichever side currently passes — green can encode the very bug.
 

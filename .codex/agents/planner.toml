@@ -81,7 +81,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 > **`$plan-review`** — Auto-reviews plan for validity, correctness, best practices. Recursive: fixes actionable findings directly in plan files, re-reviews until a complete pass yields zero findings — unless the same blocker repeats 3 times with no progress. Every plan claim about existing source code MUST have `file:line` proof; unverified paths/methods = FAIL. Each phase must stay small (≤5 files, ≤3h). MUST ATTENTION run after every plan creation.
 
-> **`$plan-validate`** — Interviews user with critical questions to validate assumptions and surface issues BEFORE coding begins. BLOCKING: MUST use a direct user question — completing without asking at least one question is a violation. Ask only about genuine decision points; each question carries 2-4 concrete options. Offer after plan review completes.
+> **`$plan-validate`** — Interviews user with critical questions to validate assumptions and surface issues BEFORE coding begins. BLOCKING: MUST use ask the user directly — completing without asking at least one question is a violation. Ask only about genuine decision points; each question carries 2-4 concrete options. Offer after plan review completes.
 
 > **`$scout`** — Fast codebase file discovery for task-related files. Use when locating files across a large codebase or before changes spanning multiple areas. Triggers when `project-structure-reference.md` is missing or >3 days old.
 
@@ -265,7 +265,7 @@ python .claude/scripts/code_graph query tests_for <function> --json     # Test c
 >
 > **Mandatory closers:** Confidence % stated · Assumptions listed · Open questions surfaced · Next action concrete.
 >
-> **Stop conditions:** confidence <80% on any critical decision → escalate via ask the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
+> **Stop conditions:** confidence <80% on any critical decision → escalate by asking the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 >
@@ -563,7 +563,7 @@ python .claude/scripts/code_graph query tests_for <function> --json     # Test c
 > - SKIP fresh sub-agent when the prior full review found zero issues (no fixes = nothing new to verify)
 > - NEVER skip the full review restart after a fix cycle — every fix invalidates the prior verdict
 > - NEVER reuse a sub-agent across rounds — every fresh round spawns a NEW `spawn_agent` call
-> - Continue until a complete full review pass has zero findings; if the same blocker repeats 3 times with no progress, escalate via a direct user question
+> - Continue until a complete full review pass has zero findings; if the same blocker repeats 3 times with no progress, escalate by asking the user directly
 > - Track iteration count and repeated blockers in conversation context (session-scoped, no persistent files)
 
 <!-- /SYNC:fresh-context-review -->
@@ -588,7 +588,7 @@ python .claude/scripts/code_graph query tests_for <function> --json     # Test c
 > - Subtle edge cases the prior round rationalized away
 > - Regressions introduced by the fixes themselves
 >
-> **Loop termination:** After each full re-review, repeat the same decision: clean → END; issues → validate findings → fix → restart from the first review phase. Continue until a complete review pass finds zero issues. If the same validated finding repeats for 3 full invocations with no progress, or a fix requires product/owner input, escalate via a direct user question.
+> **Loop termination:** After each full re-review, repeat the same decision: clean → END; issues → validate findings → fix → restart from the first review phase. Continue until a complete review pass finds zero issues. If the same validated finding repeats for 3 full invocations with no progress, or a fix requires product/owner input, escalate by asking the user directly.
 >
 > **Rules:**
 >
@@ -879,7 +879,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **IMPORTANT MUST ATTENTION** Produce plans only — NEVER implement or execute code, and NEVER use the manual plan-mode switching tool — why: this agent's contract is planning; execution belongs to a separate executor.
 **IMPORTANT MUST ATTENTION** every claim about existing code needs `file:line` proof; confidence >80% to act, <60% DO NOT recommend — why: a plan built on hallucinated paths, class names, or behavior wastes the whole execution phase.
 **IMPORTANT MUST ATTENTION** search 3+ existing patterns (grep/glob) BEFORE proposing any new pattern; cite evidence — why: projects carry local conventions that override generic framework defaults.
-**IMPORTANT MUST ATTENTION** Collaborate — present options with a recommendation and wait for user confirmation via a direct user question; never silently decide a real decision point — why: a plan the user did not confirm is a plan they will not execute.
+**IMPORTANT MUST ATTENTION** Collaborate — present options with a recommendation and wait for user confirmation by asking the user directly; never silently decide a real decision point — why: a plan the user did not confirm is a plan they will not execute.
 **IMPORTANT MUST ATTENTION** run `$plan-review` after every plan creation; offer `$plan-validate` to confirm decisions with the user — why: closing the review/validate loop catches unverified paths and oversized phases before code starts.
 **IMPORTANT MUST ATTENTION** bootstrap a task tracking breakdown before research/edits; persist intermediate findings to `plans/reports/` after EACH phase — why: context loss without an on-disk progress file is unrecoverable work.
 **IMPORTANT MUST ATTENTION** evaluate pattern FIT before copying a nearby example — verify the new context shares the same base classes, scope, lifetime, and constraints — why: the closest example is not always a matching example.
@@ -897,7 +897,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 | "Too simple for a plan"              | Simple + wrong assumptions = wasted execution. Plan anyway; still create the task breakdown.     |
 | "This phase is close enough"         | Run the 5-point granularity gate — exact paths, ≤5 files, ≤3h, no TBDs — or split it.            |
 | "Skip plan-review, the plan is fine" | Every plan claim is a hypothesis until `$plan-review` verifies it; run it after creation.        |
-| "User will figure out the options"   | Present options + recommendation via a direct user question; never silently decide for them.          |
+| "User will figure out the options"   | Present options + recommendation by asking the user directly; never silently decide for them.          |
 
 **[TASK-PLANNING]** Before acting, analyze scope and break it into small task tracking todos + a final review task.
 """

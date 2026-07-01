@@ -55,7 +55,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Summary:**
 
 - **Purpose:** validate a changeset against the architecture rules the project records in its OWN reference docs, classify every finding PASS/WARN/BLOCKED with `file:line` proof, then self-validate before handoff — this skill is one reviewer in the `workflow-review-changes` pipeline.
-- **Main phases — run in order:** Phase 0 load architecture rules → Phase 1 determine scope → Phase 2 blast radius (if `graph.db`) → Phase 3 architecture review (11 categories) → Phase 4 finalize compliance report → Phase 5 `$why-review` self-validation gate → Next Steps a direct user question.
+- **Main phases — run in order:** Phase 0 load architecture rules → Phase 1 determine scope → Phase 2 blast radius (if `graph.db`) → Phase 3 architecture review (11 categories) → Phase 4 finalize compliance report → Phase 5 `$why-review` self-validation gate → Next Steps ask the user directly.
 - **The 11 Phase-3 categories — review EVERY applicable one, serially:** 0 quality-tooling baseline · 1 clean-architecture layers · 2 message-bus patterns · 3 CQRS compliance · 4 repository patterns · 5 service-pattern era (legacy vs modern) · 6 entity event handlers · 7 service boundaries · 8 frontend architecture (frontend files only) · 9 ADR / recorded-decision conformance · 10 spec-loop discipline (property-TC + dual-feedback). Per category: `Think:` derivation → doc rule → source evidence → `file:line` proof + grep 3+ counterexamples → verdict. NEVER scan categories in parallel; codebase convention wins over a suspected violation. — why: skipping a category silently drops the violation class it uniquely covers.
 - Phase 0 is non-negotiable and first: load the project architecture docs (`backend-patterns-reference.md`, `project-structure-reference.md`, `frontend-patterns-reference.md`, `code-review-rules.md`) — every rule and base-class/symbol name comes from those docs, NEVER general knowledge; the framework names in Categories 2–8 are illustrative only.
 - Stay in lane: deep-review only what this skill OWNS (layers, messaging/CQRS/repos/service boundaries, entity events, frontend architecture, quality tooling, generated artifacts, ADRs); record a one-line `→ route to {sibling}` pointer for security/performance/DDD/UI/test findings instead of expanding them. — why: duplicated findings across reviewers inflate severity counts and bury issues each reviewer uniquely owns.
@@ -80,7 +80,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 4. **Phase 3: Architecture Review** — Check each file serially against all 11 applicable categories (0 tooling → 10 spec-loop)
 5. **Phase 4: Finalize** — Generate compliance report with PASS/BLOCKED/WARN verdicts
 6. **Phase 5: Why-Review Self-Validation Gate** — Adversarially validate own findings via `$why-review` before handoff (MANDATORY when any finding exists)
-7. **Next Steps** — a direct user question: `$code-simplifier` / `$code-review` / skip
+7. **Next Steps** — ask the user directly: `$code-simplifier` / `$code-review` / skip
 
 **Key Rules (top 3 critical first):**
 
@@ -541,7 +541,7 @@ Per changed file:
 
 ## Next Steps
 
-**MANDATORY — NO EXCEPTIONS:** After completing, use a direct user question to present:
+**MANDATORY — NO EXCEPTIONS:** After completing, use ask the user directly to present:
 
 - **"$code-simplifier" (Recommended)** — Simplify and refine code
 - **"$code-review"** — Deep code quality review
@@ -580,7 +580,7 @@ Before reporting ANY work done:
 > - NEVER reuse a sub-agent across rounds — every iteration that uses sub-agents spawns a NEW `spawn_agent` call
 > - NEVER fix unvalidated findings; validate first using the caller's validation gate
 > - NEVER skip the full review restart after a validated fix cycle — every fix invalidates the prior verdict
-> - Continue until a complete full review pass has zero findings; if the same blocker repeats across 3 full invocations with no progress, escalate via a direct user question
+> - Continue until a complete full review pass has zero findings; if the same blocker repeats across 3 full invocations with no progress, escalate by asking the user directly
 > - Track iteration count in conversation context (session-scoped, no persistent files)
 
 <!-- /OVERRIDE:fresh-context-review -->
@@ -857,7 +857,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 >
 > **Mandatory closers:** Confidence % stated · Assumptions listed · Open questions surfaced · Next action concrete.
 >
-> **Stop conditions:** confidence <80% on any critical decision → escalate via ask the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
+> **Stop conditions:** confidence <80% on any critical decision → escalate by asking the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 >
@@ -901,7 +901,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > - Subtle edge cases the prior round rationalized away
 > - Regressions introduced by the fixes themselves
 >
-> **Loop termination:** After each full re-review, repeat the same decision: clean → END; issues → validate findings → fix → restart from the first review phase. Continue until a complete review pass finds zero issues. If the same validated finding repeats for 3 full invocations with no progress, or a fix requires product/owner input, escalate via a direct user question.
+> **Loop termination:** After each full re-review, repeat the same decision: clean → END; issues → validate findings → fix → restart from the first review phase. Continue until a complete review pass finds zero issues. If the same validated finding repeats for 3 full invocations with no progress, or a fix requires product/owner input, escalate by asking the user directly.
 >
 > **Rules:**
 >
@@ -1158,7 +1158,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **IMPORTANT MUST ATTENTION** every violation requires `file:line` proof + confidence >80% (60-80% verify first, <60% do NOT recommend); grep 3+ existing counterexamples before flagging — codebase convention wins. NEVER speculate — instead state "Insufficient evidence. Verified: [...]. Not verified: [...]."
 **IMPORTANT MUST ATTENTION** review serially, one category at a time (Cat 0 tooling baseline → Cat 10 spec-loop): doc rule → source evidence → `Think:` derivation → PASS/WARN/BLOCKED. NEVER scan categories simultaneously — why: parallel scanning collapses per-category evidence and drops findings.
 **IMPORTANT MUST ATTENTION** Phase 3 has 11 categories — review EVERY applicable one, NEVER stop early: 0 quality-tooling · 1 clean-architecture layers · 2 message-bus · 3 CQRS · 4 repositories · 5 service-pattern era · 6 entity event handlers · 7 service boundaries · 8 frontend architecture (frontend files only) · 9 ADR conformance · 10 spec-loop discipline — why: a skipped category silently drops the violation class it uniquely covers.
-**IMPORTANT MUST ATTENTION** follow the phase order Phase 0 → 1 → 2 → 3 → 4 → 5 → Next Steps; Phase 5 `$why-review` self-validation is MANDATORY whenever any finding exists, and Next Steps MUST present `$code-simplifier` / `$code-review` / skip via a direct user question — why: the AI repeatedly forgets the validation gate and stops at Phase 4, shipping unvalidated severities downstream.
+**IMPORTANT MUST ATTENTION** follow the phase order Phase 0 → 1 → 2 → 3 → 4 → 5 → Next Steps; Phase 5 `$why-review` self-validation is MANDATORY whenever any finding exists, and Next Steps MUST present `$code-simplifier` / `$code-review` / skip by asking the user directly — why: the AI repeatedly forgets the validation gate and stops at Phase 4, shipping unvalidated severities downstream.
 **IMPORTANT MUST ATTENTION** break work into small tasks using task tracking BEFORE starting; mark one `in_progress`/`completed` at a time; on context loss call the current task list first — why: resume existing tasks, never duplicate after compaction.
 **IMPORTANT MUST ATTENTION** stay in lane — deep-review only what this skill OWNS (layers, messaging/CQRS/repos/service boundaries, entity events, frontend architecture, quality tooling, generated artifacts, ADRs); record a one-line `→ route to {sibling}` pointer for security/performance/DDD/UI/integration-test findings instead of expanding them — why: duplicated findings across reviewers inflate severity counts and bury issues each reviewer uniquely owns.
 **IMPORTANT MUST ATTENTION** framework symbols/base-class/directory names in Categories 2–8 are illustrative examples only — map each to the repository's actual convention as named in its own Phase 0 reference docs; flag deviations from the project's REAL convention, NEVER from these literal names.
@@ -1167,7 +1167,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **IMPORTANT MUST ATTENTION** run at least ONE graph command on key files when `.code-graph/graph.db` exists (grep → `trace --direction both` → verify) — why: trace reveals cross-service blast radius grep alone cannot.
 **IMPORTANT MUST ATTENTION** evaluate pattern fit before flagging — copying-nearby ≠ matching preconditions; verify same scope, lifetime, base class, constraints, established-exception status before calling a deviation a violation.
 **IMPORTANT MUST ATTENTION** review is read-only until validated — NEVER fix code in this skill; after ANY finding run the Phase 5 `$why-review --validate-findings` self-validation gate BEFORE handoff, and every validated fix restarts a full review from Phase 0 with a fresh task breakdown — why: AI reports inherit confirmation bias; adversarial validation demotes false-positive Highs at the source.
-**IMPORTANT MUST ATTENTION** write findings to `plans/reports/arch-review-{date}-{slug}.md` incrementally and synthesize from disk; use a direct user question to present next steps (`$code-simplifier` / `$code-review` / skip) after completing review — why: long reviews exhaust context before a final batch write, losing findings.
+**IMPORTANT MUST ATTENTION** write findings to `plans/reports/arch-review-{date}-{slug}.md` incrementally and synthesize from disk; use ask the user directly to present next steps (`$code-simplifier` / `$code-review` / skip) after completing review — why: long reviews exhaust context before a final batch write, losing findings.
 
 **Anti-Rationalization:**
 

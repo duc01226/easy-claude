@@ -151,7 +151,7 @@ Goal status: PASS | FAIL | BLOCKED — {escalation reason for any BLOCKED criter
 
 ## Workflow Recommendation
 
-> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use a direct user question to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
+> **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use ask the user directly to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
 >
 > 1. **Continue into planning** (Recommended) — quality-gate → `$plan` → `$plan-review` → `$plan-validate`
 > 2. **Execute `$quality-gate` directly** — run this skill standalone

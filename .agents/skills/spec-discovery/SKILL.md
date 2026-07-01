@@ -56,9 +56,9 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 - This is BOTH spec-aware and code-aware: it reads `docs/specs/**` (the canonical Feature Specs) AND delegates to `$scout` + code-graph for the code logic the idea touches. Spec-only or code-only discovery misses half the landscape.
 - It runs BEFORE `spec [mode=draft]` and feeds it. Its job is to decide WHETHER a new standalone spec is even the right move — the alternative is extending an existing spec, which only a spec-corpus scan can reveal.
-- It is INLINE on the main agent (NOT a sub-agent) because step 5 is a BLOCKING a direct user question scope-decision gate that only works inline. It MAY spawn sub-agents for parallel spec reads, but it orchestrates and gates inline.
+- It is INLINE on the main agent (NOT a sub-agent) because step 5 is a BLOCKING ask the user directly scope-decision gate that only works inline. It MAY spawn sub-agents for parallel spec reads, but it orchestrates and gates inline.
 - Greenfield short-circuit: when there are no specs AND no code, auto-detect it, record the reason, skip the heavy discovery, and hand off a minimal landscape — never grind through empty discovery.
-- **Main steps (0→6) — do ALL in order:** (0) frame scope = keywords/entities/bucket → (1) spec-corpus discovery = Glob all candidate specs, read §1/§4/§5/§8, classify each EXTENDS/OVERLAPS/DEPENDS-ON/AFFECTED/UNRELATED with `file:line` → (2) code-logic discovery = `$scout` + MANDATORY graph expansion, bridge code→spec via §8 `[Source:]` → (3) gap & invariant analysis = missing features, missing TCs/user stories, system unknowns, [HARD]/§5 invariant landscape → (4) report incrementally to `plans/.../spec-discovery-{slug}.md` → (5) BLOCKING a direct user question scope gate = recommend NEW / EXTEND X / SPLIT, confirm cross-refs → (6) handoff to `domain-analysis` + `spec [mode=draft|update]`.
+- **Main steps (0→6) — do ALL in order:** (0) frame scope = keywords/entities/bucket → (1) spec-corpus discovery = Glob all candidate specs, read §1/§4/§5/§8, classify each EXTENDS/OVERLAPS/DEPENDS-ON/AFFECTED/UNRELATED with `file:line` → (2) code-logic discovery = `$scout` + MANDATORY graph expansion, bridge code→spec via §8 `[Source:]` → (3) gap & invariant analysis = missing features, missing TCs/user stories, system unknowns, [HARD]/§5 invariant landscape → (4) report incrementally to `plans/.../spec-discovery-{slug}.md` → (5) BLOCKING ask the user directly scope gate = recommend NEW / EXTEND X / SPLIT, confirm cross-refs → (6) handoff to `domain-analysis` + `spec [mode=draft|update]`.
 
 **Workflow:**
 
@@ -67,7 +67,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 2. **Code-logic discovery** — `$scout {keywords}` + MANDATORY graph expansion on key files when `.code-graph/graph.db` exists; bridge code→spec via §8 `[Source:]` anchors.
 3. **Gap & invariant analysis** — missing features, missing test cases / user stories, system unknowns (<80% confidence), and the existing [HARD] rules / §5 invariants the idea must respect.
 4. **Report** — write `plans/{plan-dir}/research/spec-discovery-{slug}.md` incrementally (Related Specs · Related Code · Affected Specs · Gaps · Invariant Landscape · Open Questions).
-5. **Scope-decision gate (BLOCKING a direct user question)** — recommend NEW / EXTEND existing X / SPLIT into N, and confirm which existing specs to cross-reference.
+5. **Scope-decision gate (BLOCKING ask the user directly)** — recommend NEW / EXTEND existing X / SPLIT into N, and confirm which existing specs to cross-reference.
 6. **Handoff** — feed entities, invariants, cross-refs, and gaps into `domain-analysis` + `spec [mode=draft]`.
 
 **Key Rules:**
@@ -200,9 +200,9 @@ Write `plans/{plan-dir}/research/spec-discovery-{slug}.md` (resolve `{plan-dir}`
 - {system unknowns, <80% confidence items}
 ```
 
-### Step 5: Scope-Decision Gate (BLOCKING a direct user question)
+### Step 5: Scope-Decision Gate (BLOCKING ask the user directly)
 
-> **MANDATORY MUST ATTENTION — NO EXCEPTIONS:** before any spec is authored, MUST ATTENTION use a direct user question to present the recommended scope. NEVER auto-pick — OVERLAPS detection is the whole reason this skill exists; assuming NEW silently ships duplicates.
+> **MANDATORY MUST ATTENTION — NO EXCEPTIONS:** before any spec is authored, MUST ATTENTION use ask the user directly to present the recommended scope. NEVER auto-pick — OVERLAPS detection is the whole reason this skill exists; assuming NEW silently ships duplicates.
 
 Recommend ONE option (with the evidence behind it) and confirm the cross-references:
 
@@ -537,7 +537,7 @@ Feed the discovery forward:
 **MUST ATTENTION** every protocol above is in force for this spec-discovery — honor its canonical body, not just the digest line.
 
 **IMPORTANT MUST ATTENTION** be BOTH spec-aware AND code-aware — read `docs/specs/**` (§1/§4/§5/§8 of related specs) AND delegate to `$scout` + code-graph; spec-only or code-only discovery misses half the landscape — why: overlap lives in the spec corpus, downstream impact lives in the code.
-**IMPORTANT MUST ATTENTION** run INLINE — the step 5 scope-decision gate is a BLOCKING a direct user question that only works inline; spawn sub-agents only for parallel spec reads, NEVER delegate the whole skill — why: a delegated user gate cannot block, so the author would proceed before the user decides scope.
+**IMPORTANT MUST ATTENTION** run INLINE — the step 5 scope-decision gate is a BLOCKING ask the user directly that only works inline; spawn sub-agents only for parallel spec reads, NEVER delegate the whole skill — why: a delegated user gate cannot block, so the author would proceed before the user decides scope.
 **IMPORTANT MUST ATTENTION** NEVER auto-pick NEW — classify every candidate spec EXTENDS/OVERLAPS/DEPENDS-ON/AFFECTED/UNRELATED with `file:line` evidence, then recommend and let the user decide via the BLOCKING gate — why: OVERLAPS detection is the entire reason this skill runs before the author; silently picking NEW ships a duplicate spec.
 **MUST ATTENTION** stay in the LANDSCAPE lane — surface related/overlapping/affected specs + the invariant landscape fast; do NOT author the spec (that is `spec [mode=draft]`) and do NOT deep-dive every flow (that is `investigate`) — why: scope creep into authoring/analysis duplicates the next steps and burns the budget.
 **MUST ATTENTION** graph expand is MANDATORY when `.code-graph/graph.db` exists — run at least ONE graph command on 2–3 key files scout surfaced; when absent, grep + read still bridge code→spec via `[Source:]` anchors — why: structural callers/consumers/event chains the new spec must account for are invisible to grep.

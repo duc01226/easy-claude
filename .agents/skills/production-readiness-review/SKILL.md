@@ -251,7 +251,7 @@ When a review pass finds issues, validate findings before any fix. Do not spawn 
 
 ## Workflow Recommendation
 
-> **MANDATORY — NO EXCEPTIONS:** If NOT already in workflow, use a direct user question to ask user:
+> **MANDATORY — NO EXCEPTIONS:** If NOT already in workflow, use ask the user directly to ask user:
 >
 > 1. **Activate `workflow-feature` workflow** (Recommended) — scout → investigate → plan → feature-implement → review → production-readiness-review → test → docs
 > 2. **Execute `$production-readiness-review` directly** — run standalone
@@ -260,7 +260,7 @@ When a review pass finds issues, validate findings before any fix. Do not spawn 
 
 ## Next Steps
 
-**MANDATORY — NO EXCEPTIONS** — after completing, use a direct user question:
+**MANDATORY — NO EXCEPTIONS** — after completing, use ask the user directly:
 
 - **"$watzup (Recommended)"** — wrap up + check doc staleness
 - **"$test"** — run tests before wrapping up
@@ -415,7 +415,7 @@ When a review pass finds issues, validate findings before any fix. Do not spawn 
 > - Subtle edge cases the prior round rationalized away
 > - Regressions introduced by the fixes themselves
 >
-> **Loop termination:** After each full re-review, repeat the same decision: clean → END; issues → validate findings → fix → restart from the first review phase. Continue until a complete review pass finds zero issues. If the same validated finding repeats for 3 full invocations with no progress, or a fix requires product/owner input, escalate via a direct user question.
+> **Loop termination:** After each full re-review, repeat the same decision: clean → END; issues → validate findings → fix → restart from the first review phase. Continue until a complete review pass finds zero issues. If the same validated finding repeats for 3 full invocations with no progress, or a fix requires product/owner input, escalate by asking the user directly.
 >
 > **Rules:**
 >
@@ -453,7 +453,7 @@ When a review pass finds issues, validate findings before any fix. Do not spawn 
 > - SKIP fresh sub-agent when the prior full review found zero issues (no fixes = nothing new to verify)
 > - NEVER skip the full review restart after a fix cycle — every fix invalidates the prior verdict
 > - NEVER reuse a sub-agent across rounds — every fresh round spawns a NEW `spawn_agent` call
-> - Continue until a complete full review pass has zero findings; if the same blocker repeats 3 times with no progress, escalate via a direct user question
+> - Continue until a complete full review pass has zero findings; if the same blocker repeats 3 times with no progress, escalate by asking the user directly
 > - Track iteration count and repeated blockers in conversation context (session-scoped, no persistent files)
 
 <!-- /SYNC:fresh-context-review -->
@@ -871,7 +871,7 @@ The following are all MANDATORY:
 - **MANDATORY** run at least ONE graph command on key files before concluding when `.code-graph/graph.db` exists (blast-radius, `tests_for`, downstream trace) — why: the HARD-GATE catches cross-service consumers grep alone misses.
 - **MANDATORY** when batched (≥10 files), RE-SCORE all 12 criteria holistically from combined cross-batch evidence — NEVER average per-batch scores — why: a cross-file criterion (query in one batch, migration in another) false-flags `0` per-batch.
 - **MANDATORY** changed core logic clears the MUTATION-SCORE gate, not a coverage %; every behavior-changing finding feeds BOTH the spec (name the contract/invariant in §8) AND a guarding test — a code-only fix is INCOMPLETE.
-- **MANDATORY** validate decisions with the user via a direct user question for workflow/next-step routing — never auto-decide.
+- **MANDATORY** validate decisions with the user by asking the user directly for workflow/next-step routing — never auto-decide.
 
 **Anti-Rationalization:**
 
