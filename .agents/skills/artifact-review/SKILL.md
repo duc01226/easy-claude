@@ -1,5 +1,5 @@
 ---
-name: review-artifact
+name: artifact-review
 description: '[Code Quality] Use when you need to review artifact quality (PBI, user story, test spec, design spec) before handoff. Supports --type={pbi|story|spec-tests|design}.'
 ---
 
@@ -371,7 +371,7 @@ Do not spawn a fresh sub-agent just to re-review the same finding set before fix
 3. Embed the full verbatim body of these SYNC blocks (inlined above in this skill file): `SYNC:evidence-based-reasoning`, `SYNC:rationalization-prevention`, `SYNC:understand-code-first` (omit code-specific protocols like `SYNC:bug-detection`, `SYNC:design-patterns-quality`, `SYNC:fix-layer-accountability` which are not applicable to artifact files)
 4. Set the Task as `"Run a full fresh artifact review over the current {artifact-type} after fixes were applied. Focus on: implicit assumptions, missing coverage of edge cases / error scenarios, unverified cross-references, completeness gaps only visible on second reading, whether acceptance criteria are truly testable and measurable, and regressions introduced by fixes."`
 5. Set Target Files as the explicit artifact file path(s)
-6. Set report path as `plans/reports/review-artifact-rerun{N}-{date}.md`
+6. Set report path as `plans/reports/artifact-review-rerun{N}-{date}.md`
 
 After sub-agent returns:
 
@@ -390,7 +390,7 @@ After sub-agent returns:
 
 ## Bulk Multi-Artifact Sweeps
 
-> For bulk multi-artifact review (10+ artifacts at once), use `$review-changes` — its Systematic Review Protocol categorizes the set and fires parallel sub-agents.
+> For bulk multi-artifact review (10+ artifacts at once), use `$changes-review` — its Systematic Review Protocol categorizes the set and fires parallel sub-agents.
 
 ---
 

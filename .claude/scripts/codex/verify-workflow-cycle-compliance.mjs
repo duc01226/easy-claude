@@ -100,7 +100,7 @@ const GOAL_CONTRACT_SKILL_IDS = [
 
 // Review gates: must additionally emit Goal Satisfaction status before PASS.
 const GOAL_CONTRACT_REVIEW_SKILL_IDS = [
-  "review-changes",
+  "changes-review",
   "why-review",
   "plan-review",
   "code-review",
@@ -194,14 +194,14 @@ export function checkReviewChangesInlineExecutionPolicy(rel, content) {
   for (const req of surface.require) {
     if (!req.re.test(content)) {
       failures.push(
-        `review-changes inline-execution violation (${rel}): missing ${req.label} — workflow-review-changes MUST declare it runs INLINE in the main session when a step inside a parent workflow`
+        `workflow-review-changes inline-execution violation (${rel}): missing ${req.label} — workflow-review-changes MUST declare it runs INLINE in the main session when a step inside a parent workflow`
       );
     }
   }
   for (const forbid of surface.forbid) {
     if (forbid.re.test(content)) {
       failures.push(
-        `review-changes inline-execution violation (${rel}): found ${forbid.label} — workflow-review-changes MUST run inline in the main session, never as a sub-agent (its Step 0 /goal gate owns the session Stop hook)`
+        `workflow-review-changes inline-execution violation (${rel}): found ${forbid.label} — workflow-review-changes MUST run inline in the main session, never as a sub-agent (its Step 0 /goal gate owns the session Stop hook)`
       );
     }
   }
@@ -430,9 +430,9 @@ function ensureWorkflowPolicy(workflowId, workflow, sequence, failures) {
   }
 
   if (TDD_WORKFLOW_IDS.has(workflowId)) {
-    if (!hasOrderedSubsequence(sequence, ["spec [mode=tests]", "review-artifact --type=spec-tests"])) {
+    if (!hasOrderedSubsequence(sequence, ["spec [mode=tests]", "artifact-review --type=spec-tests"])) {
       failures.push(
-        `Workflow policy violation (${workflowId}): missing ordered spec [mode=tests] -> review-artifact --type=spec-tests`
+        `Workflow policy violation (${workflowId}): missing ordered spec [mode=tests] -> artifact-review --type=spec-tests`
       );
     }
     if (!sequence.includes("spec [mode=sync]")) {
@@ -784,7 +784,7 @@ async function main() {
     (id) => Array.isArray(workflows[id]?.parallelGroups) && workflows[id].parallelGroups.length > 0
   ).length;
   console.log(
-    `[codex-verify-workflow-cycle] PASS (${workflowIds.length} workflow(s) across .claude/.agents skills; ${TARGET_WORKFLOW_IDS.length} policy-checked; ${groupedCount} parallelGroups workflow(s) parity-checked; ${goalContractCheckedCount} goal-contract skill(s) checked; ${reviewChangesInlineCheckedCount} review-changes inline-execution surface(s) checked)`
+    `[codex-verify-workflow-cycle] PASS (${workflowIds.length} workflow(s) across .claude/.agents skills; ${TARGET_WORKFLOW_IDS.length} policy-checked; ${groupedCount} parallelGroups workflow(s) parity-checked; ${goalContractCheckedCount} goal-contract skill(s) checked; ${reviewChangesInlineCheckedCount} workflow-review-changes inline-execution surface(s) checked)`
   );
 }
 

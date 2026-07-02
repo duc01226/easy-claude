@@ -24,7 +24,7 @@ description: '[Implementation] Use when you need to start coding & testing an ex
 - **Three BLOCKING gates cannot be faked-green:** Step 3 tests 100% pass, Step 4 zero critical issues, Step 5 explicit user approval before Finalize/commit. — why: a partial-green gate ships the regression the test exists to catch.
 - **Two STOP-before-coding gates:** Pre-Implementation Granularity Gate (refuse planning verbs / unnamed files / unresolved decisions → sub-plan with `/plan`) + bugfix Trace Gate (require the End→Start debugger trace for any bug/regression/behavior-changing plan). Also the Spec-Loop Gate (property TC + mutation-killed test + Dual-Feedback) closes any behavior change.
 - **Mode flags** add/remove ONE step, never relax a running gate: `--approval=off` (auto/trust, skip Step 5, optional `$ALL_PHASES` loop over every incomplete phase), `--tests=off` (skip Step 3), `--parallel` (Step 2 dispatch `fullstack-developer` subagents per file-owned phase). No flags = full 7-step spine.
-- **Standalone** (no parent `[Workflow]` row via `TaskList`) → wrap the spine in plan → plan-review → proceed → `/review-changes` → `/why-review`, the two reviews as the LAST todos.
+- **Standalone** (no parent `[Workflow]` row via `TaskList`) → wrap the spine in plan → plan-review → proceed → `/changes-review` → `/why-review`, the two reviews as the LAST todos.
 
 > **Slash-command routing:** `/code`, `/code-auto`, `/code-no-test`, `/code-parallel` no longer resolve — use `/plan-execute` with the matching flag: `/code-auto` → `--approval=off`, `/code-no-test` → `--tests=off`, `/code-parallel` → `--parallel`.
 
@@ -65,7 +65,7 @@ description: '[Implementation] Use when you need to start coding & testing an ex
 > 1. **`/plan`** — if Step 0 finds no plan for the request, author one first. If a plan already exists, record that and skip to step 2.
 > 2. **`/plan-review`** — recursively review/validate the plan; fix validated findings before proceeding.
 > 3. **Proceed** — run the core spine (Steps 0-6) against the approved plan.
-> 4. **`/review-changes`** — review the diff before commit (the post-gate; see *Standalone Review Gate* below).
+> 4. **`/changes-review`** — review the diff before commit (the post-gate; see *Standalone Review Gate* below).
 > 5. **`/why-review`** — review rationale and change quality of the implementation.
 >
 > This is the single pre+post quality loop for standalone runs.
@@ -266,11 +266,11 @@ Execute every step in declared order; proceed only when validation passes and th
 
 ## Standalone Review Gate (Non-Workflow Only)
 
-> **Post-gate of the [Standalone Mode Pipeline](#standalone-mode-pipeline-skip-entirely-if-invoked-inside-a-workflow).** Full standalone loop: plan → plan-review → proceed → `/review-changes` → `/why-review`; the two review steps below are its tail.
+> **Post-gate of the [Standalone Mode Pipeline](#standalone-mode-pipeline-skip-entirely-if-invoked-inside-a-workflow).** Full standalone loop: plan → plan-review → proceed → `/changes-review` → `/why-review`; the two review steps below are its tail.
 >
-> **MANDATORY IMPORTANT MUST ATTENTION:** If this skill is called **outside a workflow** (standalone `/plan-execute`), you MUST ATTENTION create `TaskCreate` todo tasks for `/review-changes` then `/why-review` as the **last tasks** in your task list. This ensures all changes are reviewed before commit even without a workflow enforcing it.
+> **MANDATORY IMPORTANT MUST ATTENTION:** If this skill is called **outside a workflow** (standalone `/plan-execute`), you MUST ATTENTION create `TaskCreate` todo tasks for `/changes-review` then `/why-review` as the **last tasks** in your task list. This ensures all changes are reviewed before commit even without a workflow enforcing it.
 >
-> If already running inside a workflow (e.g., `workflow-feature`, `workflow-refactor`), skip this — the workflow sequence handles `/review-changes` at the appropriate step.
+> If already running inside a workflow (e.g., `workflow-feature`, `workflow-refactor`), skip this — the workflow sequence handles `/changes-review` at the appropriate step.
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
 
@@ -483,7 +483,7 @@ Execute every step in declared order; proceed only when validation passes and th
 **IMPORTANT MUST ATTENTION** a behavior change is NOT done until the Spec-Loop closes — universally-quantified property TC + boundary counter-case for every [HARD] rule touched, a mutation-killed test on each changed core-logic line, and a Dual-Feedback Ledger entry into BOTH spec AND tests — re-verify the whole package (spec + tests + code), not just the diff.
 **IMPORTANT MUST ATTENTION** keep existing tests real and genuinely passing — NEVER comment out tests, weaken assertions, change assertions to pass, or use fake data; apply the source/test drift check when behavior changes — why: faked green hides the regression the test exists to catch.
 **IMPORTANT MUST ATTENTION** mode flags add/remove ONE step, never relax a running gate — `--approval=off` skips Step 5, `--tests=off` skips Step 3, `--parallel` dispatches `fullstack-developer` subagents with strict file-ownership; debugger-trace + granularity + quality bars + all SYNC blocks apply in EVERY mode.
-**IMPORTANT MUST ATTENTION** standalone (no parent `[Workflow]` row via `TaskList`) → wrap Steps 0-6 in plan → plan-review → proceed → `/review-changes` → `/why-review`, with `/review-changes` + `/why-review` as the LAST todos; validate decisions with the user via `AskUserQuestion` — never auto-decide — why: standalone runs have no workflow enforcing review before commit.
+**IMPORTANT MUST ATTENTION** standalone (no parent `[Workflow]` row via `TaskList`) → wrap Steps 0-6 in plan → plan-review → proceed → `/changes-review` → `/why-review`, with `/changes-review` + `/why-review` as the LAST todos; validate decisions with the user via `AskUserQuestion` — never auto-decide — why: standalone runs have no workflow enforcing review before commit.
 **IMPORTANT MUST ATTENTION** READ `CLAUDE.md` and the path-matched project-reference docs (frontend/scss/design-system for UI, domain-entities for models) before starting.
 **IMPORTANT MUST ATTENTION** Easy to Change is the success metric — every finding, test, refactor, abstraction must make the NEXT change cheaper; name the real enemies (coupling, hidden state, duplicated knowledge, unclear intent) and reject anything that raises change cost.
 
@@ -497,7 +497,7 @@ Execute every step in declared order; proceed only when validation passes and th
 | "Phase is clear enough to start"                 | Run the Granularity Gate — planning verbs / unnamed files / open decisions → sub-plan, don't code. |
 | "It's a quick fix, skip the trace"               | Bug/regression plan needs the End→Start trace + hypothesis matrix BEFORE the fix.                  |
 | "Code change is enough, spec/tests later"        | Behavior change → property TC + mutation-killed test + Dual-Feedback into spec AND tests, or INCOMPLETE. |
-| "Standalone, so skip review"                     | No workflow = YOU add `/review-changes` + `/why-review` as the last todos.                         |
+| "Standalone, so skip review"                     | No workflow = YOU add `/changes-review` + `/why-review` as the last todos.                         |
 
 ---
 

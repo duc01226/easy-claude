@@ -1,6 +1,6 @@
 ---
-name: review-ui
-version: 1.0.0
+name: ui-review
+version: 2.0.0
 description: '[Code Quality] Use when reviewing UI/frontend changes for long-content overflow, responsive multi-screen layout, flex-vs-fixed sizing, z-index discipline, and SCSS/BEM styling quality.'
 execution-mode: subagent
 context-budget: high
@@ -21,11 +21,11 @@ context-budget: high
 
 **Default scope:** All uncommitted frontend changes (staged + unstaged) matching the frontend path and file-extension patterns declared by the project configuration/docs index. Override: specify files, directories, components, or full frontend codebase.
 
-> **CONDITIONAL — SKIP when no frontend files in scope.** In workflow context this skill is SKIPPED when the diff has no files matching the project frontend path/extension patterns. If invoked standalone with no frontend changes → announce `"No frontend changes detected — review-ui skipped"` and report clean.
+> **CONDITIONAL — SKIP when no frontend files in scope.** In workflow context this skill is SKIPPED when the diff has no files matching the project frontend path/extension patterns. If invoked standalone with no frontend changes → announce `"No frontend changes detected — ui-review skipped"` and report clean.
 
 > **ROUTING BOUNDARY (read before starting):**
 >
-> - **`review-ui` (this skill)** — the project UI review gate invoked by `review-changes` as its UI dimension when frontend files are in scope. Purpose: find issues, assign severity, give project-specific fix guidance citing real reuse targets (sourced from the project reference docs). It complements `review-architecture`; it is not a separate `review-changes` workflow step.
+> - **`ui-review` (this skill)** — the project UI review gate invoked by `changes-review` as its UI dimension when frontend files are in scope. Purpose: find issues, assign severity, give project-specific fix guidance citing real reuse targets (sourced from the project reference docs). It complements `architecture-review`; it is not a separate `changes-review` workflow step.
 > - **`web-design-guidelines`** — a generic, standalone accessibility / UX checklist. Cross-read it for a11y depth (WCAG, focus order, ARIA, contrast); do NOT duplicate its content here.
 > - **`ui-ux-designer`** — specialized UI/UX, accessibility, responsive layout, and design-token review/authoring sub-agent when the local agent catalog provides it.
 
@@ -33,7 +33,7 @@ context-budget: high
 >
 > 1. Project styling rules doc — BEM convention, mixins, variables, responsive patterns **(READ FIRST — primary styling rules source; resolve via project config/docs index)**
 > 2. Project design-system/token doc — design tokens, especially the **Z-Index & Layering** section
-> 3. Project frontend architecture/patterns doc — base component classes, state/store, API service, lifecycle teardown rules shared with `review-architecture`
+> 3. Project frontend architecture/patterns doc — base component classes, state/store, API service, lifecycle teardown rules shared with `architecture-review`
 > 4. Project code-review rules doc — anti-patterns and conventions
 >
 > Not found → search: "scss styling", "design tokens", "frontend patterns". Rules come from docs — NOT general knowledge.
@@ -115,7 +115,7 @@ git diff --cached   # Staged only
 
 - Collect file list to review
 - Filter to files matching the project frontend path/extension patterns resolved from project config/docs
-- If ZERO frontend files match → announce `"No frontend changes detected — review-ui skipped"` and report clean (honor the CONDITIONAL skip)
+- If ZERO frontend files match → announce `"No frontend changes detected — ui-review skipped"` and report clean (honor the CONDITIONAL skip)
 
 ## Phase 2: Blast Radius (if graph.db exists)
 
@@ -241,9 +241,9 @@ Cross-reference the project design-system **Z-Index & Layering** map. The chosen
 
 Apply fixes per the resolved project styling rules doc.
 
-**Frontend architecture checks (OWNED JOINTLY WITH `review-architecture` Category 8 — reference, do not drift):**
+**Frontend architecture checks (OWNED JOINTLY WITH `architecture-review` Category 8 — reference, do not drift):**
 
-> These checks are lifted from `review-architecture` Category 8 so the two skills stay synchronized. They are **owned jointly**; when one changes, update both. They apply to the `.ts` files in scope:
+> These checks are lifted from `architecture-review` Category 8 so the two skills stay synchronized. They are **owned jointly**; when one changes, update both. They apply to the `.ts` files in scope:
 
 - Components MUST extend the project-documented base component/form/store component classes (BLOCKED)
 - State MUST use the project-documented store/effect pattern — NEVER ad hoc local state when the project provides a canonical store pattern (BLOCKED)
@@ -318,7 +318,7 @@ Update report with final sections:
 - Flex-Grow vs Fixed Sizing: {PASS/WARN/BLOCKED}
 - Z-Index Scale Discipline: {PASS/WARN/BLOCKED}
 - SCSS/CSS Best Practices & BEM: {PASS/WARN/BLOCKED}
-- Frontend Architecture (joint w/ review-architecture): {PASS/WARN/BLOCKED/N/A}
+- Frontend Architecture (joint w/ architecture-review): {PASS/WARN/BLOCKED/N/A}
 ```
 
 ---
@@ -365,7 +365,7 @@ Update report with final sections:
 1. Create a fresh fix-cycle task list before editing. Do not reuse the review tasks.
 2. Fix only findings that survived `/why-review --validate-findings`; route broader or cross-cutting fixes through the parent `/plan` + `/feature-implement` flow when this skill is running inside a workflow.
 3. Run targeted verification for the fixed UI files and any affected consumers.
-4. Re-invoke `/review-ui` from Phase 0 over the full current UI scope, not only the fixed files.
+4. Re-invoke `/ui-review` from Phase 0 over the full current UI scope, not only the fixed files.
 5. The re-run MUST create brand-new review tasks, reload the UI docs, determine scope again, rerun blast radius where applicable, and review every changed UI file from the start.
 6. Repeat validate → fix → full UI re-review until a complete pass has zero findings.
 7. If the same validated blocker repeats across 3 full invocations with no progress, stop and ask the user for a decision.
@@ -383,8 +383,8 @@ Update report with final sections:
 
 > **MANDATORY — NO EXCEPTIONS:** If NOT already in a workflow, MUST use `AskUserQuestion` to ask user. Do NOT judge task complexity or decide "simple enough to skip" — user decides, not you:
 >
-> 1. **Activate `workflow-review-changes` workflow** (Recommended) — run the canonical workflow from `.claude/workflows.json`; it sequences UI review through `/review-changes`, findings validation, parallel reviewers, `code-simplifier` self-review, fix-plan cycle, full re-review restart, docs, and handoff.
-> 2. **Execute `/review-ui` directly** — run this skill standalone
+> 1. **Activate `workflow-review-changes` workflow** (Recommended) — run the canonical workflow from `.claude/workflows.json`; it sequences UI review through `/changes-review`, findings validation, parallel reviewers, `code-simplifier` self-review, fix-plan cycle, full re-review restart, docs, and handoff.
+> 2. **Execute `/ui-review` directly** — run this skill standalone
 
 ---
 
@@ -629,7 +629,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /OVERRIDE-NOTE:fresh-context-review -->
 
-> **Complexity Prevention (UI-scoped)** — measure code by cost of change: one UI change should map to one code change. The full backend-OOP treatise (anemic models, primitive obsession, value objects, repo leakage) does not apply to UI review and is intentionally not carried here. UI-relevant essence: (1) **extract repeated component lifecycle** — 3+ forms/list views reimplementing loading/dirty/submit/pagination → base component / hook / composable / mixin; (2) **keep derivations, formatting, and validation off the template** — move them onto the model / store / view-model / API service, not inline in the component. For deeper OOP/DRY structural review of any backend the UI calls, defer to `/review-changes` / `/review-architecture`.
+> **Complexity Prevention (UI-scoped)** — measure code by cost of change: one UI change should map to one code change. The full backend-OOP treatise (anemic models, primitive obsession, value objects, repo leakage) does not apply to UI review and is intentionally not carried here. UI-relevant essence: (1) **extract repeated component lifecycle** — 3+ forms/list views reimplementing loading/dirty/submit/pagination → base component / hook / composable / mixin; (2) **keep derivations, formatting, and validation off the template** — move them onto the model / store / view-model / API service, not inline in the component. For deeper OOP/DRY structural review of any backend the UI calls, defer to `/changes-review` / `/architecture-review`.
 
 <!-- SYNC:graph-assisted-investigation -->
 

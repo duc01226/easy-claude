@@ -669,7 +669,7 @@ MUST ATTENTION verify ALL of the following:
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** NOT in workflow? ask the user directly — do NOT decide complexity yourself. User decides:
 >
-> 1. **`workflow-write-integration-test` workflow** (Recommended) — scout → investigate → spec [mode=tests] → why-review → review-artifact --type=spec-tests → integration-test → integration-test-review → integration-test-verify → spec [mode=sync] → docs-update → workflow-end → watzup
+> 1. **`workflow-write-integration-test` workflow** (Recommended) — scout → investigate → spec [mode=tests] → why-review → artifact-review --type=spec-tests → integration-test → integration-test-review → integration-test-verify → spec [mode=sync] → docs-update → workflow-end → watzup
 > 2. **`$integration-test` directly** — standalone
 
 ---
@@ -696,7 +696,7 @@ MUST ATTENTION verify ALL of the following:
 | Skill                        | Relationship                                                                         | When to Call                                                                                               |
 | ---------------------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
 | `$spec [mode=tests]`                  | **Producer** — TCs in feature doc Section 8 are the source for test generation       | Must run spec [mode=tests] before integration-test (CREATE or UPDATE mode). TCs must exist before generating tests. |
-| `$review-artifact --type=spec-tests`           | **Upstream reviewer** — validates TC quality before test generation                  | Run before integration-test to ensure TCs have real assertion value                                        |
+| `$artifact-review --type=spec-tests`           | **Upstream reviewer** — validates TC quality before test generation                  | Run before integration-test to ensure TCs have real assertion value                                        |
 | `$spec [mode=sync]` | **Sync** — reconciles §8 TCs ↔ integration test code after tests are linked          | Run after integration-test to update the §8 `IntegrationTest:` fields with the covering test links         |
 | `$spec`              | **TC host** — Section 8 of feature doc is where TCs live                             | If feature doc is missing or Section 8 is empty → run $spec first                                  |
 | `$spec-index`                | **Derived index** — regenerable navigation catalog over the Feature Specs (never a source of truth) | After §8 changes, to refresh the bucket `INDEX.md` TC counts                          |
@@ -729,7 +729,7 @@ integration-test (you are here)
   ├─ [RECOMMENDED] → $docs-update
   │     Updates feature doc evidence fields and version history if test coverage changed materially.
   │
-  └─ [RECOMMENDED] → $review-artifact --type=spec-tests
+  └─ [RECOMMENDED] → $artifact-review --type=spec-tests
         Re-run if integration-test-review (Gate 6) flagged TC issues requiring TC edits.
 
 ### Mode-Specific Chains

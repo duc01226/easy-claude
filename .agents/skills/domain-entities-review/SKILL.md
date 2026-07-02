@@ -1,8 +1,44 @@
 ---
-name: review-domain-entities
-version: 1.1.0
+name: domain-entities-review
 description: '[DDD Quality] Use when you need to review domain entities and value objects for DDD design quality.'
 ---
+
+> Codex compatibility note:
+> - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
+> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
+> - User-question prompts mean to ask the user directly in Codex.
+> - Ignore Claude-specific mode-switch instructions when they appear.
+> - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
+> - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
+> - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
+> - For workflow skills, execute each listed child-skill step explicitly and report step-by-step evidence.
+> - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
+<!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
+## Codex Project-Reference Loading (No Hooks)
+
+Codex uses static project-reference loading instead of runtime-injected project docs.
+When coding, planning, debugging, testing, or reviewing, open project docs explicitly using this routing.
+
+**Always read:**
+- `docs/project-config.json` (project-specific paths, commands, modules, and workflow/test settings)
+- `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
+- `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
+
+**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.
+
+**Situation-based docs:**
+- Project structure/architecture/tech-stack/deployment/setup (any layer — backend, frontend, or infra): `project-structure-reference.md`
+- Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`
+- Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md`
+- Spec authoring, `docs/specs/` pathing, or TC format: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`
+- Behavior/public-contract changes or spec-test-code sync: `workflow-spec-test-code-cycle-reference.md` plus the spec docs above
+- Derived spec indexes/ERDs/reimplementation guides: `spec-system-reference.md` and source Feature Specs under `docs/specs/`
+- Integration test implementation/review: `integration-test-reference.md`
+- E2E test implementation/review: `e2e-test-reference.md`
+- Code review/audit work: `code-review-rules.md` plus domain docs above based on changed files
+
+Do not read all docs blindly. Start from `docs-index-reference.md`, then open only relevant files for the task.
+<!-- CODEX:PROJECT-REFERENCE-LOADING:END -->
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
@@ -23,7 +59,7 @@ description: '[DDD Quality] Use when you need to review domain entities and valu
 - **Phase 1:** create the report, run the mandatory high-signal grep patterns (hidden `validate()` overrides, leaked persistence/business logic, missing identity markers) BEFORE reading individual files, write every grep result immediately, categorize files (root/entity/VO/unknown).
 - **Phase 2:** per-file checklist A–L (entity-vs-VO classification, base-class compliance, VO immutability/structural equality, anemic-model detection, domain invariants, invariant→property-TC Dual-Feedback, aggregate-by-ID, navigation serialization safety, domain events, query expressions, ubiquitous language, OOP) — append findings per file, NEVER batch.
 - **Phase 3 → 4:** holistic cross-entity synthesis in the current pass, then final report with health score (`100 − (CRIT×25 + HIGH×10 + MED×3 + LOW×1)`); 10+ entity files → switch to parallel `code-reviewer` sub-agents automatically.
-- **Phase 5 (validation-first loop):** validate via `/why-review` gate before any fix, fix only validated findings, then restart the FULL review; a clean pass ENDS the review. Every finding needs `file:line` at confidence >80%. Close with `AskUserQuestion` next-steps.
+- **Phase 5 (validation-first loop):** validate via `$why-review` gate before any fix, fix only validated findings, then restart the FULL review; a clean pass ENDS the review. Every finding needs `file:line` at confidence >80%. Close with ask the user directly next-steps.
 
 **Workflow:**
 
@@ -32,14 +68,14 @@ description: '[DDD Quality] Use when you need to review domain entities and valu
 3. **Phase 2** — Entity-by-entity DDD review (per-file checklist A–L + project-specific rules); append per file, never batch
 4. **Phase 3** — Holistic cross-entity synthesis in the current pass; fresh-context sub-agent only after validated fixes or explicit high-risk trigger
 5. **Phase 4** — Final report: critical issues, health score, refactoring priority, recommendations
-6. **Phase 5** — Why-Review self-validation gate (MANDATORY when findings exist) → validate → fix validated → restart full review until clean → `AskUserQuestion` next-steps
+6. **Phase 5** — Why-Review self-validation gate (MANDATORY when findings exist) → validate → fix validated → restart full review until clean → ask the user directly next-steps
 7. **Scale rule** — 10+ entity files → parallel `code-reviewer` sub-agents, then consolidate
 
 **Key Rules:**
 
 - MUST ATTENTION discover project base classes in Phase 0 — NEVER assume generic patterns apply — why: wrong base classes = wrong checklist.
 - MUST ATTENTION run mandatory grep patterns in Phase 1 BEFORE reading individual files — why: highest-signal violations surface fastest and seed the report.
-- MUST ATTENTION validate findings via the Phase 5 `/why-review` gate before any fix, then restart the full review after validated fixes — a clean pass ENDS the review — why: every fix invalidates the prior verdict and AI reports inherit confirmation bias.
+- MUST ATTENTION validate findings via the Phase 5 `$why-review` gate before any fix, then restart the full review after validated fixes — a clean pass ENDS the review — why: every fix invalidates the prior verdict and AI reports inherit confirmation bias.
 - NEVER report a finding without `file:line` evidence at confidence >80% — why: unproven findings inflate severity downstream.
 - MUST ATTENTION append findings per file and persist to `plans/reports/` incrementally; 10+ entity files → parallel sub-agents — why: batched writes vanish on context/budget cutoff.
 
@@ -73,7 +109,7 @@ Apply this lens **before** invoking any specific rule, pattern, or checklist bel
 
 > **MANDATORY FIRST STEP.** Phase 0 gates all other work — wrong base classes = wrong checklist.
 
-**Create `TaskCreate` tasks for all phases NOW before doing anything else:**
+**Create task tracking tasks for all phases NOW before doing anything else:**
 
 - `[Phase 0] Project stack discovery + mode detection + blast radius` — in_progress **(FIRST)**
 - `[Phase 1] Collect entity files + grep patterns + create report` — pending
@@ -333,9 +369,9 @@ Spawn a fresh `code-reviewer` sub-agent only when one of these conditions is tru
 When a fresh-context pass is triggered, build the Agent call dynamically — set Target Files and Reference Docs from Phase 0/1 discoveries:
 
 ```
-Agent({
+spawn_agent({
   description: "Fresh full DDD entity review after validated fixes or explicit high-risk trigger",
-  subagent_type: "code-reviewer",
+  agent_type: "code-reviewer",
   prompt: `
 ## Task
 Review domain entity and value object files holistically for DDD design quality:
@@ -410,7 +446,7 @@ After sub-agent returns:
 1. Read the sub-agent report
 2. Integrate as `## Re-Review {N} Findings` in main report — NEVER filter or override
 3. If findings remain: validate the new finding set before any additional fixes
-4. Repeat only after another validated-finding fix cycle; if the same blocker repeats across 3 full invocations with no progress, escalate via `AskUserQuestion`
+4. Repeat only after another validated-finding fix cycle; if the same blocker repeats across 3 full invocations with no progress, escalate by asking the user directly
 5. Final verdict MUST incorporate every review pass that actually ran
 
 ---
@@ -567,7 +603,7 @@ Report: plans/reports/domain-entities-review-{date}-{slug}.md
 **Protocol:**
 
 1. Read own finalized report from `plans/reports/{skill}-{date}-{slug}.md`
-2. Invoke `/why-review` skill with arg: `validate findings in plans/reports/{skill}-{date}-{slug}.md — verify each finding has file:line proof, steel-man each rejected interpretation, and stress-test severity classifications`
+2. Invoke `$why-review` skill with arg: `validate findings in plans/reports/{skill}-{date}-{slug}.md — verify each finding has file:line proof, steel-man each rejected interpretation, and stress-test severity classifications`
 3. Read the validation verdict path returned by why-review, expected as `plans/reports/why-review-validate-{date}.md`
 4. **If why-review demotes/removes any finding:** UPDATE own finalized report with revised severities, remove false positives, and add a `## Why-Review Validation Notes` section citing what changed and why
 5. **If why-review confirms all findings:** Append `## Why-Review Validation` line to own report stating "All N findings re-validated against actual code; no severity changes."
@@ -583,17 +619,17 @@ Report: plans/reports/domain-entities-review-{date}-{slug}.md
 
 ## Next Steps
 
-MUST ATTENTION use `AskUserQuestion` after completing to present:
+MUST ATTENTION use ask the user directly after completing to present:
 
-- **`/fix` (Recommended if FAIL)** — Fix critical and high-priority issues
-- **`/scan --target=domain-entities`** — Update domain-entities-reference.md (scan mode)
-- **`/integration-test`** — Add integration tests for newly-enforced invariants
-- **`/docs-update`** — Update feature docs if entity contracts changed
+- **`$fix` (Recommended if FAIL)** — Fix critical and high-priority issues
+- **`$scan --target=domain-entities`** — Update domain-entities-reference.md (scan mode)
+- **`$integration-test`** — Add integration tests for newly-enforced invariants
+- **`$docs-update`** — Update feature docs if entity contracts changed
 - **"Skip, continue manually"** — user decides
 
 ---
 
-> **[IMPORTANT]** `TaskCreate` for ALL phases BEFORE starting. Mark each completed immediately.
+> **[IMPORTANT]** task tracking for ALL phases BEFORE starting. Mark each completed immediately.
 
 > **CRITICAL RULES** — (1) MUST ATTENTION run Phase 0 project discovery FIRST — discovered conventions override ALL generic rules. (2) Validate findings before fixes; after validated fixes, restart a full review before declaring PASS. A clean review pass ENDS the review. (3) NEVER report a finding without `file:line` evidence.
 
@@ -613,10 +649,10 @@ MUST ATTENTION use `AskUserQuestion` after completing to present:
 
 | Invocation                              | Mode             | Scope                                           |
 | --------------------------------------- | ---------------- | ----------------------------------------------- |
-| `/review-domain-entities` (default)     | **changes**      | Changed domain entity files from `git diff`     |
-| `/review-domain-entities changes`       | **changes**      | Changed domain entity files                     |
-| `/review-domain-entities scan`          | **scan**         | All entity/VO files in domain layer directories |
-| `/review-domain-entities scan <module>` | **scan-service** | Entities in named module only                   |
+| `$domain-entities-review` (default)     | **changes**      | Changed domain entity files from `git diff`     |
+| `$domain-entities-review changes`       | **changes**      | Changed domain entity files                     |
+| `$domain-entities-review scan`          | **scan**         | All entity/VO files in domain layer directories |
+| `$domain-entities-review scan <module>` | **scan-service** | Entities in named module only                   |
 
 **Entity file detection — adapt to discovered stack:**
 
@@ -656,14 +692,14 @@ If no domain entity files match in changes mode → announce "No domain entity c
 
 > **Nested Task Expansion Contract** — For workflow-step invocation, the `[Workflow] ...` row is only a parent container; the child skill still creates visible phase tasks.
 >
-> 1. Call `TaskList` first. If a matching active parent workflow row exists, set `nested=true` and record `parentTaskId`; otherwise run standalone.
+> 1. Call the current task list first. If a matching active parent workflow row exists, set `nested=true` and record `parentTaskId`; otherwise run standalone.
 > 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] $skill-name — phase`.
 > 3. When nested, link the parent with `TaskUpdate(parentTaskId, addBlockedBy: [childIds])`.
 > 4. Orchestrators must pre-expand a child skill's phase list and link the workflow row before invoking that child skill or sub-agent.
 > 5. Mark exactly one child `in_progress` before work and `completed` immediately after evidence is written.
 > 6. Complete the parent only after all child tasks are completed or explicitly cancelled with reason.
 >
-> **Blocked until:** `TaskList` done, child phases created, parent linked when nested, first child marked `in_progress`.
+> **Blocked until:** the current task list done, child phases created, parent linked when nested, first child marked `in_progress`.
 
 <!-- /SYNC:nested-task-creation -->
 
@@ -672,7 +708,7 @@ If no domain entity files match in changes mode → announce "No domain entity c
 > **Project Reference Docs Gate** — Run after task-tracking bootstrap and before target/source file reads, grep, edits, or analysis. Project docs override generic framework assumptions.
 >
 > 1. Identify scope: file types, domain area, and operation.
-> 2. **Read `docs/project-config.json` first — the project's machine-readable map.** It is the single source of truth for THIS repo (modules/paths, framework + search keywords, test/E2E/integration run-commands, design system, architecture rules, workflow patterns); ground exact paths, run-commands, and conventions on it **before investigating, planning, or coding** — never assume framework defaults (`CLAUDE.md` + reference docs are derived from it). If it — or the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any required reference doc — is missing or stale, auto-run `/project-init` or the narrow route (`/project-config`, `/docs-init`, `/scan-all`, `/scan --target=<key>`, `/claude-md-init`) first; if Codex mirrors or `AGENTS.md` are stale, ask the user to run `/sync-codex` (never auto-run it).
+> 2. **Read `docs/project-config.json` first — the project's machine-readable map.** It is the single source of truth for THIS repo (modules/paths, framework + search keywords, test/E2E/integration run-commands, design system, architecture rules, workflow patterns); ground exact paths, run-commands, and conventions on it **before investigating, planning, or coding** — never assume framework defaults (`CLAUDE.md` + reference docs are derived from it). If it — or the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any required reference doc — is missing or stale, auto-run `$project-init` or the narrow route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) first; if Codex mirrors or `AGENTS.md` are stale, ask the user to run `$sync-codex` (never auto-run it).
 > 3. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under `docs/specs/`; architecture/new area `project-structure-reference.md`.
 > 4. Read every required doc, then before target work state: `Reference docs read: ... | Not applicable: ...`.
 >
@@ -746,9 +782,9 @@ If no domain entity files match in changes mode → announce "No domain entity c
 > **Decision after Round 1:**
 >
 > - **No issues found (PASS, zero findings)** → review ENDS. Do NOT spawn a fresh sub-agent for confirmation.
-> - **Issues found (FAIL, or any non-zero findings)** → run the active review skill's findings-validation gate first; for review skills the default gate is `/why-review --validate-findings <report-path>`. Fix only validated findings, then restart the full review protocol from the beginning with a fresh task breakdown.
+> - **Issues found (FAIL, or any non-zero findings)** → run the active review skill's findings-validation gate first; for review skills the default gate is `$why-review --validate-findings <report-path>`. Fix only validated findings, then restart the full review protocol from the beginning with a fresh task breakdown.
 >
-> **Fresh full re-review after every fix cycle:** Re-run the whole review protocol over the current full target. When sub-agents are part of that protocol, spawn NEW `Agent` calls — never reuse prior agents. Reviewers re-read ALL files from scratch with ZERO memory of prior rounds. See `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. Each fresh full review must catch:
+> **Fresh full re-review after every fix cycle:** Re-run the whole review protocol over the current full target. When sub-agents are part of that protocol, spawn NEW `spawn_agent` calls — never reuse prior agents. Reviewers re-read ALL files from scratch with ZERO memory of prior rounds. See `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. Each fresh full review must catch:
 >
 > - Cross-cutting concerns missed in the prior round
 > - Interaction bugs between changed files
@@ -757,7 +793,7 @@ If no domain entity files match in changes mode → announce "No domain entity c
 > - Subtle edge cases the prior round rationalized away
 > - Regressions introduced by the fixes themselves
 >
-> **Loop termination:** After each full re-review, repeat the same decision: clean → END; issues → validate findings → fix → restart from the first review phase. Continue until a complete review pass finds zero issues. If the same validated finding repeats for 3 full invocations with no progress, or a fix requires product/owner input, escalate via `AskUserQuestion`.
+> **Loop termination:** After each full re-review, repeat the same decision: clean → END; issues → validate findings → fix → restart from the first review phase. Continue until a complete review pass finds zero issues. If the same validated finding repeats for 3 full invocations with no progress, or a fix requires product/owner input, escalate by asking the user directly.
 >
 > **Rules:**
 >
@@ -778,13 +814,13 @@ If no domain entity files match in changes mode → announce "No domain entity c
 
 > **Fresh Context Re-Review** — Eliminate orchestrator confirmation bias after fixes by restarting the full review with isolated sub-agents where applicable.
 >
-> **Why:** The main agent knows what it (or `/feature-implement`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
+> **Why:** The main agent knows what it (or `$feature-implement`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
 >
 > **When:** ONLY after a validated-finding fix cycle. A review round that finds zero issues ENDS the loop — do NOT spawn a confirmation sub-agent. A review round that finds issues triggers: validate findings → fix → full review restart from the first phase.
 >
 > **How:**
 >
-> 1. Start a NEW full review invocation/task breakdown; when that protocol calls for agents, spawn NEW `Agent` tool calls — use `code-reviewer` subagent_type for code reviews, `general-purpose` for plan/doc/artifact reviews
+> 1. Start a NEW full review invocation/task breakdown; when that protocol calls for agents, spawn NEW `spawn_agent` tool calls — use `code-reviewer` agent_type for code reviews, `general-purpose` for plan/doc/artifact reviews
 > 2. Inject ALL required review protocols VERBATIM into the prompt — see `SYNC:review-protocol-injection` for the full list and template. Never reference protocols by file path; AI compliance drops behind file-read indirection (see `SYNC:shared-protocol-duplication-policy`)
 > 3. Sub-agent re-reads ALL target files from scratch via its own tool calls — never pass file contents inline in the prompt
 > 4. Sub-agent writes structured report to `plans/reports/{review-type}-round{N}-{date}.md`
@@ -794,8 +830,8 @@ If no domain entity files match in changes mode → announce "No domain entity c
 >
 > - SKIP fresh sub-agent when the prior full review found zero issues (no fixes = nothing new to verify)
 > - NEVER skip the full review restart after a fix cycle — every fix invalidates the prior verdict
-> - NEVER reuse a sub-agent across rounds — every fresh round spawns a NEW `Agent` call
-> - Continue until a complete full review pass has zero findings; if the same blocker repeats 3 times with no progress, escalate via `AskUserQuestion`
+> - NEVER reuse a sub-agent across rounds — every fresh round spawns a NEW `spawn_agent` call
+> - Continue until a complete full review pass has zero findings; if the same blocker repeats 3 times with no progress, escalate by asking the user directly
 > - Track iteration count and repeated blockers in conversation context (session-scoped, no persistent files)
 
 <!-- /SYNC:fresh-context-review -->
@@ -886,7 +922,7 @@ If no domain entity files match in changes mode → announce "No domain entity c
 > - **Test coverage:** Are the changed paths covered by tests? Are existing tests still valid after the change?
 > - **Documentation:** Do related docs, specs, or READMEs reflect the changes?
 >
-> **Step 4 — Create sub-tasks and execute.** For each identified concern: create a `TaskCreate` sub-task, work through it with `file:line` evidence, mark done. No findings without proof.
+> **Step 4 — Create sub-tasks and execute.** For each identified concern: create a task tracking sub-task, work through it with `file:line` evidence, mark done. No findings without proof.
 >
 > **Illustrative concern examples by category type** (not exhaustive — trust your knowledge beyond this):
 >
@@ -943,7 +979,7 @@ If no domain entity files match in changes mode → announce "No domain entity c
 
 - **MANDATORY** Before investigating, planning, or coding, read `docs/project-config.json` (the project map: modules/paths, run-commands, conventions, architecture/workflow rules) + the required project-reference docs, and cite `Reference docs read: ...`.
 - **MANDATORY** Always include `lessons.md`; project config + conventions override generic framework defaults.
-- **MANDATORY** If project config, root instruction files, or any required reference doc is missing or stale, auto-run `/project-init` or the narrow lower-level route before ordinary project-specific work.
+- **MANDATORY** If project config, root instruction files, or any required reference doc is missing or stale, auto-run `$project-init` or the narrow lower-level route before ordinary project-specific work.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
 
@@ -1015,7 +1051,7 @@ If no domain entity files match in changes mode → announce "No domain entity c
 **Evidence + process gates:**
 
 - **MANDATORY MUST ATTENTION** run mandatory Phase 1 grep patterns (hidden `validate()` overrides, leaked persistence/business logic, missing identity markers) BEFORE reading individual files, and write EVERY grep result to the report immediately — why: highest-signal violations surface fastest and batched writes lose findings on context loss.
-- **MANDATORY MUST ATTENTION** bootstrap `TaskCreate` for ALL phases before any work; mark one task `in_progress`, mark `completed` immediately after evidence; on context loss call `TaskList` first — never duplicate — why: phase tracking survives compaction, memory does not.
+- **MANDATORY MUST ATTENTION** bootstrap task tracking for ALL phases before any work; mark one task `in_progress`, mark `completed` immediately after evidence; on context loss call the current task list first — never duplicate — why: phase tracking survives compaction, memory does not.
 - **MANDATORY MUST ATTENTION** read project-reference docs (`lessons.md`, entity/backend/code-review references) + `CLAUDE.md` and search 3+ existing entity files BEFORE applying any checklist — discovered conventions win — why: local conventions differ from generic framework defaults.
 - **MANDATORY MUST ATTENTION** evaluate pattern FIT before copying a nearby entity pattern — verify the new context shares the same base class, scope, and lifetime — why: closest example ≠ matching preconditions.
 - **MANDATORY MUST ATTENTION** run a graph trace on key entity files when `.code-graph/graph.db` exists, and inspect entity callers/usages before classifying anemic model or misplaced invariant — why: code existing ≠ code executing; the bug owner is the layer the data flows through.
@@ -1031,7 +1067,7 @@ If no domain entity files match in changes mode → announce "No domain entity c
 - **MANDATORY MUST ATTENTION** treat 2+ violations of the same kind as a structural/architectural finding, not isolated style notes — why: repeated leaks reveal a missing pattern, not individual slips.
 - **MANDATORY MUST ATTENTION** classify by consequence not fix-effort (CRITICAL/HIGH block PASS); 10+ entity files → switch to parallel `code-reviewer` sub-agents automatically — why: one "High" must mean the same everywhere, and serial review of many files exhausts context.
 
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using `TaskCreate`; add a final "Analyze AI mistakes & lessons learned" review task.
+**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking; add a final "Analyze AI mistakes & lessons learned" review task.
 
 > **Closing reminder — Easy to Change is the success metric.** Every finding, test, refactor, and abstraction must answer one question: _does this make the next change cheaper or more expensive?_ If it doesn't reduce future change cost, reject it. Coupling, hidden state, duplicated knowledge, and unclear intent are the real enemies — call them out by name.
 
@@ -1047,3 +1083,95 @@ If no domain entity files match in changes mode → announce "No domain entity c
 | "Many entities, review them inline" | 10+ files → parallel sub-agents; persist per-file findings to `plans/reports/` or they vanish on budget cutoff. |
 
 **IMPORTANT MUST ATTENTION** Phase 0 discovery FIRST (base classes override generic rules) · NEVER report a finding without `file:line` evidence at confidence >80% · validate findings before fixing, then restart the full review — a clean pass ENDS it.
+
+<!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
+## Hookless Prompt Protocol Mirror (Auto-Synced)
+
+Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs`
+
+## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
+
+**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. Any supported AI tool may execute when this shared context and local docs are available.
+
+1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
+2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
+3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
+4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
+5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
+6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
+## Shared AI-SDD Protocol Markers
+
+Source: `.claude/skills/shared/sync-inline-versions.md`
+
+## SYNC:ai-sdd-artifact-contract
+
+> **AI-SDD Artifact Contract** — Shared spec-driven development rules stay portable and source-owned.
+>
+> 1. Keep reusable AI-SDD principles in `.claude`; put repository-specific paths, commands, owners, products, and formats in project config/reference docs.
+> 2. Preserve cycle: `spec -> plan -> tasks -> implement -> verify -> update spec/docs`.
+> 3. Trace every requirement or invariant through decision, task, TC/test, source evidence, and docs/spec update.
+> 4. Treat code-to-spec extraction as reference-only until accepted by the canonical spec owner.
+> 5. Any supported AI tool may plan, implement, review, or verify with synced context; using multiple tools is optional.
+> 6. Update `.claude` source first, then sync generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`. — why: mirrors are generated artifacts; hand-edits are overwritten on the next sync
+> 7. If `docs/project-config.json`, root instruction files, or a required project-reference doc is missing or stale, auto-run `$project-init` or the narrow lower-level route before ordinary project-specific work.
+>
+> **Active reference:** `shared/sdd-artifact-contract.md` in the active skills root.
+
+---
+
+## SYNC:ai-sdd-artifact-contract:reminder
+
+- **MANDATORY** Apply `shared/sdd-artifact-contract.md`; keep reusable AI-SDD in `.claude` and local rules in project docs.
+- **MANDATORY** Code-to-spec extraction is reference-only until canonical acceptance; any supported AI tool may execute with synced context.
+- **MANDATORY** Update `.claude` source before syncing generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`.
+- **MANDATORY** Missing or stale project config, root instruction files, or required reference docs route project-specific work through `$project-init` or the narrow setup route automatically.
+**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
+## [LESSON-LEARNED-REMINDER] [BLOCKING] Task Planning & Continuous Improvement — MANDATORY. Do not skip.
+
+Break work into small tasks (task tracking) before starting. Add final task: "Analyze AI mistakes & lessons learned".
+
+**Extract lessons — ROOT CAUSE ONLY, not symptom fixes:**
+1. Name the FAILURE MODE (reasoning/assumption failure), not symptom — "assumed API existed without reading source" not "used wrong enum value".
+2. Generality test: does this failure mode apply to ≥3 contexts/codebases? If not, abstract one level up.
+3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
+4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
+5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
+6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/`$lint` catch this?" — Yes → improve review skill instead.
+7. BOTH gates pass → ask user to run `$learn`.
+**[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
+**Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
+**AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
+**Goal-driven execution:** Define success criteria first, loop until verified, and stop only when observable checks pass.
+**Tests verify intent:** Tests must protect business rules/invariants and fail when the protected intent breaks, not only mirror current behavior.
+## Common AI Mistake Prevention (System Lessons)
+
+- **Re-read files after context compaction.** Edit requires prior Read in same context; compaction wipes read state. Re-read before editing.
+- **Grep for old terms after bulk replacements.** AI over-trusts find/replace completeness. Grep full repo after bulk edits for missed refs in docs/configs/catalogs.
+- **Check downstream references before deleting.** Deletions cascade doc/code staleness. Map referencing files before removal.
+- **After memory loss, check existing state before creating new.** Compaction wipes prior-work memory. Query current state to resume — never blindly duplicate.
+- **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, method signatures. Grep to confirm existence before documenting/referencing.
+- **Trace full dependency chain after edits.** Changing a definition misses downstream consumers. Trace the full chain.
+- **When renaming, grep ALL consumer file types.** Some file types silently ignore missing refs (no compile error). Search code, templates, configs, generated files.
+- **Trace ALL code paths when verifying correctness.** Code existing ≠ code executing. Trace early exits, error branches, conditional skips — not just happy path.
+- **Update docs that embed canonical data when source changes.** Docs inlining derived data (workflows, schemas, configs) go stale silently. Update all embedding docs alongside source.
+- **Verify sub-agent results after context recovery.** Background agents may finish while parent compacted — grep-verify output, don't trust assumed completion.
+- **Cross-check full target list against sub-agent assignments.** Parallel sub-agents by category miss boundary items. Reconcile union of assignments against target list before proceeding.
+- **Sub-agents inherit knowledge only from their agent .md definition — use custom agent types, not built-in Explore.** Tool adoption = permission + knowledge + enforcement (numbered workflow step).
+- **Persist sub-agent findings incrementally, not as a final batch.** Long sub-agents hit cutoffs before final write — findings lost. Instruct append-per-section to report file.
+- **When debugging, ask "whose responsibility?" before fixing.** Trace caller (wrong data) vs callee (wrong handling). Fix at responsible layer — never patch symptom site.
+- **Test failure → adjudicate WHO is at fault (source vs test) before forcing green.** A green-again suite is not the goal; the correct verdict on what was actually wrong is. Root-cause first, then triangulate the failure against the governing spec (`docs/specs/**` if one exists) AND the source: SOURCE-WRONG → fix code at the owning layer and keep/strengthen the test; TEST-WRONG → fix the stale assertion/setup at its root. NEVER weaken an assertion, add a skip, or relax a timeout to force green, and never change source to satisfy a broken test. Spec silent or ambiguous about which side is correct → STOP and ask the user.
+- **Grep ALL removed names after extraction/refactoring.** Primary file "done" ≠ secondary files clean. Grep entire scope for every removed symbol before declaring complete.
+- **Assume existing values are intentional — ask WHY before changing.** Pattern-matching as "wrong" skips context. Before changing any constant/limit/flag: read comments, git blame, surrounding code.
+- **Verify ALL affected outputs, not just the first.** One build green ≠ all green. Multi-stack changes (backend/frontend/tests/docs) require verifying EVERY output.
+- **Evaluate fit before copying a nearby pattern.** Closest example ≠ matching preconditions — verify the new context shares the same constraints, base classes, scope, lifetime.
+- **Holistic-first debugging — resist nearest-attention trap.** Don't dive into first plausible cause. List EVERY precondition (config, env vars, paths, DB, endpoints, creds, versions, DI, data). Verify each against evidence (grep/query — not reasoning). Ask "what would falsify this?" — if nothing, it's not a hypothesis. Most expensive failure: going deeper in "obvious" layer while bug sits in layer never questioned.
+- **Surgical changes — apply the diff test (context-aware).** Two modes: (1) Bug fix → every line traces to the bug; no restyling; orphan cleanup only for imports YOUR changes made unused. (2) Review/enhancement → implement improvements AND announce as "Enhancement beyond main request: [what]". Never silently scope-creep. Diff test: "Would this line exist if I wasn't asked to do X?" — if no, delete or announce.
+- **Surface ambiguity before coding — don't pick silently.** Multiple valid interpretations → present each with effort: "[Request] could mean (1) [N h], (2) [N h]. Which matters?" List scope/format/volume/constraints assumptions first. If simpler path exists, say so. Never silently pick.
+- **[MANDATORY FIRST ACTION] ALWAYS activate a suitable skill or workflow BEFORE responding.** Match task against workflow catalog + skill list; invoke via skill invocation or `$start-workflow <workflowId>`. NEVER answer or write code before checking. Skip = protocol violation.
+- **Why-Review adversarial mindset — apply when reviewing any plan, decision, or design.** Default SKEPTIC not VALIDATOR: steel-man a rejected alternative, invert each stated reason ("what does it sacrifice?"), stress-test top 2-3 assumptions, run pre-mortem ("ships, fails in 3 months — what breaks?"), surface 1-2 alternatives author missed. Section presence ≠ quality; quality = causal reasoning + concrete mitigations + evidence, not "it's better" or "monitor closely".
+- **Front-load report-write in sub-agent prompts for large reviews.** Many-file sub-agents hit budget before final write — findings lost. Design prompts so: (1) report-write is first explicit deliverable, (2) append per-file/section (not batched), (3) scope bounded so reads don't exhaust budget. Truncated mid-sentence with no report file → spawn narrower scope, don't retry same prompt.
+- **After context compaction, re-verify all prior phase outcomes before continuing.** Summaries describe intent, not environment state (git index, filesystem, processes). On resume, FIRST audit: git status, re-read modified files, verify filesystem. Every "completed" claim is an untested hypothesis until evidence confirms.
+- **OOM/memory: check row count before row size.** Triage: (1) Unbounded query — no DB filter for trigger? Push filter to DB; eliminates OOM. (2) Large rows? Projection reduces proportionally. Row reduction > projection in ROI.
+- **Keep domain concepts out of generic/shared/infrastructure layers.** Reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. Leak compiles + runs → passes review silently while coupling the "reusable" layer to one consumer. Keep shared type domain-free; push domain fields/logic down into the consumer via subclass/composition. — why: a layer coupled to one consumer's domain is no longer reusable.
+
+<!-- CODEX:SYNC-PROMPT-PROTOCOLS:END -->

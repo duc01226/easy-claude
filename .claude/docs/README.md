@@ -143,12 +143,12 @@
 
 | Category               | Count |
 | ---------------------- | ----- |
-| Skills                 | 154   |
+| Skills                 | 156   |
 | Hook files (top-level) | 15    |
 | Lib Modules            | 25    |
 | Hook Events            | 8     |
 | Agents                 | 29    |
-| Workflows              | 17    |
+| Workflows              | 18    |
 | Hook Tests             | 224   |
 | Documentation Files    | 28    |
 

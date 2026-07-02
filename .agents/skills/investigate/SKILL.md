@@ -302,7 +302,7 @@ Proactively offer a simpler restatement/analogy for any dense point. Responding 
 
 Mark ledger items `explained`. Close with a 2–3 line recap (purpose in one sentence, key mechanic in one, highest-leverage trade-off / blast-radius note in one). End there. Do NOT quiz, do NOT ask the developer to restate, do NOT loop, NEVER block the next step.
 
-**NOT for:** investigation/docs/design/research where nothing was built or planned to understand; forcing comprehension as a hard gate; reviewing code quality (use `$code-review`, `$review-changes`).
+**NOT for:** investigation/docs/design/research where nothing was built or planned to understand; forcing comprehension as a hard gate; reviewing code quality (use `$code-review`, `$changes-review`).
 
 **Anti-Rationalization:** "Senior dev, skip it" → NEVER skip by level. · "I'll quiz them" → one-way only, never ask. · "Ambiguous — I'll ask which" → infer + state assumption, proceed. · "Dump everything" → derive scope first, order by leverage. · "Skip trade-offs" → WHY-this-way is mandatory. · "Drop ledger by the skill" → only `tmp/understand/{branch}.md`. · "Write the doc and move on silently" → the chat is the deliverable; announce the ledger path.
 

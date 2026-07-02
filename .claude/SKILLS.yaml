@@ -2,9 +2,9 @@ metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
   last_updated: '2026-07-02'
-  total_skills: 154
+  total_skills: 156
   total_by_status:
-    active: 153
+    active: 155
     deprecated: 1
     experimental: 0
 categories:
@@ -100,18 +100,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: review-ui
-      path: review-ui/SKILL.md
-      description: '[Code Quality] Use when reviewing UI/frontend changes for long-content
-        overflow, responsive multi-screen layout, flex-vs-fixed sizing, z-index discipline,
-        and SCSS/BEM styling quality.'
-      category: frontend
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
     - name: strategy-builder
       path: strategy-builder/SKILL.md
       description: '[Content] Use when you need to build marketing strategy: positioning,
@@ -145,6 +133,18 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
+    - name: ui-review
+      path: ui-review/SKILL.md
+      description: '[Code Quality] Use when reviewing UI/frontend changes for long-content
+        overflow, responsive multi-screen layout, flex-vs-fixed sizing, z-index discipline,
+        and SCSS/BEM styling quality.'
+      category: frontend
+      has_scripts: false
+      has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
     - name: ui-ux-pro-max
       path: ui-ux-pro-max/SKILL.md
       description: '[Frontend] Use when designing beautiful or aesthetic interfaces
@@ -168,6 +168,30 @@ skills:
       deprecated_since: null
       removal_after: null
     other:
+    - name: architecture-review
+      path: architecture-review/SKILL.md
+      description: '[Code Quality] Use when reviewing architecture compliance for
+        layers, messaging, service boundaries, CQRS, repos, and entity events.'
+      category: other
+      has_scripts: false
+      has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: architecture-review-full
+      path: architecture-review-full/SKILL.md
+      description: '[Architecture] Use when auditing the ENTIRE project architecture
+        and production readiness in one pass — bundles architecture-review + architecture-scalability-review
+        + production-readiness-review at project or diff scope, then synthesizes one
+        consolidated Architecture Health Report.'
+      category: other
+      has_scripts: false
+      has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
     - name: architecture-scalability-review
       path: architecture-scalability-review/SKILL.md
       description: '[Architecture] Use when grading project architecture and scalability
@@ -177,6 +201,17 @@ skills:
       category: other
       has_scripts: false
       has_references: true
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: artifact-review
+      path: artifact-review/SKILL.md
+      description: '[Code Quality] Use when you need to review artifact quality (PBI,
+        user story, test spec, design spec) before handoff. Supports --type={pbi|story|spec-tests|design}.'
+      category: other
+      has_scripts: false
+      has_references: false
       status: active
       deprecated_by: null
       deprecated_since: null
@@ -245,6 +280,17 @@ skills:
       category: other
       has_scripts: false
       has_references: true
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: changes-review
+      path: changes-review/SKILL.md
+      description: '[Code Quality] Use when reviewing current changes, staged or unstaged
+        diffs, or branch-to-branch diffs.'
+      category: other
+      has_scripts: false
+      has_references: false
       status: active
       deprecated_by: null
       deprecated_since: null
@@ -442,6 +488,17 @@ skills:
       path: domain-analysis/SKILL.md
       description: '[Architecture] Use when you need to analyze business domain: bounded
         contexts, aggregates, entities, ERD, domain events, and cross-context integration.'
+      category: other
+      has_scripts: false
+      has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: domain-entities-review
+      path: domain-entities-review/SKILL.md
+      description: '[DDD Quality] Use when you need to review domain entities and
+        value objects for DDD design quality.'
       category: other
       has_scripts: false
       has_references: false
@@ -1078,50 +1135,6 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
-    - name: review-architecture
-      path: review-architecture/SKILL.md
-      description: '[Code Quality] Use when reviewing architecture compliance for
-        layers, messaging, service boundaries, CQRS, repos, and entity events.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: review-artifact
-      path: review-artifact/SKILL.md
-      description: '[Code Quality] Use when you need to review artifact quality (PBI,
-        user story, test spec, design spec) before handoff. Supports --type={pbi|story|spec-tests|design}.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: review-changes
-      path: review-changes/SKILL.md
-      description: '[Code Quality] Use when reviewing current changes, staged or unstaged
-        diffs, or branch-to-branch diffs.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
-    - name: review-domain-entities
-      path: review-domain-entities/SKILL.md
-      description: '[DDD Quality] Use when you need to review domain entities and
-        value objects for DDD design quality.'
-      category: other
-      has_scripts: false
-      has_references: false
-      status: active
-      deprecated_by: null
-      deprecated_since: null
-      removal_after: null
     - name: scaffold
       path: scaffold/SKILL.md
       description: '[Architecture] Use when scaffolding reusable OOP/SOLID project
@@ -1367,6 +1380,19 @@ skills:
       path: why-review/SKILL.md
       description: '[Code Quality] Use when reviewing rationale and change quality
         for plans, PBIs, commits, diffs, docs, specs, reports, or explicit artifacts.'
+      category: other
+      has_scripts: false
+      has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: workflow-architecture-audit
+      path: workflow-architecture-audit/SKILL.md
+      description: '[Workflow] Use when activating the Architecture Audit workflow
+        to review the whole project''s architecture, run an architecture health check,
+        or check production readiness/scalability in one pass — read-only, produces
+        one consolidated Architecture Health Report.'
       category: other
       has_scripts: false
       has_references: false

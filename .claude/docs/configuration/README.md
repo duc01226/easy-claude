@@ -135,7 +135,7 @@ The `codeReview` section records which project-specific review-rule doc the revi
 | `workflow-feature`        | scout → investigate → … → plan → plan-review → … → plan-execute → … → integration-test → … → workflow-end | Well-defined feature implementation               |
 | `workflow-bugfix`         | scout → investigate → debug-investigate → … → fix → prove-fix → … → workflow-end                          | Bug, error, crash, regression; end-to-start trace |
 | `workflow-refactor`       | scout → investigate → plan → … → plan-execute → … → workflow-end                                          | Restructure code without behavior change          |
-| `workflow-review-changes` | review-changes → why-review → parallel reviewers → code-simplifier → … → workflow-end                     | Review uncommitted changes before committing      |
+| `workflow-review-changes` | changes-review → why-review → parallel reviewers → code-simplifier → … → workflow-end                     | Review uncommitted changes before committing      |
 
 ---
 

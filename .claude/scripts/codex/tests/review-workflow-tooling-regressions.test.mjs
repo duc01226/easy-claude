@@ -12,7 +12,7 @@ const thisDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(thisDir, '..', '..', '..', '..');
 const normalizeEol = text => text.replace(/\r\n/g, '\n');
 
-test('TC-WFPROTO-005: redundant why-review sweep preserves review-changes validation gate', async () => {
+test('TC-WFPROTO-005: redundant why-review sweep preserves changes-review validation gate', async () => {
     const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'wfproto-sweep-'));
     try {
         const tempScriptDir = path.join(tempRoot, '.claude', 'scripts');
@@ -30,9 +30,9 @@ test('TC-WFPROTO-005: redundant why-review sweep preserves review-changes valida
             JSON.stringify(
                 {
                     workflows: {
-                        'review-changes': {
+                        'changes-review': {
                             sequence: [
-                                'review-changes',
+                                'changes-review',
                                 'why-review',
                                 'security-review',
                                 'why-review',
@@ -52,7 +52,7 @@ test('TC-WFPROTO-005: redundant why-review sweep preserves review-changes valida
             [
                 '# Workflow Test',
                 '',
-                '**Steps:** /review-changes -> /why-review -> /security-review -> /why-review -> /docs-update',
+                '**Steps:** /changes-review -> /why-review -> /security-review -> /why-review -> /docs-update',
                 ''
             ].join('\n'),
             'utf8'
@@ -66,13 +66,13 @@ test('TC-WFPROTO-005: redundant why-review sweep preserves review-changes valida
             await fs.readFile(path.join(tempRoot, '.claude', 'workflows.json'), 'utf8')
         );
         assert.deepEqual(
-            workflowConfig.workflows['review-changes'].sequence,
-            ['review-changes', 'why-review', 'security-review', 'docs-update'],
-            'sweep must preserve review-changes -> why-review while removing a redundant control pair'
+            workflowConfig.workflows['changes-review'].sequence,
+            ['changes-review', 'why-review', 'security-review', 'docs-update'],
+            'sweep must preserve changes-review -> why-review while removing a redundant control pair'
         );
 
         const skillText = normalizeEol(await fs.readFile(path.join(tempSkillDir, 'SKILL.md'), 'utf8'));
-        assert.match(skillText, /\/review-changes -> \/why-review -> \/security-review -> \/docs-update/);
+        assert.match(skillText, /\/changes-review -> \/why-review -> \/security-review -> \/docs-update/);
         assert.doesNotMatch(skillText, /\/security-review -> \/why-review/);
     } finally {
         await fs.rm(tempRoot, { recursive: true, force: true });
@@ -83,15 +83,15 @@ test('TC-WFPROTO-007: prompt surfaces do not retain stale review workflow guidan
     const promptSurfacePaths = [
         '.claude/workflows.json',
         '.claude/workflows/primary-workflow.md',
-        '.claude/skills/review-architecture/SKILL.md',
-        '.claude/skills/review-ui/SKILL.md',
-        '.agents/skills/review-architecture/SKILL.md',
-        '.agents/skills/review-ui/SKILL.md',
+        '.claude/skills/architecture-review/SKILL.md',
+        '.claude/skills/ui-review/SKILL.md',
+        '.agents/skills/architecture-review/SKILL.md',
+        '.agents/skills/ui-review/SKILL.md',
         '.codex/CODEX_CONTEXT.md',
         'AGENTS.md'
     ];
-    const obsoleteWorkflowSummary = /code-simplifier\s*(?:->|→|\+)\s*review-changes\s*(?:->|→|\+)\s*review-architecture\s*(?:->|→|\+)\s*code-review\s*(?:->|→|\+)\s*performance/;
-    const obsoleteReviewUiSibling = /(?:review-ui[`$]?[^.\n]*parallel-batch sibling|Sibling of [`$]?review-architecture)/;
+    const obsoleteWorkflowSummary = /code-simplifier\s*(?:->|→|\+)\s*changes-review\s*(?:->|→|\+)\s*architecture-review\s*(?:->|→|\+)\s*code-review\s*(?:->|→|\+)\s*performance/;
+    const obsoleteReviewUiSibling = /(?:ui-review[`$]?[^.\n]*parallel-batch sibling|Sibling of [`$]?architecture-review)/;
 
     for (const promptSurfacePath of promptSurfacePaths) {
         const text = normalizeEol(await fs.readFile(path.join(repoRoot, promptSurfacePath), 'utf8'));
@@ -103,7 +103,7 @@ test('TC-WFPROTO-007: prompt surfaces do not retain stale review workflow guidan
         assert.doesNotMatch(
             text,
             obsoleteReviewUiSibling,
-            `${promptSurfacePath} must not describe review-ui as an external sibling reviewer`
+            `${promptSurfacePath} must not describe ui-review as an external sibling reviewer`
         );
     }
 });
@@ -120,7 +120,7 @@ test('TC-WFPROTO-008: review workflow batch prompt uses canonical skill ids and 
     assert.doesNotMatch(combined, /subagent_type(?:`|":\s*)\s*`?code-reviewer`?[^.\n]*Steps 3[–-]7/);
     assert.match(combined, /`performance-review`, `integration-test-review`, `security-review`/);
     assert.match(combined, /Agent\(security-review, subagent_type="security-auditor"/);
-    assert.match(combined, /Agent\(review-architecture, subagent_type="architect"/);
+    assert.match(combined, /Agent\(architecture-review, subagent_type="architect"/);
 });
 
 test('TC-WFADV-021: parallelGroups structural guards reject malformed barrier configs (no silent false-pass)', async () => {

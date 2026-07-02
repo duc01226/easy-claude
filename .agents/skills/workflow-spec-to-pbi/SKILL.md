@@ -149,9 +149,9 @@ Record domain findings in each affected PBI under `## Domain Impact`.
 For each matrix row that needs a new PBI:
 
 1. Run `$refine` to create the PBI artifact.
-2. Run `$review-artifact --type=pbi`.
+2. Run `$artifact-review --type=pbi`.
 3. Run `$story` to create vertical-slice stories.
-4. Run `$review-artifact --type=story`.
+4. Run `$artifact-review --type=story`.
 5. Run `$pbi-challenge`.
 6. Run `$dor-gate`.
 7. Run `$pbi-mockup` only when UI is involved. The generated mockup file MUST surface the PBI's priority/rank (header badge) so the prototype carries the same priority info as the backlog.
@@ -218,7 +218,7 @@ Workflow can close only when:
 - `$docs-update` has run as the near-final sync gate, with Feature Specs (§8) and derived bucket indexes either updated or explicitly marked unchanged.
 - `$feature-presentation` has run, producing one standalone HTML deck whose Scope & backlog slide surfaces each PBI's priority/rank.
 
-**IMPORTANT MANDATORY Steps:** $scout -> $spec-index -> $domain-analysis -> $why-review -> $spec-clarify -> $plan -> $plan-review -> $plan-validate -> $why-review -> $refine -> $why-review -> $review-artifact --type=pbi -> $story -> $why-review -> $review-artifact --type=story -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $design-spec -> $prioritize -> $docs-update -> $feature-presentation -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $scout -> $spec-index -> $domain-analysis -> $why-review -> $spec-clarify -> $plan -> $plan-review -> $plan-validate -> $why-review -> $refine -> $why-review -> $artifact-review --type=pbi -> $story -> $why-review -> $artifact-review --type=story -> $pbi-challenge -> $dor-gate -> $pbi-mockup -> $design-spec -> $prioritize -> $docs-update -> $feature-presentation -> $workflow-end -> $watzup
 
 > **[BLOCKING]** Each step MUST invoke its skill invocation. Marking a workflow step completed without skill invocation is a workflow violation.
 

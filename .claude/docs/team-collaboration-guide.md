@@ -171,7 +171,7 @@ Project knowledge — backend/frontend patterns, design tokens, code-review rule
 
 2. **Review artifact quality**
     ```
-    /review-artifact {artifact-path}
+    /artifact-review {artifact-path}
     ```
 
 **Workflow trigger:** Say "quality check" → run `/quality-gate-review` directly
@@ -326,7 +326,7 @@ Claude provides end-to-end workflows that span multiple roles:
 
 | Workflow              | Roles | Trigger          | Steps                                                                        |
 | --------------------- | ----- | ---------------- | ---------------------------------------------------------------------------- |
-| `idea-to-pbi` (PO→BA) | PO→BA | "hand off to BA" | `/idea` → `/review-artifact` → `/refine` → `/story` (conditional first step) |
+| `idea-to-pbi` (PO→BA) | PO→BA | "hand off to BA" | `/idea` → `/artifact-review` → `/refine` → `/story` (conditional first step) |
 
 Each workflow tracks progress across roles so the next role has full visibility into upstream artifacts.
 
@@ -490,7 +490,7 @@ PLANNING
 | PO   | `/idea`, `/prioritize`                             | idea-to-pbi            |
 | BA   | `/refine`, `/story`                                | idea-to-pbi            |
 | QA   | `/spec [mode=tests]`, `/integration-test`, `/test` | write-integration-test |
-| QC   | `/quality-gate-review`, `/review-artifact`         | —                      |
+| QC   | `/quality-gate-review`, `/artifact-review`         | —                      |
 | UX   | `/design-spec`, `/design`                          | —                      |
 | PM   | `/project-manager`, `/dependency`                  | —                      |
 
@@ -578,7 +578,7 @@ PLANNING
 
 1. Ensure the sending role's artifacts (idea, PBI, story, design spec, test spec) are complete and saved before the next role picks up
 2. Run `/quality-gate-review` to verify artifact completeness before the transition
-3. Use `/review-artifact` to validate quality of the upstream artifact
+3. Use `/artifact-review` to validate quality of the upstream artifact
 
 ---
 

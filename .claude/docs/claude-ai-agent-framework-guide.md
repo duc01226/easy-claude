@@ -45,7 +45,7 @@
 
 ## 1. Executive Summary
 
-This framework wraps Claude Code in a three-pillar execution framework — **15 top-level hook files**, **154 skills**, **17 registered workflows**, and **29 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
+This framework wraps Claude Code in a three-pillar execution framework — **15 top-level hook files**, **156 skills**, **18 registered workflows**, and **29 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
 
 It is also **harness- and project-agnostic**: the `.claude/` source compiles to verified OpenAI Codex mirrors (`AGENTS.md`, `.agents/`, `.codex/`), while all project-specific knowledge is factored into `project-config.json` + reference docs — so the same behavior runs on any supported AI tool and ports to any codebase (Section 13).
 
@@ -463,12 +463,12 @@ mindmap
       code-review
       prove-fix
       quality-gate-review
-      review-changes
+      changes-review
       code-simplifier
       production-readiness-review
-      review-artifact --type=pbi
-      review-artifact --type=story
-      review-artifact --type=spec-tests
+      artifact-review --type=pbi
+      artifact-review --type=story
+      artifact-review --type=spec-tests
     Planning & Research
       plan
       plan-review
@@ -694,9 +694,9 @@ Three new review skills create quality checkpoints between artifact-producing st
 
 | Review Skill                        | Reviews Output From          | Checks                                                  |
 | ----------------------------------- | ---------------------------- | ------------------------------------------------------- |
-| `review-artifact --type=pbi`        | `/refine` (PBI)              | INVEST criteria, acceptance criteria completeness, gaps |
-| `review-artifact --type=story`      | `/story` (stories)           | Vertical slicing quality, dependency tables, SPIDR      |
-| `review-artifact --type=spec-tests` | `/spec [mode=tests]` (specs) | TC coverage, traceability to ACs, boundary cases        |
+| `artifact-review --type=pbi`        | `/refine` (PBI)              | INVEST criteria, acceptance criteria completeness, gaps |
+| `artifact-review --type=story`      | `/story` (stories)           | Vertical slicing quality, dependency tables, SPIDR      |
+| `artifact-review --type=spec-tests` | `/spec [mode=tests]` (specs) | TC coverage, traceability to ACs, boundary cases        |
 
 **Added to workflows:** workflow-idea-to-pbi, workflow-big-feature, workflow-greenfield-init
 
@@ -755,7 +755,7 @@ Workflows are **JSON-defined sequences of skills** stored in `.claude/workflows.
             "fix",
             "prove-fix",
             "code-simplifier",
-            "review-changes",
+            "changes-review",
             "code-review",
             "changelog",
             "test",
@@ -811,10 +811,10 @@ WORKFLOW CATALOG
 
 > Removed in the 2026-06 catalog prune (use the equivalent skill directly instead of a workflow):
 > tdd-feature → `feature` (spec-driven with tests by default) · test-to-integration / test-verify → `write-integration-test` ·
-> pbi-to-tests → `/spec [mode=tests]` · quality-audit → `review-changes` · security-audit → `/security-review` ·
+> pbi-to-tests → `/spec [mode=tests]` · quality-audit → `changes-review` · security-audit → `/security-review` ·
 > performance → `/performance-review` · investigation → `/investigate` · migration → `/db-migrate` ·
 > package-upgrade → `/package-upgrade` skill · release-prep → `/production-readiness-review` + `/quality-gate-review` ·
-> batch-operation / verification / deployment → direct execution with `/plan` + `/review-changes`.
+> batch-operation / verification / deployment → direct execution with `/plan` + `/changes-review`.
 >
 > Removed in the 2026-06-13 prune: full-feature-lifecycle → `workflow-idea-to-pbi` (now idea→spec→pbi) then `workflow-feature` ·
 > documentation → `/docs-update` skill (or the docs-update step in `workflow-feature`) · spec-index → `/spec-index` skill (still a step in `workflow-spec-to-pbi`) ·
@@ -1335,7 +1335,7 @@ flowchart LR
 │  Input: Existing TCs + code changes                              │
 │  Action: Diff TCs against current code → find gaps               │
 │  Evidence: updated [Source: namespace/service/id] anchors        │
-│  Next: /test → /review-changes                                   │
+│  Next: /test → /changes-review                                   │
 │                                                                   │
 │  ALL MODES:                                                       │
 │  • Write TCs to feature doc Section 8 (canonical)               │
@@ -1422,7 +1422,7 @@ The framework supports AI-assisted development across **every phase** of the sof
 │                     │ feature workflow       │ build verification │
 │─────────────────────│────────────────────────│────────────────────│
 │  7. CODE REVIEW     │ /code-review           │ Automated quality  │
-│                     │ /review-changes        │ checks, pattern    │
+│                     │ /changes-review        │ checks, pattern    │
 │                     │ /prove-fix, /production-readiness-review│ compliance, proofs │
 │─────────────────────│────────────────────────│────────────────────│
 │  8. DOCUMENTATION   │ /docs-update           │ Auto-detect stale  │
@@ -1430,7 +1430,7 @@ The framework supports AI-assisted development across **every phase** of the sof
 │                     │ /changelog             │ changelogs, sync   │
 │─────────────────────│────────────────────────│────────────────────│
 │  9. SIGN-OFF        │ /quality-gate-review         │ Quality gates,     │
-│                     │ /review-artifact       │ artifact review    │
+│                     │ /artifact-review       │ artifact review    │
 │─────────────────────│────────────────────────│────────────────────│
 │  10. OPERATIONS     │ /devops                │ Infrastructure     │
 │                     │ /production-readiness-review            │ automation and     │
@@ -1542,7 +1542,7 @@ TEST SPECIFICATION ARCHITECTURE
 
 **Scenario:** You want to implement a feature AND ensure integration test coverage — write specs first, refine the plan with test strategy, then implement and generate tests.
 
-> **Merged into `feature` (2026-06).** The former standalone `feature-with-integration-test` workflow was a ~85% subset of `feature`; it has been merged. The `feature` workflow now natively carries the spec-first integration-test path (`/integration-test → /integration-test-review → /integration-test-verify`) plus the entity-conditional `/domain-analysis` + `/review-domain-entities` steps. Use the `feature` workflow for this scenario.
+> **Merged into `feature` (2026-06).** The former standalone `feature-with-integration-test` workflow was a ~85% subset of `feature`; it has been merged. The `feature` workflow now natively carries the spec-first integration-test path (`/integration-test → /integration-test-review → /integration-test-verify`) plus the entity-conditional `/domain-analysis` + `/domain-entities-review` steps. Use the `feature` workflow for this scenario.
 
 **Key points:** `feature` writes and reviews test specs before implementation (spec-driven with tests by default, covering the former `tdd-feature` use case), includes a dedicated re-planning step after specs to refine the implementation plan with test infrastructure needs, and a `/spec [mode=sync]` step that keeps spec §8 TCs and integration-test code aligned.
 
@@ -1554,8 +1554,8 @@ TEST SPECIFICATION ARCHITECTURE
 feature:
   scout → investigate → spec-discovery → domain-analysis → why-review → spec → spec-clarify →
   plan → plan-review → plan-validate → why-review →
-  spec [mode=tests] → why-review → review-artifact --type=spec-tests → plan → plan-review →
-  plan-execute → seed-test-data → review-domain-entities → spec [mode=tests] → why-review → review-artifact --type=spec-tests →
+  spec [mode=tests] → why-review → artifact-review --type=spec-tests → plan → plan-review →
+  plan-execute → seed-test-data → domain-entities-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests →
   spec [mode=sync] → integration-test → integration-test-review →
   integration-test-verify → workflow-review-changes →
   security-review → changelog → test → docs-update → workflow-end → watzup
@@ -1643,7 +1643,7 @@ feature:
 **spec-sync workflow sequence:**
 
 ```
-spec-sync: review-changes → spec [mode=tests] → spec [mode=sync] →
+spec-sync: changes-review → spec [mode=tests] → spec [mode=sync] →
                   integration-test → test → workflow-end
 ```
 
@@ -1687,7 +1687,7 @@ spec-sync: review-changes → spec [mode=tests] → spec [mode=sync] →
 
 ```
 write-integration-test: scout → investigate → spec [mode=tests] → why-review →
-                        review-artifact --type=spec-tests → integration-test →
+                        artifact-review --type=spec-tests → integration-test →
                         integration-test-review → integration-test-verify →
                         spec [mode=sync] → docs-update → workflow-end → watzup
 ```
@@ -2175,14 +2175,14 @@ greenfield-init: FULL WATERFALL INCEPTION → IMPLEMENTATION → INTEGRATION TES
 │
 ├── REFINEMENT + REVIEW GATES (6 steps)
 │   ├── /refine ────────────── Refine to PBI with acceptance criteria
-│   ├── /review-artifact --type=pbi ─────── PBI quality gate
+│   ├── /artifact-review --type=pbi ─────── PBI quality gate
 │   ├── /story ─────────────── Break into prioritized stories with dependencies
-│   ├── /review-artifact --type=story ──────── Story quality gate
+│   ├── /artifact-review --type=story ──────── Story quality gate
 │   ├── /plan-validate ─────── 3-8 questions: confirm all decisions with user
 │   └── /spec [mode=tests] ──── Test strategy, spec generation
 │
 ├── SECOND PLAN + SCAFFOLD (4 steps)
-│   ├── /review-artifact --type=spec-tests ──── Test spec quality gate
+│   ├── /artifact-review --type=spec-tests ──── Test spec quality gate
 │   ├── /plan ──────────────── Sprint-ready plan from concrete stories
 │   ├── /plan-review ───────── Review sprint plan
 │   └── /scaffold ──────────── Architecture scaffolding (CONDITIONAL)
@@ -2193,7 +2193,7 @@ greenfield-init: FULL WATERFALL INCEPTION → IMPLEMENTATION → INTEGRATION TES
 │
 ├── INTEGRATION TESTING (6 steps)
 │   ├── /spec [mode=tests] ──── Write test specs for implemented code
-│   ├── /review-artifact --type=spec-tests ──── Review spec coverage and correctness
+│   ├── /artifact-review --type=spec-tests ──── Review spec coverage and correctness
 │   ├── /plan ──────────────── Plan integration test architecture (3rd round)
 │   ├── /plan-review ───────── Review integration test plan
 │   ├── /integration-test ──── Generate integration tests from specs
@@ -2201,7 +2201,7 @@ greenfield-init: FULL WATERFALL INCEPTION → IMPLEMENTATION → INTEGRATION TES
 │
 └── QUALITY + WRAP-UP (11 steps)
     ├── /code-simplifier ───── Simplify code for readability
-    ├── /review-changes ────── Review all uncommitted changes
+    ├── /changes-review ────── Review all uncommitted changes
     ├── /code-review ───────── Code quality, patterns compliance
     ├── /production-readiness-review ────────── Production readiness
     ├── /security-review ──────────── Security review
@@ -2302,9 +2302,9 @@ big-feature: RESEARCH-DRIVEN FEATURE DEVELOPMENT
 │
 ├── REFINEMENT PHASE (4 steps — with review gates)
 │   ├── /refine ────────────── Acceptance criteria, PBI
-│   ├── /review-artifact --type=pbi ─────── PBI quality gate
+│   ├── /artifact-review --type=pbi ─────── PBI quality gate
 │   ├── /story ─────────────── User stories with dependencies
-│   └── /review-artifact --type=story ──────── Story quality gate
+│   └── /artifact-review --type=story ──────── Story quality gate
 │
 ├── SECOND PLANNING ROUND (5 steps — sprint-ready plan + scaffold)
 │   ├── /plan ──────────────── Sprint-ready plan from stories
@@ -2317,7 +2317,7 @@ big-feature: RESEARCH-DRIVEN FEATURE DEVELOPMENT
 │   ├── /feature-implement ──────────────── Pattern-enforced coding
 │   ├── /integration-test ──── Generate integration tests
 │   ├── /code-simplifier ───── YAGNI/KISS/DRY pass
-│   ├── /review-changes ────── Pre-commit review
+│   ├── /changes-review ────── Pre-commit review
 │   └── /code-review ──────── Quality audit
 │
 └── QUALITY & WRAP PHASE (8 steps)
@@ -2377,7 +2377,7 @@ Round 1 (after architecture-design):
   Purpose: High-level architecture plan based on research + domain analysis
   Output: Architecture decisions, service boundaries, tech choices
 
-Round 2 (after review-artifact --type=story):
+Round 2 (after artifact-review --type=story):
   /plan → /plan-review → /scaffold
   Purpose: Sprint-ready implementation plan from concrete stories
   Output: Phased steps, file lists, dependency ordering
@@ -2608,7 +2608,7 @@ This section maps **established prompt engineering techniques** to specific fram
 │                                                                   │
 │  Workflow steps that force self-correction:                      │
 │                                                                   │
-│  /feature-implement ────────→ /code-simplifier ──→ /review-changes ──→       │
+│  /feature-implement ────────→ /code-simplifier ──→ /changes-review ──→       │
 │  (generate)      (simplify/clean)     (self-review)              │
 │                                                                   │
 │  /fix ─────────→ /prove-fix ────────→ /test                     │
@@ -2619,7 +2619,7 @@ This section maps **established prompt engineering techniques** to specific fram
 │                                                                   │
 │  Each pass uses a DIFFERENT evaluation lens:                     │
 │  • /code-simplifier: "Is this the simplest correct solution?"   │
-│  • /review-changes: "Does this follow project conventions?"     │
+│  • /changes-review: "Does this follow project conventions?"     │
 │  • /code-review: "Does this meet quality standards?"            │
 │  • /production-readiness-review: "Is this production-ready?"                     │
 │  • /security-review: "Are there vulnerabilities?"                      │
@@ -2986,7 +2986,7 @@ sequenceDiagram
 | **Sync**    | `/graph-build --scope=sync` | Sync graph with git state after pull/checkout                                            |
 | **Batch**   | `/graph-query batch`        | Multi-file deduplicated query                                                            |
 
-Skills that **automatically receive graph context** when graph.db exists: `/code-review`, `/review-changes`, `/review-architecture`, `/scout`, `/debug-investigate`, `/production-readiness-review`, `/investigate`, `/fix`, `/refactoring`, `/security-review`, `/performance-review`, `/code-simplifier`, `/prove-fix`.
+Skills that **automatically receive graph context** when graph.db exists: `/code-review`, `/changes-review`, `/architecture-review`, `/scout`, `/debug-investigate`, `/production-readiness-review`, `/investigate`, `/fix`, `/refactoring`, `/security-review`, `/performance-review`, `/code-simplifier`, `/prove-fix`.
 
 #### Auto-Maintenance
 
@@ -3027,7 +3027,7 @@ The graph requires **zero manual maintenance** after initial build:
 
 A key problem with generic code review: the reviewer doesn't know whether the PR touches backend, frontend, both, or only tooling — so it checks everything regardless. A BE-only fix still triggers SCSS reviews. An Angular-only change still spawns C# pattern checks.
 
-**Phase 0.7 Surface Detection** (added to `/review-changes`) classifies the git diff into surface buckets _before_ spawning any sub-agent:
+**Phase 0.7 Surface Detection** (added to `/changes-review`) classifies the git diff into surface buckets _before_ spawning any sub-agent:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -3169,7 +3169,7 @@ Both directions are queryable without reading source code, making the spec-drive
 
 The hardest hallucination to catch is the one inside the review itself. A review agent that fabricates a finding — wrong `file:line`, inflated severity, a "bug" that re-traces as correct — poisons everything downstream: the fix targets nothing, the human burns trust, the audit trail records noise. Evidence gates (Section 8.6) protect the _implementation_; this gate protects the _review_.
 
-The mechanism is a **recursion-guarded self-review loop**: after any review produces findings, the reviewer re-reviews its own output once more in a terminal mode, and a bounded re-do loop reconciles until the findings are clean. It ships in `/why-review`; standalone `/review-changes` runs it in Phase 6, while `$workflow-review-changes` runs the findings-validation gate as parent step 2 before parallel reviewers and later fix planning.
+The mechanism is a **recursion-guarded self-review loop**: after any review produces findings, the reviewer re-reviews its own output once more in a terminal mode, and a bounded re-do loop reconciles until the findings are clean. It ships in `/why-review`; standalone `/changes-review` runs it in Phase 6, while `$workflow-review-changes` runs the findings-validation gate as parent step 2 before parallel reviewers and later fix planning.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -3206,7 +3206,7 @@ A naive "review your review" instruction recurses forever — the validation pas
 | Rule                                                                                                                                            | What it prevents                                                               |
 | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | `validate-findings` is **terminal** — never calls `/why-review`, never re-runs the gate, never spawns a sub-agent                               | Infinite self-recursion                                                        |
-| The re-do loop lives in the **caller** (standalone `/review-changes` Phase 6 or `$workflow-review-changes` parent step 2), not in validate mode | Diffuse, unbounded looping across agents                                       |
+| The re-do loop lives in the **caller** (standalone `/changes-review` Phase 6 or `$workflow-review-changes` parent step 2), not in validate mode | Diffuse, unbounded looping across agents                                       |
 | **Bounded at max 2 re-dos**, then `AskUserQuestion` escalation                                                                                  | A finding the AI can neither prove nor drop silently looping forever           |
 | All passes run in the **same main-agent session** (never a spawned sub-agent)                                                                   | Context loss between validation rounds; the validator sees the real cited code |
 
@@ -3440,7 +3440,7 @@ flowchart TB
 | **Context engineering (JIT + dedup + budget)** | Hooks manage context window with precision injection                                                     | Hooks         |
 | **Skill chain navigation (Next Steps)**        | AskUserQuestion recommends logical next skill per step                                                   | Skills        |
 | **Plan-aware skills (Step 0)**                 | Skills read prior workflow outputs before starting work                                                  | Skills        |
-| **Review gates between artifacts**             | review-artifact (--type pbi/story/spec-tests) checkpoints                                                | Skills        |
+| **Review gates between artifacts**             | artifact-review (--type pbi/story/spec-tests) checkpoints                                                | Skills        |
 | **Agent negative-prompting guardrails**        | NEVER/ALWAYS rules per agent prevent role overstepping                                                   | Agents        |
 | **Dual planning rounds**                       | High-level arch plan → sprint-ready plan after stories                                                   | Workflows     |
 | **Conditional architecture scaffolding**       | /scaffold auto-skips when existing abstractions found                                                    | Skills        |
@@ -3784,7 +3784,7 @@ The framework succeeds because it aligns with how LLMs actually fail:
 
 ### The Result
 
-**15 top-level hook files**, **154 skills**, **17 registered workflows**, and **29 specialized agents** working in concert to deliver:
+**15 top-level hook files**, **156 skills**, **18 registered workflows**, and **29 specialized agents** working in concert to deliver:
 
 - **Fewer hallucinations** — Evidence gates and proof traces catch AI fabrications before they reach files
 - **Better code quality** — Pattern injection ensures AI follows project conventions, not generic training data

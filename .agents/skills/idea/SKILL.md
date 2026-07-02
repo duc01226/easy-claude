@@ -273,7 +273,7 @@ $idea "Add goal progress tracking notification"
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** Not already in workflow → MUST ATTENTION use ask the user directly:
 >
-> 1. **Activate `workflow-idea-to-pbi` workflow** (Recommended) — idea → refine → review-artifact --type=pbi → story → review-artifact --type=story → prioritize
+> 1. **Activate `workflow-idea-to-pbi` workflow** (Recommended) — idea → refine → artifact-review --type=pbi → story → artifact-review --type=story → prioritize
 > 2. **Execute `$idea` directly** — run standalone
 
 ---

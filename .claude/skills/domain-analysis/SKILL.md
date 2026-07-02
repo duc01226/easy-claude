@@ -836,7 +836,7 @@ Report must be **≤250 lines**. Use tables over prose.
 
 **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, use `AskUserQuestion` to present these options:
 
-- **"/review-domain-entities (Recommended)"** — Review DDD quality of entities modeled/modified in this analysis (anemic model, VO classification, invariant enforcement, aggregate boundaries)
+- **"/domain-entities-review (Recommended)"** — Review DDD quality of entities modeled/modified in this analysis (anemic model, VO classification, invariant enforcement, aggregate boundaries)
 - **"/tech-stack-research"** — Research tech stack based on domain model
 - **"/plan"** — If tech stack already decided and entity quality already reviewed
 - **"Skip, continue manually"** — user decides

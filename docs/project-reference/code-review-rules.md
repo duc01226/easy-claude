@@ -343,7 +343,7 @@ If any of these are detected during review, the review must flag them as **CRITI
 ## Cross-Reference
 
 - **Read by:** review skills/agents per the project-reference-docs gate in `CLAUDE.md` (the former `code-review-rules-injector.cjs` hook was removed in the de-hooking refactor)
-- **Consumed by:** `/code-review`, `/review-changes`, `/review-pr`, `code-reviewer` agent
+- **Consumed by:** `/code-review`, `/changes-review`, `/review-pr`, `code-reviewer` agent
 - **Source protocols:** `evidence-based-reasoning-protocol.md`, `understand-code-first-protocol.md`, `rationalization-prevention-protocol.md`, `red-flag-stop-conditions-protocol.md`, `two-stage-task-review-protocol.md`
 - **Hook docs:** `.claude/docs/hooks/README.md`, `.claude/docs/hooks/extending-hooks.md`, `.claude/docs/hooks/architecture.md`
 - **Skill docs:** `.claude/docs/skill-naming-conventions.md`

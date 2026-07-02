@@ -48,14 +48,14 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 - Describe outcomes, never implementations — investigate the existing system before writing any requirement.
 - Every story carries 3+ GIVEN/WHEN/THEN scenarios (happy, edge, error) and meets INVEST; business rules get `BR-{MOD}-{NNN}` IDs.
-- A PBI is not done until `$dor-gate` passes and the collaborative review (`$pbi-challenge`, not just `$review-artifact`) runs.
+- A PBI is not done until `$dor-gate` passes and the collaborative review (`$pbi-challenge`, not just `$artifact-review`) runs.
 
 **Workflow:**
 
 1. **Understand source** — read idea/PBI, identify stakeholders, note constraints
 2. **Analyze requirements** — break into vertical slices, identify acceptance criteria, document business rules
 3. **Write stories** — "As a... I want... So that..." with INVEST criteria, 3+ scenarios each
-   3b. **Collaborative review** — PBI drafted by BA Drafters (UX BA + Designer BA) → run `$pbi-challenge` for Dev BA PIC review. PBI drafted by Dev BA PIC → run `$review-artifact --type=pbi` for AI self-review.
+   3b. **Collaborative review** — PBI drafted by BA Drafters (UX BA + Designer BA) → run `$pbi-challenge` for Dev BA PIC review. PBI drafted by Dev BA PIC → run `$artifact-review --type=pbi` for AI self-review.
 4. **Validate** — check completeness, hand off to `spec [mode=tests]` for test generation
 
 **Key Rules:**
@@ -63,7 +63,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - NEVER write requirements without first understanding the existing system — investigate, then write
 - NEVER skip acceptance criteria — every story carries them
 - ALWAYS run `$dor-gate` before declaring a PBI grooming-ready
-- ALWAYS use `$pbi-challenge` for collaborative review — not just `$review-artifact --type=pbi`
+- ALWAYS use `$pbi-challenge` for collaborative review — not just `$artifact-review --type=pbi`
 - Acceptance criteria ALWAYS GIVEN/WHEN/THEN — minimum 3 scenarios (happy path, edge case, error case)
 
 > **Evidence Gate:** MANDATORY IMPORTANT MUST ATTENTION — every claim, finding, and recommendation requires `file:line` proof or traced evidence with confidence percentage (>80% to act, <80% must verify first).
@@ -392,7 +392,7 @@ Report path: `plans/reports/`. Artifact filenames follow the Role Context naming
 > 2. **AC testable & unambiguous** — GIVEN/WHEN/THEN. No "should/might/TBD/various/appropriate". Min 3 scenarios (happy, edge, error) + 1 auth scenario
 > 3. **Wireframes attached** — UI features: `## UI Layout` with wireframe + components + states + tokens. Backend-only: explicit "N/A"
 > 4. **UI design ready** — Visual design + component decomposition tree + design-spec linked (`$design-spec` artifact or inline UI specs in `## UI Layout`) for any PBI with UI work. Backend-only: "N/A"
-> 5. **AI pre-review passed** — `$review-artifact --type=pbi` or `$pbi-challenge` returned PASS or WARN (not FAIL)
+> 5. **AI pre-review passed** — `$artifact-review --type=pbi` or `$pbi-challenge` returned PASS or WARN (not FAIL)
 > 6. **Story points estimated** — Fibonacci 1-21 + complexity (Low/Medium/High). >13 SP → recommend split
 > 7. **Dependencies table complete** — Dependency, Type (must-before/can-parallel/blocked-by/independent), Status
 >
@@ -497,7 +497,7 @@ Report path: `plans/reports/`. Artifact filenames follow the Role Context naming
 **IMPORTANT MUST ATTENTION** NEVER skip acceptance criteria — every story carries GIVEN/WHEN/THEN with 3+ scenarios (happy, edge, error) + 1 auth scenario — why: untestable AC ships ambiguous requirements that fail DoR criterion 2.
 **IMPORTANT MUST ATTENTION** NEVER write requirements without understanding the existing system — investigate first, cite `file:line` evidence — why: outcomes invented without the system context contradict what already ships.
 **IMPORTANT MUST ATTENTION** ALWAYS run `$dor-gate` before declaring a PBI grooming-ready — all 7 DoR criteria must pass — why: ungroomed PBIs stall the squad and re-open in refinement.
-**IMPORTANT MUST ATTENTION** ALWAYS use `$pbi-challenge` for collaborative Dev-BA-PIC review — not just `$review-artifact --type=pbi` — why: self-review alone misses technical-feasibility veto signals.
+**IMPORTANT MUST ATTENTION** ALWAYS use `$pbi-challenge` for collaborative Dev-BA-PIC review — not just `$artifact-review --type=pbi` — why: self-review alone misses technical-feasibility veto signals.
 **IMPORTANT MUST ATTENTION** describe OUTCOMES, NEVER implementations — no solution-speak; apply 5 Whys on vague/root-cause requests — why: solution-speak in a spec locks design before engineering owns it.
 **IMPORTANT MUST ATTENTION** every story meets INVEST; document business rules as IF/THEN/ELSE with IDs (`BR-{MOD}-{NNN}`, `FR-`/`NFR-` for requirements) — why: ID-less rules cannot be traced to tests or specs.
 **IMPORTANT MUST ATTENTION** honor the BA team 2/3 majority-vote model — Dev BA PIC holds technical veto; disagree-and-commit after the vote, record decisions in PBI Validation Summary.

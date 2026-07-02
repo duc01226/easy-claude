@@ -8,7 +8,7 @@ Sub-agents under ``.claude/agents/*.md`` are wired into block *body* sync
 ``inject_*`` coverage campaigns only ever targeted *skills*. Result: every
 agent carries the same generic baseline and ZERO role-specific rigor -- the
 flagship ``code-reviewer`` agent had none of the 14 review-quality blocks its
-twin ``code-review`` / ``review-changes`` skills carry. This module is the
+twin ``code-review`` / ``changes-review`` skills carry. This module is the
 manifest that closes that gap: per-agent, which QUALITY blocks to ADD.
 
 POLICY: QUALITY propagates, ORCHESTRATION does not

@@ -265,9 +265,9 @@ After plan creation, offer validation interview to confirm decisions before impl
 
 ## Standalone Review Gate (Non-Workflow Only)
 
-> **MANDATORY IMPORTANT MUST ATTENTION:** If skill is called **outside a workflow** (standalone `/plan`), generated plan MUST ATTENTION include `/review-changes` as a **final phase/task** in plan. Ensures all implementation changes get reviewed before commit even without a workflow enforcing it.
+> **MANDATORY IMPORTANT MUST ATTENTION:** If skill is called **outside a workflow** (standalone `/plan`), generated plan MUST ATTENTION include `/changes-review` as a **final phase/task** in plan. Ensures all implementation changes get reviewed before commit even without a workflow enforcing it.
 >
-> If already running inside a workflow (e.g., `workflow-feature`, `workflow-bugfix`), skip this — workflow sequence handles `/review-changes` at appropriate step.
+> If already running inside a workflow (e.g., `workflow-feature`, `workflow-bugfix`), skip this — workflow sequence handles `/changes-review` at appropriate step.
 
 ## Next Steps (Standalone: MUST ATTENTION ask user via `AskUserQuestion`. Skip if inside workflow.)
 
@@ -792,7 +792,7 @@ After creating all phase files, run **recursive decomposition loop**:
 **MANDATORY IMPORTANT MUST ATTENTION** estimation is bottom-up — phase hours drive `man_days_traditional` (`Σh/6 × productivity_factor`); SP DERIVED, never the driver; UI cost usually dominates; emit full `estimate_reasoning` frontmatter.
 **MANDATORY IMPORTANT MUST ATTENTION** every phase carries `## Test Specifications` with `TC-{FEATURE}-{NNN}` IDs; map every functional requirement to ≥1 TC (or explicit `Evidence: TBD` for TDD-first).
 **MANDATORY IMPORTANT MUST ATTENTION** for `.claude` skills/hooks/workflows/sync work, plans MUST include generated-mirror sync action or explicit no-sync evidence — why: a silently stale mirror diverges from source.
-**MANDATORY IMPORTANT MUST ATTENTION** NEVER skip `/plan-review` after plan creation — run it standalone or as the workflow step; standalone `/plan` also appends `/review-changes` as a final task.
+**MANDATORY IMPORTANT MUST ATTENTION** NEVER skip `/plan-review` after plan creation — run it standalone or as the workflow step; standalone `/plan` also appends `/changes-review` as a final task.
 **IMPORTANT MUST ATTENTION** search 3+ existing patterns and read target code BEFORE planning; cite `file:line`; run graph trace when `.code-graph/graph.db` exists — why: local conventions override generic framework defaults.
 **MANDATORY IMPORTANT MUST ATTENTION** run the full main pipeline in order — pre-check plan → bootstrap `goal.md` → parallel `researcher` subagents → codebase + project-reference analysis (scout if docs absent) → `planner` writes `plan.md` + `phase-XX` → granularity self-check → mandatory final tasks; NEVER skip a step because it seems obvious — why: the skipped step (Goal Contract, granularity, test specs) is the one AI silently drops.
 **MANDATORY IMPORTANT MUST ATTENTION** queue the final-task block on EVERY plan — Test Specs per phase → `/plan-validate` → `/plan-review` (3-round) → `/why-review` (standalone only) → re-estimate vs finalized phases (flag `SHOULD-RESCOPE` when delta >50%).

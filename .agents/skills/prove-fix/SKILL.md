@@ -450,7 +450,7 @@ This skill is the **mandatory verification gate** between `$fix` and `$code-simp
 **Workflow position:**
 
 ```
-... → $fix → $prove-fix → $code-simplifier → $review-changes → ...
+... → $fix → $prove-fix → $code-simplifier → $changes-review → ...
 ```
 
 **If proof trace reveals issues:**

@@ -60,7 +60,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - MUST ATTENTION preserve `Business Intent / Invariant Guarded` when updating TCs; do not encode accidental implementation behavior.
 - NEVER skip mandatory workflow or skill gates.
 
-**IMPORTANT MANDATORY Steps:** $workflow-review-changes -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $spec [mode=sync] -> $integration-test -> $integration-test-review -> $integration-test-verify -> $test -> $docs-update -> $workflow-end
+**IMPORTANT MANDATORY Steps:** $workflow-review-changes -> $spec [mode=tests] -> $why-review -> $artifact-review --type=spec-tests -> $spec [mode=sync] -> $integration-test -> $integration-test-review -> $integration-test-verify -> $test -> $docs-update -> $workflow-end
 
 > **[BLOCKING]** Each step MUST ATTENTION invoke its skill invocation — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 > **[BLOCKING]** Read `docs/project-reference/spec-principles.md` before updating test specs — Section 7 TC coverage mapping is the canonical baseline.
@@ -69,11 +69,11 @@ Activate the `workflow-spec-sync` workflow. Run `$start-workflow workflow-spec-s
 
 > **UI-intent maintenance (conditional)** — runs alongside the `$spec [mode=sync]` step, **only when the change carries user-facing behavior** (else state the skip reason — backend-only change, no §6 change). When the changed behavior is user-facing, run `$spec` (ui-intent intent) to refresh the affected Feature Spec **§6** interaction surface — View Inventory, Key UI States, and the per-story (`US-`/`OP-`/`BR-`) click-path — and re-link the governing `$design-spec`/mockup in the spec frontmatter so §6 and the design artifact stay coupled to the synced behavior. The rules live in the shared block below (`SYNC:ui-intent-layer`) — follow it; do not restate it here.
 
-**Steps:** $workflow-review-changes → $spec [mode=tests] → $why-review → $review-artifact --type=spec-tests → $spec [mode=sync] → $integration-test → $integration-test-review → $integration-test-verify → $test → $docs-update → $workflow-end
+**Steps:** $workflow-review-changes → $spec [mode=tests] → $why-review → $artifact-review --type=spec-tests → $spec [mode=sync] → $integration-test → $integration-test-review → $integration-test-verify → $test → $docs-update → $workflow-end
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $workflow-review-changes -> $spec [mode=tests] -> $why-review -> $review-artifact --type=spec-tests -> $spec [mode=sync] -> $integration-test -> $integration-test-review -> $integration-test-verify -> $test -> $docs-update -> $workflow-end
+**IMPORTANT MANDATORY Steps:** $workflow-review-changes -> $spec [mode=tests] -> $why-review -> $artifact-review --type=spec-tests -> $spec [mode=sync] -> $integration-test -> $integration-test-review -> $integration-test-verify -> $test -> $docs-update -> $workflow-end
 
 <!-- SYNC:ai-mistake-prevention -->
 

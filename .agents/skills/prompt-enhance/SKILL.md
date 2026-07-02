@@ -369,7 +369,7 @@ For each `.claude/` protocol reference:
 
 <!-- SYNC:universal-skill-building-principles -->
 
-> **Universal Skill-Building Principles** — 10 principles for building AI skills that work across any project type. Source: extracted from review-changes, plan-review, code-review skill rewrites.
+> **Universal Skill-Building Principles** — 10 principles for building AI skills that work across any project type. Source: extracted from changes-review, plan-review, code-review skill rewrites.
 >
 > **Meta-principle: Teach AI to reason, not to recite.** Skill's job: structure WHEN and HOW AI applies its existing knowledge — not enumerate every possible concern.
 >

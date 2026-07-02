@@ -1,44 +1,8 @@
 ---
-name: review-architecture
+name: architecture-review
+version: 2.0.0
 description: '[Code Quality] Use when reviewing architecture compliance for layers, messaging, service boundaries, CQRS, repos, and entity events.'
 ---
-
-> Codex compatibility note:
-> - Invoke repository skills with `$skill-name` in Codex; this mirrored copy rewrites legacy Claude `/skill-name` references.
-> - Task tracker mandate: BEFORE executing any workflow or skill step, create/update task tracking for all steps and keep it synchronized as progress changes.
-> - User-question prompts mean to ask the user directly in Codex.
-> - Ignore Claude-specific mode-switch instructions when they appear.
-> - Strict execution contract: when a user explicitly invokes a skill, execute that skill protocol as written.
-> - Subagent authorization: when a skill is user-invoked or AI-detected and its protocol requires subagents, that skill activation authorizes use of the required `spawn_agent` subagent(s) for that task.
-> - Do not skip, reorder, or merge protocol steps unless the user explicitly approves the deviation first.
-> - For workflow skills, execute each listed child-skill step explicitly and report step-by-step evidence.
-> - If a required step/tool cannot run in this environment, stop and ask the user before adapting.
-<!-- CODEX:PROJECT-REFERENCE-LOADING:START -->
-## Codex Project-Reference Loading (No Hooks)
-
-Codex uses static project-reference loading instead of runtime-injected project docs.
-When coding, planning, debugging, testing, or reviewing, open project docs explicitly using this routing.
-
-**Always read:**
-- `docs/project-config.json` (project-specific paths, commands, modules, and workflow/test settings)
-- `docs/project-reference/docs-index-reference.md` (routes to the full `docs/project-reference/*` catalog)
-- `docs/project-reference/lessons.md` (always-on guardrails and anti-patterns)
-
-**Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.
-
-**Situation-based docs:**
-- Project structure/architecture/tech-stack/deployment/setup (any layer — backend, frontend, or infra): `project-structure-reference.md`
-- Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`
-- Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md`
-- Spec authoring, `docs/specs/` pathing, or TC format: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`
-- Behavior/public-contract changes or spec-test-code sync: `workflow-spec-test-code-cycle-reference.md` plus the spec docs above
-- Derived spec indexes/ERDs/reimplementation guides: `spec-system-reference.md` and source Feature Specs under `docs/specs/`
-- Integration test implementation/review: `integration-test-reference.md`
-- E2E test implementation/review: `e2e-test-reference.md`
-- Code review/audit work: `code-review-rules.md` plus domain docs above based on changed files
-
-Do not read all docs blindly. Start from `docs-index-reference.md`, then open only relevant files for the task.
-<!-- CODEX:PROJECT-REFERENCE-LOADING:END -->
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
@@ -56,11 +20,11 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Summary:**
 
 - **Purpose:** validate a changeset against the architecture rules the project records in its OWN reference docs, classify every finding PASS/WARN/BLOCKED with `file:line` proof, then self-validate before handoff — this skill is one reviewer in the `workflow-review-changes` pipeline.
-- **Main phases — run in order:** Phase 0 load architecture rules → Phase 1 determine scope → Phase 2 blast radius (if `graph.db`) → Phase 3 architecture review (12 categories) → Phase 4 finalize compliance report → Phase 5 `$why-review` self-validation gate → Next Steps ask the user directly.
+- **Main phases — run in order:** Phase 0 load architecture rules → Phase 1 determine scope → Phase 2 blast radius (if `graph.db`) → Phase 3 architecture review (12 categories) → Phase 4 finalize compliance report → Phase 5 `/why-review` self-validation gate → Next Steps `AskUserQuestion`.
 - **The 12 Phase-3 categories — review EVERY applicable one, serially:** 0 quality-tooling baseline · 1 clean-architecture layers · 2 message-bus patterns · 3 CQRS compliance · 4 repository patterns · 5 service-pattern era (legacy vs modern) · 6 entity event handlers · 7 service boundaries · 8 frontend architecture (frontend files only) · 9 ADR / recorded-decision conformance · 10 spec-loop discipline (property-TC + dual-feedback) · 11 scalability & coupling regression (diff-scoped; BLOCKED/WARN). Per category: `Think:` derivation → doc rule → source evidence → `file:line` proof + grep 3+ counterexamples → verdict. NEVER scan categories in parallel; codebase convention wins over a suspected violation. — why: skipping a category silently drops the violation class it uniquely covers.
 - Phase 0 is non-negotiable and first: load the project architecture docs (`backend-patterns-reference.md`, `project-structure-reference.md`, `frontend-patterns-reference.md`, `code-review-rules.md`) — every rule and base-class/symbol name comes from those docs, NEVER general knowledge; the framework names in Categories 2–8 are illustrative only.
 - Stay in lane: deep-review only what this skill OWNS (layers, messaging/CQRS/repos/service boundaries, entity events, frontend architecture, quality tooling, generated artifacts, ADRs); record a one-line `→ route to {sibling}` pointer for security/performance/DDD/UI/test findings instead of expanding them. — why: duplicated findings across reviewers inflate severity counts and bury issues each reviewer uniquely owns.
-- Read-only until validated: after producing any finding, run the Phase 5 `$why-review` self-validation gate before handoff; fixes happen only in the validated fix loop, and every fix restarts a full review from Phase 0. Write findings to `plans/reports/arch-review-{date}-{slug}.md`.
+- Read-only until validated: after producing any finding, run the Phase 5 `/why-review` self-validation gate before handoff; fixes happen only in the validated fix loop, and every fix restarts a full review from Phase 0. Write findings to `plans/reports/arch-review-{date}-{slug}.md`.
 
 **Default scope:** All uncommitted changes (staged + unstaged). Override: specify files, directories, services, or full codebase.
 
@@ -77,11 +41,11 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 1. **Phase 0: Load Architecture Rules** — Read project architecture docs (rules come from docs, NEVER general knowledge)
 2. **Phase 1: Determine Scope** — Changed files (default) or user-specified scope
-3. **Phase 2: Blast Radius** — Run `$graph-blast-radius` if `graph.db` exists
+3. **Phase 2: Blast Radius** — Run `/graph-blast-radius` if `graph.db` exists
 4. **Phase 3: Architecture Review** — Check each file serially against all 12 applicable categories (0 tooling → 11 scalability & coupling)
 5. **Phase 4: Finalize** — Generate compliance report with PASS/BLOCKED/WARN verdicts
-6. **Phase 5: Why-Review Self-Validation Gate** — Adversarially validate own findings via `$why-review` before handoff (MANDATORY when any finding exists)
-7. **Next Steps** — ask the user directly: `$code-simplifier` / `$code-review` / skip
+6. **Phase 5: Why-Review Self-Validation Gate** — Adversarially validate own findings via `/why-review` before handoff (MANDATORY when any finding exists)
+7. **Next Steps** — `AskUserQuestion`: `/code-simplifier` / `/code-review` / skip
 
 **Key Rules (top 3 critical first):**
 
@@ -90,7 +54,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - MUST ATTENTION review one category at a time: doc rule → source evidence → verdict — NEVER scan categories simultaneously.
 - Write findings to `plans/reports/arch-review-{date}-{slug}.md`.
 - BLOCKED = must fix before merge | WARN = review and decide | PASS = compliant.
-- Review is read-only until `$why-review --validate-findings` confirms findings; fixes happen only in the validated fix loop or downstream plan/feature-implement, and every fix restarts a full architecture review from Phase 0 with a fresh task breakdown.
+- Review is read-only until `/why-review --validate-findings` confirms findings; fixes happen only in the validated fix loop or downstream plan/feature-implement, and every fix restarts a full architecture review from Phase 0 with a fresh task breakdown.
 
 ## Your Mission
 
@@ -142,11 +106,11 @@ This skill = one reviewer in a multi-reviewer pipeline — `workflow-review-chan
 | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | Layer boundaries, dependency direction, business-logic placement                                                            | —                                                                         |
 | Messaging patterns, CQRS structure, repository patterns, service-pattern era, entity event handlers, service boundaries     | —                                                                         |
-| Frontend ARCHITECTURE (base classes, store/effect, API-service base, subscription teardown, CSS-class presence)             | Visual/SCSS/responsive/z-index quality → `review-ui`                      |
+| Frontend ARCHITECTURE (base classes, store/effect, API-service base, subscription teardown, CSS-class presence)             | Visual/SCSS/responsive/z-index quality → `ui-review`                      |
 | Quality-tooling baseline, generated-artifact integrity, ADR / recorded-decision conformance                                 | —                                                                         |
 | Architecture-level auth PLACEMENT (a gate exists at the boundary)                                                           | OWASP, secrets, dependency/supply-chain, authz-matrix depth → `security-review` |
 | Structural soundness of a hot path (no obvious N+1 introduced by the diff)                                                  | Query plans, indexing depth, latency/throughput budgets → `performance-review` |
-| —                                                                                                                          | Domain entity / value-object DDD design quality → `review-domain-entities` |
+| —                                                                                                                          | Domain entity / value-object DDD design quality → `domain-entities-review` |
 | —                                                                                                                          | Integration-test assertion quality, coverage, traceability → `integration-test-review` |
 | —                                                                                                                          | Runtime production-readiness of service/API changes (observability wiring, rollback) → `production-readiness-review` |
 
@@ -177,7 +141,7 @@ git diff --cached   # Staged only
 
 ## Phase 2: Blast Radius (if graph.db exists)
 
-- `.code-graph/graph.db` exists → call `$graph-blast-radius` skill.
+- `.code-graph/graph.db` exists → call `/graph-blast-radius` skill.
 - Record: impacted file count, cross-service impact, risk level.
 - Prioritize review by highest-impact files first.
 - Graph unavailable → note "Graph not available — skipping blast radius" and proceed.
@@ -388,7 +352,7 @@ Verify against `frontend-patterns-reference.md` (Phase 0, frontend files); concr
 - All template elements MUST carry project's CSS-naming-convention classes (WARN) — see `frontend-patterns-reference.md`.
 - Logic in lowest layer: Model > Service > Component (WARN).
 
-> **Boundary with `$review-ui`:** This category owns frontend ARCHITECTURE — base classes, view-model store / reactive-effect pattern, API-service base, subscription teardown, layer placement, CSS-naming-class presence. VISUAL/styling quality — long-content overflow, responsive multi-screen flex, flex-vs-fixed sizing, z-index discipline, SCSS/CSS detail — owned by `$review-ui`, which `$review-changes` invokes as its UI dimension when frontend changes present. Flag missing base classes / store / teardown here; defer SCSS-quality depth + visual-layout findings to review-ui to avoid double-reporting.
+> **Boundary with `/ui-review`:** This category owns frontend ARCHITECTURE — base classes, view-model store / reactive-effect pattern, API-service base, subscription teardown, layer placement, CSS-naming-class presence. VISUAL/styling quality — long-content overflow, responsive multi-screen flex, flex-vs-fixed sizing, z-index discipline, SCSS/CSS detail — owned by `/ui-review`, which `/changes-review` invokes as its UI dimension when frontend changes present. Flag missing base classes / store / teardown here; defer SCSS-quality depth + visual-layout findings to ui-review to avoid double-reporting.
 
 ---
 
@@ -396,7 +360,7 @@ Verify against `frontend-patterns-reference.md` (Phase 0, frontend files); concr
 
 **Think:** Does any changed file contradict a binding decision recorded in an *accepted* ADR — a rejected library/technology, a forbidden dependency direction, a recorded quality-attribute/NFR budget, a banned pattern — without a superseding ADR?
 
-> This category closes design→review loop: `$architecture-design` emits ADRs + fitness-function choices; this category verifies changed code still conforms to them. Checks CONFORMANCE only — NEVER re-runs deep performance or security analysis (those route to siblings in the Ownership & Handoff matrix).
+> This category closes design→review loop: `/architecture-design` emits ADRs + fitness-function choices; this category verifies changed code still conforms to them. Checks CONFORMANCE only — NEVER re-runs deep performance or security analysis (those route to siblings in the Ownership & Handoff matrix).
 
 - Locate recorded decisions: `docs/adr/**` (or ADR location named in project's reference docs). Read only ADRs with `Status: Accepted` — skip `Superseded`/`Proposed`/`Rejected`.
 - Extract each accepted ADR's binding constraints: chosen vs rejected options, layer/dependency rules, NFR targets (latency/throughput/availability/RPO-RTO), banned patterns.
@@ -547,7 +511,7 @@ Per changed file:
 **Protocol:**
 
 1. Read own finalized report from `plans/reports/{skill}-{date}-{slug}.md`
-2. Invoke `$why-review` skill with arg: `validate findings in plans/reports/{skill}-{date}-{slug}.md — verify each finding has file:line proof, steel-man each rejected interpretation, and stress-test severity classifications`
+2. Invoke `/why-review` skill with arg: `validate findings in plans/reports/{skill}-{date}-{slug}.md — verify each finding has file:line proof, steel-man each rejected interpretation, and stress-test severity classifications`
 3. Read validation verdict path returned by why-review, expected as `plans/reports/why-review-validate-{date}.md`
 4. **why-review demotes/removes any finding →** UPDATE own finalized report with revised severities, remove false positives, add `## Why-Review Validation Notes` section citing what changed + why.
 5. **why-review confirms all findings →** Append `## Why-Review Validation` line to own report stating "All N findings re-validated against actual code; no severity changes."
@@ -563,11 +527,13 @@ Per changed file:
 
 ## Next Steps
 
-**MANDATORY — NO EXCEPTIONS:** After completing, use ask the user directly to present:
+**MANDATORY — NO EXCEPTIONS:** After completing, use `AskUserQuestion` to present:
 
-- **"$code-simplifier" (Recommended)** — Simplify and refine code
-- **"$code-review"** — Deep code quality review
+- **"/code-simplifier" (Recommended)** — Simplify and refine code
+- **"/code-review"** — Deep code quality review
 - **"Skip, continue manually"** — user decides
+
+> **Combined audit:** For a whole-project architecture + compliance + production-readiness audit in one pass, run `/architecture-review-full` (or `/start-workflow workflow-architecture-audit`) — it fans out this skill, `architecture-scalability-review`, and `production-readiness-review` as parallel sub-agents and synthesizes one consolidated report.
 
 ## AI Agent Integrity Gate (NON-NEGOTIABLE)
 
@@ -579,19 +545,19 @@ Before reporting ANY work done:
 4. **Evaluate pattern fit.** Copying nearby code? Verify preconditions match — same scope, lifetime, base class, constraints.
 5. **New artifact = wired artifact.** Created something? Prove registered, imported, reachable by all consumers.
 
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting. Simple tasks: ask user whether to skip.
+> **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting. Simple tasks: ask user whether to skip.
 
 <!-- OVERRIDE:fresh-context-review -->
 
 > **Fresh Context Re-Review** — Eliminate orchestrator confirmation bias after fixes by restarting the full review with isolated sub-agents where applicable.
 >
-> **Why:** The main agent knows what it (or `$feature-implement`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
+> **Why:** The main agent knows what it (or `/feature-implement`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
 >
 > **When:** ONLY after a validated-finding fix cycle, or when the user/workflow explicitly requests an independent high-risk architecture synthesis pass. A review pass that finds issues triggers validation first; it does NOT trigger a fresh-context pass over the same findings before validation/fix.
 >
 > **How:**
 >
-> 1. Start a NEW full review invocation/task breakdown; when that protocol calls for agents, spawn a NEW `spawn_agent` tool call — use `architect` agent_type for architecture reviews (see Sub-Agent Type Override above)
+> 1. Start a NEW full review invocation/task breakdown; when that protocol calls for agents, spawn a NEW `Agent` tool call — use `architect` subagent_type for architecture reviews (see Sub-Agent Type Override above)
 > 2. Inject ALL required review protocols VERBATIM into the prompt — see `SYNC:review-protocol-injection` for the full list and template. Never reference protocols by file path; AI compliance drops behind file-read indirection (see `SYNC:shared-protocol-duplication-policy`)
 > 3. Sub-agent re-reads ALL target files from scratch via its own tool calls — never pass file contents inline in the prompt
 > 4. Sub-agent writes structured report to `plans/reports/{review-type}-round{N}-{date}.md`
@@ -599,10 +565,10 @@ Before reporting ANY work done:
 >
 > **Rules:**
 >
-> - NEVER reuse a sub-agent across rounds — every iteration that uses sub-agents spawns a NEW `spawn_agent` call
+> - NEVER reuse a sub-agent across rounds — every iteration that uses sub-agents spawns a NEW `Agent` call
 > - NEVER fix unvalidated findings; validate first using the caller's validation gate
 > - NEVER skip the full review restart after a validated fix cycle — every fix invalidates the prior verdict
-> - Continue until a complete full review pass has zero findings; if the same blocker repeats across 3 full invocations with no progress, escalate by asking the user directly
+> - Continue until a complete full review pass has zero findings; if the same blocker repeats across 3 full invocations with no progress, escalate via `AskUserQuestion`
 > - Track iteration count in conversation context (session-scoped, no persistent files)
 
 <!-- /OVERRIDE:fresh-context-review -->
@@ -610,7 +576,7 @@ Before reporting ANY work done:
 ## Sub-Agent Type Override
 
 > **MANDATORY:** Architecture reviews spawn `architect` sub-agent, NOT `code-reviewer`.
-> Keep `agent_type: "architect"` from canonical template below; NEVER revert to `code-reviewer`.
+> Keep `subagent_type: "architect"` from canonical template below; NEVER revert to `code-reviewer`.
 > **Rationale:** `architect` carries cross-service impact analysis, ADR creation, multi-service security/performance context that `code-reviewer` lacks for architecture-level decisions.
 
 <!-- OVERRIDE:review-protocol-injection -->
@@ -627,9 +593,9 @@ Before reporting ANY work done:
 ### Canonical Agent Call Template (Copy Verbatim)
 
 ```
-spawn_agent({
+Agent({
   description: "Fresh Round {N} review",
-  agent_type: "architect",
+  subagent_type: "architect",
   prompt: `
 ## Task
 {review-specific task — e.g., "Review all uncommitted changes for code quality" | "Review plan files under {plan-dir}" | "Review integration tests in {path}"}
@@ -727,7 +693,7 @@ AI skips steps via these evasions. Recognize and reject:
 - "Too simple for a plan" → Simple + wrong assumptions = wasted time. Plan anyway.
 - "I'll test after" → RED before GREEN. Write/verify test first.
 - "Already searched" → Show grep evidence with file:line. No proof = no search.
-- "Just do it" → Still need task tracking. Skip depth, never skip tracking.
+- "Just do it" → Still need TaskCreate. Skip depth, never skip tracking.
 - "Just a small fix" → Small fix in wrong location cascades. Verify file:line first.
 - "Code is self-explanatory" → Future readers need evidence trail. Document anyway.
 - "Combine steps to save time" → Combined steps dilute focus. Each step has distinct purpose.
@@ -780,7 +746,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 - DO copy the template wholesale — including all 11 embedded protocol sections
 - DO replace only the `{placeholders}` in Task / Round / Reference Docs / Target Files / Output sections with context-specific content
-- DO choose `architect` agent_type for architecture reviews — do NOT revert to `code-reviewer` (see Sub-Agent Type Override above)
+- DO choose `architect` subagent_type for architecture reviews — do NOT revert to `code-reviewer` (see Sub-Agent Type Override above)
 - DO NOT paraphrase, summarize, or skip any protocol section
 - DO NOT pass file contents inline — the sub-agent reads via its own tool calls so it has a fresh context
 - DO NOT reference protocols by file path or tag name — the bodies are already embedded above
@@ -818,14 +784,14 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 > **Nested Task Expansion Contract** — For workflow-step invocation, the `[Workflow] ...` row is only a parent container; the child skill still creates visible phase tasks.
 >
-> 1. Call the current task list first. If a matching active parent workflow row exists, set `nested=true` and record `parentTaskId`; otherwise run standalone.
+> 1. Call `TaskList` first. If a matching active parent workflow row exists, set `nested=true` and record `parentTaskId`; otherwise run standalone.
 > 2. Create one task per declared phase before phase work. When nested, prefix subjects `[N.M] $skill-name — phase`.
 > 3. When nested, link the parent with `TaskUpdate(parentTaskId, addBlockedBy: [childIds])`.
 > 4. Orchestrators must pre-expand a child skill's phase list and link the workflow row before invoking that child skill or sub-agent.
 > 5. Mark exactly one child `in_progress` before work and `completed` immediately after evidence is written.
 > 6. Complete the parent only after all child tasks are completed or explicitly cancelled with reason.
 >
-> **Blocked until:** the current task list done, child phases created, parent linked when nested, first child marked `in_progress`.
+> **Blocked until:** `TaskList` done, child phases created, parent linked when nested, first child marked `in_progress`.
 
 <!-- /SYNC:nested-task-creation -->
 
@@ -834,7 +800,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > **Project Reference Docs Gate** — Run after task-tracking bootstrap and before target/source file reads, grep, edits, or analysis. Project docs override generic framework assumptions.
 >
 > 1. Identify scope: file types, domain area, and operation.
-> 2. **Read `docs/project-config.json` first — the project's machine-readable map.** It is the single source of truth for THIS repo (modules/paths, framework + search keywords, test/E2E/integration run-commands, design system, architecture rules, workflow patterns); ground exact paths, run-commands, and conventions on it **before investigating, planning, or coding** — never assume framework defaults (`CLAUDE.md` + reference docs are derived from it). If it — or the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any required reference doc — is missing or stale, auto-run `$project-init` or the narrow route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) first; if Codex mirrors or `AGENTS.md` are stale, ask the user to run `$sync-codex` (never auto-run it).
+> 2. **Read `docs/project-config.json` first — the project's machine-readable map.** It is the single source of truth for THIS repo (modules/paths, framework + search keywords, test/E2E/integration run-commands, design system, architecture rules, workflow patterns); ground exact paths, run-commands, and conventions on it **before investigating, planning, or coding** — never assume framework defaults (`CLAUDE.md` + reference docs are derived from it). If it — or the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any required reference doc — is missing or stale, auto-run `/project-init` or the narrow route (`/project-config`, `/docs-init`, `/scan-all`, `/scan --target=<key>`, `/claude-md-init`) first; if Codex mirrors or `AGENTS.md` are stale, ask the user to run `/sync-codex` (never auto-run it).
 > 3. Required docs by trigger: always `docs/project-reference/lessons.md`; doc lookup `docs-index-reference.md`; review `code-review-rules.md`; backend/CQRS/API `backend-patterns-reference.md`; domain/entity `domain-entities-reference.md`; frontend/UI `frontend-patterns-reference.md`; styles/design `scss-styling-guide.md` + `design-system/design-system-canonical.md`; integration tests `integration-test-reference.md`; E2E `e2e-test-reference.md`; feature docs/specs `feature-spec-reference.md` + `spec-system-reference.md` + `spec-principles.md`; behavior/public-contract/spec-test-code sync `workflow-spec-test-code-cycle-reference.md`; derived spec index/ERD/reimplementation guides `spec-system-reference.md` + source Feature Specs under `docs/specs/`; architecture/new area `project-structure-reference.md`.
 > 4. Read every required doc, then before target work state: `Reference docs read: ... | Not applicable: ...`.
 >
@@ -879,11 +845,11 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 >
 > **Mandatory closers:** Confidence % stated · Assumptions listed · Open questions surfaced · Next action concrete.
 >
-> **Stop conditions:** confidence <80% on any critical decision → escalate by asking the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
+> **Stop conditions:** confidence <80% on any critical decision → escalate via AskUserQuestion · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
 >
 > **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
 >
-> **Deep-dive:** see `$sequential-thinking` skill (`.claude/skills/sequential-thinking/SKILL.md`) for worked examples (API design, debugging, architecture), advanced techniques (spiral refinement, hypothesis testing, convergence), and meta-strategies (uncertainty handling, revision cascades).
+> **Deep-dive:** see `/sequential-thinking` skill (`.claude/skills/sequential-thinking/SKILL.md`) for worked examples (API design, debugging, architecture), advanced techniques (spiral refinement, hypothesis testing, convergence), and meta-strategies (uncertainty handling, revision cascades).
 
 <!-- /SYNC:sequential-thinking-protocol -->
 
@@ -912,9 +878,9 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > **Decision after Round 1:**
 >
 > - **No issues found (PASS, zero findings)** → review ENDS. Do NOT spawn a fresh sub-agent for confirmation.
-> - **Issues found (FAIL, or any non-zero findings)** → run the active review skill's findings-validation gate first; for review skills the default gate is `$why-review --validate-findings <report-path>`. Fix only validated findings, then restart the full review protocol from the beginning with a fresh task breakdown.
+> - **Issues found (FAIL, or any non-zero findings)** → run the active review skill's findings-validation gate first; for review skills the default gate is `/why-review --validate-findings <report-path>`. Fix only validated findings, then restart the full review protocol from the beginning with a fresh task breakdown.
 >
-> **Fresh full re-review after every fix cycle:** Re-run the whole review protocol over the current full target. When sub-agents are part of that protocol, spawn NEW `spawn_agent` calls — never reuse prior agents. Reviewers re-read ALL files from scratch with ZERO memory of prior rounds. See `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. Each fresh full review must catch:
+> **Fresh full re-review after every fix cycle:** Re-run the whole review protocol over the current full target. When sub-agents are part of that protocol, spawn NEW `Agent` calls — never reuse prior agents. Reviewers re-read ALL files from scratch with ZERO memory of prior rounds. See `SYNC:fresh-context-review` for the spawn mechanism and `SYNC:review-protocol-injection` for the canonical Agent prompt template. Each fresh full review must catch:
 >
 > - Cross-cutting concerns missed in the prior round
 > - Interaction bugs between changed files
@@ -923,7 +889,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > - Subtle edge cases the prior round rationalized away
 > - Regressions introduced by the fixes themselves
 >
-> **Loop termination:** After each full re-review, repeat the same decision: clean → END; issues → validate findings → fix → restart from the first review phase. Continue until a complete review pass finds zero issues. If the same validated finding repeats for 3 full invocations with no progress, or a fix requires product/owner input, escalate by asking the user directly.
+> **Loop termination:** After each full re-review, repeat the same decision: clean → END; issues → validate findings → fix → restart from the first review phase. Continue until a complete review pass finds zero issues. If the same validated finding repeats for 3 full invocations with no progress, or a fix requires product/owner input, escalate via `AskUserQuestion`.
 >
 > **Rules:**
 >
@@ -1054,7 +1020,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > - **Test coverage:** Are the changed paths covered by tests? Are existing tests still valid after the change?
 > - **Documentation:** Do related docs, specs, or READMEs reflect the changes?
 >
-> **Step 4 — Create sub-tasks and execute.** For each identified concern: create a task tracking sub-task, work through it with `file:line` evidence, mark done. No findings without proof.
+> **Step 4 — Create sub-tasks and execute.** For each identified concern: create a `TaskCreate` sub-task, work through it with `file:line` evidence, mark done. No findings without proof.
 >
 > **Illustrative concern examples by category type** (not exhaustive — trust your knowledge beyond this):
 >
@@ -1091,7 +1057,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- SYNC:sequential-thinking-protocol:reminder -->
 
-**MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer; see `$sequential-thinking` skill.
+**MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer; see `/sequential-thinking` skill.
 
 <!-- /SYNC:sequential-thinking-protocol:reminder -->
 
@@ -1112,7 +1078,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 - **MANDATORY** Before investigating, planning, or coding, read `docs/project-config.json` (the project map: modules/paths, run-commands, conventions, architecture/workflow rules) + the required project-reference docs, and cite `Reference docs read: ...`.
 - **MANDATORY** Always include `lessons.md`; project config + conventions override generic framework defaults.
-- **MANDATORY** If project config, root instruction files, or any required reference doc is missing or stale, auto-run `$project-init` or the narrow lower-level route before ordinary project-specific work.
+- **MANDATORY** If project config, root instruction files, or any required reference doc is missing or stale, auto-run `/project-init` or the narrow lower-level route before ordinary project-specific work.
 
 <!-- /SYNC:project-reference-docs-guide:reminder -->
 
@@ -1180,16 +1146,16 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **IMPORTANT MUST ATTENTION** every violation requires `file:line` proof + confidence >80% (60-80% verify first, <60% do NOT recommend); grep 3+ existing counterexamples before flagging — codebase convention wins. NEVER speculate — instead state "Insufficient evidence. Verified: [...]. Not verified: [...]."
 **IMPORTANT MUST ATTENTION** review serially, one category at a time (Cat 0 tooling baseline → Cat 11 scalability & coupling): doc rule → source evidence → `Think:` derivation → PASS/WARN/BLOCKED. NEVER scan categories simultaneously — why: parallel scanning collapses per-category evidence and drops findings.
 **IMPORTANT MUST ATTENTION** Phase 3 has 12 categories — review EVERY applicable one, NEVER stop early: 0 quality-tooling · 1 clean-architecture layers · 2 message-bus · 3 CQRS · 4 repositories · 5 service-pattern era · 6 entity event handlers · 7 service boundaries · 8 frontend architecture (frontend files only) · 9 ADR conformance · 10 spec-loop discipline · 11 scalability & coupling regression — why: a skipped category silently drops the violation class it uniquely covers.
-**IMPORTANT MUST ATTENTION** follow the phase order Phase 0 → 1 → 2 → 3 → 4 → 5 → Next Steps; Phase 5 `$why-review` self-validation is MANDATORY whenever any finding exists, and Next Steps MUST present `$code-simplifier` / `$code-review` / skip by asking the user directly — why: the AI repeatedly forgets the validation gate and stops at Phase 4, shipping unvalidated severities downstream.
-**IMPORTANT MUST ATTENTION** break work into small tasks using task tracking BEFORE starting; mark one `in_progress`/`completed` at a time; on context loss call the current task list first — why: resume existing tasks, never duplicate after compaction.
+**IMPORTANT MUST ATTENTION** follow the phase order Phase 0 → 1 → 2 → 3 → 4 → 5 → Next Steps; Phase 5 `/why-review` self-validation is MANDATORY whenever any finding exists, and Next Steps MUST present `/code-simplifier` / `/code-review` / skip via `AskUserQuestion` — why: the AI repeatedly forgets the validation gate and stops at Phase 4, shipping unvalidated severities downstream.
+**IMPORTANT MUST ATTENTION** break work into small tasks using `TaskCreate` BEFORE starting; mark one `in_progress`/`completed` at a time; on context loss call `TaskList` first — why: resume existing tasks, never duplicate after compaction.
 **IMPORTANT MUST ATTENTION** stay in lane — deep-review only what this skill OWNS (layers, messaging/CQRS/repos/service boundaries, entity events, frontend architecture, quality tooling, generated artifacts, ADRs); record a one-line `→ route to {sibling}` pointer for security/performance/DDD/UI/integration-test findings instead of expanding them — why: duplicated findings across reviewers inflate severity counts and bury issues each reviewer uniquely owns.
 **IMPORTANT MUST ATTENTION** framework symbols/base-class/directory names in Categories 2–8 are illustrative examples only — map each to the repository's actual convention as named in its own Phase 0 reference docs; flag deviations from the project's REAL convention, NEVER from these literal names.
 **IMPORTANT MUST ATTENTION** scope tooling/ADR/spec-loop severity to the change — a pre-existing gap unrelated to the diff is WARN with one note, reserve BLOCKED for a new stack/service with no gate, a change removing an existing gate, an accepted-ADR contradiction with no superseding ADR, or a `[HARD]` rule/invariant with no property TC — why: blocking on standing change-unrelated conditions buries the regression the diff actually introduced.
 **IMPORTANT MUST ATTENTION** review the WHOLE package (spec + tests + structural diff), not the diff alone — every behavior-affecting architecture finding carries a Dual-Feedback row (spec NAMES the contract/invariant AND a test GUARDS it); blank either axis = INCOMPLETE — why: a boundary change that compiles but is never asserted regresses silently when a sibling service is next touched.
 **IMPORTANT MUST ATTENTION** run at least ONE graph command on key files when `.code-graph/graph.db` exists (grep → `trace --direction both` → verify) — why: trace reveals cross-service blast radius grep alone cannot.
 **IMPORTANT MUST ATTENTION** evaluate pattern fit before flagging — copying-nearby ≠ matching preconditions; verify same scope, lifetime, base class, constraints, established-exception status before calling a deviation a violation.
-**IMPORTANT MUST ATTENTION** review is read-only until validated — NEVER fix code in this skill; after ANY finding run the Phase 5 `$why-review --validate-findings` self-validation gate BEFORE handoff, and every validated fix restarts a full review from Phase 0 with a fresh task breakdown — why: AI reports inherit confirmation bias; adversarial validation demotes false-positive Highs at the source.
-**IMPORTANT MUST ATTENTION** write findings to `plans/reports/arch-review-{date}-{slug}.md` incrementally and synthesize from disk; use ask the user directly to present next steps (`$code-simplifier` / `$code-review` / skip) after completing review — why: long reviews exhaust context before a final batch write, losing findings.
+**IMPORTANT MUST ATTENTION** review is read-only until validated — NEVER fix code in this skill; after ANY finding run the Phase 5 `/why-review --validate-findings` self-validation gate BEFORE handoff, and every validated fix restarts a full review from Phase 0 with a fresh task breakdown — why: AI reports inherit confirmation bias; adversarial validation demotes false-positive Highs at the source.
+**IMPORTANT MUST ATTENTION** write findings to `plans/reports/arch-review-{date}-{slug}.md` incrementally and synthesize from disk; use `AskUserQuestion` to present next steps (`/code-simplifier` / `/code-review` / skip) after completing review — why: long reviews exhaust context before a final batch write, losing findings.
 
 **Anti-Rationalization:**
 
@@ -1199,7 +1165,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 | "Already read the docs"              | Show the extracted `file:line` rule — no recall = no read.         |
 | "I know this framework's base classes" | Resolve from Phase 0 reference docs — literal names are illustrative; the project's convention wins. |
 | "Just flag obvious violations"       | Gray areas matter most. Apply `Think:` to every applicable category. |
-| "Found a violation, I'll just fix it" | Read-only skill. Validate via `$why-review` first, then route the fix; every fix restarts review from Phase 0. |
+| "Found a violation, I'll just fix it" | Read-only skill. Validate via `/why-review` first, then route the fix; every fix restarts review from Phase 0. |
 | "This finding is clearly someone else's domain, skip it" | Record a one-line `→ route to {sibling}` pointer — surfacing the route is owned here; expanding it is not. |
 | "Graph not needed here"              | Run ONE trace. 5 seconds → full blast radius revealed.             |
 | "Skill reviews only changed files"   | Default scope, not a limit. User can override.                     |
@@ -1211,95 +1177,3 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > the next change cheaper or more expensive?_ If it doesn't reduce future
 > change cost, reject it. Coupling, hidden state, duplicated knowledge, and
 > unclear intent are the real enemies — call them out by name.
-
-<!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
-## Hookless Prompt Protocol Mirror (Auto-Synced)
-
-Source: `.claude/.ck.json` + `.claude/skills/shared/sync-inline-versions.md` (`:full` blocks) + `.claude/scripts/lib/hookless-prompt-protocol.cjs`
-
-## [WORKFLOW-EXECUTION-PROTOCOL] [BLOCKING] Workflow Execution Protocol — MANDATORY IMPORTANT MUST CRITICAL. Do not skip for any reason.
-
-**Generic portability boundary:** Reusable skills and protocol text stay project-neutral; project-specific conventions are discovered from docs/project-config.json and docs/project-reference/. Apply shared AI-SDD from `shared/sdd-artifact-contract.md`. Read `docs/project-config.json` and `docs/project-reference/docs-index-reference.md`, then open the project reference docs named there. For spec, test-case, behavior-change, public-contract, or `docs/specs/` work, route through the local spec docs named by the docs index: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`, and `workflow-spec-test-code-cycle-reference.md` when specs/tests/code must stay synchronized. If either file or a required reference doc is missing or stale, auto-run `$project-init` (or the narrow lower-level route such as `$project-config`, `$docs-init`, `$scan-all`, or `$scan --target=<key>`) before ordinary project-specific work. Any supported AI tool may execute when this shared context and local docs are available.
-
-1. **DETECT:** If the prompt starts with an explicit slash skill/workflow command, execute it directly. Otherwise match the prompt against the workflow catalog and skill list.
-2. **ANALYZE:** Choose the best option: execute directly, invoke a skill, activate a standard workflow, or compose a custom step combination.
-3. **AUTO-SELECT:** Pick the best option yourself. Do not ask the user to choose between direct execution, skill, standard workflow, or custom workflow.
-4. **ACTIVATE:** For a selected workflow, call `$start-workflow <workflowId>`; for a selected skill, invoke that skill; for a custom workflow, sequence custom steps directly; for direct execution, proceed with the task.
-5. **CREATE TASKS:** task tracking for ALL workflow/skill/custom steps before execution when the selected path has multiple steps.
-6. **EXECUTE:** Advance per the **Workflow Step Advancement & Parallel Phases** rule in your context instructions — model-driven; a sub-agent completion advances a step identically to an inline call; a parallel-phase group is an all-return barrier (advance only after ALL members return, never serialize it)
-## Shared AI-SDD Protocol Markers
-
-Source: `.claude/skills/shared/sync-inline-versions.md`
-
-## SYNC:ai-sdd-artifact-contract
-
-> **AI-SDD Artifact Contract** — Shared spec-driven development rules stay portable and source-owned.
->
-> 1. Keep reusable AI-SDD principles in `.claude`; put repository-specific paths, commands, owners, products, and formats in project config/reference docs.
-> 2. Preserve cycle: `spec -> plan -> tasks -> implement -> verify -> update spec/docs`.
-> 3. Trace every requirement or invariant through decision, task, TC/test, source evidence, and docs/spec update.
-> 4. Treat code-to-spec extraction as reference-only until accepted by the canonical spec owner.
-> 5. Any supported AI tool may plan, implement, review, or verify with synced context; using multiple tools is optional.
-> 6. Update `.claude` source first, then sync generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`. — why: mirrors are generated artifacts; hand-edits are overwritten on the next sync
-> 7. If `docs/project-config.json`, root instruction files, or a required project-reference doc is missing or stale, auto-run `$project-init` or the narrow lower-level route before ordinary project-specific work.
->
-> **Active reference:** `shared/sdd-artifact-contract.md` in the active skills root.
-
----
-
-## SYNC:ai-sdd-artifact-contract:reminder
-
-- **MANDATORY** Apply `shared/sdd-artifact-contract.md`; keep reusable AI-SDD in `.claude` and local rules in project docs.
-- **MANDATORY** Code-to-spec extraction is reference-only until canonical acceptance; any supported AI tool may execute with synced context.
-- **MANDATORY** Update `.claude` source before syncing generated mirrors; do not manually edit `.agents`, `.codex`, or `AGENTS.md`.
-- **MANDATORY** Missing or stale project config, root instruction files, or required reference docs route project-specific work through `$project-init` or the narrow setup route automatically.
-**[TASK-PLANNING] [MANDATORY]** BEFORE executing any workflow or skill step, create/update task tracking for all planned steps, then keep it synchronized as each step starts/completes.
-## [LESSON-LEARNED-REMINDER] [BLOCKING] Task Planning & Continuous Improvement — MANDATORY. Do not skip.
-
-Break work into small tasks (task tracking) before starting. Add final task: "Analyze AI mistakes & lessons learned".
-
-**Extract lessons — ROOT CAUSE ONLY, not symptom fixes:**
-1. Name the FAILURE MODE (reasoning/assumption failure), not symptom — "assumed API existed without reading source" not "used wrong enum value".
-2. Generality test: does this failure mode apply to ≥3 contexts/codebases? If not, abstract one level up.
-3. Write as a universal rule — strip project-specific names/paths/classes. Useful on any codebase.
-4. Consolidate: multiple mistakes sharing one failure mode → ONE lesson.
-5. **Recurrence gate:** "Would this recur in future session WITHOUT this reminder?" — No → skip `$learn`.
-6. **Auto-fix gate:** "Could `$code-review`/`$code-simplifier`/`$security-review`/`$lint` catch this?" — Yes → improve review skill instead.
-7. BOTH gates pass → ask user to run `$learn`.
-**[CRITICAL-THINKING-MINDSET]** Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
-**Anti-hallucination principle:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
-**AI Attention principle (Primacy-Recency):** Put the 3 most critical rules at both top and bottom of long prompts/protocols so instruction adherence survives long context windows.
-**Goal-driven execution:** Define success criteria first, loop until verified, and stop only when observable checks pass.
-**Tests verify intent:** Tests must protect business rules/invariants and fail when the protected intent breaks, not only mirror current behavior.
-## Common AI Mistake Prevention (System Lessons)
-
-- **Re-read files after context compaction.** Edit requires prior Read in same context; compaction wipes read state. Re-read before editing.
-- **Grep for old terms after bulk replacements.** AI over-trusts find/replace completeness. Grep full repo after bulk edits for missed refs in docs/configs/catalogs.
-- **Check downstream references before deleting.** Deletions cascade doc/code staleness. Map referencing files before removal.
-- **After memory loss, check existing state before creating new.** Compaction wipes prior-work memory. Query current state to resume — never blindly duplicate.
-- **Verify AI-generated content against actual code.** AI hallucinates APIs, class names, method signatures. Grep to confirm existence before documenting/referencing.
-- **Trace full dependency chain after edits.** Changing a definition misses downstream consumers. Trace the full chain.
-- **When renaming, grep ALL consumer file types.** Some file types silently ignore missing refs (no compile error). Search code, templates, configs, generated files.
-- **Trace ALL code paths when verifying correctness.** Code existing ≠ code executing. Trace early exits, error branches, conditional skips — not just happy path.
-- **Update docs that embed canonical data when source changes.** Docs inlining derived data (workflows, schemas, configs) go stale silently. Update all embedding docs alongside source.
-- **Verify sub-agent results after context recovery.** Background agents may finish while parent compacted — grep-verify output, don't trust assumed completion.
-- **Cross-check full target list against sub-agent assignments.** Parallel sub-agents by category miss boundary items. Reconcile union of assignments against target list before proceeding.
-- **Sub-agents inherit knowledge only from their agent .md definition — use custom agent types, not built-in Explore.** Tool adoption = permission + knowledge + enforcement (numbered workflow step).
-- **Persist sub-agent findings incrementally, not as a final batch.** Long sub-agents hit cutoffs before final write — findings lost. Instruct append-per-section to report file.
-- **When debugging, ask "whose responsibility?" before fixing.** Trace caller (wrong data) vs callee (wrong handling). Fix at responsible layer — never patch symptom site.
-- **Test failure → adjudicate WHO is at fault (source vs test) before forcing green.** A green-again suite is not the goal; the correct verdict on what was actually wrong is. Root-cause first, then triangulate the failure against the governing spec (`docs/specs/**` if one exists) AND the source: SOURCE-WRONG → fix code at the owning layer and keep/strengthen the test; TEST-WRONG → fix the stale assertion/setup at its root. NEVER weaken an assertion, add a skip, or relax a timeout to force green, and never change source to satisfy a broken test. Spec silent or ambiguous about which side is correct → STOP and ask the user.
-- **Grep ALL removed names after extraction/refactoring.** Primary file "done" ≠ secondary files clean. Grep entire scope for every removed symbol before declaring complete.
-- **Assume existing values are intentional — ask WHY before changing.** Pattern-matching as "wrong" skips context. Before changing any constant/limit/flag: read comments, git blame, surrounding code.
-- **Verify ALL affected outputs, not just the first.** One build green ≠ all green. Multi-stack changes (backend/frontend/tests/docs) require verifying EVERY output.
-- **Evaluate fit before copying a nearby pattern.** Closest example ≠ matching preconditions — verify the new context shares the same constraints, base classes, scope, lifetime.
-- **Holistic-first debugging — resist nearest-attention trap.** Don't dive into first plausible cause. List EVERY precondition (config, env vars, paths, DB, endpoints, creds, versions, DI, data). Verify each against evidence (grep/query — not reasoning). Ask "what would falsify this?" — if nothing, it's not a hypothesis. Most expensive failure: going deeper in "obvious" layer while bug sits in layer never questioned.
-- **Surgical changes — apply the diff test (context-aware).** Two modes: (1) Bug fix → every line traces to the bug; no restyling; orphan cleanup only for imports YOUR changes made unused. (2) Review/enhancement → implement improvements AND announce as "Enhancement beyond main request: [what]". Never silently scope-creep. Diff test: "Would this line exist if I wasn't asked to do X?" — if no, delete or announce.
-- **Surface ambiguity before coding — don't pick silently.** Multiple valid interpretations → present each with effort: "[Request] could mean (1) [N h], (2) [N h]. Which matters?" List scope/format/volume/constraints assumptions first. If simpler path exists, say so. Never silently pick.
-- **[MANDATORY FIRST ACTION] ALWAYS activate a suitable skill or workflow BEFORE responding.** Match task against workflow catalog + skill list; invoke via skill invocation or `$start-workflow <workflowId>`. NEVER answer or write code before checking. Skip = protocol violation.
-- **Why-Review adversarial mindset — apply when reviewing any plan, decision, or design.** Default SKEPTIC not VALIDATOR: steel-man a rejected alternative, invert each stated reason ("what does it sacrifice?"), stress-test top 2-3 assumptions, run pre-mortem ("ships, fails in 3 months — what breaks?"), surface 1-2 alternatives author missed. Section presence ≠ quality; quality = causal reasoning + concrete mitigations + evidence, not "it's better" or "monitor closely".
-- **Front-load report-write in sub-agent prompts for large reviews.** Many-file sub-agents hit budget before final write — findings lost. Design prompts so: (1) report-write is first explicit deliverable, (2) append per-file/section (not batched), (3) scope bounded so reads don't exhaust budget. Truncated mid-sentence with no report file → spawn narrower scope, don't retry same prompt.
-- **After context compaction, re-verify all prior phase outcomes before continuing.** Summaries describe intent, not environment state (git index, filesystem, processes). On resume, FIRST audit: git status, re-read modified files, verify filesystem. Every "completed" claim is an untested hypothesis until evidence confirms.
-- **OOM/memory: check row count before row size.** Triage: (1) Unbounded query — no DB filter for trigger? Push filter to DB; eliminates OOM. (2) Large rows? Projection reduces proportionally. Row reduction > projection in ROI.
-- **Keep domain concepts out of generic/shared/infrastructure layers.** Reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. Leak compiles + runs → passes review silently while coupling the "reusable" layer to one consumer. Keep shared type domain-free; push domain fields/logic down into the consumer via subclass/composition. — why: a layer coupled to one consumer's domain is no longer reusable.
-
-<!-- CODEX:SYNC-PROMPT-PROTOCOLS:END -->

@@ -141,6 +141,8 @@ node scripts/validate-skills.cjs --path <dir> # Scan a specific directory
 
 Full validation-rules table (frontmatter exists, single-line description, name format, category prefix, file size, Quick Summary presence, SYNC-tag balance, official-field check) is in `references/schema-reference.md`.
 
+> **Naming order — subject-first.** When a new skill belongs to a subject family, name it `<subject>-<verb>` (e.g. `architecture-review`, `changes-review`), NOT `<verb>-<subject>`. Pure single-action commands with no subject family stay verb-first (`fix`, `scout`, `refine`). See the Canonical Order Rule in `.claude/docs/skill-naming-conventions.md`.
+
 ## Mode 4: Package & Distribute
 
 ```bash

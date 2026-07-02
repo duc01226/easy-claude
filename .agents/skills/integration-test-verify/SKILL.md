@@ -335,7 +335,7 @@ If a test fails because the system is unavailable → report as "system not read
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use ask the user directly to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
 >
-> 1. **Activate `workflow-write-integration-test` workflow** (Recommended) — scout → investigate → spec-tests → why-review → review-artifact --type=spec-tests → integration-test → integration-test-review → integration-test-verify → spec-tests [direction=sync] → docs-update → workflow-end → watzup
+> 1. **Activate `workflow-write-integration-test` workflow** (Recommended) — scout → investigate → spec-tests → why-review → artifact-review --type=spec-tests → integration-test → integration-test-review → integration-test-verify → spec-tests [direction=sync] → docs-update → workflow-end → watzup
 > 2. **Execute `$integration-test-verify` directly** — run this skill standalone
 
 ---

@@ -150,8 +150,8 @@ for (const t of TAGS) {
 
 // --- OVERRIDE-substance contract (review-protocol-injection) ---------------------
 // Canonical's review-protocol-injection template tells a fresh review sub-agent to embed
-// N protocol blocks VERBATIM. Three review skills (integration-test-review, review-architecture,
-// review-ui) copy that template inside an <!-- OVERRIDE:review-protocol-injection --> block ONLY
+// N protocol blocks VERBATIM. Three review skills (integration-test-review, architecture-review,
+// ui-review) copy that template inside an <!-- OVERRIDE:review-protocol-injection --> block ONLY
 // to swap canonical's generic `code-reviewer` for a domain specialist (integration-tester /
 // architect / ui-ux-designer). Because OVERRIDE is excluded from the equality property and is
 // NOT touched by sync-update-blocks.py, those copies can silently fall behind canonical on the
@@ -222,19 +222,23 @@ module.exports = {
             },
         },
         {
-            // Pinned carrier count (no silent cap): review-protocol-injection reaches 13 carriers =
-            // 8 review SKILLs (code-review, review-changes, review-artifact, knowledge-review,
-            // production-readiness-review, plan-review, why-review, spec-clarify) + 5 review AGENTS
-            // (code-reviewer, spec-compliance-reviewer, quality-gate-review, planner, integration-tester).
+            // Pinned carrier count (no silent cap): review-protocol-injection reaches 14 carriers =
+            // 9 review SKILLs (code-review, changes-review, artifact-review, knowledge-review,
+            // production-readiness-review, plan-review, why-review, spec-clarify, architecture-review-full)
+            // + 5 review AGENTS (code-reviewer, spec-compliance-reviewer, quality-gate-review, planner,
+            // integration-tester).
             // spec-clarify (the post-spec clarification gate) joined as the 8th skill: it runs INLINE for
             // its AskUserQuestion gate but performs the SAME validate→fix→fresh-full-re-review cycle as its
             // review-family peers, so it carries the trio (double-round-trip / fresh-context / protocol-injection)
-            // at parity with review-artifact. A 14th appearing — or one vanishing — must surface loudly here
+            // at parity with artifact-review. architecture-review-full (the whole-project architecture-health
+            // audit) joined as the 9th skill: it is an adoption-matrix review skill (BATCHING + SEVERITY in
+            // inject_review_skill_blocks.py) that synthesizes a consolidated report, so it carries the plain
+            // review-protocol trio at parity. A 15th appearing — or one vanishing — must surface loudly here
             // rather than quietly widen/narrow the guarded set.
-            name: 'COVERAGE: review-protocol-injection reaches all 13 carriers and carries the Triangulation protocol (post-P1)',
+            name: 'COVERAGE: review-protocol-injection reaches all 14 carriers and carries the Triangulation protocol (post-P1)',
             fn() {
                 const carriers = PAIRS.filter((p) => p.tag === 'review-protocol-injection');
-                assertEqual(carriers.length, 13, `expected 13 review-protocol-injection carriers, found ${carriers.length}`);
+                assertEqual(carriers.length, 14, `expected 14 review-protocol-injection carriers, found ${carriers.length}`);
                 const canon = CANON_BODY.get('review-protocol-injection');
                 assertTrue(
                     canon != null && /Spec ↔ Tests ↔ Code Triangulation/.test(canon),
@@ -262,7 +266,7 @@ module.exports = {
                 assertEqual(
                     OVERRIDE_CARRIERS.length,
                     3,
-                    `expected 3 OVERRIDE:${RPI} carriers (integration-test-review, review-architecture, review-ui), found ${OVERRIDE_CARRIERS.length}: ` +
+                    `expected 3 OVERRIDE:${RPI} carriers (integration-test-review, architecture-review, ui-review), found ${OVERRIDE_CARRIERS.length}: ` +
                         `${OVERRIDE_CARRIERS.map((o) => o.carrier).join(', ') || '(none)'}`
                 );
                 const drift = [];

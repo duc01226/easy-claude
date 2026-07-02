@@ -53,9 +53,9 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Goal:** Ensure reviewed code is correct, easy to change, convention-aligned, and verification-backed before acceptance or handoff — via receiving feedback with verification (not performative agreement), requesting targeted systematic reviews through the code-reviewer subagent, and enforcing verification gates before completion claims.
 
-> **Routing boundary:** If the user asks to review current changes, uncommitted work, staged/unstaged diffs, or a branch-to-branch diff, use `review-changes` instead.
+> **Routing boundary:** If the user asks to review current changes, uncommitted work, staged/unstaged diffs, or a branch-to-branch diff, use `changes-review` instead.
 
-> **Shared engine (keep in sync):** `code-review` and `review-changes` share the same review-protocol `SYNC:` blocks. Canonical source: `.claude/skills/shared/sync-inline-versions.md`; policy: `SYNC:shared-protocol-duplication-policy`. When you change a shared block in one skill, update the canonical file AND the sibling skill so the two never drift. The skills differ only in entry intent (explicit scope / feedback / completion-gate vs git diff) — not in review quality.
+> **Shared engine (keep in sync):** `code-review` and `changes-review` share the same review-protocol `SYNC:` blocks. Canonical source: `.claude/skills/shared/sync-inline-versions.md`; policy: `SYNC:shared-protocol-duplication-policy`. When you change a shared block in one skill, update the canonical file AND the sibling skill so the two never drift. The skills differ only in entry intent (explicit scope / feedback / completion-gate vs git diff) — not in review quality.
 
 > **MANDATORY** Before reviewing, search for project-specific reference docs:
 >
@@ -72,7 +72,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 2. **Phase 0: Blast Radius** — Run graph analysis first if `.code-graph/graph.db` exists
 3. **Phase 0.3: Risk Detection** — Detect dependency, migration, bus/event, API, security, config, and infra risks
 4. **Phase 0.5: Plan Compliance** — Verify changed files and tests against active plan when present
-5. **Phase 0.7: Surface Detection** — Classify files by language + directory semantics + change nature → route sub-agents; invoke `$review-ui` when frontend/UI files are present
+5. **Phase 0.7: Surface Detection** — Classify files by language + directory semantics + change nature → route sub-agents; invoke `$ui-review` when frontend/UI files are present
 6. **Phase 1: File-by-File** — Review each file, update report with correctness, convention, DRY, intent, test, and docs checks
 7. **Phase 2: Holistic** — Re-read accumulated report, assess overall approach, architecture, duplication, and cross-boundary behavior
 8. **Phase 3: Final Result** — Update report with overall assessment, critical issues, recommendations, docs staleness, and test gaps
@@ -85,7 +85,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - **Easy to Change for Code**: Treat future change cost as the primary code-quality metric; DRY, SOLID, abstraction, and patterns are tools only when they reduce change amplification
 - **No Performative Agreement**: Technical evaluation only ("You're right!" banned)
 - **Verification Gates**: Evidence required before completion claims
-- **Review Current Diffs Elsewhere**: Current changes, staged/unstaged diffs, and branch diffs belong to `review-changes`
+- **Review Current Diffs Elsewhere**: Current changes, staged/unstaged diffs, and branch diffs belong to `changes-review`
 - **A clean review pass ENDS the review.** Do not spend a fresh-context pass re-reviewing known findings before validation/fix; only re-review after fixes change the target.
 
 # Code Review
@@ -162,7 +162,7 @@ below — if a downstream rule would raise change cost, this principle wins.
 | `[Review Phase 0.3] Detect high-risk change types`                     | pending     |
 | `[Review Phase 0.5] Plan compliance check (skip if no active plan)`    | pending     |
 | `[Review Phase 0.7] Detect categories + route sub-agents`              | pending     |
-| `[Review Phase 0.7b] $review-ui sub-review — skip if no frontend/UI files in changeset` | pending     |
+| `[Review Phase 0.7b] $ui-review sub-review — skip if no frontend/UI files in changeset` | pending     |
 | `[Review Phase 1] File-by-file review + update report`                 | pending     |
 | `[Review Phase 2] Holistic assessment`                                 | pending     |
 | `[Review Phase 3] Final findings, docs triage, and test sync findings` | pending     |
@@ -213,13 +213,13 @@ Before any review — classify the changeset and route sub-agents:
 | Auth/permission/token/encryption files   | `security-auditor`                                      |
 | Query files, caching, batch processing   | `performance-optimizer`                                 |
 | Source code (logic, handlers, services)  | `code-reviewer`                                         |
-| Frontend/UI files (components, templates, `.html`/`.scss`/`.css`, design-system) | `$review-ui` skill (see Phase 0.7b) |
+| Frontend/UI files (components, templates, `.html`/`.scss`/`.css`, design-system) | `$ui-review` skill (see Phase 0.7b) |
 | Docs, plans, specs, markdown             | `general-purpose`                                       |
 | Mixed changeset with security/perf files | Spawn specialized sub-agent first, then `code-reviewer` |
 
-**Phase 0.7b: Frontend/UI Sub-Review (CONDITIONAL — `$review-ui`)**
+**Phase 0.7b: Frontend/UI Sub-Review (CONDITIONAL — `$ui-review`)**
 
-If the changeset contains any frontend/UI files matching the project's configured UI patterns (components, templates, `.html`/`.scss`/`.css`, design-system tokens), invoke the `$review-ui` skill as a sub-review so UI-specific concerns are covered — long-content overflow (wrap vs ellipsis+tooltip), responsive multi-screen flex, flex-grow with min/max over fixed px, semantic z-index discipline (no raw numbers, no `!important`), and BEM classes on all template elements. Fold its findings into this report's Phase 3 results.
+If the changeset contains any frontend/UI files matching the project's configured UI patterns (components, templates, `.html`/`.scss`/`.css`, design-system tokens), invoke the `$ui-review` skill as a sub-review so UI-specific concerns are covered — long-content overflow (wrap vs ellipsis+tooltip), responsive multi-screen flex, flex-grow with min/max over fixed px, semantic z-index discipline (no raw numbers, no `!important`), and BEM classes on all template elements. Fold its findings into this report's Phase 3 results.
 
 **Skip (record reason)** when no frontend/UI files are present in the changeset — log "Skipped Phase 0.7b — no frontend/UI files in changeset".
 

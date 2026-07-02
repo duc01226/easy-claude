@@ -23,7 +23,7 @@ context-budget: critical
 - **Purpose — skeptical-first MUTATOR, not a suggester:** grep all usages + trace consumers (graph downstream when graph.db exists) and cite `file:line` BEFORE touching anything; apply a simplification ONLY when certain it preserves behavior, never when unsure. — why: an unverified "safe" rewrite silently breaks a downstream consumer.
 - **Main steps, run in order:** (1) **Phase 0 Detect** artifact type (backend/frontend/test/config) + scope; (2) **Identify Targets** — recent git changes or named files, HARD-SKIP generated/migration/vendor; (3) **Analyze** via the 5 Simplification Dimensions; (4) **Apply** one refactoring type at a time (KISS/DRY/YAGNI, behavior-preserving); (5) **Verify** related tests after EACH change; (6) **Self-Recursive Loop** (analyze→simplify→verify) until zero findings or a no-progress/unsafe/owner-decision stop hits — do NOT spawn a fresh-context reviewer for your own findings; (7) **Self-Review Gate**.
 - **The 5 Simplification Dimensions (step 3):** readability · DRY/abstraction (≥3 occurrences, YAGNI gate) · right-responsibility-lowest-layer (Entity > Domain Service > App Service > Controller) · complexity reduction (flatten nesting, extract >20-line methods) · DB paging+indexes — every technique answers ONE test: does this make the next change cheaper?
-- **Self-Review Gate (step 7) — this skill owns review of its own output:** when it changed any file, self-invoke `/code-review` scoped to ONLY those changed files (recursion-safe leaf — NEVER `/review-changes`); skip + log the reason when nothing changed. — why: the simplifier rewrites code after the main review batch, so its output ships unreviewed without this gate.
+- **Self-Review Gate (step 7) — this skill owns review of its own output:** when it changed any file, self-invoke `/code-review` scoped to ONLY those changed files (recursion-safe leaf — NEVER `/changes-review`); skip + log the reason when nothing changed. — why: the simplifier rewrites code after the main review batch, so its output ships unreviewed without this gate.
 - **Read FIRST:** `docs/project-reference/code-review-rules.md` (anti-patterns/checklists) then `project-structure-reference.md` — before any modification.
 
 > **MANDATORY IMPORTANT MUST ATTENTION** Plan task to READ:
@@ -234,17 +234,17 @@ After simplifications applied, verification requires a **self-recursive simplifi
 > 2. **Self-invoke `/code-review` scoped to ONLY the changed files.** Pass the explicit changed-file set as the review target — not the full diff, not unrelated files.
 > 3. **Integrate the `/code-review` findings.** If it surfaces blocking issues caused by the simplification, fix them (behavior-preserving only) and re-run the self-recursive loop + this gate. If issues are out of simplification scope, report them up — do not silently drop.
 >
-> **Recursion safety:** `/code-review` is a LEAF review skill — it does NOT invoke `/code-simplifier` back, so there is no cycle. Use `/code-review` here, NEVER `/review-changes` (the heavyweight workflow that itself contains `/code-simplifier` and would recurse).
+> **Recursion safety:** `/code-review` is a LEAF review skill — it does NOT invoke `/code-simplifier` back, so there is no cycle. Use `/code-review` here, NEVER `/changes-review` (the heavyweight workflow that itself contains `/code-simplifier` and would recurse).
 >
 > **Why this gate exists:** `/code-simplifier` rewrites code after the main review batch has already run. Without this gate, the simplifier's output would ship unreviewed. This gate moves that review responsibility into the mutator itself — so the `workflow-review-changes` workflow no longer needs a separate `/code-review` step after `/code-simplifier`.
 
-Used standalone (outside a review workflow), this self-review gate is sufficient for the simplifier's own changes; you may still finish with `/review-changes` or the active workflow's review gate for broader, whole-changeset coverage.
+Used standalone (outside a review workflow), this self-review gate is sufficient for the simplifier's own changes; you may still finish with `/changes-review` or the active workflow's review gate for broader, whole-changeset coverage.
 
 ## Workflow Recommendation
 
 > **MANDATORY — NO EXCEPTIONS:** If NOT already in workflow, use `AskUserQuestion` to ask user. Do NOT decide this is "simple enough to skip" — the user decides:
 >
-> 1. **Activate `workflow-review-changes` workflow** (Recommended) — full review-changes restart gate → validated fix cycle (plan → plan-review → feature-implement) → re-review → docs
+> 1. **Activate `workflow-review-changes` workflow** (Recommended) — full changes-review restart gate → validated fix cycle (plan → plan-review → feature-implement) → re-review → docs
 > 2. **Execute `/code-simplifier` directly** — run standalone (this skill self-reviews its own changes via the Self-Review Gate)
 
 ---
@@ -573,7 +573,7 @@ Rules:
 - **MANDATORY IMPORTANT MUST ATTENTION** check DRY via OOP (same-suffix → base class), right responsibility (lowest layer), SOLID; grep ENTIRE scope for dangling refs after every extraction/move/rename — zero tolerance. — why: "primary file done" ≠ secondary files clean.
 - **MANDATORY IMPORTANT MUST ATTENTION** preserve ALL invariants — NEVER weaken, delete, or trivialize a property/mutation test guarding a `[HARD]` §4 rule or §5 invariant; a behavior change is a Dual-Feedback finding (feed spec AND tests, re-review) — report and stop, never ship silently. — why: green tests on a weakened bar are not a pass.
 - **MANDATORY IMPORTANT MUST ATTENTION** verify ALL affected outputs and tests pass after EACH change (apply one refactoring type at a time) — one build green ≠ all green. — why: multi-stack changes regress the stack you didn't check.
-- **MANDATORY IMPORTANT MUST ATTENTION** Self-Review Gate — when this skill changed code, self-invoke `/code-review` scoped to ONLY the changed files (recursion-safe leaf skill; NEVER `/review-changes` — it recurses into `/code-simplifier`); skip + log the reason when nothing changed. The simplifier owns review of its own output. — why: the simplifier rewrites code after the main review batch, so its output ships unreviewed without this gate.
+- **MANDATORY IMPORTANT MUST ATTENTION** Self-Review Gate — when this skill changed code, self-invoke `/code-review` scoped to ONLY the changed files (recursion-safe leaf skill; NEVER `/changes-review` — it recurses into `/code-simplifier`); skip + log the reason when nothing changed. The simplifier owns review of its own output. — why: the simplifier rewrites code after the main review batch, so its output ships unreviewed without this gate.
 - **MANDATORY** validate route decisions with the user via `AskUserQuestion` when outside a workflow — never auto-decide "simple enough to skip".
 
 **Anti-Rationalization:**

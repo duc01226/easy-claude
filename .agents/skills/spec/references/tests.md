@@ -440,7 +440,7 @@ Based on mode, suggest by asking the user directly:
 **TDD-first:**
 
 ```
-1. "$review-artifact --type=spec-tests — Validate TC quality before generating tests (Recommended)"
+1. "$artifact-review --type=spec-tests — Validate TC quality before generating tests (Recommended)"
 2. "$integration-test — Generate test stubs from these TCs (skip review)"
 3. "$plan — Plan the feature implementation"
 4. "Done for now — I'll implement later"
@@ -449,7 +449,7 @@ Based on mode, suggest by asking the user directly:
 **Implement-first:**
 
 ```
-1. "$review-artifact --type=spec-tests — Validate TC quality before generating tests (Recommended)"
+1. "$artifact-review --type=spec-tests — Validate TC quality before generating tests (Recommended)"
 2. "$integration-test — Generate integration tests (skip review)"
 3. "$workflow-review-changes — Review all changes"
 4. "Done for now"
@@ -458,7 +458,7 @@ Based on mode, suggest by asking the user directly:
 **Update (post-change/PR):**
 
 ```
-1. "$review-artifact --type=spec-tests — Validate updated TCs before regenerating tests (Recommended)"
+1. "$artifact-review --type=spec-tests — Validate updated TCs before regenerating tests (Recommended)"
 2. "$integration-test — Generate/update tests for changed TCs (skip review)"
 3. "$test — Run existing tests to verify coverage"
 4. "spec [mode=sync] — Sync §8 TCs ↔ integration test code"
@@ -541,7 +541,7 @@ When feature behavior removed or significantly changed:
 
 ## See Also
 
-- `review-artifact --type=spec-tests` — TC quality review (use AFTER this mode to validate TC coverage and correctness)
+- `artifact-review --type=spec-tests` — TC quality review (use AFTER this mode to validate TC coverage and correctness)
 - `spec [mode=sync]` — Native sync mode (forward-syncs Section 8 TCs ↔ integration test code; see `sync.md`)
 - `integration-test` — Integration test code generator (use AFTER this mode to generate test stubs)
 - `$spec` — Feature doc creator (creates the Section 8 that this mode populates)

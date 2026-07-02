@@ -81,7 +81,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 > 3. **`$plan-review`** — recursively review/validate the plan; fix validated findings before implementing.
 > 4. **Proceed** — execute the core implementation spine (research already done → implement → test → review → docs).
 > 5. **`$spec [mode=sync]`** — *spec-driven closure.* Reconcile the spec's §8 `TC-{FEATURE}-{NNN}` ↔ integration tests and refresh `Evidence: TBD` markers to real `file:line` now that code exists. Run `$spec [mode=tests]` first if the implementation introduced behavior not yet captured as a test case. Skip only when step 1 was skipped (fast-mode trivial, no spec touched).
-> 6. **`$review-changes`** — review the diff before commit.
+> 6. **`$changes-review`** — review the diff before commit.
 > 7. **`$why-review`** — review rationale and change quality of the implementation.
 
 ## First Principle — Easy to Change

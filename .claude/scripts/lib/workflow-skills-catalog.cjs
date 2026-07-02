@@ -87,7 +87,7 @@ function condenseWhenToUse(
   return out.replace(/\|/g, "\\|");
 }
 
-// The base skill token of a sequence step ("review-artifact --type=pbi" -> "review-artifact").
+// The base skill token of a sequence step ("artifact-review --type=pbi" -> "artifact-review").
 function baseSkill(step) {
   return String(step).split(/\s+/)[0];
 }

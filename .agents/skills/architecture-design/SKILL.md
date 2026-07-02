@@ -58,7 +58,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - Decide mode FIRST (Step 1): greenfield researches every concern from scratch; brownfield reads reference docs + accepted ADRs and constrains research to the existing stack — NEVER re-litigate a settled ADR-recorded decision without a superseding-ADR rationale.
 - Drive the style choice with NUMBERS, not adjectives: quantify Step-2 quality-attribute scenarios (latency p95/p99, throughput, SLO, RPO/RTO, data growth, concurrency); any unknown target becomes an explicit `Unresolved question`, never a silent guess.
 - Every concern needs 3+ researched options with cited evidence (stars, last release, downloads, CVE scan) + a confidence % — familiarity alone is never sufficient grounds for a recommendation.
-- Produce the two binding downstream contracts and you're done; skip either and the chain breaks: emit an ADR per hard-to-reverse decision (`review-architecture` Cat 9 enforces it) and the Scaffold Handoff tool-choices table (`scaffold`/`harness-setup` consume it), then run the MANDATORY Step-12 user-validation interview before confirming.
+- Produce the two binding downstream contracts and you're done; skip either and the chain breaks: emit an ADR per hard-to-reverse decision (`architecture-review` Cat 9 enforces it) and the Scaffold Handoff tool-choices table (`scaffold`/`harness-setup` consume it), then run the MANDATORY Step-12 user-validation interview before confirming.
 - **Main steps/tasks (run in order, track each):** 1 Load Context (+pick greenfield/brownfield mode) → 2 Derive Architecture Requirements (+quantified quality-attribute scenarios, user-validate) → 3 Backend Architecture (styles + patterns) → 4 Frontend Architecture (styles + patterns) → 4B UI System Architecture (styling/tokens/components/responsive, user-validate; skip if backend-only) → 5 Library Ecosystem Research (3 options/concern) → 6 Testing Architecture → 7 CI/CD & Deployment → 8 Observability & Monitoring → 9 Code Quality + Scaffold Handoff table → 10 Dependency Risk Assessment → 11 Generate Report + emit ADRs → 12 User Validation Interview (8-12 questions, mark `confirmed`) → Next Steps + always-offer council escalation. — why: AI keeps forgetting the skill's own steps; this is the recovery anchor.
 
 **Workflow (12 steps):**
@@ -98,7 +98,7 @@ Skill sits mid-workflow — consumes settled upstream decisions, produces artifa
 | Bounded contexts, aggregates, domain events, ERD | `domain-analysis`     | Architecture decision report (`{plan-dir}/research/...`)      | `plan`, `plan-execute`              |
 | Confirmed languages/frameworks/databases         | `tech-stack-research` | Confirmed decisions (`{plan-dir}/phase-02b-architecture.md`)  | `plan`, `scaffold`                  |
 | Expected scale, compliance, budget constraints   | `business-evaluation` | Scaffold Handoff table (tooling + fitness rules)             | `scaffold`, `harness-setup`         |
-| Existing stack/patterns/ADRs (brownfield)        | reference docs, `docs/adr/**` | ADRs for hard-to-reverse decisions (`docs/adr/`)     | `review-architecture` (conformance) |
+| Existing stack/patterns/ADRs (brownfield)        | reference docs, `docs/adr/**` | ADRs for hard-to-reverse decisions (`docs/adr/`)     | `architecture-review` (conformance) |
 
 If upstream artifact missing, capture minimum needed here and note gap — NEVER silently re-run full upstream analysis. — why: a silent re-run hides the missing-input gap that the owning step should resolve.
 
@@ -150,7 +150,7 @@ Map signals to architecture constraints:
 
 ### Quality-Attribute Scenarios (quantify — these drive the style choice)
 
-Qualitative "Must/Should" cannot decide between, e.g., modular monolith vs microservices. Capture **measurable** targets; ask user for any unknown by asking the user directly (guess acceptable only when labelled an assumption with confidence %). These targets become ADR-recorded budgets `review-architecture` Category 9 later checks changes against. — why: a style chosen without numbers is a guess, not an enforceable decision.
+Qualitative "Must/Should" cannot decide between, e.g., modular monolith vs microservices. Capture **measurable** targets; ask user for any unknown by asking the user directly (guess acceptable only when labelled an assumption with confidence %). These targets become ADR-recorded budgets `architecture-review` Category 9 later checks changes against. — why: a style chosen without numbers is a guess, not an enforceable decision.
 
 | Quality attribute     | Scenario (stimulus → measurable response)                             | Target (fill in) |
 | --------------------- | -------------------------------------------------------------------- | ---------------- |
@@ -178,7 +178,7 @@ Record these decisions now so the init-time `architecture-scalability-review` sc
 | Strategic DRY | Decide the **strategic DRY** / shared-knowledge strategy: monorepo, shared domain lib, custom platform / util lib — AND explicitly when NOT to share. Keep domain concepts OUT of generic/shared/infra layers (a shared layer coupled to one consumer's domain is no longer reusable). | Step 9 arch-rules + `scaffold` foundation |
 | Dependency-boundary enforcement | Decide explicit dependency directions between modules/contexts and the mechanism that enforces them (no circular deps). | Step 9 "Arch rules / fitness" handoff → `linter-setup` |
 
-These inputs are graded at init/audit by `architecture-scalability-review`; per-change regressions are caught by `review-architecture`. Do NOT turn this step into an auditor — record decisions here and route grading to those skills.
+These inputs are graded at init/audit by `architecture-scalability-review`; per-change regressions are caught by `architecture-review`. Do NOT turn this step into an auditor — record decisions here and route grading to those skills.
 
 ---
 
@@ -548,7 +548,7 @@ Write report to `{plan-dir}/research/architecture-design.md` with sections:
 
 ### Emit ADRs for hard-to-reverse decisions (MANDATORY)
 
-For each decision significant AND costly to reverse — backend/frontend style, persistence/consistency model, messaging approach, a Step-2 quality-attribute budget, a rejected-with-reason alternative — write one ADR to `docs/adr/{NNNN}-{slug}.md` following the repo's existing ADR format (Status, Date, Context, Decision, Consequences [Positive/Negative/Neutral], Alternatives Considered, Related; see `docs/adr/0001-skill-lifecycle.md` for canonical shape). Start `Status: Proposed`; promote to `Accepted` after Step-12 user validation confirms it. These ADRs are the binding record `review-architecture` Category 9 checks changed code against — **a decision not written as an ADR cannot be enforced downstream.** Route ADR authoring through the `architect` sub-agent for cross-service/security/performance impact analysis.
+For each decision significant AND costly to reverse — backend/frontend style, persistence/consistency model, messaging approach, a Step-2 quality-attribute budget, a rejected-with-reason alternative — write one ADR to `docs/adr/{NNNN}-{slug}.md` following the repo's existing ADR format (Status, Date, Context, Decision, Consequences [Positive/Negative/Neutral], Alternatives Considered, Related; see `docs/adr/0001-skill-lifecycle.md` for canonical shape). Start `Status: Proposed`; promote to `Accepted` after Step-12 user validation confirms it. These ADRs are the binding record `architecture-review` Category 9 checks changed code against — **a decision not written as an ADR cannot be enforced downstream.** Route ADR authoring through the `architect` sub-agent for cross-service/security/performance impact analysis.
 
 ### Architecture Diagram Template
 
@@ -719,7 +719,7 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 **MANDATORY IMPORTANT MUST ATTENTION** brownfield: FIRST read project reference docs + accepted ADRs, constrain research to the existing stack, and NEVER re-litigate a settled ADR-recorded decision without a superseding-ADR rationale — why: re-deciding a recorded choice churns the codebase and breaks downstream conformance checks.
 **MANDATORY IMPORTANT MUST ATTENTION** search 3+ existing patterns/ADRs before proposing any new style or pattern; cite `file:line` (or URL/benchmark) evidence and a confidence % for EVERY claim — confidence >80% to recommend, <60% DO NOT recommend — why: speculation without proof is forbidden output.
 **MANDATORY IMPORTANT MUST ATTENTION** evaluate fit before copying a nearby pattern — closest example ≠ matching preconditions; verify the new context shares the same scale, constraints, and boundaries — why: a pattern lifted into a mismatched context fails silently.
-**MANDATORY IMPORTANT MUST ATTENTION** produce the two binding downstream contracts — one ADR per hard-to-reverse decision (`review-architecture` Cat 9 enforces) AND the Scaffold Handoff tool-choices table (`scaffold`/`harness-setup` consume) — a decision not written as an ADR or encoded as an executable fitness check cannot be enforced downstream — why: documented-but-unenforced budgets erode silently as code changes.
+**MANDATORY IMPORTANT MUST ATTENTION** produce the two binding downstream contracts — one ADR per hard-to-reverse decision (`architecture-review` Cat 9 enforces) AND the Scaffold Handoff tool-choices table (`scaffold`/`harness-setup` consume) — a decision not written as an ADR or encoded as an executable fitness check cannot be enforced downstream — why: documented-but-unenforced budgets erode silently as code changes.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting; mark one `in_progress`, mark `completed` immediately after evidence lands; add a final review todo — why: external task state survives context compaction; memory does not.
 
 **Anti-Rationalization (Closing — reject these excuses):**

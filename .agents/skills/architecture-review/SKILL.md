@@ -1,6 +1,6 @@
 ---
-name: review-ui
-description: '[Code Quality] Use when reviewing UI/frontend changes for long-content overflow, responsive multi-screen layout, flex-vs-fixed sizing, z-index discipline, and SCSS/BEM styling quality.'
+name: architecture-review
+description: '[Code Quality] Use when reviewing architecture compliance for layers, messaging, service boundaries, CQRS, repos, and entity events.'
 ---
 
 > Codex compatibility note:
@@ -51,42 +51,46 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Validate UI/frontend changes for the five visual-quality dimensions that break in production but slip past correctness review — long-content overflow & truncation, responsive multi-screen layout, flex-grow vs fixed sizing, z-index scale discipline, and SCSS/CSS/BEM styling quality — so frontend/UI changes survive real content, responsive layouts, layering, and styling conventions before handoff.
+**Goal:** Ensure changes preserve architecture boundaries, ownership, message flow, and generated artifact integrity before handoff — validating changed code against layers, service boundaries, message flow, CQRS, repositories, entity events, frontend architecture, generated artifacts, recorded architecture decisions (ADRs), and quality tooling.
 
-**Default scope:** All uncommitted frontend changes (staged + unstaged) matching the frontend path and file-extension patterns declared by the project configuration/docs index. Override: specify files, directories, components, or full frontend codebase.
+**Summary:**
 
-> **CONDITIONAL — SKIP when no frontend files in scope.** In workflow context this skill is SKIPPED when the diff has no files matching the project frontend path/extension patterns. If invoked standalone with no frontend changes → announce `"No frontend changes detected — review-ui skipped"` and report clean.
+- **Purpose:** validate a changeset against the architecture rules the project records in its OWN reference docs, classify every finding PASS/WARN/BLOCKED with `file:line` proof, then self-validate before handoff — this skill is one reviewer in the `workflow-review-changes` pipeline.
+- **Main phases — run in order:** Phase 0 load architecture rules → Phase 1 determine scope → Phase 2 blast radius (if `graph.db`) → Phase 3 architecture review (12 categories) → Phase 4 finalize compliance report → Phase 5 `$why-review` self-validation gate → Next Steps ask the user directly.
+- **The 12 Phase-3 categories — review EVERY applicable one, serially:** 0 quality-tooling baseline · 1 clean-architecture layers · 2 message-bus patterns · 3 CQRS compliance · 4 repository patterns · 5 service-pattern era (legacy vs modern) · 6 entity event handlers · 7 service boundaries · 8 frontend architecture (frontend files only) · 9 ADR / recorded-decision conformance · 10 spec-loop discipline (property-TC + dual-feedback) · 11 scalability & coupling regression (diff-scoped; BLOCKED/WARN). Per category: `Think:` derivation → doc rule → source evidence → `file:line` proof + grep 3+ counterexamples → verdict. NEVER scan categories in parallel; codebase convention wins over a suspected violation. — why: skipping a category silently drops the violation class it uniquely covers.
+- Phase 0 is non-negotiable and first: load the project architecture docs (`backend-patterns-reference.md`, `project-structure-reference.md`, `frontend-patterns-reference.md`, `code-review-rules.md`) — every rule and base-class/symbol name comes from those docs, NEVER general knowledge; the framework names in Categories 2–8 are illustrative only.
+- Stay in lane: deep-review only what this skill OWNS (layers, messaging/CQRS/repos/service boundaries, entity events, frontend architecture, quality tooling, generated artifacts, ADRs); record a one-line `→ route to {sibling}` pointer for security/performance/DDD/UI/test findings instead of expanding them. — why: duplicated findings across reviewers inflate severity counts and bury issues each reviewer uniquely owns.
+- Read-only until validated: after producing any finding, run the Phase 5 `$why-review` self-validation gate before handoff; fixes happen only in the validated fix loop, and every fix restarts a full review from Phase 0. Write findings to `plans/reports/arch-review-{date}-{slug}.md`.
 
-> **ROUTING BOUNDARY (read before starting):**
+**Default scope:** All uncommitted changes (staged + unstaged). Override: specify files, directories, services, or full codebase.
+
+> **MANDATORY MUST ATTENTION** Plan tasks to READ architecture docs BEFORE reviewing:
 >
-> - **`review-ui` (this skill)** — the project UI review gate invoked by `review-changes` as its UI dimension when frontend files are in scope. Purpose: find issues, assign severity, give project-specific fix guidance citing real reuse targets (sourced from the project reference docs). It complements `review-architecture`; it is not a separate `review-changes` workflow step.
-> - **`web-design-guidelines`** — a generic, standalone accessibility / UX checklist. Cross-read it for a11y depth (WCAG, focus order, ARIA, contrast); do NOT duplicate its content here.
-> - **`ui-ux-designer`** — specialized UI/UX, accessibility, responsive layout, and design-token review/authoring sub-agent when the local agent catalog provides it.
-
-> **MANDATORY MUST ATTENTION** Plan tasks to READ UI rules BEFORE reviewing:
+> 1. `docs/project-reference/backend-patterns-reference.md` — CQRS, messaging, repos, validation, entity events, layer rules **(READ FIRST — primary rules source)**
+> 2. `docs/project-reference/project-structure-reference.md` — service map, layer structure, DB ownership
+> 3. `docs/project-reference/frontend-patterns-reference.md` — component hierarchy, store, API patterns **(frontend files only)**
+> 4. `docs/project-reference/code-review-rules.md` — anti-patterns, conventions
 >
-> 1. Project styling rules doc — BEM convention, mixins, variables, responsive patterns **(READ FIRST — primary styling rules source; resolve via project config/docs index)**
-> 2. Project design-system/token doc — design tokens, especially the **Z-Index & Layering** section
-> 3. Project frontend architecture/patterns doc — base component classes, state/store, API service, lifecycle teardown rules shared with `review-architecture`
-> 4. Project code-review rules doc — anti-patterns and conventions
->
-> Not found → search: "scss styling", "design tokens", "frontend patterns". Rules come from docs — NOT general knowledge.
+> Not found → search: "architecture documentation", "service patterns", "messaging patterns". Rules come from docs — NOT general knowledge.
 
 **Workflow:**
 
-1. **Phase 0: Load UI Rules** — Resolve and read the four project UI/styling rule docs above
-2. **Phase 1: Determine Scope** — Changed frontend files (default) or user-specified scope
-3. **Phase 2: Blast Radius** — Run graph trace if graph.db exists
-4. **Phase 3: UI Category Review** — Check each file against all 5 applicable categories
+1. **Phase 0: Load Architecture Rules** — Read project architecture docs (rules come from docs, NEVER general knowledge)
+2. **Phase 1: Determine Scope** — Changed files (default) or user-specified scope
+3. **Phase 2: Blast Radius** — Run `$graph-blast-radius` if `graph.db` exists
+4. **Phase 3: Architecture Review** — Check each file serially against all 12 applicable categories (0 tooling → 11 scalability & coupling)
 5. **Phase 4: Finalize** — Generate compliance report with PASS/BLOCKED/WARN verdicts
-6. **Fix Loop: Validate → Fix → Full UI Re-Review** — validate findings first; after validated fixes, rerun the full UI review using the local sub-agent selection guide only when that protocol calls for agents
+6. **Phase 5: Why-Review Self-Validation Gate** — Adversarially validate own findings via `$why-review` before handoff (MANDATORY when any finding exists)
+7. **Next Steps** — ask the user directly: `$code-simplifier` / `$code-review` / skip
 
-**Key Rules:**
+**Key Rules (top 3 critical first):**
 
-- Write findings to `plans/reports/ui-review-{date}-{slug}.md`
-- BLOCKED = must fix before merge | WARN = review and decide | PASS = compliant
-- Every violation needs `file:line` proof + grep 3+ counterexamples before flagging
-- Review is read-only until `$why-review --validate-findings` confirms findings; fixes may happen only in the validated fix loop or downstream plan/feature-implement, and every fix restarts a full UI review from Phase 0 with brand-new tasks.
+- MUST ATTENTION read project architecture docs in Phase 0 BEFORE reviewing — rules come from docs, NEVER general knowledge.
+- Every violation needs `file:line` proof + grep 3+ counterexamples before flagging — NEVER speculate.
+- MUST ATTENTION review one category at a time: doc rule → source evidence → verdict — NEVER scan categories simultaneously.
+- Write findings to `plans/reports/arch-review-{date}-{slug}.md`.
+- BLOCKED = must fix before merge | WARN = review and decide | PASS = compliant.
+- Review is read-only until `$why-review --validate-findings` confirms findings; fixes happen only in the validated fix loop or downstream plan/feature-implement, and every fix restarts a full architecture review from Phase 0 with a fresh task breakdown.
 
 ## Your Mission
 
@@ -96,24 +100,28 @@ $ARGUMENTS
 
 ## First Principle — Easy to Change
 
-> **The success metric of every coding decision is _future change cost_.**
-> DRY, SRP, abstraction, design patterns, naming, layering, tests — every
-> technique exists to serve one goal: **making the next change cheaper**.
+> **Success metric: future change cost.** DRY, SRP, abstraction, patterns, naming, layering, tests exist to make next change cheaper.
 
-When evaluating styling, a layout, a token, or a component, ask:
-**does this make the next change cheaper or more expensive?**
+Before applying any rule, ask: **does this lower or raise future change cost?**
 
-- Reject "best practices" that raise change cost (hardcoded values forcing
-  per-file edits, hand-rolled overflow handling, raw breakpoints,
-  copy-pasted truncation CSS).
-- Name the real enemies in findings: **magic values, duplicated styling
-  knowledge, fixed sizing that fights the viewport, cross-system token
-  mixing, z-index escalation wars**.
-- A simpler layout that survives 320px and a 200-char value beats a
-  pixel-perfect fixed layout that breaks on either.
+- Reject "best practices" raising cost: premature abstraction, speculative generality, leaky indirection, ceremony without payoff. — why: cost added now with no payoff is debt, not quality.
+- Name real enemies: **coupling, hidden state, duplicated knowledge, unclear intent, irreversible decisions exposed too early**.
+- Prefer simple reversible design over sophisticated rigid design. — why: reversible decisions cost less to undo when wrong.
+- If downstream rule raises change cost, this principle wins.
 
-Apply this lens **before** invoking any specific rule, pattern, or checklist
-below — if a downstream rule would raise change cost, this principle wins.
+---
+
+## Quality Tooling Principle — Tech-Stack Adaptive
+
+> Architecture review includes automated quality guardrails. Without stack-appropriate linting, formatting, type checks, static analysis, dependency/security-review scanning, CI enforcement, defects depend on reviewer memory.
+
+Evaluate detected stacks, not fixed tool list:
+
+- Detect stacks from project-reference docs, manifests, lock files, build files, CI before recommending tools.
+- Per production stack, verify formatter/style config, linter/code analyzer, compiler/type-check strictness, dependency/vulnerability scanning, tests/coverage, CI/pre-commit enforcement.
+- Prefer official or ecosystem-standard tooling; local docs absent/stale → check current official docs before recommending setup.
+- MUST ATTENTION recommend enforceable best practice only: installed but unwired tool = WARN; production source with no relevant automated quality gate = BLOCKED.
+- Identify missing capability first; map to local equivalent before prescribing new tooling. — why: prescribing a tool that duplicates an existing gate adds noise, not coverage.
 
 ---
 
@@ -121,25 +129,41 @@ below — if a downstream rule would raise change cost, this principle wins.
 
 Skeptical. Every claim needs traced proof, confidence >80%.
 
-- NEVER flag a styling violation without reading the actual SCSS/template + tracing the rendered element
-- Every finding MUST include `file:line` evidence
-- Before flagging a pattern violation: grep 3+ existing examples — codebase convention wins
-- Question: "Is this actually a violation, or an established exception (icon dimensions, fixed brand assets, genuinely fixed UI)?"
+- NEVER flag violations without reading actual code + tracing dependency — READ the code, trace the import chain, then flag.
+- Every finding MUST include `file:line` evidence.
+- Before flagging pattern violation: grep 3+ existing examples — codebase convention wins.
+- Question: "Actually a violation, or an established exception?"
 
-## Phase 0: Load UI Rules (MANDATORY FIRST) (MUST ATTENTION)
+## Ownership & Handoff (own vs delegate)
 
-> **MUST ATTENTION:** Read project UI docs BEFORE reviewing. Rules come from docs, not general knowledge.
+This skill = one reviewer in a multi-reviewer pipeline — `workflow-review-changes` runs it beside the siblings below. Review ONLY what this skill owns; route the rest so findings are not double-reported across reviewers.
 
-- read the project styling rules doc — extract BEM convention, mixin names, variable names, responsive breakpoint mixins, nesting limits
-- read the project design-system/token doc — extract design tokens and the **Z-Index & Layering** section
-- read the project frontend architecture/patterns doc — extract base component classes, store/effect patterns, API service base, lifecycle teardown pattern
-- read the project code-review rules doc — extract frontend anti-patterns and review rules directly
+| This skill OWNS (deep-review here)                                                                                            | Delegate to sibling (one-line pointer only — do NOT deep-review)         |
+| ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Layer boundaries, dependency direction, business-logic placement                                                            | —                                                                         |
+| Messaging patterns, CQRS structure, repository patterns, service-pattern era, entity event handlers, service boundaries     | —                                                                         |
+| Frontend ARCHITECTURE (base classes, store/effect, API-service base, subscription teardown, CSS-class presence)             | Visual/SCSS/responsive/z-index quality → `ui-review`                      |
+| Quality-tooling baseline, generated-artifact integrity, ADR / recorded-decision conformance                                 | —                                                                         |
+| Architecture-level auth PLACEMENT (a gate exists at the boundary)                                                           | OWASP, secrets, dependency/supply-chain, authz-matrix depth → `security-review` |
+| Structural soundness of a hot path (no obvious N+1 introduced by the diff)                                                  | Query plans, indexing depth, latency/throughput budgets → `performance-review` |
+| —                                                                                                                          | Domain entity / value-object DDD design quality → `domain-entities-review` |
+| —                                                                                                                          | Integration-test assertion quality, coverage, traceability → `integration-test-review` |
+| —                                                                                                                          | Runtime production-readiness of service/API changes (observability wiring, rollback) → `production-readiness-review` |
 
-> **CROSS-SYSTEM WARNING (carry through every category):** Do NOT mix token systems with incompatible root-size, namespace, or layer assumptions in one file. When flagging a fix, recommend whichever token system the file already imports/uses; never introduce another system unless the project docs explicitly require migration.
+When a finding clearly belongs to a sibling, record one-line `→ route to {skill}` pointer and move on — NEVER expand it. — why: duplicated findings across reviewers inflate severity counts and bury issues each reviewer uniquely owns.
+
+## Phase 0: Load Architecture Rules (MANDATORY FIRST)
+
+> **MUST ATTENTION:** Read project docs BEFORE reviewing. Rules come from docs, NEVER general knowledge.
+
+- read `docs/project-reference/backend-patterns-reference.md` — extract messaging naming, layer rules, CQRS patterns, repo rules, entity event handler patterns, validation patterns
+- read `docs/project-reference/project-structure-reference.md` — extract service map, layer structure, DB ownership
+- frontend files in scope → read `docs/project-reference/frontend-patterns-reference.md`
+- read `docs/project-reference/code-review-rules.md` — extract anti-patterns + review rules directly
 
 ## Phase 1: Determine Scope
 
-**Default (no override):** Review all uncommitted frontend changes.
+**Default (no override):** Review all uncommitted changes.
 
 ```bash
 git status          # List changed files
@@ -147,148 +171,286 @@ git diff            # Staged + unstaged changes
 git diff --cached   # Staged only
 ```
 
-- Collect file list to review
-- Filter to files matching the project frontend path/extension patterns resolved from project config/docs
-- If ZERO frontend files match → announce `"No frontend changes detected — review-ui skipped"` and report clean (honor the CONDITIONAL skip)
+- Collect file list to review.
+- Categorize: backend (.cs), frontend (.ts/.html), config, docs, other.
+- Filter to architecture-relevant files (skip pure docs, configs, tests unless architecture-relevant).
 
 ## Phase 2: Blast Radius (if graph.db exists)
 
-- If `.code-graph/graph.db` exists: run graph trace on key changed component files
-- Record: impacted file count, shared-component fan-out (a changed shared-library component affects every consumer app), risk level
-- Prioritize review by highest-impact files first (shared library components > app-local components)
-- Graph unavailable: note "Graph not available — skipping blast radius" and proceed
+- `.code-graph/graph.db` exists → call `$graph-blast-radius` skill.
+- Record: impacted file count, cross-service impact, risk level.
+- Prioritize review by highest-impact files first.
+- Graph unavailable → note "Graph not available — skipping blast radius" and proceed.
 
-For each changed component/style file with downstream impact:
+Per changed file with downstream impact:
 
 ```bash
-python .claude/scripts/code_graph trace <changed-file> --direction both --json
+python .claude/scripts/code_graph trace <changed-file> --direction downstream --json
 ```
 
-Use `--node-mode file` first (10-30x less noise), then `--node-mode function` for detail. Flag shared-component consumers impacted by a styling or layout change.
+Flag MESSAGE_BUS consumers or event handlers impacted by changes.
 
-## Phase 3: UI Category Review
+## Phase 3: Architecture Review
 
-Create report: `plans/reports/ui-review-{date}-{slug}.md`
+Create report: `plans/reports/arch-review-{date}-{slug}.md`
 
-For EACH file in scope, evaluate against ALL applicable categories. Skip categories not applicable to the file type (e.g., a pure `.ts` store file skips overflow/sizing/z-index but still hits Category 5's architecture checks).
+Per file in scope, evaluate against ALL applicable categories. Skip categories not applicable to file type.
 
-> **Apply the `Think:` reasoning prompt before each category — derive violations, do NOT recite checklists.**
+MUST ATTENTION review serially. Per applicable category: read docs/source evidence → derive risk with `Think:` → grep 3+ examples/counterexamples → record PASS/WARN/BLOCKED. NEVER scan categories simultaneously — why: parallel scanning collapses per-category evidence into one undifferentiated pass and drops findings.
 
----
-
-### Category 1: Long-Content Overflow & Truncation — Severity: WARN (HIGH when a flex child truncates with no `min-width: 0`)
-
-**Think:** Does every text container survive a 200-char value? Single-line or multi-line? Can the user still read the full value when it is truncated?
-
-**Detection signals:**
-
-- Hand-rolled `text-overflow: ellipsis` (with `white-space: nowrap` / `overflow: hidden` re-declared by hand) instead of the project mixin/directive
-- A flex child that truncates but has **NO `min-width: 0`** — the flex-overflow trap: a flex item's default `min-width: auto` refuses to shrink below content width, so ellipsis never triggers
-- Truncated text with **NO tooltip / `title`** to reveal the full value
-
-**DECISION RULE the reviewer enforces:**
-
-- Single-line labels / table cells / chips → ellipsis **+ tooltip-on-overflow**
-- Multi-line prose / descriptions → wrap or `-webkit-line-clamp`
-
-**Project fix guidance** (cite real reuse targets from the resolved styling rules doc):
-
-- Prefer the project's documented overflow/ellipsis directive, component, or utility. It must expose the full value only when the element actually overflows and must handle the flex `min-width` trap.
-- OR the project's documented truncate/text-ellipsis mixins or utility classes from the styling rules doc.
-- Multi-line: use the project-documented clamp pattern.
-
-**GOOD vs BAD:** a utility/token-driven truncation that exposes the full value on overflow (tooltip/`title`) is correct; a hand-rolled substring / width-math truncation, or truncated text with no tooltip, is the anti-pattern. Cite the styling rules doc for the project's reuse targets.
+> **Portability note (MUST ATTENTION):** Concrete framework symbols, base-class names, directory conventions in Categories 2–8 below are **illustrative examples** — authoritative form for repository under review sourced from Phase 0 reference docs (`backend-patterns-reference.md`, `frontend-patterns-reference.md`, `project-structure-reference.md`), so verify code against those docs. On any stack, map each example to project's equivalent as named in its own reference docs, flag deviations from project's **actual** convention — NEVER from these literal names. Same discipline as Category 5: read project docs at review time; NEVER treat hardcoded name as universal.
 
 ---
 
-### Category 2: Responsive Multi-Screen via Flex — Severity: WARN
+### Category 0: Quality Tooling Baseline — Severity: BLOCKED/WARN
 
-**Think:** Is this usable at 320 / 768 / 1024 / 1440? Does the layout flex, or is it a fixed grid that overflows the small screen?
+**Think:** Can project automatically catch style, type, complexity, security, dependency, boundary regressions for detected stacks?
 
-**Detection signals:**
+- Detect production stacks via `docs/project-config.json`, relevant docs, manifests, lock files, build files, CI.
+- Inventory gates: formatter, linter, code/static analyzer, compiler/type checker, dependency audit/SCA/SBOM, SAST, test/coverage, architecture/dependency-boundary checks, pre-commit, CI/build.
+- Verify stack-appropriate coverage: `.editorconfig`/language analyzers, JavaScript/TypeScript linting, UI template linting when supported, formatter config, dependency vulnerability scans, semantic security analysis.
+- BLOCKED when production stack lacks runnable lint/static-analysis/type-check command and equivalent enforced gate, or CI/build references missing/broken quality command.
+- WARN when tooling local-only, not wired into CI/build/pre-commit, partial for active production code, broadly/unexplainedly suppressed, unclear on generated-code exclusions, or stale for stack.
+- **Scope to the change (MUST ATTENTION):** On normal change-level review, *pre-existing* tooling gap unrelated to diff is WARN with single note — NEVER BLOCK whole review on standing, change-unrelated condition. Reserve BLOCKED for: new stack/service introduced by this change with no gate, change itself removing/breaking existing gate, or explicit full-codebase/greenfield audit scope. — why: change review that BLOCKs on unrelated standing gap produces noise that buries regression the diff actually introduced.
+- Before recommending tools, find current official/ecosystem setup and cite it; recommend capabilities first, tools second.
 
-- Raw `@media (max-width: NNNpx)` / `(min-width: NNNpx)` in component SCSS that bypasses the breakpoint mixins
-- Non-flex fixed layouts that cannot reflow
+**Violation format:**
 
-**Project fix guidance:**
-
-- The project documented responsive-flex mixins/utilities
-- Breakpoints from the project breakpoint tokens — NEVER inline pixel breakpoints
-
-**Anti-patterns:** raw `@media` pixel breakpoints that bypass the project's breakpoint mixins, and non-flex fixed grids that cannot reflow. Cite the styling rules doc for documented offenders; grep the changeset for the same patterns.
-
----
-
-### Category 3: Flex-Grow vs Fixed Width/Height (prefer min/max) — Severity: WARN
-
-**Think:** Must this size be fixed, or can it grow/shrink with content + viewport?
-
-**Detection signals:**
-
-- Fixed `width:` / `height:` in px (≥ ~3 digits) on containers / cards / forms / dialogs
-
-**Project fix guidance:**
-
-- Prefer `flex: 1` / `flex-grow` + `max-width` / `min-width` caps, and `min-width: 0` on truncating flex children
-- The project flex-container mixin/utility documented in the styling rules doc
-- Reserve fixed px for icons / borders / genuinely fixed UI
-
-**Anti-patterns:** large fixed `width:` / `height:` in px on containers / cards / forms / dialogs (e.g. `width: 964px`, `height: 772px`) that should flex with content + viewport. Cite the styling rules doc for documented offenders.
+```
+BLOCKED: {stack} has no enforced lint/static-analysis/type-check quality gate ({evidenceFile}:{line})
+```
 
 ---
 
-### Category 4: Z-Index Scale Discipline — Severity: BLOCKED (HARD GATE)
+### Category 1: Clean Architecture Layers — Severity: BLOCKED
 
-**Think:** Which layer does this surface belong to (base / raised / dropdown / sticky / modal / toast)?
+**Think:** What layer is this file in? What layers can it legally import from? Does any import break inward-only flow (Service/API → Application → Domain ← Persistence)?
 
-**Detection signals:**
+- Read `docs/project-config.json` → `architectureRules.layerBoundaries` for project-specific rules.
+- Determine layer from file path: Domain/, Application/, Persistence/, Service/.
+- Scan configured language's import/include statements — flag imports from forbidden layers.
+- MUST ATTENTION verify business logic in correct layer: Entity/Domain > Service/Application > Controller/Component.
+- NEVER allow direct infrastructure access from Domain — keep repo interfaces in Domain, implementations in Persistence. — why: Domain depending on infrastructure inverts the dependency rule and couples core logic to a swappable detail.
+- NEVER allow business logic in API/Controller layer — push it down to Entity/Domain or Application.
 
-- Raw numeric `z-index` (literal value instead of a token)
-- **ANY `z-index` with `!important` → BLOCKED** (an escalation war that the next dev will only beat with a bigger literal)
+**Violation format:**
 
-**Project fix guidance — use tokens:**
-
-- The project documented z-index layer tokens
-- Existing legacy/framework token systems only when the current file already uses that system
-- The semantic layer variables declared canonical by the project design-system doc
-
-Cross-reference the project design-system **Z-Index & Layering** map. The chosen token MUST match the surface's semantic layer.
-
-**GOOD vs BAD:** a `z-index` set from a semantic token / layer scale is correct; a raw literal (e.g. `z-index: 99999`, `z-index: 10000`) or `z-index: N !important` is the anti-pattern. Cite the design-system and styling docs for the project's token scale and documented offenders.
+```
+BLOCKED: {layer} layer file {filePath}:{line} imports from {forbiddenLayer} layer ({importStatement})
+```
 
 ---
 
-### Category 5: SCSS/CSS Best Practices & BEM — Severity: WARN (BLOCKED on `!important`, chained BEM modifiers)
+### Category 2: Message Bus Patterns — Severity: BLOCKED/WARN
 
-**Think:** Does this stylesheet read cleanly, follow BEM, and use tokens — or does it hardcode, over-nest, and chain modifiers?
+**Think:** Does this message correctly name its type (event vs request)? Does it extend the right base class? Is producer/consumer relationship correctly oriented — does the leader service own the event?
 
-> **SCSS/BEM rules (canonical):** BEM classes on ALL template elements (`block__element--modifier`). No magic numbers — use variables / design tokens. Max 3 nesting levels.
+**Naming (BLOCKED):**
 
-**Detection signals:**
+- Event messages + request messages MUST follow project's bus-message naming convention — encode owning service + feature + action, with distinct suffix distinguishing event-kind from request-kind messages. Resolve exact convention + suffixes from `backend-patterns-reference.md`.
+- Grep existing examples in source for current stack's message-naming pattern before flagging — codebase convention wins.
 
-- Nesting > 3 levels
-- Hardcoded hex colors (should use CSS vars / design tokens)
-- `px` where `rem` is expected
-- Chained BEM modifiers (`.block__element.--modifier`) — `.--mod` MUST be a separate class, NEVER chained → BLOCKED
-- Template elements missing BEM classes
-- `!important` → BLOCKED
+**Base classes (BLOCKED):** Verify against bus base types named in `backend-patterns-reference.md` (Phase 0); concrete names are illustrative examples.
 
-Apply fixes per the resolved project styling rules doc.
+- Bus messages MUST extend project's trackable/payload bus-message base — see `backend-patterns-reference.md`.
+- Consumers MUST extend project's message-bus consumer base — see `backend-patterns-reference.md`.
+- Producers MUST extend project's event-bus-message producer base — see `backend-patterns-reference.md`.
 
-**Frontend architecture checks (OWNED JOINTLY WITH `review-architecture` Category 8 — reference, do not drift):**
+**Upstream/Downstream (BLOCKED):**
 
-> These checks are lifted from `review-architecture` Category 8 so the two skills stay synchronized. They are **owned jointly**; when one changes, update both. They apply to the `.ts` files in scope:
+- Leader service owns entity data → defines event message for it.
+- Follower services consume events — NEVER produce events about data they don't own. — why: producing events about non-owned data forks the source of truth across services.
+- NO circular listening: A→B + B→A for same data = boundary violation.
+- Consumers MUST implement project's cross-message dependency-wait primitive for cross-message data dependencies — see `backend-patterns-reference.md`.
 
-- Components MUST extend the project-documented base component/form/store component classes (BLOCKED)
-- State MUST use the project-documented store/effect pattern — NEVER ad hoc local state when the project provides a canonical store pattern (BLOCKED)
-- API services MUST extend the project-documented API service base — NEVER raw HTTP clients when the project provides a service abstraction (BLOCKED)
-- All subscriptions MUST use the project's auto-teardown operator — NEVER manual unsubscribe (BLOCKED)
-- All template elements MUST have BEM classes (WARN)
-- Logic in lowest layer: Model > Service > Component (WARN)
+**Ordered delivery (WARN):**
+
+- Messages requiring ordered processing MUST set project's ordered-delivery / sub-queue partition key to meaningful value (resolve concrete API from `backend-patterns-reference.md`).
+- Unordered messages leave it unset / null.
+
+**Also verify:**
+
+- NEVER direct cross-service DB access — MUST use message bus. — why: direct DB reach couples services and bypasses ownership boundaries.
+- last-sync-timestamp field on message used for conflict resolution in consumers (resolve concrete field from `backend-patterns-reference.md`).
+- Inbox/Outbox pattern for reliable delivery (verify project's inbox/outbox enablement config — see `backend-patterns-reference.md`).
 
 ---
 
-## Phase 4: Finalize — UI Compliance Report
+### Category 3: CQRS Compliance — Severity: BLOCKED/WARN
+
+**Think:** Is Command+Result+Handler in one file? Is validation using fluent API (not exceptions)? Does DTO own mapping, not the handler? Are side effects in event handlers, not command handlers?
+
+**File organization (BLOCKED):**
+
+- Command + Result + Handler MUST be in ONE file under the command folder for the feature _(resolve concrete folder from project's structure reference / `docs/project-config.json`; e.g. `{command-folder}/{Feature}/`)_
+- Query + Result + Handler MUST be in ONE file under the query folder for the feature _(resolve concrete folder from project's structure reference / `docs/project-config.json`; e.g. `{query-folder}/{Feature}/`)_
+
+**Validation (BLOCKED):**
+
+- MUST use project's validation-result fluent API — NEVER throw exceptions for validation; return validation result instead — verify exact type + method names in `backend-patterns-reference.md`. — why: exceptions for expected-invalid input conflate control flow with errors and skip the validation pipeline.
+- Sync validation in command's validate hook, async in request-validation hook — see `backend-patterns-reference.md` for hook names.
+
+**DTO mapping (BLOCKED):**
+
+- DTOs MUST own entity mapping via project's DTO base mapping methods — NEVER map in command handlers; map in the DTO instead — see `backend-patterns-reference.md` for method names.
+
+**Side effects (BLOCKED):**
+
+- NEVER put side effects (notifications, sync, cascade updates) in command handlers — place them in Entity Event Handlers instead. — why: side effects in the handler couple the command to downstream concerns and cascade failures.
+- Side effects go in Entity Event Handlers under project's event-handler folder _(resolve from project's structure reference / `docs/project-config.json`; e.g. `{event-handler-folder}/`)_
+- Each handler = one independent concern (failures don't cascade).
+
+---
+
+### Category 4: Repository Patterns — Severity: BLOCKED
+
+**Think:** Is this using a service-specific repo interface, not the generic one? Are complex queries extracted to RepositoryExtensions?
+
+- MUST use project's service-specific repository abstraction — NEVER the generic root-repository base directly; per-service naming scheme defined in `backend-patterns-reference.md`. — why: the generic base leaks unbounded query surface and erases per-service boundaries.
+- Complex queries MUST use project's repository-extension pattern with static expressions _(e.g. `RepositoryExtensions`)_
+- All query filter/FK/sort columns MUST have database indexes.
+
+**Violation format:**
+
+```
+BLOCKED: {filePath}:{line} uses the generic root-repository base instead of the service-specific repository — see backend-patterns-reference.md for the required naming
+```
+
+---
+
+### Category 5: Service Pattern Era (Legacy vs Modern Split) — Severity: BLOCKED (new services) / WARN (existing)
+
+**Think:** When project distinguishes legacy vs modern service patterns (e.g., auth scheme, telemetry stack, permission model, language-version syntax), is this a new service (must follow modern) or an existing legacy service (expect legacy patterns)? Is the modern pattern partially mixed into a legacy service without full migration?
+
+**New services — BLOCKED if any legacy-only pattern used.** Identify project's modern-pattern checklist from injected reference docs (e.g., `project-structure-reference.md`, ADRs, scaffolding templates) and verify every item.
+
+**Existing legacy services — WARN if modern patterns partially mixed without full migration.** Flag legacy patterns only when partial mixing creates inconsistency; in their own consistent context they are expected, NOT violations.
+
+**Determining era:** Read project's reference docs at review time — service-pattern era assignments are project-specific and listed authoritatively there. NEVER hardcode service names in this skill. — why: hardcoded service names rot the moment the project renames or adds a service, and break portability to other repos.
+
+---
+
+### Category 6: Entity Event Handlers — Severity: BLOCKED/WARN
+
+**Think:** Are side effects defined inline in command handlers (wrong) or in project's event-handler folder (correct)? Does each handler have a single concern?
+
+**Location (BLOCKED):**
+
+- Entity event handlers MUST be in project's event-handler folder _(resolve from project's structure reference / `docs/project-config.json`; e.g. `{event-handler-folder}/`)_
+- NEVER inline side effects in command handlers — move them to a dedicated entity event handler. — why: inline side effects couple the command to downstream concerns and cascade failures.
+
+**Implementation (BLOCKED):**
+
+- MUST extend project's entity-event application-handler base — see `backend-patterns-reference.md`.
+- MUST implement CRUD-action filter hook — see `backend-patterns-reference.md` for hook name.
+- One handler = one independent concern.
+
+**Naming (WARN):**
+
+- Convention: `{Action}On{Trigger}EntityEventHandler`
+- Grep existing examples before flagging.
+
+**Producer patterns (BLOCKED):**
+
+- Bus message producers MUST extend project's event-bus-message producer base — see `backend-patterns-reference.md`.
+- MUST implement message-build + action-filter hooks — see `backend-patterns-reference.md` for hook names.
+
+---
+
+### Category 7: Service Boundaries — Severity: BLOCKED
+
+**Think:** Does any code reach directly into another service's database or project reference? All cross-service data flow MUST go through the message bus.
+
+- NEVER direct DB access to another service's database — route through the message bus. — why: direct DB reach couples services and bypasses ownership boundaries.
+- NEVER `using` reference to another service's domain/persistence project — depend on shared message contracts instead.
+- Cross-service communication via message bus only (event bus or request bus).
+- Shared data through shared message projects, NOT direct references.
+- Verify service-to-DB mapping from `project-structure-reference.md`.
+
+**Violation format:**
+
+```
+BLOCKED: {filePath}:{line} references {otherService} domain/persistence directly — must use message bus
+```
+
+---
+
+### Category 8: Frontend Architecture (if frontend files in scope) — Severity: BLOCKED/WARN
+
+**Think:** Are components extending the right base class? Is state going through the store? Are subscriptions properly cleaned up?
+
+Verify against `frontend-patterns-reference.md` (Phase 0, frontend files); concrete names are illustrative examples.
+
+- Components MUST extend project's component base classes (BLOCKED) — see `frontend-patterns-reference.md`.
+- State MUST use project's view-model store + reactive-effect pattern — NEVER manual signals or direct HTTP client (BLOCKED); route state through the store — see `frontend-patterns-reference.md`.
+- API services MUST extend project's API-service base (BLOCKED) — see `frontend-patterns-reference.md`.
+- All subscriptions MUST use project's auto-teardown operator — NEVER manual unsubscribe (BLOCKED). — why: manual unsubscribe is forgotten on early-return paths and leaks subscriptions — see `frontend-patterns-reference.md`.
+- All template elements MUST carry project's CSS-naming-convention classes (WARN) — see `frontend-patterns-reference.md`.
+- Logic in lowest layer: Model > Service > Component (WARN).
+
+> **Boundary with `$ui-review`:** This category owns frontend ARCHITECTURE — base classes, view-model store / reactive-effect pattern, API-service base, subscription teardown, layer placement, CSS-naming-class presence. VISUAL/styling quality — long-content overflow, responsive multi-screen flex, flex-vs-fixed sizing, z-index discipline, SCSS/CSS detail — owned by `$ui-review`, which `$changes-review` invokes as its UI dimension when frontend changes present. Flag missing base classes / store / teardown here; defer SCSS-quality depth + visual-layout findings to ui-review to avoid double-reporting.
+
+---
+
+### Category 9: ADR / Recorded-Decision Conformance (if `docs/adr/**` or recorded ADRs exist) — Severity: BLOCKED/WARN
+
+**Think:** Does any changed file contradict a binding decision recorded in an *accepted* ADR — a rejected library/technology, a forbidden dependency direction, a recorded quality-attribute/NFR budget, a banned pattern — without a superseding ADR?
+
+> This category closes design→review loop: `$architecture-design` emits ADRs + fitness-function choices; this category verifies changed code still conforms to them. Checks CONFORMANCE only — NEVER re-runs deep performance or security analysis (those route to siblings in the Ownership & Handoff matrix).
+
+- Locate recorded decisions: `docs/adr/**` (or ADR location named in project's reference docs). Read only ADRs with `Status: Accepted` — skip `Superseded`/`Proposed`/`Rejected`.
+- Extract each accepted ADR's binding constraints: chosen vs rejected options, layer/dependency rules, NFR targets (latency/throughput/availability/RPO-RTO), banned patterns.
+- Per changed file, check conformance against those constraints — grep the diff for reintroduced rejected options or forbidden references; cite `file:line`.
+- **BLOCKED** when change contradicts an accepted ADR's binding decision and no superseding ADR exists. Correct way to change a recorded decision = new superseding ADR (per `docs/adr/0001` lifecycle), NEVER a silent violation in the diff. — why: silent ADR violations erode the decision record and let rejected options creep back unreviewed.
+- **WARN** when change drifts from a recorded guideline, or is NFR-impacting against a recorded budget — flag it and route depth check to `performance-review`/`security-review`.
+- No ADRs exist → record "No recorded ADRs — conformance N/A" and skip (this category NEVER blocks a project that has chosen not to keep ADRs).
+
+**Violation format:**
+
+```
+BLOCKED: {filePath}:{line} contradicts {adr-id} ("{decision}") with no superseding ADR
+```
+
+---
+
+### Category 10: Spec-Loop Discipline (applies across all categories) — Severity: BLOCKED/WARN
+
+**Think:** Does each behavior-affecting architecture finding feed BOTH the spec and a guarding test, or only the code? Does any [HARD] rule or cross-boundary invariant ship with no property TC?
+
+- BLOCKED when a `[HARD]` architecture rule or cross-boundary invariant (layer contract, message-ownership rule, CQRS/repo invariant, service-boundary guarantee) has **no universally-quantified property TC + boundary counter-case** — an example-only test does not guard a rule that must hold for ALL inputs.
+- Every behavior-affecting architecture finding MUST carry a **Dual-Feedback row** (spec axis + test axis): the spec NAMES the changed contract/invariant AND a test GUARDS it — blank either axis = INCOMPLETE; NEVER record an architecture finding as code-only.
+- Review the whole package — spec + tests + structural diff — NOT the structural diff alone; loop until zero new spec-loop gaps remain, each cycle enriching the spec. — why: a boundary change that compiles but is never asserted regresses silently the next time a sibling service is touched.
+
+**Violation format:**
+
+```
+BLOCKED: {filePath}:{line} [HARD] {rule/invariant} has no property TC (spec axis: {present/blank} | test axis: {present/blank})
+```
+
+---
+
+### Category 11: Scalability & Coupling Regression — Severity: BLOCKED/WARN
+
+> **Diff-scoped regression guard, NOT a project audit.** This category catches architecture/scalability regressions a change *introduces*; it does NOT re-grade the whole system. Init/on-demand grading of all 10 scorecard areas is owned by `architecture-scalability-review`. Cross-cutting spec-loop discipline (Category 10) also applies to findings from this category. Cross-references Category 7 (service boundaries) and Category 9 (ADR / recorded-decision conformance).
+
+**Think:** Does this diff introduce a new **sync cross-context** call, shared-DB reach, statefulness, or copy-pasted cross-context logic that regresses module isolation, loose coupling, or horizontal scaling — turning a clean boundary into **distributed-monolith** coupling?
+
+- **BLOCKED** when a change adds a NEW forbidden cross-context dependency, a circular context dependency, or a direct **sync cross-context** call where the recorded architecture requires an event/message or an owned contract (producer calling consumer directly — "I call you" instead of "you listen to me").
+- **BLOCKED** when a change makes a previously **stateless**/scalable path stateful in a way that breaks horizontal scaling — in-memory session/cache assumed node-local, sticky-instance state, a new SPOF, or unbounded fan-out on a hot path — where the ADR/scale budget requires statelessness.
+- **WARN** for **cross-context duplication** (copy-pasted domain rule/util across contexts — a DRY regression), a new shared-DB read across a boundary, or a distributed-monolith smell with weaker evidence; record the smell and route the deep fix.
+- **Detect-only smells → route, do NOT deep-analyze here:** local hot-path/query/N+1 latency → `performance-review`; rollout/capacity/SRE/runtime readiness → `production-readiness-review`; bounded-context / aggregate re-modeling → `domain-analysis`; auth/secret/tenant-boundary coupling → `security-review`. This category flags the regression at `file:line`; the sibling owns the depth. — why: a diff reviewer that re-runs full capacity/DDD analysis blows its context and duplicates the sibling's job.
+- Behavior-affecting findings carry a Dual-Feedback row (spec axis + test axis) per Category 10 — a coupling/scaling regression that changes a contract MUST enrich BOTH the spec AND a guarding test, never code-only.
+
+**Violation format:**
+
+```
+BLOCKED: {filePath}:{line} new sync cross-context call to {context} — recorded architecture requires event/message (route deep coupling design to domain-analysis)
+WARN: {filePath}:{line} cross-context duplication of {rule/util} — DRY regression (route shared-lib decision to architecture-scalability-review / scaffold)
+```
+
+---
+
+## Phase 4: Finalize — Architecture Compliance Report
 
 Update report with final sections:
 
@@ -298,27 +460,17 @@ Update report with final sections:
 | ----------- | ----------------------------------------------- |
 | **BLOCKED** | 1+ BLOCKED findings — must fix before merge     |
 | **WARN**    | 0 BLOCKED, 1+ WARN findings — review and decide |
-| **PASS**    | 0 BLOCKED, 0 WARN — UI compliant                |
-
-> **Severity vocabulary (single source of truth).** Category headers and this verdict table use `BLOCKED` / `WARN` / `PASS`. The fresh sub-agent (Phase 5 and Round 2) emits `Critical / High / Medium / Low` + `PASS / FAIL` from the shared review-protocol template. Reconcile the two with this mapping — do NOT treat them as separate scales:
->
-> | This skill | Sub-agent (Round 2) | Merge gate                    |
-> | ---------- | ------------------- | ----------------------------- |
-> | BLOCKED    | Critical / High → FAIL | Must fix before merge      |
-> | WARN       | Medium / Low → WARN/INFO | Review and decide        |
-> | PASS       | (no findings) → PASS | Merge-clear                  |
->
-> A category's **"(HIGH when …)"** note is NOT a separate tier — it means that WARN **escalates to BLOCKED** when the stated condition holds (i.e., the finding is a real rendered bug, not a latent risk).
+| **PASS**    | 0 BLOCKED, 0 WARN — architecture compliant      |
 
 ### Report Structure
 
 ```markdown
-# UI Review Report — {date}
+# Architecture Review Report — {date}
 
 ## Scope
 
 - Files reviewed: {count}
-- Components / apps affected: {list}
+- Services affected: {list}
 - Blast radius: {summary from Phase 2}
 
 ## Verdict: {PASS | WARN | BLOCKED}
@@ -328,16 +480,16 @@ Update report with final sections:
 ### {Category}: {description}
 
 - **File:** {path}:{line}
-- **Rule:** {rule from project UI doc}
+- **Rule:** {rule from project doc}
 - **Evidence:** {what was found}
-- **Fix:** {reuse target to use — directive / mixin / token}
+- **Fix:** {what to change}
 
 ## WARN Findings (Review)
 
 ### {Category}: {description}
 
 - **File:** {path}:{line}
-- **Rule:** {rule from project UI doc}
+- **Rule:** {rule from project doc}
 - **Evidence:** {what was found}
 - **Recommendation:** {suggested action}
 
@@ -345,80 +497,67 @@ Update report with final sections:
 
 - {list of categories that passed with no findings}
 
-## UI Health Summary
+## Architecture Health Summary
 
-- Long-content Overflow & Truncation: {PASS/WARN/BLOCKED}
-- Responsive Multi-Screen: {PASS/WARN/BLOCKED}
-- Flex-Grow vs Fixed Sizing: {PASS/WARN/BLOCKED}
-- Z-Index Scale Discipline: {PASS/WARN/BLOCKED}
-- SCSS/CSS Best Practices & BEM: {PASS/WARN/BLOCKED}
-- Frontend Architecture (joint w/ review-architecture): {PASS/WARN/BLOCKED/N/A}
+- Quality Tooling Baseline: {PASS/WARN/BLOCKED}
+- Clean Architecture: {PASS/WARN/BLOCKED}
+- Messaging Patterns: {PASS/WARN/BLOCKED}
+- CQRS Compliance: {PASS/WARN/BLOCKED}
+- Repository Patterns: {PASS/WARN/BLOCKED}
+- Service Pattern Era: {PASS/WARN/BLOCKED}
+- Entity Event Handlers: {PASS/WARN/BLOCKED}
+- Service Boundaries: {PASS/WARN/BLOCKED}
+- Frontend Architecture: {PASS/WARN/BLOCKED/N/A}
+- ADR / Recorded-Decision Conformance: {PASS/WARN/BLOCKED/N/A}
+- Spec-Loop Discipline (property-TC + dual-feedback): {PASS/WARN/BLOCKED}
 ```
 
 ---
 
-## Systematic Review Protocol (10+ changed frontend files)
+## Architecture Boundary Check (Automated)
 
-1. **Categorize** — Group files by app / shared-library / component concern
-2. **Parallel Sub-Agents** — Launch one UI/UX-specialized sub-agent per group with the UI-category checklist
-3. **Synchronize** — Collect findings, cross-reference shared-component consumers and cross-system token mixing
-4. **Consolidate** — Single holistic report with per-category verdicts
+Per changed file:
+
+1. Read `docs/project-config.json` → `architectureRules.layerBoundaries`
+2. Determine layer — match file path against each rule's `paths` glob patterns
+3. Scan imports — grep for configured language's import/include statements
+4. Check violations — import path contains layer name in `cannotImportFrom` = violation
+5. Exclude framework — skip files matching `architectureRules.excludePatterns`
+6. BLOCK on violation: `"BLOCKED: {layer} layer file {filePath} imports from {forbiddenLayer} layer ({importStatement})"`
+
+`architectureRules` absent from project-config.json → skip silently.
 
 ---
 
-## Phase 5: Why-Review Findings Validation Gate (MANDATORY when findings exist)
+## Systematic Review Protocol (10+ changed files)
 
-> **Purpose:** Adversarial validation of own findings BEFORE handoff. Catches over-flagged Highs, false positives, and severity inflation at the source rather than letting them propagate downstream.
+1. **Categorize** — Group files by service/layer/concern.
+2. **Parallel Sub-Agents** — Launch one `architect` sub-agent per category with architecture-specific checklist.
+3. **Synchronize** — Collect findings, cross-reference service boundaries.
+4. **Consolidate** — Single holistic report with per-category verdicts.
 
-**Trigger:** Any finding produced (Critical, High, Medium, OR Low). Skip ONLY when the report's verdict is unconditional PASS with literally zero findings.
+---
+
+## Phase 5: Why-Review Self-Validation Gate (MANDATORY when findings exist)
+
+> **Purpose:** Adversarial validation of own findings BEFORE handoff. Catches over-flagged Highs, false positives, severity inflation at source rather than letting them propagate downstream.
+
+**Trigger:** Any finding produced (Critical, High, Medium, OR Low). Skip ONLY when report's verdict is unconditional PASS with literally zero findings.
 
 **Protocol:**
 
-1. Read own finalized report from `plans/reports/ui-review-{date}-{slug}.md` (the exact path written in Phase 3 — NOT `{skill}-…`)
-2. Invoke `$why-review --validate-findings plans/reports/ui-review-{date}-{slug}.md`
-3. Read the validation verdict path returned by why-review, expected as `plans/reports/why-review-validate-{date}.md`
-4. **If why-review demotes/removes any finding:** UPDATE own finalized report with revised severities, remove false positives, and add a `## Why-Review Validation Notes` section citing what changed and why
-5. **If why-review confirms all findings:** Append `## Why-Review Validation` line to own report stating "All N findings re-validated against actual code; no severity changes."
-6. **If the report changed after validation:** re-run this validation gate, maximum 2 validation passes, until the report's remaining findings are validated or zero findings remain.
+1. Read own finalized report from `plans/reports/{skill}-{date}-{slug}.md`
+2. Invoke `$why-review` skill with arg: `validate findings in plans/reports/{skill}-{date}-{slug}.md — verify each finding has file:line proof, steel-man each rejected interpretation, and stress-test severity classifications`
+3. Read validation verdict path returned by why-review, expected as `plans/reports/why-review-validate-{date}.md`
+4. **why-review demotes/removes any finding →** UPDATE own finalized report with revised severities, remove false positives, add `## Why-Review Validation Notes` section citing what changed + why.
+5. **why-review confirms all findings →** Append `## Why-Review Validation` line to own report stating "All N findings re-validated against actual code; no severity changes."
 
 **Skip conditions (record explicit reason if skipping):**
 
-- Verdict is unconditional PASS with zero findings → log "Skipped — no findings to validate"
-- Why-review skill itself is the active context (avoid recursion)
+- Verdict unconditional PASS with zero findings → log "Skipped — no findings to validate".
+- Why-review skill itself is active context (avoid recursion).
 
-**Why this exists:** AI sub-agent reports inherit confirmation bias — the orchestrator absorbs severity claims as ground truth. The 2026-05-09 review incident produced 5 Highs; adversarial validation demoted 3 of them. Codify this as standard practice.
-
----
-
-## Phase 6: Validated Fix + Full UI Re-Review Loop (MANDATORY when validated findings remain)
-
-**Trigger:** Phase 5 returns CLEAN/validated and the UI review report still has one or more findings that must be fixed.
-
-**Protocol:**
-
-1. Create a fresh fix-cycle task list before editing. Do not reuse the review tasks.
-2. Fix only findings that survived `$why-review --validate-findings`; route broader or cross-cutting fixes through the parent `$plan` + `$feature-implement` flow when this skill is running inside a workflow.
-3. Run targeted verification for the fixed UI files and any affected consumers.
-4. Re-invoke `$review-ui` from Phase 0 over the full current UI scope, not only the fixed files.
-5. The re-run MUST create brand-new review tasks, reload the UI docs, determine scope again, rerun blast radius where applicable, and review every changed UI file from the start.
-6. Repeat validate → fix → full UI re-review until a complete pass has zero findings.
-7. If the same validated blocker repeats across 3 full invocations with no progress, stop and ask the user for a decision.
-
-**Non-negotiable rules:**
-
-- Never fix a finding before `$why-review --validate-findings` validates it.
-- Never mark UI review clean after a targeted fix check only; the clean verdict must come from a full Phase 0 restart.
-- Never review only fixed files during the recursive pass; analyze all UI files in scope again.
-- Never reuse old todo/task items for the recursive review pass.
-
----
-
-## Workflow Recommendation
-
-> **MANDATORY — NO EXCEPTIONS:** If NOT already in a workflow, MUST use ask the user directly to ask user. Do NOT judge task complexity or decide "simple enough to skip" — user decides, not you:
->
-> 1. **Activate `workflow-review-changes` workflow** (Recommended) — run the canonical workflow from `.claude/workflows.json`; it sequences UI review through `$review-changes`, findings validation, parallel reviewers, `code-simplifier` self-review, fix-plan cycle, full re-review restart, docs, and handoff.
-> 2. **Execute `$review-ui` directly** — run this skill standalone
+**Why this exists:** AI sub-agent reports inherit confirmation bias — orchestrator absorbs severity claims as ground truth. The 2026-05-09 review incident produced 5 Highs; adversarial validation demoted 3 of them. Codify as standard practice.
 
 ---
 
@@ -426,19 +565,21 @@ Update report with final sections:
 
 **MANDATORY — NO EXCEPTIONS:** After completing, use ask the user directly to present:
 
-- **"$code-simplifier" (Recommended)** — Simplify and refine the styling/component code
-- **"$web-design-guidelines"** — Generic accessibility / UX checklist for a11y depth
+- **"$code-simplifier" (Recommended)** — Simplify and refine code
+- **"$code-review"** — Deep code quality review
 - **"Skip, continue manually"** — user decides
+
+> **Combined audit:** For a whole-project architecture + compliance + production-readiness audit in one pass, run `$architecture-review-full` (or `$start-workflow workflow-architecture-audit`) — it fans out this skill, `architecture-scalability-review`, and `production-readiness-review` as parallel sub-agents and synthesizes one consolidated report.
 
 ## AI Agent Integrity Gate (NON-NEGOTIABLE)
 
 Before reporting ANY work done:
 
-1. **Grep every removed name.** Extraction/rename/delete → grep confirms 0 dangling refs across ALL file types (SCSS `@use`, template class refs, TS imports)
-2. **Ask WHY before changing.** Existing values intentional until proven otherwise — a fixed `width` may be a genuinely fixed UI element; no "fix" without traced rationale
-3. **Verify ALL outputs.** One compiled stylesheet ≠ all consumers — a shared-component style change affects every consuming app
-4. **Evaluate pattern fit.** Copying a nearby mixin/token? Verify the file imports/uses the SAME token system and does not mix incompatible project token systems
-5. **New artifact = wired artifact.** Created a class/mixin? Prove it is imported, referenced in the template, and reachable
+1. **Grep every removed name.** Extraction/rename/delete → grep confirms 0 dangling refs across ALL file types.
+2. **Ask WHY before changing.** Existing values intentional until proven otherwise — NEVER "fix" without traced rationale.
+3. **Verify ALL outputs.** One build passing ≠ all builds passing — check every affected stack.
+4. **Evaluate pattern fit.** Copying nearby code? Verify preconditions match — same scope, lifetime, base class, constraints.
+5. **New artifact = wired artifact.** Created something? Prove registered, imported, reachable by all consumers.
 
 > **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting. Simple tasks: ask user whether to skip.
 
@@ -448,11 +589,11 @@ Before reporting ANY work done:
 >
 > **Why:** The main agent knows what it (or `$feature-implement`) just fixed and rationalizes findings accordingly. A fresh sub-agent has ZERO memory, re-reads from scratch, and catches what the main agent dismissed. Sub-agent bias is mitigated by (1) fresh context, (2) verbatim protocol injection, (3) main agent not filtering the report.
 >
-> **When:** ONLY after a validated-finding fix cycle, or when the user/workflow explicitly requests an independent high-risk UI synthesis pass. A review pass that finds issues triggers validation first; it does NOT trigger a fresh-context pass over the same findings before validation/fix.
+> **When:** ONLY after a validated-finding fix cycle, or when the user/workflow explicitly requests an independent high-risk architecture synthesis pass. A review pass that finds issues triggers validation first; it does NOT trigger a fresh-context pass over the same findings before validation/fix.
 >
 > **How:**
 >
-> 1. Start a NEW full review invocation/task breakdown; when that protocol calls for agents, spawn a NEW `spawn_agent` tool call — use the UI/UX-specialized agent_type from the local sub-agent selection guide
+> 1. Start a NEW full review invocation/task breakdown; when that protocol calls for agents, spawn a NEW `spawn_agent` tool call — use `architect` agent_type for architecture reviews (see Sub-Agent Type Override above)
 > 2. Inject ALL required review protocols VERBATIM into the prompt — see `SYNC:review-protocol-injection` for the full list and template. Never reference protocols by file path; AI compliance drops behind file-read indirection (see `SYNC:shared-protocol-duplication-policy`)
 > 3. Sub-agent re-reads ALL target files from scratch via its own tool calls — never pass file contents inline in the prompt
 > 4. Sub-agent writes structured report to `plans/reports/{review-type}-round{N}-{date}.md`
@@ -470,9 +611,9 @@ Before reporting ANY work done:
 
 ## Sub-Agent Type Override
 
-> **MANDATORY:** UI reviews spawn the UI/UX-specialized sub-agent defined by the local sub-agent selection guide.
-> Keep `agent_type: "ui-ux-designer"` in the canonical template below when that agent type exists in the local catalog.
-> **Rationale:** The shared sub-agent selection guide routes frontend UI/UX, accessibility, responsive layout, and design-token work to the UI/UX specialization. Do not fall back to a generic code-reviewer catch-all unless the local catalog lacks a UI/UX reviewer.
+> **MANDATORY:** Architecture reviews spawn `architect` sub-agent, NOT `code-reviewer`.
+> Keep `agent_type: "architect"` from canonical template below; NEVER revert to `code-reviewer`.
+> **Rationale:** `architect` carries cross-service impact analysis, ADR creation, multi-service security/performance context that `code-reviewer` lacks for architecture-level decisions.
 
 <!-- OVERRIDE:review-protocol-injection -->
 
@@ -482,18 +623,18 @@ Before reporting ANY work done:
 
 ### Subagent Type Selection
 
-- `ui-ux-designer` — default for UI reviews when the local agent catalog provides it
-- `code-reviewer` — fallback only when the local catalog lacks a UI/UX-specialized reviewer
+- `architect` — ALWAYS for architecture reviews (cross-service, ADR, security/performance at system level)
+- `code-reviewer` — for code quality reviews only (NOT architecture)
 
 ### Canonical Agent Call Template (Copy Verbatim)
 
 ```
 spawn_agent({
-  description: "Fresh Round {N} UI review",
-  agent_type: "ui-ux-designer",
+  description: "Fresh Round {N} review",
+  agent_type: "architect",
   prompt: `
 ## Task
-{review-specific task — e.g., "Review all uncommitted frontend changes for UI quality: long-content overflow, responsive layout, flex-vs-fixed sizing, z-index discipline, SCSS/BEM" | "Review SCSS/template files under {path}"}
+{review-specific task — e.g., "Review all uncommitted changes for code quality" | "Review plan files under {plan-dir}" | "Review integration tests in {path}"}
 
 ## Round
 Round {N}. You have ZERO memory of prior rounds. Re-read all target files from scratch via your own tool calls. Do NOT trust anything from the main agent beyond this prompt.
@@ -616,22 +757,20 @@ HARD-GATE: Do NOT write, plan, or fix until you READ existing code.
 BLOCKED until: Read target files; Grep 3+ patterns; Graph trace (if graph.db exists); Assumptions verified with evidence.
 
 ## Reference Docs (READ before reviewing)
-- {resolved project styling rules doc}
-- {resolved project design-system/token doc, especially Z-Index & Layering}
-- {resolved project frontend architecture/patterns doc}
-- {resolved project code-review rules doc}
+- docs/project-reference/code-review-rules.md
+- {skill-specific reference docs — e.g., integration-test-reference.md for integration-test-review; backend-patterns-reference.md for backend reviews; frontend-patterns-reference.md for frontend reviews}
 
 ## Target Files
-{explicit file list OR "run git diff and filter by the project frontend path/extension patterns"}
+{explicit file list OR "run git diff to see uncommitted changes" OR "read all files under {plan-dir}"}
 
 ## Output
-Write a structured report to plans/reports/ui-review-round{N}-{date}.md with sections:
+Write a structured report to plans/reports/{review-type}-round{N}-{date}.md with sections:
 - Status: PASS | FAIL
 - Issue Count: {number}
 - Critical Issues (with file:line evidence)
 - High Priority Issues (with file:line evidence)
 - Medium / Low Issues
-- Cross-cutting findings (cross-system token mixing, shared-component fan-out)
+- Cross-cutting findings
 
 Return the report path and status to the main agent.
 Every finding MUST have file:line evidence. Speculation is forbidden.
@@ -643,7 +782,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 - DO copy the template wholesale — including all 11 embedded protocol sections
 - DO replace only the `{placeholders}` in Task / Round / Reference Docs / Target Files / Output sections with context-specific content
-- DO keep the UI/UX-specialized `agent_type` for UI reviews when the local catalog provides it (see Sub-Agent Type Override above)
+- DO choose `architect` agent_type for architecture reviews — do NOT revert to `code-reviewer` (see Sub-Agent Type Override above)
 - DO NOT paraphrase, summarize, or skip any protocol section
 - DO NOT pass file contents inline — the sub-agent reads via its own tool calls so it has a fresh context
 - DO NOT reference protocols by file path or tag name — the bodies are already embedded above
@@ -651,19 +790,11 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /OVERRIDE:review-protocol-injection -->
 
-> **Critical Purpose:** UI quality — no content overflow without escape, no broken responsive layouts, no fixed sizing fighting the viewport, no z-index escalation wars, no styling/BEM drift.
+> **Critical Purpose:** Architecture compliance — no layer violations, no messaging anti-patterns, no service boundary breaches, no pattern drift.
 
 > **External Memory:** Complex/lengthy work → write findings to `plans/reports/`. Prevents context loss, serves as deliverable.
 
 > **Evidence Gate:** MANDATORY — every finding requires `file:line` proof + confidence percentage (>80% act, <80% verify first).
-
-<!-- OVERRIDE-NOTE:fresh-context-review -->
-
-> **`fresh-context-review` is intentionally OVERRIDE-only in this skill** — see the `OVERRIDE:fresh-context-review` block above (it uses the UI/UX-specialized `ui-ux-designer` agent_type, NOT the generic `code-reviewer`). The generic `SYNC:fresh-context-review` copy is deliberately omitted here so the two cannot drift into a `code-reviewer` vs `ui-ux-designer` contradiction. This mirrors how `OVERRIDE:review-protocol-injection` is handled (override-only, no generic SYNC copy). **Do NOT re-add the generic `SYNC:fresh-context-review` block** — the `sync-inline-versions.md` propagation only updates existing `SYNC:` markers, so omission is stable.
-
-<!-- /OVERRIDE-NOTE:fresh-context-review -->
-
-> **Complexity Prevention (UI-scoped)** — measure code by cost of change: one UI change should map to one code change. The full backend-OOP treatise (anemic models, primitive obsession, value objects, repo leakage) does not apply to UI review and is intentionally not carried here. UI-relevant essence: (1) **extract repeated component lifecycle** — 3+ forms/list views reimplementing loading/dirty/submit/pagination → base component / hook / composable / mixin; (2) **keep derivations, formatting, and validation off the template** — move them onto the model / store / view-model / API service, not inline in the component. For deeper OOP/DRY structural review of any backend the UI calls, defer to `$review-changes` / `$review-architecture`.
 
 <!-- SYNC:graph-assisted-investigation -->
 
@@ -727,38 +858,6 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:task-tracking-external-report -->
 
-<!-- SYNC:subagent-return-contract -->
-
-> **Sub-Agent Return Contract** — When this skill spawns a sub-agent, the sub-agent MUST return ONLY this structure. Main agent reads only this summary — NEVER requests full sub-agent output inline.
->
-> ```markdown
-> ## Sub-Agent Result: [skill-name]
->
-> Status: ✅ PASS | ⚠️ PARTIAL | ❌ FAIL
-> Confidence: [0-100]%
->
-> ### Findings (Critical/High only — max 10 bullets)
->
-> - [severity] [file:line] [finding]
->
-> ### Actions Taken
->
-> - [file changed] [what changed]
->
-> ### Blockers (if any)
->
-> - [blocker description]
->
-> Full report: plans/reports/[skill-name]-[date]-[slug].md
-> ```
->
-> Main agent reads `Full report` file ONLY when: (a) resolving a specific blocker, or (b) building a fix plan.
-> Sub-agent writes full report incrementally (per SYNC:incremental-persistence) — not held in memory.
->
-> **Context budget** — the return payload is a SUMMARY, not a transcript: ≤10 finding bullets, no raw file contents / full diffs / verbatim logs inline, no re-pasted source. Everything beyond the summary lives in the `Full report` on disk. A sub-agent that would exceed the summary shape MUST write the detail to its report and return only the pointer — the orchestrator's context is the scarce resource the whole map-reduce protects.
-
-<!-- /SYNC:subagent-return-contract -->
-
 <!-- SYNC:critical-thinking-mindset -->
 
 > **Critical Thinking Mindset** — Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
@@ -806,27 +905,6 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:evidence-based-reasoning -->
 
-<!-- SYNC:design-patterns-quality -->
-
-> **Design Patterns Quality** — Priority checks for every code change:
->
-> 1. **DRY via OOP:** Identify classes/modules with the same purpose, naming pattern, or lifecycle. Apply your knowledge of the project's language/framework to determine the idiomatic abstraction (base class, mixin, trait, protocol, decorator). 3+ similar patterns → extract to shared abstraction.
-> 2. **Right Responsibility:** Logic in LOWEST layer (Entity > Domain Service > Application Service > Controller). Never business logic in controllers.
-> 3. **SOLID:** Single responsibility (one reason to change). Open-closed (extend, don't modify). Liskov (subtypes substitutable). Interface segregation (small interfaces). Dependency inversion (depend on abstractions).
-> 4. **After extraction/move/rename:** Grep ENTIRE scope for dangling references. Zero tolerance.
-> 5. **YAGNI gate:** NEVER recommend patterns unless 3+ occurrences exist. Don't extract for hypothetical future use.
->
-> **Anti-patterns to flag:** God Object, Copy-Paste inheritance, Circular Dependency, Leaky Abstraction.
->
-> **Serial Attention for Design Quality** — Scan one quality dimension at a time (serial passes), not all concerns at once. — why: split attention misses violations that single-focus passes catch.
->
-> 1. **Identify applicable dimensions** — Based on the code's language, domain, and patterns, determine which quality dimensions apply: DRY, SOLID principles (SRP/OCP/LSP/ISP/DIP), OOP idioms, cohesion/coupling, GRASP, Law of Demeter, CQRS invariants, etc. Your list is NOT fixed — derive from what the code actually does.
-> 2. **One focused pass per dimension** — Dedicate single-focus attention to EACH dimension in sequence. Do NOT mix concerns across passes.
-> 3. **Threshold: 3+ similar patterns = MANDATORY extraction** — Not optional suggestion. Flag as mandatory structural fix requiring action.
-> 4. **2+ violations of same kind = structural finding** — Report as "pattern problem" needing architectural resolution, not a list of individual instances.
-
-<!-- /SYNC:design-patterns-quality -->
-
 <!-- SYNC:double-round-trip-review -->
 
 > **Validated-Finding Fix + Full Re-Review Loop** — Re-review is triggered by a validated finding fix cycle, not by a round number. Review purpose: `review → validate findings → fix validated findings → full re-review` until a complete review pass finds no issues. **A clean review ENDS the loop — no further rounds required.**
@@ -864,27 +942,18 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:double-round-trip-review -->
 
+<!-- SYNC:sub-agent-selection -->
+
+> **Sub-Agent Selection** — Full routing contract: `.claude/skills/shared/sub-agent-selection-guide.md`
+> **Rule:** Route specialized domains (architecture, security, performance, DB, E2E, integration-test, git) to the matching specialist agent (see guide above) — NEVER use `code-reviewer` for these. — why: `code-reviewer` lacks each domain's checklist, so specialized issues slip through.
+
+<!-- /SYNC:sub-agent-selection -->
+
 <!-- SYNC:source-test-drift-check -->
 
 > **Source/test drift check.** For coding, fix, debug, investigation, test, or review work: when source behavior changes, inspect affected unit/integration/E2E tests and decide from evidence whether tests should change to match intended behavior or the source change is an unintended bug to fix. Do not write tests for migration code; schema/data migrations are one-time execution paths, not core application logic.
 
 <!-- /SYNC:source-test-drift-check -->
-
-<!-- SYNC:understand-code-first -->
-
-> **Understand Code First** — HARD-GATE: Do NOT write, plan, or fix until you READ existing code.
->
-> 1. Search 3+ similar patterns (`grep`/`glob`) — cite `file:line` evidence
-> 2. Read existing files in target area — understand structure, base classes, conventions
-> 3. Run `python .claude/scripts/code_graph trace <file> --direction both --json` when `.code-graph/graph.db` exists
-> 4. Map dependencies via `connections` or `callers_of` — know what depends on your target
-> 5. Write investigation to `.ai/workspace/analysis/` for non-trivial tasks (3+ files)
-> 6. Re-read analysis file before implementing — never work from memory alone. — why: long context drifts from the file; the file is ground truth
-> 7. NEVER invent new patterns when existing ones work — match exactly or document deviation. — why: divergent patterns fragment the codebase and slow every future reader
->
-> **BLOCKED until:** `- [ ]` Read target files `- [ ]` Grep 3+ patterns `- [ ]` Graph trace (if graph.db exists) `- [ ]` Assumptions verified with evidence
-
-<!-- /SYNC:understand-code-first -->
 
 <!-- SYNC:ai-mistake-prevention -->
 
@@ -1010,35 +1079,11 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:evidence-based-reasoning:reminder -->
 
-<!-- SYNC:design-patterns-quality:reminder -->
-
-**IMPORTANT MUST ATTENTION** check DRY via OOP, right responsibility layer, SOLID. Grep for dangling refs after moves.
-
-<!-- /SYNC:design-patterns-quality:reminder -->
-
 <!-- SYNC:graph-assisted-investigation:reminder -->
 
 **IMPORTANT MUST ATTENTION** run at least ONE graph command on key files when graph.db exists. Pattern: grep → trace → verify.
 
 <!-- /SYNC:graph-assisted-investigation:reminder -->
-
-<!-- SYNC:source-test-drift-check:reminder -->
-
-**IMPORTANT MUST ATTENTION** when source behavior changes, inspect affected tests; decide from evidence whether tests update to match intent or the source change is an unintended bug.
-
-<!-- /SYNC:source-test-drift-check:reminder -->
-
-<!-- SYNC:understand-code-first:reminder -->
-
-**IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE any modification. Run graph trace when graph.db exists.
-
-<!-- /SYNC:understand-code-first:reminder -->
-
-<!-- SYNC:subagent-return-contract:reminder -->
-
-**IMPORTANT MUST ATTENTION** every spawned sub-agent returns report path + status + severity counts; appends findings per-file (never batched); main agent integrates verbatim, never filters.
-
-<!-- /SYNC:subagent-return-contract:reminder -->
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
@@ -1114,58 +1159,60 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Ensure frontend/UI changes survive real content, responsive layouts, layering, and styling conventions before handoff.
+**IMPORTANT MUST ATTENTION Goal:** Ensure changes preserve architecture boundaries, ownership, message flow, and generated artifact integrity before handoff — validating changed code against layers, service boundaries, message flow, CQRS, repositories, entity events, frontend architecture, generated artifacts, recorded architecture decisions (ADRs), and quality tooling.
 
-**Protocols in force (concise digest of the SYNC/shared blocks this skill carries — MUST ATTENTION honor each canonical body above):**
+**Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
-- **Graph-Assisted Investigation:** Run graph command on key files first.
-- **Nested Task Creation:** Expand child phases; link parent when nested.
-- **Project Reference Docs Guide:** Read project docs before reviewing.
-- **Task Tracking External Report:** Track tasks; persist findings incrementally.
-- **Subagent Return Contract:** Sub-agent returns summary plus report path.
-- **Critical Thinking Mindset:** Traced proof per claim; never guess.
-- **Sequential Thinking Protocol:** Multi-step reasoning; state confidence closer.
-- **Evidence-Based Reasoning:** Cite `file:line`; >80% to act.
-- **Design Patterns Quality:** DRY, layered responsibility, SOLID; grep dangling.
-- **Double Round-Trip Review:** Validate, fix, full re-review until clean.
-- **Source-Test Drift Check:** Source changes; inspect affected tests.
-- **Understand Code First:** Read code, grep 3+, before changing.
+- **Graph-Assisted Investigation:** Run one graph command on key files when graph.db exists.
+- **Nested Task Creation:** Child skill expands visible phase tasks; link parent when nested.
+- **Project Reference Docs Guide:** Read required project-reference docs before target work; `lessons.md` always.
+- **Task Tracking External Report:** Bootstrap tasks; persist plan/review findings to `plans/reports/` incrementally.
+- **Critical Thinking Mindset:** Traced proof per claim, confidence >80%; NEVER present guess as fact.
+- **Sequential Thinking Protocol:** Multi-step Thought N/M with REVISION/BRANCH/HYPOTHESIS markers and confidence closer.
+- **Evidence-Based Reasoning:** Cite `file:line` for every claim; <60% confidence = do NOT recommend.
+- **Double-Round-Trip Review:** Validate findings, fix, full re-review until a clean pass.
+- **Sub-Agent Selection:** Route specialized domains to the matching specialist agent, NEVER `code-reviewer`.
+- **Source/Test Drift Check:** Source behavior changes → inspect affected tests; decide fix vs update.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
-- **Systematic Review Batching:** Large changeset; parallel size-capped batches.
-- **Severity Rubric:** Classify by consequence; NEVER pass Critical/High.
-- **Category Review Thinking:** Derive concerns first-principles, never fixed checklist.
+- **Systematic Review Batching:** Large changeset → size-capped parallel batches, then reduce; NEVER one-by-one.
+- **Severity Rubric:** Classify by consequence Critical/High/Medium/Low; Critical/High block PASS.
+- **Category Review Thinking:** Derive each category's concerns from first principles with evidence, NEVER a checklist.
 
-**MUST ATTENTION** break work into small tasks using task tracking BEFORE starting
-**MUST ATTENTION** resolve and read project UI/styling docs BEFORE reviewing — rules come from docs, not general knowledge
-**MUST ATTENTION** SKIP this skill when no files match the project frontend path/extension patterns
-**MUST ATTENTION** every violation requires `file:line` proof — NEVER speculate
-**MUST ATTENTION** grep 3+ counterexamples before flagging any pattern violation
-**MUST ATTENTION** `z-index` with `!important` and chained BEM modifiers are HARD-GATE BLOCKED
-**MUST ATTENTION** NEVER mix incompatible project token systems in one file — recommend whichever system the file already imports/uses
-**MUST ATTENTION** after validated UI fixes, rerun the full UI review; when that protocol uses a fresh reviewer, use the UI/UX-specialized sub-agent from the local sub-agent selection guide
-**MUST ATTENTION** run at least ONE graph command on key files when graph.db exists
-**MUST ATTENTION** NEVER fix code — review and report only
-**MUST ATTENTION** apply `Think:` reasoning prompt before checking each category — derive violations, don't recite checklists
-**MUST ATTENTION** use ask the user directly to present next steps after completing review
+**IMPORTANT MUST ATTENTION** read project architecture docs in Phase 0 BEFORE reviewing — every rule and base-class/symbol name comes from `backend-patterns-reference.md` / `project-structure-reference.md` / `frontend-patterns-reference.md` / `code-review-rules.md`, NEVER general knowledge — why: hardcoded framework names rot on rename and break portability to other repos.
+**IMPORTANT MUST ATTENTION** every violation requires `file:line` proof + confidence >80% (60-80% verify first, <60% do NOT recommend); grep 3+ existing counterexamples before flagging — codebase convention wins. NEVER speculate — instead state "Insufficient evidence. Verified: [...]. Not verified: [...]."
+**IMPORTANT MUST ATTENTION** review serially, one category at a time (Cat 0 tooling baseline → Cat 11 scalability & coupling): doc rule → source evidence → `Think:` derivation → PASS/WARN/BLOCKED. NEVER scan categories simultaneously — why: parallel scanning collapses per-category evidence and drops findings.
+**IMPORTANT MUST ATTENTION** Phase 3 has 12 categories — review EVERY applicable one, NEVER stop early: 0 quality-tooling · 1 clean-architecture layers · 2 message-bus · 3 CQRS · 4 repositories · 5 service-pattern era · 6 entity event handlers · 7 service boundaries · 8 frontend architecture (frontend files only) · 9 ADR conformance · 10 spec-loop discipline · 11 scalability & coupling regression — why: a skipped category silently drops the violation class it uniquely covers.
+**IMPORTANT MUST ATTENTION** follow the phase order Phase 0 → 1 → 2 → 3 → 4 → 5 → Next Steps; Phase 5 `$why-review` self-validation is MANDATORY whenever any finding exists, and Next Steps MUST present `$code-simplifier` / `$code-review` / skip by asking the user directly — why: the AI repeatedly forgets the validation gate and stops at Phase 4, shipping unvalidated severities downstream.
+**IMPORTANT MUST ATTENTION** break work into small tasks using task tracking BEFORE starting; mark one `in_progress`/`completed` at a time; on context loss call the current task list first — why: resume existing tasks, never duplicate after compaction.
+**IMPORTANT MUST ATTENTION** stay in lane — deep-review only what this skill OWNS (layers, messaging/CQRS/repos/service boundaries, entity events, frontend architecture, quality tooling, generated artifacts, ADRs); record a one-line `→ route to {sibling}` pointer for security/performance/DDD/UI/integration-test findings instead of expanding them — why: duplicated findings across reviewers inflate severity counts and bury issues each reviewer uniquely owns.
+**IMPORTANT MUST ATTENTION** framework symbols/base-class/directory names in Categories 2–8 are illustrative examples only — map each to the repository's actual convention as named in its own Phase 0 reference docs; flag deviations from the project's REAL convention, NEVER from these literal names.
+**IMPORTANT MUST ATTENTION** scope tooling/ADR/spec-loop severity to the change — a pre-existing gap unrelated to the diff is WARN with one note, reserve BLOCKED for a new stack/service with no gate, a change removing an existing gate, an accepted-ADR contradiction with no superseding ADR, or a `[HARD]` rule/invariant with no property TC — why: blocking on standing change-unrelated conditions buries the regression the diff actually introduced.
+**IMPORTANT MUST ATTENTION** review the WHOLE package (spec + tests + structural diff), not the diff alone — every behavior-affecting architecture finding carries a Dual-Feedback row (spec NAMES the contract/invariant AND a test GUARDS it); blank either axis = INCOMPLETE — why: a boundary change that compiles but is never asserted regresses silently when a sibling service is next touched.
+**IMPORTANT MUST ATTENTION** run at least ONE graph command on key files when `.code-graph/graph.db` exists (grep → `trace --direction both` → verify) — why: trace reveals cross-service blast radius grep alone cannot.
+**IMPORTANT MUST ATTENTION** evaluate pattern fit before flagging — copying-nearby ≠ matching preconditions; verify same scope, lifetime, base class, constraints, established-exception status before calling a deviation a violation.
+**IMPORTANT MUST ATTENTION** review is read-only until validated — NEVER fix code in this skill; after ANY finding run the Phase 5 `$why-review --validate-findings` self-validation gate BEFORE handoff, and every validated fix restarts a full review from Phase 0 with a fresh task breakdown — why: AI reports inherit confirmation bias; adversarial validation demotes false-positive Highs at the source.
+**IMPORTANT MUST ATTENTION** write findings to `plans/reports/arch-review-{date}-{slug}.md` incrementally and synthesize from disk; use ask the user directly to present next steps (`$code-simplifier` / `$code-review` / skip) after completing review — why: long reviews exhaust context before a final batch write, losing findings.
 
 **Anti-Rationalization:**
 
-| Evasion                                   | Rebuttal                                                                                |
-| ----------------------------------------- | --------------------------------------------------------------------------------------- |
-| "Too simple for a UI review"              | Simple templates still overflow on a 200-char value. Apply all 5 categories.            |
-| "Already read the docs"                   | Show the extracted rule (mixin name, token name) — no recall = no read.                 |
-| "Just flag obvious z-index literals"      | Gray areas matter most. Trace the surface's semantic layer before recommending a token. |
-| "Fixed width is fine, it looks right"     | Looks right at 1440px ≠ usable at 320px. Apply the flex/min-max decision rule.          |
-| "web-design-guidelines already covers UI" | That is a11y/UX, not the project styling gate. Different scope — do both.               |
+| Evasion                              | Rebuttal                                                           |
+| ------------------------------------ | ------------------------------------------------------------------ |
+| "Too simple for architecture review" | Simple code hides layer violations. Apply all phases.              |
+| "Already read the docs"              | Show the extracted `file:line` rule — no recall = no read.         |
+| "I know this framework's base classes" | Resolve from Phase 0 reference docs — literal names are illustrative; the project's convention wins. |
+| "Just flag obvious violations"       | Gray areas matter most. Apply `Think:` to every applicable category. |
+| "Found a violation, I'll just fix it" | Read-only skill. Validate via `$why-review` first, then route the fix; every fix restarts review from Phase 0. |
+| "This finding is clearly someone else's domain, skip it" | Record a one-line `→ route to {sibling}` pointer — surfacing the route is owned here; expanding it is not. |
+| "Graph not needed here"              | Run ONE trace. 5 seconds → full blast radius revealed.             |
+| "Skill reviews only changed files"   | Default scope, not a limit. User can override.                     |
 
 ---
 
 > **Closing reminder — Easy to Change is the success metric.** Every finding,
-> token, mixin, and layout must answer one question: _does this make the next
-> change cheaper or more expensive?_ If it doesn't reduce future change cost,
-> reject it. Magic values, duplicated styling knowledge, fixed sizing that
-> fights the viewport, cross-system token mixing, and z-index escalation wars
-> are the real enemies — call them out by name.
+> test, refactor, and abstraction must answer one question: _does this make
+> the next change cheaper or more expensive?_ If it doesn't reduce future
+> change cost, reject it. Coupling, hidden state, duplicated knowledge, and
+> unclear intent are the real enemies — call them out by name.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Hookless Prompt Protocol Mirror (Auto-Synced)

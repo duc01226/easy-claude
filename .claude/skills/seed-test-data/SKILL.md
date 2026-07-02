@@ -26,7 +26,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob, TaskCreate, Agent
 - Four non-negotiable gates in order: (1) **environment gate** as the FIRST check (local-dev/enabled-config only), (2) **count-before-seed idempotency** (no re-seed when already seeded), (3) **restart-safe loop** from `existing_count` to `target_count` (never 0 — resume the remainder after stop/restart), (4) scoped DI per iteration — a shared scope silently corrupts the DbContext/session.
 - Always pre-read `docs/project-reference/seed-test-data-reference.md` + project-config `Data Seeders` group, then close with a fresh zero-memory `code-reviewer` round; re-review fully only after a validated fix.
 - **Two modes — surface the flag:** default **Generate** (implement / enhance / fix a seeder); **`--mode=review`** = READ-ONLY convention audit grading a target (prompt → current changes → work-context) against EVERY universal rule + project conventions with `file:line` PASS/FAIL — routes confirmed fixes back to Generate, NEVER edits the seeder itself.
-- **Main steps to run (Generate, in order — do not skip):** Phase 0 detect task type (new/enhance/fix) → Step 1 discover conventions (base class, env-gate key, count key, registration) → Step 1.5 verify dev-config keys exist → Step 2 feature scope + application commands → Step 3 find/create seeder → Step 4 implement (env-gate FIRST → config count → idempotency → restart-safe loop → scoped DI) → Step 5 validate every gate with `file:line` → Step 7 `--mode=review` self-audit on the changed code → fresh `code-reviewer` round → `/review-changes` (final).
+- **Main steps to run (Generate, in order — do not skip):** Phase 0 detect task type (new/enhance/fix) → Step 1 discover conventions (base class, env-gate key, count key, registration) → Step 1.5 verify dev-config keys exist → Step 2 feature scope + application commands → Step 3 find/create seeder → Step 4 implement (env-gate FIRST → config count → idempotency → restart-safe loop → scoped DI) → Step 5 validate every gate with `file:line` → Step 7 `--mode=review` self-audit on the changed code → fresh `code-reviewer` round → `/changes-review` (final).
 
 **Workflow (Generate mode — default):**
 
@@ -37,11 +37,11 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob, TaskCreate, Agent
 5. **Step 4** — Implement using language-agnostic algorithm
 6. **Step 5** — Validate against universal rules
 7. **Self-Review** — Re-run THIS skill in `--mode=review` over the changed seeder code (convention gate)
-8. **Review** — Fresh sub-agent review round, then hand off to `/review-changes`
+8. **Review** — Fresh sub-agent review round, then hand off to `/changes-review`
 
 **Modes:**
 
-- **Default (generate)** — implement / enhance / fix seeders. Everything in the Generate-mode Protocol below applies. The generate-mode task plan MUST end by re-running this skill in `--mode=review` (Step 7) BEFORE the `/review-changes` hand-off.
+- **Default (generate)** — implement / enhance / fix seeders. Everything in the Generate-mode Protocol below applies. The generate-mode task plan MUST end by re-running this skill in `--mode=review` (Step 7) BEFORE the `/changes-review` hand-off.
 - **`--mode=review`** (read-only convention audit) — review a target against EVERY universal seed-data rule AND the project-specific seeder conventions, with `file:line` evidence and a PASS/FAIL verdict. Makes NO code changes; reports findings and routes confirmed defects back to generate mode for the fix. See [Mode: Review](#mode-review-seed-data-convention-audit).
 
 **Key Rules:**
@@ -97,7 +97,7 @@ rg "{Feature}Seeder|{Feature}SeedData|{Feature}TestData" {configured-source-root
 
 ### Generate-mode Task Plan (TaskCreate — required)
 
-> **MUST ATTENTION** `TaskCreate` ALL of these BEFORE the first edit. The plan ALWAYS ends with a `--mode=review` self-audit, and `--mode=review` ALWAYS precedes the `/review-changes` hand-off — review-changes stays the final step.
+> **MUST ATTENTION** `TaskCreate` ALL of these BEFORE the first edit. The plan ALWAYS ends with a `--mode=review` self-audit, and `--mode=review` ALWAYS precedes the `/changes-review` hand-off — changes-review stays the final step.
 
 1. Discover seeder patterns, env-gate key, count key (Step 1) — `file:line` evidence.
 2. Verify dev config has env-gate + count keys (Step 1.5).
@@ -107,7 +107,7 @@ rg "{Feature}Seeder|{Feature}SeedData|{Feature}TestData" {configured-source-root
 6. Validate against the universal rules (Step 5) — `file:line` for every gate.
 7. **Self-review the changed seeder code by re-running THIS skill in `--mode=review`** (convention gate over the just-changed code — MUST be a task, not optional). Fix any FAIL through this generate flow, then re-review.
 8. Fresh zero-memory `code-reviewer` round (Review Loop).
-9. Hand off to `/review-changes` (final step — review all changes before commit).
+9. Hand off to `/changes-review` (final step — review all changes before commit).
 10. Analyze AI mistakes & lessons learned.
 
 ### Step 1: Discover Seeder Patterns
@@ -302,7 +302,7 @@ Per item: **PASS / FAIL / N/A** with `file:line` evidence and confidence (>80% r
 
 > **MUST ATTENTION — NOT IN WORKFLOW YET:** Use `AskUserQuestion`:
 >
-> 1. **Activate `workflow-seed-test-data`** (Recommended) — scout → investigate → seed-test-data → review-changes → code-simplifier → docs-update
+> 1. **Activate `workflow-seed-test-data`** (Recommended) — scout → investigate → seed-test-data → changes-review → code-simplifier → docs-update
 > 2. **Execute `/seed-test-data` directly** — run this skill standalone
 
 ---
@@ -435,14 +435,14 @@ Per item: **PASS / FAIL / N/A** with `file:line` evidence and confidence (>80% r
 **IMPORTANT MUST ATTENTION** `TaskCreate` — break all work into tasks BEFORE starting; transition one task at a time, evidence per completed step
 **IMPORTANT MUST ATTENTION** close with a fresh zero-memory `code-reviewer` round; full re-review is required ONLY after a validated fix cycle — a clean review pass ENDS the review; NEVER fix unvalidated findings
 **IMPORTANT MUST ATTENTION Modes:** default = **Generate** (implement/enhance/fix); `--mode=review` = READ-ONLY convention audit (resolve target: prompt → current changes → work-context; read the reference doc + Universal Rules FIRST; grade every rule with `file:line`; route fixes back to Generate — NEVER edit in review mode)
-**IMPORTANT MUST ATTENTION** the Generate-mode task plan MUST end with a `--mode=review` self-audit over the changed seeder code, and that self-audit MUST run BEFORE the `/review-changes` hand-off — `/review-changes` stays the final step
+**IMPORTANT MUST ATTENTION** the Generate-mode task plan MUST end with a `--mode=review` self-audit over the changed seeder code, and that self-audit MUST run BEFORE the `/changes-review` hand-off — `/changes-review` stays the final step
 
 **Anti-Rationalization:**
 
 | Evasion                                      | Rebuttal                                                       |
 | -------------------------------------------- | ------------------------------------------------------------- |
 | "Simple seeder, skip review loop"            | Idempotency bugs are silent. Run Round 1 always.              |
-| "Skip the `--mode=review` self-audit"        | It's a required task — convention gate runs BEFORE `/review-changes`, never instead of it. |
+| "Skip the `--mode=review` self-audit"        | It's a required task — convention gate runs BEFORE `/changes-review`, never instead of it. |
 | "Review mode can just fix the seeder"        | Review is READ-ONLY. Route the fix back through Generate mode, then re-review. |
 | "Already know the base class"                | Show `file:line`. No proof = no knowledge.                    |
 | "Environment gate is obvious"                | Verify it's FIRST check with `file:line` evidence.            |

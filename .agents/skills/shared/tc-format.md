@@ -3,7 +3,7 @@ title: 'Canonical TC Format'
 version: 1.3.0
 last_reviewed: 2026-06-17
 authority: spec [mode=tests]
-consumers: [spec, spec [mode=tests], spec [mode=sync], integration-test, integration-test-review, review-artifact]
+consumers: [spec, spec [mode=tests], spec [mode=sync], integration-test, integration-test-review, artifact-review]
 ---
 
 # Canonical TC Format
@@ -142,7 +142,7 @@ boundaryCounterCase: "amounts summing past the credit limit → order rejected, 
 
 > **A Section 8 TC is a business / user-story acceptance scenario — not a unit of code.** It is written tech-agnostic
 > (M1/M2/M5) and is verified by **one OR MANY** test methods. This section is the canonical cardinality contract; all
-> consumer skills (`spec [mode=tests]`, `spec`, `integration-test`, `integration-test-review`, `review-artifact`) defer to it.
+> consumer skills (`spec [mode=tests]`, `spec`, `integration-test`, `integration-test-review`, `artifact-review`) defer to it.
 
 **The rule (authoritative):**
 

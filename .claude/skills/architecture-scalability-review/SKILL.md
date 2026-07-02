@@ -23,7 +23,9 @@ description: '[Architecture] Use when grading project architecture and scalabili
 - On demand against an existing repository when the user asks to review project quality, architecture scalability, distributed-monolith risk, module boundaries, build scalability, or setup quality.
 - As a periodic architecture health check for a growing codebase.
 
-Do not use this as the every-change diff reviewer. Per-change regression checks belong in `review-architecture`, `performance-review`, `production-readiness-review`, and other sibling reviewers already wired into `workflow-review-changes`.
+Do not use this as the every-change diff reviewer. Per-change regression checks belong in `architecture-review`, `performance-review`, `production-readiness-review`, and other sibling reviewers already wired into `workflow-review-changes`.
+
+> **Combined audit:** For a whole-project architecture + compliance + production-readiness audit in one pass, run `/architecture-review-full` (or `/start-workflow workflow-architecture-audit`) — it fans out this skill, `architecture-review`, and `production-readiness-review` as parallel sub-agents and synthesizes one consolidated report.
 
 ## Scope And Modes
 
@@ -56,14 +58,14 @@ Read these before scoring:
 | Area | Cadence | This skill owns | Route depth to |
 | --- | --- | --- | --- |
 | Build & CI Scalability | init / audit | Score incremental builds, affected-only detection, cache strategy, parallel test/build strategy, monorepo quality gate posture | `linter-setup` for quality gates; `scaffold` for project foundation |
-| Architecture Pattern / distributed-monolith | init / audit + every-change smell | Score modular monolith vs microservices fit and distributed-monolith risk | `architecture-design` for design choices; `review-architecture` for diff-level boundary drift |
-| Module Isolation | init / audit + every-change boundary drift | Score bounded-context isolation and independent build/test/deploy expectations | `domain-analysis`, `review-architecture` |
-| Dependency Discipline | init / audit + every-change | Score explicit dependency directions and enforcement mechanisms | `review-architecture`, `linter-setup` |
-| Loose Coupling | init / audit + every-change | Score event-driven ownership and absence of avoidable sync coupling | `domain-analysis`, `review-architecture` |
+| Architecture Pattern / distributed-monolith | init / audit + every-change smell | Score modular monolith vs microservices fit and distributed-monolith risk | `architecture-design` for design choices; `architecture-review` for diff-level boundary drift |
+| Module Isolation | init / audit + every-change boundary drift | Score bounded-context isolation and independent build/test/deploy expectations | `domain-analysis`, `architecture-review` |
+| Dependency Discipline | init / audit + every-change | Score explicit dependency directions and enforcement mechanisms | `architecture-review`, `linter-setup` |
+| Loose Coupling | init / audit + every-change | Score event-driven ownership and absence of avoidable sync coupling | `domain-analysis`, `architecture-review` |
 | Horizontal Scaling | init / audit + local hot-path review | Score system-level statelessness, load balancing, caching, async, partitioning, autoscaling, SPOF, latency/throughput limits | `performance-review`, `production-readiness-review` |
-| DRY | init / audit + every-change duplication drift | Score strategic shared-platform, monorepo/shared-lib, and duplicated-knowledge posture | `review-architecture`, `scaffold` |
-| Abstraction / Easy-to-Change | init / audit + every-change conformance | Score swappable technical concerns, stable contracts, and interface boundaries where they reduce future change cost | `architecture-design`, `review-architecture`, `scaffold` |
-| Clean Architecture | init / audit + every-change | Score dependency-rule fit, business logic placement, and architecture style enforcement | `review-architecture`, `scaffold` |
+| DRY | init / audit + every-change duplication drift | Score strategic shared-platform, monorepo/shared-lib, and duplicated-knowledge posture | `architecture-review`, `scaffold` |
+| Abstraction / Easy-to-Change | init / audit + every-change conformance | Score swappable technical concerns, stable contracts, and interface boundaries where they reduce future change cost | `architecture-design`, `architecture-review`, `scaffold` |
+| Clean Architecture | init / audit + every-change | Score dependency-rule fit, business logic placement, and architecture style enforcement | `architecture-review`, `scaffold` |
 | Observability & Delivery | init / audit + production readiness | Score monitoring, logging, metrics, DevOps/deployment, CI/CD, IaC, rollback posture | `production-readiness-review`, `linter-setup` |
 
 When a concern belongs to a sibling, record a one-line route pointer and continue scoring from evidence. Do not expand into the sibling's full checklist.

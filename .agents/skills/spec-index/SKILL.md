@@ -76,7 +76,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 | `index` | default — refresh derived aids           | Feature Specs in the target bucket(s)          | `INDEX.md` catalog (+ optional ERD / reimplementation guide), all DERIVED |
 | `audit` | explicit request — staleness check       | Feature Spec mtimes/git vs derived-artifact age | Stale-list report (which derived aids lag their source specs)            |
 
-**Workflow:** `$scout` (locate specs) → `$spec-index` (assemble derived aids) → `$review-changes` → `$watzup`
+**Workflow:** `$scout` (locate specs) → `$spec-index` (assemble derived aids) → `$changes-review` → `$watzup`
 
 **Key Rules:**
 
@@ -221,7 +221,7 @@ If a user explicitly asks for an A-E bundle, explain it is retired and offer the
 | `$spec`     | **Source owner** — authors the canonical 8-section Feature Spec and flags when derived refresh may be required                | Before spec-index — the specs must exist to index         |
 | `$spec [mode=tests]`         | **Source owner** — owns Section 8 TCs that this skill counts in the catalog                           | When TCs change and the index TC counts must refresh      |
 | `$docs-update`      | **Orchestrator** — may call spec-index to refresh derived aids after a doc sync                       | After code/spec changes need a full doc sync              |
-| `$review-changes`   | **Trigger** — detects spec changes and surfaces stale derived aids                                    | After spec changes; it will suggest regenerating the index |
+| `$changes-review`   | **Trigger** — detects spec changes and surfaces stale derived aids                                    | After spec changes; it will suggest regenerating the index |
 
 ## What Is Spec Discovery? (v4.0.0)
 

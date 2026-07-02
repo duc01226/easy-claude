@@ -605,7 +605,7 @@ Then error "{message}"
 - [ ] AC testable (GIVEN/WHEN/THEN, no vague language)
 - [ ] Wireframes attached (UX BA) + UI design ready (Designer BA)
 - [ ] (UI PBIs) Design spec linked — `/design-spec` artifact or inline UI specs present in `## UI Layout`; backend-only PBIs exempt (`N/A — Backend-only`)
-- [ ] AI pre-review passed (`/review-artifact --type=pbi` or `/pbi-challenge`)
+- [ ] AI pre-review passed (`/artifact-review --type=pbi` or `/pbi-challenge`)
 - [ ] Story points estimated by AI
 - [ ] Dependencies table complete
 

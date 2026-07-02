@@ -75,9 +75,9 @@ Resolve service→bucket assignments from the canonical table in [`docs/project-
 
 | Mode        | When to Use                                  | Step Sequence                                                                                                                                                                                                                           |
 | ----------- | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `init-full` | Zero — no Feature Spec for target scope      | scout → **size-evaluation** → **plan** → **plan-review** → **plan-validate** → spec [mode=init] → **spec [mode=tests]** → **review-artifact --type=spec-tests** → review-artifact → **docs-update(final sync)** → workflow-end → watzup |
-| `update`    | Code changed, new requirement, new PBI       | workflow-review-changes → spec [mode=update] → **spec [mode=tests]** → **review-artifact --type=spec-tests** → spec [mode=sync] → review-changes → **docs-update(final sync)** → workflow-end → watzup                                  |
-| `audit`     | Quarterly health check, verify doc freshness | scout → spec [mode=audit] → review-artifact → **docs-update(final sync)** → workflow-end → watzup                                                                                                                                       |
+| `init-full` | Zero — no Feature Spec for target scope      | scout → **size-evaluation** → **plan** → **plan-review** → **plan-validate** → spec [mode=init] → **spec [mode=tests]** → **artifact-review --type=spec-tests** → artifact-review → **docs-update(final sync)** → workflow-end → watzup |
+| `update`    | Code changed, new requirement, new PBI       | workflow-review-changes → spec [mode=update] → **spec [mode=tests]** → **artifact-review --type=spec-tests** → spec [mode=sync] → changes-review → **docs-update(final sync)** → workflow-end → watzup                                  |
+| `audit`     | Quarterly health check, verify doc freshness | scout → spec [mode=audit] → artifact-review → **docs-update(final sync)** → workflow-end → watzup                                                                                                                                       |
 
 **Key Rules:**
 
@@ -231,21 +231,21 @@ $spec [mode=init]
 $spec [mode=tests]
   → Populate Section 8 with TC-{FEATURE}-{NNN} entries (BDD, Business Intent, abstract Evidence, IntegrationTest field, Status)
 
-$review-artifact --type=spec-tests
+$artifact-review --type=spec-tests
   → Review §8 TCs for invariant coverage, GIVEN/WHEN/THEN completeness, duplicate TC IDs
 
-$review-artifact
+$artifact-review
   → Quality check the Feature Spec(s):
     - §1-7 strictly tech-free (zero framework/product/language terms in prose)
     - §5 Mermaid ERD present with entities, relationships, cardinalities
     - §8 every TC has Business Intent, abstract `[Source: ns/service/id]` anchor, IntegrationTest field, Status
     - YAML frontmatter present; no line-count cap applied
   → PASS criteria: zero [UNVERIFIED] without exclusion reason + zero tech terms in §1-7
-  → Gap found → validate findings → fix validated gaps → restart full review-artifact pass from the first check
+  → Gap found → validate findings → fix validated gaps → restart full artifact-review pass from the first check
 
 $docs-update
   → Near-final synchronization sweep across project docs, the Feature Spec(s), and Section 8
-  → MUST run after review-artifact fixes and before $workflow-end
+  → MUST run after artifact-review fixes and before $workflow-end
   → (Optional) regenerate the derived bucket INDEX / ERD via $spec-index
   → Report skipped sub-phases explicitly when no impacted docs exist
 
@@ -286,7 +286,7 @@ $spec [mode=tests]
   → Mode detection: new commands/queries/endpoints → implement-first; PBI-driven → TDD-first; TC edits only → update
   → Write/update TCs in Section 8; grep existing IDs before assigning; never overwrite Tested TCs
 
-$review-artifact --type=spec-tests
+$artifact-review --type=spec-tests
   → Review updated/planned TCs for invariant coverage, GIVEN/WHEN/THEN completeness, stale TC handling, duplicate IDs
   → SKIP if $spec [mode=tests] skipped — mark "Skipped: no TC changes"
   → BLOCK sync if review finds missing invariants, ambiguous behavior, or TC/code/spec drift
@@ -297,13 +297,13 @@ $spec [mode=sync]
 
 > **UI-intent maintenance (conditional)** — runs alongside the `$spec [mode=sync]` / spec authoring step, **only when the change carries user-facing behavior** (else state the skip reason — backend-only change, no §6 change). When the reverse-engineered code carries user-facing behavior, the spec authoring step MUST refresh the Feature Spec **§6** interaction surface from the implemented capability — View Inventory, Key UI States, and the per-story (`US-`/`OP-`/`BR-`) click-path — and link the governing `$design-spec`/mockup in the spec frontmatter so §6 and the design artifact stay coupled to what the code actually does. The rules live in the shared block below (`SYNC:ui-intent-layer`) — follow it; do not restate it here.
 
-$review-changes
+$changes-review
   → Holistic review of Feature Spec changes
   → Verify: spec changes match code changes (no over/under documentation); §8 covers all new functionality
 
 $docs-update
   → Near-final synchronization sweep across project docs, the Feature Spec(s), and Section 8
-  → MUST run after review-changes fixes and before $workflow-end
+  → MUST run after changes-review fixes and before $workflow-end
   → Report skipped sub-phases explicitly when no impacted docs exist
 
 $workflow-end
@@ -324,7 +324,7 @@ After $workflow-review-changes:
   → $pbi-mockup: required when the PBI changes user-facing UI/journeys; skip with reason for backend-only requirements
   → Treat as "speculative update": add new rules/sections to the Feature Spec marked [PLANNED — not yet implemented]
   → Add corresponding TCs in Section 8 marked Status: Planned
-  → $review-artifact --type=spec-tests: review planned TCs before refreshing the derived index
+  → $artifact-review --type=spec-tests: review planned TCs before refreshing the derived index
   → These become implementation guidance, not verified spec
 ```
 
@@ -355,14 +355,14 @@ $spec [mode=audit]
   → Compare each Feature Spec's last_updated vs git log of the source it documents
   → Output: stale capabilities/sections table with recommended update scope
 
-$review-artifact
+$artifact-review
   → Consolidated audit report
   → Produce: plans/reports/spec-audit-{date}-{Bucket}.md
   → Include: total stale coverage %, estimated update effort, priority order
   → (Optional) $spec-index [mode=audit] — report which DERIVED index/ERD aids lag their source specs
 
 $docs-update
-  → Near-final synchronization sweep; MUST run after review-artifact conclusions and before $workflow-end
+  → Near-final synchronization sweep; MUST run after artifact-review conclusions and before $workflow-end
   → Report skipped sub-phases explicitly when no impacted docs exist
 
 $workflow-end
@@ -383,10 +383,10 @@ $watzup
 | `$spec [mode=tests]` in init                   | User explicitly requests a behavior-doc-only pass (TCs deferred to a later cycle)                              |
 | `$dor-gate` in update                          | Update source is code diff only, existing PBI is already DoR-ready, or no PBI readiness decision is being made |
 | `$pbi-mockup` in update                        | Backend-only/non-UI requirement, code diff only, or existing mockup already covers the change                  |
-| `$review-artifact --type=spec-tests` in update | `$spec [mode=tests]` skipped because there were no TC changes                                                  |
+| `$artifact-review --type=spec-tests` in update | `$spec [mode=tests]` skipped because there were no TC changes                                                  |
 | `$spec [mode=sync]`                            | No TC changes in this update cycle                                                                             |
 | `$docs-update` near-final sync                 | Never skip entirely; sub-phases may be skipped only with explicit reason in the docs-update report             |
-| `$review-artifact` audit pass                  | No stale specs found AND no UNVERIFIED items                                                                   |
+| `$artifact-review` audit pass                  | No stale specs found AND no UNVERIFIED items                                                                   |
 | `$spec-index` (derived)                        | No derived index/ERD is maintained for this bucket, or it is already current                                   |
 
 ---
@@ -397,7 +397,7 @@ $watzup
 2. Spawn `spec` sub-agents (one per capability) in ONE message
 3. Wait for all sub-agents to complete
 4. Spawn `spec [mode=tests]` sub-agents (one per capability) in ONE message to populate Section 8
-5. Main context assembles + verifies in `$review-artifact`
+5. Main context assembles + verifies in `$artifact-review`
 
 Each `spec` sub-agent receives:
 
@@ -417,7 +417,7 @@ docs-update (as workflow step):
   Phase 1: Project docs (inline — unchanged)
   Phase 2: $spec update mode (impacted sections of the Feature Spec)
   Phase 3: $spec [mode=tests] (Section 8 TCs)
-  Phase 3.5: $review-artifact --type=spec-tests (required when Phase 3 changes TCs)
+  Phase 3.5: $artifact-review --type=spec-tests (required when Phase 3 changes TCs)
   Phase 4: $spec [mode=sync] (refresh derived INDEX TC counts)
   Phase 4.5: $spec-index (OPTIONAL — regenerate derived bucket INDEX / ERD if one is maintained)
 ```
@@ -455,7 +455,7 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 
 ---
 
-**IMPORTANT MANDATORY Steps:** $scout -> $plan -> $plan-review -> $plan-validate -> $spec -> $spec [mode=tests] -> $review-artifact --type=spec-tests -> $review-artifact -> $docs-update -> $workflow-end -> $watzup
+**IMPORTANT MANDATORY Steps:** $scout -> $plan -> $plan-review -> $plan-validate -> $spec -> $spec [mode=tests] -> $artifact-review --type=spec-tests -> $artifact-review -> $docs-update -> $workflow-end -> $watzup
 
 > **[BLOCKING]** Invoke skill invocation for EACH step — NEVER batch-complete, NEVER mark done without skill invocation.
 > **[BLOCKING]** Confirm mode by asking the user directly BEFORE any action — NEVER skip Step 0.
@@ -621,7 +621,7 @@ The Feature Spec stays in sync on every feature/bugfix/refactor workflow.
 - **[REQUIRED]** §1-7 STRICTLY tech-free (no framework names, no language constructs, no class names in prose); identifiers live only in §8 evidence carriers, `[Source: ns/service/id]`, and ` ```mermaid ``` ` blocks — mark `[UNVERIFIED]` not blank
 - **[REQUIRED]** Each sub-agent prompt MUST include: capability name, output path, tech-agnostic contract, SYNC protocols (critical-thinking, evidence-based, incremental-persistence, cross-scope boundary)
 - **[BLOCKING]** Context compaction / session resume → the current task list first, re-glob existing Feature Specs, skip done capabilities — NEVER re-run scout or plan
-- **[BLOCKING]** review-artifact: PASS = zero `[UNVERIFIED]` without exclusion reason + zero tech terms in §1-7; gap found → validate findings → fix validated gaps → restart the full review-artifact pass from the first check
+- **[BLOCKING]** artifact-review: PASS = zero `[UNVERIFIED]` without exclusion reason + zero tech terms in §1-7; gap found → validate findings → fix validated gaps → restart the full artifact-review pass from the first check
 - **[BLOCKING]** Verify the current task list count ≥ capability_count before any authoring begins — this is the plan completeness gate
 - **[REQUIRED]** Apply critical thinking — every claim needs traced proof, confidence >80% to act. Anti-hallucination: never present guess as fact.
 - **[REQUIRED]** Apply AI mistake prevention — holistic-first debugging, fix at responsible layer, surface ambiguity before coding, re-read files after compaction.

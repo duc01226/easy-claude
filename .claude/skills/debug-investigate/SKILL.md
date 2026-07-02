@@ -205,7 +205,7 @@ After `/fix` applies changes, `/prove-fix` MUST be run — builds code proof tra
 - **"/plan"** — if fix requires planning first
 - **"Skip, continue manually"** — user decides
 
-**Standalone Review Gate:** Outside workflow? MUST create `/review-changes` task as LAST task.
+**Standalone Review Gate:** Outside workflow? MUST create `/changes-review` task as LAST task.
 
 ---
 
@@ -747,7 +747,7 @@ After `/fix` applies changes, `/prove-fix` MUST be run — builds code proof tra
 **MUST ATTENTION** run a graph trace when `graph.db` exists — `callers_of` / `importers_of` / `tests_for` / `trace` reveal MESSAGE_BUS consumers and event handlers grep cannot see — why: cross-service chains are invisible to text search.
 **MUST ATTENTION** prove convergence FORWARD after choosing the fix layer — walk start → end, map each root cause to a fix part and each fix part to a test/proof; `/prove-fix` MUST run after `/fix` applies changes.
 **MUST ATTENTION** OOM/memory → check row COUNT before row SIZE (unbounded query > large row); 3+ failed fixes → STOP, question the architecture, escalate to user.
-**MUST ATTENTION** bootstrap `TaskCreate` task tracking BEFORE first file read; persist findings incrementally to `plans/reports/`; standalone (outside workflow) → add a `/review-changes` task as the LAST task — why: context cutoff loses in-memory findings.
+**MUST ATTENTION** bootstrap `TaskCreate` task tracking BEFORE first file read; persist findings incrementally to `plans/reports/`; standalone (outside workflow) → add a `/changes-review` task as the LAST task — why: context cutoff loses in-memory findings.
 
 **Anti-Rationalization:**
 

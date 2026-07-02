@@ -37,7 +37,7 @@ const sequenceByWorkflow = {
     "plan",
     "spec",
     "spec [mode=tests]",
-    "review-artifact --type=spec-tests",
+    "artifact-review --type=spec-tests",
     "feature-implement",
     "integration-test",
     "integration-test-review",
@@ -53,7 +53,7 @@ const sequenceByWorkflow = {
     "spec [mode=amend]",
     "plan",
     "spec [mode=tests]",
-    "review-artifact --type=spec-tests",
+    "artifact-review --type=spec-tests",
     "fix",
     "integration-test",
     "integration-test-review",
@@ -69,7 +69,7 @@ const sequenceByWorkflow = {
     "spec",
     "plan",
     "spec [mode=tests]",
-    "review-artifact --type=spec-tests",
+    "artifact-review --type=spec-tests",
     "feature-implement",
     "integration-test",
     "integration-test-review",
@@ -83,7 +83,7 @@ const sequenceByWorkflow = {
     "spec",
     "plan",
     "spec [mode=tests]",
-    "review-artifact --type=spec-tests",
+    "artifact-review --type=spec-tests",
     "feature-implement",
     "integration-test",
     "integration-test-review",
@@ -96,7 +96,7 @@ const sequenceByWorkflow = {
   "spec-sync": [
     "workflow-review-changes",
     "spec [mode=tests]",
-    "review-artifact --type=spec-tests",
+    "artifact-review --type=spec-tests",
     "spec [mode=sync]",
     "integration-test",
     "integration-test-review",
@@ -410,7 +410,7 @@ test("verify-workflow-cycle-compliance enforces spec before implementation plann
       "plan",
       "spec",
       "spec [mode=tests]",
-      "review-artifact --type=spec-tests",
+      "artifact-review --type=spec-tests",
       "feature-implement",
       "integration-test",
       "integration-test-review",
@@ -562,7 +562,7 @@ test("checkGoalContractSkillCompliance accepts marker or active-goal wording, fa
 
 test("checkGoalContractSkillCompliance requires Goal Satisfaction wording on review/workflow surfaces", () => {
   const markerOnly = "<!-- SYNC:goal-contract-satisfaction-loop:reminder -->";
-  const failures = checkGoalContractSkillCompliance("review-changes", markerOnly, {
+  const failures = checkGoalContractSkillCompliance("changes-review", markerOnly, {
     requireSatisfaction: true,
   });
   assert.equal(failures.length, 1);
@@ -570,7 +570,7 @@ test("checkGoalContractSkillCompliance requires Goal Satisfaction wording on rev
 
   assert.deepEqual(
     checkGoalContractSkillCompliance(
-      "review-changes",
+      "changes-review",
       `${markerOnly}\nEmit the Goal Satisfaction matrix before PASS.`,
       { requireSatisfaction: true }
     ),

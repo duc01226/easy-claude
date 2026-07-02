@@ -54,7 +54,7 @@ description: '[Code Quality] Use when you need to validate a PBI against Definit
 - MUST ATTENTION verify **AC testable** — All AC use GIVEN/WHEN/THEN, no vague language, min 3 scenarios
 - MUST ATTENTION verify **Wireframes/mockups** — Present or explicit "N/A" for backend-only
 - MUST ATTENTION verify **UI design ready** — Completed incl. design-spec linked (`/design-spec` artifact or inline UI specs in `## UI Layout`) for UI PBIs; or "N/A" for backend-only
-- MUST ATTENTION verify **AI pre-review** — `/review-artifact --type=pbi` or `/pbi-challenge` result is PASS or WARN
+- MUST ATTENTION verify **AI pre-review** — `/artifact-review --type=pbi` or `/pbi-challenge` result is PASS or WARN
 - MUST ATTENTION verify **Story points** — Valid Fibonacci (1-21) + complexity (Low/Medium/High)
 - MUST ATTENTION verify **Dependencies table** — Complete with Type column (must-before/can-parallel/blocked-by/independent)
 
@@ -83,7 +83,7 @@ If ANY box fails → DoR result is FAIL; list each violated mandate ID with its 
 - [ ] User story template (As a... I want... So that...)
 - [ ] AC testable (GIVEN/WHEN/THEN, no vague language; min 3 scenarios + 1 auth scenario)
 - [ ] Wireframes attached (UX BA) + UI design ready (Designer BA) — incl. design-spec linked (`/design-spec` artifact or inline UI specs in `## UI Layout`) for UI PBIs; backend-only → explicit "N/A"
-- [ ] AI pre-review passed (`/review-artifact --type=pbi` or `/pbi-challenge` returned PASS or WARN)
+- [ ] AI pre-review passed (`/artifact-review --type=pbi` or `/pbi-challenge` returned PASS or WARN)
 - [ ] Story points estimated (Fibonacci 1-21 + complexity); >13 SP → recommend split
 - [ ] Dependencies table complete (Dependency · Type must-before/can-parallel/blocked-by/independent · Status)
 

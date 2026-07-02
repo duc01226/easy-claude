@@ -134,7 +134,7 @@ The **Architecture Fitness** category above is where **dependency-direction / mo
 | Python | import-linter |
 | Go | go-arch-lint / depguard |
 
-Only add a boundary tool when the architecture actually declares dependency directions to enforce. If no cross-module rules are declared, record `N/A — no cross-module dependency rules declared` rather than installing a tool speculatively. Chosen rules MUST encode the architecture's dependency directions and fail CI on a violation, mirroring the pre-commit posture (local↔CI zero divergence). Init/audit grading of whether boundaries exist at all is owned by `architecture-scalability-review`; per-change boundary drift is owned by `review-architecture`. — why: a boundary tool with no declared rules is ceremony; enforcement without CI teeth is documentation.
+Only add a boundary tool when the architecture actually declares dependency directions to enforce. If no cross-module rules are declared, record `N/A — no cross-module dependency rules declared` rather than installing a tool speculatively. Chosen rules MUST encode the architecture's dependency directions and fail CI on a violation, mirroring the pre-commit posture (local↔CI zero divergence). Init/audit grading of whether boundaries exist at all is owned by `architecture-scalability-review`; per-change boundary drift is owned by `architecture-review`. — why: a boundary tool with no declared rules is ceremony; enforcement without CI teeth is documentation.
 
 ---
 

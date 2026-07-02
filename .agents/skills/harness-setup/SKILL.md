@@ -66,7 +66,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 2. **Phase A — Stack Detection** — read plan / architecture-design / tech-stack reports; write `stack-profile.md`; ask the user directly on any undetectable field.
 3. **Phase B — Feedforward Guides** — author/enhance CLAUDE.md/AGENTS.md (architecture patterns, anti-patterns, naming, module boundaries) + skill-activation rules + `docs/architecture/*` notes + pattern catalog; confirm by asking the user directly.
 4. **Phase C — Computational Sensors** — confirm `$linter-setup` outputs; list config paths (invoke `$linter-setup` if any missing).
-5. **Phase D — Inferential Sensors** — wire review skills to lifecycle gates (`$why-review` pre-impl · `$code-review` pre-commit · `$review-domain-entities` post-impl · `$production-readiness-review` + `$security-review` pre-release · `$scan-codebase-health` recurring); record under "## Review Gates".
+5. **Phase D — Inferential Sensors** — wire review skills to lifecycle gates (`$why-review` pre-impl · `$code-review` pre-commit · `$domain-entities-review` post-impl · `$production-readiness-review` + `$security-review` pre-release · `$scan-codebase-health` recurring); record under "## Review Gates".
 6. **Phase E — Behaviour Harness** — pick spec format, define test pyramid + approved fixtures, gate on mutation score (NEVER line %), add property/behavior coverage; write `test-strategy.md`.
 7. **Phase F — Inventory Report** — append `harness-inventory.md` (feedforward + computational/inferential sensors + open gaps); present by asking the user directly.
 8. **Next Steps** — ask the user directly: `$feature-implement` (recommended) · `$why-review` · skip.
@@ -136,7 +136,7 @@ For each guide type, check if it exists; if not, create or enhance:
 **2. Skill activation rules**
 
 - Document in CLAUDE.md which skills auto-activate for common task types in this stack
-- Example: "When modifying domain entities → activate `$review-domain-entities`"
+- Example: "When modifying domain entities → activate `$domain-entities-review`"
 - Example: "Before any commit → run `$code-review`"
 
 **3. Architecture notes**
@@ -185,7 +185,7 @@ Configure which AI review skills fire at each lifecycle stage. Present to user b
 
 **Post-implementation (domain model changes):**
 
-- `$review-domain-entities` — when domain entity files are in the changeset
+- `$domain-entities-review` — when domain entity files are in the changeset
 
 **Pre-release (mandatory gates):**
 
@@ -267,7 +267,7 @@ Stack: {detected stack from Phase A}
 | ------------------- | ----------------------- | ------------------------------ |
 | Pre-implementation  | $why-review             | Design rationale gaps          |
 | Pre-commit          | $code-review            | Convention drift, logic errors |
-| Post-implementation | $review-domain-entities | Domain model quality           |
+| Post-implementation | $domain-entities-review | Domain model quality           |
 | Pre-release         | $production-readiness-review             | Operational readiness          |
 | Pre-release         | $security-review               | Security vulnerabilities       |
 
@@ -366,7 +366,7 @@ ask the user directly:
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Harness Engineering:** feedforward + feedback loops; gate on mutation score, never line-coverage %, keep quality left.
 
-**IMPORTANT MUST ATTENTION Main steps (in order — each BLOCKS the next):** Guards (verify `$linter-setup`) → A Stack Detection (`stack-profile.md`) → B Feedforward Guides (CLAUDE.md patterns/anti-patterns/naming/boundaries + skill-activation rules + pattern catalog) → C Computational Sensors (confirm linter/hook/CI) → D Inferential Sensors (wire `$why-review`, `$code-review`, `$review-domain-entities`, `$production-readiness-review`, `$security-review`, `$scan-codebase-health` to gates) → E Behaviour Harness (spec format + test pyramid + mutation-score gate + `test-strategy.md`) → F Inventory Report (`harness-inventory.md`) → Next Steps. NEVER skip or reorder — why: each phase consumes the prior phase's verified output.
+**IMPORTANT MUST ATTENTION Main steps (in order — each BLOCKS the next):** Guards (verify `$linter-setup`) → A Stack Detection (`stack-profile.md`) → B Feedforward Guides (CLAUDE.md patterns/anti-patterns/naming/boundaries + skill-activation rules + pattern catalog) → C Computational Sensors (confirm linter/hook/CI) → D Inferential Sensors (wire `$why-review`, `$code-review`, `$domain-entities-review`, `$production-readiness-review`, `$security-review`, `$scan-codebase-health` to gates) → E Behaviour Harness (spec format + test pyramid + mutation-score gate + `test-strategy.md`) → F Inventory Report (`harness-inventory.md`) → Next Steps. NEVER skip or reorder — why: each phase consumes the prior phase's verified output.
 
 **IMPORTANT MUST ATTENTION** BLOCK on the `$linter-setup` prerequisite first — ALWAYS verify computational sensors (linter config, pre-commit hook, CI gate) exist before any phase runs — why: keep quality left; cheapest gates must precede inferential ones, and this skill never installs them itself
 **IMPORTANT MUST ATTENTION** NEVER auto-decide feedforward-guide or sensor content — present the draft and confirm by asking the user directly — why: harness conventions bind every future agent; silent choices propagate to all later sessions

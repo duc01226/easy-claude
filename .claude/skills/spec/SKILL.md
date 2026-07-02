@@ -102,7 +102,7 @@ This skill owns the **canonical** Feature Spec (§1-8) and its §8 TC registry. 
 
 > **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS:** If you are NOT already in a workflow, you MUST ATTENTION use `AskUserQuestion` to ask the user. Do NOT judge task complexity or decide this is "simple enough to skip" — the user decides whether to use a workflow, not you:
 >
-> 1. **Activate `workflow-feature` workflow** (Recommended) — spec-driven with tests by default: scout → investigate → spec-discovery → domain-analysis → why-review → spec → spec-clarify → plan → plan-review → plan-validate → why-review → spec [mode=tests] → why-review → review-artifact --type=spec-tests → plan → plan-review → feature-implement → review-domain-entities → spec [mode=tests] → why-review → review-artifact --type=spec-tests → spec [mode=sync] → integration-test → integration-test-review → integration-test-verify → workflow-review-changes → production-readiness-review → security-review → changelog → test → docs-update → workflow-end → watzup
+> 1. **Activate `workflow-feature` workflow** (Recommended) — spec-driven with tests by default: scout → investigate → spec-discovery → domain-analysis → why-review → spec → spec-clarify → plan → plan-review → plan-validate → why-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → plan → plan-review → feature-implement → domain-entities-review → spec [mode=tests] → why-review → artifact-review --type=spec-tests → spec [mode=sync] → integration-test → integration-test-review → integration-test-verify → workflow-review-changes → production-readiness-review → security-review → changelog → test → docs-update → workflow-end → watzup
 > 2. **Execute `/spec` directly** — run this skill standalone in the resolved mode
 
 ---
@@ -113,7 +113,7 @@ This skill owns the **canonical** Feature Spec (§1-8) and its §8 TC registry. 
 
 - **"/spec [mode=tests] (Recommended)"** — Generate/update Section 8 test specs for the documented features (if you just authored/updated a spec)
 - **"/spec [mode=sync]"** — Reconcile Section 8 TCs ↔ integration test code
-- **"/review-artifact --type=spec-tests"** — Audit TC coverage + GIVEN/WHEN/THEN quality
+- **"/artifact-review --type=spec-tests"** — Audit TC coverage + GIVEN/WHEN/THEN quality
 - **"Skip, continue manually"** — user decides
 
 ---
@@ -123,10 +123,10 @@ This skill owns the **canonical** Feature Spec (§1-8) and its §8 TC registry. 
 | Skill                                | Relationship                                                                                                           | When to Call                                                                                           |
 | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `/spec-index`                        | **Derived consumer** — assembles a regenerable navigation index/ERD FROM these Feature Specs (never a source of truth) | AFTER specs exist — (re)generate the bucket `INDEX.md` / cross-capability ERD over the canonical specs |
-| `/review-artifact --type=spec-tests` | **Reviewer** — audits TC coverage in Section 8                                                                         | After `spec [mode=tests]`, to validate TC completeness and GIVEN/WHEN/THEN quality                     |
+| `/artifact-review --type=spec-tests` | **Reviewer** — audits TC coverage in Section 8                                                                         | After `spec [mode=tests]`, to validate TC completeness and GIVEN/WHEN/THEN quality                     |
 | `/integration-test`                  | **End consumer** — generates test code from TCs in Section 8                                                           | After `spec [mode=tests]`, to produce actual integration test files                                    |
 | `/docs-update`                       | **Orchestrator** — calls this skill as Phase 2                                                                         | Run `/docs-update` for full chain sync; it calls `/spec` internally                                    |
-| `/review-changes`                    | **Trigger** — detects feature doc staleness                                                                            | Calls `/docs-update` when a business doc is stale relative to code changes                             |
+| `/changes-review`                    | **Trigger** — detects feature doc staleness                                                                            | Calls `/docs-update` when a business doc is stale relative to code changes                             |
 
 ---
 

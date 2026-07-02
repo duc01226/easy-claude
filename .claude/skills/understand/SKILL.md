@@ -141,7 +141,7 @@ Offer a simpler restatement or analogy for any point that is dense — proactive
 - **Standalone, any time:** `/understand` (current context) or `/understand <whatever you want explained>` — a plan, a subsystem, a decision, a concept, a bug. Pairs well with voice mode for a natural narrated walkthrough.
 - **Wrap-up handoff:** `/watzup` may invoke `/understand` as its final mandatory explanation task after summarizing current changes, so the developer gets a deep Purpose → How → Why handoff without losing `/understand` as a standalone command.
 
-**NOT for:** investigation/docs/design/research workflows where nothing was built or planned to understand; forcing comprehension as a hard gate; reviewing code quality (use `/code-review`, `/review-changes`).
+**NOT for:** investigation/docs/design/research workflows where nothing was built or planned to understand; forcing comprehension as a hard gate; reviewing code quality (use `/code-review`, `/changes-review`).
 
 ## See Also
 

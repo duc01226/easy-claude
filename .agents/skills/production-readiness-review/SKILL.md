@@ -300,6 +300,8 @@ _Any unaccepted CRITICAL/HIGH `fail` above blocks a PASS verdict regardless of t
 - **"$test"** — run tests before wrapping up
 - **"Skip, continue manually"** — user decides
 
+> **Combined audit:** For a whole-project architecture + compliance + production-readiness audit in one pass, run `$architecture-review-full` (or `$start-workflow workflow-architecture-audit`) — it fans out this skill, `architecture-review`, and `architecture-scalability-review` as parallel sub-agents and synthesizes one consolidated report.
+
 ---
 
 > **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting. For simple tasks, AI MUST ask user whether to skip.

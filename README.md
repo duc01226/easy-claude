@@ -84,7 +84,7 @@ cp -r .agents  /path/to/your-project/.agents    # Codex skill mirror generated f
 | `/scan-all`                       | `docs/project-reference/` docs the project-reference-docs gate reads on demand        |
 | `/workflow-code-to-spec`          | canonical Feature Specs under `docs/specs/` (seed or audit from code)                 |
 | `/claude-md-init`                 | `CLAUDE.md` (generated, or smart-merged to preserve your content)                     |
-| `/review-changes` → `/why-review` | review gates over the generated setup                                                 |
+| `/changes-review` → `/why-review` | review gates over the generated setup                                                 |
 | background `/graph-build`         | the structural code graph (`.code-graph/graph.db`)                                    |
 
 `/project-init` surfaces the Codex/Copilot mirror sync as a follow-up — run the AI-sync skills (step 3) when prompted.
@@ -165,7 +165,7 @@ Runtime Node.js scripts that fire on Claude Code lifecycle events.
 (and the `AGENTS.md` mirror). Re-reading these static files restores rules and lessons after
 compaction. This stateless-per-turn design prevents context drift over long sessions.
 
-### Skills (154 definitions)
+### Skills (156 definitions)
 
 Markdown-based prompts with YAML frontmatter that guide AI behavior.
 
@@ -174,7 +174,7 @@ Markdown-based prompts with YAML frontmatter that guide AI behavior.
 | **Planning**       | `/plan`, `/scout`, `/investigate`                                                                          | Research, plan, investigate before coding                |
 | **Implementation** | `/feature-implement`, `/plan-execute`, `/fix`, `/refactoring`                                              | Write code with quality gates                            |
 | **Testing**        | `/test`, `/integration-test`, `/integration-test-review`, `/integration-test-verify`, `/e2e-test`, `/spec` | Test-first, test-after, and spec-traceability workflows  |
-| **Review**         | `/code-review`, `/review-changes`, `/security-review`                                                      | Code quality, security audits                            |
+| **Review**         | `/code-review`, `/changes-review`, `/security-review`                                                      | Code quality, security audits                            |
 | **Documentation**  | `/docs-update`, `/changelog`, `/spec`                                                                      | Auto-generate and maintain docs                          |
 | **Research**       | `/web-research`, `/deep-research`, `/docs-seeker`                                                          | Web research, library docs fetching                      |
 | **Design**         | `/design`, `/design-spec`, `/pbi-mockup`, `/excalidraw-diagram`                                            | UI/UX design, specs, wireframes, PBI visuals, diagrams   |
@@ -207,22 +207,22 @@ End-to-end process orchestration with step enforcement. The table below shows th
 
 ### Quality Gates & Review Skills
 
-Reviews are first-class skills you can run standalone, and several are chained automatically inside `workflow-review-changes` — the recommended gate before any commit. That workflow runs, in order: `/why-review` → `/review-changes` → `/review-architecture` → `/review-domain-entities` → `/performance-review` → `/integration-test-review` → `/security-review` → `/why-review` → `/code-simplifier`, then re-reviews until clean.
+Reviews are first-class skills you can run standalone, and several are chained automatically inside `workflow-review-changes` — the recommended gate before any commit. That workflow runs, in order: `/why-review` → `/changes-review` → `/architecture-review` → `/domain-entities-review` → `/performance-review` → `/integration-test-review` → `/security-review` → `/why-review` → `/code-simplifier`, then re-reviews until clean.
 
 | Review skill                   | Catches                                                                  |
 | ------------------------------ | ------------------------------------------------------------------------ |
-| `/review-changes`              | General correctness/quality on staged, unstaged, or branch-diff changes  |
+| `/changes-review`              | General correctness/quality on staged, unstaged, or branch-diff changes  |
 | `/code-review`                 | Targeted code-quality review and completion-claim verification           |
 | `/why-review`                  | Weak rationale / unjustified changes in plans, diffs, PBIs, specs        |
-| `/review-architecture`         | Layering, messaging, service-boundary, CQRS, repo violations             |
-| `/review-domain-entities`      | DDD design quality of entities and value objects                         |
+| `/architecture-review`         | Layering, messaging, service-boundary, CQRS, repo violations             |
+| `/domain-entities-review`      | DDD design quality of entities and value objects                         |
 | `/performance-review`          | N+1 queries, indexing, API latency, memory, render bottlenecks           |
 | `/security-review`             | OWASP Top 10, secrets exposure, dependency/supply-chain risk             |
 | `/integration-test-review`     | Assertion quality, bug protection, repeatability, test↔spec traceability |
 | `/production-readiness-review` | Production readiness of service-layer and API changes                    |
-| `/review-ui`                   | Overflow, responsive layout, z-index, SCSS/BEM quality                   |
+| `/ui-review`                   | Overflow, responsive layout, z-index, SCSS/BEM quality                   |
 | `/plan-review`                 | Plan validity, correctness, and best-practice gaps (recursive)           |
-| `/review-artifact`             | PBI / story / test-spec / design artifact quality before handoff         |
+| `/artifact-review`             | PBI / story / test-spec / design artifact quality before handoff         |
 | `/quality-gate`                | Run the consolidated quality-gate checklist                              |
 
 ### Agents (29 specialists)
@@ -286,7 +286,7 @@ The entire framework is **project-agnostic**. All project-specific knowledge liv
 ```
 ┌─────────────────────────────────────┐
 │     Generic Framework (reusable)    │
-│ 15 Hook Files + 154 Skills + 17 Flows │
+│ 15 Hook Files + 156 Skills + 18 Flows │
 └──────────────┬──────────────────────┘
                │
         ┌──────┴──────┐

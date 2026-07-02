@@ -56,26 +56,26 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Summary:**
 
 - **Main steps (8):** (1) locate the BA drafter's PBI draft → (2) auto-detect module, **confirm by asking the user directly BEFORE loading domain docs** (domain-entities-reference + `docs/specs/{App}/` + BR-{MOD} rules) → (3) Technical Feasibility analysis (architecture fit, entity conflicts, cross-service, complexity vs SP) → (4) AC Quality analysis (vagueness detector + M1-M6 checks) → (5) Cross-Cutting Concerns (auth matrix, seed data, migration, performance, UI Layout) → (6) generate SPECIFIC challenge prompts with suggested answers → (7) present Challenge Prompts FIRST, THEN AI Verdict (APPROVE / REQUEST_REVISION / ESCALATE_TO_LEAD) → (8) human records final decision by asking the user directly.
-- CROSS-PERSON review, NOT self-review: a *different* reviewer (Dev BA PIC) challenges the BA drafter's PBI — NEVER your own draft (route self-review to `$review-artifact --type=pbi`). — why: external skepticism breaks blind spots that self-review rationalizes away.
+- CROSS-PERSON review, NOT self-review: a *different* reviewer (Dev BA PIC) challenges the BA drafter's PBI — NEVER your own draft (route self-review to `$artifact-review --type=pbi`). — why: external skepticism breaks blind spots that self-review rationalizes away.
 - M1-M6 Compliance Gate is BLOCKING and drives the verdict (runs inside Steps 4-5): any M1-M5 mandate failure forces REQUEST_REVISION with a challenge prompt naming the violated mandate ID + exact section/line/AC; an APPROVE over an M1-M5 violation is itself defective.
 - Order fights automation bias: Challenge Prompts FIRST so the Dev BA PIC forms their own view, THEN the AI Verdict; challenges must be SPECIFIC with suggested answers, never vague.
 - AI provides ANALYSIS; the human makes the DECISION by asking the user directly — never auto-approve or auto-reject.
 
-**Key distinction:** Collaborative review tool (drafter → reviewer flow), NOT self-review (use `$review-artifact --type=pbi` for AI self-review).
+**Key distinction:** Collaborative review tool (drafter → reviewer flow), NOT self-review (use `$artifact-review --type=pbi` for AI self-review).
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
 ## Why This Skill Exists
 
-PBI drafts routinely pass informal review unchallenged on architectural feasibility, vague AC, missing auth scenarios, cross-service impact. `$refine` generates PBIs but does not adversarially challenge them — creation tool, not review tool. `$review-artifact --type=pbi` provides AI self-review for drafter, but drafter has inherent blind spots about own assumptions. Separate reviewer (Dev BA PIC) applying AI-assisted challenge prompts breaks drafter confirmation bias before grooming — catches gaps drafter cannot catch themselves.
+PBI drafts routinely pass informal review unchallenged on architectural feasibility, vague AC, missing auth scenarios, cross-service impact. `$refine` generates PBIs but does not adversarially challenge them — creation tool, not review tool. `$artifact-review --type=pbi` provides AI self-review for drafter, but drafter has inherent blind spots about own assumptions. Separate reviewer (Dev BA PIC) applying AI-assisted challenge prompts breaks drafter confirmation bias before grooming — catches gaps drafter cannot catch themselves.
 
-**Why not just `$review-artifact --type=pbi`?** Drafter runs it on own work; even with adversarial prompts, drafter rationalizes own choices. `pbi-challenge` invoked by different person with different mandate — external skepticism requires different author, not different tool on same author.
+**Why not just `$artifact-review --type=pbi`?** Drafter runs it on own work; even with adversarial prompts, drafter rationalizes own choices. `pbi-challenge` invoked by different person with different mandate — external skepticism requires different author, not different tool on same author.
 
 ## Alternatives Considered
 
 | Approach                                                                      | Pros                                                                     | Cons                                                                                                                | Decision                                                                                         |
 | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| Extend `$review-artifact --type=pbi` with a reviewer-role flag                             | No new skill, single codebase                                            | Drafter runs it themselves in practice; role separation breaks down without enforcement                             | Rejected — role separation requires a distinct invocation point owned by a different person      |
+| Extend `$artifact-review --type=pbi` with a reviewer-role flag                             | No new skill, single codebase                                            | Drafter runs it themselves in practice; role separation breaks down without enforcement                             | Rejected — role separation requires a distinct invocation point owned by a different person      |
 | Fully autonomous AI verdict (no human decision)                               | Faster, no Dev BA PIC scheduling needed                                  | Automation bias: AI wrong on domain specifics propagates unchecked; no human accountability for false APPROVE       | Rejected — cost of false APPROVE on infeasible PBIs exceeds review time saved                    |
 | Static DoR checklist given to Dev BA PIC (no AI)                              | Simple, no AI dependency                                                 | No domain entity context loading, no AC vagueness flagging; manual effort is high and inconsistent across reviewers | Rejected — AI domain lookup provides non-trivial value for cross-service entity detection        |
 | Async comment-thread model (AI generates questions posted as ticket comments) | Eliminates scheduling bottleneck; drafter can research before responding | Slower feedback loop; requires external ticket integration                                                          | Valid alternative for async teams; prefer if Dev BA PIC availability is chronically a bottleneck |
@@ -272,7 +272,7 @@ If ANY check fails → AI Verdict is REQUEST_REVISION; tag each violated mandate
 > 2. **AC testable & unambiguous** — GIVEN/WHEN/THEN. No "should/might/TBD/various/appropriate". Min 3 scenarios (happy, edge, error) + 1 auth scenario
 > 3. **Wireframes attached** — UI features: `## UI Layout` with wireframe + components + states + tokens. Backend-only: explicit "N/A"
 > 4. **UI design ready** — Visual design + component decomposition tree + design-spec linked (`$design-spec` artifact or inline UI specs in `## UI Layout`) for any PBI with UI work. Backend-only: "N/A"
-> 5. **AI pre-review passed** — `$review-artifact --type=pbi` or `$pbi-challenge` returned PASS or WARN (not FAIL)
+> 5. **AI pre-review passed** — `$artifact-review --type=pbi` or `$pbi-challenge` returned PASS or WARN (not FAIL)
 > 6. **Story points estimated** — Fibonacci 1-21 + complexity (Low/Medium/High). >13 SP → recommend split
 > 7. **Dependencies table complete** — Dependency, Type (must-before/can-parallel/blocked-by/independent), Status
 >
@@ -531,7 +531,7 @@ If ANY check fails → AI Verdict is REQUEST_REVISION; tag each violated mandate
 - **Sequential Thinking:** Multi-step Thought N/M with REVISION/BRANCH/HYPOTHESIS; NEVER skip confidence closer.
 
 **IMPORTANT MUST ATTENTION** AI provides ANALYSIS, human makes DECISION — present Challenge Prompts FIRST, AI Verdict (APPROVE / REQUEST_REVISION / ESCALATE_TO_LEAD) SECOND, then record the human decision by asking the user directly. NEVER auto-approve or auto-reject — why: verdict-first triggers automation bias and the Dev BA PIC rubber-stamps without independent assessment.
-**IMPORTANT MUST ATTENTION** this is CROSS-PERSON review, not self-review — run only on a BA drafter's draft, NEVER on your own; route self-review to `$review-artifact --type=pbi` — why: external skepticism breaks the drafter's blind spots that self-review rationalizes away.
+**IMPORTANT MUST ATTENTION** this is CROSS-PERSON review, not self-review — run only on a BA drafter's draft, NEVER on your own; route self-review to `$artifact-review --type=pbi` — why: external skepticism breaks the drafter's blind spots that self-review rationalizes away.
 **IMPORTANT MUST ATTENTION** M1-M6 Compliance Gate is BLOCKING and drives the verdict — any M1-M5 failure forces REQUEST_REVISION with a challenge prompt naming the violated mandate ID + exact section/line/AC; an APPROVE over an M1-M5 violation is itself defective. Carriers (`[Source: ...]`, `**Evidence**`, `**IntegrationTest**`, YAML, mermaid) are EXEMPT — challenge leakage only in PBI narrative prose — why: stack-named or under-specified prose locks the PBI to one implementation and ships ambiguity to grooming.
 **IMPORTANT MUST ATTENTION** confirm the auto-detected module by asking the user directly BEFORE loading domain docs — wrong module = wrong entity context = false APPROVE — why: entity-conflict analysis built on the wrong service is worse than none.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting; keep one `in_progress`; add a final review todo to verify work quality — why: untracked multi-step work loses state on compaction.
@@ -546,7 +546,7 @@ If ANY check fails → AI Verdict is REQUEST_REVISION; tag each violated mandate
 | Evasion                                          | Rebuttal                                                                                   |
 | ------------------------------------------------ | ------------------------------------------------------------------------------------------ |
 | "Verdict first, prompts are just support"        | Verdict-first = automation bias. Prompts FIRST so the human forms their own view.          |
-| "I can review my own draft with this"            | This is cross-person review. Use `$review-artifact --type=pbi` for self-review.            |
+| "I can review my own draft with this"            | This is cross-person review. Use `$artifact-review --type=pbi` for self-review.            |
 | "Minor M1-M5 slip, still APPROVE"                | Any M1-M5 failure forces REQUEST_REVISION. An APPROVE over a violation is itself defective. |
 | "Module is obvious, skip the confirm"            | Wrong module = wrong entity context = false APPROVE. Confirm by asking the user directly.        |
 | "Concern is clearly right, no citation needed"   | Show `file:line` / section / entity ref + confidence. No proof = no verdict.               |

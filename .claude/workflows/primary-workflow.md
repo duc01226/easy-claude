@@ -8,10 +8,10 @@
 
 1. **Discover** — Scout files, investigate patterns, run graph traces
 2. **Plan** — `/plan` + `/plan-review` + `/plan-validate`, save in `./plans/`
-3. **Design Review** — `/why-review` (rationale), `/spec [mode=tests]` + `/review-artifact --type=spec-tests` (test specs)
+3. **Design Review** — `/why-review` (rationale), `/spec [mode=tests]` + `/artifact-review --type=spec-tests` (test specs)
 4. **Implement** — `/feature-implement` or `/plan-execute`, compile-check after every file change
 5. **Verify** — `/prove-fix`, `/test`, `/integration-test`, `/spec [mode=sync]`
-6. **Quality** — `/workflow-review-changes` (canonical review-changes workflow: review-changes → why-review → parallel reviewers → code-simplifier → verification → plan/plan-execute/restart)
+6. **Quality** — `/workflow-review-changes` (canonical changes-review workflow: changes-review → why-review → parallel reviewers → code-simplifier → verification → plan/plan-execute/restart)
 7. **Ship** — `/production-readiness-review`, `/security-review`, `/changelog`, `/docs-update`, `/watzup`, `/workflow-end`
 
 **Key Rules:**
@@ -45,7 +45,7 @@
 
 - Use `/why-review` to validate design rationale before implementation
 - Use `/spec [mode=tests]` to write test specifications (feature doc Section 8) — CREATE mode before implementation, UPDATE mode after
-- Use `/review-artifact --type=spec-tests` to review test specs for coverage and correctness
+- Use `/artifact-review --type=spec-tests` to review test specs for coverage and correctness
 - For features: two planning rounds — PLAN1 (architecture) then PLAN2 (incorporating test strategy)
 
 ## Phase 3: Implementation
@@ -67,8 +67,8 @@
 
 ## Phase 5: Quality
 
-- Use `/workflow-review-changes` for the canonical review-changes workflow (review-changes → why-review → parallel reviewers → code-simplifier → verification → plan/plan-execute/restart), then continue until clean
-- Alternatively use individual skills: `/code-simplifier`, `/code-review`, `/review-architecture`, `/performance-review`
+- Use `/workflow-review-changes` for the canonical changes-review workflow (changes-review → why-review → parallel reviewers → code-simplifier → verification → plan/plan-execute/restart), then continue until clean
+- Alternatively use individual skills: `/code-simplifier`, `/code-review`, `/architecture-review`, `/performance-review`
 - Follow coding standards and conventions
 - Optimize for performance and maintainability
 
@@ -103,7 +103,7 @@ All workflows are defined in `.claude/workflows.json` — the canonical catalog 
 | **bugfix**          | 0→7→1→2→3→4→5→6                 | Bug reports, debugging, troubleshooting with end-to-start trace + RED/GREEN |
 | **refactor**        | 0→1→2→3→4→5→6                   | Code restructuring without behavior change, technical debt                  |
 | **big-feature**     | Full lifecycle with research    | Large/ambiguous features needing market research, domain modeling           |
-| **review-changes**  | 5→3→5→6                         | Pre-commit review of uncommitted changes (recursive fix loop)               |
+| **changes-review**  | 5→3→5→6                         | Pre-commit review of uncommitted changes (recursive fix loop)               |
 | **feature-spec**    | 0→1→2→6                         | Business feature docs (tech-free 8-section template, TCs in Section 8)      |
 | **greenfield-init** | Full inception + implementation | New project from scratch                                                    |
 

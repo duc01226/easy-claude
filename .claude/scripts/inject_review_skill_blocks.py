@@ -35,16 +35,16 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SKILLS_DIR = PROJECT_ROOT / ".claude" / "skills"
 
 BATCHING = [
-    "review-changes", "code-review", "review-architecture", "review-domain-entities",
-    "review-ui", "integration-test-review", "security-review",
-    "performance-review", "production-readiness-review",
+    "changes-review", "code-review", "architecture-review", "domain-entities-review",
+    "ui-review", "integration-test-review", "security-review",
+    "performance-review", "production-readiness-review", "architecture-review-full",
 ]
 SEVERITY = [
-    "code-review", "review-changes", "review-architecture",
-    "review-domain-entities", "review-ui", "integration-test-review", "security-review",
-    "performance-review", "production-readiness-review", "knowledge-review", "review-artifact",
+    "code-review", "changes-review", "architecture-review",
+    "domain-entities-review", "ui-review", "integration-test-review", "security-review",
+    "performance-review", "production-readiness-review", "knowledge-review", "artifact-review",
     "spec-clarify",
-    "plan-review", "why-review", "code-simplifier",
+    "plan-review", "why-review", "code-simplifier", "architecture-review-full",
 ]
 CATEGORY = list(BATCHING)  # co-paired with batching
 
