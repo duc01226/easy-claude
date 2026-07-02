@@ -150,7 +150,7 @@ Workflow source: `.claude/workflows.json` (17 workflows).
 ### workflow-big-feature — Big Feature (Research + Implement)
 - Description: Research-driven feature development for large, complex, or ambiguous features in an existing project — includes idea refinement, market research, business evaluation, domain analysis, tech stack research, and full implementation
 - When To Use: User wants to implement a large, complex, or ambiguous feature that needs research, market analysis, business evaluation, domain modeling, or tech stack analysis before implementation. Big new module, major enhancement, cross-cutting capability, or feature where scope is unclear
-- Sequence: `idea -> web-research -> deep-research -> business-evaluation -> spec-discovery -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> why-review -> plan -> plan-review -> refine -> why-review -> review-artifact --type=pbi -> story -> why-review -> review-artifact --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> spec -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> spec-clarify -> plan -> plan-review -> scaffold -> plan-validate -> why-review -> plan-execute -> seed-test-data -> review-domain-entities -> integration-test -> integration-test-review -> integration-test-verify -> spec [mode=sync] -> workflow-review-changes -> production-readiness-review -> security-review -> changelog -> test -> docs-update -> workflow-end -> watzup`
+- Sequence: `idea -> web-research -> deep-research -> business-evaluation -> spec-discovery -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> why-review -> plan -> plan-review -> refine -> why-review -> review-artifact --type=pbi -> story -> why-review -> review-artifact --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> spec -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> spec-clarify -> plan -> plan-review -> scaffold -> plan-validate -> why-review -> plan-execute -> seed-test-data -> review-domain-entities -> integration-test -> integration-test-review -> integration-test-verify -> spec [mode=sync] -> workflow-review-changes -> security-review -> changelog -> test -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -187,7 +187,6 @@ After workflow activation, auto-select the applicable steps and skip irrelevant 
 - [x] Domain Entity Review (review-domain-entities) — CONDITIONAL: skip if no domain entity files changed
 - [x] Integration Tests (integration-test)
 - [x] Review Changes (workflow-review-changes) — consolidated review + fix loop
-- [x] SRE Review (production-readiness-review)
 - [x] Changelog (changelog)
 - [x] Tests (test)
 - [x] Documentation (docs-update)
@@ -329,7 +328,7 @@ UNIVERSAL RULES:
 ### workflow-feature — Feature Implementation
 - Description: Full feature development workflow with search-first approach, planning, implementation, testing, and documentation
 - When To Use: User wants to implement a well-defined feature, add a component, build a capability, develop a module, implement/execute an existing plan, create a new API endpoint, or design an API contract, TDD/test-first development, spec-driven feature implementation with test specs written before code
-- Sequence: `scout -> investigate -> spec-discovery -> domain-analysis -> why-review -> spec -> spec-clarify -> plan -> plan-review -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> plan -> plan-review -> plan-execute -> seed-test-data -> review-domain-entities -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> spec [mode=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> production-readiness-review -> security-review -> changelog -> test -> docs-update -> workflow-end -> watzup`
+- Sequence: `scout -> investigate -> spec-discovery -> domain-analysis -> why-review -> spec -> spec-clarify -> plan -> plan-review -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> plan -> plan-review -> plan-execute -> seed-test-data -> review-domain-entities -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> spec [mode=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> security-review -> changelog -> test -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -352,7 +351,7 @@ FEATURE IMPLEMENTATION PROTOCOL:
 9b. UI-INTENT / INTERACTION-SURFACE REFRESH — CONDITIONAL: only when the feature adds or changes user-facing behavior (else state the skip reason — backend-only feature, no §6 change). When user-facing behavior is present, run $spec (ui-intent intent) alongside the spec [mode=sync] step to refresh the affected Feature Spec §6 interaction surface — View Inventory, Key UI States, and the per-story click-path — and link the governing $design-spec so the §6 interaction-surface and the design-spec stay coupled to what was actually built.
 10. Generate/update integration tests with $integration-test — creates actual test files from TC specifications — then verify with $integration-test-review and $integration-test-verify.
 11. Review the full change set with $workflow-review-changes (simplification, code quality, UI, architecture, and patterns compliance).
-12. SRE review for production readiness with $production-readiness-review; security review with $security-review.
+12. Security review for production readiness with $security-review.
 13. Update changelog with feature entry
 14. Run tests to verify no regressions
 15. Update documentation if feature impacts business docs
@@ -407,7 +406,7 @@ UNIVERSAL RULES:
 ### workflow-greenfield-init — Greenfield Project Init
 - Description: Full waterfall project inception from idea through implementation with integration testing
 - When To Use: User wants to start a new project from scratch, init a greenfield project, plan a new application, research and plan before coding, bootstrap a new codebase, build something new
-- Sequence: `idea -> web-research -> deep-research -> business-evaluation -> spec-discovery -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> why-review -> plan -> plan-review -> security-review -> performance-review -> plan-review -> refine -> why-review -> review-artifact --type=pbi -> story -> why-review -> review-artifact --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> spec-clarify -> plan -> plan-review -> scaffold -> linter-setup -> harness-setup -> why-review -> plan-execute -> review-domain-entities -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> plan -> plan-review -> integration-test -> integration-test-review -> integration-test-verify -> test -> workflow-review-changes -> production-readiness-review -> security-review -> changelog -> test -> docs-update -> workflow-end -> watzup`
+- Sequence: `idea -> web-research -> deep-research -> business-evaluation -> spec-discovery -> domain-analysis -> why-review -> tech-stack-research -> architecture-design -> architecture-scalability-review -> why-review -> plan -> plan-review -> security-review -> performance-review -> plan-review -> refine -> why-review -> review-artifact --type=pbi -> story -> why-review -> review-artifact --type=story -> pbi-challenge -> dor-gate -> pbi-mockup -> plan-validate -> why-review -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> spec-clarify -> plan -> plan-review -> scaffold -> linter-setup -> harness-setup -> why-review -> plan-execute -> review-domain-entities -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> plan -> plan-review -> integration-test -> integration-test-review -> integration-test-verify -> test -> workflow-review-changes -> security-review -> changelog -> test -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -474,7 +473,7 @@ After scaffolding, the workflow continues with full implementation and integrati
 7. $integration-test generates integration tests from specs
 8. $test runs all tests to verify TCs pass
 9. $workflow-review-changes for quality (use the canonical review-changes workflow sequence from .claude/workflows.json: review-changes, why-review findings validation, parallel review batch, code-simplifier, verification, plan/plan-review/why-review/plan-execute, and full re-review restart)
-10. $production-readiness-review + $security-review for production readiness
+10. $security-review for production readiness
 11. $changelog + final $test + $docs-update + $watzup to close
 This ensures greenfield projects ship with integration test coverage from day one.
 UNIVERSAL RULES:
@@ -713,7 +712,7 @@ UNIVERSAL RULES:
 ### workflow-refactor — Code Refactoring
 - Description: Code improvement and restructuring workflow with search-first approach
 - When To Use: User wants to restructure, reorganize, clean up, or improve existing code without changing behavior; technical debt
-- Sequence: `scout -> investigate -> plan -> plan-review -> plan-validate -> why-review -> plan-execute -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> spec [mode=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> production-readiness-review -> changelog -> test -> docs-update -> workflow-end -> watzup`
+- Sequence: `scout -> investigate -> plan -> plan-review -> plan-validate -> why-review -> plan-execute -> spec [mode=tests] -> why-review -> review-artifact --type=spec-tests -> spec [mode=sync] -> integration-test -> integration-test-review -> integration-test-verify -> workflow-review-changes -> changelog -> test -> docs-update -> workflow-end -> watzup`
 
 Protocol:
 ```text
@@ -735,10 +734,9 @@ REFACTORING PROTOCOL:
    - Require evidence: grep results + confidence ≥80% + cross-module/service validation
    - See Investigation Protocol (CLAUDE.md)
 10. Code review: Verify no functional regressions
-11. SRE review for production readiness
-12. Update changelog with refactoring summary
-13. Run tests  --  all existing tests MUST ATTENTION pass
-14. Summary report of structural improvements
+11. Update changelog with refactoring summary
+12. Run tests  --  all existing tests MUST ATTENTION pass
+13. Summary report of structural improvements
 
 GUARDRAILS:
 - Refactoring MUST ATTENTION NOT change observable behavior
@@ -787,7 +785,7 @@ UNIVERSAL RULES:
 ### workflow-review-changes — Review Current Changes
 - Description: Review uncommitted changes, plan and fix issues, then re-review recursively until clean
 - When To Use: User wants to review current uncommitted, staged, or unstaged changes before committing
-- Sequence: `review-changes -> why-review -> [parallel ⇉ all-return barrier: review-architecture, review-domain-entities*, performance-review, integration-test-review, security-review] -> code-simplifier -> plan -> plan-review -> plan-execute -> review-changes -> why-review -> docs-update -> workflow-end -> watzup`
+- Sequence: `review-changes -> why-review -> [parallel ⇉ all-return barrier: review-architecture, review-domain-entities*, performance-review, integration-test-review, security-review, production-readiness-review] -> code-simplifier -> plan -> plan-review -> plan-execute -> review-changes -> why-review -> docs-update -> workflow-end -> watzup`
 - Parallel phase = all-return barrier: spawn ALL members together (one message); advance only after EVERY member returns (a skipped conditional member, marked `*`, counts as returned). A sub-agent completion advances the step identically to an inline call.
 
 Protocol:
@@ -796,8 +794,8 @@ PRE-COMMIT REVIEW (RECURSIVE):
 
 [BLOCKING] SEQUENCING RULE — review-changes (step 1) MUST run FIRST and complete before any other reviewer; why-review (step 2) runs immediately after to validate those findings before the parallel batch.
 - Step 1 (`review-changes`) establishes the baseline: surface analysis (BE/FE/SCSS file counts), review mode (DIMENSIONAL/BE-ONLY/FE-ONLY/FE-SPLIT/TOOLING), integration test sync gaps, multilingual translation gaps. The parallel batch depends on this baseline summary.
-- Step 2 (`why-review`) is a FINDINGS-VALIDATION gate: it sanity-checks the review-changes findings (each finding warranted, evidence-backed, not a false positive) BEFORE expensive parallel reviewers run. It validates findings only — NOT the fix plan (`plan-review` at step 10 reviews the fix plan's design). If step 1 found zero issues, step 2 passes through with nothing to validate.
-- The PARALLEL BATCH (`review-architecture`, `review-domain-entities`, `performance-review`, `integration-test-review`, `security-review`) MUST be spawned together in a single message via specialized `spawn_agent` tool calls (`architect`, `code-reviewer`, `performance-optimizer`, `integration-tester`, `security-auditor`). They are read-only and independent — no shared mutable state, no ordering dependency between them.
+- Step 2 (`why-review`) is a FINDINGS-VALIDATION gate: it sanity-checks the review-changes findings (each finding warranted, evidence-backed, not a false positive) BEFORE expensive parallel reviewers run. It validates findings only — NOT the fix plan (`plan-review` at step 11 reviews the fix plan's design). If step 1 found zero issues, step 2 passes through with nothing to validate.
+- The PARALLEL BATCH (`review-architecture`, `review-domain-entities`, `performance-review`, `integration-test-review`, `security-review`, `production-readiness-review`) MUST be spawned together in a single message via specialized `spawn_agent` tool calls (`architect`, `code-reviewer`, `performance-optimizer`, `integration-tester`, `security-auditor`, `code-reviewer`). They are read-only and independent — no shared mutable state, no ordering dependency between them. `production-readiness-review` runs here in READ-ONLY findings/score mode (SRE 12-criteria /24 + Extended SRE Readiness gate) like every other batch member — its standalone 'Validated Fix + Full Re-Review' fixer loop is DEFERRED to the workflow's mutating steps (`code-simplifier` / `plan-execute`), same standalone-vs-batch duality as `security-review`.
 - The UI/frontend quality gate (`$review-ui`) is NOT a separate workflow step — it is owned by `review-changes` (step 1), which invokes it internally (ui-ux-designer sub-agent) as its UI dimension whenever the diff contains files matching the project's configured frontend/UI file patterns. Skip entirely when no frontend files changed.
 - `review-domain-entities` is a CONDITIONAL member of the batch: include it ONLY when domain entity files changed. Skip it entirely (do not spawn it) when its trigger files are absent.
 - NEVER start the batch before steps 1 and 2 complete. NEVER serialize the batch (burns 50K+ tokens absorbing inline reports). NEVER start `code-simplifier` until ALL spawned sub-agents return — code-simplifier modifies code and must operate on the consolidated review snapshot.
@@ -811,9 +809,9 @@ PRE-COMMIT REVIEW (RECURSIVE):
 - UI/FRONTEND REVIEW: Owned by step 1 (`review-changes`). When the changeset contains files matching the project's configured frontend/UI file patterns, `review-changes` invokes $review-ui internally (ui-ux-designer sub-agent) as its UI dimension to check long-content overflow (wrap vs ellipsis+tooltip), responsive multi-screen via flex, flex-vs-fixed sizing (prefer min/max + flex-grow over fixed px), z-index scale discipline (no raw numbers, no !important), and SCSS/BEM quality. Not a separate workflow step. Skip entirely if no frontend files changed.
 - Report findings with file:line references
 - Output: PASS (safe to commit) or ISSUES FOUND (with list)
-- If ISSUES FOUND: validate findings, plan fixes for validated findings, review and sanity-check the fix plan, implement fixes, then re-run review-changes (step 12)
-- RECURSIVE (CONDITIONAL, INLINE): Step 12 re-runs `review-changes` INLINE in the main session — but ONLY if `plan-execute` actually changed files. If `plan-execute` applied no file changes, skip step 12 and go straight to the step 13 holistic why-review. When it runs, loop plan -> plan-execute -> review-changes until one complete review pass has zero findings; stop only when the same validated blocker repeats 3 full invocations with no progress.
-- HOLISTIC WHY-REVIEW (step 13, ALWAYS, FULL MODE, INLINE): after the step-12 review-changes loop converges clean, run `why-review` STANDALONE in FULL mode (NOT --validate-findings) over the WHOLE review target combined with the current changes — the complete changeset and the surrounding code/spec/docs it touches reviewed as one artifact, with the full adversarial rationale gate. This is a DIFFERENT lens from the step-2 findings-validation gate and the dimensional reviewers: it catches design-rationale, hidden-coupling, easy-to-change and whole-package gaps the per-file/per-dimension passes miss. If it surfaces findings, re-enter the plan -> plan-execute -> review-changes fix loop, then re-run step 13, looping run -> fix -> run until a complete full-mode why-review pass finds zero new findings (max re-do / 3-repeat-blocker escalation per why-review's own goal gate). Only then proceed to docs-update. This step is the reason the workflow now catches what a standalone why-review of the target would catch but the dimensional batch alone did not.
+- If ISSUES FOUND: validate findings, plan fixes for validated findings, review and sanity-check the fix plan, implement fixes, then re-run review-changes (step 13)
+- RECURSIVE (CONDITIONAL, INLINE): Step 13 re-runs `review-changes` INLINE in the main session — but ONLY if `plan-execute` actually changed files. If `plan-execute` applied no file changes, skip step 13 and go straight to the step 14 holistic why-review. When it runs, loop plan -> plan-execute -> review-changes until one complete review pass has zero findings; stop only when the same validated blocker repeats 3 full invocations with no progress.
+- HOLISTIC WHY-REVIEW (step 14, ALWAYS, FULL MODE, INLINE): after the step-13 review-changes loop converges clean, run `why-review` STANDALONE in FULL mode (NOT --validate-findings) over the WHOLE review target combined with the current changes — the complete changeset and the surrounding code/spec/docs it touches reviewed as one artifact, with the full adversarial rationale gate. This is a DIFFERENT lens from the step-2 findings-validation gate and the dimensional reviewers: it catches design-rationale, hidden-coupling, easy-to-change and whole-package gaps the per-file/per-dimension passes miss. If it surfaces findings, re-enter the plan -> plan-execute -> review-changes fix loop, then re-run step 14, looping run -> fix -> run until a complete full-mode why-review pass finds zero new findings (max re-do / 3-repeat-blocker escalation per why-review's own goal gate). Only then proceed to docs-update. This step is the reason the workflow now catches what a standalone why-review of the target would catch but the dimensional batch alone did not.
 - LOGIC REVIEW: Verify changes match their stated intention. Trace business logic paths. Clean code can be wrong code.
 - BUG DETECTION: Check for null safety, boundary conditions, resource leaks, concurrency issues per bug-detection-protocol.
 - TEST SPEC VERIFICATION: Cross-reference changes against TC-{FEATURE}-{NNN} test specifications. Flag untested code paths.
@@ -1003,13 +1001,14 @@ UNIVERSAL RULES:
 
 Session-start reference derived from `.claude/workflows.json` — use it to pick a route on any prompt: run a standard workflow, compose a custom workflow from the step-skills, invoke a single skill, or execute directly.
 
-### Workflow Skills (55 composable steps)
+### Workflow Skills (56 composable steps)
 
 Distinct step-skills used across the workflows above — compose these into a custom workflow when no standard workflow fits.
 
 | Skill | Use for |
 | --- | --- |
 | `architecture-design` | [Architecture] Use when designing solution architecture across backend, frontend, deployment, monitoring, testing, and code quality. |
+| `architecture-scalability-review` | [Architecture] Use when grading project architecture and scalability quality for greenfield init or brownfield audit: build/CI scalability, distributed-monolith risk, module isolation, dependency discipline, loose coupling, horizontal scaling, DRY, abstraction, clean architecture, observability, and delivery. |
 | `brainstorm` | [Content] Use when you need to brainstorm as a PO/BA — structured ideation for problem-solving, new product creation, or feature enhancement. |
 | `business-evaluation` | [Content] Use when you need to evaluate business idea viability: Business Model Canvas, financial projections, risk matrix, go-to-market, execution plan. |
 | `changelog` | [Documentation] Use when you need to generate or update changelog entries. |

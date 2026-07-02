@@ -86,6 +86,20 @@ For each tech stack layer detected, research these TOOL CATEGORIES using the que
 
 **IMPORTANT:** Confidence in current ecosystem <80% (fast-moving ecosystem, unfamiliar stack) → use WebSearch to verify before presenting options. — why: tool ecosystems churn fast; stale recommendations cargo-cult dead tools.
 
+### Dependency-Boundary Enforcement (Architecture Fitness detail — options, not defaults)
+
+The **Architecture Fitness** category above is where **dependency-direction / module-boundary** enforcement is chosen. It consumes the `architecture-design` "Arch rules / fitness" scaffold handoff. Treat the following only as **example candidates to research and evaluate for stack fit** — never mandatory installs. Research the current ecosystem, then present the top 2-3 via `AskUserQuestion` and let the user confirm:
+
+| Stack family | Example dependency-boundary tools (evaluate, do NOT hardcode) |
+| ------------ | ------------------------------------------------------------ |
+| JS / TS | dependency-cruiser, eslint-plugin-boundaries (eslint-boundaries), Nx module-boundary lint |
+| .NET | NetArchTest, ArchUnitNET |
+| JVM | ArchUnit |
+| Python | import-linter |
+| Go | go-arch-lint / depguard |
+
+Only add a boundary tool when the architecture actually declares dependency directions to enforce. If no cross-module rules are declared, record `N/A — no cross-module dependency rules declared` rather than installing a tool speculatively. Chosen rules MUST encode the architecture's dependency directions and fail CI on a violation, mirroring the pre-commit posture (local↔CI zero divergence). Init/audit grading of whether boundaries exist at all is owned by `architecture-scalability-review`; per-change boundary drift is owned by `review-architecture`. — why: a boundary tool with no declared rules is ceremony; enforcement without CI teeth is documentation.
+
 ---
 
 ## Installation & Configuration Protocol

@@ -1,10 +1,10 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-06-26'
-  total_skills: 153
+  last_updated: '2026-07-02'
+  total_skills: 154
   total_by_status:
-    active: 152
+    active: 153
     deprecated: 1
     experimental: 0
 categories:
@@ -168,6 +168,19 @@ skills:
       deprecated_since: null
       removal_after: null
     other:
+    - name: architecture-scalability-review
+      path: architecture-scalability-review/SKILL.md
+      description: '[Architecture] Use when grading project architecture and scalability
+        quality for greenfield init or brownfield audit: build/CI scalability, distributed-monolith
+        risk, module isolation, dependency discipline, loose coupling, horizontal
+        scaling, DRY, abstraction, clean architecture, observability, and delivery.'
+      category: other
+      has_scripts: false
+      has_references: true
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
     - name: ask
       path: ask/SKILL.md
       description: '[Utilities] Use when you need to answer technical and architectural

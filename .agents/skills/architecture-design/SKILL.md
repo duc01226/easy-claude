@@ -27,7 +27,8 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 **Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.
 
 **Situation-based docs:**
-- Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`, `project-structure-reference.md`
+- Project structure/architecture/tech-stack/deployment/setup (any layer — backend, frontend, or infra): `project-structure-reference.md`
+- Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`
 - Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md`
 - Spec authoring, `docs/specs/` pathing, or TC format: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`
 - Behavior/public-contract changes or spec-test-code sync: `workflow-spec-test-code-cycle-reference.md` plus the spec docs above
@@ -165,6 +166,19 @@ Qualitative "Must/Should" cannot decide between, e.g., modular monolith vs micro
 **Rule:** any target left unknown is explicit `Unresolved question` (Step 11), NEVER a silent omission — an architecture chosen without scale numbers is a guess, not a decision.
 
 **MANDATORY IMPORTANT MUST ATTENTION** validate derived requirements with user by asking the user directly before proceeding.
+
+### Architecture & Scalability Scorecard Inputs (feeds `architecture-scalability-review`)
+
+Record these decisions now so the init-time `architecture-scalability-review` scorecard (`mode=init`) can grade them later against **enforceable mechanisms, not intent**. Each row is a **design decision**, not a finding — capture the choice AND where it is enforced. Leave any unknown as an explicit `Unresolved question` (Step 11), never a silent omission. — why: a scorecard can only grade decisions that were actually recorded with an enforcement home.
+
+| Scorecard input | Design prompt (decide + record where enforced) | Enforcement handoff |
+| --------------- | ---------------------------------------------- | ------------------- |
+| Build & CI scalability | As the codebase grows, how are build/CI times kept bounded? Decide **incremental** builds, changed/**affected**-only detection, local + **remote cache** strategy, and CI test/build parallelism. Name the build-system fit (single-package vs monorepo tool such as Nx / Turborepo / Bazel) **as an evaluated option**, not a default. | Step 7 (CI/CD provider parallelism + caching) |
+| Horizontal scaling budgets | From the Step 2 scale targets, decide **stateless** app nodes, load balancing, caching tiers, async/queue + back-pressure, DB scale plan (sharding/partitioning/replication), connection pooling, rate limits, and a **SPOF** scan of every single-instance dependency. | ADR + Step 8 observability SLOs |
+| Strategic DRY | Decide the **strategic DRY** / shared-knowledge strategy: monorepo, shared domain lib, custom platform / util lib — AND explicitly when NOT to share. Keep domain concepts OUT of generic/shared/infra layers (a shared layer coupled to one consumer's domain is no longer reusable). | Step 9 arch-rules + `scaffold` foundation |
+| Dependency-boundary enforcement | Decide explicit dependency directions between modules/contexts and the mechanism that enforces them (no circular deps). | Step 9 "Arch rules / fitness" handoff → `linter-setup` |
+
+These inputs are graded at init/audit by `architecture-scalability-review`; per-change regressions are caught by `review-architecture`. Do NOT turn this step into an auditor — record decisions here and route grading to those skills.
 
 ---
 

@@ -13,7 +13,7 @@ description: '[Documentation] Use when you need orchestrate all reference doc sc
 1. **Check Prerequisites** — Verify project has content (not empty)
 2. **Launch Parallel Scans** — All 12 skills simultaneously
 3. **Collect Results** — Read scan output from reference docs
-4. **Clear Staleness Flag** — Remove `.claude/.scan-stale` so the gate unblocks
+4. **Clear Staleness Flag** — Re-evaluate all docs via `refreshScanStaleFlag()`, which removes `.claude/.scan-stale` once every doc is fresh (see Post-Scan Cleanup)
 5. **Build Knowledge Graph** — Run `/graph-build` to update structural graph
 6. **Enhance Docs** — Run `/prompt-enhance` on all 12 scanned docs
 7. **Summarize** — Report what was refreshed
@@ -39,22 +39,24 @@ description: '[Documentation] Use when you need orchestrate all reference doc sc
 
 ## Execution
 
-Launch all 12 scan skills in parallel:
+Each scan reads real code evidence and (re)populates ONE reference doc under `docs/project-reference/`. Those docs are injected into AI context downstream, so scanning is what keeps that guidance true to the current codebase — the **Purpose** column says what each scan documents and therefore why it matters. Launch all 12 code-derived scans in parallel:
 
-| #   | Invocation                         | Target Doc                       |
-| --- | ---------------------------------- | -------------------------------- |
-| 1   | `/scan --target=project-structure` | `project-structure-reference.md` |
-| 2   | `/scan --target=backend-patterns`  | `backend-patterns-reference.md`  |
-| 3   | `/scan --target=seed-test-data`    | `seed-test-data-reference.md`    |
-| 4   | `/scan --target=frontend-patterns` | `frontend-patterns-reference.md` |
-| 5   | `/scan --target=integration-tests` | `integration-test-reference.md`  |
-| 6   | `/scan --target=feature-spec`      | `feature-spec-reference.md`      |
-| 7   | `/scan --target=code-review-rules` | `code-review-rules.md`           |
-| 8   | `/scan --target=scss-styling`      | `scss-styling-guide.md`          |
-| 9   | `/scan --target=design-system`     | `design-system/README.md`        |
-| 10  | `/scan --target=e2e-tests`         | `e2e-test-reference.md`          |
-| 11  | `/scan --target=domain-entities`   | `domain-entities-reference.md`   |
-| 12  | `/scan --target=docs-index`        | `docs-index-reference.md`        |
+| #   | Invocation                         | Target Doc                       | Purpose — what the scan documents |
+| --- | ---------------------------------- | -------------------------------- | --------------------------------- |
+| 1   | `/scan --target=project-structure` | `project-structure-reference.md` | Service architecture, ports, directory layout, tech stack, deployment & module registry (spans backend, frontend, infra) |
+| 2   | `/scan --target=backend-patterns`  | `backend-patterns-reference.md`  | Repository, CQRS, validation, entity, event & migration patterns |
+| 3   | `/scan --target=seed-test-data`    | `seed-test-data-reference.md`    | Seeder patterns & conventions, from real code evidence |
+| 4   | `/scan --target=frontend-patterns` | `frontend-patterns-reference.md` | Component, state, form, API, routing & styling patterns |
+| 5   | `/scan --target=integration-tests` | `integration-test-reference.md`  | Integration-test base classes, fixtures, helpers & service setup |
+| 6   | `/scan --target=feature-spec`      | `feature-spec-reference.md`      | Feature-doc structure, app→service mapping, spec templates & conventions |
+| 7   | `/scan --target=code-review-rules` | `code-review-rules.md`           | Code conventions, anti-patterns, architecture rules & review checklists |
+| 8   | `/scan --target=scss-styling`      | `scss-styling-guide.md`          | SCSS architecture, BEM conventions, mixins, variables, theming & responsive patterns |
+| 9   | `/scan --target=design-system`     | `design-system/README.md`        | Design tokens, component inventory & app→doc design-system mappings |
+| 10  | `/scan --target=e2e-tests`         | `e2e-test-reference.md`          | E2E architecture, page objects, step definitions, config & framework patterns |
+| 11  | `/scan --target=domain-entities`   | `domain-entities-reference.md`   | Domain entities, DTOs, aggregate boundaries, sync patterns & ER diagrams |
+| 12  | `/scan --target=docs-index`        | `docs-index-reference.md`        | Documentation structure, categories, relationships & lookup tables |
+
+> **Coverage & count.** These 12 are the *code-derived* docs. The child `scan` skill exposes a 13th key, `ui-system` — a meta-target that only fan-runs #4, #8, #9 together — intentionally excluded here to avoid double-scanning. Curated/static docs (`lessons.md`, `spec-principles.md`, `spec-system-reference.md`, `workflow-spec-test-code-cycle-reference.md`) are hand-authored, not scanned, so they are absent by design. Purpose text mirrors each target's `description` in `.claude/skills/scan/references/targets.md` — update it THERE first if a target's scope changes, then reflect it here.
 
 ## Post-Scan Cleanup
 

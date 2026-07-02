@@ -85,7 +85,8 @@ Then route by changed path and read only the relevant docs:
 
 | Path → Reference Doc | Read first |
 | --- | --- |
-| Backend / CQRS / API / domain changes | `docs/project-reference/backend-patterns-reference.md`, `docs/project-reference/project-structure-reference.md` |
+| Project structure, architecture, tech stack, deployment, or setup (any layer) | `docs/project-reference/project-structure-reference.md` |
+| Backend / CQRS / API / domain changes | `docs/project-reference/backend-patterns-reference.md` |
 | Frontend / Angular / state changes | `docs/project-reference/frontend-patterns-reference.md` |
 | Integration tests | `docs/project-reference/integration-test-reference.md` |
 | E2E tests | `docs/project-reference/e2e-test-reference.md` |

@@ -27,7 +27,8 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 **Missing/stale context route:** If `docs/project-config.json`, the docs index, `lessons.md`, `CLAUDE.md`, `AGENTS.md`, or any task-required reference doc is missing or stale, auto-run `$project-init` or the narrow setup route (`$project-config`, `$docs-init`, `$scan-all`, `$scan --target=<key>`, `$claude-md-init`) before ordinary project-specific work. If Codex mirrors or `AGENTS.md` are missing/stale, ask the user to run `$sync-codex`; do not auto-run it.
 
 **Situation-based docs:**
-- Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`, `project-structure-reference.md`
+- Project structure/architecture/tech-stack/deployment/setup (any layer — backend, frontend, or infra): `project-structure-reference.md`
+- Backend/CQRS/API/domain/entity changes: `backend-patterns-reference.md`, `domain-entities-reference.md`
 - Frontend/UI/styling/design-system: `frontend-patterns-reference.md`, `scss-styling-guide.md`, `design-system/README.md`
 - Spec authoring, `docs/specs/` pathing, or TC format: `feature-spec-reference.md`, `spec-system-reference.md`, `spec-principles.md`
 - Behavior/public-contract changes or spec-test-code sync: `workflow-spec-test-code-cycle-reference.md` plus the spec docs above
@@ -54,7 +55,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Summary:**
 
-- **Main steps (in order):** (1) **Resolve scope** — args else `git diff --name-only` uncommitted; backend service/API files only, skip frontend/tests/docs/config-only. (2) **Score 12 criteria 0-2** across the 4 dimensions. (3) **Map score → verdict** (/24). (4) **Structural Impact Analysis** — graph gate (blast-radius, `tests_for`, downstream trace) when `graph.db` exists. (5) **Validated Fix + Full Re-Review** loop on any finding. (6) **Emit the SRE Review Results report** — `file:line` evidence per score. Execute in order; NEVER skip/merge a step — why: untracked steps get silently merged and gaps reach production.
+- **Main steps (in order):** (1) **Resolve scope** — args else `git diff --name-only` uncommitted; backend service/API files only, skip frontend/tests/docs/config-only. (2) **Score 12 criteria 0-2** across the 4 dimensions (/24). (3) **Extended SRE Readiness gate** — 8 pass/fail deploy-time + operate-time items; an unaccepted CRITICAL/HIGH fail blocks PASS regardless of the /24 score. Gating, NOT scored — does not change the /24 math. (4) **Map score + gate → verdict**. (5) **Structural Impact Analysis** — graph gate (blast-radius, `tests_for`, downstream trace) when `graph.db` exists. (6) **Validated Fix + Full Re-Review** loop on any finding. (7) **Emit the SRE Review Results report** — `file:line` evidence per score and per gate item. Execute in order; NEVER skip/merge a step — why: untracked steps get silently merged and gaps reach production.
 - Score 12 criteria 0-2 across four dimensions (Observability/8, Reliability/8, Data Integrity/4, DB Performance/4) for a /24 PASS (19-24) / NEEDS WORK (13-18) / NOT READY (0-12) verdict — every score needs `file:line` evidence or it is 0.
 - The DB Performance Protocol is MANDATORY and non-advisory: ALL list queries must paginate (no unbounded GetAll/ToList) and ALL filter fields, foreign keys, and sort columns must have matching indexes.
 - VERDICT is advisory only; the graph gate, validated-fix full re-review, and DB Performance Protocol are NEVER skippable regardless of change size — and when batched (≥10 files), re-score all 12 criteria holistically from combined cross-batch evidence, never by averaging per-batch scores.
@@ -151,6 +152,23 @@ Score each criterion 0-2: **0** = not addressed, **1** = partially, **2** = full
 > 1. **Mutation bar, not coverage %** — for changed service/API core logic the bar is the **MUTATION-SCORE gate**: a surviving mutant on a changed line is a release blocker (it proves an invariant the tests do not assert), NEVER a line-coverage-% question. A green coverage number over un-asserted behavior does not clear this gate.
 > 2. **Dual feedback** — every production-readiness finding that changes behavior feeds BOTH the spec (NAME the contract/invariant in Section 8) AND a guarding test; a code-only fix is INCOMPLETE. A surviving mutant → add the killing test AND record the invariant it protects in the spec.
 
+## Extended SRE Readiness Gate (step-by-step, pass/fail — gating, NOT scored)
+
+> **Runs as main step 3, after scoring and before verdict mapping.** These are the deploy-time and operate-time SRE aspects the 12-criteria `/24` model does NOT score. Check each item **step by step**; record `pass` / `partial` / `fail` with `file:line` evidence or an explicit `N/A — reason`. The gate does **not** change the `/24` math — it overlays it: **an unaccepted CRITICAL/HIGH `fail` blocks a PASS verdict regardless of the score** (per the Severity Rubric — CRITICAL/HIGH must be resolved or owner-accepted before PASS). Read deployment context from `docs/project-config.json → infrastructure` (already referenced above) to decide which items are `N/A` (e.g. no orchestration → readiness/liveness probes `N/A` with stated reason).
+
+| # | Gate Item | What to Check | Status | Evidence |
+| - | --------- | ------------- | ------ | -------- |
+| G1 | **Rollout & Rollback** | Deploy is staged/canary-able; a documented, fast rollback path exists (feature flag, versioned + reversible migration). No irreversible one-way change without a stated recovery plan. | pass/partial/fail | `file:line` or `N/A — reason` |
+| G2 | **Health Checks** | Readiness + liveness endpoints/probes exist and reflect real dependency health (not an always-200 stub). | pass/partial/fail | ... |
+| G3 | **Alerting & Runbook** | New failure modes have an actionable alert (signal, not noise) and a runbook / escalation note. | pass/partial/fail | ... |
+| G4 | **SLO / Error-Budget** | Change respects an SLO or names the latency/availability target it affects; no silent new failure mode against the budget. | pass/partial/fail | ... |
+| G5 | **Capacity & Resource Limits** | Load ceilings, resource limits, autoscaling/back-pressure considered; no unbounded fan-out or unbounded in-memory growth. | pass/partial/fail | ... |
+| G6 | **Config & Secrets** | Required config present in all envs and fails fast if missing; no secrets committed in the diff. | pass/partial/fail | ... |
+| G7 | **Graceful Shutdown/Startup** | In-flight work drains on shutdown; startup waits for / degrades gracefully on unready dependencies. | pass/partial/fail | ... |
+| G8 | **Concurrency & Idempotency** | Operations are safe under retry / at-least-once delivery; no race on shared state; idempotency keys where needed. | pass/partial/fail | ... |
+
+**Gate verdict:** `{n}/8 pass`. Any CRITICAL/HIGH `fail` not explicitly owner-accepted ⇒ overall verdict cannot be PASS even at a 19-24 score.
+
 ## Scoring
 
 | Score | Verdict        | Recommendation                                                                            |
@@ -231,6 +249,21 @@ When a review pass finds issues, validate findings before any fix. Do not spawn 
 | 11  | Pagination       | 0/1/2 | ...      |
 | 12  | Database Indexes | 0/1/2 | ...      |
 
+### Extended SRE Readiness ({n}/8 gate — pass/fail, does not change /24)
+
+| #  | Gate Item                | Status            | Evidence          |
+| -- | ------------------------ | ----------------- | ----------------- |
+| G1 | Rollout & Rollback       | pass/partial/fail | `file:line` / N/A |
+| G2 | Health Checks            | pass/partial/fail | ...               |
+| G3 | Alerting & Runbook       | pass/partial/fail | ...               |
+| G4 | SLO / Error-Budget       | pass/partial/fail | ...               |
+| G5 | Capacity & Resource Limits | pass/partial/fail | ...             |
+| G6 | Config & Secrets         | pass/partial/fail | ...               |
+| G7 | Graceful Shutdown/Startup | pass/partial/fail | ...              |
+| G8 | Concurrency & Idempotency | pass/partial/fail | ...              |
+
+_Any unaccepted CRITICAL/HIGH `fail` above blocks a PASS verdict regardless of the /24 score._
+
 ### Gaps to Address
 
 - {specific actionable item}
@@ -245,6 +278,7 @@ When a review pass finds issues, validate findings before any fix. Do not spawn 
 - Advisory (final VERDICT only) — score/verdict inform team but don't block commits; MANDATORY process steps (graph gate, validated-fix full re-review, Database Performance Protocol) are NEVER advisory
 - Evidence-based — cite `file:line` for every score; unprovable score = 0
 - Proportional — small bug fixes need less rigor than new endpoints (applies to VERDICT interpretation, NOT to skipping MANDATORY steps)
+- Extended SRE Readiness gate is pass/fail, NOT scored — it does not change the `/24` math; but an unaccepted CRITICAL/HIGH gate `fail` blocks a PASS verdict (Severity Rubric). Use `docs/project-config.json → infrastructure` to mark items `N/A` with a stated reason
 - Check framework patterns — background job base handlers, base controller error handling
 
 ---
@@ -838,7 +872,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 **IMPORTANT MUST ATTENTION Goal:** Ensure service/API changes are production-ready for observability, reliability, data integrity, and database performance — score each dimension on service/API changes so working code that can be debugged, monitored, and rolled back ships, and operational technical debt does not.
 
-**IMPORTANT MUST ATTENTION — Main steps (execute in order, NEVER skip/merge):** (1) Resolve scope (args else uncommitted `git diff`; backend service/API only, skip frontend/tests/docs/config-only) → (2) Score the 12 criteria 0-2 across the 4 dimensions → (3) Map score → /24 verdict → (4) Structural Impact Analysis graph gate when `graph.db` exists → (5) Validated Fix + Full Re-Review loop on any finding → (6) Emit the SRE Review Results report with `file:line` evidence per score — why: AI repeatedly forgets the graph gate and the re-review loop and stops at scoring.
+**IMPORTANT MUST ATTENTION — Main steps (execute in order, NEVER skip/merge):** (1) Resolve scope (args else uncommitted `git diff`; backend service/API only, skip frontend/tests/docs/config-only) → (2) Score the 12 criteria 0-2 across the 4 dimensions (/24) → (3) Extended SRE Readiness gate — 8 pass/fail deploy/operate items; unaccepted CRITICAL/HIGH `fail` blocks PASS (gating, not scored, does not change /24) → (4) Map score + gate → verdict → (5) Structural Impact Analysis graph gate when `graph.db` exists → (6) Validated Fix + Full Re-Review loop on any finding → (7) Emit the SRE Review Results report with `file:line` evidence per score and per gate item — why: AI repeatedly forgets the graph gate and the re-review loop and stops at scoring.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries; each is a signpost — the canonical body above governs, NEVER skip one):**
 
