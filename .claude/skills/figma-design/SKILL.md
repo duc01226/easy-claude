@@ -120,6 +120,8 @@ Save to `team-artifacts/design-specs/{YYMMDD}-figma-extract-{slug}.md`:
 ## Responsive
 
 {Breakpoint behavior if detectable}
+
+{Small-screen minimum bar: the layout must stay usable on mobile — preferred reflow (flex-wrap / row → column, grids collapse to one column); acceptable fallback when a component genuinely can't reflow (tables, canvases, wide grids) is a min-width/min-height + overflow:auto scroll (scrolling is OK); hard requirement is nothing broken — no clipped, cut-off, or unreachable content. Note any component that would need a large redesign to work on mobile so the user can confirm scope.}
 ```
 
 ## When to Use

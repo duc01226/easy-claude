@@ -309,7 +309,7 @@ The mock-up is a **scripted clickable prototype** of each planned flow (Step 2b)
 - Follow BEM naming: `mockup__header`, `mockup__nav`, `mockup__panel`
 - Match the project's color palette, typography, and spacing
 - Include both light and dark theme (toggle button in header)
-- Responsive: mobile (< 768px) and desktop layout
+- Responsive: mobile (< 768px) and desktop layout — mobile must stay usable: reflow where possible (stack rows, collapse grids to one column); where a block genuinely can't reflow (tables, wide grids) give it `overflow: auto` scroll rather than letting it clip; nothing broken or cut off
 - Use realistic placeholder data (names, dates, numbers) — not "Lorem ipsum"
 
 #### Component Rendering
@@ -411,7 +411,7 @@ Before completing:
 - [ ] Design is based on `design-system-canonical.md` plus the matched per-app design-system doc when available
 - [ ] Design system colors and typography match the project
 - [ ] Component states are toggleable (where defined in artifact)
-- [ ] Responsive layout works for mobile and desktop
+- [ ] Responsive layout works for mobile and desktop — usable on small screens with nothing clipped/cut-off/unreachable (reflow preferred; `overflow: auto` scroll acceptable where a block can't reflow)
 - [ ] Realistic placeholder data used (not Lorem ipsum)
 - [ ] PBI metadata shown in header (ID, title, module, date)
 - [ ] PBI priority shown in header (priority label + numeric rank from frontmatter) when the PBI is prioritized — the mockup carries the same priority info as the backlog

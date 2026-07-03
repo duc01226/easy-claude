@@ -57,7 +57,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - All clickable elements need `cursor-pointer` and hover feedback
 - Light mode text must have 4.5:1 minimum contrast ratio
 - **Every async surface MUST handle all its states** — show a loading indicator while in-flight, a user-visible error (with retry) on failure, and a meaningful empty state when there's no data. Never a frozen blank, a silent failure, or a blank list.
-- **Responsive by default** — layouts must reflow and stay usable on small devices: rows `flex-wrap` or switch `row → column`, grids collapse to one column; no horizontal scroll on a phone
+- **Responsive by default** — layouts MUST stay usable on small devices. Preferred: reflow (rows `flex-wrap` or `row → column`, grids collapse to one column). Acceptable fallback when a layout genuinely can't reflow (tables, canvases, wide grids): fixed `min-width`/`min-height` + `overflow: auto` scroll — scrolling is OK. Hard minimum: nothing broken — no clipped, cut-off, or unreachable content. If small-screen support needs a refactor too big for the task, confirm scope with the user first.
 - Test both light/dark modes, all UI states (loading/error/empty), and responsive breakpoints (320/768/1024/1440) before delivery
 
 **Pre-read (project design system):** When the project has a design system, load `designSystem.canonicalDoc` + `tokenFiles` from `docs/project-config.json` and prefer project tokens/components over the generic style intelligence database.
@@ -273,8 +273,9 @@ These are frequently overlooked issues that make UI look unprofessional:
 | --------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------- |
 | **Rows reflow**             | `flex-wrap: wrap` or switch `flex-direction: row → column` at small widths  | Fixed `flex-direction: row` that overflows on a phone       |
 | **Grids collapse**          | Multi-column grids collapse to one column on small screens                  | Fixed column counts / track widths that never collapse      |
-| **No horizontal scroll**    | Content fits within the viewport down to 320px                              | Force horizontal scroll below ~360px                        |
+| **Scroll fallback OK**      | Can't reflow (table/canvas/wide grid)? Fixed `min-width`/`min-height` + `overflow: auto` — scrolling is fine | Content clipped, cut off, or a control unreachable off-screen with no scroll path |
 | **Fluid over fixed**        | `min/max-width`, `flex-grow`, `%`/`rem` sizing                              | Large fixed px widths on containers/cards/dialogs           |
+| **Big refactor → confirm**  | Small-screen support needs a large layout rewrite → flag it, confirm scope with the user | Silently rewriting a big layout, or shipping it broken on small screens |
 
 ---
 
@@ -317,7 +318,8 @@ Before delivering UI code, verify these items:
 - [ ] No content hidden behind fixed navbars
 - [ ] Responsive at 320px, 768px, 1024px, 1440px
 - [ ] Rows `flex-wrap` or switch `row → column` on small screens; multi-column grids collapse to one column
-- [ ] No horizontal scroll on mobile (usable down to 320px)
+- [ ] Usable down to 320px — **nothing broken** (no clipped, cut-off, or unreachable content); where a layout genuinely can't reflow, a `min-width`/`min-height` + `overflow: auto` scroll is acceptable
+- [ ] Any small-screen fix that needs a large layout refactor was flagged and confirmed with the user (not silently rewritten)
 
 ### Accessibility
 

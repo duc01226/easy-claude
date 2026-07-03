@@ -201,26 +201,33 @@ For EACH file in scope, evaluate against ALL applicable categories. Skip categor
 
 ---
 
-### Category 2: Responsive Multi-Screen via Flex — Severity: WARN (BLOCKED when a multi-column row has NO wrap/stack path and overflows below ~360px)
+### Category 2: Responsive Multi-Screen via Flex — Severity: WARN (BLOCKED only when content is broken on a small screen — clipped, cut off, or unreachable)
 
-**Think:** Is this usable at 320 / 768 / 1024 / 1440? Does the layout flex, wrap, and **reflow from row to column** on small screens — or is it a fixed multi-column row / fixed grid that overflows and forces horizontal scroll on a phone?
+**Think:** Is this usable at 320 / 768 / 1024 / 1440? Does the layout flex, wrap, and **reflow from row to column** on small screens? If it genuinely cannot reflow, does it at least stay *usable* via a fixed `min-width`/`min-height` + `overflow: auto` scroll — or does content get clipped, cut off, or pushed out of reach?
 
-**Non-negotiable baseline:** the UI MUST be at least *usable* on a small device. A horizontal row of cards/fields/columns MUST have a documented small-screen escape — `flex-wrap: wrap`, a `flex-direction: row → column` switch at the breakpoint, or a responsive grid that collapses to a single column. A fixed `flex-direction: row` with no wrap and no column fallback is the classic mobile-breaking anti-pattern.
+**Small-screen usability — the minimum bar (canonical):**
+
+- **Preferred:** reflow — `flex-wrap: wrap`, a `flex-direction: row → column` switch at the breakpoint, or a responsive grid that collapses to a single column.
+- **Acceptable fallback:** when a layout genuinely can't reflow (dense tables, canvases, diagrams, wide data grids), a fixed `min-width`/`min-height` with `overflow: auto` is fine — **scrolling is OK, not a defect.** Do NOT flag a component BLOCKED merely because it scrolls.
+- **Hard minimum (BLOCKED if violated):** on a small screen the UI is *usable* and nothing is **broken** — no clipped, cut-off, or unreachable content/controls (e.g. a submit button pushed off-screen with no scroll path, text overlapping, a fixed row that overflows AND hides content instead of scrolling).
+- **Escalation:** if making a surface small-screen-usable would need a refactor too large for the current change, STOP and **confirm scope with the user** before proceeding — note it as a finding, do not silently rewrite the layout.
 
 **Detection signals:**
 
 - Raw `@media (max-width: NNNpx)` / `(min-width: NNNpx)` in component SCSS that bypasses the breakpoint mixins
-- A multi-child flex `row` with **NO `flex-wrap`** and **NO `flex-direction: column`** override at any breakpoint → cannot reflow on a phone
-- Multi-column CSS grid with fixed column counts / fixed track widths and no single-column collapse at small breakpoints
-- Non-flex fixed layouts (absolute positioning, fixed px widths on containers) that cannot reflow
-- Horizontal scroll appearing below ~360px because a row never wraps or stacks
+- A multi-child flex `row` with **NO `flex-wrap`**, **NO `flex-direction: column`** override, AND **no `overflow: auto`** escape → content is trapped and clips on a phone (BLOCKED); the same row WITH a scroll escape is at most WARN (prefer reflow)
+- Multi-column CSS grid with fixed column counts / fixed track widths and no single-column collapse and no scroll container at small breakpoints
+- Non-flex fixed layouts (absolute positioning, fixed px widths on containers) that cannot reflow AND cannot scroll → content lost off-screen
+- Content clipped, overlapping, or a control pushed out of reach below ~360px with no scroll path (BLOCKED). Horizontal scroll *by itself*, with all content still reachable, is the acceptable fallback — not a finding.
 
 **Project fix guidance:**
 
-- The project documented responsive-flex mixins/utilities; add `flex-wrap: wrap` and/or the documented `row → column` breakpoint switch so the layout stacks vertically on small screens
+- Preferred: the project documented responsive-flex mixins/utilities; add `flex-wrap: wrap` and/or the documented `row → column` breakpoint switch so the layout stacks vertically on small screens
+- Fallback (when reflow isn't feasible): give the container a sensible `min-width`/`min-height` and `overflow: auto` so everything stays reachable by scroll
 - Breakpoints from the project breakpoint tokens — NEVER inline pixel breakpoints
+- Large layout refactor required → surface it as a finding and confirm with the user; don't bundle a big responsive rewrite into an unrelated change
 
-**Anti-patterns:** raw `@media` pixel breakpoints that bypass the project's breakpoint mixins; a `flex-direction: row` with no wrap/column fallback; and non-flex fixed grids that cannot reflow. Cite the styling rules doc for documented offenders; grep the changeset for the same patterns.
+**Anti-patterns:** raw `@media` pixel breakpoints that bypass the project's breakpoint mixins; a `flex-direction: row` with no wrap, no column fallback, AND no scroll escape so content clips; and non-flex fixed grids that neither reflow nor scroll. Cite the styling rules doc for documented offenders; grep the changeset for the same patterns.
 
 ---
 

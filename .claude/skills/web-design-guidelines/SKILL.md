@@ -64,7 +64,7 @@ Review UI code for compliance with WCAG 2.2, Core Web Vitals, and modern web des
     - **Animation** -- `prefers-reduced-motion` respected, no `transition: all`, GPU-safe properties only
     - **Performance** -- image dimensions set, lazy loading, no layout thrashing, virtualization for large lists
     - **Touch/Mobile** -- touch targets >= 44px, `touch-action: manipulation`, safe areas
-    - **Responsive layout** -- usable on small devices: rows `flex-wrap` or switch `row → column`, grids collapse to one column, no horizontal scroll down to 320px, fluid (min/max/`%`/`rem`) over large fixed px widths, breakpoints tested at 320 / 768 / 1024px _(owns all reflow/breakpoint concerns)_
+    - **Responsive layout** -- usable on small devices (owns all reflow/breakpoint concerns). Minimum bar: **preferred** reflow (rows `flex-wrap` or `row → column`, grids collapse to one column, fluid min/max/`%`/`rem` over large fixed px); **acceptable fallback** when a layout genuinely can't reflow (tables, canvases, wide grids) — a fixed `min-width`/`min-height` + `overflow: auto` scroll (scrolling is OK, not a defect); **hard fail** only when content is broken on small screens — clipped, cut off, or a control unreachable with no scroll path. Big responsive refactor needed → flag it and confirm scope with the user, don't silently rewrite. Breakpoints tested at 320 / 768 / 1024px
     - **Content** -- long-text/overflow handling (`text-overflow`, wrapping, line clamp), readable line length _(empty-collection states → **Async states & feedback**; breakpoints/reflow → **Responsive layout**)_
     - **Dark mode / i18n** -- `color-scheme`, logical CSS properties, `Intl.*` formatters
 

@@ -39,7 +39,7 @@ memory: project
 - Logic placement: constants, columns, roles → model/data layer, NOT component layer
 - All template elements styled per the project's documented class-naming methodology
 - Every async surface (fetch / submit / mutation) renders all its states — a **loading** indicator (spinner/skeleton) while in-flight, a user-visible **error** with a retry/recovery path on failure, a meaningful **empty** state for zero-item collections, and a **disabled/busy** submit control in-flight to prevent double-submit — using the project's documented loading/error/empty components; never a frozen blank, a silent failure, or a blank list
-- Responsive / multi-device — layouts must reflow and stay usable on small screens: rows `flex-wrap` or switch `flex-direction: row → column`, multi-column grids collapse to one column, no horizontal scroll down to 320px; use the project's documented breakpoint mixins/tokens (never inline pixel breakpoints)
+- Responsive / multi-device — layouts must stay usable on small screens down to 320px. Preferred: reflow (rows `flex-wrap` or `flex-direction: row → column`, multi-column grids collapse to one column). Acceptable fallback where a block genuinely can't reflow (tables, canvases, wide grids): fixed `min-width`/`min-height` + `overflow: auto` scroll — scrolling is OK. Hard minimum: nothing broken — no clipped, cut-off, or unreachable content/controls. If small-screen support needs a layout refactor too large for the task, confirm scope with the user first. Use the project's documented breakpoint mixins/tokens (never inline pixel breakpoints)
 
 > **[IMPORTANT]** NEVER use raw HTTP clients, manual state primitives, or unmanaged subscriptions/effects — extend the project's documented base classes / wrappers per `frontend-patterns-reference.md`. — why: bypassing the wrapper drops the project's auth, error, and teardown contracts.
 > **Evidence Gate:** MANDATORY MUST ATTENTION — every claim, finding, recommendation requires `file:line` proof or traced evidence with confidence % (>80% act, <80% verify first).
@@ -81,7 +81,7 @@ memory: project
 | Styling methodology | Follow the project's documented class-naming convention (BEM, utility-first, CSS modules, etc.)    |
 | Logic placement     | Constants, columns, roles → model / data layer, NOT component                                      |
 | UI states           | Every async surface handles Loading / Error / Empty / Disabled / Success — loading indicator in-flight, visible error + retry on failure, meaningful empty state, submit disabled in-flight (no double-submit); use project loading/error/empty components |
-| Responsive          | Layouts reflow for small devices — rows `flex-wrap` or `row → column`, grids collapse to one column, no horizontal scroll to 320px, project breakpoint mixins (never inline px) |
+| Responsive          | Usable on small devices to 320px — reflow preferred (rows `flex-wrap` or `row → column`, grids collapse to one column); `min-width`/`min-height` + `overflow: auto` scroll acceptable where a block can't reflow; hard minimum = nothing clipped/cut-off/unreachable; big refactor → confirm with user; project breakpoint mixins (never inline px) |
 | Search first        | Find 3+ existing examples before creating new patterns                                             |
 
 ## Output

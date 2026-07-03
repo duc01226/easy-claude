@@ -50,7 +50,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Workflow:**
 
 1. **Discover** — Browse target URL, discover all pages, components, endpoints
-2. **Plan Tests** — Create test plan covering accessibility, responsiveness, performance, security, SEO
+2. **Plan Tests** — Create test plan covering accessibility, responsiveness, performance, security, SEO. Responsiveness MUST verify the small-screen minimum bar at ~320px: the UI stays usable with **nothing broken** — no clipped, cut-off, or unreachable content/controls. A block that scrolls (`overflow: auto`) instead of reflowing is acceptable, NOT a failure; a block that clips content or hides a control off-screen with no scroll path is a failure.
 3. **Execute** — Run parallel tester subagents; capture screenshots for each test area
 4. **Analyze** — Use visual analysis tooling to review screenshots and visual elements
 5. **Report** — Generate Markdown report with embedded screenshots and recommendations

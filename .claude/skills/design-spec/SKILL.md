@@ -127,6 +127,7 @@ For ANY visual input: extract design context FIRST, then proceed to spec generat
 6. **Document responsive behavior**
     - Mobile (320-767px), Tablet (768-1023px), Desktop (1024px+)
     - What changes at each breakpoint (layout, visibility, sizing)
+    - **Small-screen minimum bar (spec it explicitly):** the layout MUST stay usable on mobile. Preferred = reflow (rows `flex-wrap` / `row → column`, grids collapse to one column). Where a component genuinely can't reflow (data tables, canvases, wide grids), specify a `min-width`/`min-height` + `overflow: auto` scroll as the accepted fallback — scrolling is OK. Hard requirement = nothing broken (no clipped, cut-off, or unreachable content/controls). If a component needs a large redesign to work on mobile, flag it for the user rather than assuming a rewrite.
 
 7. **Save artifact** — pick the filename variant by artifact type:
     - Design spec: `team-artifacts/design-specs/{YYMMDD}-designspec-{feature-slug}.md`
