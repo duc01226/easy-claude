@@ -90,7 +90,8 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 ## Key Rules
 
 - **No guessing** — unsure? Say so. **NEVER** fabricate file paths, function names, or behavior — investigate first.
-- **MUST ATTENTION** mobile-first — always start mobile, scale up
+- **MUST ATTENTION** mobile-first — always start mobile, scale up; rows `flex-wrap` or switch `row → column` and grids collapse to one column so the UI stays usable on small devices (no horizontal scroll down to 320px)
+- **MUST ATTENTION** handle every UI state — every async surface (fetch/submit/mutation) shows a **loading** indicator (spinner/skeleton) while in-flight, a user-visible **error** with a retry/recovery path on failure, and a meaningful **empty** state for zero-item collections; disable submit controls in-flight to prevent double-submit; never a frozen blank, a silent failure, or a blank list
 - **MUST ATTENTION** accessibility — WCAG 2.1 AA minimum for all designs
 - **ALWAYS** follow existing design tokens and shared UI component library patterns — why: consistency
 - **MUST ATTENTION** performance — optimize animations, respect `prefers-reduced-motion`
@@ -103,7 +104,9 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - Color contrast: 4.5:1 normal text, 3:1 large text (WCAG 2.1 AA)
 - Touch targets: minimum 44x44px for mobile
 - Typography: line height 1.5-1.6 for body text
-- Interactive elements: clear hover, focus, active states
+- Interactive elements: clear hover, focus, active, and disabled states
+- UI states: every async surface handles **Loading / Error / Empty / Disabled / Success** (canonical vocabulary shared with `design-spec`) — loading indicator while in-flight, visible error + retry on failure, meaningful empty placeholder, in-flight disable to block double-submit
+- Responsive reflow: rows `flex-wrap` or switch `row → column`, multi-column grids collapse to one column, no horizontal scroll down to 320px
 - Vietnamese character support required for all fonts
 
 ## Accessibility Audit (WCAG 2.1 AA)

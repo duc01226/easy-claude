@@ -1,7 +1,7 @@
 ---
 name: ui-review
 version: 2.0.0
-description: '[Code Quality] Use when reviewing UI/frontend changes for long-content overflow, responsive multi-screen layout, flex-vs-fixed sizing, z-index discipline, and SCSS/BEM styling quality.'
+description: '[Code Quality] Use when reviewing UI/frontend changes for long-content overflow, responsive multi-screen layout (flex-wrap / row-to-column on small devices), flex-vs-fixed sizing, z-index discipline, SCSS/BEM styling quality, and async UI states & feedback (loading indicator, error surface, empty state).'
 execution-mode: subagent
 context-budget: high
 ---
@@ -17,7 +17,7 @@ context-budget: high
 
 ## Quick Summary
 
-**Goal:** Validate UI/frontend changes for the five visual-quality dimensions that break in production but slip past correctness review — long-content overflow & truncation, responsive multi-screen layout, flex-grow vs fixed sizing, z-index scale discipline, and SCSS/CSS/BEM styling quality — so frontend/UI changes survive real content, responsive layouts, layering, and styling conventions before handoff.
+**Goal:** Validate UI/frontend changes for the six visual-quality dimensions that break in production but slip past correctness review — long-content overflow & truncation, responsive multi-screen layout (flex-wrap / row-to-column so it stays usable on small devices), flex-grow vs fixed sizing, z-index scale discipline, SCSS/CSS/BEM styling quality, and async UI states & feedback (loading indicator, user-visible error surface, empty state, in-flight disable) — so frontend/UI changes survive real content, responsive layouts, layering, styling conventions, and the loading/error/empty branches before handoff.
 
 **Default scope:** All uncommitted frontend changes (staged + unstaged) matching the frontend path and file-extension patterns declared by the project configuration/docs index. Override: specify files, directories, components, or full frontend codebase.
 
@@ -43,7 +43,7 @@ context-budget: high
 1. **Phase 0: Load UI Rules** — Resolve and read the four project UI/styling rule docs above
 2. **Phase 1: Determine Scope** — Changed frontend files (default) or user-specified scope
 3. **Phase 2: Blast Radius** — Run graph trace if graph.db exists
-4. **Phase 3: UI Category Review** — Check each file against all 5 applicable categories
+4. **Phase 3: UI Category Review** — Check each file against all 6 applicable categories
 5. **Phase 4: Finalize** — Generate compliance report with PASS/BLOCKED/WARN verdicts
 6. **Fix Loop: Validate → Fix → Full UI Re-Review** — validate findings first; after validated fixes, rerun the full UI review using the local sub-agent selection guide only when that protocol calls for agents
 
@@ -136,7 +136,7 @@ Use `--node-mode file` first (10-30x less noise), then `--node-mode function` fo
 
 Create report: `plans/reports/ui-review-{date}-{slug}.md`
 
-For EACH file in scope, evaluate against ALL applicable categories. Skip categories not applicable to the file type (e.g., a pure `.ts` store file skips overflow/sizing/z-index but still hits Category 5's architecture checks).
+For EACH file in scope, evaluate against ALL applicable categories. Skip categories not applicable to the file type (e.g., a pure `.ts` store file skips overflow/sizing/z-index but still hits Category 5's architecture checks and Category 6's loading/error/empty-state wiring).
 
 > **Apply the `Think:` reasoning prompt before each category — derive violations, do NOT recite checklists.**
 
@@ -167,21 +167,26 @@ For EACH file in scope, evaluate against ALL applicable categories. Skip categor
 
 ---
 
-### Category 2: Responsive Multi-Screen via Flex — Severity: WARN
+### Category 2: Responsive Multi-Screen via Flex — Severity: WARN (BLOCKED when a multi-column row has NO wrap/stack path and overflows below ~360px)
 
-**Think:** Is this usable at 320 / 768 / 1024 / 1440? Does the layout flex, or is it a fixed grid that overflows the small screen?
+**Think:** Is this usable at 320 / 768 / 1024 / 1440? Does the layout flex, wrap, and **reflow from row to column** on small screens — or is it a fixed multi-column row / fixed grid that overflows and forces horizontal scroll on a phone?
+
+**Non-negotiable baseline:** the UI MUST be at least *usable* on a small device. A horizontal row of cards/fields/columns MUST have a documented small-screen escape — `flex-wrap: wrap`, a `flex-direction: row → column` switch at the breakpoint, or a responsive grid that collapses to a single column. A fixed `flex-direction: row` with no wrap and no column fallback is the classic mobile-breaking anti-pattern.
 
 **Detection signals:**
 
 - Raw `@media (max-width: NNNpx)` / `(min-width: NNNpx)` in component SCSS that bypasses the breakpoint mixins
-- Non-flex fixed layouts that cannot reflow
+- A multi-child flex `row` with **NO `flex-wrap`** and **NO `flex-direction: column`** override at any breakpoint → cannot reflow on a phone
+- Multi-column CSS grid with fixed column counts / fixed track widths and no single-column collapse at small breakpoints
+- Non-flex fixed layouts (absolute positioning, fixed px widths on containers) that cannot reflow
+- Horizontal scroll appearing below ~360px because a row never wraps or stacks
 
 **Project fix guidance:**
 
-- The project documented responsive-flex mixins/utilities
+- The project documented responsive-flex mixins/utilities; add `flex-wrap: wrap` and/or the documented `row → column` breakpoint switch so the layout stacks vertically on small screens
 - Breakpoints from the project breakpoint tokens — NEVER inline pixel breakpoints
 
-**Anti-patterns:** raw `@media` pixel breakpoints that bypass the project's breakpoint mixins, and non-flex fixed grids that cannot reflow. Cite the styling rules doc for documented offenders; grep the changeset for the same patterns.
+**Anti-patterns:** raw `@media` pixel breakpoints that bypass the project's breakpoint mixins; a `flex-direction: row` with no wrap/column fallback; and non-flex fixed grids that cannot reflow. Cite the styling rules doc for documented offenders; grep the changeset for the same patterns.
 
 ---
 
@@ -254,6 +259,41 @@ Apply fixes per the resolved project styling rules doc.
 
 ---
 
+### Category 6: Async UI States & Feedback — Loading / Error / Empty / Disabled — Severity: BLOCKED (HARD GATE when an async fetch or mutation renders NO loading indicator OR NO user-visible error surface)
+
+> **This is the fundamental UI-resilience gate.** A screen whose happy path renders perfectly but shows a frozen blank while loading, fails silently on error, or shows nothing when empty is a broken user experience. Every async or interactive surface MUST answer three questions for the user: *what do I see while it's working, when it fails, and when there's nothing?*
+
+**Think:** For EACH async operation the file performs (data fetch, form submit, mutation, navigation-triggered load, subscription), trace what the user actually sees in the in-flight, failure, and zero-result branches — not just the success branch. If any of those three branches renders a blank/frozen screen or nothing at all, that is the finding.
+
+**The essential states every async/interactive surface MUST handle** (canonical vocabulary — shared verbatim with `design-spec` "Component States Checklist": Default / Loading / Disabled / Error / Empty / Success):
+
+- **Loading** — every in-flight async request MUST render a loading indicator (spinner / skeleton / progress bar), NEVER a frozen or blank screen. Lists/tables → skeleton rows; buttons → in-button spinner + disabled.
+- **Error** — every operation that can fail (network, validation, server error) MUST surface a human-readable error to the user WITH a recovery/retry path where sensible. NEVER a silent failure, a swallowed `catch`, or a raw stack trace / raw error object rendered to the user.
+- **Empty** — every collection / list / table view MUST render a meaningful empty state (message + optional CTA) when it has zero items, NOT a blank area.
+- **Disabled / in-flight guard** — submit/action controls MUST disable (or show busy) while their request is in-flight, to prevent double-submission.
+- **Success** — a completed mutation SHOULD give confirmation feedback (toast / inline / visibly updated data).
+
+**Detection signals:**
+
+- An async call (fetch / HTTP / `subscribe` / awaited mutation) whose template binds NO loading flag (`isLoading` / `pending` / `loading$` / skeleton) → **BLOCKED**
+- A `.catch` / `try-catch` / error callback that logs or swallows the error but renders NO user-visible error surface → **BLOCKED**
+- A raw error shown to the user (stack trace, raw JSON, unmapped exception) → WARN
+- A list/table rendered from a collection with NO empty-state branch (`@empty`, `*ngIf="!items.length"`, `items.length === 0 ? …`) → WARN (BLOCKED when the collection is the screen's primary content)
+- A submit handler that does NOT disable its trigger while in-flight (double-submit risk) → WARN (BLOCKED for payment / create / irreversible actions)
+
+> **Check for centralized handling BEFORE flagging BLOCKED (avoid false positives):** many apps satisfy loading/error at the app level — a route-level progress bar, an HTTP interceptor that shows a global spinner/toast, an error boundary, or a base component that renders loading/error for all its children. If such a mechanism demonstrably covers this surface, the local component is compliant — grep for the shared mechanism (per this skill's "grep 3+ counterexamples / established exception" rule) and downgrade or drop the finding. Flag BLOCKED only when NO layer — local or global — gives the user a loading indicator / error surface.
+
+**Project fix guidance** (cite real reuse targets from the resolved frontend/patterns + design-system docs):
+
+- Prefer the project's documented loading component / skeleton / spinner and the documented error-banner / empty-state components or patterns — NEVER hand-roll one-off state UI when a canonical one exists.
+- Bind loading / error / empty off the store / view-model / API-service state per the project's documented state pattern — state belongs in the lowest layer (Model > Service > Component), not improvised in the template.
+
+**GOOD vs BAD:** a fetch bound to `isLoading` → skeleton, `error` → inline retry banner, and empty → placeholder is correct; a fetch that renders ONLY the populated happy path (blank while loading, nothing on error, blank when empty) is the anti-pattern. Cite the frontend-patterns and design-system docs for the project's reuse targets.
+
+> **Note vs Category 5's Bug-Detection "Error Handling":** the shared Bug Detection protocol checks that `catch` scope is correct and exceptions are not swallowed at the *code* level; Category 6 checks that the failure/loading/empty branch produces a *user-visible* state at the *UI* level. Both must pass — a correctly-caught error that renders nothing still fails Category 6.
+
+---
+
 ## Phase 4: Finalize — UI Compliance Report
 
 Update report with final sections:
@@ -314,10 +354,11 @@ Update report with final sections:
 ## UI Health Summary
 
 - Long-content Overflow & Truncation: {PASS/WARN/BLOCKED}
-- Responsive Multi-Screen: {PASS/WARN/BLOCKED}
+- Responsive Multi-Screen (flex-wrap / row→column, usable on small devices): {PASS/WARN/BLOCKED}
 - Flex-Grow vs Fixed Sizing: {PASS/WARN/BLOCKED}
 - Z-Index Scale Discipline: {PASS/WARN/BLOCKED}
 - SCSS/CSS Best Practices & BEM: {PASS/WARN/BLOCKED}
+- Async UI States & Feedback (loading / error / empty / disabled): {PASS/WARN/BLOCKED}
 - Frontend Architecture (joint w/ architecture-review): {PASS/WARN/BLOCKED/N/A}
 ```
 
@@ -459,7 +500,7 @@ Agent({
   subagent_type: "ui-ux-designer",
   prompt: `
 ## Task
-{review-specific task — e.g., "Review all uncommitted frontend changes for UI quality: long-content overflow, responsive layout, flex-vs-fixed sizing, z-index discipline, SCSS/BEM" | "Review SCSS/template files under {path}"}
+{review-specific task — e.g., "Review all uncommitted frontend changes for UI quality: long-content overflow, responsive layout (flex-wrap / row→column, usable on small devices), flex-vs-fixed sizing, z-index discipline, SCSS/BEM, and async UI states & feedback (loading indicator, user-visible error surface, empty state, in-flight disable)" | "Review SCSS/template files under {path}"}
 
 ## Round
 Round {N}. You have ZERO memory of prior rounds. Re-read all target files from scratch via your own tool calls. Do NOT trust anything from the main agent beyond this prompt.
@@ -617,7 +658,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /OVERRIDE:review-protocol-injection -->
 
-> **Critical Purpose:** UI quality — no content overflow without escape, no broken responsive layouts, no fixed sizing fighting the viewport, no z-index escalation wars, no styling/BEM drift.
+> **Critical Purpose:** UI quality — no content overflow without escape, no broken responsive layouts (rows that never wrap or stack on small devices), no fixed sizing fighting the viewport, no z-index escalation wars, no styling/BEM drift, and no async surface that leaves the user staring at a frozen blank while loading, a silent failure on error, or a blank area when empty.
 
 > **External Memory:** Complex/lengthy work → write findings to `plans/reports/`. Prevents context loss, serves as deliverable.
 
@@ -1118,7 +1159,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 | Evasion                                   | Rebuttal                                                                                |
 | ----------------------------------------- | --------------------------------------------------------------------------------------- |
-| "Too simple for a UI review"              | Simple templates still overflow on a 200-char value. Apply all 5 categories.            |
+| "Too simple for a UI review"              | Simple templates still overflow on a 200-char value. Apply all 6 categories.            |
 | "Already read the docs"                   | Show the extracted rule (mixin name, token name) — no recall = no read.                 |
 | "Just flag obvious z-index literals"      | Gray areas matter most. Trace the surface's semantic layer before recommending a token. |
 | "Fixed width is fine, it looks right"     | Looks right at 1440px ≠ usable at 320px. Apply the flex/min-max decision rule.          |

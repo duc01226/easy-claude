@@ -13,7 +13,7 @@ argument-hint: <file-or-pattern>
 
 1. **Identify Target** — Use provided file/pattern or ask user which components to review
 2. **Scan Files** — Read and Grep target files for violation patterns
-3. **Check Categories** — Accessibility, keyboard nav, forms, animation, performance, touch/mobile, content, dark mode/i18n
+3. **Check Categories** — Accessibility, keyboard nav, forms, async states & feedback (loading/error/empty), animation, performance, touch/mobile, responsive layout (flex-wrap / row→column), content, dark mode/i18n
 4. **Report Findings** — Group by file, use `file:line` format, terse findings, prioritized summary
 
 **Key Rules:**
@@ -60,10 +60,12 @@ Review UI code for compliance with WCAG 2.2, Core Web Vitals, and modern web des
     - **Accessibility** -- semantic HTML, ARIA, labels, alt text, color contrast, focus indicators
     - **Keyboard navigation** -- tab order, focus trap in modals, escape key handling
     - **Forms** -- labels, validation, error display, autocomplete, paste not blocked
+    - **Async states & feedback** -- every fetch/submit/mutation renders a **loading** indicator (spinner/skeleton, never a frozen blank), a user-visible **error** with a retry/recovery path (never a silent failure or raw stack trace), an **empty** state for zero-item collections, and an in-flight **disabled** state on submit controls to prevent double-submit (canonical vocabulary: Default / Loading / Disabled / Error / Empty / Success)
     - **Animation** -- `prefers-reduced-motion` respected, no `transition: all`, GPU-safe properties only
     - **Performance** -- image dimensions set, lazy loading, no layout thrashing, virtualization for large lists
     - **Touch/Mobile** -- touch targets >= 44px, `touch-action: manipulation`, safe areas
-    - **Content** -- text overflow handled, empty states, responsive breakpoints
+    - **Responsive layout** -- usable on small devices: rows `flex-wrap` or switch `row → column`, grids collapse to one column, no horizontal scroll down to 320px, fluid (min/max/`%`/`rem`) over large fixed px widths, breakpoints tested at 320 / 768 / 1024px _(owns all reflow/breakpoint concerns)_
+    - **Content** -- long-text/overflow handling (`text-overflow`, wrapping, line clamp), readable line length _(empty-collection states → **Async states & feedback**; breakpoints/reflow → **Responsive layout**)_
     - **Dark mode / i18n** -- `color-scheme`, logical CSS properties, `Intl.*` formatters
 
 4. **Report findings** in output format below

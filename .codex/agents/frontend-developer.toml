@@ -68,6 +68,8 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - Subscriptions / effects / listeners torn down per the project's documented teardown pattern — never leave dangling
 - Logic placement: constants, columns, roles → model/data layer, NOT component layer
 - All template elements styled per the project's documented class-naming methodology
+- Every async surface (fetch / submit / mutation) renders all its states — a **loading** indicator (spinner/skeleton) while in-flight, a user-visible **error** with a retry/recovery path on failure, a meaningful **empty** state for zero-item collections, and a **disabled/busy** submit control in-flight to prevent double-submit — using the project's documented loading/error/empty components; never a frozen blank, a silent failure, or a blank list
+- Responsive / multi-device — layouts must reflow and stay usable on small screens: rows `flex-wrap` or switch `flex-direction: row → column`, multi-column grids collapse to one column, no horizontal scroll down to 320px; use the project's documented breakpoint mixins/tokens (never inline pixel breakpoints)
 
 > **[IMPORTANT]** NEVER use raw HTTP clients, manual state primitives, or unmanaged subscriptions/effects — extend the project's documented base classes / wrappers per `frontend-patterns-reference.md`. — why: bypassing the wrapper drops the project's auth, error, and teardown contracts.
 > **Evidence Gate:** MANDATORY MUST ATTENTION — every claim, finding, recommendation requires `file:line` proof or traced evidence with confidence % (>80% act, <80% verify first).
@@ -108,6 +110,8 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 | Lifecycle teardown  | Subscriptions / effects / listeners torn down per the project's documented pattern                 |
 | Styling methodology | Follow the project's documented class-naming convention (BEM, utility-first, CSS modules, etc.)    |
 | Logic placement     | Constants, columns, roles → model / data layer, NOT component                                      |
+| UI states           | Every async surface handles Loading / Error / Empty / Disabled / Success — loading indicator in-flight, visible error + retry on failure, meaningful empty state, submit disabled in-flight (no double-submit); use project loading/error/empty components |
+| Responsive          | Layouts reflow for small devices — rows `flex-wrap` or `row → column`, grids collapse to one column, no horizontal scroll to 320px, project breakpoint mixins (never inline px) |
 | Search first        | Find 3+ existing examples before creating new patterns                                             |
 
 ## Output

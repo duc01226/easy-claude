@@ -37,7 +37,29 @@ Step 3 — Detect **orchestration approach**:
 | `k8s/` or `charts/` | Kubernetes / Helm | Deployment targets, ingress config |
 | No orchestration files | Direct run | Launch commands per service |
 
-Step 4 — Load module list from `docs/project-config.json` `modules[]` if available — use as expected service catalog.
+Step 3.5 — Detect **delivery / deployment stack** (provider-agnostic — list only signals present; NEVER assume a provider):
+
+| Signal (file/dir present) | Category | What to Document |
+| --- | --- | --- |
+| `.github/workflows/*.yml` | CI/CD — GitHub Actions | Workflows, triggers, jobs, deploy steps, environments |
+| `.gitlab-ci.yml` | CI/CD — GitLab CI | Stages, jobs, `environment:` blocks |
+| `azure-pipelines.yml` / `.azure/` | CI/CD — Azure Pipelines | Stages, deployment jobs, environments |
+| `Jenkinsfile` | CI/CD — Jenkins | Pipeline stages, agents, deploy stages |
+| `.circleci/config.yml` | CI/CD — CircleCI | Workflows, jobs, contexts |
+| `bitbucket-pipelines.yml` | CI/CD — Bitbucket | Pipelines, deployments |
+| `*.tf` / `*.tf.json` | IaC — Terraform | Providers, resources, backends, workspaces/envs |
+| `Pulumi.yaml` | IaC — Pulumi | Stacks, resources |
+| `*.template.json` / `cdk.json` | IaC — CloudFormation/CDK | Stacks, resources |
+| `*.bicep` | IaC — Bicep | Modules, resources |
+| `ansible/` / `playbook*.yml` | IaC — Ansible | Playbooks, roles, inventories |
+| `charts/` / `Chart.yaml` | IaC — Helm | Charts, values-per-env |
+| `kustomization.yaml` | IaC — Kustomize | Bases, overlays-per-env |
+| `appsettings*.json` / `.env*` / `*.config` | Env/app-settings | Setting KEYS per environment (NOT values) |
+| K8s `ConfigMap`/`Secret`, `.env.example`, vault/secret-manager refs | Secret management | Mechanism + reference NAMES only (NEVER values) |
+
+**Evidence gate:** `<60%` confidence on delivery stack → document "delivery stack: undetermined (no CI/IaC config found)"; DO NOT fabricate a pipeline.
+
+Step 4 — Load module list from `docs/project-config.json` `modules[]` **and the `infrastructure` block (`containerization` / `orchestration` / `cicd.*` / `iac.*`) if present** — use as expected catalog + detection hints (config hints are corroborated against file evidence, never trusted blindly).
 
 **Evidence gate:** Confidence <60% on architecture type → report uncertainty, DO NOT proceed with architecture-specific scan assumptions.
 
@@ -56,10 +78,13 @@ Step 4 — Load module list from `docs/project-config.json` `modules[]` if avail
 - Scan targets: glob configured frontend build and dev-server config files (exclude dependency folders); read serve/dev configs for ports; find entry points from the configured framework; framework versions from package metadata (exact, not ranges); map app-to-library deps from workspace graph or imports.
 
 **Agent 3: Infrastructure & Tech Stack**
-- **Think (Infrastructure dimension):** What external services must be running for the app to function? Which are optional? What are the default credentials (from docker-compose or defaults)?
+- **Think (Infrastructure dimension):** What external services must be running for the app to function? Which are optional? How is each external service authenticated — env var / secret name / secret-manager reference? (record the **mechanism and reference names**, NEVER credential values)
 - **Think (CI/CD dimension):** What pipeline system is used? What are the build/test/deploy stages? What environments exist?
+- **Think (Delivery dimension):** What is the full path from commit → deployed environment? What environments exist and how does a change promote between them? How is a bad deploy rolled back? Where do environment/app settings live and how are secrets supplied?
 - **Think (Version accuracy dimension):** Framework/library versions must come from actual config files — not assumed from project type.
-- Scan targets: read `docker-compose*.yml` (infra services, port mappings, credentials); find CI/CD configs (`.github/workflows/*.yml`, `azure-pipelines.yml`, `Jenkinsfile`); parse package managers for key deps + versions; identify DBs per service from connection strings; find message-broker config from appsettings.
+- Scan targets: read `docker-compose*.yml` (infra services, port mappings, **auth mechanism / secret names — NOT credential values**); find CI/CD configs (`.github/workflows/*.yml`, `azure-pipelines.yml`, `Jenkinsfile`); parse package managers for key deps + versions; identify DBs per service from connection strings; find message-broker config from appsettings.
+- **Delivery scan targets (write to Deployment & Delivery / Environment Configuration sections):** CI/CD pipeline files (stages, triggers, deploy jobs, gated environments); IaC files (resources, backends, per-env values/overlays/workspaces); environment list + promotion order; rollback mechanism (blue-green, canary, `rollout undo`, previous-image redeploy); environment/app-settings surfaces (`appsettings.{env}.json`, `.env.{env}`, config maps) — record setting **KEYS grouped by environment**; secret-management **mechanism + reference names ONLY**.
+- **[BLOCKING] Secret safety:** record secret variable/reference **names, file locations, and the mechanism** (env var, vault, sealed secret, CI secret store). **NEVER** copy a secret value, token, connection string with credentials, or private key into the report or doc.
 
 ### Target Sections
 
@@ -67,7 +92,9 @@ Step 4 — Load module list from `docs/project-config.json` `modules[]` if avail
 | --- | --- |
 | **Architecture Overview** | Architecture type, orchestration approach, deployment model |
 | **Service Architecture** | Table: Service Name, Type (API/Worker/App), Port, Dockerfile path |
-| **Infrastructure Ports** | Table: Service (DB/MQ/Cache), Port, Credentials (from docker-compose) |
+| **Infrastructure Ports** | Table: Service (DB/MQ/Cache), Port, Auth mechanism (env var / secret name / "default local-dev only" — NEVER credential VALUES) |
+| **Deployment & Delivery** | CI/CD provider + pipeline stages (table: Stage, Trigger, Target env, `file:line`); IaC tool + key resources; environments + promotion flow; rollback strategy |
+| **Environment Configuration** | Table: Setting group / config file, Environment, Purpose, `file:line` — setting KEYS only; Secret-management mechanism + reference NAMES (NO values) |
 | **Frontend Apps** | Table: App name, Framework, Dev port, Build command |
 | **Tech Stack** | Table: Category (Backend/Frontend/Infra), Technology, Version |
 | **Module Codes** | Table: Module code abbreviation, Full name, Service path |
@@ -81,8 +108,11 @@ Standard — follows shared `output-quality-principles` (no full trees/counts/TO
 - **[BLOCKING] Phase 0** architecture-type + mode detection (parallel); sub-agent focus depends on detected type.
 - **Two-axis Phase 0** — architecture type (step 2) AND orchestration approach (step 3) are separate classification tables.
 - **Evidence-gate fallback** — <60% on architecture type → report uncertainty, DO NOT proceed (stricter than design-system's "Agent 1 only").
-- Phase 4 verify: Glob-verify ALL Dockerfile paths in service table (not just 3); Grep-verify port numbers vs config.
+- Phase 4 verify: Glob-verify ALL Dockerfile paths in service table (not just 3); Grep-verify port numbers vs config. Glob-verify ALL CI/CD, IaC, and env-config file paths cited in Deployment & Delivery / Environment Configuration; Grep-scan the generated sections (case-insensitive) to assert **no secret-looking values** leaked — only KEYS/names. The backstop must cover the formats the scan actually reads, not just shell/dotenv: (a) `key=value` secrets (`password=`, `token=`, `pwd=`, `secret=`); (b) JSON/YAML colon-form secret keys — a `"password"|"pwd"|"secret"|"apikey"|"api_key"|"token"|"connectionstring"` key (case-insensitive) followed by a non-placeholder value (not `${...}`, `<...>`, `***`, empty); (c) known token/key shapes (`sk-`, `AKIA[0-9A-Z]{16}`, `ghp_`, `xox[baprs]-`); (d) `-----BEGIN` PEM headers and long base64/hex blobs. Keep it a bounded backstop — the primary control is the keys-only instruction in the Agent 3 Secret-safety obligation.
 - Version accuracy: framework/library versions MUST come from actual config (`package.json`/`.csproj` exact versions, not ranges/inference).
+- **Delivery detection is a third Phase-0 axis** (architecture + orchestration + delivery) — provider-agnostic; list only detected signals.
+- **[BLOCKING] No-secret-values rule** — deployment/env scanning records names + locations + mechanism only; secret VALUES never enter the report or committed doc. Reinforced in Agent 3 Think, Phase 4 verify, Round 2 fresh-eyes, closing reminder.
+- **Config-hint corroboration** — `infrastructure.*` from project-config is a hint; confirm against actual files before documenting (config can be stale).
 
 ### Anti-Rationalization rows
 
@@ -94,6 +124,9 @@ Standard — follows shared `output-quality-principles` (no full trees/counts/TO
 | "Framework versions obvious from project type" | Read `package.json`/`.csproj` for exact versions — never assume |
 | "Skip Round 2 even when Round 1 found issues" | Clean Round 1 ends the scan. When issues exist, fresh-eyes mandatory after fixing — port numbers and paths are the most hallucination-prone data. |
 | "project-config.json not needed if repo looks clear" | Config file provides expected service catalog — use it to detect missing services |
+| "CI provider obvious from the `.github` folder" | Read the workflow files — document actual jobs/stages/environments, not folder-name inference |
+| "No deploy docs, so skip deployment" | Env/app-settings, IaC, and CI configs ARE the deployment source of truth — scan them, don't skip |
+| "Copy the env/app-settings values for completeness" | NEVER copy secret values — record KEYS, locations, and mechanism only; the doc is committed |
 
 ### prompt-enhance
 `$prompt-enhance docs/project-reference/project-structure-reference.md`

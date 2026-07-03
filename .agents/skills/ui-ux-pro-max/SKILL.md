@@ -56,7 +56,9 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - No emojis as UI icons (use SVG: Heroicons, Lucide, Simple Icons)
 - All clickable elements need `cursor-pointer` and hover feedback
 - Light mode text must have 4.5:1 minimum contrast ratio
-- Test both light/dark modes and responsive breakpoints before delivery
+- **Every async surface MUST handle all its states** — show a loading indicator while in-flight, a user-visible error (with retry) on failure, and a meaningful empty state when there's no data. Never a frozen blank, a silent failure, or a blank list.
+- **Responsive by default** — layouts must reflow and stay usable on small devices: rows `flex-wrap` or switch `row → column`, grids collapse to one column; no horizontal scroll on a phone
+- Test both light/dark modes, all UI states (loading/error/empty), and responsive breakpoints (320/768/1024/1440) before delivery
 
 **Pre-read (project design system):** When the project has a design system, load `designSystem.canonicalDoc` + `tokenFiles` from `docs/project-config.json` and prefer project tokens/components over the generic style intelligence database.
 
@@ -253,6 +255,27 @@ These are frequently overlooked issues that make UI look unprofessional:
 | **Content padding**      | Account for fixed navbar height     | Let content hide behind fixed elements |
 | **Consistent max-width** | Use same `max-w-6xl` or `max-w-7xl` | Mix different container widths         |
 
+### Async UI States & Feedback (the most-missed fundamentals)
+
+> **Every screen or component that fetches, submits, or mutates data MUST render all of its states — not just the happy path.** A UI that looks perfect when populated but shows a frozen blank while loading, fails silently on error, or shows nothing when empty is broken UX. Canonical state vocabulary (shared with `design-spec`): **Default / Loading / Disabled / Error / Empty / Success**.
+
+| State                    | Do                                                                                 | Don't                                                        |
+| ------------------------ | ---------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| **Loading**              | Show a spinner / skeleton / progress while any request is in-flight                | Leave a frozen or blank screen; block the whole page silently |
+| **Error**                | Show a human-readable message with a retry / recovery action                       | Fail silently, swallow the error, or dump a raw stack trace / JSON |
+| **Empty**                | Show a meaningful empty state (illustration/message + optional CTA)                | Render a blank area when a list/table has zero items        |
+| **In-flight / disabled** | Disable the submit/action button (or show it busy) while its request runs          | Allow double-submit by leaving the trigger active           |
+| **Success**              | Confirm completion (toast / inline / visibly updated data)                         | Complete a mutation with no acknowledgment to the user      |
+
+### Responsive & Multi-Device (usable on small screens)
+
+| Rule                        | Do                                                                          | Don't                                                        |
+| --------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| **Rows reflow**             | `flex-wrap: wrap` or switch `flex-direction: row → column` at small widths  | Fixed `flex-direction: row` that overflows on a phone       |
+| **Grids collapse**          | Multi-column grids collapse to one column on small screens                  | Fixed column counts / track widths that never collapse      |
+| **No horizontal scroll**    | Content fits within the viewport down to 320px                              | Force horizontal scroll below ~360px                        |
+| **Fluid over fixed**        | `min/max-width`, `flex-grow`, `%`/`rem` sizing                              | Large fixed px widths on containers/cards/dialogs           |
+
 ---
 
 ## Pre-Delivery Checklist
@@ -273,6 +296,14 @@ Before delivering UI code, verify these items:
 - [ ] Transitions are smooth (150-300ms)
 - [ ] Focus states visible for keyboard navigation
 
+### States & Feedback (async surfaces — verify every one)
+
+- [ ] **Loading** — every data fetch / submit / mutation shows a spinner or skeleton while in-flight (never a frozen blank screen)
+- [ ] **Error** — every operation that can fail shows a human-readable error with a retry / recovery path (no silent failure, no raw stack trace)
+- [ ] **Empty** — every list / table / collection view has a meaningful empty state (message + optional CTA), not a blank area
+- [ ] **In-flight disable** — submit/action buttons are disabled or busy while their request runs (no double-submit)
+- [ ] **Success** — completed mutations give confirmation feedback (toast / inline / updated data)
+
 ### Light/Dark Mode
 
 - [ ] Light mode text has sufficient contrast (4.5:1 minimum)
@@ -280,12 +311,13 @@ Before delivering UI code, verify these items:
 - [ ] Borders visible in both modes
 - [ ] Test both modes before delivery
 
-### Layout
+### Layout & Responsiveness
 
 - [ ] Floating elements have proper spacing from edges
 - [ ] No content hidden behind fixed navbars
 - [ ] Responsive at 320px, 768px, 1024px, 1440px
-- [ ] No horizontal scroll on mobile
+- [ ] Rows `flex-wrap` or switch `row → column` on small screens; multi-column grids collapse to one column
+- [ ] No horizontal scroll on mobile (usable down to 320px)
 
 ### Accessibility
 

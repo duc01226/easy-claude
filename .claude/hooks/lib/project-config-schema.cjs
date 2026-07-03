@@ -266,6 +266,16 @@ const SCHEMA = {
                 required: false,
                 properties: {
                     tool: { type: 'string', required: false },
+                    provider: { type: 'string', required: false },
+                    configPath: { type: 'string', required: false },
+                    environments: { type: 'array', required: false }
+                }
+            },
+            iac: {
+                type: 'object',
+                required: false,
+                properties: {
+                    tool: { type: 'string', required: false },
                     configPath: { type: 'string', required: false }
                 }
             }
