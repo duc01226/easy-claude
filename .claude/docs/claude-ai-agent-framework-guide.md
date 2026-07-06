@@ -5,7 +5,7 @@
 **Audience:** AI engineers, tech leads, and teams wanting to build reliable AI-assisted development systems.
 **Scope:** What each layer does, why it exists, how the pieces compose, the design principles behind every decision, and which AI agent best practices each addresses.
 
-> **Document Sync Status** — Current local verification (2026-07-02): **15 hook files · 154 skills · 17 workflows · 29 agents** using the ADR-0002 filesystem metrics. Codex mirrors are committed under `.agents/`, `.codex/`, and `AGENTS.md`. Notable mechanisms documented here include multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential-thinking.
+> **Document Sync Status** — Current local verification (2026-07-06): **15 hook files · 156 skills · 18 workflows · 29 agents** using the ADR-0002 filesystem metrics. Codex mirrors are committed under `.agents/`, `.codex/`, and `AGENTS.md`. Notable mechanisms documented here include multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential-thinking.
 
 ---
 
@@ -65,7 +65,7 @@ It is also **harness- and project-agnostic**: the `.claude/` source compiles to 
 │  AI drifts from plan   │  CLAUDE.md task rule│  Model-driven gate│
 │  AI injects duplicates │  Hooks (dedup)      │  File-based dedup│
 │  AI skips test specs   │  TDD skills/flows   │  Unified TC IDs  │
-│  AI misses lifecycle   │  17 workflows       │  Full SDLC cover │
+│  AI misses lifecycle   │  18 workflows       │  Full SDLC cover │
 │  AI skips research   │  big-feature wf      │  Step-select gate  │
 │  AI skips E2E tests    │  E2E skills/flows   │  Recording→test  │
 │  AI ignores doc format │  buildSpecContext   │  8-section inject  │
@@ -117,14 +117,14 @@ graph TB
         end
     end
 
-    subgraph "Intelligence Layer — 154 Skills"
+    subgraph "Intelligence Layer — 156 Skills"
         SP[Shared Protocols<br/>5 files]
         IS[Implementation Skills<br/>feature-implement, fix, refactor]
         QS[Quality Skills<br/>code-review, prove-fix]
         PS[Planning Skills<br/>plan, investigate, scout]
     end
 
-    subgraph "Orchestration Layer — 17 Workflows"
+    subgraph "Orchestration Layer — 18 Workflows"
         FW[Feature Workflow]
         BW[Bugfix Workflow]
         RW[Refactor Workflow]
@@ -454,11 +454,11 @@ allowed-tools: Read, Grep, Glob, Bash, Write, TaskCreate
 2. Declare confidence level...
 ```
 
-### 5.2 Skill Categories (154 skills)
+### 5.2 Skill Categories (156 skills)
 
 ```mermaid
 mindmap
-  root((154 Skills))
+  root((156 Skills))
     Quality & Verification
       code-review
       prove-fix
@@ -536,13 +536,13 @@ mindmap
       MCP management guidance
       skill-creator
       dual-ai
-    Workflow Triggers (17)
+    Workflow Triggers (18)
       workflow-feature
       workflow-big-feature
       workflow-bugfix
       workflow-greenfield-init
       workflow-refactor
-      ... 16 more
+      ... 13 more
 ```
 
 ### 5.3 Shared Protocols — The Foundation
@@ -771,7 +771,7 @@ Workflows are **JSON-defined sequences of skills** stored in `.claude/workflows.
 }
 ```
 
-### 6.2 Workflow Catalog (17 Workflows)
+### 6.2 Workflow Catalog (18 Workflows)
 
 ```
 WORKFLOW CATALOG
@@ -801,8 +801,9 @@ WORKFLOW CATALOG
 ├── DOCUMENTATION & SPEC (1)
 │   └── workflow-feature-spec
 │
-├── REVIEW (1)
-│   └── workflow-review-changes
+├── REVIEW (2)
+│   ├── workflow-review-changes
+│   └── workflow-architecture-audit
 │
 └── DESIGN & VISUALIZATION (1)
     └── workflow-visualize
@@ -839,7 +840,7 @@ sequenceDiagram
 
     Model->>Skill: /start-workflow workflow-bugfix
 
-    Skill->>Todo: Create tasks for ALL steps:<br/>1. [Bugfix] /scout<br/>2. [Bugfix] /investigate<br/>3. [Bugfix] /debug-investigate<br/>4. [Bugfix] /plan<br/>...17 steps total
+    Skill->>Todo: Create tasks for ALL steps:<br/>1. [Bugfix] /scout<br/>2. [Bugfix] /investigate<br/>3. [Bugfix] /debug-investigate<br/>4. [Bugfix] /plan<br/>...24 steps total
 
     loop Each workflow step
         Todo->>Skill: Mark step in_progress
@@ -877,8 +878,8 @@ The hook and skill system is **project-agnostic**. All project-specific knowledg
 graph LR
     subgraph "Generic Framework (reusable)"
         H[15 Hook Files]
-        S[154 Skills]
-        W[17 Workflows]
+        S[156 Skills]
+        W[18 Workflows]
     end
 
     subgraph "Project-Specific (swappable)"
@@ -2153,69 +2154,91 @@ Two complementary functions in `session-init-helpers.cjs`:
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-#### Greenfield-Init Workflow (40 Steps: Inception + Implementation + Integration Testing)
+#### Greenfield-Init Workflow (60 Steps: Inception + Reviewed Foundation + Implementation + Integration Testing)
 
 ```
-greenfield-init: FULL WATERFALL INCEPTION → IMPLEMENTATION → INTEGRATION TESTING
-│
-├── RESEARCH PHASE (7 steps)
-│   ├── /idea ──────────────── Discovery interview: problem, vision, constraints
-│   ├── /web-research ──────── WebSearch: competitors, market, existing solutions
-│   ├── /deep-research ─────── WebFetch: extract findings from top sources
-│   ├── /business-evaluation ── Viability, risk matrix, value proposition
-│   ├── /domain-analysis ───── DDD: bounded contexts, aggregates, ERD
-│   ├── /tech-stack-research ── Compare top 3 options per layer with pros/cons
-│   └── /architecture-design ── Solution architecture
-│
-├── FIRST PLAN + REVIEWS (4 steps)
-│   ├── /plan ──────────────── Architecture plan from research + domain analysis
-│   ├── /security-review ──────────── Security architecture review
-│   ├── /performance-review ───────── Performance architecture review
-│   └── /plan-review ───────── Critical review
-│
-├── REFINEMENT + REVIEW GATES (6 steps)
-│   ├── /refine ────────────── Refine to PBI with acceptance criteria
-│   ├── /artifact-review --type=pbi ─────── PBI quality gate
-│   ├── /story ─────────────── Break into prioritized stories with dependencies
-│   ├── /artifact-review --type=story ──────── Story quality gate
-│   ├── /plan-validate ─────── 3-8 questions: confirm all decisions with user
-│   └── /spec [mode=tests] ──── Test strategy, spec generation
-│
-├── SECOND PLAN + SCAFFOLD (4 steps)
-│   ├── /artifact-review --type=spec-tests ──── Test spec quality gate
-│   ├── /plan ──────────────── Sprint-ready plan from concrete stories
-│   ├── /plan-review ───────── Review sprint plan
-│   └── /scaffold ──────────── Architecture scaffolding (CONDITIONAL)
-│
-├── IMPLEMENTATION (2 steps)
-│   ├── /why-review ────────── Validate design rationale before coding
-│   └── /feature-implement ─────────────── Implement feature (backend + frontend)
-│
-├── INTEGRATION TESTING (6 steps)
-│   ├── /spec [mode=tests] ──── Write test specs for implemented code
-│   ├── /artifact-review --type=spec-tests ──── Review spec coverage and correctness
-│   ├── /plan ──────────────── Plan integration test architecture (3rd round)
-│   ├── /plan-review ───────── Review integration test plan
-│   ├── /integration-test ──── Generate integration tests from specs
-│   └── /test ─────────────── Run tests, verify all TCs pass
-│
-└── QUALITY + WRAP-UP (11 steps)
-    ├── /code-simplifier ───── Simplify code for readability
-    ├── /changes-review ────── Review all uncommitted changes
-    ├── /code-review ───────── Code quality, patterns compliance
-    ├── /production-readiness-review ────────── Production readiness
-    ├── /security-review ──────────── Security review
-    ├── /performance-review ───────── Performance review
-    ├── /changelog ─────────── Update changelog
-    ├── /test ──────────────── Final regression run
-    ├── /docs-update ───────── Update documentation
-    ├── /workflow-end ──────── Close workflow state
-    └── /watzup ────────────── Summary report + understand handoff
+greenfield-init: FULL WATERFALL INCEPTION -> REVIEWED FOUNDATION -> IMPLEMENTATION -> INTEGRATION TESTING
+|
++-- RESEARCH & ARCHITECTURE (11 steps)
+|   |-- /idea -- Discovery interview: problem, vision, constraints
+|   |-- /web-research -- WebSearch: competitors, market, existing solutions
+|   |-- /deep-research -- WebFetch: extract findings from top sources
+|   |-- /business-evaluation -- Viability, risk matrix, value proposition
+|   |-- /spec-discovery -- Survey existing specs + related logic before authoring
+|   |-- /domain-analysis -- DDD: bounded contexts, aggregates, ERD
+|   |-- /why-review -- Rationale gate on domain/research
+|   |-- /tech-stack-research -- Compare top 3 options per layer with pros/cons
+|   |-- /architecture-design -- Solution architecture
+|   |-- /architecture-scalability-review -- Scalability scorecard feeds the first plan
+|   +-- /why-review -- Rationale gate on architecture
+|
++-- FIRST PLAN + ARCH REVIEWS (5 steps)
+|   |-- /plan -- Architecture plan from research + domain analysis
+|   |-- /plan-review -- Critical review
+|   |-- /security-review -- Security architecture review
+|   |-- /performance-review -- Performance architecture review
+|   +-- /plan-review -- Re-review after security/performance findings
+|
++-- REFINEMENT + PBI/STORY GATES (11 steps)
+|   |-- /refine -- Refine to PBI with acceptance criteria
+|   |-- /why-review -- Rationale gate on PBI
+|   |-- /artifact-review --type=pbi -- PBI quality gate
+|   |-- /story -- Break into prioritized stories with dependencies
+|   |-- /why-review -- Rationale gate on stories
+|   |-- /artifact-review --type=story -- Story quality gate
+|   |-- /pbi-challenge -- Dev BA PIC adversarial review
+|   |-- /dor-gate -- Definition-of-Ready validation
+|   |-- /pbi-mockup -- HTML mockup from PBI + stories
+|   |-- /plan-validate -- 3-8 questions: confirm all decisions with user
+|   +-- /why-review -- Rationale gate before test specs
+|
++-- TEST-SPEC AUTHORING (4 steps)
+|   |-- /spec [mode=tests] -- Section 8 TC-{FEATURE}-{NNN} test specifications
+|   |-- /why-review -- Rationale gate on test specs
+|   |-- /artifact-review --type=spec-tests -- Test spec quality gate
+|   +-- /spec-clarify -- Blocking clarification of spec decisions
+|
++-- SECOND PLAN + SCAFFOLD & REVIEWED FOUNDATION (11 steps)
+|   |-- /plan -- Sprint-ready plan from concrete stories
+|   |-- /plan-review -- Review sprint plan
+|   |-- /scaffold -- Base abstractions + golden-path example (CONDITIONAL)
+|   |-- /linter-setup -- Linters, formatters, static analysis, CI gates
+|   |-- /harness-setup -- Agent quality harness (feedforward guides + sensors)
+|   |-- /architecture-review-full -- Consolidated arch + scalability + prod-readiness audit
+|   |-- /scan --target=ui-system -- Capture scaffolded UI conventions as reference docs
+|   |-- /scan --target=backend-patterns -- Capture backend conventions
+|   |-- /scan --target=integration-tests -- Capture integration-test conventions
+|   |-- /scan --target=project-structure -- Capture structure conventions
+|   +-- /why-review -- Rationale gate before implementation
+|
++-- IMPLEMENTATION + DOMAIN REVIEW (5 steps)
+|   |-- /plan-execute -- Implement feature (backend + frontend)
+|   |-- /domain-entities-review -- DDD entity / value-object quality review
+|   |-- /spec [mode=tests] -- Test specs for implemented code
+|   |-- /why-review -- Rationale gate on test specs
+|   +-- /artifact-review --type=spec-tests -- Test spec coverage + correctness
+|
++-- THIRD PLAN + INTEGRATION TESTING (6 steps)
+|   |-- /plan -- Plan integration test architecture
+|   |-- /plan-review -- Review integration test plan
+|   |-- /integration-test -- Generate integration tests from specs
+|   |-- /integration-test-review -- Assertion quality + bug-protection review
+|   |-- /integration-test-verify -- Verify tests pass
+|   +-- /test -- Run tests, verify all TCs pass
+|
++-- QUALITY + WRAP-UP (7 steps)
+    |-- /workflow-review-changes -- Recursive review -> fix -> re-review of all changes
+    |-- /security-review -- Security review
+    |-- /changelog -- Update changelog
+    |-- /test -- Final regression run
+    |-- /docs-update -- Update documentation
+    |-- /workflow-end -- Close workflow state
+    +-- /watzup -- Summary report + understand handoff
 
 Every step saves artifacts to plans/{id}/ directory.
 Every step validates genuine product or architecture decision points when needed.
 Workflow activation is auto-selected by default.
-Uses triple planning rounds and conditional scaffold.
+Uses triple planning rounds and a reviewed-foundation gate (architecture-review-full + 4 project-reference scans) before any feature code.
 ```
 
 #### Solution Architect Agent
@@ -2282,53 +2305,71 @@ FEATURE COMPLEXITY SPECTRUM
 
 Without `big-feature`, developers faced a false choice: use `feature` (skip research, risk wrong architecture) or use `greenfield-init` (overkill for adding to an existing project).
 
-#### Workflow Sequence (31 Steps with Step-Selection Gate)
+#### Workflow Sequence (47 Steps with Step-Selection Gate)
 
 ```
-big-feature: RESEARCH-DRIVEN FEATURE DEVELOPMENT
-│
-├── RESEARCH PHASE (7 steps — skippable per feature)
-│   ├── /idea ──────────────── Discovery interview
-│   ├── /web-research ──────── Market/competitor analysis
-│   ├── /deep-research ─────── Deep-dive top sources
-│   ├── /business-evaluation ── Viability, risk, ROI
-│   ├── /domain-analysis ───── DDD: bounded contexts, aggregates, ERD
-│   ├── /tech-stack-research ── Compare top 3 options per tech layer
-│   └── /architecture-design ── Solution architecture
-│
-├── FIRST PLANNING ROUND (2 steps — high-level architecture plan)
-│   ├── /plan ──────────────── Architecture-level implementation plan
-│   └── /plan-review ───────── Critical review of architecture plan
-│
-├── REFINEMENT PHASE (4 steps — with review gates)
-│   ├── /refine ────────────── Acceptance criteria, PBI
-│   ├── /artifact-review --type=pbi ─────── PBI quality gate
-│   ├── /story ─────────────── User stories with dependencies
-│   └── /artifact-review --type=story ──────── Story quality gate
-│
-├── SECOND PLANNING ROUND (5 steps — sprint-ready plan + scaffold)
-│   ├── /plan ──────────────── Sprint-ready plan from stories
-│   ├── /plan-review ───────── Review sprint plan
-│   ├── /scaffold ──────────── Architecture scaffolding (CONDITIONAL)
-│   ├── /plan-validate ─────── 3-8 user questions
-│   └── /why-review ────────── Design rationale check
-│
-├── IMPLEMENTATION PHASE (5 steps)
-│   ├── /feature-implement ──────────────── Pattern-enforced coding
-│   ├── /integration-test ──── Generate integration tests
-│   ├── /code-simplifier ───── YAGNI/KISS/DRY pass
-│   ├── /changes-review ────── Pre-commit review
-│   └── /code-review ──────── Quality audit
-│
-└── QUALITY & WRAP PHASE (8 steps)
-    ├── /production-readiness-review ────────── Production readiness
-    ├── /security-review ──────────── Security review
-    ├── /performance-review ───────── Performance review
-    ├── /changelog ─────────── Changelog entry
-    ├── /test ──────────────── Test execution
-    ├── /docs-update ───────── Documentation sync
-    ├── /workflow-end ──────── Close workflow state
-    └── /watzup ────────────── Summary, doc staleness, understand handoff
+big-feature: RESEARCH-DRIVEN FEATURE DEVELOPMENT (REVIEWED FOUNDATION -> IMPLEMENT)
+|
++-- RESEARCH & ARCHITECTURE (11 steps -- skippable per feature)
+|   |-- /idea -- Discovery interview
+|   |-- /web-research -- Market/competitor analysis
+|   |-- /deep-research -- Deep-dive top sources
+|   |-- /business-evaluation -- Viability, risk, ROI
+|   |-- /spec-discovery -- Survey existing specs + related logic
+|   |-- /domain-analysis -- DDD: bounded contexts, aggregates, ERD
+|   |-- /why-review -- Rationale gate on domain/research
+|   |-- /tech-stack-research -- Compare top 3 options per tech layer
+|   |-- /architecture-design -- Solution architecture
+|   |-- /architecture-scalability-review -- Scalability scorecard feeds the first plan
+|   +-- /why-review -- Rationale gate on architecture
+|
++-- FIRST PLANNING ROUND (2 steps)
+|   |-- /plan -- Architecture-level implementation plan
+|   +-- /plan-review -- Critical review of architecture plan
+|
++-- REFINEMENT + PBI/STORY GATES (9 steps)
+|   |-- /refine -- Acceptance criteria, PBI
+|   |-- /why-review -- Rationale gate on PBI
+|   |-- /artifact-review --type=pbi -- PBI quality gate
+|   |-- /story -- User stories with dependencies
+|   |-- /why-review -- Rationale gate on stories
+|   |-- /artifact-review --type=story -- Story quality gate
+|   |-- /pbi-challenge -- Dev BA PIC adversarial review
+|   |-- /dor-gate -- Definition-of-Ready validation
+|   +-- /pbi-mockup -- HTML mockup from PBI + stories
+|
++-- SPEC AUTHORING + TEST SPECS (5 steps)
+|   |-- /spec -- Author tech-free 8-section Feature Spec
+|   |-- /spec [mode=tests] -- Section 8 TC-{FEATURE}-{NNN} test specifications
+|   |-- /why-review -- Rationale gate on test specs
+|   |-- /artifact-review --type=spec-tests -- Test spec quality gate
+|   +-- /spec-clarify -- Blocking clarification of spec decisions
+|
++-- SECOND PLAN + SCAFFOLD & REVIEWED FOUNDATION (5 steps)
+|   |-- /plan -- Sprint-ready plan from stories
+|   |-- /plan-review -- Review sprint plan
+|   |-- /scaffold -- Base abstractions + golden-path example (CONDITIONAL)
+|   |-- /architecture-review-full -- Consolidated arch + scalability + prod-readiness audit
+|   +-- /plan-validate -- 3-8 user questions
+|
++-- IMPLEMENTATION + DOMAIN & INTEGRATION TESTING (8 steps)
+|   |-- /why-review -- Design rationale check before coding
+|   |-- /plan-execute -- Pattern-enforced coding
+|   |-- /seed-test-data -- Seed realistic dev/QC data
+|   |-- /domain-entities-review -- DDD entity / value-object quality review
+|   |-- /integration-test -- Generate integration tests
+|   |-- /integration-test-review -- Assertion quality + bug-protection review
+|   |-- /integration-test-verify -- Verify tests pass
+|   +-- /spec [mode=sync] -- Reconcile Section 8 TCs <-> integration test code
+|
++-- QUALITY & WRAP PHASE (7 steps)
+    |-- /workflow-review-changes -- Recursive review -> fix -> re-review of all changes
+    |-- /security-review -- Security review
+    |-- /changelog -- Changelog entry
+    |-- /test -- Test execution
+    |-- /docs-update -- Documentation sync
+    |-- /workflow-end -- Close workflow state
+    +-- /watzup -- Summary, doc staleness, understand handoff
 ```
 
 #### Step-Selection Gate Pattern
@@ -2410,6 +2451,38 @@ The `/scaffold` step is **conditional** — the AI first self-investigates for e
 **Applied to:** `big-feature`, `greenfield-init` workflows
 
 **Why this matters:** Greenfield projects need scaffolding before feature code. Existing projects adding modules need to extend, not duplicate, existing abstractions. The conditional check prevents over-engineering in codebases that already have proper foundations.
+
+#### Reviewed Foundation Before Features (NEW)
+
+Scaffolding alone is not enough — an **unreviewed** foundation still lets flawed abstractions propagate into every feature built on top. Both workflows now gate the foundation before fanning out feature work:
+
+```
+FOUNDATION GATE (after /scaffold, before feature implementation)
+
+greenfield-init:
+  /scaffold → /linter-setup → /harness-setup
+    → /architecture-review-full          ← consolidated architecture +
+    → /scan --target=ui-system              scalability + production-readiness
+    → /scan --target=backend-patterns       audit of the scaffolded foundation
+    → /scan --target=integration-tests    ← capture scaffolded conventions as
+    → /scan --target=project-structure      durable project-reference docs
+    → /why-review → /plan-execute → …
+
+big-feature:
+  /architecture-design
+    → /architecture-scalability-review   ← scalability scorecard feeds the
+    → /why-review → /plan → …               first architecture plan
+  …
+  /scaffold → /architecture-review-full → /plan-validate → …
+```
+
+- **`/architecture-review-full`** runs immediately after the foundation is scaffolded (both workflows), bundling `architecture-review` + `architecture-scalability-review` + `production-readiness-review` into one consolidated Architecture Health Report — so base abstractions and golden-path example code are *reviewed* before any feature depends on them.
+- **`greenfield-init`** additionally regenerates its project-reference doc set via four `/scan` passes, turning the freshly-scaffolded conventions into the reference docs that guide every later feature.
+- **`big-feature`** also runs **`/architecture-scalability-review`** right after `/architecture-design`, feeding scalability findings into the very first plan.
+
+**Net effect:** features never build on an unreviewed or undocumented foundation — the scaffolding-first rule in `CLAUDE.md`'s workflow-routing gate (bullet 7) is enforced by these two workflows' canonical sequences.
+
+**Applied to:** `big-feature`, `greenfield-init` workflows.
 
 ---
 
@@ -3411,7 +3484,7 @@ flowchart TB
 | **Context injection at decision points**       | Static path→patternsDoc guidance in CLAUDE.md / SKILL.md (was hook-injected)                             | Skills/Config |
 | **Reminder rules prevent forgetting**          | Static SYNC rules + the workflow catalog baked into CLAUDE.md, re-read every prompt                      | Skills/Config |
 | **Generic & configurable via config**          | project-config.json drives path→patternsDoc routing                                                      | Config        |
-| **Prompt engineering quality**                 | 154 skills with YAML frontmatter + behavior protocols                                                    | Skills        |
+| **Prompt engineering quality**                 | 156 skills with YAML frontmatter + behavior protocols                                                    | Skills        |
 | **Auto-select workflow path before acting**    | Model reads the static catalog → direct/skill/workflow/custom path                                       | Workflows     |
 | **Confirm plan with questions**                | /plan-validate asks 3-8 questions before implementation                                                  | Skills        |
 | **Sequential thinking for complex problems**   | /sequential-thinking skill + /debug-investigate skill                                                    | Skills        |
@@ -3453,7 +3526,7 @@ flowchart TB
 ├── ccstatusline.json ──── Status line display config (model, context, tokens, tok/s estimator)
 ├── .ck.json ──────────── Hook-specific config
 ├── .ckignore ─────────── Scout block patterns
-├── workflows.json ─────── 17 workflow definitions
+├── workflows.json ─────── 18 workflow definitions
 ├── workflows/ ──────────── Workflow definitions (primary-workflow.md, etc.)
 ├── hooks/ ─────────────── 15 top-level .cjs hooks (+ 1 .js helper) + 25 lib modules
 │   ├── session-init.cjs
@@ -3465,7 +3538,7 @@ flowchart TB
 │   │   ├── todo-state.cjs
 │   │   └── ...
 │   └── tests/ ────────── Test suites
-├── skills/ ────────────── 154 skill definitions
+├── skills/ ────────────── 156 skill definitions
 │   ├── {skill-name}/SKILL.md
 │   ├── shared/ ───────── 6 shared reference/protocol files
 │   └── _templates/ ───── Skill scaffolding
@@ -3792,7 +3865,7 @@ The framework succeeds because it aligns with how LLMs actually fail:
 - **Consistent adherence** — Programmatic enforcement means quality doesn't degrade in long sessions or complex tasks
 - **Recovery from amnesia** — External state persistence means context compaction doesn't lose progress
 - **Persistent learning** — Mistakes captured once prevent recurrence across all future sessions
-- **Prompt engineering depth** — Role prompting, chain-of-thought, few-shot, negative prompting, and iterative refinement applied systematically across 154 skills (Section 8.15)
+- **Prompt engineering depth** — Role prompting, chain-of-thought, few-shot, negative prompting, and iterative refinement applied systematically across 156 skills (Section 8.15)
 - **Context engineering precision** — JIT injection, dedup, external memory, budget management, and recovery keep the AI informed without overwhelming its context window (Section 8.16)
 
 The framework is **generic and reusable**. Replace `project-config.json` with your project's specifics, and the entire system adapts — different tech stack, different patterns, different conventions, same quality enforcement.

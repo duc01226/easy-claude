@@ -48,9 +48,9 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 > **[PERFORMANCE-FIRST PRINCIPLES — three non-negotiable checks on every hot path, OOM first]**
 >
-> 1. **[MOST IMPORTANT] Hunt every OOM / out-of-memory bad practice.** Unbounded read-all / `SELECT *` / no page bound, full materialization before paging or filtering, buffering a whole export/report instead of streaming or chunking, loading blobs / large JSON / tracked entities for list views, accidental multiple enumeration, unbounded caches / accumulators / queues / in-memory joins. Triage row **COUNT before row SIZE** and reduce rows **AT THE SOURCE** — a fast query that pulls millions of rows still OOMs the process. Bound EVERY result set with a page/limit/cursor or a proven business invariant.
-> 2. **Right data structure & algorithm for the stack.** Match the structure to the access pattern using the runtime's efficient primitive — O(1) `Set`/`Map`/dict/hash lookup instead of a linear `find`/`includes`/`contains`/`in list` scan inside a loop; no O(n²) where O(n log n) / O(n) / O(1) exists; single-pass min/max/partition instead of redundant re-sort. Prove the complexity class at worst-case N, never by intuition.
-> 3. **Batch once, or parallelize — never serial fan-out.** Collapse per-item query / API / cache calls into ONE batched call (`IN` / bulk / aggregate / prefetch dictionary); where independent calls remain, run bounded-parallel with a fresh safe resource per worker instead of sequential awaits — always preserving ordering, authorization, and idempotency.
+> 1. **[MOST IMPORTANT] Hunt every OOM / out-of-memory bad practice.** Unbounded read-all / `SELECT *` / no page bound, full materialization before paging/filtering, buffering a whole export/report instead of streaming/chunking, loading blobs / large JSON / tracked entities for list views, accidental multiple enumeration, unbounded caches / accumulators / queues / in-memory joins. Triage row **COUNT before row SIZE**, reduce rows **AT THE SOURCE** — a fast query pulling millions of rows still OOMs the process. Bound EVERY result set with a page/limit/cursor or proven business invariant.
+> 2. **Right data structure & algorithm for the stack.** Match the structure to the access pattern via the runtime's efficient primitive — O(1) `Set`/`Map`/dict/hash lookup instead of a linear `find`/`includes`/`contains`/`in list` scan inside a loop; no O(n²) where O(n log n) / O(n) / O(1) exists; single-pass min/max/partition instead of redundant re-sort. Prove the complexity class at worst-case N, never by intuition.
+> 3. **Batch once, or parallelize — never serial fan-out.** Collapse per-item query / API / cache calls into ONE batched call (`IN` / bulk / aggregate / prefetch dictionary); where independent calls remain, run bounded-parallel with a fresh safe resource per worker instead of sequential awaits — always preserving ordering, authorization, idempotency.
 
 <!-- SYNC:critical-thinking-mindset -->
 
@@ -89,9 +89,9 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Summary:**
 
-- **Purpose & 8-phase pipeline (the main tasks):** drive a target through **Phase 0 Detect scope → Phase 1 Discover local context (grep 3+ patterns, read index/schema, map callers) → Phase 2 Baseline evidence (or `static risk` + verify cmd) → Phase 3 nine serial dimension passes → Phase 4 Findings + Severity → Phase 5 Optimize plan (behavior-preserving) → Phase 6 `$why-review --validate-findings` gate → Phase 7 validated-fix + full Phase-0 re-review** — so every recommendation removes a real bottleneck, preserves behavior, and is evidence-proven; an Architecture-Altitude lens applies the same gate at design time.
+- **Purpose & 8-phase pipeline (the main tasks):** drive a target through **Phase 0 Detect scope → Phase 1 Discover local context (grep 3+ patterns, read index/schema, map callers) → Phase 2 Baseline evidence (or `static risk` + verify cmd) → Phase 3 nine serial dimension passes → Phase 4 Findings + Severity → Phase 5 Optimize plan (behavior-preserving) → Phase 6 `$why-review --validate-findings` gate → Phase 7 validated-fix + full Phase-0 re-review** — so every recommendation removes a real bottleneck, preserves behavior, is evidence-proven; an Architecture-Altitude lens applies the same gate at design time.
 - Evidence is the gate, not intuition: capture a runtime baseline (query plan/explain, row counts, p95/p99, pool acquire-wait, microbench at worst-case N) or label the finding `static risk` with the exact verify command — never recommend below 60% confidence.
-- Walk dimensions ONE pass at a time (query shape → index/access path → N+1 → aggregation/join → materialization → write/locks → cache → API/distributed/frontend → compute/algorithmic), never all at once; reduce rows at the source before trimming columns or caching, and size pools by Little's Law (replica count × per-instance pool) when a fast op shows high p99.
+- Walk dimensions ONE pass at a time (query shape → index/access path → N+1 → aggregation/join → materialization → write/locks → cache → API/distributed/frontend → compute/algorithmic), never all at once; reduce rows at the source before trimming columns or caching, size pools by Little's Law (replica count × per-instance pool) when a fast op shows high p99.
 - No finding is fixable until `$why-review --validate-findings` confirms it (Phase 6); each validated fix then restarts the FULL review from Phase 0 over the whole target (Phase 7) — a targeted before/after check alone never earns a PASS.
 
 > **Renamed:** formerly `/performance` — that name no longer resolves as a slash command; use `$performance-review`.
@@ -141,7 +141,7 @@ Skip reason allowed only when target explicitly narrows scope and evidence prove
 
 ## Architecture-Altitude Performance Review
 
-> **When to apply:** design/architecture reviews (e.g. via the `architect` agent) — judging performance as a **structural property of the design** _before_ it ships, not a tactical query fix _after_ a bottleneck is observed. The dimension passes below stay the tool for tactical work; this section is the design-level lens layered on top.
+> **When to apply:** design/architecture reviews (e.g. via the `architect` agent) — judging performance as a **structural property of the design** _before_ it ships, not a tactical query fix _after_ a bottleneck appears. Dimension passes below stay the tactical tool; this section is the design-level lens on top.
 
 Evaluate the bottleneck **layer model** as a design concern, not just a symptom site:
 
@@ -156,14 +156,14 @@ Performance as architecture
 
 Architecture-altitude rules (decide at design time — cheapest to fix here):
 
-- **Bound every result set and project only needed columns/fields in the contract itself** — never design an unbounded read-all or `SELECT *` endpoint; unbounded reads spike memory and latency under real data volume.
+- **Bound every result set and project only needed columns/fields in the contract itself** — never design an unbounded read-all or `SELECT *` endpoint; unbounded reads spike memory/latency under real data volume.
 - **Design out N+1 at the boundary** — eager-load / batch-fetch is the default access pattern; per-item lookups are a design smell, not a tuning detail.
-- **Caching is a design decision, not a patch** — choose request-scope memoization vs bounded shared cache up front, with key dimensions (tenant/user/auth/version), TTL/invalidation, size limits, and privacy constraints specified; never cache to hide an unbounded query.
-- **Async I/O is structural** — never design a path that blocks threads with `.Result`; bounded parallelism for fan-out work is part of the design, with a fresh safe scope/context per worker.
-- **Make the cost visible** — design slow-operation logging and query logging in from the start so regressions are observable in production.
-- **Size pools and parallelism, never default them** — derive connection/thread/permit pool size from Little's Law (in-use = arrival-rate × hold-time) and state the assumptions; shrink _hold-time_ (release the resource across non-DB / external-wait spans) before growing the pool; size a shared backend against fleet-aggregate demand (replica count × per-instance pool), not one instance — local per-instance tuning becomes a thundering herd on the shared dependency.
+- **Caching is a design decision, not a patch** — choose request-scope memoization vs bounded shared cache up front, with key dimensions (tenant/user/auth/version), TTL/invalidation, size limits, privacy constraints specified; never cache to hide an unbounded query.
+- **Async I/O is structural** — never design a path blocking threads with `.Result`; bounded parallelism for fan-out is part of the design, with a fresh safe scope/context per worker.
+- **Make the cost visible** — design slow-operation + query logging in from the start so regressions are observable in production.
+- **Size pools and parallelism, never default them** — derive connection/thread/permit pool size from Little's Law (in-use = arrival-rate × hold-time), state the assumptions; shrink _hold-time_ (release the resource across non-DB / external-wait spans) before growing the pool; size a shared backend against fleet-aggregate demand (replica count × per-instance pool), not one instance — local per-instance tuning becomes a thundering herd on the shared dependency.
 
-For database index strategy at design time, see the `database-optimization` skill (composite key order, covering/partial indexes, write-cost analysis). The tactical evidence gate (measure baseline, prove with plan/explain) in the phases below still applies to every recommendation made at this altitude.
+For DB index strategy at design time, see the `database-optimization` skill (composite key order, covering/partial indexes, write-cost analysis). The tactical evidence gate (measure baseline, prove with plan/explain) in the phases below still applies to every recommendation at this altitude.
 
 ---
 
@@ -401,7 +401,7 @@ Sub-agent prompt MUST include target, detected scope, local context evidence, re
 
 ## Phase 6: Why-Review Findings Validation Gate (MANDATORY when findings exist)
 
-> **Purpose:** Validate performance findings before optimization work. Performance reports are easy to overstate when evidence is static-only, a plan lacks production-like scale, or a proposed index/cache changes write cost or data freshness risk.
+> **Purpose:** Validate performance findings before optimization work. Performance reports overstate easily when evidence is static-only, a plan lacks production-like scale, or a proposed index/cache changes write-cost or data-freshness risk.
 
 **Trigger:** Any performance finding or optimization recommendation (Critical, High, Medium, Low, WARN, or static risk). Skip ONLY when the report's verdict is unconditional PASS with literally zero findings.
 
@@ -536,6 +536,21 @@ If evidence insufficient, output: `Insufficient evidence. Verified: [...]. Not v
 
 <!-- /SYNC:category-review-thinking -->
 
+<!-- SYNC:scenario-stress-eval -->
+
+> **Scenario Stress & Resilience Evaluation** — CONDITIONAL, evidence-gated, business-criticality-aware. The top-down companion to `SYNC:scale-technique-gate`: instead of *"is technique X present?"*, put the system UNDER concrete failure/load scenarios and judge whether it SURVIVES, SELF-HEALS, and whether its BUSINESS needs it to. **ADVICE-ONLY: emit the Scenario Stress Matrix as guidance; NEVER mutate any score, verdict band, or gate pass/fail.**
+>
+> 1. **Reuse the scale tier** derived by `SYNC:scale-technique-gate` (or derive it identically from evidence); **also derive business-criticality `B0`–`B3`** from specs/SLA/product docs + the domain, cite `file:line` + confidence. `B0` best-effort · `B1` important · `B2` business-critical · `B3` mission-critical/regulated. Unknown → state the assumption, do **NOT** default to `B3`/`T3`. **Criticality-signal floor (both-directions safety):** regulated / PII / financial / health data, money movement, auth/identity, or legal-compliance scope raises `B` to **at least `B2` even absent SLA/SLO docs**; anti-over-engineering lowers hardening ONLY when NO such signal is present. `B` (blast if it fails) and `T` (scale of load/data) are independent — a low-traffic payroll run is low-`T`, high-`B`.
+> 2. **Select in-scope scenarios** — only those the system's `B`/`T` combination warrants (a `B0` internal PoC skips region-loss/DR entirely; a `B3`/`T0` regulated service still needs backups + DR by BUSINESS, not scale).
+> 3. **Walk each in-scope scenario:** simulate the stimulus → trace the break path → name the failure signature → answer the self-heal/recovery question (auto-recover? MTTR? manual runbook?) → name the trade-off it forces. Families: traffic spike · sustained growth · data-volume growth · write/ingest burst · dependency down/slow · instance/node loss · zone/region loss · **data loss/corruption** · poison-message/retry-storm · cascading failure/backpressure · cold-start/deploy-blip · clock-skew/duplicate-delivery.
+> 4. **Assign one verdict per scenario:** `WITHSTANDS` · `DEGRADES-GRACEFULLY` · `FAILS-HARD` (→ **advise only**) · `N/A-by-business` (not warranted → skip, not a gap) · `OVER-HARDENED` (resilience beyond business need → **advise AGAINST**, cite carrying cost).
+> 5. **Anti-over-engineering guard (first-class):** a lean system whose business does not need HA/DR is a PASS; `OVER-HARDENED` flags resilience the business does not warrant. This guard is symmetric with the criticality-signal floor above — never under-harden a `B2`+ system just because its traffic is low.
+> 6. **Output — Scenario Stress Matrix:** `scenario | in-scope (B/T)? | verdict | self-heal | trade-off | evidence (file:line/config/infra)`. Full catalog + Business×Scale in-scope baseline + verdict/tier tables → `.claude/docs/scenario-stress-catalog.md`. **ADVISORY-ONLY: NEVER mutate any `/20`, `/24`, verdict band, or gate pass/fail. Drift-guard: scenarios/verdicts/business-tiers are AUTHORITATIVE in the catalog — update it FIRST, then re-run `.claude/scripts/inject_scenario_stress_gate.py`. Scale tier stays single-sourced in `scale-technique-catalog.md`.**
+>
+> **BLOCKED until:** `- [ ]` scale tier + business-criticality (with criticality-signal floor) derived from evidence `- [ ]` in-scope scenarios selected `- [ ]` matrix emitted `- [ ]` over-hardening guard applied `- [ ]` advisory-only (no score/verdict mutation) confirmed
+
+<!-- /SYNC:scenario-stress-eval -->
+
 <!-- SYNC:systematic-review-batching:reminder -->
 
 - **MANDATORY** Large changeset → batch by size cap (≤8 files OR ≤2000 diff-lines), one parallel sub-agent per batch; never review many files one-by-one.
@@ -556,6 +571,12 @@ If evidence insufficient, output: `Insufficient evidence. Verified: [...]. Not v
 - **MANDATORY** Derive each category's concerns from first principles with `file:line` evidence — never a fixed checklist.
 
 <!-- /SYNC:category-review-thinking:reminder -->
+
+<!-- SYNC:scenario-stress-eval:reminder -->
+
+**IMPORTANT MUST ATTENTION** scenario-stress gate: reuse the scale tier `T0`–`T3` AND derive business-criticality `B0`–`B3` from evidence first — apply the **criticality-signal floor** (regulated/PII/financial/health data · money movement · auth/identity · legal-compliance → at least `B2` even absent SLA docs; do NOT default to `B3`). Select only the scenarios the `B`/`T` combination warrants, then walk each (simulate → trace → failure signature → self-heal/MTTR → trade-off) and assign `WITHSTANDS`/`DEGRADES-GRACEFULLY`/`FAILS-HARD`/`N/A-by-business`/`OVER-HARDENED`. Anti-over-engineering is first-class (a lean system that needs no HA/DR is a PASS) AND symmetric (never under-harden a `B2`+ system for low traffic). **ADVICE-ONLY — emit the Scenario Stress Matrix as guidance; NEVER mutate any score, verdict band, or gate pass/fail.** Full catalog → `.claude/docs/scenario-stress-catalog.md` (authoritative for scenarios/verdicts/business-tiers — on any change update the catalog FIRST, then re-run `inject_scenario_stress_gate.py`; scale tier stays single-sourced in `scale-technique-catalog.md`).
+
+<!-- /SYNC:scenario-stress-eval:reminder -->
 
 ## Closing Reminders
 

@@ -73,14 +73,14 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 ## When to Use
 
 - No existing codebase detected (greenfield project)
-- User wants to start a new project from scratch
-- Planning a new application's architecture, tech stack, domain model
+- User wants to start new project from scratch
+- Planning new application architecture, tech stack, domain model
 - `$greenfield` workflow or greenfield mode detected by planning skills
 
 ## Capabilities
 
 1. **Discovery Interview** — Problem statement, vision, constraints, team profile, scale expectations
-2. **Market & Competitor Research** — WebSearch + WebFetch for tech landscape, competitor analysis
+2. **Market & Competitor Research** — WebSearch + WebFetch tech landscape, competitor analysis
 3. **Tech Stack Evaluation** — Comparison matrix: pros/cons, confidence %, recommendation
 4. **DDD Domain Modeling** — Bounded contexts, aggregates, entities, value objects, domain events
 5. **Project Structure Generation** — Folder layout, module boundaries, CI/CD skeleton
@@ -106,14 +106,14 @@ Every stage MUST ATTENTION end with ask the user directly to validate decisions 
 
 ## Key Rules
 
-- **No guessing** — investigate first; NEVER fabricate file paths, function names, or behavior. Unsure → say so. — why: a fabricated foundation propagates into every downstream stage.
-- **Full Waterfall** — EVERY stage MUST end with ask the user directly validation before advancing to the next stage.
-- **Save Artifacts** — write output to the plan directory at EVERY step; NEVER keep findings only in memory. — why: context cutoff silently drops in-memory findings.
+- **No guessing** — investigate first; NEVER fabricate file paths, function names, behavior. Unsure → say so. — why: fabricated foundation propagates into every downstream stage.
+- **Full Waterfall** — EVERY stage MUST end with ask the user directly validation before advancing.
+- **Save Artifacts** — write output to plan directory at EVERY step; NEVER keep findings only in memory. — why: context cutoff silently drops in-memory findings.
 - **Evidence-Based** — every tech recommendation states confidence % plus evidence (web sources, benchmarks); NEVER recommend without proof.
 - **Multiple Options** — present 2-4 options for every major decision (tech stack, architecture, hosting).
-- **No Edit Tool** — NEVER use the Edit tool; only create new plan artifacts. — why: safety guardrail protecting existing files.
-- **Collaborate Hard** — ask probing questions, challenge assumptions, act as a strategic advisor.
-- **YAGNI/KISS/DRY** — recommend the simplest viable architecture; flag over-engineering risks.
+- **No Edit Tool** — NEVER use Edit tool; only create new plan artifacts. — why: safety guardrail protecting existing files.
+- **Collaborate Hard** — ask probing questions, challenge assumptions, act as strategic advisor.
+- **YAGNI/KISS/DRY** — recommend simplest viable architecture; flag over-engineering risks.
 
 ## Business-First Protocol (CRITICAL)
 
@@ -124,10 +124,10 @@ Every stage MUST ATTENTION end with ask the user directly to validate decisions 
     - Analyze business requirements → derive technical requirements (real-time needs, data volume, integration complexity, compliance)
     - WebSearch current framework/language comparisons, benchmarks, community health, enterprise adoption rates
     - Evaluate 3-4 tech stack options against derived requirements
-    - Score each option: team fit, scalability fit, ecosystem maturity, hiring market, cost, time-to-market
+    - Score each: team fit, scalability fit, ecosystem maturity, hiring market, cost, time-to-market
     - Produce detailed comparison report with pros/cons matrix
     - Present report with clear recommendation + confidence % — user decides as solution architect
-3. **If user volunteers tech stack preference early:** Acknowledge it, note as constraint/preference signal, but still perform full tech stack research to validate the choice or present better alternatives.
+3. **If user volunteers tech stack preference early:** Acknowledge, note as constraint/preference signal, but still perform full tech stack research to validate the choice or present better alternatives.
 
 ### Tech Stack Research Methodology
 
@@ -197,14 +197,14 @@ For each tech decision, present:
 When recommending project structure, consider:
 
 - **Monorepo vs Polyrepo** — team size, deployment independence, shared code needs
-- **Folder Conventions** — feature-based vs layer-based, colocation of tests
+- **Folder Conventions** — feature-based vs layer-based, test colocation
 - **CI/CD Skeleton** — pipeline stages, environments, deployment strategy
 - **Dev Tooling** — linting, formatting, pre-commit hooks, editor config
 - **Documentation** — README structure, ADR templates, API docs approach
 
 ## CLAUDE.md Generation
 
-After tech stack confirmed, generate a starter `CLAUDE.md` containing:
+After tech stack confirmed, generate starter `CLAUDE.md` containing:
 
 - Project name and description
 - Tech stack summary (languages, frameworks, databases)
@@ -219,7 +219,7 @@ After tech stack confirmed, generate a starter `CLAUDE.md` containing:
 - Master `plan.md` with YAML frontmatter (title, description, status, priority, effort, branch, tags, created)
 - Concise reports (<=150 lines per artifact)
 - List unresolved questions at end of each artifact
-- After all stages complete, announce completion and recommend next step (`$feature-implement` or `/bootstrap`)
+- After all stages complete, announce completion, recommend next step (`$feature-implement` or `/bootstrap`)
 
 <!-- SYNC:agent-code-standards -->
 
@@ -598,6 +598,21 @@ After tech stack confirmed, generate a starter `CLAUDE.md` containing:
 
 <!-- /SYNC:module-detection -->
 
+<!-- SYNC:scenario-stress-eval -->
+
+> **Scenario Stress & Resilience Evaluation** — CONDITIONAL, evidence-gated, business-criticality-aware. The top-down companion to `SYNC:scale-technique-gate`: instead of *"is technique X present?"*, put the system UNDER concrete failure/load scenarios and judge whether it SURVIVES, SELF-HEALS, and whether its BUSINESS needs it to. **ADVICE-ONLY: emit the Scenario Stress Matrix as guidance; NEVER mutate any score, verdict band, or gate pass/fail.**
+>
+> 1. **Reuse the scale tier** derived by `SYNC:scale-technique-gate` (or derive it identically from evidence); **also derive business-criticality `B0`–`B3`** from specs/SLA/product docs + the domain, cite `file:line` + confidence. `B0` best-effort · `B1` important · `B2` business-critical · `B3` mission-critical/regulated. Unknown → state the assumption, do **NOT** default to `B3`/`T3`. **Criticality-signal floor (both-directions safety):** regulated / PII / financial / health data, money movement, auth/identity, or legal-compliance scope raises `B` to **at least `B2` even absent SLA/SLO docs**; anti-over-engineering lowers hardening ONLY when NO such signal is present. `B` (blast if it fails) and `T` (scale of load/data) are independent — a low-traffic payroll run is low-`T`, high-`B`.
+> 2. **Select in-scope scenarios** — only those the system's `B`/`T` combination warrants (a `B0` internal PoC skips region-loss/DR entirely; a `B3`/`T0` regulated service still needs backups + DR by BUSINESS, not scale).
+> 3. **Walk each in-scope scenario:** simulate the stimulus → trace the break path → name the failure signature → answer the self-heal/recovery question (auto-recover? MTTR? manual runbook?) → name the trade-off it forces. Families: traffic spike · sustained growth · data-volume growth · write/ingest burst · dependency down/slow · instance/node loss · zone/region loss · **data loss/corruption** · poison-message/retry-storm · cascading failure/backpressure · cold-start/deploy-blip · clock-skew/duplicate-delivery.
+> 4. **Assign one verdict per scenario:** `WITHSTANDS` · `DEGRADES-GRACEFULLY` · `FAILS-HARD` (→ **advise only**) · `N/A-by-business` (not warranted → skip, not a gap) · `OVER-HARDENED` (resilience beyond business need → **advise AGAINST**, cite carrying cost).
+> 5. **Anti-over-engineering guard (first-class):** a lean system whose business does not need HA/DR is a PASS; `OVER-HARDENED` flags resilience the business does not warrant. This guard is symmetric with the criticality-signal floor above — never under-harden a `B2`+ system just because its traffic is low.
+> 6. **Output — Scenario Stress Matrix:** `scenario | in-scope (B/T)? | verdict | self-heal | trade-off | evidence (file:line/config/infra)`. Full catalog + Business×Scale in-scope baseline + verdict/tier tables → `.claude/docs/scenario-stress-catalog.md`. **ADVISORY-ONLY: NEVER mutate any `/20`, `/24`, verdict band, or gate pass/fail. Drift-guard: scenarios/verdicts/business-tiers are AUTHORITATIVE in the catalog — update it FIRST, then re-run `.claude/scripts/inject_scenario_stress_gate.py`. Scale tier stays single-sourced in `scale-technique-catalog.md`.**
+>
+> **BLOCKED until:** `- [ ]` scale tier + business-criticality (with criticality-signal floor) derived from evidence `- [ ]` in-scope scenarios selected `- [ ]` matrix emitted `- [ ]` over-hardening guard applied `- [ ]` advisory-only (no score/verdict mutation) confirmed
+
+<!-- /SYNC:scenario-stress-eval -->
+
 <!-- SYNC:critical-thinking-mindset:reminder -->
 
 **MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
@@ -636,6 +651,12 @@ After tech stack confirmed, generate a starter `CLAUDE.md` containing:
 **IMPORTANT MUST ATTENTION** microservices/event-driven: scan producers, consumers, sagas, contracts in task scope. Per touchpoint: owner · message · consumers · risk (NONE/ADDITIVE/BREAKING). Missing consumer = silent regression.
 
 <!-- /SYNC:cross-service-check:reminder -->
+
+<!-- SYNC:scenario-stress-eval:reminder -->
+
+**IMPORTANT MUST ATTENTION** scenario-stress gate: reuse the scale tier `T0`–`T3` AND derive business-criticality `B0`–`B3` from evidence first — apply the **criticality-signal floor** (regulated/PII/financial/health data · money movement · auth/identity · legal-compliance → at least `B2` even absent SLA docs; do NOT default to `B3`). Select only the scenarios the `B`/`T` combination warrants, then walk each (simulate → trace → failure signature → self-heal/MTTR → trade-off) and assign `WITHSTANDS`/`DEGRADES-GRACEFULLY`/`FAILS-HARD`/`N/A-by-business`/`OVER-HARDENED`. Anti-over-engineering is first-class (a lean system that needs no HA/DR is a PASS) AND symmetric (never under-harden a `B2`+ system for low traffic). **ADVICE-ONLY — emit the Scenario Stress Matrix as guidance; NEVER mutate any score, verdict band, or gate pass/fail.** Full catalog → `.claude/docs/scenario-stress-catalog.md` (authoritative for scenarios/verdicts/business-tiers — on any change update the catalog FIRST, then re-run `inject_scenario_stress_gate.py`; scale tier stays single-sourced in `scale-technique-catalog.md`).
+
+<!-- /SYNC:scenario-stress-eval:reminder -->
 
 ## Closing Reminders
 

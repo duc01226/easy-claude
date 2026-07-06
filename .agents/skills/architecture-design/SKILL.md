@@ -51,14 +51,14 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Act as solution architect to deliver a complete, evidence-backed, user-validated architecture decision report covering ALL concerns (backend, frontend, design patterns, library ecosystem, testing strategy, CI/CD, deployment, monitoring, code quality, dependency management) — every concern researched with 3+ options, every recommendation carrying confidence % + cited evidence, every decision confirmed by the user — so implementation proceeds on sound, owned architectural choices.
+**Goal:** As solution architect, deliver a complete, evidence-backed, user-validated architecture decision report covering ALL concerns (backend, frontend, design patterns, library ecosystem, testing, CI/CD, deployment, monitoring, code quality, dependency management) — every concern researched with 3+ options, every recommendation carrying confidence % + cited evidence, every decision user-confirmed — so implementation proceeds on sound, owned architectural choices.
 
 **Summary:**
 
-- Decide mode FIRST (Step 1): greenfield researches every concern from scratch; brownfield reads reference docs + accepted ADRs and constrains research to the existing stack — NEVER re-litigate a settled ADR-recorded decision without a superseding-ADR rationale.
-- Drive the style choice with NUMBERS, not adjectives: quantify Step-2 quality-attribute scenarios (latency p95/p99, throughput, SLO, RPO/RTO, data growth, concurrency); any unknown target becomes an explicit `Unresolved question`, never a silent guess.
-- Every concern needs 3+ researched options with cited evidence (stars, last release, downloads, CVE scan) + a confidence % — familiarity alone is never sufficient grounds for a recommendation.
-- Produce the two binding downstream contracts and you're done; skip either and the chain breaks: emit an ADR per hard-to-reverse decision (`architecture-review` Cat 9 enforces it) and the Scaffold Handoff tool-choices table (`scaffold`/`harness-setup` consume it), then run the MANDATORY Step-12 user-validation interview before confirming.
+- Decide mode FIRST (Step 1): greenfield researches every concern from scratch; brownfield reads reference docs + accepted ADRs, constrains research to existing stack — NEVER re-litigate a settled ADR-recorded decision without superseding-ADR rationale.
+- Drive style choice with NUMBERS, not adjectives: quantify Step-2 quality-attribute scenarios (latency p95/p99, throughput, SLO, RPO/RTO, data growth, concurrency); any unknown target becomes explicit `Unresolved question`, never a silent guess.
+- Every concern needs 3+ researched options with cited evidence (stars, last release, downloads, CVE scan) + confidence % — familiarity alone never sufficient grounds for a recommendation.
+- Produce the two binding downstream contracts or the chain breaks: emit an ADR per hard-to-reverse decision (`architecture-review` Cat 9 enforces) and the Scaffold Handoff tool-choices table (`scaffold`/`harness-setup` consume), then run the MANDATORY Step-12 user-validation interview before confirming.
 - **Main steps/tasks (run in order, track each):** 1 Load Context (+pick greenfield/brownfield mode) → 2 Derive Architecture Requirements (+quantified quality-attribute scenarios, user-validate) → 3 Backend Architecture (styles + patterns) → 4 Frontend Architecture (styles + patterns) → 4B UI System Architecture (styling/tokens/components/responsive, user-validate; skip if backend-only) → 5 Library Ecosystem Research (3 options/concern) → 6 Testing Architecture → 7 CI/CD & Deployment → 8 Observability & Monitoring → 9 Code Quality + Scaffold Handoff table → 10 Dependency Risk Assessment → 11 Generate Report + emit ADRs → 12 User Validation Interview (8-12 questions, mark `confirmed`) → Next Steps + always-offer council escalation. — why: AI keeps forgetting the skill's own steps; this is the recovery anchor.
 
 **Workflow (12 steps):**
@@ -150,7 +150,7 @@ Map signals to architecture constraints:
 
 ### Quality-Attribute Scenarios (quantify — these drive the style choice)
 
-Qualitative "Must/Should" cannot decide between, e.g., modular monolith vs microservices. Capture **measurable** targets; ask user for any unknown by asking the user directly (guess acceptable only when labelled an assumption with confidence %). These targets become ADR-recorded budgets `architecture-review` Category 9 later checks changes against. — why: a style chosen without numbers is a guess, not an enforceable decision.
+Qualitative "Must/Should" cannot decide, e.g., modular monolith vs microservices. Capture **measurable** targets; ask user for any unknown by asking the user directly (guess acceptable only when labelled an assumption with confidence %). These targets become ADR-recorded budgets `architecture-review` Category 9 later checks changes against. — why: a style chosen without numbers is a guess, not an enforceable decision.
 
 | Quality attribute     | Scenario (stimulus → measurable response)                             | Target (fill in) |
 | --------------------- | -------------------------------------------------------------------- | ---------------- |
@@ -169,7 +169,7 @@ Qualitative "Must/Should" cannot decide between, e.g., modular monolith vs micro
 
 ### Architecture & Scalability Scorecard Inputs (feeds `architecture-scalability-review`)
 
-Record these decisions now so the init-time `architecture-scalability-review` scorecard (`mode=init`) can grade them later against **enforceable mechanisms, not intent**. Each row is a **design decision**, not a finding — capture the choice AND where it is enforced. Leave any unknown as an explicit `Unresolved question` (Step 11), never a silent omission. — why: a scorecard can only grade decisions that were actually recorded with an enforcement home.
+Record these decisions now so the init-time `architecture-scalability-review` scorecard (`mode=init`) can grade them later against **enforceable mechanisms, not intent**. Each row is a **design decision**, not a finding — capture the choice AND where it is enforced. Leave any unknown as explicit `Unresolved question` (Step 11), never a silent omission. — why: a scorecard can only grade decisions actually recorded with an enforcement home.
 
 | Scorecard input | Design prompt (decide + record where enforced) | Enforcement handoff |
 | --------------- | ---------------------------------------------- | ------------------- |
@@ -465,7 +465,7 @@ Research, recommend tooling for automated code quality:
 
 ### Scaffold Handoff (MANDATORY — consumed by `$scaffold`)
 
-After code quality research, produce this handoff table in architecture report. `$scaffold` reads this table to generate actual config files — without it, scaffold cannot auto-configure quality tooling. — why: the handoff table is the only contract scaffold has for tool choices.
+After code-quality research, produce this handoff table in the architecture report. `$scaffold` reads it to generate actual config files — without it, scaffold cannot auto-configure quality tooling. — why: the handoff table is the only contract scaffold has for tool choices.
 
 ```markdown
 ### Scaffold Handoff — Tool Choices
@@ -483,6 +483,20 @@ After code quality research, produce this handoff table in architecture report. 
 ```
 
 **Also include:** Error handling strategy (4-layer pattern), loading state approach (global vs per-component), Docker profile structure. Specific tool choices → `docs/project-reference/` or `project-config.json`. The **Arch rules / fitness** row MUST encode Step-2 quality-attribute budgets and layer/dependency rules as executable checks — `harness-setup` wires these into CI so recorded ADR decisions stay enforced, not merely documented. — why: documented-but-unenforced budgets erode silently as code changes.
+
+**Example patterns to scaffold (golden-path reference set):** the handoff MUST also name the worked, copy-me examples `$scaffold` emits under an isolated, production-excluded `examples/` tree — one per applicable pattern, using the scaffolded base abstractions, so the post-scaffold `$architecture-review-full` has real code to grade. Target set (≥ 11 when a UI is present; skip absent layers and log why):
+
+```markdown
+### Scaffold Handoff — Golden-Path Examples
+
+| Layer     | Example patterns (one worked `*.example.*` each)                                                        |
+| --------- | ------------------------------------------------------------------------------------------------------ |
+| Backend   | command · query · command/query handler · entity-with-invariants · value-object · repository (concrete) · domain event + event handler |
+| Frontend  | form component · list component · state store · API service  *(only if a UI stack is present)*          |
+| Tests     | one integration test exercising an example command/query on BOTH the happy path AND a failure path      |
+```
+
+Every example carries the `GOLDEN-PATH EXAMPLE — copy into src/ …; NOT compiled into the production build` header, contains NO secrets/real endpoints (placeholders only: `EXAMPLE_API_KEY`, `example.invalid`), and compiles/lints under the CI (non-production) target. — why: empty base abstractions are unverified skeletons; one worked example per pattern turns each into demonstrated, reviewable, copy-me usage.
 
 ---
 
@@ -702,6 +716,34 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 
+<!-- SYNC:scenario-stress-eval -->
+
+> **Scenario Stress & Resilience Evaluation** — CONDITIONAL, evidence-gated, business-criticality-aware. The top-down companion to `SYNC:scale-technique-gate`: instead of *"is technique X present?"*, put the system UNDER concrete failure/load scenarios and judge whether it SURVIVES, SELF-HEALS, and whether its BUSINESS needs it to. **ADVICE-ONLY: emit the Scenario Stress Matrix as guidance; NEVER mutate any score, verdict band, or gate pass/fail.**
+>
+> 1. **Reuse the scale tier** derived by `SYNC:scale-technique-gate` (or derive it identically from evidence); **also derive business-criticality `B0`–`B3`** from specs/SLA/product docs + the domain, cite `file:line` + confidence. `B0` best-effort · `B1` important · `B2` business-critical · `B3` mission-critical/regulated. Unknown → state the assumption, do **NOT** default to `B3`/`T3`. **Criticality-signal floor (both-directions safety):** regulated / PII / financial / health data, money movement, auth/identity, or legal-compliance scope raises `B` to **at least `B2` even absent SLA/SLO docs**; anti-over-engineering lowers hardening ONLY when NO such signal is present. `B` (blast if it fails) and `T` (scale of load/data) are independent — a low-traffic payroll run is low-`T`, high-`B`.
+> 2. **Select in-scope scenarios** — only those the system's `B`/`T` combination warrants (a `B0` internal PoC skips region-loss/DR entirely; a `B3`/`T0` regulated service still needs backups + DR by BUSINESS, not scale).
+> 3. **Walk each in-scope scenario:** simulate the stimulus → trace the break path → name the failure signature → answer the self-heal/recovery question (auto-recover? MTTR? manual runbook?) → name the trade-off it forces. Families: traffic spike · sustained growth · data-volume growth · write/ingest burst · dependency down/slow · instance/node loss · zone/region loss · **data loss/corruption** · poison-message/retry-storm · cascading failure/backpressure · cold-start/deploy-blip · clock-skew/duplicate-delivery.
+> 4. **Assign one verdict per scenario:** `WITHSTANDS` · `DEGRADES-GRACEFULLY` · `FAILS-HARD` (→ **advise only**) · `N/A-by-business` (not warranted → skip, not a gap) · `OVER-HARDENED` (resilience beyond business need → **advise AGAINST**, cite carrying cost).
+> 5. **Anti-over-engineering guard (first-class):** a lean system whose business does not need HA/DR is a PASS; `OVER-HARDENED` flags resilience the business does not warrant. This guard is symmetric with the criticality-signal floor above — never under-harden a `B2`+ system just because its traffic is low.
+> 6. **Output — Scenario Stress Matrix:** `scenario | in-scope (B/T)? | verdict | self-heal | trade-off | evidence (file:line/config/infra)`. Full catalog + Business×Scale in-scope baseline + verdict/tier tables → `.claude/docs/scenario-stress-catalog.md`. **ADVISORY-ONLY: NEVER mutate any `/20`, `/24`, verdict band, or gate pass/fail. Drift-guard: scenarios/verdicts/business-tiers are AUTHORITATIVE in the catalog — update it FIRST, then re-run `.claude/scripts/inject_scenario_stress_gate.py`. Scale tier stays single-sourced in `scale-technique-catalog.md`.**
+>
+> **BLOCKED until:** `- [ ]` scale tier + business-criticality (with criticality-signal floor) derived from evidence `- [ ]` in-scope scenarios selected `- [ ]` matrix emitted `- [ ]` over-hardening guard applied `- [ ]` advisory-only (no score/verdict mutation) confirmed
+
+<!-- /SYNC:scenario-stress-eval -->
+
+<!-- SYNC:scale-technique-gate:reminder -->
+
+**IMPORTANT MUST ATTENTION** scale-technique gate: derive the scale tier from evidence FIRST (T0 internal · T1 <10k · T2 10k–1M · T3 millions+), then judge each warranted technique `PRESENT`/`MISSING-WARRANTED`/`N/A-by-scale`/`OVER-ENGINEERED`. Advise on warranted-but-missing gaps AND advise AGAINST unwarranted heavyweight techniques (anti-over-engineering). **ADVICE-ONLY — emit the Technique Applicability Matrix as guidance; NEVER mutate any score, verdict band, or gate pass/fail.** Full catalog → `.claude/docs/scale-technique-catalog.md` (authoritative for tier thresholds & per-technique warranting tiers — on any change update the catalog FIRST, then re-run `inject_scale_technique_gate.py`).
+
+<!-- /SYNC:scale-technique-gate:reminder -->
+
+
+<!-- SYNC:scenario-stress-eval:reminder -->
+
+**IMPORTANT MUST ATTENTION** scenario-stress gate: reuse the scale tier `T0`–`T3` AND derive business-criticality `B0`–`B3` from evidence first — apply the **criticality-signal floor** (regulated/PII/financial/health data · money movement · auth/identity · legal-compliance → at least `B2` even absent SLA docs; do NOT default to `B3`). Select only the scenarios the `B`/`T` combination warrants, then walk each (simulate → trace → failure signature → self-heal/MTTR → trade-off) and assign `WITHSTANDS`/`DEGRADES-GRACEFULLY`/`FAILS-HARD`/`N/A-by-business`/`OVER-HARDENED`. Anti-over-engineering is first-class (a lean system that needs no HA/DR is a PASS) AND symmetric (never under-harden a `B2`+ system for low traffic). **ADVICE-ONLY — emit the Scenario Stress Matrix as guidance; NEVER mutate any score, verdict band, or gate pass/fail.** Full catalog → `.claude/docs/scenario-stress-catalog.md` (authoritative for scenarios/verdicts/business-tiers — on any change update the catalog FIRST, then re-run `inject_scenario_stress_gate.py`; scale tier stays single-sourced in `scale-technique-catalog.md`).
+
+<!-- /SYNC:scenario-stress-eval:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Deliver a complete, evidence-backed, user-validated architecture decision report — every concern researched with 3+ options, every recommendation carrying confidence % + cited evidence, every decision confirmed by the user — so implementation proceeds on sound, owned architectural choices.
@@ -732,6 +774,31 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 | "Small feature — skip the ADR / fitness check"       | Significant AND costly-to-reverse → needs an ADR + executable fitness rule, or it cannot be enforced. |
 | "Brownfield, but my preferred style is better"       | NEVER re-litigate a settled ADR-recorded decision without a superseding-ADR rationale.              |
 | "Found a nearby pattern, just copy it"               | Evaluate fit first — same scale/constraints/boundaries? Closest ≠ matching. Verify before reusing.  |
+
+<!-- SYNC:scale-technique-gate -->
+
+> **Scalability & Production-Readiness Technique Gate** — CONDITIONAL, evidence-gated, scale-tiered. Judge which system-design techniques a system *warrants* at its scale — flag warranted-but-missing gaps AND advise AGAINST unwarranted heavyweight ones. **ADVICE-ONLY: emit the matrix as guidance; NEVER mutate any score, verdict band, or gate pass/fail.**
+>
+> 1. **Derive the scale tier FIRST — from evidence, never assumed.** Read users/RPS, SLO/latency targets, data volume, tenancy, topology from config/infra/specs; cite `file:line` + confidence. Tiers: `T0` internal/single-instance · `T1` small SaaS (<10k users) · `T2` high-scale (10k–1M) · `T3` massive/multi-region (millions+). Unknown tier → state assumption, do NOT default to T3.
+> 2. **Judge each concern group only at/above its warranting tier** (member techniques → owning review skill for depth):
+>    - Traffic & Edge — Rate Limiting, Load Balancing, Reverse Proxy, API Gateway, CDN, Edge Caching, WAF, DDoS (T1+; CDN/WAF T2+) → security-review owns WAF/DDoS
+>    - Caching & Data Access — Caching, Cache Invalidation, DB Indexing, Query Optimization, N+1, Connection Pooling (T1+) → performance-review owns depth
+>    - Data Scaling & Consistency — Read Replicas, Sharding, Partitioning, Replication, CAP, Eventual Consistency, Locks, Leader Election (T2+; sharding/multi-region T3) → performance-review
+>    - Async & Messaging — Message Queues, Pub/Sub, Event-Driven, Saga, DLQ, Distributed Transactions, Backpressure, Webhooks, WebSockets/SSE (T2+)
+>    - Resilience — Circuit Breakers, Timeouts, Retries, Backoff, Idempotency, Health Checks, Liveness/Readiness, Failover, Graceful Degradation (T1+) → production-readiness-review
+>    - Scaling & Compute — Autoscaling, Horizontal/Vertical Scaling, Serverless Limits, Cold Starts, Cron Jobs, Thread Safety, GC/Memory Leaks (T1+; autoscaling T2+)
+>    - Deployment & Release — CI/CD, Docker, Kubernetes, Blue-Green/Canary/Rolling, Rollbacks, Feature Flags, IaC/Terraform/Helm, Build Caching (CI/CD T0+; K8s/canary T2+)
+>    - Observability — Monitoring, Logging, Distributed Tracing, Metrics, Alerting, SLOs/SLIs, Error Budgets (T1+; tracing/error-budgets T2+) → production-readiness-review
+>    - Security & Compliance — Secrets Management, IAM, OAuth, JWT Rotation, TLS, Encryption at Rest/Transit, CORS, CSRF, SQLi, XSS, SSRF (T0+) → security-review owns
+>    - DR & Infra — Backups, Disaster Recovery, Multi-Region, Chaos Engineering, Schema Versioning, DB Migrations, Cost Optimization (backups T1+; DR/multi-region/chaos T3) → production-readiness-review
+> 3. **Assign one of 4 verdicts per warranted technique:** `PRESENT` · `MISSING-WARRANTED` (→ **advise only** — guidance, NOT a score/gate lever) · `N/A-by-scale` (below warranting tier) · `OVER-ENGINEERED` (present but unwarranted at this tier → advise AGAINST).
+> 4. **Anti-over-engineering guard (first-class):** do NOT recommend K8s, sharding, multi-region, service mesh, event sourcing, or distributed transactions below their warranting tier. A correctly-lean small system is a PASS, never a gap.
+> 5. **Output — Technique Applicability Matrix:** `technique | tier-warranted? | present? | verdict | advice | evidence (file:line/config/infra)`. Full grouped catalog + per-tier baseline → `.claude/docs/scale-technique-catalog.md`. Hosting reviews surface this matrix WITHOUT changing any `/20`, `/24`, verdict band, or PASS/FAIL (per user decision 2026-07-06). **Drift-guard: tier thresholds & per-technique warranting tiers are AUTHORITATIVE in `.claude/docs/scale-technique-catalog.md` — the inline tier summary above is a condensed pointer; on any tier/technique change, update the catalog FIRST, then re-run `.claude/scripts/inject_scale_technique_gate.py` to re-propagate this block.**
+>
+> **BLOCKED until:** `- [ ]` tier derived from evidence (not assumed) `- [ ]` matrix emitted `- [ ]` over-engineering guard applied `- [ ]` advisory-only (no score/verdict mutation) confirmed
+
+<!-- /SYNC:scale-technique-gate -->
+
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 

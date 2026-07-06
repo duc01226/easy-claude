@@ -43,9 +43,9 @@ disable-model-invocation: false
 
 ## First Principle — Easy to Change
 
-> **The success metric of every coding decision is _future change cost_.**
+> **Success metric of every coding decision: _future change cost_.**
 > DRY, SRP, abstraction, design patterns, naming, layering, tests — every
-> technique exists to serve one goal: **making the next change cheaper**.
+> technique serves one goal: **making next change cheaper**.
 
 Evaluating code, refactor, test, abstraction, ask:
 **does this make next change cheaper or more expensive?**
@@ -56,7 +56,7 @@ Evaluating code, refactor, test, abstraction, ask:
   knowledge, unclear intent, irreversible decisions exposed too early**.
 - Simpler design easy to change beats sophisticated design that isn't.
 
-Apply this lens **before** invoking any specific rule, pattern, or checklist
+Apply this lens **before** invoking any rule, pattern, or checklist
 below — if a downstream rule raises change cost, this principle wins.
 
 ---
@@ -73,9 +73,9 @@ below — if a downstream rule raises change cost, this principle wins.
 > - No new pattern — follows existing codebase pattern
 > - User explicitly asked for a quick change
 >
-> **Any condition fails → use full protocol below.** When in doubt, default hard. Skipping rigor for non-trivial task wastes more time on rework than rigor saves.
+> **Any condition fails → use full protocol below.** When in doubt, default hard — skipping rigor on a non-trivial task wastes more rework than rigor saves.
 >
-> **Fast mode skips (and only skips):** parallel researcher subagents (use direct grep instead), 3-round `/plan-review` (1 round), `/plan-validate` interview (inline confirm only), New Tech/Lib Gate (only if truly no new deps).
+> **Fast mode skips (and only skips):** parallel researcher subagents (direct grep instead), 3-round `/plan-review` (1 round), `/plan-validate` interview (inline confirm only), New Tech/Lib Gate (only if truly no new deps).
 
 ## New Tech/Lib Gate (MANDATORY for all plans)
 
@@ -88,16 +88,16 @@ below — if a downstream rule raises change cost, this principle wins.
 **When greenfield detected:**
 
 1. Skip codebase analysis phase (researcher subagents grepping code)
-2. **Replace with:** market research + business evaluation phase via WebSearch + WebFetch
+2. **Replace with:** market research + business evaluation via WebSearch + WebFetch
 3. Delegate architecture decisions to `solution-architect` agent
 4. Output: `plans/{id}/plan.md` with greenfield-specific phases (domain model, tech stack, project structure)
 5. Skip reading project reference docs (won't exist in greenfield)
-6. Enable broad web research for tech landscape, best practices, framework comparisons
+6. Enable broad web research: tech landscape, best practices, framework comparisons
 7. Every decision point requires AskUserQuestion with 2-4 options + confidence %
-8. **[CRITICAL] Business-First Protocol:** Tech stack decisions come AFTER full business analysis. Do NOT ask user to pick tech stack upfront. Instead: complete business evaluation → derive technical requirements → research current market options → produce comparison report → present to user for decision. See `solution-architect` agent for full tech stack research methodology.
+8. **[CRITICAL] Business-First Protocol:** Tech stack decisions come AFTER full business analysis. Do NOT ask user to pick tech stack upfront. Instead: complete business evaluation → derive technical requirements → research current market options → produce comparison report → present to user. See `solution-architect` agent for full tech stack research methodology.
 
 - Research reports <=150 lines; plan.md <=80 lines
-- **External Memory:** Write all research and analysis to `.ai/workspace/analysis/{task-name}.analysis.md`. Re-read ENTIRE analysis file before generating plan.
+- **External Memory:** Write all research/analysis to `.ai/workspace/analysis/{task-name}.analysis.md`. Re-read ENTIRE analysis file before generating plan.
 
 Run the planning methodology engine. Load the relevant `references/engine-*.md` for each phase (skip a phase per its own skip rule):
 
@@ -135,7 +135,7 @@ When a `--mode` is present: (1) read the matching `references/mode-*.md`; (2) ap
 
 **When activated:**
 
-Phase 1 of plan MUST ATTENTION be **Architecture Scaffolding** — all base abstract classes, generic interfaces, infrastructure abstractions, DI registration with OOP/SOLID principles. Runs BEFORE feature stories. AI self-investigates what base classes the tech stack needs. All infrastructure behind interfaces with at least one concrete implementation (Dependency Inversion).
+Phase 1 of plan MUST ATTENTION be **Architecture Scaffolding** — all base abstract classes, generic interfaces, infrastructure abstractions, DI registration with OOP/SOLID principles. Runs BEFORE feature stories. AI self-investigates what base classes the tech stack needs. All infrastructure behind interfaces with ≥1 concrete implementation (Dependency Inversion). Phase 1's deliverable MUST ATTENTION also include the **golden-path example set** `/scaffold` emits — one worked, compile-checked `*.example.*` per applicable pattern (backend: command · query · handler · entity-with-invariants · value-object · repository · domain event + event handler; frontend-if-UI: form · list · store · API service; tests: one integration test on happy + failure path) in an isolated, production-excluded `examples/` tree using the scaffolded base abstractions, so post-scaffold `/architecture-review-full` gate has real, gradeable code before any feature work.
 
 **When skipped:** Plan proceeds normally — feature stories build on existing base classes.
 
@@ -163,17 +163,13 @@ Check `## Plan Context` section in injected context:
 
 ## Workflow
 
-1. If creating new: Create directory using `Plan dir:` from `## Naming` section, then run `node .claude/scripts/set-active-plan.cjs {plan-dir}`.
-   If reusing: Use active plan path from Plan Context.
-   Pass directory path to every subagent during process.
-2. **Goal Contract bootstrap (BEFORE investigation and phase writing):** resolve the active goal per `SYNC:goal-contract-satisfaction-loop` — create or update `{plan-dir}/goal.md` from `.claude/templates/goal-contract-template.md`, recording original request, purpose, success criteria, constraints, and required evidence. Every plan phase's success criteria must map to a saved goal criterion. Redact secrets.
+1. If creating new: create directory using `Plan dir:` from `## Naming` section, then run `node .claude/scripts/set-active-plan.cjs {plan-dir}`. If reusing: use active plan path from Plan Context. Pass directory path to every subagent.
+2. **Goal Contract bootstrap (BEFORE investigation and phase writing):** resolve active goal per `SYNC:goal-contract-satisfaction-loop` — create/update `{plan-dir}/goal.md` from `.claude/templates/goal-contract-template.md`, recording original request, purpose, success criteria, constraints, required evidence. Every phase's success criteria maps to a saved goal criterion. Redact secrets.
 3. Follow strictly the "Plan Creation & Organization" rules in `references/engine-plan-organization.md`.
-4. Use `researcher` agents (max 2) in parallel:
-   Each agent researches a different aspect; max 5 tool calls per agent.
-5. Analyze codebase: search for project reference docs (`patterns-reference`, `project-structure`, `architecture`, `adr`); read those found.
-   **ONLY IF docs not found or older than 3 days:** Use `/scout <instructions>` to search codebase for needed files.
+4. Use `researcher` agents (max 2) in parallel: each researches a different aspect; max 5 tool calls per agent.
+5. Analyze codebase: search project reference docs (`patterns-reference`, `project-structure`, `architecture`, `adr`); read those found. **ONLY IF docs not found or older than 3 days:** use `/scout <instructions>` to search codebase for needed files.
 6. Main agent gathers research/scout report filepaths; pass to `planner` subagent with prompt to create implementation plan.
-7. Main agent receives implementation plan from `planner` subagent; ask user to review.
+7. Main agent receives implementation plan from `planner`; ask user to review.
 
 ## Post-Plan Validation (Optional)
 
@@ -246,14 +242,14 @@ After plan creation, offer validation interview to confirm decisions before impl
 
 ## **IMPORTANT Task Planning Notes (MUST ATTENTION FOLLOW)**
 
-- Always plan and break work into many small todo tasks using `TaskCreate`
+- Always break work into many small todo tasks via `TaskCreate`
 - Always add a final review todo task to verify work quality and identify fixes/enhancements
-- **MANDATORY FINAL TASKS:** After creating all planning todo tasks, ALWAYS add these final tasks:
-    1. **Task: "Write test specifications for each phase"** — Add `## Test Specifications` with TC-{FEATURE}-{NNN} IDs to every phase file. Use `/spec [mode=tests]` if feature docs exist. Use `Evidence: TBD` for TDD-first mode.
-    2. **Task: "Run /plan-validate"** — Trigger `/plan-validate` skill to interview user with critical questions and validate plan assumptions
-    3. **Task: "Run /plan-review"** — Trigger `/plan-review` skill with deep 3-round protocol (R1: checklist, R2: code-proof trace, R3: adversarial simulation). Review depth based on SP: ≤3 → 2 rounds min, 4-8 → 3 rounds, >8 → 3 rounds + code-proof mandatory.
-    4. **Task: "Run /why-review (standalone only)"** — If NOT inside a workflow, trigger `/why-review` to validate design rationale, alternatives considered, and risk assessment in plan. Skip if a workflow already includes `/why-review` in its sequence.
-    5. **Task: "Re-evaluate estimation against finalized plan"** — Pre-completion estimates anchor on scope guesses; finalized phases reveal true cost. After phases/TCs/decisions are locked: (a) re-derive `bottom_up_hours = Σ phase_hours` from finalized phase files; (b) recompute `likely_days`, `risk_margin_pct`, `min-max range` per `SYNC:estimation-framework`; (c) compare to current frontmatter `man_days_traditional` / `story_points`. If `|delta| > 20%` → UPDATE frontmatter, add `reestimate_delta_pct: <signed>` + 1-line `reestimate_reason`. If `|delta| > 50%` → flag `SHOULD-RESCOPE` and surface to user via `AskUserQuestion` before implementation.
+- **MANDATORY FINAL TASKS:** After all planning todos, ALWAYS add these final tasks:
+    1. **Task: "Write test specifications for each phase"** — Add `## Test Specifications` with TC-{FEATURE}-{NNN} IDs to every phase file. Use `/spec [mode=tests]` if feature docs exist; `Evidence: TBD` for TDD-first mode.
+    2. **Task: "Run /plan-validate"** — `/plan-validate` skill interviews user with critical questions, validates plan assumptions.
+    3. **Task: "Run /plan-review"** — `/plan-review` skill, deep 3-round protocol (R1: checklist, R2: code-proof trace, R3: adversarial simulation). Depth by SP: ≤3 → 2 rounds min, 4-8 → 3 rounds, >8 → 3 rounds + code-proof mandatory.
+    4. **Task: "Run /why-review (standalone only)"** — If NOT inside a workflow, `/why-review` validates design rationale, alternatives considered, risk assessment. Skip if a workflow already includes `/why-review`.
+    5. **Task: "Re-evaluate estimation against finalized plan"** — Pre-completion estimates anchor on scope guesses; finalized phases reveal true cost. After phases/TCs/decisions locked: (a) re-derive `bottom_up_hours = Σ phase_hours` from finalized phase files; (b) recompute `likely_days`, `risk_margin_pct`, `min-max range` per `SYNC:estimation-framework`; (c) compare to current frontmatter `man_days_traditional` / `story_points`. If `|delta| > 20%` → UPDATE frontmatter, add `reestimate_delta_pct: <signed>` + 1-line `reestimate_reason`. If `|delta| > 50%` → flag `SHOULD-RESCOPE` and surface to user via `AskUserQuestion` before implementation.
 
 ## Important Notes
 
@@ -273,11 +269,11 @@ After plan creation, offer validation interview to confirm decisions before impl
 
 **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, MUST ATTENTION use `AskUserQuestion` to present these options. Do NOT skip because task seems "simple" or "obvious" — user decides:
 
-- **"Proceed with full workflow (Recommended)"** — Detect best workflow to continue from here (plan created). Ensures review, validation, implementation, testing steps aren't skipped.
-- **"/why-review"** — Validate design rationale in plan before implementation (standalone only — skipped when workflow includes it)
+- **"Proceed with full workflow (Recommended)"** — Detect best workflow to continue (plan created). Ensures review, validation, implementation, testing not skipped.
+- **"/why-review"** — Validate design rationale before implementation (standalone only — skipped when workflow includes it)
 - **"/plan-review"** — Validate plan before implementation
 - **"/plan-validate"** — Interview user to confirm plan decisions
-- **"/plan-execute"** — Start coding & testing the finalized plan (execute-the-plan implementation step). Recommended implementation route after the plan is validated.
+- **"/plan-execute"** — Start coding & testing the finalized plan. Recommended implementation route after plan validated.
 - **"Skip, continue manually"** — user decides
 
 ## Post-Plan Granularity Self-Check (MANDATORY)

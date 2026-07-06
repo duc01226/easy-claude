@@ -81,24 +81,24 @@ $ARGUMENTS
 
 **Be skeptical. Every claim needs traced proof, confidence >80%.**
 
-- NEVER accept operational readiness at face value — verify by reading actual implementations
+- NEVER accept operational readiness at face value — verify by reading implementations
 - Every score MUST have `file:line` evidence — unprovable score = 0
 - Question: "Is this really handled?" → trace error/retry/timeout path to confirm
-- Challenge: "Are ALL failure modes covered?" → check what happens when dependencies fail
+- Challenge: "Are ALL failure modes covered?" → check behavior when dependencies fail
 - Verify: "Can we debug this in production?" → check logging, correlation, metrics
 
 ## Scope Resolution
 
 1. Arguments specify files/directories → review those
 2. Else → review uncommitted changes (`git diff --name-only`)
-3. Focus: backend source files under the service root (per the project's structure reference / `docs/project-config.json`), API controllers, service classes
+3. Focus: backend source files under service root (per the project's structure reference / `docs/project-config.json`), API controllers, service classes
 4. Skip: frontend files, test files, documentation, config-only changes
 
 ## Production Readiness Scoring
 
 Score each criterion 0-2: **0** = not addressed, **1** = partially, **2** = fully.
 
-> **MANDATORY when batched (≥10 files, `SYNC:systematic-review-batching` active):** the 12 criteria are scored **holistically across the FULL cross-batch scope**, NOT by merging or averaging per-batch scores. Several criteria are inherently cross-file — e.g. "all query filter fields have indexes" can have the query in one batch and the migration in another; a per-batch score sees only its ≤8 files and would false-flag a `0` when the satisfying file lives in a different batch. The synthesis/reduce tier MUST therefore **RE-SCORE each of the 12 criteria from the combined cross-batch evidence** (batch agents surface evidence per criterion; the reducer assigns the score). If holistic re-score is infeasible for a given run, do NOT batch production-readiness-review — fall back to whole-scope serial scoring.
+> **MANDATORY when batched (≥10 files, `SYNC:systematic-review-batching` active):** score the 12 criteria **holistically across the FULL cross-batch scope**, NOT by merging or averaging per-batch scores. Several criteria are cross-file — e.g. "all query filter fields have indexes" can have the query in one batch, the migration in another; a per-batch score sees only its ≤8 files and false-flags `0` when the satisfying file lives in a different batch. The synthesis/reduce tier MUST therefore **RE-SCORE each of the 12 criteria from combined cross-batch evidence** (batch agents surface evidence per criterion; reducer assigns the score). If holistic re-score is infeasible, do NOT batch production-readiness-review — fall back to whole-scope serial scoring.
 
 ### Observability (max 8)
 
@@ -154,7 +154,7 @@ Score each criterion 0-2: **0** = not addressed, **1** = partially, **2** = full
 
 ## Extended SRE Readiness Gate (step-by-step, pass/fail — gating, NOT scored)
 
-> **Runs as main step 3, after scoring and before verdict mapping.** These are the deploy-time and operate-time SRE aspects the 12-criteria `/24` model does NOT score. Check each item **step by step**; record `pass` / `partial` / `fail` with `file:line` evidence or an explicit `N/A — reason`. The gate does **not** change the `/24` math — it overlays it: **an unaccepted CRITICAL/HIGH `fail` blocks a PASS verdict regardless of the score** (per the Severity Rubric — CRITICAL/HIGH must be resolved or owner-accepted before PASS). Read deployment context from `docs/project-config.json → infrastructure` (already referenced above) to decide which items are `N/A` (e.g. no orchestration → readiness/liveness probes `N/A` with stated reason).
+> **Runs as main step 3, after scoring, before verdict mapping.** Deploy-time and operate-time SRE aspects the 12-criteria `/24` model does NOT score. Check each item **step by step**; record `pass` / `partial` / `fail` with `file:line` evidence or explicit `N/A — reason`. Gate does **not** change `/24` math — it overlays it: **an unaccepted CRITICAL/HIGH `fail` blocks a PASS verdict regardless of score** (per Severity Rubric — CRITICAL/HIGH must be resolved or owner-accepted before PASS). Read deployment context from `docs/project-config.json → infrastructure` (referenced above) to decide which items are `N/A` (e.g. no orchestration → readiness/liveness probes `N/A` with stated reason).
 
 | # | Gate Item | What to Check | Status | Evidence |
 | - | --------- | ------------- | ------ | -------- |
@@ -168,6 +168,12 @@ Score each criterion 0-2: **0** = not addressed, **1** = partially, **2** = full
 | G8 | **Concurrency & Idempotency** | Operations are safe under retry / at-least-once delivery; no race on shared state; idempotency keys where needed. | pass/partial/fail | ... |
 
 **Gate verdict:** `{n}/8 pass`. Any CRITICAL/HIGH `fail` not explicitly owner-accepted ⇒ overall verdict cannot be PASS even at a 19-24 score.
+
+## Technique Applicability (advisory — NON-SCORING, NON-GATING)
+
+Invoke `SYNC:scale-technique-gate`: derive the system's scale tier from evidence (users/RPS, SLO, data volume, tenancy, topology — cite `file:line`/config/infra + confidence), then emit the **Technique Applicability Matrix** (`technique | tier-warranted? | present? | verdict | advice | evidence`) across the 10 concern groups. Surface warranted-but-missing reliability/scale techniques (rate limiting, backups, DR, failover, graceful degradation) as **advice**; flag `OVER-ENGINEERED` techniques the tier does not warrant.
+
+> **Advisory only — this matrix does NOT add a gate item, does NOT change the `{n}/8` gate result, the `/24` score, or the verdict.** A `MISSING-WARRANTED` technique is guidance to consider at this tier, NOT a gate `fail`. `N/A-by-scale` for small systems is expected, never a failure. Full catalog → `.claude/docs/scale-technique-catalog.md`.
 
 ## Scoring
 
@@ -187,7 +193,7 @@ Score each criterion 0-2: **0** = not addressed, **1** = partially, **2** = full
 
 ## Validated Fix + Full Re-Review (MANDATORY when fixes are applied)
 
-When a review pass finds issues, validate findings before any fix. Do not spawn a fresh sub-agent only to re-review the same finding set before validation/fix. After validated SRE fixes are applied, rerun the full SRE review. If that restarted review uses a sub-agent, spawn it with ZERO prior-round memory. A clean review pass ENDS the review.
+When a review pass finds issues, validate findings before any fix. Do NOT spawn a fresh sub-agent only to re-review the same finding set before validation/fix. After validated SRE fixes applied, rerun the full SRE review. If that restarted review uses a sub-agent, spawn it with ZERO prior-round memory. A clean review pass ENDS the review.
 
 **When a fresh sub-agent is part of the restarted review, spawn via canonical template in `SYNC:review-protocol-injection`:**
 
@@ -203,7 +209,7 @@ When a review pass finds issues, validate findings before any fix. Do not spawn 
 - Operational concerns spanning multiple services
 - Subtle reliability gaps (retry, circuit breakers, timeout handling)
 - Missing observability (structured logging, correlation IDs, metrics)
-- Data integrity edge cases under concurrent load
+- Data-integrity edge cases under concurrent load
 
 **Final verdict = every review pass that actually ran, combined.**
 
@@ -278,8 +284,8 @@ _Any unaccepted CRITICAL/HIGH `fail` above blocks a PASS verdict regardless of t
 - Advisory (final VERDICT only) — score/verdict inform team but don't block commits; MANDATORY process steps (graph gate, validated-fix full re-review, Database Performance Protocol) are NEVER advisory
 - Evidence-based — cite `file:line` for every score; unprovable score = 0
 - Proportional — small bug fixes need less rigor than new endpoints (applies to VERDICT interpretation, NOT to skipping MANDATORY steps)
-- Extended SRE Readiness gate is pass/fail, NOT scored — it does not change the `/24` math; but an unaccepted CRITICAL/HIGH gate `fail` blocks a PASS verdict (Severity Rubric). Use `docs/project-config.json → infrastructure` to mark items `N/A` with a stated reason
-- Check framework patterns — background job base handlers, base controller error handling
+- Extended SRE Readiness gate is pass/fail, NOT scored — does not change `/24` math; but an unaccepted CRITICAL/HIGH gate `fail` blocks a PASS verdict (Severity Rubric). Use `docs/project-config.json → infrastructure` to mark items `N/A` with stated reason
+- Check framework patterns — background-job base handlers, base-controller error handling
 
 ---
 
@@ -300,7 +306,7 @@ _Any unaccepted CRITICAL/HIGH `fail` above blocks a PASS verdict regardless of t
 - **"$test"** — run tests before wrapping up
 - **"Skip, continue manually"** — user decides
 
-> **Combined audit:** For a whole-project architecture + compliance + production-readiness audit in one pass, run `$architecture-review-full` (or `$start-workflow workflow-architecture-audit`) — it fans out this skill, `architecture-review`, and `architecture-scalability-review` as parallel sub-agents and synthesizes one consolidated report.
+> **Combined audit:** For a whole-project architecture + compliance + production-readiness audit in one pass, run `$architecture-review-full` (or `$start-workflow workflow-architecture-audit`) — fans out this skill, `architecture-review`, `architecture-scalability-review` as parallel sub-agents and synthesizes one consolidated report.
 
 ---
 
@@ -788,6 +794,45 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:category-review-thinking -->
 
+<!-- SYNC:scale-technique-gate -->
+
+> **Scalability & Production-Readiness Technique Gate** — CONDITIONAL, evidence-gated, scale-tiered. Judge which system-design techniques a system *warrants* at its scale — flag warranted-but-missing gaps AND advise AGAINST unwarranted heavyweight ones. **ADVICE-ONLY: emit the matrix as guidance; NEVER mutate any score, verdict band, or gate pass/fail.**
+>
+> 1. **Derive the scale tier FIRST — from evidence, never assumed.** Read users/RPS, SLO/latency targets, data volume, tenancy, topology from config/infra/specs; cite `file:line` + confidence. Tiers: `T0` internal/single-instance · `T1` small SaaS (<10k users) · `T2` high-scale (10k–1M) · `T3` massive/multi-region (millions+). Unknown tier → state assumption, do NOT default to T3.
+> 2. **Judge each concern group only at/above its warranting tier** (member techniques → owning review skill for depth):
+>    - Traffic & Edge — Rate Limiting, Load Balancing, Reverse Proxy, API Gateway, CDN, Edge Caching, WAF, DDoS (T1+; CDN/WAF T2+) → security-review owns WAF/DDoS
+>    - Caching & Data Access — Caching, Cache Invalidation, DB Indexing, Query Optimization, N+1, Connection Pooling (T1+) → performance-review owns depth
+>    - Data Scaling & Consistency — Read Replicas, Sharding, Partitioning, Replication, CAP, Eventual Consistency, Locks, Leader Election (T2+; sharding/multi-region T3) → performance-review
+>    - Async & Messaging — Message Queues, Pub/Sub, Event-Driven, Saga, DLQ, Distributed Transactions, Backpressure, Webhooks, WebSockets/SSE (T2+)
+>    - Resilience — Circuit Breakers, Timeouts, Retries, Backoff, Idempotency, Health Checks, Liveness/Readiness, Failover, Graceful Degradation (T1+) → production-readiness-review
+>    - Scaling & Compute — Autoscaling, Horizontal/Vertical Scaling, Serverless Limits, Cold Starts, Cron Jobs, Thread Safety, GC/Memory Leaks (T1+; autoscaling T2+)
+>    - Deployment & Release — CI/CD, Docker, Kubernetes, Blue-Green/Canary/Rolling, Rollbacks, Feature Flags, IaC/Terraform/Helm, Build Caching (CI/CD T0+; K8s/canary T2+)
+>    - Observability — Monitoring, Logging, Distributed Tracing, Metrics, Alerting, SLOs/SLIs, Error Budgets (T1+; tracing/error-budgets T2+) → production-readiness-review
+>    - Security & Compliance — Secrets Management, IAM, OAuth, JWT Rotation, TLS, Encryption at Rest/Transit, CORS, CSRF, SQLi, XSS, SSRF (T0+) → security-review owns
+>    - DR & Infra — Backups, Disaster Recovery, Multi-Region, Chaos Engineering, Schema Versioning, DB Migrations, Cost Optimization (backups T1+; DR/multi-region/chaos T3) → production-readiness-review
+> 3. **Assign one of 4 verdicts per warranted technique:** `PRESENT` · `MISSING-WARRANTED` (→ **advise only** — guidance, NOT a score/gate lever) · `N/A-by-scale` (below warranting tier) · `OVER-ENGINEERED` (present but unwarranted at this tier → advise AGAINST).
+> 4. **Anti-over-engineering guard (first-class):** do NOT recommend K8s, sharding, multi-region, service mesh, event sourcing, or distributed transactions below their warranting tier. A correctly-lean small system is a PASS, never a gap.
+> 5. **Output — Technique Applicability Matrix:** `technique | tier-warranted? | present? | verdict | advice | evidence (file:line/config/infra)`. Full grouped catalog + per-tier baseline → `.claude/docs/scale-technique-catalog.md`. Hosting reviews surface this matrix WITHOUT changing any `/20`, `/24`, verdict band, or PASS/FAIL (per user decision 2026-07-06). **Drift-guard: tier thresholds & per-technique warranting tiers are AUTHORITATIVE in `.claude/docs/scale-technique-catalog.md` — the inline tier summary above is a condensed pointer; on any tier/technique change, update the catalog FIRST, then re-run `.claude/scripts/inject_scale_technique_gate.py` to re-propagate this block.**
+>
+> **BLOCKED until:** `- [ ]` tier derived from evidence (not assumed) `- [ ]` matrix emitted `- [ ]` over-engineering guard applied `- [ ]` advisory-only (no score/verdict mutation) confirmed
+
+<!-- /SYNC:scale-technique-gate -->
+
+<!-- SYNC:scenario-stress-eval -->
+
+> **Scenario Stress & Resilience Evaluation** — CONDITIONAL, evidence-gated, business-criticality-aware. The top-down companion to `SYNC:scale-technique-gate`: instead of *"is technique X present?"*, put the system UNDER concrete failure/load scenarios and judge whether it SURVIVES, SELF-HEALS, and whether its BUSINESS needs it to. **ADVICE-ONLY: emit the Scenario Stress Matrix as guidance; NEVER mutate any score, verdict band, or gate pass/fail.**
+>
+> 1. **Reuse the scale tier** derived by `SYNC:scale-technique-gate` (or derive it identically from evidence); **also derive business-criticality `B0`–`B3`** from specs/SLA/product docs + the domain, cite `file:line` + confidence. `B0` best-effort · `B1` important · `B2` business-critical · `B3` mission-critical/regulated. Unknown → state the assumption, do **NOT** default to `B3`/`T3`. **Criticality-signal floor (both-directions safety):** regulated / PII / financial / health data, money movement, auth/identity, or legal-compliance scope raises `B` to **at least `B2` even absent SLA/SLO docs**; anti-over-engineering lowers hardening ONLY when NO such signal is present. `B` (blast if it fails) and `T` (scale of load/data) are independent — a low-traffic payroll run is low-`T`, high-`B`.
+> 2. **Select in-scope scenarios** — only those the system's `B`/`T` combination warrants (a `B0` internal PoC skips region-loss/DR entirely; a `B3`/`T0` regulated service still needs backups + DR by BUSINESS, not scale).
+> 3. **Walk each in-scope scenario:** simulate the stimulus → trace the break path → name the failure signature → answer the self-heal/recovery question (auto-recover? MTTR? manual runbook?) → name the trade-off it forces. Families: traffic spike · sustained growth · data-volume growth · write/ingest burst · dependency down/slow · instance/node loss · zone/region loss · **data loss/corruption** · poison-message/retry-storm · cascading failure/backpressure · cold-start/deploy-blip · clock-skew/duplicate-delivery.
+> 4. **Assign one verdict per scenario:** `WITHSTANDS` · `DEGRADES-GRACEFULLY` · `FAILS-HARD` (→ **advise only**) · `N/A-by-business` (not warranted → skip, not a gap) · `OVER-HARDENED` (resilience beyond business need → **advise AGAINST**, cite carrying cost).
+> 5. **Anti-over-engineering guard (first-class):** a lean system whose business does not need HA/DR is a PASS; `OVER-HARDENED` flags resilience the business does not warrant. This guard is symmetric with the criticality-signal floor above — never under-harden a `B2`+ system just because its traffic is low.
+> 6. **Output — Scenario Stress Matrix:** `scenario | in-scope (B/T)? | verdict | self-heal | trade-off | evidence (file:line/config/infra)`. Full catalog + Business×Scale in-scope baseline + verdict/tier tables → `.claude/docs/scenario-stress-catalog.md`. **ADVISORY-ONLY: NEVER mutate any `/20`, `/24`, verdict band, or gate pass/fail. Drift-guard: scenarios/verdicts/business-tiers are AUTHORITATIVE in the catalog — update it FIRST, then re-run `.claude/scripts/inject_scenario_stress_gate.py`. Scale tier stays single-sourced in `scale-technique-catalog.md`.**
+>
+> **BLOCKED until:** `- [ ]` scale tier + business-criticality (with criticality-signal floor) derived from evidence `- [ ]` in-scope scenarios selected `- [ ]` matrix emitted `- [ ]` over-hardening guard applied `- [ ]` advisory-only (no score/verdict mutation) confirmed
+
+<!-- /SYNC:scenario-stress-eval -->
+
 <!-- SYNC:double-round-trip-review:reminder -->
 - **MANDATORY IMPORTANT MUST ATTENTION** execute the review loop: review → validate findings → fix validated findings → full re-review. A complete review pass with zero findings ENDS the review.
 <!-- /SYNC:double-round-trip-review:reminder -->
@@ -870,6 +915,19 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 
+<!-- SYNC:scale-technique-gate:reminder -->
+
+**IMPORTANT MUST ATTENTION** scale-technique gate: derive the scale tier from evidence FIRST (T0 internal · T1 <10k · T2 10k–1M · T3 millions+), then judge each warranted technique `PRESENT`/`MISSING-WARRANTED`/`N/A-by-scale`/`OVER-ENGINEERED`. Advise on warranted-but-missing gaps AND advise AGAINST unwarranted heavyweight techniques (anti-over-engineering). **ADVICE-ONLY — emit the Technique Applicability Matrix as guidance; NEVER mutate any score, verdict band, or gate pass/fail.** Full catalog → `.claude/docs/scale-technique-catalog.md` (authoritative for tier thresholds & per-technique warranting tiers — on any change update the catalog FIRST, then re-run `inject_scale_technique_gate.py`).
+
+<!-- /SYNC:scale-technique-gate:reminder -->
+
+
+<!-- SYNC:scenario-stress-eval:reminder -->
+
+**IMPORTANT MUST ATTENTION** scenario-stress gate: reuse the scale tier `T0`–`T3` AND derive business-criticality `B0`–`B3` from evidence first — apply the **criticality-signal floor** (regulated/PII/financial/health data · money movement · auth/identity · legal-compliance → at least `B2` even absent SLA docs; do NOT default to `B3`). Select only the scenarios the `B`/`T` combination warrants, then walk each (simulate → trace → failure signature → self-heal/MTTR → trade-off) and assign `WITHSTANDS`/`DEGRADES-GRACEFULLY`/`FAILS-HARD`/`N/A-by-business`/`OVER-HARDENED`. Anti-over-engineering is first-class (a lean system that needs no HA/DR is a PASS) AND symmetric (never under-harden a `B2`+ system for low traffic). **ADVICE-ONLY — emit the Scenario Stress Matrix as guidance; NEVER mutate any score, verdict band, or gate pass/fail.** Full catalog → `.claude/docs/scenario-stress-catalog.md` (authoritative for scenarios/verdicts/business-tiers — on any change update the catalog FIRST, then re-run `inject_scenario_stress_gate.py`; scale tier stays single-sourced in `scale-technique-catalog.md`).
+
+<!-- /SYNC:scenario-stress-eval:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Ensure service/API changes are production-ready for observability, reliability, data integrity, and database performance — score each dimension on service/API changes so working code that can be debugged, monitored, and rolled back ships, and operational technical debt does not.
@@ -892,6 +950,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **Systematic Batching:** ≥10 files → size-capped parallel batches, then reduce.
 - **Severity Rubric:** Classify Critical/High/Medium/Low by consequence; map 0-2 scores onto it.
 - **Category Review Thinking:** Derive each category's concerns from first principles, not a checklist.
+- **Scale-Technique Gate (advisory):** Derive scale tier from evidence, emit the Technique Applicability Matrix as guidance — NEVER mutate the `/24`, the `{n}/8` gate, or the verdict.
 
 **IMPORTANT MUST ATTENTION** every score requires `file:line` evidence — unprovable score = 0; assume the worst without proof — why: an unverified "looks fine" is how silent operational gaps reach production.
 **IMPORTANT MUST ATTENTION** the DB Performance Protocol, graph gate, and validated-fix full re-review are NEVER skippable regardless of change size — VERDICT is advisory, these process steps are not — why: small changes are exactly where unbounded queries and missing re-reviews slip through.

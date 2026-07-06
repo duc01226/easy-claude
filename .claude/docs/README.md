@@ -7,10 +7,10 @@
 | Goal                         | Document                                                                                        |
 | ---------------------------- | ----------------------------------------------------------------------------------------------- |
 | **New to Claude Code?**      | [quick-start.md](./quick-start.md) - 5-minute onboarding                                        |
-| **Need a skill?**            | [skills/README.md](./skills/README.md) - 154 skills catalog                                     |
+| **Need a skill?**            | [skills/README.md](./skills/README.md) - 156 skills catalog                                     |
 | **Building a feature?**      | [skills/README.md](./skills/README.md) + `docs/project-reference/` patterns                     |
 | **Understanding hooks?**     | [hooks/README.md](./hooks/README.md) - 15 top-level hook files deep-dive                        |
-| **Understanding workflows?** | `CLAUDE.md` workflow catalog (project root) - 17 workflows                                      |
+| **Understanding workflows?** | `CLAUDE.md` workflow catalog (project root) - 18 workflows                                      |
 | **Configuring Claude?**      | [configuration/README.md](./configuration/README.md)                                            |
 | **Team collaboration?**      | [team-collaboration-guide.md](./team-collaboration-guide.md) - PO, BA, QA, QC, UX, PM workflows |
 | **Graph intelligence?**      | [code-graph-mechanism.md](./code-graph-mechanism.md) - How structural code analysis works       |
@@ -23,7 +23,7 @@
 |-- README.md                 <- You are here (Navigation hub)
 |-- quick-start.md            5-minute onboarding guide
 |
-|-- skills/                   154 skills across 15+ domains
+|-- skills/                   156 skills across 15+ domains
 |   |-- README.md             Skills overview + full catalog
 |   +-- (patterns)           → docs/project-reference/
 |

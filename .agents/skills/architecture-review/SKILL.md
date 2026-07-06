@@ -55,7 +55,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **Summary:**
 
-- **Purpose:** validate a changeset against the architecture rules the project records in its OWN reference docs, classify every finding PASS/WARN/BLOCKED with `file:line` proof, then self-validate before handoff — this skill is one reviewer in the `workflow-review-changes` pipeline.
+- **Purpose:** validate a changeset against architecture rules the project records in its OWN reference docs; classify every finding PASS/WARN/BLOCKED with `file:line` proof; self-validate before handoff — one reviewer in the `workflow-review-changes` pipeline.
 - **Main phases — run in order:** Phase 0 load architecture rules → Phase 1 determine scope → Phase 2 blast radius (if `graph.db`) → Phase 3 architecture review (12 categories) → Phase 4 finalize compliance report → Phase 5 `$why-review` self-validation gate → Next Steps ask the user directly.
 - **The 12 Phase-3 categories — review EVERY applicable one, serially:** 0 quality-tooling baseline · 1 clean-architecture layers · 2 message-bus patterns · 3 CQRS compliance · 4 repository patterns · 5 service-pattern era (legacy vs modern) · 6 entity event handlers · 7 service boundaries · 8 frontend architecture (frontend files only) · 9 ADR / recorded-decision conformance · 10 spec-loop discipline (property-TC + dual-feedback) · 11 scalability & coupling regression (diff-scoped; BLOCKED/WARN). Per category: `Think:` derivation → doc rule → source evidence → `file:line` proof + grep 3+ counterexamples → verdict. NEVER scan categories in parallel; codebase convention wins over a suspected violation. — why: skipping a category silently drops the violation class it uniquely covers.
 - Phase 0 is non-negotiable and first: load the project architecture docs (`backend-patterns-reference.md`, `project-structure-reference.md`, `frontend-patterns-reference.md`, `code-review-rules.md`) — every rule and base-class/symbol name comes from those docs, NEVER general knowledge; the framework names in Categories 2–8 are illustrative only.
@@ -198,7 +198,7 @@ Per file in scope, evaluate against ALL applicable categories. Skip categories n
 
 MUST ATTENTION review serially. Per applicable category: read docs/source evidence → derive risk with `Think:` → grep 3+ examples/counterexamples → record PASS/WARN/BLOCKED. NEVER scan categories simultaneously — why: parallel scanning collapses per-category evidence into one undifferentiated pass and drops findings.
 
-> **Portability note (MUST ATTENTION):** Concrete framework symbols, base-class names, directory conventions in Categories 2–8 below are **illustrative examples** — authoritative form for repository under review sourced from Phase 0 reference docs (`backend-patterns-reference.md`, `frontend-patterns-reference.md`, `project-structure-reference.md`), so verify code against those docs. On any stack, map each example to project's equivalent as named in its own reference docs, flag deviations from project's **actual** convention — NEVER from these literal names. Same discipline as Category 5: read project docs at review time; NEVER treat hardcoded name as universal.
+> **Portability note (MUST ATTENTION):** Framework symbols, base-class names, directory conventions in Categories 2–8 below are **illustrative examples** — authoritative form comes from Phase 0 reference docs (`backend-patterns-reference.md`, `frontend-patterns-reference.md`, `project-structure-reference.md`); verify code against those docs. On any stack, map each example to project's equivalent as named in its own reference docs, flag deviations from project's **actual** convention — NEVER from these literal names. Same discipline as Category 5: read project docs at review time; NEVER treat a hardcoded name as universal.
 
 ---
 
@@ -448,6 +448,8 @@ BLOCKED: {filePath}:{line} new sync cross-context call to {context} — recorded
 WARN: {filePath}:{line} cross-context duplication of {rule/util} — DRY regression (route shared-lib decision to architecture-scalability-review / scaffold)
 ```
 
+**Technique applicability (advisory — INFO, does NOT alter this category's verdict):** When the diff touches a scale-sensitive surface, invoke `SYNC:scale-technique-gate` — derive the scale tier from evidence, then emit the Technique Applicability Matrix as an **INFO/advisory** block noting warranted-but-missing techniques and any `OVER-ENGINEERED` ones. This is guidance only: it is NEVER a BLOCKED/WARN finding, does NOT change the Category 11 severity, and does NOT feed the Phase 4 verdict table. A `MISSING-WARRANTED` technique is advice to consider, not a regression. Full catalog → `.claude/docs/scale-technique-catalog.md`.
+
 ---
 
 ## Phase 4: Finalize — Architecture Compliance Report
@@ -510,7 +512,10 @@ Update report with final sections:
 - Frontend Architecture: {PASS/WARN/BLOCKED/N/A}
 - ADR / Recorded-Decision Conformance: {PASS/WARN/BLOCKED/N/A}
 - Spec-Loop Discipline (property-TC + dual-feedback): {PASS/WARN/BLOCKED}
+- Technique applicability (advisory — INFO, does NOT alter verdict): {matrix summary or N/A-by-scale}
 ```
+
+> The "Technique applicability" line is **advisory/INFO only** — it reports the scale-tier technique matrix as guidance and NEVER changes any category severity or the Phase 4 verdict.
 
 ---
 
@@ -540,7 +545,7 @@ Per changed file:
 
 ## Phase 5: Why-Review Self-Validation Gate (MANDATORY when findings exist)
 
-> **Purpose:** Adversarial validation of own findings BEFORE handoff. Catches over-flagged Highs, false positives, severity inflation at source rather than letting them propagate downstream.
+> **Purpose:** Adversarial validation of own findings BEFORE handoff — catch over-flagged Highs, false positives, severity inflation at source, not downstream.
 
 **Trigger:** Any finding produced (Critical, High, Medium, OR Low). Skip ONLY when report's verdict is unconditional PASS with literally zero findings.
 
@@ -557,7 +562,7 @@ Per changed file:
 - Verdict unconditional PASS with zero findings → log "Skipped — no findings to validate".
 - Why-review skill itself is active context (avoid recursion).
 
-**Why this exists:** AI sub-agent reports inherit confirmation bias — orchestrator absorbs severity claims as ground truth. The 2026-05-09 review incident produced 5 Highs; adversarial validation demoted 3 of them. Codify as standard practice.
+**Why this exists:** AI sub-agent reports inherit confirmation bias — orchestrator absorbs severity claims as ground truth. The 2026-05-09 review incident produced 5 Highs; adversarial validation demoted 3. Codified as standard practice.
 
 ---
 
@@ -791,9 +796,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 <!-- /OVERRIDE:review-protocol-injection -->
 
 > **Critical Purpose:** Architecture compliance — no layer violations, no messaging anti-patterns, no service boundary breaches, no pattern drift.
-
 > **External Memory:** Complex/lengthy work → write findings to `plans/reports/`. Prevents context loss, serves as deliverable.
-
 > **Evidence Gate:** MANDATORY — every finding requires `file:line` proof + confidence percentage (>80% act, <80% verify first).
 
 <!-- SYNC:graph-assisted-investigation -->
@@ -1073,6 +1076,45 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:category-review-thinking -->
 
+<!-- SYNC:scale-technique-gate -->
+
+> **Scalability & Production-Readiness Technique Gate** — CONDITIONAL, evidence-gated, scale-tiered. Judge which system-design techniques a system *warrants* at its scale — flag warranted-but-missing gaps AND advise AGAINST unwarranted heavyweight ones. **ADVICE-ONLY: emit the matrix as guidance; NEVER mutate any score, verdict band, or gate pass/fail.**
+>
+> 1. **Derive the scale tier FIRST — from evidence, never assumed.** Read users/RPS, SLO/latency targets, data volume, tenancy, topology from config/infra/specs; cite `file:line` + confidence. Tiers: `T0` internal/single-instance · `T1` small SaaS (<10k users) · `T2` high-scale (10k–1M) · `T3` massive/multi-region (millions+). Unknown tier → state assumption, do NOT default to T3.
+> 2. **Judge each concern group only at/above its warranting tier** (member techniques → owning review skill for depth):
+>    - Traffic & Edge — Rate Limiting, Load Balancing, Reverse Proxy, API Gateway, CDN, Edge Caching, WAF, DDoS (T1+; CDN/WAF T2+) → security-review owns WAF/DDoS
+>    - Caching & Data Access — Caching, Cache Invalidation, DB Indexing, Query Optimization, N+1, Connection Pooling (T1+) → performance-review owns depth
+>    - Data Scaling & Consistency — Read Replicas, Sharding, Partitioning, Replication, CAP, Eventual Consistency, Locks, Leader Election (T2+; sharding/multi-region T3) → performance-review
+>    - Async & Messaging — Message Queues, Pub/Sub, Event-Driven, Saga, DLQ, Distributed Transactions, Backpressure, Webhooks, WebSockets/SSE (T2+)
+>    - Resilience — Circuit Breakers, Timeouts, Retries, Backoff, Idempotency, Health Checks, Liveness/Readiness, Failover, Graceful Degradation (T1+) → production-readiness-review
+>    - Scaling & Compute — Autoscaling, Horizontal/Vertical Scaling, Serverless Limits, Cold Starts, Cron Jobs, Thread Safety, GC/Memory Leaks (T1+; autoscaling T2+)
+>    - Deployment & Release — CI/CD, Docker, Kubernetes, Blue-Green/Canary/Rolling, Rollbacks, Feature Flags, IaC/Terraform/Helm, Build Caching (CI/CD T0+; K8s/canary T2+)
+>    - Observability — Monitoring, Logging, Distributed Tracing, Metrics, Alerting, SLOs/SLIs, Error Budgets (T1+; tracing/error-budgets T2+) → production-readiness-review
+>    - Security & Compliance — Secrets Management, IAM, OAuth, JWT Rotation, TLS, Encryption at Rest/Transit, CORS, CSRF, SQLi, XSS, SSRF (T0+) → security-review owns
+>    - DR & Infra — Backups, Disaster Recovery, Multi-Region, Chaos Engineering, Schema Versioning, DB Migrations, Cost Optimization (backups T1+; DR/multi-region/chaos T3) → production-readiness-review
+> 3. **Assign one of 4 verdicts per warranted technique:** `PRESENT` · `MISSING-WARRANTED` (→ **advise only** — guidance, NOT a score/gate lever) · `N/A-by-scale` (below warranting tier) · `OVER-ENGINEERED` (present but unwarranted at this tier → advise AGAINST).
+> 4. **Anti-over-engineering guard (first-class):** do NOT recommend K8s, sharding, multi-region, service mesh, event sourcing, or distributed transactions below their warranting tier. A correctly-lean small system is a PASS, never a gap.
+> 5. **Output — Technique Applicability Matrix:** `technique | tier-warranted? | present? | verdict | advice | evidence (file:line/config/infra)`. Full grouped catalog + per-tier baseline → `.claude/docs/scale-technique-catalog.md`. Hosting reviews surface this matrix WITHOUT changing any `/20`, `/24`, verdict band, or PASS/FAIL (per user decision 2026-07-06). **Drift-guard: tier thresholds & per-technique warranting tiers are AUTHORITATIVE in `.claude/docs/scale-technique-catalog.md` — the inline tier summary above is a condensed pointer; on any tier/technique change, update the catalog FIRST, then re-run `.claude/scripts/inject_scale_technique_gate.py` to re-propagate this block.**
+>
+> **BLOCKED until:** `- [ ]` tier derived from evidence (not assumed) `- [ ]` matrix emitted `- [ ]` over-engineering guard applied `- [ ]` advisory-only (no score/verdict mutation) confirmed
+
+<!-- /SYNC:scale-technique-gate -->
+
+<!-- SYNC:scenario-stress-eval -->
+
+> **Scenario Stress & Resilience Evaluation** — CONDITIONAL, evidence-gated, business-criticality-aware. The top-down companion to `SYNC:scale-technique-gate`: instead of *"is technique X present?"*, put the system UNDER concrete failure/load scenarios and judge whether it SURVIVES, SELF-HEALS, and whether its BUSINESS needs it to. **ADVICE-ONLY: emit the Scenario Stress Matrix as guidance; NEVER mutate any score, verdict band, or gate pass/fail.**
+>
+> 1. **Reuse the scale tier** derived by `SYNC:scale-technique-gate` (or derive it identically from evidence); **also derive business-criticality `B0`–`B3`** from specs/SLA/product docs + the domain, cite `file:line` + confidence. `B0` best-effort · `B1` important · `B2` business-critical · `B3` mission-critical/regulated. Unknown → state the assumption, do **NOT** default to `B3`/`T3`. **Criticality-signal floor (both-directions safety):** regulated / PII / financial / health data, money movement, auth/identity, or legal-compliance scope raises `B` to **at least `B2` even absent SLA/SLO docs**; anti-over-engineering lowers hardening ONLY when NO such signal is present. `B` (blast if it fails) and `T` (scale of load/data) are independent — a low-traffic payroll run is low-`T`, high-`B`.
+> 2. **Select in-scope scenarios** — only those the system's `B`/`T` combination warrants (a `B0` internal PoC skips region-loss/DR entirely; a `B3`/`T0` regulated service still needs backups + DR by BUSINESS, not scale).
+> 3. **Walk each in-scope scenario:** simulate the stimulus → trace the break path → name the failure signature → answer the self-heal/recovery question (auto-recover? MTTR? manual runbook?) → name the trade-off it forces. Families: traffic spike · sustained growth · data-volume growth · write/ingest burst · dependency down/slow · instance/node loss · zone/region loss · **data loss/corruption** · poison-message/retry-storm · cascading failure/backpressure · cold-start/deploy-blip · clock-skew/duplicate-delivery.
+> 4. **Assign one verdict per scenario:** `WITHSTANDS` · `DEGRADES-GRACEFULLY` · `FAILS-HARD` (→ **advise only**) · `N/A-by-business` (not warranted → skip, not a gap) · `OVER-HARDENED` (resilience beyond business need → **advise AGAINST**, cite carrying cost).
+> 5. **Anti-over-engineering guard (first-class):** a lean system whose business does not need HA/DR is a PASS; `OVER-HARDENED` flags resilience the business does not warrant. This guard is symmetric with the criticality-signal floor above — never under-harden a `B2`+ system just because its traffic is low.
+> 6. **Output — Scenario Stress Matrix:** `scenario | in-scope (B/T)? | verdict | self-heal | trade-off | evidence (file:line/config/infra)`. Full catalog + Business×Scale in-scope baseline + verdict/tier tables → `.claude/docs/scenario-stress-catalog.md`. **ADVISORY-ONLY: NEVER mutate any `/20`, `/24`, verdict band, or gate pass/fail. Drift-guard: scenarios/verdicts/business-tiers are AUTHORITATIVE in the catalog — update it FIRST, then re-run `.claude/scripts/inject_scenario_stress_gate.py`. Scale tier stays single-sourced in `scale-technique-catalog.md`.**
+>
+> **BLOCKED until:** `- [ ]` scale tier + business-criticality (with criticality-signal floor) derived from evidence `- [ ]` in-scope scenarios selected `- [ ]` matrix emitted `- [ ]` over-hardening guard applied `- [ ]` advisory-only (no score/verdict mutation) confirmed
+
+<!-- /SYNC:scenario-stress-eval -->
+
 <!-- SYNC:evidence-based-reasoning:reminder -->
 
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% = do NOT recommend.
@@ -1156,6 +1198,19 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
+
+<!-- SYNC:scale-technique-gate:reminder -->
+
+**IMPORTANT MUST ATTENTION** scale-technique gate: derive the scale tier from evidence FIRST (T0 internal · T1 <10k · T2 10k–1M · T3 millions+), then judge each warranted technique `PRESENT`/`MISSING-WARRANTED`/`N/A-by-scale`/`OVER-ENGINEERED`. Advise on warranted-but-missing gaps AND advise AGAINST unwarranted heavyweight techniques (anti-over-engineering). **ADVICE-ONLY — emit the Technique Applicability Matrix as guidance; NEVER mutate any score, verdict band, or gate pass/fail.** Full catalog → `.claude/docs/scale-technique-catalog.md` (authoritative for tier thresholds & per-technique warranting tiers — on any change update the catalog FIRST, then re-run `inject_scale_technique_gate.py`).
+
+<!-- /SYNC:scale-technique-gate:reminder -->
+
+
+<!-- SYNC:scenario-stress-eval:reminder -->
+
+**IMPORTANT MUST ATTENTION** scenario-stress gate: reuse the scale tier `T0`–`T3` AND derive business-criticality `B0`–`B3` from evidence first — apply the **criticality-signal floor** (regulated/PII/financial/health data · money movement · auth/identity · legal-compliance → at least `B2` even absent SLA docs; do NOT default to `B3`). Select only the scenarios the `B`/`T` combination warrants, then walk each (simulate → trace → failure signature → self-heal/MTTR → trade-off) and assign `WITHSTANDS`/`DEGRADES-GRACEFULLY`/`FAILS-HARD`/`N/A-by-business`/`OVER-HARDENED`. Anti-over-engineering is first-class (a lean system that needs no HA/DR is a PASS) AND symmetric (never under-harden a `B2`+ system for low traffic). **ADVICE-ONLY — emit the Scenario Stress Matrix as guidance; NEVER mutate any score, verdict band, or gate pass/fail.** Full catalog → `.claude/docs/scenario-stress-catalog.md` (authoritative for scenarios/verdicts/business-tiers — on any change update the catalog FIRST, then re-run `inject_scenario_stress_gate.py`; scale tier stays single-sourced in `scale-technique-catalog.md`).
+
+<!-- /SYNC:scenario-stress-eval:reminder -->
 
 ## Closing Reminders
 

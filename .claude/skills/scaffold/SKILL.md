@@ -64,7 +64,7 @@ description: '[Architecture] Use when scaffolding reusable OOP/SOLID project fou
 
 ## Backend Scaffolding Categories
 
-AI must self-investigate the chosen tech stack and produce a checklist covering these categories. Names below are illustrative — adapt to match the project's language, framework conventions, and actual needs.
+AI must self-investigate chosen tech stack, produce a checklist covering these categories. Names below are illustrative — adapt to the project's language, framework conventions, and actual needs.
 
 ### Domain Layer
 
@@ -145,6 +145,38 @@ AI must self-investigate the chosen tech stack and produce a checklist covering 
 #### Design System Documentation
 
 - [ ] Create `docs/project-reference/design-system/README.md` skeleton with: token naming conventions, component tier classification (Common/Domain-Shared/Page), usage examples
+- [ ] **Author `docs/project-reference/ui-review-principles.md`** (the project-adopted UI-review PRINCIPLES the later `/ui-review` gate reads — these are design-time decisions, hand-authored, NOT code-derived). Capture, as project-enforced principles, every UI-review dimension: **Overflow & scroll containment** (long-content truncation/wrap) · **Responsive & small-screen** (flex-wrap / row-to-column so it stays usable on small devices) · **Flex-vs-fixed sizing** (flex-grow vs hard-coded dimensions) · **z-index discipline** (a documented layering scale, no ad-hoc values) · **BEM on all elements** · **Async states** (loading indicator, user-visible error surface, empty state, in-flight disable) · **Nesting depth ≤ 3 / no magic numbers**. **Cross-link** to `design-system/README.md` and `scss-styling-guide` so the seeded principle doc and the scan-derived docs form one navigable set. Contains NO real endpoints/keys.
+  - **No-UI skip rule:** author this doc ONLY when a frontend/UI stack is scaffolded. Backend-only project → SKIP and log the reason.
+
+## Example / Golden-Path Reference Scaffolding (copy-me implementations — MANDATORY)
+
+> **MANDATORY when scaffolding a foundation:** beyond the empty base abstractions above, emit **ONE worked, compile-checked example per best-practice pattern** — a copy-me reference implementation per layer. Empty abstractions are unverified skeletons; a worked example built ON TOP turns each base class into demonstrated, reviewable usage. This example set is exactly what Phase-02's `/architecture-review-full` grades, so it must exist before that gate runs.
+
+### Location & lifecycle (isolated, production-excluded)
+
+- Examples live in a DEDICATED, ISOLATED `examples/` tree (project-root `examples/` or `docs/project-reference/examples/`) — **NEVER mixed into the production `src/` tree.**
+- Name every file `*.example.*` (e.g. `create-order.command.example.ts`, `Order.entity.example.cs`).
+- **CI-compiled/linted but EXCLUDED from the production build** via a project-appropriate mechanism (separate compile target / tsconfig references / test-only project / build-exclude glob).
+- Devs COPY an example into `src/` to start a real feature; the whole `examples/` tree is deleted wholesale once no longer needed.
+
+### One worked example per applicable pattern (target ≥ 11)
+
+- **Backend:** command · query · command/query handler · entity-with-invariants · value-object · repository (concrete impl) · domain event + event handler.
+- **Frontend (only if a UI stack is present):** form component · list component · state store · API service.
+- **Tests:** one example integration test exercising the example command/query on BOTH the happy path AND a failure path.
+- **Absent-layer skips:** render fewer ONLY when a layer is genuinely absent (e.g. a backend-only project skips the frontend examples) — LOG each skipped example and WHY.
+
+### Every example MUST
+
+1. Follow the project's detected patterns — read `docs/project-reference/*-patterns-reference.md` and mirror the exact shapes.
+2. USE the scaffolded base abstractions (demonstrate them in action; do NOT re-implement them).
+3. Compile/lint clean under the CI (non-production) target.
+4. Carry this header comment verbatim (adapt the comment syntax to the language): `GOLDEN-PATH EXAMPLE — copy into src/ for real features; the examples/ tree is deleted when unused; NOT compiled into the production build.`
+5. Contain **NO secrets, real credentials, or real endpoints** — use obvious placeholders ONLY (`EXAMPLE_API_KEY`, `example.invalid`, `00000000-0000-0000-0000-000000000000`).
+
+### Right-sizing
+
+Examples DEMONSTRATE patterns — NOT a feature. Honor the scale-tier guard: a tiny T0/B0 project gets the minimal applicable set, never speculative extras.
 
 ## Code Quality Gate Tooling (MANDATORY MUST ATTENTION — Setup Before Any Feature Code)
 
@@ -179,9 +211,7 @@ AI must self-investigate the chosen tech stack and produce a checklist covering 
 - `/linter-setup` handles: tool research → install → configure → pre-commit hooks → CI gates
 - `/harness-setup` handles: full harness inventory (feedforward guides + all feedback types)
 
-**WHY:** Code quality tooling is part of the project's outer agent harness.
-A checklist of installs is not a harness. A harness is a system of guides and sensors
-where each control fires at the right lifecycle stage and produces signals the agent can consume.
+**WHY:** Code quality tooling is part of the project's outer agent harness. A checklist of installs is not a harness — a harness is a system of guides and sensors where each control fires at the right lifecycle stage and produces signals the agent can consume.
 
 **After scaffold, invoke (in order):**
 
@@ -194,7 +224,7 @@ where each control fires at the right lifecycle stage and produces signals the a
 
 > **Scaffold Production Readiness** — See `<!-- SYNC:scaffold-production-readiness -->` block above for full inline protocol.
 
-Every scaffolded project MUST ATTENTION include these 5 foundations. AI must detect the tech stack from the plan/architecture report and present 2-3 options per concern via `AskUserQuestion`.
+Every scaffolded project MUST ATTENTION include these 5 foundations. AI must detect tech stack from the plan/architecture report, present 2-3 options per concern via `AskUserQuestion`.
 
 ### 1. Code Quality Tooling
 
@@ -268,6 +298,7 @@ After scaffolding is complete:
 3. **Architecture Diagram** — Optional: generate diagram showing the base class hierarchy
 4. **Production Readiness Verification** — All 5 concern areas verified via protocol checklists
 5. **Config Files Generated** — Linter, formatter, pre-commit, Docker configs all created
+6. **Golden-Path Examples** — one worked, compile-checked example per applicable pattern emitted under the isolated, production-excluded `examples/` tree; absent-layer skips logged with reason
 
 ## Verification Gate (MANDATORY before proceeding to /feature-implement)
 
@@ -280,12 +311,13 @@ Run ALL verification checklists from the production readiness protocol:
 - [ ] Integration points verified (Section 5)
 - [ ] `/linter-setup` completed (linter + formatter + pre-commit + CI gate configured)
 - [ ] `/harness-setup` completed (harness-inventory.md produced, feedforward guides in place)
+- [ ] Golden-path examples present — one worked example per applicable pattern under an isolated, production-excluded `examples/` tree; each compiles/lints under the CI (non-production) target; every example carries the `GOLDEN-PATH EXAMPLE` header and NO secrets/real endpoints; absent-layer skips logged with reason
 
 **BLOCK proceeding to `/feature-implement` if ANY verification item fails.** Fix issues first, then re-verify.
 
 ## Next Steps
 
-**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use `AskUserQuestion` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
+**MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, MUST ATTENTION use `AskUserQuestion` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
 
 - **"/feature-implement (Recommended)"** — Begin implementing feature stories on top of the scaffolding
 - **"/workflow-review-changes"** — Review scaffolding code before proceeding

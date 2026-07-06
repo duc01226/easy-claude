@@ -19,9 +19,9 @@ description: "[Architecture] Use when auditing the ENTIRE project architecture a
 
 **Summary:**
 
-- **Purpose:** resolve scope once, fan the three reviewers out as parallel read-only sub-agents behind an all-return barrier, dedup the known overlap axes, synthesize a single verdict, then run a `/why-review` self-validation gate before handoff. Read-only until findings are validated — fixes route to a downstream `/plan` or feature flow.
+- **Purpose:** resolve scope once, fan three reviewers out as parallel read-only sub-agents behind an all-return barrier, PROGRESSIVELY synthesize + dedup each child's findings into ONE report file (status `IN PROGRESS` → `FINISHED`), run a `/why-review` fix gate that walks each review face, then finalize the combined verdict. Read-only until findings are validated — fixes route to a downstream `/plan` or feature flow.
 - **The three children — deliberately non-overlapping siblings that cross-reference each other, so their findings MUST be deduped:**
-  - `architecture-scalability-review` (subagent `architect`) — project-grading scorecard `/20` + pass/fail gates. It ALWAYS grades the project, even under diff scope (it is a project-grader by design, "not the every-change diff reviewer").
+  - `architecture-scalability-review` (subagent `architect`) — project-grading scorecard `/20` + pass/fail gates. ALWAYS grades the project, even under diff scope (project-grader by design, "not the every-change diff reviewer").
   - `architecture-review` (subagent `architect`) — diff/scope-scoped 12-category PASS/WARN/BLOCKED compliance. Its Category 11 delegates full scalability/coupling grading to `architecture-scalability-review`.
   - `production-readiness-review` (subagent `code-reviewer`) — service/API SRE `/24` + 8-item Extended SRE Readiness gate. `architecture-scalability-review` routes runtime readiness here.
 - **This skill runs INLINE** in the main session because it spawns sub-agents; the three children are each 25k–34k tokens and CANNOT run inline together — they MUST be sub-agents.
@@ -32,9 +32,10 @@ description: "[Architecture] Use when auditing the ENTIRE project architecture a
 1. **Step 1: Resolve Scope** — `$ARGUMENTS` or `AskUserQuestion`; map the chosen scope to each child's args.
 2. **Step 2: Load Project Reference Docs Once** — warm shared context before fan-out.
 3. **Step 3: Parallel Fan-Out (all-return barrier)** — spawn all three read-only sub-agents in ONE message; advance only after ALL three return.
-4. **Step 4: Consolidate + Dedup** — merge into one Architecture Health Report with three sub-scores + one combined verdict.
-5. **Step 5: `/why-review` Self-Validation Gate** — adversarially validate merged findings before handoff.
-6. **Next Steps** — `AskUserQuestion`: `/plan` (fix validated findings) / `/code-simplifier` / skip.
+4. **Step 4: Progressive Synthesis (IN PROGRESS)** — open the ONE consolidated report at status `🚧 IN PROGRESS` when fan-out starts; merge + dedup each child's findings into it AS that child returns — never held in memory to the end.
+5. **Step 5: Fix-Report-Per-Review `/why-review` Gate** — ONE merged `/why-review` pass that walks each of the three review faces + the dedup and fixes the report in place (severities, false positives, dedup-dropped issues).
+6. **Step 6: Finalize (FINISHED)** — lock the combined verdict (worst-case rollup) and flip the report status to `✅ FINISHED`.
+7. **Next Steps** — `AskUserQuestion`: `/plan` (fix validated findings) / `/code-simplifier` / skip.
 
 **Key Rules (top 3 critical first):**
 
@@ -52,7 +53,7 @@ $ARGUMENTS
 
 ## Review Mindset (NON-NEGOTIABLE)
 
-Skeptical synthesizer. You judge the three children's reports, you do not re-derive them.
+Skeptical synthesizer. Judge the three children's reports; do not re-derive them.
 
 - Trust each child's `file:line` evidence, but NEVER inflate severity by counting the same underlying issue three times — dedup first, then rank.
 - A finding survives to the report only after the Step 5 `/why-review` gate; an unvalidated sub-agent claim is a hypothesis, not a finding.
@@ -60,7 +61,7 @@ Skeptical synthesizer. You judge the three children's reports, you do not re-der
 
 ## Step 1: Resolve Scope (ASK EACH RUN)
 
-Decide the audit scope, then map it to each child's arguments.
+Decide audit scope, then map to each child's arguments.
 
 - If `$ARGUMENTS` names files/dirs, or contains `full` / `whole` / `diff` / `changes`, use that directly.
 - Else `AskUserQuestion`:
@@ -76,11 +77,11 @@ Decide the audit scope, then map it to each child's arguments.
 | Current changes (diff) | `mode=audit` focused on the services/modules the diff touches | default uncommitted diff       | default uncommitted service/API diff                                        |
 | Specific path          | `mode=audit` scoped to that path's services/modules           | scope override = that path     | that path's service/API files                                               |
 
-> **MUST ATTENTION — `architecture-scalability-review` always grades the PROJECT, even under diff scope.** It is a project-grader by design ("do not use as the every-change diff reviewer"). Under diff scope it still emits the `/20` scorecard, focused on the services/modules the diff touches — it never degrades into a pure per-line diff reviewer. Document this nuance in the consolidated report so its scorecard is read as a project posture, not a diff verdict.
+> **MUST ATTENTION — `architecture-scalability-review` always grades the PROJECT, even under diff scope.** A project-grader by design ("do not use as the every-change diff reviewer"). Under diff scope it still emits the `/20` scorecard, focused on the services/modules the diff touches — it never degrades into a pure per-line diff reviewer. Document this nuance in the consolidated report so its scorecard is read as a project posture, not a diff verdict.
 
 ## Step 2: Load Project Reference Docs Once
 
-Warm the shared context BEFORE fan-out so the synthesis step reasons from the same ground truth the children use. Read once here (each child re-reads what it needs via its own tool calls):
+Warm shared context BEFORE fan-out so synthesis reasons from the same ground truth the children use. Read once here (each child re-reads what it needs via its own tool calls):
 
 - `docs/project-config.json`
 - `docs/project-reference/project-structure-reference.md`
@@ -91,7 +92,7 @@ Warm the shared context BEFORE fan-out so the synthesis step reasons from the sa
 
 ## Step 3: Parallel Fan-Out (ALL-RETURN BARRIER)
 
-Spawn ALL THREE sub-agents in ONE message. They are read-only and independent — no shared mutable state, no ordering dependency. Advance ONLY after EVERY member returns (`SYNC:parallel-phase-advancement`).
+Spawn ALL THREE sub-agents in ONE message. Read-only and independent — no shared mutable state, no ordering dependency. Advance ONLY after EVERY member returns (`SYNC:parallel-phase-advancement`).
 
 Each sub-agent writes its FULL report to `plans/reports/` and returns ONLY the `SYNC:subagent-return-contract` summary (≤10 finding bullets + report path) — NEVER its full report inline.
 
@@ -103,18 +104,24 @@ Each sub-agent writes its FULL report to `plans/reports/` and returns ONLY the `
 
 Each sub-agent prompt states: READ-ONLY findings/score mode (no fixes); re-read all target files from scratch via its own tool calls; write full report incrementally to `plans/reports/`; return only the return-contract summary.
 
-## Step 4: Consolidate + Dedup → One Report
+**Each of the three faces feeds TWO validation gates downstream — state this in each sub-agent's prompt so it knows its findings will be adversarially validated, not trusted as-is:** (1) the Step 5 fix-report-per-review `/why-review` gate that walks its face and fixes its findings in the consolidated report; (2) inside `workflow-architecture-audit`, the workflow-level FINAL `/why-review` gate that re-reviews the whole finalized report. A face's findings are hypotheses until they survive both — so every finding it emits MUST carry `file:line` proof + confidence that can withstand validation.
 
-Write `plans/reports/architecture-full-review-{YYMMDD}-{HHmm}-{slug}.md`.
+## Step 4: Progressive Synthesis → One Report (status `IN PROGRESS`)
 
-**Header — all three sub-scores + ONE combined verdict:**
+Exactly ONE report file for the whole audit — created ONCE, grown across Steps 4→6, never re-created per review. Open it when fan-out starts and evolve its status through its lifecycle: `🚧 IN PROGRESS` (Step 4) → `🔍 VALIDATING` (Step 5) → `✅ FINISHED` (Step 6).
+
+Write to `plans/reports/architecture-full-review-{YYMMDD}-{HHmm}-{slug}.md`.
+
+**On fan-out start — create the file with status `🚧 IN PROGRESS`** and a status line naming which of the three review faces have returned so far (e.g. `Faces merged: 0/3`). The single source of truth the whole audit synthesizes into — do NOT hold findings in memory until the end.
+
+**Header — all three sub-scores + ONE combined verdict** (each sub-score is `⏳ pending` until its face returns):
 
 - Scalability Scorecard: `X/20` + verdict (STRONG / NEEDS WORK / HIGH RISK)
 - Architecture Compliance: PASS / WARN / BLOCKED
 - SRE Readiness: `X/24` + verdict (PASS / NEEDS WORK / NOT READY)
-- **Combined Verdict:** the worst-case rollup across the three (any BLOCKED / NOT READY / HIGH RISK dominates).
+- **Combined Verdict:** `⏳ pending until FINISHED` — computed in Step 6 as the worst-case rollup across the three (any BLOCKED / NOT READY / HIGH RISK dominates). Do NOT assert a combined verdict while status is `IN PROGRESS`.
 
-**Merge + dedup.** When ≥2 children report the same underlying issue, record it ONCE, citing every source. Dedup on these KNOWN overlap axes (the siblings cross-reference each other here by design):
+**Merge each face AS it returns.** All three run behind the Step 3 all-return barrier, so all three summaries are in hand before synthesis — but merge them into the file one face at a time (updating `Faces merged: N/3` each time) so a mid-synthesis context loss leaves the partial report on disk, not in memory. When ≥2 children report the same underlying issue, record it ONCE, citing every source. Dedup on these KNOWN overlap axes (the siblings cross-reference each other here by design):
 
 | Overlap axis                                                            | `architecture-review` face                            | Sibling face(s)                                                                               |
 | ----------------------------------------------------------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------- |
@@ -122,19 +129,37 @@ Write `plans/reports/architecture-full-review-{YYMMDD}-{HHmm}-{slug}.md`.
 | Quality tooling / CI / observability                                    | Category 0 (quality-tooling baseline)                 | `architecture-scalability-review` {Build & CI, Observability}                                 |
 | Recorded-decision / clean-architecture conformance                      | Category 9 (ADR conformance)                          | `architecture-scalability-review` {clean architecture}                                        |
 | DB performance / capacity ceilings                                      | `production-readiness-review` DB-perf + capacity gate | `architecture-scalability-review` {horizontal scaling}                                        |
+| Technique applicability (advisory) — scale-tier technique matrix         | Category 11 INFO advisory matrix                      | `architecture-scalability-review` + `production-readiness-review` advisory matrices           |
+| Scenario stress (advisory) — big-traffic/big-data/failure/self-heal      | Category 11 INFO scenario-stress matrix               | `architecture-scalability-review` + `production-readiness-review` scenario-stress matrices     |
 
 For each merged finding: assign ONE severity per `SYNC:severity-rubric` (do not sum severities across duplicate reports), cite each reporting child's `file:line`, and PRESERVE each child's route-to-sibling pointers. — why: undeduped, three intentionally-cross-referencing reviewers inflate severity counts and bury distinct issues.
 
-## Step 5: Why-Review Self-Validation Gate (MANDATORY when findings exist)
+**Merged advisory Technique Applicability Matrix (does NOT change the combined verdict):** all three children emit a scale-tier Technique Applicability Matrix from `SYNC:scale-technique-gate`; dedup the three views of the same technique onto ONE advisory matrix in the consolidated report. **Pin ONE authoritative scale tier for the merged matrix — `architecture-scalability-review`'s derived tier is canonical (owns scalability grading); if another child's derived tier DIVERGES, record the divergence as a one-line note and key the merged matrix's `tier-warranted?` column to the pinned tier, rather than merging contradictory warranted-sets.** This only SELECTS which already-derived tier the matrix is keyed to — it does NOT re-derive any child's findings (respecting "you do not re-derive them" above). It is **advisory/INFO only** — a `MISSING-WARRANTED` technique is guidance, never a severity, and NEVER feeds the worst-case combined-verdict rollup. This orchestrator adds no own gate marker; the matrix is inherited from the children.
 
-Same pattern as `architecture-review` Phase 5 — adversarial validation of the MERGED findings BEFORE handoff.
+**Merged advisory Scenario Stress Matrix (does NOT change the combined verdict):** the same three children each emit a Scenario Stress Matrix from `SYNC:scenario-stress-eval` (top-down: big-traffic / big-data / dependency-failure / node-loss / data-corruption / self-heal survival vs. business need). Dedup the three views of the same scenario onto ONE advisory matrix in the consolidated report, exactly as for the technique matrix. **Pin ONE authoritative scale tier AND business-criticality read — `architecture-scalability-review`'s derived `T`-tier + `B`-tier is canonical (owns scalability grading); if another child's derived tier/criticality DIVERGES, record it as a one-line note and key the merged matrix to the pinned values, rather than merging contradictory in-scope sets.** This only SELECTS which already-derived tier/criticality the matrix is keyed to — it does NOT re-derive any child's scenario findings. It is **advisory/INFO only** — a `FAILS-HARD` or `OVER-HARDENED` scenario is guidance, never a severity, and NEVER feeds the worst-case combined-verdict rollup. The criticality-signal floor and anti-over-engineering guard live in the children's matrices; this orchestrator adds no own gate marker and inherits the matrix from the children.
+
+Step 4 ends only when `Faces merged: 3/3` — all three sub-scores are populated and every finding is on disk.
+
+## Step 5: Fix-Report-Per-Review `/why-review` Gate (status `VALIDATING`) — MANDATORY when findings exist
+
+Flip the report status to `🔍 VALIDATING`, then run ONE merged `/why-review` pass that WALKS EACH of the three review faces (one merged pass, NOT three per-face passes — a single invocation is strictly more thorough because it also validates the cross-face dedup separate per-face passes cannot see). The "fix report after each review" gate: every face's findings are validated, the report fixed IN PLACE.
 
 1. Read the consolidated report from `plans/reports/architecture-full-review-{date}-{slug}.md`.
-2. Invoke `/why-review` with: `validate findings in {report-path} — verify each merged finding has file:line proof, confirm dedup did not drop a distinct issue, steel-man each rejected interpretation, and stress-test severity classifications`.
-3. `/why-review` demotes/removes any finding → UPDATE the report with revised severities, remove false positives, add a `## Why-Review Validation Notes` section citing what changed + why.
-4. `/why-review` confirms all findings → append `## Why-Review Validation` stating "All N merged findings re-validated; no severity changes."
+2. Invoke `/why-review` with: `validate findings in {report-path} — WALK EACH review face (architecture-scalability-review, architecture-review, production-readiness-review) in turn: for each face verify every finding it contributed has file:line proof and a correctly-classified severity, steel-man each rejected interpretation; THEN validate the cross-face dedup did not drop or merge-away a distinct issue`.
+3. `/why-review` demotes/removes any finding → FIX the report in place: revise severities, remove false positives, restore any distinct issue the dedup wrongly collapsed, and add a `## Why-Review Fix Notes` section listing per-face what changed + why.
+4. `/why-review` confirms all findings → append `## Why-Review Validation` stating "All N merged findings re-validated across 3 faces; no severity changes."
 
-Skip ONLY on an unconditional zero-finding PASS across all three children (log the skip reason).
+Skip ONLY on an unconditional zero-finding PASS across all three children (log the skip reason, then proceed to Step 6 to finalize the clean PASS).
+
+## Step 6: Finalize (status `FINISHED`)
+
+The report is now validated — lock it and hand off a stable artifact.
+
+1. Compute the **Combined Verdict** as the worst-case rollup across the three now-validated sub-scores (any BLOCKED / NOT READY / HIGH RISK dominates); write it into the header, replacing the `⏳ pending` placeholder.
+2. Flip the report status from `🔍 VALIDATING` to `✅ FINISHED` and append a `## Finalization` block: the three sub-scores, the combined verdict, the total validated finding count by severity, and the `Faces merged: 3/3` confirmation.
+3. This finalized report is the single deliverable the downstream workflow-level `/why-review` step and `docs-update` consume. Do NOT emit a second report file or re-synthesize — one file, finalized once.
+
+> **Two-tier validation (why this skill runs `/why-review` AND the workflow adds a `why-review` step):** Step 5 here is the FINDING-level, per-face fix that also protects standalone use of this skill. The workflow-level `why-review` step that follows is the REPORT-level final gate over the finalized artifact (verdict-rollup correctness, dedup completeness, cross-review severity consistency) and the machine-visible guarantee in the rendered sequence. Distinct altitudes; do not collapse one into the other.
 
 ## Next Steps
 
@@ -144,7 +169,7 @@ Skip ONLY on an unconditional zero-finding PASS across all three children (log t
 - **"/code-simplifier"** — simplify and refine implicated code.
 - **"Skip, continue manually"** — user decides.
 
-> **Read-only until validated.** This skill produces findings and a verdict only. It applies NO fixes — every validated finding routes to a downstream `/plan` or feature-implementation flow that owns the change.
+> **Read-only until validated.** This skill produces findings and a verdict only. Applies NO fixes — every validated finding routes to a downstream `/plan` or feature-implementation flow that owns the change.
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting. For simple tasks, ask the user whether to skip.
 
@@ -712,7 +737,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 **IMPORTANT MUST ATTENTION Goal:** Audit the WHOLE project's architecture, scalability, and production readiness in ONE pass by orchestrating the three deliberately-non-overlapping sibling reviewers, deduping their intentional cross-references, and synthesizing ONE consolidated Architecture Health Report with one combined verdict — a THIN orchestrator, never a re-implementation of the three reviews.
 
-**IMPORTANT MUST ATTENTION — Main steps (execute in order, NEVER skip/merge):** (1) Resolve scope (args else `AskUserQuestion`; map to each child's args) → (2) Load project reference docs once → (3) Parallel fan-out of all three read-only sub-agents in ONE message behind an all-return barrier → (4) Consolidate + dedup into one report with three sub-scores + one combined verdict → (5) `/why-review` self-validation gate on the merged findings → Next Steps `AskUserQuestion`.
+**IMPORTANT MUST ATTENTION — Main steps (execute in order, NEVER skip/merge):** (1) Resolve scope (args else `AskUserQuestion`; map to each child's args) → (2) Load project reference docs once → (3) Parallel fan-out of all three read-only sub-agents in ONE message behind an all-return barrier → (4) Progressive synthesis into ONE report at status `IN PROGRESS` — merge + dedup each face AS it returns, never held in memory → (5) Fix-report-per-review `/why-review` gate (one merged pass walking each of the three faces + the dedup, status `VALIDATING`) → (6) Finalize — lock the combined verdict + flip status to `FINISHED` → Next Steps `AskUserQuestion`. The report lifecycle is `IN PROGRESS → VALIDATING → FINISHED` on ONE file, never re-created.
 
 **IMPORTANT MUST ATTENTION — Protocols in force (concise digest of the SYNC/shared blocks this skill carries; each is a signpost — the canonical body above governs, NEVER skip one):**
 

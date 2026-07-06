@@ -4,7 +4,7 @@
 
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **15 top-level hook files**, **154 skills**, **17 workflows**, and **29 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`, with Copilot instruction generation available through sync skills and scripts.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **15 top-level hook files**, **156 skills**, **18 workflows**, and **29 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`, with Copilot instruction generation available through sync skills and scripts.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -182,9 +182,9 @@ Markdown-based prompts with YAML frontmatter that guide AI behavior.
 | **Scanning**       | `/scan-all`, `/scan --target=<key>`, `/scan-codebase-health`                                               | Generate reference docs the project-reference gate reads |
 | **Documents**      | `/markdown-to-pdf`, `/markdown-to-docx`, `/pdf-to-markdown`                                                | Document format conversion                               |
 
-### Workflows (17 definitions)
+### Workflows (18 definitions)
 
-End-to-end process orchestration with step enforcement. The table below shows the most-used workflows — see `.claude/workflows.json` for all 17 (including `workflow-feature-spec`, `workflow-spec-to-pbi`, `workflow-spec-sync`, `workflow-seed-test-data`, `workflow-visualize`).
+End-to-end process orchestration with step enforcement. The table below shows the most-used workflows — see `.claude/workflows.json` for all 18 (including `workflow-architecture-audit`, `workflow-feature-spec`, `workflow-spec-to-pbi`, `workflow-spec-sync`, `workflow-seed-test-data`, `workflow-visualize`).
 
 **Pick a workflow by use case:**
 
@@ -254,7 +254,7 @@ easy-claude/
 │   │   ├── notifications/    # Multi-channel notification system
 │   │   ├── scout-block/      # Broad search prevention
 │   │   └── tests/            # Hook test suites
-│   ├── skills/               # 154 skill definitions
+│   ├── skills/               # 156 skill definitions
 │   │   ├── <skill>/          # Each skill directory contains:
 │   │   │   ├── SKILL.md      # Entry point (prompt + frontmatter)
 │   │   │   ├── scripts/      # Optional automation scripts
