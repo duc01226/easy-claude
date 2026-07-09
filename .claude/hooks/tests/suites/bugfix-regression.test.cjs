@@ -23,7 +23,7 @@ const {
 const { assertEqual, assertContains, assertAllowed, assertNotContains, assertTrue } = require('../lib/assertions.cjs');
 const { createTempDir, cleanupTempDir, createMockFile, fileExists } = require('../lib/test-utils.cjs');
 
-// Hook paths
+// Hook paths
 const SESSION_INIT = getHookPath('session-init.cjs');
 const POST_EDIT_PRETTIER = getHookPath('post-edit-prettier.cjs');
 const SESSION_END = getHookPath('session-end.cjs');

@@ -237,13 +237,15 @@ Prefer fixes: push predicates to data source, select only needed fields, bound r
 
 ### 2. Index And Access Path
 
-**Think:** Can existing indexes satisfy equality/range filters, joins, sort, grouping, and projection in the actual query order?
+**Think:** Can existing indexes satisfy equality/range filters, joins, sort, grouping, and projection in the actual query order? **Sargability first:** for EVERY filter/join predicate, is the indexed COLUMN left bare, or is it wrapped in a function/transformation that the DB must compute per row (killing the index)?
+
+> **MUST ATTENTION — Non-sargable predicate spot-check (any ORM/SQL).** Wrapping a column in a function/cast/transformation inside a query predicate translates to `func(column) = $param` — the DB CANNOT use an index on that column and full-scans. Scan every query expression for a **transformation on the COLUMN side**, not the parameter side: `.ToLower()`/`.ToUpper()`/`.Trim()`/`.Substring()` on a column, `col1 + " " + col2 == x` (concatenation), `.Date`/date-part extraction, `Convert`/cast/collation change, leading-wildcard `LIKE '%x'`, or a computed expression compared to a value. Fix — keep the column bare and move the transformation to the in-memory PARAMETER (e.g. case-insensitive via a candidate list `col == x || col == xLower`), OR persist a normalized indexed column, OR add a functional/expression index. ALWAYS prove with `EXPLAIN`/query plan: Index Scan/Seek expected, Seq Scan = the smell confirmed.
 
 Find:
 
 - no index for high-cardinality filters, joins, foreign keys, sort columns, or frequent group keys
 - composite index field order mismatched with equality -> range -> sort access pattern
-- index exists but plan ignores it because query wraps field in function/cast, uses incompatible type/collation, leading wildcard, broad `OR`, negative predicate, or low selectivity
+- **non-sargable predicate: an indexed column wrapped in a function/cast/concat/date-part/transformation** (see spot-check above) — the single most common silent index-loss; also incompatible type/collation, leading wildcard, broad `OR`, negative predicate, or low selectivity
 - sort spill/filesort because index order does not match filter + order by
 - covering/partial/filtered index opportunity for hot narrow query
 - index bloat from adding every field without write-cost analysis

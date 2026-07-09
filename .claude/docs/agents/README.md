@@ -79,13 +79,13 @@ Main Claude Session
 
 ### Specialized
 
-| Agent                   | Purpose                                                                                       | Tools                                                                                   |
-| ----------------------- | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `journal-writer`        | Document technical difficulties                                                               | All tools                                                                               |
-| `database-admin`        | Database systems management                                                                   | All tools                                                                               |
-| `frontend-developer`    | Angular frontend specialist (stores, BEM)                                                     | All tools                                                                               |
-| `security-auditor`      | Read-only security analysis, OWASP compliance                                                 | All tools                                                                               |
-| `performance-optimizer` | Performance analysis (N+1, bundle, indexes)                                                   | All tools                                                                               |
+| Agent                   | Purpose                                                                               | Tools                                                                                   |
+| ----------------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `journal-writer`        | Document technical difficulties                                                       | All tools                                                                               |
+| `database-admin`        | Database systems management                                                           | All tools                                                                               |
+| `frontend-developer`    | Angular frontend specialist (stores, BEM)                                             | All tools                                                                               |
+| `security-auditor`      | Read-only security analysis, OWASP compliance                                         | All tools                                                                               |
+| `performance-optimizer` | Performance analysis (N+1, bundle, indexes)                                           | All tools                                                                               |
 | `framework-maintainer`  | Maintain the portable .claude AI-harness (skills, agents, hooks, SYNC, Codex mirrors) | Read, Write, Edit, MultiEdit, Grep, Glob, Bash, TaskCreate, TaskUpdate, AskUserQuestion |
 
 ---
@@ -150,29 +150,29 @@ Task({
 
 ### When to Use Each Agent
 
-| Scenario                      | Agent                  | Why                                                       |
-| ----------------------------- | ---------------------- | --------------------------------------------------------- |
-| Find files by pattern         | `scout`                | Fast file discovery with pattern matching                 |
-| Understand codebase structure | `Explore`              | Comprehensive exploration with context                    |
-| Research new technology       | `researcher`           | Web search + documentation synthesis                      |
-| Plan feature implementation   | `planner`              | Creates structured implementation plans                   |
-| Evaluate architecture options | `planner`              | Creates structured plans with trade-off analysis          |
-| Design system architecture    | `architect`            | ADR creation, cross-service analysis                      |
-| Greenfield project inception  | `solution-architect`   | Tech stack, DDD, project structure                        |
-| Plan E2E test structure       | `e2e-runner`           | Playwright patterns, BEM selectors                        |
-| Implement from plan           | `fullstack-developer`  | Executes implementation phases                            |
-| Debug failing tests           | `debugger`             | Systematic issue investigation                            |
-| Run and analyze tests         | `tester`               | Test execution and coverage analysis                      |
-| Review code quality           | `code-reviewer`        | Security, performance, best practices                     |
-| Clean up code                 | `code-simplifier`      | Refactor for clarity and maintainability                  |
-| Commit changes                | `git-manager`          | Conventional commits with proper messages                 |
-| Update documentation          | `docs-manager`         | Technical docs maintenance                                |
-| Track project status          | `project-manager`      | Progress reports and task consolidation                   |
-| Refine requirements           | `business-analyst`     | GIVEN/WHEN/THEN format, BDD patterns                      |
-| Prioritize backlog            | `product-owner`        | MoSCoW, effort/value matrix                               |
-| Create test plan              | `tester`               | Test coverage, case generation                            |
-| Synthesize knowledge          | `knowledge-worker`     | Web research, structured reports, course material         |
-| Design specification          | `ui-ux-designer`       | Figma integration, design tokens                          |
+| Scenario                      | Agent                  | Why                                               |
+| ----------------------------- | ---------------------- | ------------------------------------------------- |
+| Find files by pattern         | `scout`                | Fast file discovery with pattern matching         |
+| Understand codebase structure | `Explore`              | Comprehensive exploration with context            |
+| Research new technology       | `researcher`           | Web search + documentation synthesis              |
+| Plan feature implementation   | `planner`              | Creates structured implementation plans           |
+| Evaluate architecture options | `planner`              | Creates structured plans with trade-off analysis  |
+| Design system architecture    | `architect`            | ADR creation, cross-service analysis              |
+| Greenfield project inception  | `solution-architect`   | Tech stack, DDD, project structure                |
+| Plan E2E test structure       | `e2e-runner`           | Playwright patterns, BEM selectors                |
+| Implement from plan           | `fullstack-developer`  | Executes implementation phases                    |
+| Debug failing tests           | `debugger`             | Systematic issue investigation                    |
+| Run and analyze tests         | `tester`               | Test execution and coverage analysis              |
+| Review code quality           | `code-reviewer`        | Security, performance, best practices             |
+| Clean up code                 | `code-simplifier`      | Refactor for clarity and maintainability          |
+| Commit changes                | `git-manager`          | Conventional commits with proper messages         |
+| Update documentation          | `docs-manager`         | Technical docs maintenance                        |
+| Track project status          | `project-manager`      | Progress reports and task consolidation           |
+| Refine requirements           | `business-analyst`     | GIVEN/WHEN/THEN format, BDD patterns              |
+| Prioritize backlog            | `product-owner`        | MoSCoW, effort/value matrix                       |
+| Create test plan              | `tester`               | Test coverage, case generation                    |
+| Synthesize knowledge          | `knowledge-worker`     | Web research, structured reports, course material |
+| Design specification          | `ui-ux-designer`       | Figma integration, design tokens                  |
 | Edit the .claude framework    | `framework-maintainer` | Skills, agents, hooks, SYNC blocks, Codex mirrors |
 
 ### When NOT to Use Agents

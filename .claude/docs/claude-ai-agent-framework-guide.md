@@ -1350,11 +1350,11 @@ flowchart LR
 
 Dedicated registered workflows and workflow trigger skills support test-driven development:
 
-| Workflow                                           | Sequence                                                                                                                | Use Case                                                                                         |
-| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| **idea-to-pbi**                                    | `/idea` → `/refine` → `/story` → `/spec [mode=tests]` → `/dor-gate`                                                     | Go from raw idea to grooming-ready PBI, stories, and reviewed test specifications                |
+| Workflow                                           | Sequence                                                                                                           | Use Case                                                                                         |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| **idea-to-pbi**                                    | `/idea` → `/refine` → `/story` → `/spec [mode=tests]` → `/dor-gate`                                                | Go from raw idea to grooming-ready PBI, stories, and reviewed test specifications                |
 | **feature**                                        | `/scout` → `/investigate` → `/spec` → `/spec [mode=tests]` → `/plan` → `/plan-execute` → `/integration-test` → ... | Spec-driven with tests by default: test specs written and reviewed FIRST, then implement         |
-| **e2e** (`--source=recording\|update-ui\|changes`) | `/scout` → `/e2e-test` → `/test` → `/docs-update` → `/workflow-end` → `/watzup`                                         | Generate from a recording, update screenshot baselines, or sync E2E tests to spec/source changes |
+| **e2e** (`--source=recording\|update-ui\|changes`) | `/scout` → `/e2e-test` → `/test` → `/docs-update` → `/workflow-end` → `/watzup`                                    | Generate from a recording, update screenshot baselines, or sync E2E tests to spec/source changes |
 
 #### Interactive Idea & Requirement Capture
 
@@ -2476,7 +2476,7 @@ big-feature:
   /scaffold → /architecture-review-full → /plan-validate → …
 ```
 
-- **`/architecture-review-full`** runs immediately after the foundation is scaffolded (both workflows), bundling `architecture-review` + `architecture-scalability-review` + `production-readiness-review` into one consolidated Architecture Health Report — so base abstractions and golden-path example code are *reviewed* before any feature depends on them.
+- **`/architecture-review-full`** runs immediately after the foundation is scaffolded (both workflows), bundling `architecture-review` + `architecture-scalability-review` + `production-readiness-review` into one consolidated Architecture Health Report — so base abstractions and golden-path example code are _reviewed_ before any feature depends on them.
 - **`greenfield-init`** additionally regenerates its project-reference doc set via four `/scan` passes, turning the freshly-scaffolded conventions into the reference docs that guide every later feature.
 - **`big-feature`** also runs **`/architecture-scalability-review`** right after `/architecture-design`, feeding scalability findings into the very first plan.
 
