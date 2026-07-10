@@ -52,14 +52,14 @@ Session-start reference derived from `.claude/workflows.json` — use it to pick
 | `workflow-idea-to-spec` | turn a raw product idea, vision, or problem statement into one canonical | web-research → deep-research → brainstorm → spec-discovery → domain-analysis → why-review → idea → spec [mode=draft] → spec [mode=tests] → artifact-review --type=spec-tests → artifact-review → design-spec → spec-clarify → why-review → docs-update → feature-presentation → workflow-end → watzup |
 | `workflow-refactor` | restructure, reorganize, clean up | scout → investigate → plan → plan-review → plan-validate → why-review → plan-execute → spec [mode=tests] → why-review → artifact-review --type=spec-tests → spec [mode=sync] → integration-test → integration-test-review → integration-test-verify → workflow-review-changes → changelog → test → docs-update → workflow-end → watzup |
 | `workflow-research` | research a topic from web sources, a business/market viability evaluation, a marketing strategy | web-research → deep-research → knowledge-synthesis → knowledge-review → workflow-end |
-| `workflow-review-changes` | review current uncommitted, staged, or unstaged changes before committing | changes-review → why-review → architecture-review → domain-entities-review → performance-review → integration-test-review → security-review → production-readiness-review → code-simplifier → plan → plan-review → plan-execute → changes-review → why-review → docs-update → workflow-end → watzup |
+| `workflow-review-changes` | review current uncommitted, staged, or unstaged changes before committing | changes-review → why-review → architecture-review → domain-entities-review → performance-review → integration-test-review → security-review → production-readiness-review → ui-review → code-simplifier → plan → plan-review → plan-execute → changes-review → why-review → docs-update → workflow-end → watzup |
 | `workflow-seed-test-data` | seed test data, implement data seeders, realistic development environment data | scout → investigate → seed-test-data → changes-review → code-simplifier → docs-update → workflow-end → watzup |
 | `workflow-spec-sync` | fixing a bug update test specs, code changes update test specs, pr review update test specs | workflow-review-changes → spec [mode=tests] → why-review → artifact-review --type=spec-tests → spec [mode=sync] → integration-test → integration-test-review → integration-test-verify → test → docs-update → workflow-end |
 | `workflow-spec-to-pbi` | create all pbis from an existing, convert a large feature spec into, dependent pbis from docs/specs | scout → spec-index → domain-analysis → why-review → spec-clarify → plan → plan-review → plan-validate → why-review → refine → why-review → artifact-review --type=pbi → story → why-review → artifact-review --type=story → pbi-challenge → dor-gate → pbi-mockup → design-spec → prioritize → docs-update → feature-presentation → workflow-end → watzup |
 | `workflow-visualize` | visualize, diagram, draw | scout → investigate → excalidraw-diagram → workflow-end |
 | `workflow-write-integration-test` | write integration tests for a specific, add test coverage to an untested, update integration tests after code changes | scout → investigate → spec [mode=tests] → why-review → artifact-review --type=spec-tests → integration-test → integration-test-review → integration-test-verify → spec [mode=sync] → docs-update → workflow-end → watzup |
 
-### Workflow Skills (58 composable steps)
+### Workflow Skills (59 composable steps)
 
 Distinct step-skills used across the workflows above — compose these into a custom workflow when no standard workflow fits.
 
@@ -118,6 +118,7 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `story` | [Project Management] Use when creating user stories from PBIs, slicing features, or breaking down requirements. |
 | `tech-stack-research` | [Architecture] Use when you need to research, analyze, and compare tech stack options as a solution architect. |
 | `test` | [Testing] Use when you need to run tests locally and analyze the summary report. |
+| `ui-review` | [Code Quality] Use when reviewing UI/frontend changes for long-content overflow, responsive multi-screen layout (flex-wrap / row-to-column on small devices), flex-vs-fixed sizing, z-index discipline, SCSS/BEM styling quality, and async UI states & feedback (loading indicator, error surface, empty state). |
 | `watzup` | [Utilities] Use when you need to review recent changes and wrap up the work. |
 | `web-research` | [Research] Use when starting a web research task — discover, gather, and triage candidate sources on a topic to feed deeper investigation. |
 | `why-review` | [Code Quality] Use when reviewing rationale and change quality for plans, PBIs, commits, diffs, docs, specs, reports, or explicit artifacts. |

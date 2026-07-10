@@ -1188,7 +1188,7 @@ UNIVERSAL RULES:
 ### workflow-review-changes — Review Current Changes
 - Description: Review uncommitted changes, plan and fix issues, then re-review recursively until clean
 - When To Use: User wants to review current uncommitted, staged, or unstaged changes before committing
-- Sequence: `changes-review -> why-review -> [parallel ⇉ all-return barrier: architecture-review, domain-entities-review*, performance-review, integration-test-review, security-review, production-readiness-review] -> code-simplifier -> plan -> plan-review -> plan-execute -> changes-review -> why-review -> docs-update -> workflow-end -> watzup`
+- Sequence: `changes-review -> why-review -> [parallel ⇉ all-return barrier: architecture-review, domain-entities-review*, performance-review, integration-test-review, security-review, production-readiness-review, ui-review*] -> code-simplifier -> plan -> plan-review -> plan-execute -> changes-review -> why-review -> docs-update -> workflow-end -> watzup`
 - Parallel phase = all-return barrier: spawn ALL members together (one message); advance only after EVERY member returns (a skipped conditional member, marked `*`, counts as returned). A sub-agent completion advances the step identically to an inline call.
 
 Protocol:
@@ -1198,8 +1198,9 @@ PRE-COMMIT REVIEW (RECURSIVE):
 [BLOCKING] SEQUENCING RULE — changes-review (step 1) MUST run FIRST and complete before any other reviewer; why-review (step 2) runs immediately after to validate those findings before the parallel batch.
 - Step 1 (`changes-review`) establishes the baseline: surface analysis (BE/FE/SCSS file counts), review mode (DIMENSIONAL/BE-ONLY/FE-ONLY/FE-SPLIT/TOOLING), integration test sync gaps, multilingual translation gaps. The parallel batch depends on this baseline summary.
 - Step 2 (`why-review`) is a FINDINGS-VALIDATION gate: it sanity-checks the changes-review findings (each finding warranted, evidence-backed, not a false positive) BEFORE expensive parallel reviewers run. It validates findings only — NOT the fix plan (`plan-review` at step 11 reviews the fix plan's design). If step 1 found zero issues, step 2 passes through with nothing to validate.
-- The PARALLEL BATCH (`architecture-review`, `domain-entities-review`, `performance-review`, `integration-test-review`, `security-review`, `production-readiness-review`) MUST be spawned together in a single message via specialized `spawn_agent` tool calls (`architect`, `code-reviewer`, `performance-optimizer`, `integration-tester`, `security-auditor`, `code-reviewer`). They are read-only and independent — no shared mutable state, no ordering dependency between them. `production-readiness-review` runs here in READ-ONLY findings/score mode (SRE 12-criteria /24 + Extended SRE Readiness gate) like every other batch member — its standalone 'Validated Fix + Full Re-Review' fixer loop is DEFERRED to the workflow's mutating steps (`code-simplifier` / `plan-execute`), same standalone-vs-batch duality as `security-review`.
-- The UI/frontend quality gate (`$ui-review`) is NOT a separate workflow step — it is owned by `changes-review` (step 1), which invokes it internally (ui-ux-designer sub-agent) as its UI dimension whenever the diff contains files matching the project's configured frontend/UI file patterns. Skip entirely when no frontend files changed.
+- The PARALLEL BATCH (`architecture-review`, `domain-entities-review`, `performance-review`, `integration-test-review`, `security-review`, `production-readiness-review`, `ui-review`) MUST be spawned together in a single message via specialized `spawn_agent` tool calls (`architect`, `code-reviewer`, `performance-optimizer`, `integration-tester`, `security-auditor`, `code-reviewer`, `ui-ux-designer`). They are read-only and independent — no shared mutable state, no ordering dependency between them. `production-readiness-review` runs here in READ-ONLY findings/score mode (SRE 12-criteria /24 + Extended SRE Readiness gate) like every other batch member — its standalone 'Validated Fix + Full Re-Review' fixer loop is DEFERRED to the workflow's mutating steps (`code-simplifier` / `plan-execute`), same standalone-vs-batch duality as `security-review`.
+- The UI/frontend quality gate (`$ui-review`) runs in TWO places by design (keep both): (a) INTERNALLY inside `changes-review` (step 1), which invokes it as its UI dimension whenever the diff contains frontend files; AND (b) as a DEDICATED CONDITIONAL member of the parallel batch (`ui-review`, dispatched via the `ui-ux-designer` sub-agent). Both are gated on the same trigger — frontend files present in the diff — so both are SKIPPED entirely when no frontend files changed.
+- `ui-review` is a CONDITIONAL member of the batch: include it ONLY when the diff contains files matching the project's configured frontend/UI file patterns. Skip it entirely (do not spawn it) when no frontend files changed.
 - `domain-entities-review` is a CONDITIONAL member of the batch: include it ONLY when domain entity files changed. Skip it entirely (do not spawn it) when its trigger files are absent.
 - NEVER start the batch before steps 1 and 2 complete. NEVER serialize the batch (burns 50K+ tokens absorbing inline reports). NEVER start `code-simplifier` until ALL spawned sub-agents return — code-simplifier modifies code and must operate on the consolidated review snapshot.
 - After the parallel batch returns: TaskUpdate the batch steps to completed, read all sub-agent reports, synthesize Critical/High/Medium/Low findings into a consolidation summary, then proceed to `code-simplifier` sequentially.
@@ -1209,7 +1210,7 @@ PRE-COMMIT REVIEW (RECURSIVE):
 - Verify no sensitive files (.env, credentials) are staged
 - Check architecture compliance, naming, patterns
 - DOMAIN ENTITY REVIEW: If domain entity files in changeset (Domain/, Entities/, ValueObjects/ directories), run $domain-entities-review to check DDD quality (anemic model, VO immutability, invariant enforcement). Skip entirely if no entity files changed.
-- UI/FRONTEND REVIEW: Owned by step 1 (`changes-review`). When the changeset contains files matching the project's configured frontend/UI file patterns, `changes-review` invokes $ui-review internally (ui-ux-designer sub-agent) as its UI dimension to check long-content overflow (wrap vs ellipsis+tooltip), responsive multi-screen via flex, flex-vs-fixed sizing (prefer min/max + flex-grow over fixed px), z-index scale discipline (no raw numbers, no !important), and SCSS/BEM quality. Not a separate workflow step. Skip entirely if no frontend files changed.
+- UI/FRONTEND REVIEW: Runs in TWO places (keep both) when the changeset contains files matching the project's configured frontend/UI file patterns: (a) INTERNALLY — step 1 (`changes-review`) invokes $ui-review as its UI dimension; AND (b) as a DEDICATED CONDITIONAL parallel-batch member (`ui-review` via the ui-ux-designer sub-agent). Both check long-content overflow (wrap vs ellipsis+tooltip), responsive multi-screen via flex, flex-vs-fixed sizing (prefer min/max + flex-grow over fixed px), z-index scale discipline (no raw numbers, no !important), SCSS/BEM quality, and async UI states (loading/error/empty). Skip both entirely if no frontend files changed.
 - Report findings with file:line references
 - Output: PASS (safe to commit) or ISSUES FOUND (with list)
 - If ISSUES FOUND: validate findings, plan fixes for validated findings, review and sanity-check the fix plan, implement fixes, then re-run changes-review (step 13)
@@ -1404,7 +1405,7 @@ UNIVERSAL RULES:
 
 Session-start reference derived from `.claude/workflows.json` — use it to pick a route on any prompt: run a standard workflow, compose a custom workflow from the step-skills, invoke a single skill, or execute directly.
 
-### Workflow Skills (58 composable steps)
+### Workflow Skills (59 composable steps)
 
 Distinct step-skills used across the workflows above — compose these into a custom workflow when no standard workflow fits.
 
@@ -1463,6 +1464,7 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `story` | [Project Management] Use when creating user stories from PBIs, slicing features, or breaking down requirements. |
 | `tech-stack-research` | [Architecture] Use when you need to research, analyze, and compare tech stack options as a solution architect. |
 | `test` | [Testing] Use when you need to run tests locally and analyze the summary report. |
+| `ui-review` | [Code Quality] Use when reviewing UI/frontend changes for long-content overflow, responsive multi-screen layout (flex-wrap / row-to-column on small devices), flex-vs-fixed sizing, z-index discipline, SCSS/BEM styling quality, and async UI states & feedback (loading indicator, error surface, empty state). |
 | `watzup` | [Utilities] Use when you need to review recent changes and wrap up the work. |
 | `web-research` | [Research] Use when starting a web research task — discover, gather, and triage candidate sources on a topic to feed deeper investigation. |
 | `why-review` | [Code Quality] Use when reviewing rationale and change quality for plans, PBIs, commits, diffs, docs, specs, reports, or explicit artifacts. |

@@ -59,7 +59,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 > **ROUTING BOUNDARY (read before starting):**
 >
-> - **`ui-review` (this skill)** — the project UI review gate invoked by `changes-review` as its UI dimension when frontend files are in scope. Purpose: find issues, assign severity, give project-specific fix guidance citing real reuse targets (sourced from the project reference docs). It complements `architecture-review`; it is not a separate `changes-review` workflow step.
+> - **`ui-review` (this skill)** — the project UI review gate. Purpose: find issues, assign severity, give project-specific fix guidance citing real reuse targets (sourced from the project reference docs). It complements `architecture-review`. In `workflow-review-changes` it runs in TWO places by design (keep both): (a) INTERNALLY as `changes-review`'s UI dimension (step 1), AND (b) as a DEDICATED conditional parallel-batch member (step 9, `ui-ux-designer` sub-agent). Both fire only when frontend files are in scope.
 > - **`web-design-guidelines`** — a generic, standalone accessibility / UX checklist. Cross-read it for a11y depth (WCAG, focus order, ARIA, contrast); do NOT duplicate its content here.
 > - **`ui-ux-designer`** — specialized UI/UX, accessibility, responsive layout, and design-token review/authoring sub-agent when the local agent catalog provides it.
 
@@ -465,7 +465,7 @@ Update report with final sections:
 
 > **MANDATORY — NO EXCEPTIONS:** If NOT already in a workflow, MUST use ask the user directly to ask user. Do NOT judge task complexity or decide "simple enough to skip" — user decides, not you:
 >
-> 1. **Activate `workflow-review-changes` workflow** (Recommended) — run the canonical workflow from `.claude/workflows.json`; it sequences UI review through `$changes-review`, findings validation, parallel reviewers, `code-simplifier` self-review, fix-plan cycle, full re-review restart, docs, and handoff.
+> 1. **Activate `workflow-review-changes` workflow** (Recommended) — run the canonical workflow from `.claude/workflows.json`; it runs UI review in TWO places by design (keep both) — internally as `$changes-review`'s UI dimension AND as a dedicated conditional parallel-batch reviewer (step 9) — alongside findings validation, the other parallel reviewers, `code-simplifier` self-review, fix-plan cycle, full re-review restart, docs, and handoff.
 > 2. **Execute `$ui-review` directly** — run this skill standalone
 
 ---
