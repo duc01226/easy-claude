@@ -191,6 +191,24 @@ Invoke `SYNC:scale-technique-gate`: derive the system's scale tier from evidence
 - `python .claude/scripts/code_graph query tests_for <function_name> --json` → verify test coverage on changed functions
 - `python .claude/scripts/code_graph trace <service-file> --direction downstream --json` → verify all downstream event handlers, bus consumers, cross-service calls have error handling
 
+## Why-Review Findings Validation Gate (MANDATORY when findings exist)
+
+> **Purpose:** Adversarial validation of own findings BEFORE any fix. Catches over-flagged criteria, false positives, and severity/score inflation at the source rather than letting them drive fixes or ship downstream.
+
+**Trigger:** Any finding produced (any severity). Skip ONLY when the verdict is unconditional PASS with literally zero findings.
+
+**Protocol:**
+
+1. Read own finalized report from `plans/reports/{skill}-{date}-{slug}.md`
+2. Invoke `$why-review --validate-findings plans/reports/{skill}-{date}-{slug}.md` — verify each finding has `file:line` proof, steel-man each rejected interpretation, and stress-test every severity/score classification (each finding must clear why-review's finding-survival bar to be kept)
+3. Read the CLEAN / HAS-ISSUES verdict returned by why-review
+4. **If why-review demotes/removes any finding:** UPDATE own report with revised severities, remove false positives, and add a `## Why-Review Validation Notes` section citing what changed and why
+5. **If why-review confirms all findings:** append a `## Why-Review Validation` line stating "All N findings re-validated against actual code; no severity changes."
+
+**Skip conditions (record explicit reason if skipping):** unconditional PASS with zero findings; why-review is itself the active context (avoid recursion).
+
+**Why this exists:** SRE sub-agent reports inherit confirmation bias — the orchestrator absorbs severity claims as ground truth. Validate findings BEFORE the fix so no fix is ever driven by an inflated or false finding; this gate feeds the "Validated Fix + Full Re-Review" loop below.
+
 ## Validated Fix + Full Re-Review (MANDATORY when fixes are applied)
 
 When a review pass finds issues, validate findings before any fix. Do NOT spawn a fresh sub-agent only to re-review the same finding set before validation/fix. After validated SRE fixes applied, rerun the full SRE review. If that restarted review uses a sub-agent, spawn it with ZERO prior-round memory. A clean review pass ENDS the review.
@@ -834,7 +852,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 <!-- /SYNC:scenario-stress-eval -->
 
 <!-- SYNC:double-round-trip-review:reminder -->
-- **MANDATORY IMPORTANT MUST ATTENTION** execute the review loop: review → validate findings → fix validated findings → full re-review. A complete review pass with zero findings ENDS the review.
+- **MANDATORY IMPORTANT MUST ATTENTION** execute the review loop (aka **Self-Review Convergence Loop**): review → validate findings → fix validated findings → full re-review. A complete review pass with zero findings ENDS the review. Any newly produced output/judgment gets ≥1 self-review; any new judgment gets ≥1 `$why-review --validate-findings` pass before it is treated as final.
 <!-- /SYNC:double-round-trip-review:reminder -->
 
 <!-- SYNC:graph-assisted-investigation:reminder -->

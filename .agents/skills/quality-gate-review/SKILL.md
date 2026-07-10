@@ -137,6 +137,21 @@ For each acceptance criterion from the PBI/story:
 - {Item — what needs to change}
 ```
 
+#### Verdict Validation Gate (why-review — MANDATORY before emitting REJECT/CONDITIONAL or any FAIL criterion)
+
+> **Purpose:** ACCEPT/REJECT/CONDITIONAL is a JUDGMENT. Validate it adversarially before it is emitted so a wrong verdict or a mis-classified FAIL criterion does not gate a release on ground that does not hold. This gate validates the verdict only — it routes any required fix back to the owning team/sibling review, it does NOT self-converge a fix-loop.
+
+**Trigger:** Any REJECT, any CONDITIONAL ACCEPT, or any criterion marked FAIL. Skip ONLY when every criterion PASSES with an unconditional ACCEPT.
+
+**Protocol:**
+
+1. Read the finalized gate report (the Acceptance Decision above) from `plans/reports/{skill}-{date}-{slug}.md` (or the exact report path written).
+2. Invoke `$why-review --validate-findings <report-path>` — verify each FAIL criterion and each stated condition has `file:line` / evidence proof and clears why-review's finding-survival bar.
+3. **If why-review demotes/removes any FAIL criterion or condition:** update the verdict and criteria table, then add a `## Why-Review Validation Notes` section citing what changed and why.
+4. **If the verdict changed after validation:** re-run this gate — maximum 2 validation passes — until the remaining FAIL criteria/conditions are validated. No fix-loop: this skill decides the gate and routes fixes to the owning team; it never restarts a full review over its own fixes.
+
+**Anti-bias (MANDATORY before emitting):** steel-man the OPPOSITE verdict — argue for ACCEPT if about to REJECT, and for REJECT if about to ACCEPT; the verdict that survives its own counter-argument ships. A gate decision that was never challenged is not validated.
+
 ### 2. Compliance Verification
 
 - Code follows architecture patterns

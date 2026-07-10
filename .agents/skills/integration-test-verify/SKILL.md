@@ -326,6 +326,7 @@ This script typically: creates networks → removes stale containers → builds 
 3. Identify: is the assertion wrong, or is the code wrong?
 4. Fix at the root cause layer; use real use cases or valid seeded fixtures for data setup
 5. Re-run to confirm green
+6. **If step 3 found the CODE was wrong (SOURCE-WRONG) and your fix changed production/source code**, route that changed source into a fresh `$changes-review` (or emit a HIGH finding requiring it) BEFORE declaring the 2-run green PASS — a source fix that greens a test must not ship un-code-reviewed. (In `workflow-feature`/`workflow-bugfix` the downstream `workflow-review-changes` step already covers this; the route matters for standalone runs.)
 
 If a test fails because the system is unavailable → report as "system not ready" and reference `startupScript` / `runScript`. Never change the test.
 

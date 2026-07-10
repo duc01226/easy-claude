@@ -230,6 +230,21 @@ Report structure:
 List only user-confirmed recommendations or mark `N/A`.
 ```
 
+## Scorecard Validation Gate (why-review, MANDATORY when the scorecard has any sub-80 grade or risk finding)
+
+> **Purpose:** A scorecard is a JUDGMENT. Validate it adversarially before emitting it so a mis-scored area or an inflated risk finding does not ship as ground truth. This gate validates findings only — it routes any fix to the owning sibling review, it does NOT self-converge a fix-loop.
+
+**Trigger:** Any area graded below 80, or any risk/gap finding. Skip ONLY when every area scored ≥80 with zero risk findings.
+
+**Protocol:**
+
+1. Read the finalized scorecard report from `plans/reports/{skill}-{date}-{slug}.md` (or the exact report path written).
+2. Invoke `$why-review --validate-findings <report-path>` — verify each sub-80 grade and each risk finding has `file:line` evidence and clears why-review's finding-survival bar.
+3. **If why-review demotes/removes any grade or finding:** update the scorecard with the revised grade/severity and add a `## Why-Review Validation Notes` section citing what changed and why.
+4. **If the scorecard changed after validation:** re-run this gate — maximum 2 validation passes — until the remaining grades/findings are validated. No fix-loop: this skill grades and routes fixes to siblings; it never restarts a full review over its own fixes.
+
+**Anti-bias (MANDATORY before emitting):** steel-man each grade — argue the score should be one band better AND one band worse; a grade that survives its own steel-man ships. A scorecard whose grades were never challenged is not validated.
+
 ## Completion Criteria
 
 - All 10 areas are scored.

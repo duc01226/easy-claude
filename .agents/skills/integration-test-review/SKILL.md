@@ -337,7 +337,7 @@ For each behavior-changing production file in the review target (reverse directi
 
 **Phase 4 — Initial Report:** Write to `plans/reports/integration-test-review-{date}-{slug}.md`
 
-**Phase 5 — Fix All Issues (MANDATORY):** Fix every CRITICAL and HIGH issue. MEDIUM: fix if straightforward, document as tech debt otherwise.
+**Phase 5 — Fix All Issues (MANDATORY — fix ONLY findings already validated per the embedded `double-round-trip-review` validate-before-fix contract):** Fix every CRITICAL and HIGH issue. MEDIUM: fix if straightforward, document as tech debt otherwise.
 
 1. Prioritize: CRITICAL → HIGH → MEDIUM
 2. Per fix: read handler source, understand domain logic, write/fix assertion

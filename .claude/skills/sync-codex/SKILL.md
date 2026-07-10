@@ -20,10 +20,10 @@ Also bootstraps team-wide Codex completion notifications by copying the portable
 
 **Key Rules:**
 
-- MUST run all 10 stages in order — orchestrator fails fast on first non-zero exit
+- MUST run all 11 stages in order — orchestrator fails fast on first non-zero exit
 - NEVER edit `.agents/skills/sync-codex/**` (auto-mirror) — edit `.claude/skills/sync-codex/**` source instead
 - `.claude` is the source for skills/workflows/hooks; generated acceptance targets are `.agents/skills/**`, `.codex/CODEX_CONTEXT.md`, and `AGENTS.md`
-- Stages 1-3 mutate `.agents/skills/`, `.codex/`, `AGENTS.md`; stages 4-10 are read-only verifiers (codex tooling tests, repo-script unit tests, the 4 codex verifiers, and the cross-surface divergence oracle)
+- Stages 1-3 mutate `.agents/skills/`, `.codex/`, `AGENTS.md`; stages 4-11 are read-only verifiers (codex tooling tests, repo-script unit tests, the 5 codex verifiers, and the cross-surface divergence oracle)
 - Stage 1 upserts `[tui].status_line` to show model+reasoning, current directory, project root, context used, five-hour limit, and weekly limit by default
 - Stage 3 mirrors full `CLAUDE.md` into `AGENTS.md`, then appends the generated Codex hook/context mirror and shared AI-SDD markers so Codex has both source instructions and hookless parity context
 - Stage 1 must not inline `docs/project-reference/lessons.md` content into `.agents/skills/**`; generated skill mirrors reference the project-reference loading gate instead
@@ -50,7 +50,7 @@ reads it as the mirror source.
 
 ## Stages
 
-10 stages, sequential — the full `npm run sync:all && npm run verify:all` pipeline (the npm scripts delegate here). Stages 1-3 mutate; 4-10 verify (read-only):
+11 stages, sequential — the full `npm run sync:all && npm run verify:all` pipeline (the npm scripts delegate here). Stages 1-3 mutate; 4-11 verify (read-only):
 
 | #   | Stage           | Script                                                       | Effect                                                                                              |
 | --- | --------------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
@@ -63,7 +63,8 @@ reads it as the mirror source.
 | 7   | sk-proto        | `.claude/scripts/codex/verify-skill-protocol-compliance.mjs` | Verify skill strict-execution-contract                                                               |
 | 8   | residue         | `.claude/scripts/codex/verify-no-project-residue.mjs`        | Verify no project residue in generated and generic source artifacts                                  |
 | 9   | sdd             | `.claude/scripts/codex/verify-sdd-semantic-compliance.mjs`   | Verify AI-SDD semantic contract coverage                                                             |
-| 10  | sync-divergence | `.claude/scripts/codex/verify-sync-divergence.mjs`           | Byte-equality oracle: `.agents/skills` mirror === `.claude/skills` (codex mirror)                    |
+| 10  | review-validate-coverage | `.claude/scripts/codex/verify-review-validate-coverage.mjs` | Verify every review-family skill carries the `/why-review --validate-findings` route; graders never embed the fix-loop (Self-Review Convergence Loop sensor) |
+| 11  | sync-divergence | `.claude/scripts/codex/verify-sync-divergence.mjs`           | Byte-equality oracle: `.agents/skills` mirror === `.claude/skills` (codex mirror)                    |
 
 ## Usage
 
@@ -78,7 +79,7 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --verbose
 node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --copy-skills
 
 # Read-only verifiers (no mutation) — the full `npm run verify:all`:
-node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --only=tests,scripts-tests,wf-cycle,sk-proto,residue,sdd,sync-divergence
+node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --only=tests,scripts-tests,wf-cycle,sk-proto,residue,sdd,review-validate-coverage,sync-divergence
 
 # Skip stages while debugging:
 node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --skip=migrate,hooks
@@ -116,14 +117,14 @@ node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --skip=migrate,hooks
 **MUST ATTENTION** keep learned-lessons content out of `.agents/skills/**`; skills may point to `docs/project-reference/lessons.md` but must not embed its entries
 **MUST ATTENTION** orchestrator fails fast — re-run single failing stage with `--only=<id> --verbose` to debug
 **MUST ATTENTION** working directory auto-resolves to repo root from script path — do not pass `--cwd`
-**MUST ATTENTION** stages 1-3 mutate; stages 4-10 verify only — use `--only=` for non-destructive validation
+**MUST ATTENTION** stages 1-3 mutate; stages 4-11 verify only — use `--only=` for non-destructive validation
 
 **Anti-Rationalization:**
 
 | Evasion                                 | Rebuttal                                                                 |
 | --------------------------------------- | ------------------------------------------------------------------------ |
 | "Just edit the .agents mirror directly" | Next sync overwrites it. Always edit `.claude/skills/sync-codex/` source |
-| "Skip a stage to save time"             | Verifiers (4-10) catch drift; skipping = silent regression risk          |
+| "Skip a stage to save time"             | Verifiers (4-11) catch drift; skipping = silent regression risk          |
 | "Sync looks idempotent, skip verify"    | Timestamp diffs are normal; structural diffs = bug. Always run verifiers |
 
 > **[FAILS FAST]** First non-zero stage exit aborts chain. Re-run failing stage manually to debug.

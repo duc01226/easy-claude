@@ -63,7 +63,7 @@ If `codebaseHealth` section is missing, discover source roots from project confi
 
 **Think:** Which numeric claims in docs can actually be verified? What's the drift threshold that signals a real maintenance problem vs normal growth?
 
-Scan `docs/` for numeric claims: "N files", "N tests", "N hooks", "N services", "N skills", "N components".
+Scan `docs/` **and the AI-harness instruction surface when present** (`.claude/**/*.md`, root `AGENTS.md`, `CLAUDE.md`) for numeric claims: "N files", "N tests", "N hooks", "N services", "N skills", "N components", "N stages", "N verifiers", "N agents", "N workflows". The harness docs embed counts that are directly derivable by globbing `.claude/` (skill dirs, hook entries, `scripts/**/verify-*` scripts, pipeline stages, agent files, `workflows.json` entries) — the highest-drift claims because a new skill/verifier/stage bumps the real count while the prose claim stays frozen. This scope is generic: any project carrying a `.claude/` harness gets it; it hardcodes no project- or framework-specific count.
 For each claim:
 
 1. Extract number and what it counts

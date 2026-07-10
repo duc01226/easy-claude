@@ -42,10 +42,12 @@ async function listTestFiles(dir) {
     }
 }
 
-// SYNC stages (1-3, mutate) then VERIFY stages (4-10, read-only). The verify set is
-// `codex:verify:all` (codex tests, scripts tests, wf-cycle, sk-proto, residue, sdd, sync-divergence)
+// SYNC stages (1-3, mutate) then VERIFY stages (read-only). The verify set is
+// `codex:verify:all` (codex tests, scripts tests, wf-cycle, sk-proto, residue, sdd,
+// review-validate-coverage, sync-divergence)
 // — i.e. the standalone runner equals the full `npm run verify:all`. portability-no-package-json.test.mjs
-// (PORT-005) locks this parity so the runner can never again verify LESS than the npm path.
+// (PORT-005/008) locks this parity so the runner can never again verify LESS than the npm path, and
+// the npm `verify:all --only` allowlist can never under-verify vs the runner's non-mutate stage set.
 const codexTestsDir = path.join(sourceScriptsDir, "tests");
 const claudeTestsDir = path.join(rootDir, ".claude", "scripts", "tests");
 const stages = [
@@ -61,6 +63,11 @@ const stages = [
     { id: "sk-proto", label: "verify-sk-proto",  cmd: "node", args: [path.join(sourceScriptsDir, "verify-skill-protocol-compliance.mjs")] },
     { id: "residue",  label: "verify-residue",   cmd: "node", args: [path.join(sourceScriptsDir, "verify-no-project-residue.mjs")] },
     { id: "sdd",      label: "verify-sdd",       cmd: "node", args: [path.join(sourceScriptsDir, "verify-sdd-semantic-compliance.mjs")] },
+    // Self-Review Convergence Loop enforcement sensor (SC8). Statically asserts every review-family
+    // SKILL.md that carries findings language also carries the `/why-review --validate-findings`
+    // route, AND that a validate-only grader does NOT embed the `SYNC:double-round-trip-review`
+    // fix-loop engine. Read-only; fails the build if an author ships a review skill without the gate.
+    { id: "review-validate-coverage", label: "verify-review-validate-coverage", cmd: "node", args: [path.join(sourceScriptsDir, "verify-review-validate-coverage.mjs")] },
     // Cross-surface byte-equality oracle. verify-sync-divergence guards BOTH the .agents/skills mirror
     // AND the CONTEXT mirror (AGENTS.md + .codex/CODEX_CONTEXT.md) — the context idempotency check is
     // folded in there (not a separate stage/file) so the portable export ships zero new pipeline scripts.

@@ -81,6 +81,8 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 **IMPORTANT MANDATORY Steps:** $scout -> $investigate -> $debug-investigate -> $spec [mode=amend] -> $plan -> $plan-review -> $plan-validate -> $why-review -> $spec [mode=tests] -> $why-review -> $artifact-review --type=spec-tests -> $integration-test -> $fix -> $prove-fix -> $integration-test -> $integration-test-review -> $integration-test-verify -> $spec [mode=sync] -> $workflow-review-changes -> $changelog -> $test -> $docs-update -> $workflow-end -> $watzup
 
+> **Single-pass steps are self-loop-backed (convergence lives in the skill, not the sequence):** the `$artifact-review --type=spec-tests` step appears once in the flat sequence with no repeat wired — intentionally. It carries the full `SYNC:double-round-trip-review` self-loop (review → validate findings → fix validated findings → full re-review until a clean pass), so a single occurrence still converges to zero findings on its own; the workflow relies on that per-skill loop rather than re-listing the step. Code-change convergence is delegated to `$workflow-review-changes` (whose specialist scoped-re-run note lives in that skill).
+
 > **[BLOCKING]** Each step MUST ATTENTION invoke its skill invocation — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
 > **[CRITICAL] Plan Before Fix Gate:** The `$plan → $plan-review → $plan-validate` steps are MANDATORY before `$fix`. You MUST ATTENTION create todo tasks for these plan steps AND complete them before proceeding to fix. Never skip planning — fixes without validated plans lead to incomplete root cause analysis and regressions.

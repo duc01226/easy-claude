@@ -73,6 +73,8 @@ Every step = `TaskUpdate in_progress` → `Skill` tool → complete skill → `T
 
 **IMPORTANT MANDATORY Steps:** /scout -> /investigate -> /spec-discovery -> /domain-analysis -> /why-review -> /spec -> /spec-clarify -> /plan -> /plan-review -> /plan-validate -> /why-review -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /plan -> /plan-review -> /plan-execute -> /seed-test-data -> /domain-entities-review -> /spec [mode=tests] -> /why-review -> /artifact-review --type=spec-tests -> /spec [mode=sync] -> /integration-test -> /integration-test-review -> /integration-test-verify -> /workflow-review-changes -> /security-review -> /changelog -> /test -> /docs-update -> /workflow-end -> /watzup
 
+> **Single-pass steps are self-loop-backed (convergence lives in the skill, not the sequence):** `/domain-entities-review` and both `/artifact-review --type=spec-tests` occurrences appear once each in the flat sequence with no repeat wired — intentionally. Each carries the full `SYNC:double-round-trip-review` self-loop (review → validate findings → fix validated findings → full re-review until a clean pass), so a single sequence occurrence still converges to zero findings on its own. The workflow relies on that per-skill loop; it does NOT re-list the step to force convergence. (Contrast the six specialists in `/workflow-review-changes` steps 3–8, whose scoped-re-run note lives in that skill.)
+
 > **[BLOCKING]** Each step MUST ATTENTION invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
 
 Activate the `workflow-feature` workflow. Run `/start-workflow workflow-feature` with the user's prompt as context.
