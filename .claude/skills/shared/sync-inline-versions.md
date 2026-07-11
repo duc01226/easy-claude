@@ -458,6 +458,12 @@
 
 ---
 
+## SYNC:double-round-trip-review:reminder
+
+- **MANDATORY IMPORTANT MUST ATTENTION** execute the review loop (aka **Self-Review Convergence Loop**): review → validate findings → fix validated findings → full re-review. A complete review pass with zero findings ENDS the review. Any newly produced output/judgment gets ≥1 self-review; any new judgment gets ≥1 `/why-review --validate-findings` pass before it is treated as final.
+
+---
+
 ## SYNC:logic-and-intention-review
 
 > **Logic & Intention Review** — Verify WHAT code does matches WHY it was changed.

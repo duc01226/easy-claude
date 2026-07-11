@@ -1,10 +1,10 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-07-03'
-  total_skills: 156
+  last_updated: '2026-07-11'
+  total_skills: 158
   total_by_status:
-    active: 155
+    active: 157
     deprecated: 1
     experimental: 0
 categories:
@@ -1388,6 +1388,19 @@ skills:
       deprecated_by: null
       deprecated_since: null
       removal_after: null
+    - name: why-review-loop
+      path: why-review-loop/SKILL.md
+      description: '[Code Quality] Use when you need to combine /why-review + /fix
+        in a recursive loop — each round runs /why-review to find validated findings
+        then /fix to resolve them, then loops again over the CHANGED target until
+        a fresh full /why-review produces zero findings (nothing left to fix).'
+      category: other
+      has_scripts: false
+      has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
     - name: workflow-architecture-audit
       path: workflow-architecture-audit/SKILL.md
       description: '[Workflow] Use when activating the Architecture Audit workflow
@@ -1533,6 +1546,19 @@ skills:
       path: workflow-review-changes/SKILL.md
       description: '[Workflow] Use when activating the Review Current Changes workflow
         for review, fix, and re-review recursively until all issues resolved.'
+      category: other
+      has_scripts: false
+      has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: workflow-review-changes-loop
+      path: workflow-review-changes-loop/SKILL.md
+      description: '[Workflow] Use when you need to run /workflow-review-changes repeatedly
+        in an outer convergence loop until a complete whole-workflow run applies zero
+        fixes — recursive re-review of a fixed scope (branch-diff + current changes)
+        until a clean no-op pass.'
       category: other
       has_scripts: false
       has_references: false

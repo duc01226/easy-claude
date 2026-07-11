@@ -1,6 +1,6 @@
 ---
-name: quality-gate-review
-description: '[Project Management] Use when you need to enforce quality gates, verify compliance with standards, track quality metrics, and generate audit trails.'
+name: workflow-review-changes-loop
+description: '[Workflow] Use when you need to run /workflow-review-changes repeatedly in an outer convergence loop until a complete whole-workflow run applies zero fixes — recursive re-review of a fixed scope (branch-diff + current changes) until a clean no-op pass.'
 ---
 
 > Codex compatibility note:
@@ -40,383 +40,122 @@ When coding, planning, debugging, testing, or reviewing, open project docs expli
 Do not read all docs blindly. Start from `docs-index-reference.md`, then open only relevant files for the task.
 <!-- CODEX:PROJECT-REFERENCE-LOADING:END -->
 
+<!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
+
+> **[BLOCKING]** Execute skill steps in declared order. NEVER skip, reorder, or merge steps without explicit user approval.
+> **[BLOCKING]** Before each step or sub-skill call, update task tracking: set `in_progress` when step starts, set `completed` when step ends.
+> **[BLOCKING]** Every completed/skipped step MUST include brief evidence or explicit skip reason.
+> **[BLOCKING]** If Task tools are unavailable, create and maintain an equivalent step-by-step plan tracker with the same status transitions.
+
+<!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:END -->
+
 ## Quick Summary
 
-**Goal:** Enforce quality gates, verify compliance with standards, and track quality metrics across the development lifecycle.
+**Goal:** Converge a review scope to a **clean no-op pass** by re-running the ENTIRE `$workflow-review-changes` workflow INLINE, round after round, over a fixed scope combined with the fixes accumulated so far — stopping only when a complete round applies **zero fixes**.
 
-> **Renamed:** formerly `/qc-specialist` — that name no longer resolves as a slash command; use `$quality-gate-review`.
+**Summary:**
 
-**Workflow:**
+- **Steps (in order):** (0) resolve scope + Goal Contract → (0b) bind the convergence loop (protocol loop primary + optional `/goal` accelerator) → (1) round loop { run `$workflow-review-changes` INLINE → detect fixes-applied → log iteration } → (2) converge on a zero-fix round OR escalate on non-progress → (3) recap.
+- **Convergence:** stop ONLY when a whole round applies **zero fixes** (its fix cycle skipped, working tree unchanged, reviews clean) — not merely one clean review.
+- **Inline invariant:** run `$workflow-review-changes` via the skill invocation, NEVER the `spawn_agent` tool — it self-binds its own review-loop obligation (owning the session Stop hook for its `/goal` gate WHEN available), which a sub-agent cannot own or carry back to this loop.
+- **Bounded:** round cap default 5; findings not shrinking across 2 rounds, or cap hit with fixes still landing → **STOP & escalate** by asking the user directly.
 
-1. **Identify Gate** — Determine which quality gate applies (Idea>PBI, PBI>Dev, Dev>QA, QA>Release)
-2. **Verify Checklist** — Run through pass/fail criteria for the gate stage
-3. **Generate Report** — Produce PASS/FAIL/CONDITIONAL gate status with evidence
-4. **Track Metrics** — Log in audit trail and update quality metrics dashboard
+**Why this skill exists (READ FIRST — it is the whole justification):** `$workflow-review-changes` already converges *internally* to a clean pass, BUT its inner loop does **NOT** re-run the 7 specialist reviewers from scratch. Per `.claude/skills/workflow-review-changes/SKILL.md:258`, the step-14 inline re-review re-runs only `$changes-review`'s own BE/FE/SCSS/UI dimensions plus *scoped* re-runs of the specific specialist that raised a finding — `$architecture-review`, `$performance-review`, `$security-review`, `$integration-test-review`, `$production-readiness-review`, `$domain-entities-review` fire ONCE (steps 3–9). Only a **fresh full re-invocation** re-runs ALL specialists over the now-fixed code — catching **second-order defects the fixes themselves introduced** and killing whole-workflow confirmation bias. Without this outer loop those regressions ship unreviewed.
+
+**Workflow:** resolve scope + Goal Contract → bind the convergence loop (protocol loop + optional `/goal` accelerator) → **round loop** { run `$workflow-review-changes` INLINE → detect fixes-applied → log iteration } → converge when a round applies zero fixes → recap.
 
 **Key Rules:**
 
-- Every gate must have a clear PASS/FAIL/CONDITIONAL status
-- Evidence must be provided for critical checklist items
-- Sign-offs are required before release gates can pass
-
-**Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
-
-# Quality Gate Review
-
-Enforce quality gates, verify compliance with standards, track quality metrics, and generate audit trails across the development lifecycle.
+- **MUST run INLINE in the main session — NEVER dispatch `$workflow-review-changes` as a sub-agent.** It self-binds its own review-loop obligation (owning the session Stop hook for its `/goal` gate when available); as a sub-agent that in-session guarantee is silently lost (`workflow-review-changes/SKILL.md:318-322`). This loop skill therefore also runs inline.
+- **Convergence = a whole round applied ZERO fixes** (its fix cycle, steps 11–14, was skipped because reviews passed clean). That, not "one clean review", ends the loop.
+- **Scope base is FIXED across rounds; the working tree grows.** Recompute the scope each round as `branch-diff base` ∪ current uncommitted changes — the diff base never moves, so convergence is measured against a stable target.
+- **Round cap (default 5)** and **findings-increasing → STOP & escalate** by asking the user directly. NEVER loop open-ended.
 
 ---
 
-## Core Capabilities
+## First Principle — Convergence, Not Motion
 
-### 1. Quality Gates
-
-Define pass/fail criteria at each stage:
-
-#### Gate: Idea → PBI
-
-- [ ] Problem statement present
-- [ ] Business value articulated
-- [ ] No technical solution prescribed
-- [ ] Target users identified
-
-#### Gate: PBI → Development
-
-- [ ] Acceptance criteria in GIVEN/WHEN/THEN
-- [ ] Out of scope defined
-- [ ] Dependencies identified
-- [ ] Design approved (if applicable)
-
-#### Gate: Development → QA
-
-- [ ] Code review approved
-- [ ] Mutation score meets target; surviving mutants triaged (line-coverage diagnostic only — not a gate)
-- [ ] No P1/P2 linting errors
-- [ ] Documentation updated
-
-#### Gate: QA → Release
-
-- [ ] All test cases executed
-- [ ] No open P1/P2 bugs
-- [ ] Regression suite passed
-- [ ] PO sign-off received
-
-#### PO Acceptance Decision (per-AC verdict — how "PO sign-off received" is earned)
-
-For each acceptance criterion from the PBI/story:
-
-1. **Read criterion** — Ensure it's testable and measurable
-2. **Check evidence** — Review test results, screenshots, demo recordings
-3. **Verify** — Does the implementation satisfy the criterion?
-4. **Verdict** — PASS or FAIL with specific evidence
-
-**Decision rules:** Every acceptance criterion must have a PASS/FAIL verdict. REJECT must list the specific items that failed. CONDITIONAL ACCEPT must list conditions and a timeline.
-
-```
-## Acceptance Decision
-
-**Feature/PBI:** {Reference}
-**Reviewer:** {PO name/role}
-**Date:** {date}
-**Verdict:** ACCEPT | REJECT | CONDITIONAL ACCEPT
-
-### Criteria Review
-
-| # | Criterion | Verdict | Evidence |
-|---|-----------|---------|----------|
-| 1 | {AC text} | PASS | {Evidence} |
-| 2 | {AC text} | FAIL | {Why it failed} |
-
-### Decision Details
-- {Rationale for overall verdict}
-
-### Conditions (if CONDITIONAL)
-- {Condition — deadline}
-
-### Rejected Items (if REJECT)
-- {Item — what needs to change}
-```
-
-#### Verdict Validation Gate (why-review — MANDATORY before emitting REJECT/CONDITIONAL or any FAIL criterion)
-
-> **Purpose:** ACCEPT/REJECT/CONDITIONAL is a JUDGMENT. Validate it adversarially before it is emitted so a wrong verdict or a mis-classified FAIL criterion does not gate a release on ground that does not hold. This gate validates the verdict only — it routes any required fix back to the owning team/sibling review, it does NOT self-converge a fix-loop.
-
-**Trigger:** Any REJECT, any CONDITIONAL ACCEPT, or any criterion marked FAIL. Skip ONLY when every criterion PASSES with an unconditional ACCEPT.
-
-**Protocol:**
-
-1. Read the finalized gate report (the Acceptance Decision above) from `plans/reports/{skill}-{date}-{slug}.md` (or the exact report path written).
-2. Invoke `$why-review --validate-findings <report-path>` — verify each FAIL criterion and each stated condition has `file:line` / evidence proof and clears why-review's finding-survival bar.
-3. **If why-review demotes/removes any FAIL criterion or condition:** update the verdict and criteria table, then add a `## Why-Review Validation Notes` section citing what changed and why.
-4. **If the verdict changed after validation:** re-run this gate — maximum 2 validation passes — until the remaining FAIL criteria/conditions are validated. No fix-loop: this skill decides the gate and routes fixes to the owning team; it never restarts a full review over its own fixes.
-
-**Anti-bias (MANDATORY before emitting):** steel-man the OPPOSITE verdict — argue for ACCEPT if about to REJECT, and for REJECT if about to ACCEPT; the verdict that survives its own counter-argument ships. A gate decision that was never challenged is not validated.
-
-### 2. Compliance Verification
-
-- Code follows architecture patterns
-- Security requirements met
-- Accessibility standards (WCAG 2.1 AA)
-- Performance benchmarks
-
-### 3. Audit Trail
-
-Track artifact lifecycle:
-
-```
-{Artifact} | {Action} | {By} | {Date} | {Notes}
-```
-
-### 4. Quality Metrics
-
-#### Code Quality
-
-- Cyclomatic complexity
-- Mutation score (line-coverage diagnostic only — not a gate)
-- Technical debt ratio
-- Duplication %
-
-#### Process Quality
-
-- Defect escape rate
-- First-time-right %
-- Cycle time
-- Lead time
+> A round that changes files is progress **only if** the next round finds fewer things to fix.
+> The loop exists to reach a fixed point (zero fixes), not to keep churning the diff.
+> If findings stop shrinking, that is a signal to **escalate**, not to spin another round.
 
 ---
 
-## Quality Gate Checklists
+## Step 0 — Resolve Scope + Goal Contract (FIRST ACTION)
 
-### Pre-Development Checklist
+1. **Parse the review scope** from the user prompt into a stable, reusable scope string. It has two parts UNIONed:
+   - **Branch-diff base** — a branch-to-branch or PR diff, e.g. `fix/timelog-org-business-timezone` into `develop`. Capture it as `git diff develop...HEAD` (three-dot: changes on the feature branch since it forked from `develop`) so the base is a **fixed merge-base**, not a moving target.
+   - **Current changes** — the uncommitted working-tree changes (`git status --porcelain`, `git diff` + `git diff --staged`).
+   - **Scope string (recompute each round):** `{branch-diff base} ∪ {current uncommitted changes}`. The base commit is fixed for the whole loop; the uncommitted set legitimately grows as fixes land.
+   - If the prompt names no branch diff (pure "current changes" review), the scope is just the working-tree changes — the loop still applies.
+2. **Resolve/create the Goal Contract** per `SYNC:goal-contract-satisfaction-loop` (`plans/goals/{YYMMDD-HHmm}-{slug}/goal.md`, template `.claude/templates/goal-contract-template.md`). Its single **required** Success Criterion:
+   > *A complete `$workflow-review-changes` run over `{scope}` applies **zero fixes** (a clean no-op pass — no validated findings, no `$plan-execute` file changes).*
+   Record the round cap (default 5) and the scope string in **Constraints**.
 
-```markdown
-## Quality Gate: PBI Ready for Development
+## Step 0b — Bind the Convergence Loop (protocol-first; `/goal` is an optional accelerator)
 
-**PBI:** {PBI-ID}
-**Reviewer:** {Name}
-**Date:** {Date}
+The convergence loop is bound by TWO layers. The **protocol loop (Steps 1–2) is the BINDING mechanism** and MUST be self-driven by you, the running agent, on every host — with or without any command or hook. The **`/goal` command is an OPTIONAL accelerator** layered on top; it is never the primary mechanism, and its absence NEVER weakens the loop. This mirrors the project rule that hooks/trackers are accelerators only — correctness must not depend on them.
 
-### Requirements
+**1. Protocol loop — ALWAYS binding (hook/command-independent).** You are personally responsible for not stopping until the loop converges or bounded-escalates. This binds Claude, Codex, and Copilot equally, whether or not `/goal` exists:
 
-- [ ] Clear problem statement
-- [ ] User value articulated
-- [ ] Acceptance criteria in GIVEN/WHEN/THEN format
-- [ ] Out of scope explicitly listed
+> Repeatedly run `$workflow-review-changes` INLINE over `{scope}` (branch-diff base ∪ current uncommitted changes, recomputed each round). After each round, detect whether it applied any fix. Do NOT stop while the last round still applied fixes. Converge ONLY when a full round applies ZERO fixes (reviews clean, `$plan-execute` changed no files). Cap at `{N=5}` rounds; if findings do not shrink across 2 consecutive rounds, or the cap is hit with fixes still landing → STOP and escalate by asking the user directly. Never loop open-ended.
 
-### Design
+Treat this as a standing obligation you re-read at every Step 2 checkpoint — NOT a one-time note you can rationalize away after the first round. The Goal Contract's required Success Criterion (Step 0) is its durable, host-independent record.
 
-- [ ] Design spec approved (if UI changes)
-- [ ] API contract defined (if backend changes)
-- [ ] Database changes documented (if applicable)
+**2. `/goal` command — invoke as an accelerator WHEN AVAILABLE.** If a `/goal` command exists and you are permitted to run it in this environment, ALSO invoke it (a real tool/command call, NOT a paraphrase, NOT a Goal Contract file substituted for it) with the SAME condition, so a session Stop hook mechanically enforces the loop:
 
-### Dependencies
-
-- [ ] Upstream dependencies identified
-- [ ] No blocking dependencies
-- [ ] Integration points documented
-
-### Gate Status: PASS / FAIL / CONDITIONAL
-
-**Notes:**
-{Any concerns or conditions}
+```
+/goal review-changes convergence loop: repeatedly run $workflow-review-changes INLINE over {scope} (branch-diff base ∪ current uncommitted changes, recomputed each round). After each round, detect whether it applied any fix; if fixes>0 → run another round; if a full round applied ZERO fixes (reviews clean, $plan-execute changed no files) → CONVERGED, clear the gate. Do NOT stop while the last round still applied fixes. Cap at {N=5} rounds; if findings do not shrink across 2 consecutive rounds, or the round cap is hit with fixes still landing → STOP and escalate by asking the user directly. Never loop open-ended.
 ```
 
-### Pre-QA Checklist
+The `/goal` Stop hook blocks stopping until the condition holds and auto-clears when met — do not tell the user to clear it.
 
-```markdown
-## Quality Gate: Ready for QA (Dev → QA)
+**If `/goal` is unavailable, unregistered, or not permitted** (e.g. Codex/Copilot, or a Claude run without the command): DO NOT error, DO NOT block, and DO NOT invent a stand-in gate. Record ONE line in the Goal Contract — `/goal accelerator unavailable — loop bound by protocol (Steps 1–2) + this Goal Contract` — and proceed. The protocol loop above plus the Goal Contract are the same gate, enforced by discipline instead of a hook.
 
-**Feature/PBI:** {Reference}
-**Reviewer:** {Name}
-**Date:** {Date}
+> **Nested gates (by design, safe):** each inner `$workflow-review-changes` round self-binds its OWN Step 0 review-loop obligation (and installs its own `/goal` gate WHEN available) that clears when that round reaches its internal clean pass. This OUTER loop persists across rounds and **subsumes** the inner ones (a converged loop implies every inner round ended clean). All self-clear on satisfaction — no orphaned gate. Do NOT tell the user to clear either.
 
-### Readiness
+## Step 1 — Round Loop (run → detect → log)
 
-- [ ] All acceptance criteria implemented
-- [ ] Unit tests passing
-- [ ] Code review complete
-- [ ] No known critical bugs
-- [ ] Test data prepared
+For each round `R` (starting at 1), do ALL of:
 
-### Gate Status: PASS / FAIL / CONDITIONAL
+1. **Snapshot before:** record the working-tree fingerprint — `git status --porcelain` + `git diff --stat` (or `git rev-parse` of `git stash create` for an exact hash). This is the fixes-applied baseline for the round.
+2. **Run the workflow INLINE:** invoke `$workflow-review-changes` via the skill invocation (NEVER the `spawn_agent` tool) with the recomputed `{scope}` as its prompt. Let it run its full 18-step sequence including its own internal fix→re-review loop.
+3. **Detect fixes-applied (objective):** compare the working tree after the round to the before-snapshot AND read the workflow's own result:
+   - **Fixes applied (>0)** if the working tree changed during the round OR the workflow reported its fix cycle (steps 11–14) ran / `$plan-execute` modified files.
+   - **Zero fixes** if the working tree is byte-identical to the before-snapshot AND the workflow reported all reviews PASS with no validated findings (fix cycle skipped).
+4. **Append an Iteration Log entry** to the Goal Contract: round number, files changed this round (`file:line`), fixes-applied count, the review verdict, and remaining gaps.
 
-**Notes:**
-{Any concerns or conditions}
-```
+## Step 2 — Convergence & Escalation Gate
 
-### Database Performance gate (applies to all stages)
+Evaluate after every round:
 
-- [ ] Database performance (pagination on all list queries; indexes on filter/FK/sort columns) — verified via `$production-readiness-review` and `$performance-review`
+| Condition | Action |
+| --- | --- |
+| Round applied **ZERO fixes** (clean no-op pass) | **CONVERGED** → mark the required criterion PASS in the Goal Satisfaction matrix → clear the `/goal` gate → go to Step 3. |
+| Round applied fixes AND round `< N` AND findings shrank vs prior round | Recompute `{scope}`, run round `R+1`. |
+| Findings did **not shrink** across 2 consecutive rounds (same/increasing count) | **STOP & escalate** by asking the user directly — a non-converging loop is a signal, not a reason to spin. |
+| Round cap `N` hit with fixes still landing | **STOP & escalate** by asking the user directly — report the still-open findings; do not silently continue. |
 
-### Pre-Release Checklist
+> **Increasing findings = STOP.** If round `R` surfaces MORE findings than round `R-1`, the fixes are regressing the code — STOP and escalate immediately (mirrors `workflow-review-changes/SKILL.md:279`). Never trade one fix for two new findings across rounds.
 
-```markdown
-## Quality Gate: Ready for Release
+## Step 3 — Recap
 
-**Feature:** {Feature name}
-**Release:** {Version}
-**Date:** {Date}
-
-### Testing
-
-- [ ] All test cases executed
-- [ ] Pass rate: \_\_\_\_%
-- [ ] No open P1 bugs
-- [ ] No open P2 bugs (or exceptions approved)
-
-### Code Quality
-
-- [ ] Code review approved
-- [ ] Mutation score meets target; surviving mutants triaged (line-coverage reported as a diagnostic only, no threshold)
-- [ ] No security vulnerabilities
-- [ ] Performance benchmarks met
-
-### Documentation
-
-- [ ] User documentation updated
-- [ ] API documentation current
-- [ ] Release notes drafted
-
-### Sign-Offs
-
-- [ ] QA Lead: **\*\***\_**\*\*** Date: **\_\_\_**
-- [ ] Dev Lead: **\*\***\_**\*\*** Date: **\_\_\_**
-- [ ] PO: **\*\*\*\***\_\_**\*\*\*\*** Date: **\_\_\_**
-
-### Gate Status: PASS / FAIL
-
-**Release Decision:**
-{Go / No-Go with notes}
-```
+Emit a concise convergence recap: rounds run, total fixes applied per round (the shrinking sequence), the final clean-pass evidence, and the Goal Satisfaction matrix (required criterion PASS). Point to each round's report under `plans/reports/` and the Goal Contract Iteration Log. Do NOT commit or push unless the user explicitly asks.
 
 ---
 
-## Workflow Integration
+## Convergence Detection — Why Two Conditions
 
-### Running Quality Gate
+A round counts as converged ONLY when **both** hold: (a) the working tree is unchanged by the round, AND (b) the reviews reported clean with no validated findings. Both are required because:
 
-When user runs `$quality-gate {artifact-or-pr}`:
+- Working-tree-unchanged alone is ambiguous — a round can make no changes because a finding was **unfixable/escalated**, not because it was clean. That is escalation, not convergence.
+- Reviews-clean alone is insufficient — an orchestrator can rationalize a "clean" verdict; the objective `git`-diff comparison is the backstop that proves no fix actually landed.
 
-1. Identify gate type based on artifact/stage
-2. Load appropriate checklist
-3. Verify each criterion
-4. Generate pass/fail report
-5. Log in audit trail
+When (a) is true but (b) is false → **escalate** (a real finding the loop cannot close). When (b) is true but (a) is false → the round DID fix things → run another round to re-prove clean.
 
 ---
 
-## Metrics Dashboard Template
-
-```markdown
-## Quality Metrics - Sprint {N}
-
-### Code Quality
-
-| Metric         | Target          | Actual | Trend |
-| -------------- | --------------- | ------ | ----- |
-| Mutation score | meets target    |        | ↑↓→   |
-| Line coverage  | diagnostic only |        | ↑↓→   |
-| Complexity     | <15             |        |       |
-| Duplication    | <5%             |        |       |
-| Debt Ratio     | <10%            |        |       |
-
-### Process Quality
-
-| Metric            | Target | Actual |
-| ----------------- | ------ | ------ |
-| Defect Escape     | <5%    |        |
-| First-Time-Right  | >90%   |        |
-| Avg Review Cycles | <2     |        |
-
-### Defect Trends
-
-| Sprint | Found | Fixed | Escaped |
-| ------ | ----- | ----- | ------- |
-| N-2    |       |       |         |
-| N-1    |       |       |         |
-| N      |       |       |         |
-```
-
----
-
-## Output Conventions
-
-### File Naming
-
-```
-{YYMMDD}-qc-gate-{stage}-{slug}.md
-{YYMMDD}-qc-audit-{feature}.md
-{YYMMDD}-qc-metrics-sprint-{n}.md
-```
-
----
-
-## Quality Checklist
-
-Before completing QC artifacts:
-
-- [ ] All checklist items verified
-- [ ] Evidence provided for critical items
-- [ ] Sign-offs captured
-- [ ] Gate status clearly stated
-- [ ] Audit trail updated
-
-## Related
-
-- `spec`
-- `code-review`
-
----
-
-> **[IMPORTANT]** Use task tracking to break ALL work into small tasks BEFORE starting — including tasks for each file read. This prevents context loss from long files. For simple tasks, AI MUST ATTENTION ask user whether to skip.
-
-- `docs/project-reference/domain-entities-reference.md` — Domain entity catalog, relationships, cross-service sync (read when task involves business entities/models)
-
-<!-- SYNC:ai-mistake-prevention -->
-
-> **AI Mistake Prevention** — Failure modes to avoid on every task:
->
-> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
-> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
-> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
-> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
-> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
-> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
-> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
-
-<!-- /SYNC:ai-mistake-prevention -->
-
-<!-- SYNC:critical-thinking-mindset -->
-
-> **Critical Thinking Mindset** — Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
-> **Anti-hallucination:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
-
-<!-- /SYNC:critical-thinking-mindset -->
-
-<!-- SYNC:sequential-thinking-protocol -->
-
-> **Sequential Thinking Protocol** — Structured multi-step reasoning for complex/ambiguous work. Use when planning, reviewing, debugging, or refining ideas where one-shot reasoning is unsafe.
->
-> **Trigger when:** complex problem decomposition · adaptive plans needing revision · analysis with course correction · unclear/emerging scope · multi-step solutions · hypothesis-driven debugging · cross-cutting trade-off evaluation.
->
-> **Format (explicit mode — visible thought trail):**
->
-> 1. `Thought N/M: [aspect]` — one aspect per thought, state assumptions/uncertainty
-> 2. `Thought N/M [REVISION of Thought K]: ...` — when prior reasoning invalidated; state Original / Why revised / Impact
-> 3. `Thought N/M [BRANCH A from Thought K]: ...` — explore alternative; converge with decision rationale
-> 4. `Thought N/M [HYPOTHESIS]: ...` then `[VERIFICATION]: ...` — test before acting
-> 5. `Thought N/N [FINAL]` — only when verified, all critical aspects addressed, confidence >80%
->
-> **Mandatory closers:** Confidence % stated · Assumptions listed · Open questions surfaced · Next action concrete.
->
-> **Stop conditions:** confidence <80% on any critical decision → escalate by asking the user directly · ≥3 revisions on same thought → re-frame the problem · branch count >3 → split into sub-task.
->
-> **Implicit mode:** apply methodology internally without visible markers when adding markers would clutter the response (routine work where reasoning aids accuracy).
->
-> **Deep-dive:** see `$sequential-thinking` skill (`.claude/skills/sequential-thinking/SKILL.md`) for worked examples (API design, debugging, architecture), advanced techniques (spiral refinement, hypothesis testing, convergence), and meta-strategies (uncertainty handling, revision cascades).
-
-<!-- /SYNC:sequential-thinking-protocol -->
+**IMPORTANT MANDATORY sequence:** Step 0 (scope + Goal Contract) → Step 0b (bind the convergence loop: protocol loop primary + optional `/goal` accelerator) → Step 1 (round loop: run `$workflow-review-changes` INLINE → detect fixes → log) → Step 2 (converge on zero-fix round / escalate on non-progress) → Step 3 (recap).
 
 <!-- SYNC:goal-contract-satisfaction-loop -->
 
@@ -436,23 +175,27 @@ Before completing QC artifacts:
 
 <!-- /SYNC:goal-contract-satisfaction-loop -->
 
-<!-- SYNC:critical-thinking-mindset:reminder -->
+<!-- SYNC:critical-thinking-mindset -->
 
-**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
+> **Critical Thinking Mindset** — Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence >80% to act.
+> **Anti-hallucination:** Never present guess as fact — cite sources for every claim, admit uncertainty freely, self-check output for errors, cross-reference independently, stay skeptical of own confidence — certainty without evidence root of all hallucination.
 
-<!-- /SYNC:critical-thinking-mindset:reminder -->
+<!-- /SYNC:critical-thinking-mindset -->
 
-<!-- SYNC:sequential-thinking-protocol:reminder -->
+<!-- SYNC:ai-mistake-prevention -->
 
-**MUST ATTENTION** apply sequential-thinking — multi-step Thought N/M, REVISION/BRANCH/HYPOTHESIS markers, confidence % closer; see `$sequential-thinking` skill.
+> **AI Mistake Prevention** — Failure modes to avoid on every task:
+>
+> **Re-read files after context changes.** Context compaction, resume, or long-running work can make memory stale; verify current files before acting.
+> **Verify generated content against source evidence.** AI hallucinates APIs, names, claims, and document facts. Check the relevant source before documenting or referencing.
+> **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
+> **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
+> **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
+> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
-<!-- /SYNC:sequential-thinking-protocol:reminder -->
-
-<!-- SYNC:ai-mistake-prevention:reminder -->
-
-**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
-
-<!-- /SYNC:ai-mistake-prevention:reminder -->
+<!-- /SYNC:ai-mistake-prevention -->
 
 <!-- SYNC:goal-contract-satisfaction-loop:reminder -->
 
@@ -461,22 +204,33 @@ Before completing QC artifacts:
 
 <!-- /SYNC:goal-contract-satisfaction-loop:reminder -->
 
+<!-- SYNC:critical-thinking-mindset:reminder -->
+
+**MUST ATTENTION** apply critical + sequential thinking — every claim needs appropriate traced evidence (`file:line` for repo/code claims; source URL or artifact section for research, product, content, and docs claims); confidence >80% to act, <60% DO NOT recommend. Anti-hallucination: never present guess as fact, admit uncertainty freely, cross-reference independently, stay skeptical of own confidence.
+
+<!-- /SYNC:critical-thinking-mindset:reminder -->
+
+<!-- SYNC:ai-mistake-prevention:reminder -->
+
+**MUST ATTENTION** apply AI mistake prevention — verify generated content against evidence, trace downstream references before deleting or renaming, verify all affected outputs, re-read files after context loss, and surface ambiguity before acting.
+
+<!-- /SYNC:ai-mistake-prevention:reminder -->
+
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Enforce quality gates, verify compliance with standards, track quality metrics, and generate audit trails across the development lifecycle.
+**IMPORTANT MUST ATTENTION Goal:** Re-run the WHOLE `$workflow-review-changes` inline, round after round, over a fixed scope ∪ accumulated fixes, until a complete round applies **zero fixes**.
 
-**Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
+**IMPORTANT MUST ATTENTION main steps (in order):** (0) resolve scope + Goal Contract → (0b) bind the convergence loop (protocol loop primary + optional `/goal` accelerator) → (1) round loop: run `$workflow-review-changes` INLINE → detect fixes-applied → append Iteration Log → (2) converge on a zero-fix round / escalate on non-progress → (3) recap.
 
-- **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
-- **Critical Thinking:** Traced `file:line` proof per claim; confidence >80% to act.
-- **Sequential Thinking:** Multi-step Thought N/M with REVISION/BRANCH/HYPOTHESIS markers, confidence closer.
+**IMPORTANT MUST ATTENTION [BLOCKING] plan the detailed todo tasks FIRST — before running the loop.** Before the first round, create a detailed todo-task plan that enumerates every planned step and every planned round; a round MUST NOT start until that round's fresh todo-task plan exists. On EVERY re-run (each new round), REGENERATE a fresh loop todo-task plan — NEVER reuse the prior round's task list — so each round's work is explicitly planned before it executes.
 
-**IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting
-**IMPORTANT MUST ATTENTION** search codebase for 3+ similar patterns before creating new code
-**IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim (confidence >80% to act)
-**IMPORTANT MUST ATTENTION** add a final review todo task to verify work quality
-
-**[TASK-PLANNING]** Before acting, analyze task scope and systematically break it into small todo tasks and sub-tasks using task tracking.
+**IMPORTANT MUST ATTENTION** the convergence loop is bound by the **AI-driven protocol loop (Steps 1–2) — that is the primary, host-independent mechanism you MUST self-drive whether or not any command exists.** The `/goal` command is an OPTIONAL accelerator: invoke it (a real call) ONLY when available and permitted; if it is absent/unregistered/not-permitted, record one line in the Goal Contract and proceed — NEVER error, block, or fake a gate. Correctness must not depend on `/goal`.
+**IMPORTANT MUST ATTENTION** run `$workflow-review-changes` **INLINE via the skill invocation — NEVER as a sub-agent** (it self-binds its own review-loop obligation + a session `/goal` gate when available).
+**IMPORTANT MUST ATTENTION** convergence = a whole round applied **ZERO fixes** (fix cycle skipped, working tree unchanged, reviews clean) — not merely one clean review.
+**IMPORTANT MUST ATTENTION** the outer loop's value is the **fresh full specialist sweep** the inner loop never re-runs (`workflow-review-changes/SKILL.md:258`) — that is why this skill exists.
+**IMPORTANT MUST ATTENTION** keep the diff **base fixed** across rounds; recompute `{scope}` = branch-diff base ∪ current uncommitted changes each round.
+**IMPORTANT MUST ATTENTION** enforce the **round cap (default 5)**; findings not shrinking across 2 rounds, or cap hit with fixes still landing → **STOP & escalate** by asking the user directly. NEVER loop open-ended.
+**IMPORTANT MUST ATTENTION** do NOT commit or push unless the user explicitly asks.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Hookless Prompt Protocol Mirror (Auto-Synced)

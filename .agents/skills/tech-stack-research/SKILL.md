@@ -267,17 +267,6 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 - **"Skip council — proceed with chosen stack (Recommended)"** — Continue with the selected tech stack as-is.
 - **"Escalate to $llm-council"** — Run 11 sub-agent council. Best applied when 2+ stacks score within 15% on the comparison matrix or you have unfamiliar/strategic dependencies. Cheaper alternatives: `$why-review`, `$plan-validate`.
 
-<!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
-
-## Prompt-Enhance Closing Anchors
-
-- **IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
-- **IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
-- **IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
-- **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses
-
-<!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
-
 <!-- SYNC:scenario-stress-eval -->
 
 > **Scenario Stress & Resilience Evaluation** — CONDITIONAL, evidence-gated, business-criticality-aware. The top-down companion to `SYNC:scale-technique-gate`: instead of *"is technique X present?"*, put the system UNDER concrete failure/load scenarios and judge whether it SURVIVES, SELF-HEALS, and whether its BUSINESS needs it to. **ADVICE-ONLY: emit the Scenario Stress Matrix as guidance; NEVER mutate any score, verdict band, or gate pass/fail.**
@@ -299,12 +288,22 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 
 <!-- /SYNC:scale-technique-gate:reminder -->
 
-
 <!-- SYNC:scenario-stress-eval:reminder -->
 
 **IMPORTANT MUST ATTENTION** scenario-stress gate: reuse the scale tier `T0`–`T3` AND derive business-criticality `B0`–`B3` from evidence first — apply the **criticality-signal floor** (regulated/PII/financial/health data · money movement · auth/identity · legal-compliance → at least `B2` even absent SLA docs; do NOT default to `B3`). Select only the scenarios the `B`/`T` combination warrants, then walk each (simulate → trace → failure signature → self-heal/MTTR → trade-off) and assign `WITHSTANDS`/`DEGRADES-GRACEFULLY`/`FAILS-HARD`/`N/A-by-business`/`OVER-HARDENED`. Anti-over-engineering is first-class (a lean system that needs no HA/DR is a PASS) AND symmetric (never under-harden a `B2`+ system for low traffic). **ADVICE-ONLY — emit the Scenario Stress Matrix as guidance; NEVER mutate any score, verdict band, or gate pass/fail.** Full catalog → `.claude/docs/scenario-stress-catalog.md` (authoritative for scenarios/verdicts/business-tiers — on any change update the catalog FIRST, then re-run `inject_scenario_stress_gate.py`; scale tier stays single-sourced in `scale-technique-catalog.md`).
 
 <!-- /SYNC:scenario-stress-eval:reminder -->
+
+<!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:START -->
+
+## Prompt-Enhance Closing Anchors
+
+- **IMPORTANT MUST ATTENTION** follow declared step order for this skill; NEVER skip, reorder, or merge steps without explicit user approval
+- **IMPORTANT MUST ATTENTION** for every step/sub-skill call: set `in_progress` before execution, set `completed` after execution
+- **IMPORTANT MUST ATTENTION** every skipped step MUST include explicit reason; every completed step MUST include concise evidence
+- **IMPORTANT MUST ATTENTION** if Task tools unavailable, maintain an equivalent step-by-step plan tracker with synchronized statuses
+
+<!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 
 ## Closing Reminders
 
@@ -344,7 +343,6 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 > **BLOCKED until:** `- [ ]` tier derived from evidence (not assumed) `- [ ]` matrix emitted `- [ ]` over-engineering guard applied `- [ ]` advisory-only (no score/verdict mutation) confirmed
 
 <!-- /SYNC:scale-technique-gate -->
-
 
 <!-- SYNC:critical-thinking-mindset:reminder -->
 

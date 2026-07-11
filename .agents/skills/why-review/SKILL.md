@@ -43,7 +43,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 > **[GOAL REMINDER — MUST ATTENTION CRITICAL]**
 >
 > Ensure every review target is reasonable, correct, proof-backed, and best-practice aligned.
-> **MANDATORY SECOND PASS (full mode):** whenever Round 1 produces ANY finding, you MUST call `$why-review --validate-findings` a SECOND time on those findings to confirm each is correct and reasonable BEFORE handoff. NEVER skip it; NEVER suppress, demote, or under-report findings to dodge it. The `/goal` Stop-hook gate (installed as the first full-mode action) BLOCKS stopping until findings are validated. — why: an unvalidated finding is an unproven claim, and a second self-review catches the misreads and inflation Round 1 rationalized.
+> **MANDATORY SECOND PASS (full mode):** whenever Round 1 produces ANY finding, you MUST call `$why-review --validate-findings` a SECOND time on those findings to confirm each is correct and reasonable BEFORE handoff. NEVER skip it; NEVER suppress, demote, or under-report findings to dodge it. The self-recursive review loop bound as the first full-mode action — the **protocol loop primarily** (host-independent), plus a `/goal` Stop-hook gate WHEN available — BLOCKS stopping until findings are validated. — why: an unvalidated finding is an unproven claim, and a second self-review catches the misreads and inflation Round 1 rationalized.
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
 
@@ -62,12 +62,12 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 - **PURPOSE** — be the adversarial rationale reviewer: every plan/PBI/diff/doc/spec/report/finding survives a SKEPTIC pass before downstream work proceeds; success metric is Easy-to-Change (lower future change cost or reject). Gate EVERY finding on `file:line` + severity + confidence.
 - **STEP 1 — DETECT MODE FIRST** (recursion control): `--validate-findings` is TERMINAL — NEVER re-invokes `$why-review`, NEVER runs the gate, NEVER spawns a sub-agent; full mode may call itself ONCE in validate-findings mode. Non-negotiable guard. — why: any of these from terminal mode loops infinitely.
-- **STEP 2 — FULL-MODE FIRST ACTION** → install the `/goal` self-recursive review-loop gate (stopping BLOCKED until findings validated AND a holistic re-review surfaces nothing new; max 2 re-dos, then escalate) — NEVER install it in terminal mode; "self-fix" = reconcile this review's OWN findings set, not code. THEN Task Bootstrap: create phase tasks + the MANDATORY Findings Validation Gate closing task.
+- **STEP 2 — FULL-MODE FIRST ACTION** → bind the self-recursive review loop: the **protocol loop is the primary, host-independent binding** (you self-drive review → validate → reconcile → full re-review until CLEAN with no new findings; max 2 re-dos, then escalate), and a `/goal` gate is an **optional accelerator invoked WHEN available** (its absence never weakens the loop) — NEVER bind it in terminal mode; "self-fix" = reconcile this review's OWN findings set, not code. THEN Task Bootstrap: create phase tasks + the MANDATORY Findings Validation Gate closing task.
 - **STEP 3 — RESOLVE TARGET TYPE** before any review (commit/PR/diff → code-change; PBI/spec/doc → artifact; "no active plan" ONLY for an unresolved plan-rationale request — NEVER silently convert), read the active Goal Contract, then route by concern (code-reviewer / security-auditor / performance-optimizer / general-purpose).
 - **STEP 4 — REVIEW as SKEPTIC** → complete ALL 6 Anti-Bias Gate boxes (steel-man rejected alt · unseen alternative · args against · stressed assumptions · pre-mortem · pros/cons symmetry) + Validation Checklist (presence AND quality depth) + Round 2 re-review; triangulate spec↔tests↔code — any disagreeing face is a finding, presence is NEVER a pass.
 - **STEP 5 — FINDINGS VALIDATION GATE** on your OWN findings (any severity): re-invoke terminal `--validate-findings`, reconcile, RE-DO the full review until CLEAN with no new findings (max 2), then ask next step by asking the user directly (+ conditional `$llm-council`). Dual-feedback: a behavior-changing finding needs BOTH a spec-drift verdict (CODE-WRONG / SPEC-STALE / AMBIGUOUS / SPEC-SILENT / in-sync) AND a test-feedback action; SPEC-SILENT also REQUIRES §4 BR/§3 AC + §8 TC enrichment — a missing axis is HAS-ISSUES, never clean.
 
-**Workflow:** Detect mode/target → (full mode only) install `/goal` self-recursive review-loop gate → route path/docs/graph/sub-agent focus → review dimensions/adversarial gates/Easy-to-Change → validate findings via terminal `--validate-findings` → reconcile + holistic full re-review until CLEAN with no new findings (max 2 re-dos) → ask next step in full mode.
+**Workflow:** Detect mode/target → (full mode only) bind the self-recursive review loop (protocol-primary; optional `/goal` accelerator when available) → route path/docs/graph/sub-agent focus → review dimensions/adversarial gates/Easy-to-Change → validate findings via terminal `--validate-findings` → reconcile + holistic full re-review until CLEAN with no new findings (max 2 re-dos) → ask next step in full mode.
 
 **Key Rules:** MUST ATTENTION resolve target type BEFORE review. MUST ATTENTION every finding needs `file:line`, severity, confidence, best-practice rationale. NEVER say "No active plan" except unresolved plan-rationale request. NEVER call `$why-review` from `validate-findings`. MUST ATTENTION judge by Easy-to-Change: lower future change cost or reject.
 
@@ -90,24 +90,30 @@ Detect mode from `$ARGUMENTS` BEFORE any review work:
 
 > **In `validate-findings` mode:** skip full Validation Checklist, Adversarial Rounds, Task Bootstrap, Next-Steps council gate. Jump straight to **Findings Validation Routine**, emit verdict, return to caller.
 
-## Self-Recursive Review-Loop Goal Gate (full mode — FIRST ACTION, after mode detection)
+## Bind the Self-Recursive Review Loop (full mode — FIRST ACTION, after mode detection; protocol-first, `/goal` optional)
 
-> **MUST ATTENTION:** In **full mode only**, the FIRST action after mode detection — before Task Bootstrap, before any review work — is to install a `/goal` self-recursive loop gate so stopping is BLOCKED until this review's own findings are all validated and a holistic re-review surfaces nothing new (or a bounded escalation fires).
+> **MUST ATTENTION:** In **full mode only**, the FIRST action after mode detection — before Task Bootstrap, before any review work — binds this skill's self-recursive review loop so you cannot stop until this review's own findings are all validated and a holistic re-review surfaces nothing new (or a bounded escalation fires). The loop is bound by TWO layers: the **protocol loop (primary, host-independent)** and an **optional `/goal` accelerator**. Correctness rides on the protocol loop — the project rule is that hooks/commands are accelerators only, so `/goal`'s absence NEVER weakens the loop.
 
 **Entry gate:**
 
 - **Run** in full mode (no `validate-findings` token).
-- **SKIP** in `validate-findings` terminal mode — that mode only returns a verdict to its caller and MUST NOT install a goal, create a closing task, or loop (recursion guard). Record nothing.
+- **SKIP** in `validate-findings` terminal mode — that mode only returns a verdict to its caller and MUST NOT bind a loop, install a goal, create a closing task, or loop (recursion guard). Record nothing.
 
-**Procedure (full mode):**
+**1. Protocol loop — ALWAYS binding (hook/command-independent).** You, the running agent, are personally responsible for not stopping until the loop converges or bounded-escalates. This binds Claude, Codex, and Copilot equally, whether or not `/goal` exists:
 
-1. **Invoke `/goal`** (the actual built-in command) with a condition encoding THIS skill's self-recursive loop, e.g.:
+> Run the full adversarial review (Validation Checklist + both Adversarial Rounds) over the whole target → run `$why-review --validate-findings` on the findings → reconcile (drop unproven/inflated findings, fix proof gaps, ADD surfaced findings/enhancements) → re-run the FULL review over the WHOLE target combined with the reconciled findings (not just re-checking the changed findings) → loop until a complete pass yields zero new findings and validation returns CLEAN, or a bounded blocker escalates. Max 2 re-do rounds, then escalate by asking the user directly. Do not stop while a finding is unvalidated or a re-review would surface new findings.
 
-    ```
-    /goal why-review self-recursive loop: run the full adversarial review (Validation Checklist + both Adversarial Rounds) over the whole target → run $why-review --validate-findings on the findings → reconcile (drop unproven/inflated findings, fix proof gaps, ADD surfaced findings/enhancements) → re-run the FULL review over the WHOLE target combined with the reconciled findings (not just re-checking the changed findings) → loop until a complete pass yields zero new findings and validation returns CLEAN, or a bounded blocker escalates. Max 2 re-do rounds, then escalate by asking the user directly. Do not stop while a finding is unvalidated or a re-review would surface new findings.
-    ```
+Treat this as a standing obligation you re-read at the Findings Validation Gate — NOT a one-time note you can rationalize away after the first pass.
 
-2. The `/goal` Stop hook blocks stopping until the condition holds and auto-clears when met — do not tell the user to clear it.
+**2. `/goal` command — invoke as an accelerator WHEN AVAILABLE.** If a `/goal` command exists and you are permitted to run it in this environment, ALSO invoke it (a real command call, NOT a paraphrase, NOT a Goal Contract file substituted for it) with a condition encoding THIS skill's self-recursive loop, so a session Stop hook mechanically enforces it:
+
+```
+/goal why-review self-recursive loop: run the full adversarial review (Validation Checklist + both Adversarial Rounds) over the whole target → run $why-review --validate-findings on the findings → reconcile (drop unproven/inflated findings, fix proof gaps, ADD surfaced findings/enhancements) → re-run the FULL review over the WHOLE target combined with the reconciled findings (not just re-checking the changed findings) → loop until a complete pass yields zero new findings and validation returns CLEAN, or a bounded blocker escalates. Max 2 re-do rounds, then escalate by asking the user directly. Do not stop while a finding is unvalidated or a re-review would surface new findings.
+```
+
+The `/goal` Stop hook blocks stopping until the condition holds and auto-clears when met — do not tell the user to clear it.
+
+**If `/goal` is unavailable, unregistered, or not permitted** (e.g. Codex/Copilot, or a Claude run without the command): DO NOT error, DO NOT block, and DO NOT invent a stand-in gate. Record ONE line where you track the review (the closing Findings Validation Gate task, or the active Goal Contract if one exists) — `/goal accelerator unavailable — review loop bound by protocol (above)` — and proceed. The protocol loop IS the gate, enforced by discipline instead of a hook.
 
 > **why-review fixes its OWN findings set, not code.** "Self-fix" here = reconcile the findings report so every surviving finding is correct, proof-backed, reasonable, best-practice, and nothing is missed — the same loop the Findings Validation Gate runs, now made unabandonable by the goal gate. Code/spec/test fixes remain the caller's job; this skill is review-only.
 
@@ -115,7 +121,7 @@ Detect mode from `$ARGUMENTS` BEFORE any review work:
 
 Before review work, task tracking phase tasks AND required closing task:
 
-- [ ] `[Why-Review] Install /goal self-recursive review-loop gate (full mode only)` — in_progress **(MANDATORY FIRST TASK — skip in `validate-findings` mode)**
+- [ ] `[Why-Review] Bind self-recursive review loop — protocol-primary; optional /goal accelerator when available (full mode only)` — in_progress **(MANDATORY FIRST TASK — skip in `validate-findings` mode)**
 - [ ] `[Why-Review] Findings Validation Gate — if ANY findings exist, run $why-review --validate-findings on them; re-do until CLEAN (max 2)` — pending **(MANDATORY CLOSING TASK)**
 
 > Create at START. Keep the closing task `pending` until findings exist; then execute before skill completes. In `validate-findings` mode, do NOT create either task.
@@ -576,6 +582,12 @@ If suppressed or no-fire, do NOT mention `$llm-council`. If gate fires, ask a **
 
 > **Validated-Finding Fix + Full Re-Review Loop** — Re-review is triggered by a validated finding fix cycle, not by a round number. Review purpose: `review → validate findings → fix validated findings → full re-review` until a complete review pass finds no issues. **A clean review ENDS the loop — no further rounds required.**
 >
+> _aka **Self-Review Convergence Loop**._ The name is historical — this loop has **NO 2-round cap**; "double-round-trip" only means a validated-finding fix cycle forces at least one fresh re-review. It runs until a clean pass, per the no-arbitrary-cap rule below.
+>
+> **Universal scope (any new output/judgment):** any newly produced output or judgment gets **≥1 self-review**; any **new judgment** gets **≥1 `$why-review --validate-findings` pass**; anything flagged to re-check is re-checked **≥1 time** — before that output is treated as final. This loop is the default convergence contract for ANY work-producing skill, not review skills only.
+>
+> **Routing invariant (author-facing):** a skill that validates findings MUST route them through `$why-review --validate-findings` (the terminal validator) — NEVER fork an inline finding-validation. Routing through why-review is what makes the finding-survival bar and this loop apply; the `verify-review-validate-coverage` sensor enforces this exact route mechanically.
+>
 > **Round 1:** Main-session review. Read target files, build understanding, note issues. Output findings + verdict (PASS / FAIL).
 >
 > **Decision after Round 1:**
@@ -598,6 +610,7 @@ If suppressed or no-fire, do NOT mention `$llm-council`. If gate fires, ask a **
 >
 > - A clean Round 1 ENDS the review — no mandatory Round 2
 > - NEVER fix unvalidated findings; validate first using the caller's validation gate
+> - Every surviving finding must additionally clear the **finding-survival bar** defined in why-review's Findings Validation Routine (a deliberately higher bar than the generic act-gate — "keep this finding?" is a stricter question than "act on this evidence?"); a finding below the bar is demoted or dropped, not kept
 > - NEVER skip the full re-review after a fix cycle (every fix invalidates the prior verdict)
 > - NEVER reuse a sub-agent across rounds — every iteration that uses sub-agents spawns NEW Agent calls
 > - Main agent READS sub-agent reports but MUST NOT filter, reinterpret, or override findings
@@ -837,6 +850,24 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:severity-rubric -->
 
+<!-- SYNC:goal-contract-satisfaction-loop -->
+
+> **Goal Contract Satisfaction Loop** — Persist the user goal in an external file, execute against it, and loop review/fix until every saved required criterion passes or a blocker escalates. Bounded closed loop — NEVER open-ended autonomous exploration.
+>
+> 1. **Resolve the active goal** (in order): active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create a new Goal Contract from the current user request (template: `.claude/templates/goal-contract-template.md`).
+> 2. **Required sections:** Original Request, Purpose, Success Criteria (checkboxes; mark required vs optional), Constraints, Evidence Required, Iteration Log, Goal Satisfaction matrix.
+> 3. **Before work:** read the active goal and map planned work to saved success criteria — execution serves the saved criteria, never chat memory alone.
+> 4. **After execution/verification:** append an Iteration Log entry — result, evidence references (`file:line`, command output, report path), remaining gaps.
+> 5. **Review gate:** emit a Goal Satisfaction matrix — `| Success Criterion | Evidence | Status |` with PASS/FAIL/BLOCKED. Overall PASS requires every required criterion PASS.
+> 6. **Loop rule (retry):** required criterion FAIL → validate the gap is real → fix → re-review only the affected criteria. Stop cleanly when all required criteria PASS.
+> 7. **Escalation rule (stop):** two consecutive iterations with no criterion progressing, or a blocker needing user input → mark the criterion BLOCKED with a user-facing reason and escalate. NEVER loop indefinitely.
+> 8. **Skip rule:** tiny conversational tasks may skip the goal file ONLY with a recorded one-line reason. User-accepted gate skips are recorded in the goal file with reason and scope.
+> 9. **Security:** NEVER store secrets, tokens, credentials, or private customer data in goal files — store evidence references and redact sensitive values.
+>
+> **Blocked until:** active goal resolved (or skip reason recorded) · saved success criteria read before edits · iteration evidence appended after execution · Goal Satisfaction matrix emitted before any PASS verdict.
+
+<!-- /SYNC:goal-contract-satisfaction-loop -->
+
 <!-- SYNC:task-tracking-external-report:reminder -->
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
@@ -890,11 +921,17 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- PROMPT-ENHANCE:STEP-TASK-CLOSING:END -->
 
+<!-- SYNC:double-round-trip-review:reminder -->
+
+- **MANDATORY IMPORTANT MUST ATTENTION** execute the review loop (aka **Self-Review Convergence Loop**): review → validate findings → fix validated findings → full re-review. A complete review pass with zero findings ENDS the review. Any newly produced output/judgment gets ≥1 self-review; any new judgment gets ≥1 `$why-review --validate-findings` pass before it is treated as final.
+
+<!-- /SYNC:double-round-trip-review:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Resolve the requested review target and apply the matching adversarial review path (plan/PBI rationale, code changes, docs/spec/report, findings, or explicit artifact) so decisions, findings, and plans survive adversarial rationale review before downstream work proceeds.
 
-**IMPORTANT MUST ATTENTION Main steps (full mode) — execute in order, the skill AI keeps forgetting:** (1) DETECT MODE — `--validate-findings` is TERMINAL; (2) install the `/goal` self-recursive review-loop gate + Task Bootstrap (phase tasks + closing Findings Validation Gate task); (3) RESOLVE TARGET TYPE + read active Goal Contract + route by concern; (4) REVIEW as SKEPTIC — 6 Anti-Bias boxes + Validation Checklist (presence AND quality depth) + Round 2 re-review + spec↔tests↔code triangulation; (5) FINDINGS VALIDATION GATE — re-invoke terminal `--validate-findings`, reconcile, RE-DO the full re-review until CLEAN (max 2), then ask next step by asking the user directly. NEVER skip, reorder, or merge a step without explicit user approval. — why: the steps ARE the review's integrity; dropping one ships an unproven verdict.
+**IMPORTANT MUST ATTENTION Main steps (full mode) — execute in order, the skill AI keeps forgetting:** (1) DETECT MODE — `--validate-findings` is TERMINAL; (2) bind the self-recursive review loop — protocol loop primary (host-independent), optional `/goal` gate WHEN available — + Task Bootstrap (phase tasks + closing Findings Validation Gate task); (3) RESOLVE TARGET TYPE + read active Goal Contract + route by concern; (4) REVIEW as SKEPTIC — 6 Anti-Bias boxes + Validation Checklist (presence AND quality depth) + Round 2 re-review + spec↔tests↔code triangulation; (5) FINDINGS VALIDATION GATE — re-invoke terminal `--validate-findings`, reconcile, RE-DO the full re-review until CLEAN (max 2), then ask next step by asking the user directly. NEVER skip, reorder, or merge a step without explicit user approval. — why: the steps ARE the review's integrity; dropping one ships an unproven verdict.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):** these are signposts — the canonical bodies above are binding; MUST ATTENTION honor each, NEVER treat a digest line as the full rule.
 
@@ -953,7 +990,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > **[GOAL REMINDER — MUST ATTENTION CRITICAL]**
 >
 > Ensure every review target is reasonable, correct, proof-backed, and best-practice aligned.
-> **MANDATORY SECOND PASS (full mode):** whenever Round 1 produces ANY finding, you MUST call `$why-review --validate-findings` a SECOND time on those findings to confirm each is correct and reasonable BEFORE handoff. NEVER skip it; NEVER suppress, demote, or under-report findings to dodge it. The `/goal` Stop-hook gate BLOCKS stopping until findings are validated. — why: an unvalidated finding is an unproven claim, and a second self-review catches the misreads and inflation Round 1 rationalized.
+> **MANDATORY SECOND PASS (full mode):** whenever Round 1 produces ANY finding, you MUST call `$why-review --validate-findings` a SECOND time on those findings to confirm each is correct and reasonable BEFORE handoff. NEVER skip it; NEVER suppress, demote, or under-report findings to dodge it. The self-recursive review loop — the **protocol loop primarily** (host-independent), plus a `/goal` Stop-hook gate WHEN available — BLOCKS stopping until findings are validated. — why: an unvalidated finding is an unproven claim, and a second self-review catches the misreads and inflation Round 1 rationalized.
 
 **Anti-Rationalization:**
 
@@ -962,7 +999,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 | "No active plan"        | Valid only for unresolved plan-rationale requests; commits/diffs/PBIs/docs are targets. |
 | "Just code review"      | Still resolve target, read docs, run graph, map tests/specs/docs.                       |
 | "Findings look obvious" | Validate every finding via terminal `--validate-findings`.                              |
-| "Round 1 is enough"     | Full mode with ANY finding MUST run the SECOND `--validate-findings` pass; the `/goal` Stop hook blocks stopping until it does. |
+| "Round 1 is enough"     | Full mode with ANY finding MUST run the SECOND `--validate-findings` pass; the protocol review loop (and the `/goal` Stop hook when available) blocks stopping until it does. |
 | "Report zero findings, skip the gate" | Suppressing/demoting findings to dodge validation is the exact bias the SKEPTIC stance forbids; surface them, THEN validate. |
 | "Validate inline, don't re-invoke" | The second pass is a real terminal `$why-review --validate-findings` call on the written report — not a mental once-over. |
 | "All dimensions at once" | One focused pass per dimension; split attention catches misses.                        |

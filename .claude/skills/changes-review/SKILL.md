@@ -26,10 +26,10 @@ description: '[Code Quality] Use when reviewing current changes, staged or unsta
 **Summary:** read-this-if-nothing-else digest —
 
 - **Report-driven and evidence-gated.** Every finding is written to `plans/reports/code-review-{date}-{slug}.md` with `file:line` proof; speculation is forbidden, "looks fine" is not a verdict, codebase convention (grep 3+ examples) wins over textbook rules.
-- **Self-recursive loop is goal-gated.** Standalone mode's FIRST action (Phase -1) installs a `/goal` Stop-hook condition so stopping is BLOCKED until the loop converges. Findings are never auto-fixed on sight: validate (Phase 6 `/why-review --validate-findings`, an actual skill call) → SELF-FIX (Phase 7) → restart `/changes-review` from Phase 0 over the WHOLE updated diff (combined with prior fixes, not just the last fix), looping until one whole pass has zero findings. Inside `$workflow-review-changes` you skip Phase -1, stop after the report, and hand findings to the parent (which owns the goal).
+- **Self-recursive loop is protocol-bound (goal-gated when available).** Standalone mode's FIRST action (Phase -1) binds the review loop as a standing protocol obligation you self-drive — and installs a `/goal` Stop-hook condition WHEN available — so stopping is BLOCKED until the loop converges. Findings are never auto-fixed on sight: validate (Phase 6 `/why-review --validate-findings`, an actual skill call) → SELF-FIX (Phase 7) → restart `/changes-review` from Phase 0 over the WHOLE updated diff (combined with prior fixes, not just the last fix), looping until one whole pass has zero findings. Inside `$workflow-review-changes` you skip Phase -1, stop after the report, and hand findings to the parent (which owns the goal).
 - **When code changed, three delegated gates are MANDATORY:** Phase 3.5 `/code-simplifier` (clarity/maintainability), Phase 3.7 `/integration-test-review` Gate-7 coverage (every behavior change → covering test + spec TC), and — for every behavior change — Spec Drift Adjudication + the Dual-Feedback Ledger (the gap feeds BOTH spec AND tests).
 - **Docs-update is the unconditional terminal step.** Once the loop converges clean, Phase 8 `/docs-update` ALWAYS runs over the full changeset (deferred only to the parent inside the workflow).
-- **MUST ATTENTION — run ALL main phases in order (the steps AI keeps forgetting):** Phase -1 install `/goal` self-recursive loop gate (standalone, FIRST action) → 0 `/graph-blast-radius` → 0.3 change-type risk tasks → 0.7 surface-detection dimension tasks → 0.5 plan compliance → 1 collect diff + create report → 2 file-by-file review → 3 fresh-context gate (SKIP when findings exist) → 3.5 `/code-simplifier` (code diffs) → 3.7 `/integration-test-review` Gate-7 coverage (behavior diffs) → 4 finalize + Dual-Feedback Ledger → 5 docs triage → 6 `/why-review --validate-findings` → 7 self-fix + full restart from Phase 0 → 7.5 holistic full-mode `/why-review` → 8 `/docs-update` (unconditional terminal) — why: a skipped phase silently drops a guard (coverage, spec-drift, holistic review, or docs sync) and ships unreviewed work.
+- **MUST ATTENTION — run ALL main phases in order (the steps AI keeps forgetting):** Phase -1 bind self-recursive review loop — protocol-primary, optional `/goal` gate when available (standalone, FIRST action) → 0 `/graph-blast-radius` → 0.3 change-type risk tasks → 0.7 surface-detection dimension tasks → 0.5 plan compliance → 1 collect diff + create report → 2 file-by-file review → 3 fresh-context gate (SKIP when findings exist) → 3.5 `/code-simplifier` (code diffs) → 3.7 `/integration-test-review` Gate-7 coverage (behavior diffs) → 4 finalize + Dual-Feedback Ledger → 5 docs triage → 6 `/why-review --validate-findings` → 7 self-fix + full restart from Phase 0 → 7.5 holistic full-mode `/why-review` → 8 `/docs-update` (unconditional terminal) — why: a skipped phase silently drops a guard (coverage, spec-drift, holistic review, or docs sync) and ships unreviewed work.
 
 > **Routing boundary:** This skill reviews a **git diff** — working-tree (default), staged, branch, or commit. For an explicit file-set or SHA-range review, processing received review feedback, or a pre-completion verification gate over already-known scope, use `code-review` instead.
 
@@ -37,7 +37,7 @@ description: '[Code Quality] Use when reviewing current changes, staged or unsta
 
 **Workflow:**
 
-0. **Phase -1: Self-Recursive Review-Loop Goal Gate (FIRST ACTION — standalone-only)** — Before any other work, in standalone mode invoke the `/goal` command (an ACTUAL call) with a self-recursive review-loop condition so a session Stop hook BLOCKS stopping until the loop converges: *review the full diff → validate findings (Phase 6) → SELF-FIX validated findings (Phase 7) → restart `/changes-review` from Phase 0 over the WHOLE updated diff (combined with the prior fixes, never just re-checking the last fix) → loop until one complete pass has zero findings, then docs-update*. Skip this gate when running as step 1 inside `$workflow-review-changes` (the parent owns the goal). Full procedure in **Phase -1**.
+0. **Phase -1: Bind the Self-Recursive Review Loop (FIRST ACTION — standalone-only; protocol-first, `/goal` optional)** — Before any other work, in standalone mode bind the review loop as a standing protocol obligation you self-drive — and, WHEN available, invoke the `/goal` command as an ACTUAL call — with a self-recursive review-loop condition so stopping is BLOCKED until the loop converges: *review the full diff → validate findings (Phase 6) → SELF-FIX validated findings (Phase 7) → restart `/changes-review` from Phase 0 over the WHOLE updated diff (combined with the prior fixes, never just re-checking the last fix) → loop until one complete pass has zero findings, then docs-update*. Skip this gate when running as step 1 inside `$workflow-review-changes` (the parent owns the goal). Full procedure in **Phase -1**.
 1. **Phase 0: Blast Radius** — Call `/graph-blast-radius` skill FIRST (if `.code-graph/graph.db` exists)
 2. **Phase 0.3: Change Types** — Detect high-risk change types; create risk tasks
 3. **Phase 0.5: Plan Compliance** — Verify against active plan (conditional)
@@ -67,8 +67,8 @@ description: '[Code Quality] Use when reviewing current changes, staged or unsta
 - Cross-reference changed files against related docs — flag stale docs, test specs, READMEs
 - MANDATORY FINAL step: once the review/fix loop converges to zero findings, ALWAYS run the Phase 8 `/docs-update` sweep over the full changeset — unconditional, never skipped on a clean verdict — why: a clean code review still leaves docs stale unless docs-update reconciles them against the actual changes
 - Findings are not eligible for auto-fix until Phase 6 why-review validation returns CLEAN for the current finding set
-- FIRST ACTION (standalone): install the Phase -1 `/goal` self-recursive review-loop gate so stopping is mechanically blocked until a complete review pass over the whole diff is clean — soft "loop until clean" prose alone is not enough; the goal gate makes abandoning the loop early impossible
-- After Phase 6 validation, the skill MUST SELF-FIX every validated finding in Phase 7 (standalone) — a surfaced+validated finding that is reported but left unfixed keeps the `/goal` gate open; never hand validated findings back to the user as "recommendations" in standalone mode
+- FIRST ACTION (standalone): bind the Phase -1 self-recursive review loop — the **protocol loop is the primary, host-independent binding** you self-drive, plus an optional `/goal` Stop-hook gate WHEN available — so stopping is blocked until a complete review pass over the whole diff is clean; soft "loop until clean" prose alone is not enough, and the protocol binding makes abandoning the loop early impossible whether or not `/goal` exists
+- After Phase 6 validation, the skill MUST SELF-FIX every validated finding in Phase 7 (standalone) — a surfaced+validated finding that is reported but left unfixed keeps the review loop open (and, when available, the `/goal` gate); never hand validated findings back to the user as "recommendations" in standalone mode
 - Every fix cycle invalidates the prior review result; restart `/changes-review` from Phase 0 and review the full updated diff AS A WHOLE FROM THE BEGINNING — combined with the prior fixes, NOT just re-reviewing the previous cycle's fix in isolation
 - Continue review → validate findings → self-fix → full whole-diff re-review until a complete review pass returns zero findings; do not add a fresh-context pass just because findings exist or a fix cycle restarted the review
 
@@ -151,7 +151,7 @@ Apply this lens **before** specific rules, patterns, or checklists below. If dow
 
 ## Blast Radius Pre-Analysis (MANDATORY FIRST REVIEW STEP)
 
-> **IMPORTANT MANDATORY MUST ATTENTION:** FIRST *review* action in every review — only the Phase -1 `/goal` self-recursive loop gate (standalone) precedes it. Call `/graph-blast-radius` BEFORE any other review work.
+> **IMPORTANT MANDATORY MUST ATTENTION:** FIRST *review* action in every review — only the Phase -1 self-recursive review-loop binding (standalone) precedes it. Call `/graph-blast-radius` BEFORE any other review work.
 
 If `.code-graph/graph.db` exists, run graph-blast-radius analysis before reviewing changes:
 
@@ -172,7 +172,7 @@ For each changed file, trace full impact:
 **MANDATORY FIRST: Create Todo Tasks for Review Phases**
 Before starting, call TaskCreate with:
 
-- [ ] `[Review Phase -1] Install /goal self-recursive review-loop gate (standalone-only; skip inside $workflow-review-changes)` - in_progress **(MUST ATTENTION BE FIRST)**
+- [ ] `[Review Phase -1] Bind self-recursive review loop — protocol-primary; optional /goal gate when available (standalone-only; skip inside $workflow-review-changes)` - in_progress **(MUST ATTENTION BE FIRST)**
 - [ ] `[Review Phase 0] Run /graph-blast-radius to analyze change impact` - pending **(FIRST review step after the goal gate)**
 - [ ] `[Review Phase 0.3] Detect high-risk change types, create risk tasks` - pending
 - [ ] `[Review Phase 0.7] Categorize changed files, create dimension review tasks` - pending
@@ -194,9 +194,9 @@ Update todo status as each phase completes.
 > **Note:** If Phase 1 reveals 10+ changed files, replace Phase 2-4 tasks with Systematic Review Protocol tasks:
 > `[Review Phase 2] Categorize and fire parallel sub-agents`, `[Review Phase 3] Synchronize and cross-reference`, `[Review Phase 3.5] Run /code-simplifier on changed code files`, `[Review Phase 3.7] Run /integration-test-review coverage gate`, `[Review Phase 4] Generate consolidated report`
 
-**Phase -1: Self-Recursive Review-Loop Goal Gate (FIRST ACTION — standalone-only)**
+**Phase -1: Bind the Self-Recursive Review Loop (FIRST ACTION — standalone-only; protocol-first, `/goal` optional)**
 
-> **IMPORTANT MANDATORY MUST ATTENTION:** This is the VERY FIRST action in standalone mode — before Phase 0, before any git/graph command. Its purpose is to make the review→fix→re-review loop UNABANDONABLE: a session Stop hook blocks stopping until a complete review pass over the whole diff is clean.
+> **IMPORTANT MANDATORY MUST ATTENTION:** This is the VERY FIRST action in standalone mode — before Phase 0, before any git/graph command. Its purpose is to make the review→fix→re-review loop UNABANDONABLE. The loop is bound by TWO layers: the **protocol loop (primary, host-independent)** you self-drive, plus an **optional `/goal` accelerator** (a session Stop hook) WHEN available. Correctness rides on the protocol loop — hooks/commands are accelerators only, so `/goal`'s absence NEVER weakens it.
 
 **Entry gate:**
 
@@ -206,16 +206,21 @@ Update todo status as each phase completes.
 **Procedure:**
 
 1. Set the `[Review Phase -1]` task to `in_progress`.
-2. **Invoke `/goal`** (the actual built-in command, NOT a paraphrase) with a condition that encodes THIS skill's self-recursive loop, e.g.:
+2. **Protocol loop — ALWAYS binding (hook/command-independent).** You, the running agent, are personally responsible for not stopping until the loop below converges or bounded-escalates. This binds Claude, Codex, and Copilot equally, whether or not `/goal` exists:
+
+    > Review the full diff → run `/why-review --validate-findings` on every finding → SELF-FIX each validated finding → restart `/changes-review` from Phase 0 over the WHOLE updated diff (combined with the prior fixes, not just the last fix) → loop until one complete review pass finds zero findings → then run Phase 7.5: one standalone FULL-mode `/why-review` over the whole target+diff (NOT `--validate-findings`), fixing and re-running until it is clean → only then run the Phase 8 `/docs-update`. Do not stop while any validated finding is unfixed, any review pass is non-clean, or the holistic full-mode `/why-review` has unaddressed findings.
+
+3. **`/goal` command — invoke as an accelerator WHEN AVAILABLE.** If a `/goal` command exists and you are permitted to run it in this environment, ALSO invoke it (the actual command, NOT a paraphrase) with the SAME condition, so a session Stop hook mechanically enforces the loop:
 
     ```
     /goal changes-review self-recursive loop: review the full diff → run /why-review --validate-findings on every finding → SELF-FIX each validated finding → restart /changes-review from Phase 0 over the WHOLE updated diff (combined with the prior fixes, not just the last fix) → loop until one complete review pass finds zero findings → then run Phase 7.5: one standalone FULL-mode /why-review over the whole target+diff (NOT --validate-findings), fixing and re-running until it is clean → only then run the Phase 8 /docs-update. Do not stop while any validated finding is unfixed, any review pass is non-clean, or the holistic full-mode /why-review has unaddressed findings.
     ```
 
-3. The `/goal` Stop hook now blocks stopping until that condition holds and auto-clears when it does — do not tell the user to clear it.
+    The `/goal` Stop hook blocks stopping until that condition holds and auto-clears when it does — do not tell the user to clear it. **If `/goal` is unavailable, unregistered, or not permitted** (e.g. Codex/Copilot, or a Claude run without the command): DO NOT error, DO NOT block, and DO NOT invent a stand-in gate. Record `/goal accelerator unavailable — review loop bound by protocol (Phase -1 step 2)` on the `[Review Phase -1]` task and proceed; the protocol loop IS the gate, enforced by discipline instead of a hook.
+
 4. Set the `[Review Phase -1]` task to `completed` and proceed to Phase 0.
 
-> **Why a goal gate, not just prose:** the loop rules below ("restart from Phase 0", "continue until zero findings") are soft directives an agent can rationalize away after one cycle. The `/goal` Stop hook converts them into a mechanical block — the session cannot end with a validated finding still unfixed or a non-clean review pass. — why: a review that reports findings but stops before fixing-and-reproving them ships unreviewed work.
+> **Why bind the loop, not just prose:** the loop rules below ("restart from Phase 0", "continue until zero findings") are soft directives an agent can rationalize away after one cycle. Binding them as a standing protocol obligation (and, WHEN available, a `/goal` Stop hook) converts them into a mechanical block — the session cannot end with a validated finding still unfixed or a non-clean review pass. — why: a review that reports findings but stops before fixing-and-reproving them ships unreviewed work.
 
 **Phase 0: Run Graph Blast Radius Analysis (MANDATORY FIRST REVIEW STEP)**
 
@@ -871,7 +876,7 @@ If `architectureRules` not present in project-config.json, skip silently.
 - NEVER review only the fixed files after a fix; review the full current diff because fixes can interact with earlier changes.
 - NEVER reuse old todo tasks after restart; each recursive review invocation breaks down all phases again.
 - NEVER declare unconditional PASS without the Output Format's Goal Satisfaction matrix showing every required saved criterion PASS (or BLOCKED with a user-facing escalation reason). A required-criterion FAIL is a validated finding for this fix loop.
-- The Phase -1 `/goal` gate stays OPEN until this loop converges — the session cannot stop while any validated finding is unfixed or any review pass is non-clean. Do NOT report findings to the user and stop; SELF-FIX them here, then re-review the whole diff. (Standalone only; inside `$workflow-review-changes` the parent's goal gate governs.)
+- The Phase -1 review-loop binding stays in force until this loop converges (the `/goal` gate too, WHEN available) — the session cannot stop while any validated finding is unfixed or any review pass is non-clean. Do NOT report findings to the user and stop; SELF-FIX them here, then re-review the whole diff. (Standalone only; inside `$workflow-review-changes` the parent's goal gate governs.)
 
 ---
 
@@ -891,7 +896,7 @@ If `architectureRules` not present in project-config.json, skip silently.
 4. **If `/why-review` returns findings:** treat them as validated holistic findings — auto-fix them at the owning layer (same fix discipline as Phase 7), append a `## Phase 7.5 Holistic Fix Cycle {N}` block to the report (findings, files changed, verification), then **re-run Phase 7.5 from step 2** over the full updated target. Repeat run→fix→run until one full-mode `/why-review` pass returns zero findings.
 5. Set the `[Review Phase 7.5]` task to `completed` once a full-mode pass is clean (or the gate was deferred to the parent workflow).
 
-**Stop conditions:** Same as Phase 7 — if the same holistic finding repeats for 3 full-mode passes with no observable progress, or a finding needs product/owner input, stop and ask the user instead of spinning. The Phase -1 `/goal` gate stays OPEN until this gate's loop also converges clean.
+**Stop conditions:** Same as Phase 7 — if the same holistic finding repeats for 3 full-mode passes with no observable progress, or a finding needs product/owner input, stop and ask the user instead of spinning. The Phase -1 review-loop binding stays in force until this gate's loop also converges clean (the `/goal` gate too, WHEN available).
 
 > **MANDATORY:** In standalone mode, never advance to Phase 8 or hand off until one full-mode `/why-review` pass over the whole target has returned zero findings (or the gate was explicitly deferred to the parent workflow). A passing dimensional review with a skipped holistic `/why-review` is an INCOMPLETE review — it is exactly the gap this gate closes.
 
@@ -1213,6 +1218,12 @@ changes-review (you are here)
 
 > **Validated-Finding Fix + Full Re-Review Loop** — Re-review is triggered by a validated finding fix cycle, not by a round number. Review purpose: `review → validate findings → fix validated findings → full re-review` until a complete review pass finds no issues. **A clean review ENDS the loop — no further rounds required.**
 >
+> _aka **Self-Review Convergence Loop**._ The name is historical — this loop has **NO 2-round cap**; "double-round-trip" only means a validated-finding fix cycle forces at least one fresh re-review. It runs until a clean pass, per the no-arbitrary-cap rule below.
+>
+> **Universal scope (any new output/judgment):** any newly produced output or judgment gets **≥1 self-review**; any **new judgment** gets **≥1 `/why-review --validate-findings` pass**; anything flagged to re-check is re-checked **≥1 time** — before that output is treated as final. This loop is the default convergence contract for ANY work-producing skill, not review skills only.
+>
+> **Routing invariant (author-facing):** a skill that validates findings MUST route them through `/why-review --validate-findings` (the terminal validator) — NEVER fork an inline finding-validation. Routing through why-review is what makes the finding-survival bar and this loop apply; the `verify-review-validate-coverage` sensor enforces this exact route mechanically.
+>
 > **Round 1:** Main-session review. Read target files, build understanding, note issues. Output findings + verdict (PASS / FAIL).
 >
 > **Decision after Round 1:**
@@ -1235,6 +1246,7 @@ changes-review (you are here)
 >
 > - A clean Round 1 ENDS the review — no mandatory Round 2
 > - NEVER fix unvalidated findings; validate first using the caller's validation gate
+> - Every surviving finding must additionally clear the **finding-survival bar** defined in why-review's Findings Validation Routine (a deliberately higher bar than the generic act-gate — "keep this finding?" is a stricter question than "act on this evidence?"); a finding below the bar is demoted or dropped, not kept
 > - NEVER skip the full re-review after a fix cycle (every fix invalidates the prior verdict)
 > - NEVER reuse a sub-agent across rounds — every iteration that uses sub-agents spawns NEW Agent calls
 > - Main agent READS sub-agent reports but MUST NOT filter, reinterpret, or override findings
@@ -1678,6 +1690,24 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:severity-rubric -->
 
+<!-- SYNC:goal-contract-satisfaction-loop -->
+
+> **Goal Contract Satisfaction Loop** — Persist the user goal in an external file, execute against it, and loop review/fix until every saved required criterion passes or a blocker escalates. Bounded closed loop — NEVER open-ended autonomous exploration.
+>
+> 1. **Resolve the active goal** (in order): active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create a new Goal Contract from the current user request (template: `.claude/templates/goal-contract-template.md`).
+> 2. **Required sections:** Original Request, Purpose, Success Criteria (checkboxes; mark required vs optional), Constraints, Evidence Required, Iteration Log, Goal Satisfaction matrix.
+> 3. **Before work:** read the active goal and map planned work to saved success criteria — execution serves the saved criteria, never chat memory alone.
+> 4. **After execution/verification:** append an Iteration Log entry — result, evidence references (`file:line`, command output, report path), remaining gaps.
+> 5. **Review gate:** emit a Goal Satisfaction matrix — `| Success Criterion | Evidence | Status |` with PASS/FAIL/BLOCKED. Overall PASS requires every required criterion PASS.
+> 6. **Loop rule (retry):** required criterion FAIL → validate the gap is real → fix → re-review only the affected criteria. Stop cleanly when all required criteria PASS.
+> 7. **Escalation rule (stop):** two consecutive iterations with no criterion progressing, or a blocker needing user input → mark the criterion BLOCKED with a user-facing reason and escalate. NEVER loop indefinitely.
+> 8. **Skip rule:** tiny conversational tasks may skip the goal file ONLY with a recorded one-line reason. User-accepted gate skips are recorded in the goal file with reason and scope.
+> 9. **Security:** NEVER store secrets, tokens, credentials, or private customer data in goal files — store evidence references and redact sensitive values.
+>
+> **Blocked until:** active goal resolved (or skip reason recorded) · saved success criteria read before edits · iteration evidence appended after execution · Goal Satisfaction matrix emitted before any PASS verdict.
+
+<!-- /SYNC:goal-contract-satisfaction-loop -->
+
 <!-- SYNC:understand-code-first:reminder -->
 
 **IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE any modification. Run graph trace when graph.db exists.
@@ -1811,6 +1841,12 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:category-review-thinking:reminder -->
 
+<!-- SYNC:double-round-trip-review:reminder -->
+
+- **MANDATORY IMPORTANT MUST ATTENTION** execute the review loop (aka **Self-Review Convergence Loop**): review → validate findings → fix validated findings → full re-review. A complete review pass with zero findings ENDS the review. Any newly produced output/judgment gets ≥1 self-review; any new judgment gets ≥1 `/why-review --validate-findings` pass before it is treated as final.
+
+<!-- /SYNC:double-round-trip-review:reminder -->
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Ensure every reviewed change is defect-free, evidence-backed, convention-aligned, and synchronized with required tests/docs before handoff; when code files changed, also prove the code stays easy to change.
@@ -1844,7 +1880,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 > **[CRITICAL — TOP 3 RULES REPEATED]**
 >
-> 1. **MUST ATTENTION Phase -1 `/goal` self-recursive review-loop gate is the FIRST ACTION (standalone)** — install it before Phase 0 so stopping is blocked until a whole-diff review pass is clean; Phase 0 graph blast-radius is the first *review* step. Skip Phase -1 only inside `$workflow-review-changes` (parent owns the goal).
+> 1. **MUST ATTENTION Phase -1 self-recursive review-loop binding is the FIRST ACTION (standalone)** — bind it (protocol loop primary, host-independent; optional `/goal` gate WHEN available) before Phase 0 so stopping is blocked until a whole-diff review pass is clean; Phase 0 graph blast-radius is the first *review* step. Skip Phase -1 only inside `$workflow-review-changes` (parent owns the goal).
 > 2. **MUST ATTENTION findings follow the active ownership boundary, and validated findings are SELF-FIXED, not handed back.** Standalone mode runs Phase 6 validate → Phase 7 self-fix → full whole-diff `/changes-review` restart (combined with prior fixes, not just the last fix), looping until zero findings; inside `$workflow-review-changes`, stop after the report and hand findings to parent step 2, then parent steps 10-15 own plan/feature-implement/restart.
 > 3. **MUST ATTENTION TaskCreate ALL phases** before starting; missing tests MUST surface via `AskUserQuestion`
 
