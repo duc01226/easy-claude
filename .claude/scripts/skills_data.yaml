@@ -138,6 +138,20 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
+  description: '[Code Quality] Use when you need to combine /changes-review + /fix
+    in a recursive loop — each round runs /changes-review (report-only) to surface
+    validated findings over a fixed diff scope, then /fix to resolve them, then loops
+    again with a FRESH full /changes-review over the CHANGED diff until one complete
+    pass produces zero validated findings (nothing left to fix).'
+  has_references: false
+  has_scripts: false
+  name: changes-review-loop
+  path: changes-review-loop/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
   description: '[Utilities] Use when you need to save analysis context to a checkpoint
     file for recovery (user-facing alias for memory-management Part 1 CHECKPOINT_CREATE).'
   has_references: false
@@ -1468,8 +1482,9 @@
   deprecated_by: null
   deprecated_since: null
   description: '[Code Quality] Use when reviewing UI/frontend changes for long-content
-    overflow, responsive multi-screen layout, flex-vs-fixed sizing, z-index discipline,
-    and SCSS/BEM styling quality.'
+    overflow, responsive multi-screen layout (flex-wrap / row-to-column on small devices),
+    flex-vs-fixed sizing, z-index discipline, SCSS/BEM styling quality, and async
+    UI states & feedback (loading indicator, error surface, empty state).'
   has_references: false
   has_scripts: false
   name: ui-review
@@ -1556,6 +1571,19 @@
   has_scripts: false
   name: why-review
   path: why-review/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
+  description: '[Code Quality] Use when you need to combine /why-review + /fix in
+    a recursive loop — each round runs /why-review to find validated findings then
+    /fix to resolve them, then loops again over the CHANGED target until a fresh full
+    /why-review produces zero findings (nothing left to fix).'
+  has_references: false
+  has_scripts: false
+  name: why-review-loop
+  path: why-review-loop/SKILL.md
   removal_after: null
   status: active
 - category: other
@@ -1719,6 +1747,19 @@
   has_scripts: false
   name: workflow-review-changes
   path: workflow-review-changes/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
+  description: '[Workflow] Use when you need to run /workflow-review-changes repeatedly
+    in an outer convergence loop until a complete whole-workflow run applies zero
+    fixes — recursive re-review of a fixed scope (branch-diff + current changes) until
+    a clean no-op pass.'
+  has_references: false
+  has_scripts: false
+  name: workflow-review-changes-loop
+  path: workflow-review-changes-loop/SKILL.md
   removal_after: null
   status: active
 - category: other
