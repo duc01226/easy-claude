@@ -1,10 +1,10 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-07-11'
-  total_skills: 158
+  last_updated: '2026-07-14'
+  total_skills: 160
   total_by_status:
-    active: 157
+    active: 159
     deprecated: 1
     experimental: 0
 categories:
@@ -46,6 +46,22 @@ skills:
       category: frontend
       has_scripts: false
       has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: demo-guide
+      path: demo-guide/SKILL.md
+      description: '[Documentation] Use when you need to generate a step-by-step demo
+        guide (demo script / walkthrough) covering all main user stories and their
+        test cases — scope from a named feature, else the current working context,
+        else confirm with the user — explaining for each case how the domain data
+        is stored/changed and how the domain solves the feature. Triggers: demo guide,
+        generate demo guide, demo script, demo walkthrough, how to demo, prepare demo,
+        sprint demo, user story demo.'
+      category: frontend
+      has_scripts: false
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null
@@ -289,6 +305,20 @@ skills:
       path: changes-review/SKILL.md
       description: '[Code Quality] Use when reviewing current changes, staged or unstaged
         diffs, or branch-to-branch diffs.'
+      category: other
+      has_scripts: false
+      has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: changes-review-loop
+      path: changes-review-loop/SKILL.md
+      description: '[Code Quality] Use when you need to combine /changes-review +
+        /fix in a recursive loop — each round runs /changes-review (report-only) to
+        surface validated findings over a fixed diff scope, then /fix to resolve them,
+        then loops again with a FRESH full /changes-review over the CHANGED diff until
+        one complete pass produces zero validated findings (nothing left to fix).'
       category: other
       has_scripts: false
       has_references: false
