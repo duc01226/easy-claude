@@ -1,4 +1,4 @@
-- category: frontend
+- category: other
   deprecated_by: null
   deprecated_since: null
   description: '[Architecture] Use when designing solution architecture across backend,
@@ -281,7 +281,7 @@
   path: copywriting/SKILL.md
   removal_after: null
   status: active
-- category: frontend
+- category: other
   deprecated_by: null
   deprecated_since: null
   description: '[Content] Use when you need to build structured learning/teaching
@@ -336,7 +336,7 @@
   path: deep-research/SKILL.md
   removal_after: null
   status: active
-- category: frontend
+- category: other
   deprecated_by: null
   deprecated_since: null
   description: '[Documentation] Use when you need to generate a step-by-step demo
@@ -623,7 +623,7 @@
   path: graph-blast-radius/SKILL.md
   removal_after: null
   status: active
-- category: frontend
+- category: other
   deprecated_by: null
   deprecated_since: null
   description: '[Code Intelligence] Use when you need to build, update, or sync the
@@ -1416,7 +1416,7 @@
   path: story/SKILL.md
   removal_after: null
   status: active
-- category: frontend
+- category: other
   deprecated_by: null
   deprecated_since: null
   description: '[Content] Use when you need to build marketing strategy: positioning,
@@ -1450,7 +1450,7 @@
   path: sync-skills-shared-protocols/SKILL.md
   removal_after: null
   status: active
-- category: utilities
+- category: other
   deprecated_by: null
   deprecated_since: null
   description: '[Architecture] Use when you need to research, analyze, and compare

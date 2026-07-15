@@ -93,6 +93,7 @@
         "changelog",
         "test",
         "docs-update",
+        "demo-guide",
         "workflow-end",
         "watzup"
       ],
@@ -146,6 +147,7 @@
         "changelog",
         "test",
         "docs-update",
+        "demo-guide",
         "workflow-end",
         "watzup"
       ],

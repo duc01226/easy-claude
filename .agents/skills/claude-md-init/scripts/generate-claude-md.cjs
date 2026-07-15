@@ -234,8 +234,10 @@ function stampHeader(content) {
         .replace(SKILLS_BLOCK_RE, '')
         .replace(CK_CRIT_BLOCK_RE, '')
         .replace(CK_AIMP_BLOCK_RE, '')
-        .replace(/^\n+/, '')
-        .replace(/\n{3,}/g, '\n\n');
+        // CRLF-aware: a `\r\n\r\n\r\n` run has no consecutive `\n`, so an LF-only
+        // pattern here silently leaves the blank gap each stripped block left behind.
+        .replace(/^(?:\r?\n)+/, '')
+        .replace(/(?:\r?\n){3,}/g, '\n\n');
     if (!hasGuides(text)) return text;
     const gate = loadWorkflowGate();
     const skills = loadWorkflowSkillsCatalog();
