@@ -40,14 +40,14 @@ Feature docs path: `docs/specs/{Bucket}/README.{FeatureName}.md` (no line-count 
 
 MUST ATTENTION follow exact section order. **All 8 sections are tech-free** - no framework/product/language/persistence/messaging/auth names in sections 1-7 prose (technical identifiers live ONLY in evidence carriers). Technical contracts (commands, message/event schemas, API routes, cross-service wiring, performance internals) are **NOT doc content** - code is the technical source of truth.
 
-- 1. **Overview** - 2-3 plain sentences: what the capability does, who uses it, why it matters
-- 2. **Glossary** - domain / ubiquitous-language terms
-- 3. **User Stories & Acceptance Criteria** - `US-{FC}-NN` (As a / I want / So that) each with `AC-{FC}-NN` (Given/When/Then)
-- 4. **Business Rules** - `BR-{FC}-NN` invariants, validation, state transitions; plain IF/THEN; `[HARD]`/`[SOFT]`; `[Source: rule/{service}/{id}]` per rule group
-- 5. **Domain Model** - entities, value objects, enums, relationships; Mermaid ERD + business-meaning columns; **plain types only** (text/number/date/yes-no); `[Source: component/{service}/{id}]` per entity. Business-meaningful domain events surface here as occurrences, never as bus/message schemas
-- 6. **Process Flows** - key user journeys as step tables / simple diagrams (business actions; key screens as business steps/states, not component names)
-- 7. **Permissions & Roles** - business RBAC matrix (Role x View/Create/Edit/Delete + scope rules); no auth-implementation detail
-- 8. **Test Specifications** - `TC-{FEATURE}-{NNN}` BDD, each linked to the `AC-`/`BR-` it proves; MUST ATTENTION carry `Business Intent / Invariant Guarded` and a hidden `Evidence: [Source: namespace/service/id]` carrier + `IntegrationTest:` field (legacy `[Source: FilePath:Line]` DEPRECATED)
+-   1. **Overview** - 2-3 plain sentences: what the capability does, who uses it, why it matters
+-   2. **Glossary** - domain / ubiquitous-language terms
+-   3. **User Stories & Acceptance Criteria** - `US-{FC}-NN` (As a / I want / So that) each with `AC-{FC}-NN` (Given/When/Then)
+-   4. **Business Rules** - `BR-{FC}-NN` invariants, validation, state transitions; plain IF/THEN; `[HARD]`/`[SOFT]`; `[Source: rule/{service}/{id}]` per rule group
+-   5. **Domain Model** - entities, value objects, enums, relationships; Mermaid ERD + business-meaning columns; **plain types only** (text/number/date/yes-no); `[Source: component/{service}/{id}]` per entity. Business-meaningful domain events surface here as occurrences, never as bus/message schemas
+-   6. **Process Flows** - key user journeys as step tables / simple diagrams (business actions; key screens as business steps/states, not component names)
+-   7. **Permissions & Roles** - business RBAC matrix (Role x View/Create/Edit/Delete + scope rules); no auth-implementation detail
+-   8. **Test Specifications** - `TC-{FEATURE}-{NNN}` BDD, each linked to the `AC-`/`BR-` it proves; MUST ATTENTION carry `Business Intent / Invariant Guarded` and a hidden `Evidence: [Source: namespace/service/id]` carrier + `CoveredBy:` field (legacy `IntegrationTest:` accepted as migration input; legacy `[Source: FilePath:Line]` DEPRECATED)
 
 ## M1-M6 Compliance for All Sections
 
@@ -68,7 +68,7 @@ EVERY test case MUST ATTENTION carry a machine-readable evidence anchor:
 **Evidence:** `[Source: {namespace}/{service}/{id}]` (namespace in operation | event | component | schema | requirement | rule | constraint | test)
 ```
 
-The abstract `[Source: namespace/service/id]` form is canonical (see `.claude/skills/shared/tc-format.md`). The legacy `[Source: {FilePath}:{LineNumber}]` form is **DEPRECATED** - it is stack-fragile and breaks on refactor; do not author it in new or migrated docs. The lone exception is the per-TC `IntegrationTest:` link, which stays a physical `{TestFile}::{MethodName}` path. NEVER use `TBD` placeholders in shipped docs. NEVER omit the Evidence field.
+The abstract `[Source: namespace/service/id]` form is canonical (see `.claude/skills/shared/tc-format.md`). The legacy `[Source: {FilePath}:{LineNumber}]` form is **DEPRECATED** - it is stack-fragile and breaks on refactor; do not author it in new or migrated docs. The lone exception is the per-TC `CoveredBy:` link (legacy name: `IntegrationTest:`), which stays a physical `{TestFile}::{MethodName}` path. NEVER use `TBD` placeholders in shipped docs. NEVER omit the Evidence field.
 
 ---
 

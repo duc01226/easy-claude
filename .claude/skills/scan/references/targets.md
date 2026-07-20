@@ -698,7 +698,7 @@ Path branching: INIT → Phase 1 → Phase 2 (full scan) → Phase 3 (full write
 - **Think (Accuracy dimension):** What section headings actually appear across feature docs? What's the frequency? Which sections are standard (≥80% coverage) vs optional (20-80%) vs rare (<20%)?
 - **Think (Completeness dimension):** Are there documentation naming patterns? Section numbering? Required fields (evidence fields, TC IDs)?
 - Scan targets: glob `docs/**/*.md`; find documentation templates (template files, skeleton docs); recurring H2/H3 headings across docs; count docs per app/module for coverage distribution; doc naming patterns.
-- **M1/M2 Compliance Scan (per feature doc):** See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M6)" for BLOCKING criteria. Scan §1-14 prose lines (excluding evidence carriers `**Evidence**` / `IntegrationTest` / `[Source:]`, YAML frontmatter, and ` ```mermaid ``` ` blocks) and report:
+- **M1/M2 Compliance Scan (per feature doc):** See `.claude/skills/shared/sdd-artifact-contract.md` → "AI-SDD Mandates (M1-M7)" for BLOCKING criteria. Scan §1-14 prose lines (excluding evidence carriers `**Evidence**` / `IntegrationTest` / `[Source:]`, YAML frontmatter, and ` ```mermaid ``` ` blocks) and report:
   - **M1 prose leaks:** banned tech-term occurrences (framework/product/language/persistence/messaging/auth names + project-internal framework type names — banned-token list in `spec-principles.md` §3.2) in narrative, headings, tables.
   - **M2 prose leaks:** code-identifier occurrences (class/method names, file paths, namespaces) in narrative prose.
   - Report each leak by **file, line, and section**.

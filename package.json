@@ -40,7 +40,8 @@
     "test": "npm run test:hooks && npm run test:suites",
     "test:hooks": "node .claude/hooks/tests/test-all-hooks.cjs",
     "test:suites": "node .claude/hooks/tests/run-all-tests.cjs",
-    "verify:all": "node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --only=tests,scripts-tests,wf-cycle,sk-proto,residue,sdd,review-validate-coverage,sync-divergence"
+    "verify:all": "node .claude/skills/sync-codex/scripts/run-codex-sync.mjs --only=tests,scripts-tests,wf-cycle,sk-proto,residue,sdd,review-validate-coverage,sync-divergence",
+    "tech-spec:generate": "node .claude/skills/tech-spec/scripts/generate-tech-specs.mjs"
   },
   "version": "1.0.0"
 }

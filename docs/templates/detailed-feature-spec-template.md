@@ -239,7 +239,7 @@ And {additional verification}
 <!-- machine-only carrier — ignore when reading as BA/QA -->
 
 > `[Source: {namespace}/{service}/{id}]`
-> **IntegrationTest:** `{configured-test-path}/{TestFile}::{MethodName}` · **Status:** Tested | Untested | Planned
+> **CoveredBy:** `{configured-test-path}/{TestFile}::{MethodName}` · **Status:** Tested | Untested | Planned
 
 ---
 

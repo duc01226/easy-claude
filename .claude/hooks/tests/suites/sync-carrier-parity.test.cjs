@@ -125,6 +125,21 @@ function carrierFiles() {
         if (!d.isDirectory()) continue;
         const p = path.join(SKILLS_DIR, d.name, 'SKILL.md');
         if (fs.existsSync(p)) out.push(p);
+
+        // references/*.md carry procedure bodies a skill loads per mode, and they duplicate
+        // across skills exactly as SKILL.md does — a forked sync procedure lives there, not
+        // in SKILL.md. Scanning only SKILL.md put that duplication structurally OUT OF REACH
+        // of this property: a SYNC: block in references/ could diverge forever and stay green.
+        // Must stay aligned with find_target_files() in sync-update-blocks.py, which writes
+        // the same set — a carrier this test guards but the writer never updates is a
+        // permanently-red test, and one the writer updates but this test ignores is no guard.
+        // That alignment is ASSERTED by the PARITY test at the bottom of this suite, not by
+        // this comment — a comment is not a sensor.
+        const refDir = path.join(SKILLS_DIR, d.name, 'references');
+        if (!fs.existsSync(refDir)) continue;
+        for (const f of fs.readdirSync(refDir, { withFileTypes: true })) {
+            if (f.isFile() && f.name.endsWith('.md')) out.push(path.join(refDir, f.name));
+        }
     }
     for (const f of fs.readdirSync(AGENTS_DIR, { withFileTypes: true })) {
         if (f.isFile() && f.name.endsWith('.md')) out.push(path.join(AGENTS_DIR, f.name));
@@ -347,6 +362,70 @@ module.exports = {
                     'carrier extractor must return null on a missing marker'
                 );
                 assertTrue(readCanonicalBody('definitely-not-a-real-tag-xyz') === null, 'canonical extractor must return null on a missing tag');
+            },
+        },
+        {
+            // The parity property above can only guard carriers `carrierFiles()` returns, and
+            // sync-update-blocks.py can only repair carriers `find_target_files()` returns. The
+            // two sets were kept aligned by a COMMENT in each file and nothing else — so a scope
+            // edit on one side alone fails SILENTLY in whichever direction it goes:
+            //   writer ⊃ test  → the writer rewrites a carrier no property inspects; it can drift
+            //                    from canonical forever while this suite stays green.
+            //   test ⊃ writer  → the property fails on a carrier the writer cannot repair, and the
+            //                    failure message below emits `sync-update-blocks.py <tag>` as the
+            //                    remedy — a fix that provably cannot work. Permanently red, lying.
+            // Comparing against the REAL writer (not a third re-implementation of its glob, which
+            // would just be one more copy free to drift) is what makes this a sensor rather than
+            // another comment.
+            name: 'PARITY: carrierFiles() and sync-update-blocks.py find_target_files() cover the SAME file set',
+            fn() {
+                const { spawnSync } = require('child_process');
+                // Same resolution order as count-drift.test.cjs — `python3` is an MS Store alias
+                // stub on Windows and exits 49, so it is deliberately not a candidate.
+                const candidates = [
+                    { command: 'python', baseArgs: [] },
+                    { command: 'py', baseArgs: ['-3'] },
+                ];
+                const script =
+                    'import json,sys;sys.path.insert(0,r"' +
+                    path.join(REPO, '.claude', 'scripts') +
+                    '");' +
+                    'import importlib.util as u;' +
+                    's=u.spec_from_file_location("swb",r"' +
+                    path.join(REPO, '.claude', 'scripts', 'sync-update-blocks.py') +
+                    '");m=u.module_from_spec(s);s.loader.exec_module(m);' +
+                    'print(json.dumps(m.find_target_files()))';
+
+                let out = null;
+                for (const c of candidates) {
+                    const r = spawnSync(c.command, [...c.baseArgs, '-c', script], { encoding: 'utf8' });
+                    if (r.status === 0 && r.stdout) {
+                        out = r.stdout;
+                        break;
+                    }
+                }
+                // Fail LOUD, never skip silently: an unavailable interpreter must not read as
+                // "scopes agree" — that is the same silent-pass this test exists to prevent.
+                assertTrue(out !== null, 'could not run sync-update-blocks.py find_target_files() (tried: python, py -3)');
+
+                const rel = (p) => path.relative(REPO, p).split(path.sep).join('/');
+                const writerSet = new Set(JSON.parse(out).map(rel));
+                const testSet = new Set(carrierFiles().map(rel));
+
+                const missingFromTest = [...writerSet].filter((f) => !testSet.has(f)).sort();
+                const missingFromWriter = [...testSet].filter((f) => !writerSet.has(f)).sort();
+
+                assertEqual(
+                    missingFromTest.length,
+                    0,
+                    `writer updates ${missingFromTest.length} carrier(s) this suite never guards (they can drift silently): ${missingFromTest.join(', ')}`
+                );
+                assertEqual(
+                    missingFromWriter.length,
+                    0,
+                    `this suite guards ${missingFromWriter.length} carrier(s) the writer cannot repair (its suggested fix would not work): ${missingFromWriter.join(', ')}`
+                );
+                assertTrue(writerSet.size > 0, 'writer scope resolved to an EMPTY set — a vacuous comparison, not a passing one');
             },
         },
     ],

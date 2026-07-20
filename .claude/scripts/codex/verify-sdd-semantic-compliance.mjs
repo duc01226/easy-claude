@@ -179,6 +179,11 @@ const SOURCE_CARRIER_PATTERN = /\[Source:\s*([^\]]+?)\s*\]/g;
 // evidence fields as prose floods M2 with carrier noise and hides the true narrative leaks.
 const EVIDENCE_CARRIER_LABELS = [
   "Evidence",
+  // Canonical test-coverage carrier. `IntegrationTest` below is its legacy alias —
+  // both must stay exempt: templates emit `CoveredBy`, existing specs may still
+  // carry the old label, and exempting only one would flag identical content
+  // differently depending on which name it happens to use.
+  "CoveredBy",
   "IntegrationTest",
   "Integration Test",
   "Source",

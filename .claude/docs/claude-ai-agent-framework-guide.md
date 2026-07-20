@@ -5,7 +5,7 @@
 **Audience:** AI engineers, tech leads, and teams wanting to build reliable AI-assisted development systems.
 **Scope:** What each layer does, why it exists, how the pieces compose, the design principles behind every decision, and which AI agent best practices each addresses.
 
-> **Document Sync Status** — Current local verification (2026-07-06): **15 hook files · 158 skills · 18 workflows · 29 agents** using the ADR-0002 filesystem metrics. Codex mirrors are committed under `.agents/`, `.codex/`, and `AGENTS.md`. Notable mechanisms documented here include multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential-thinking.
+> **Document Sync Status** — Current local verification (2026-07-06): **15 hook files · 161 skills · 18 workflows · 29 agents** using the ADR-0002 filesystem metrics. Codex mirrors are committed under `.agents/`, `.codex/`, and `AGENTS.md`. Notable mechanisms documented here include multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential-thinking.
 
 ---
 
@@ -45,7 +45,7 @@
 
 ## 1. Executive Summary
 
-This framework wraps Claude Code in a three-pillar execution framework — **15 top-level hook files**, **158 skills**, **18 registered workflows**, and **29 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
+This framework wraps Claude Code in a three-pillar execution framework — **15 top-level hook files**, **161 skills**, **18 registered workflows**, and **29 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
 
 It is also **harness- and project-agnostic**: the `.claude/` source compiles to verified OpenAI Codex mirrors (`AGENTS.md`, `.agents/`, `.codex/`), while all project-specific knowledge is factored into `project-config.json` + reference docs — so the same behavior runs on any supported AI tool and ports to any codebase (Section 13).
 
@@ -117,7 +117,7 @@ graph TB
         end
     end
 
-    subgraph "Intelligence Layer — 158 Skills"
+    subgraph "Intelligence Layer — 161 Skills"
         SP[Shared Protocols<br/>5 files]
         IS[Implementation Skills<br/>feature-implement, fix, refactor]
         QS[Quality Skills<br/>code-review, prove-fix]
@@ -454,11 +454,11 @@ allowed-tools: Read, Grep, Glob, Bash, Write, TaskCreate
 2. Declare confidence level...
 ```
 
-### 5.2 Skill Categories (158 skills)
+### 5.2 Skill Categories (161 skills)
 
 ```mermaid
 mindmap
-  root((158 Skills))
+  root((161 Skills))
     Quality & Verification
       code-review
       prove-fix
@@ -878,7 +878,7 @@ The hook and skill system is **project-agnostic**. All project-specific knowledg
 graph LR
     subgraph "Generic Framework (reusable)"
         H[15 Hook Files]
-        S[158 Skills]
+        S[161 Skills]
         W[18 Workflows]
     end
 
@@ -1341,7 +1341,7 @@ flowchart LR
 │  ALL MODES:                                                       │
 │  • Write TCs to feature doc Section 8 (canonical)               │
 │  • Use AskUserQuestion for TC review with user                  │
-│  • Sync each §8 TC's IntegrationTest field to test code         │
+│  • Sync each §8 TC's CoveredBy field to test code              │
 │  • Unified format: TC-{FEATURE}-{NNN}                           │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -1499,7 +1499,7 @@ TEST SPECIFICATION ARCHITECTURE
 4. Generates TC outlines with `Evidence: [Source: namespace/service/id]` abstract anchors
 5. Presents TC list via `AskUserQuestion` for interactive review
 6. Writes approved TCs to feature doc Section 8 (canonical TC registry)
-7. Records each TC's `IntegrationTest` field (test path or `Untested`)
+7. Records each TC's `CoveredBy` field (test path, test filter, manual-QC carrier, or `Untested`)
 
 **Output locations:**
 
@@ -1566,9 +1566,9 @@ feature:
 
 ---
 
-#### Case 3: Sync §8 TCs ↔ Integration Test Code (Bidirectional)
+#### Case 3: Sync §8 TCs ↔ Test Code (Bidirectional)
 
-**Scenario:** Section 8 TCs and the integration test code have drifted — TCs exist with no covering test, or tests exist with no canonical §8 TC. Need to reconcile. Section 8 is canonical; test code implements it.
+**Scenario:** Section 8 TCs and the executing test code have drifted — TCs exist with no covering test, or tests exist with no canonical §8 TC. Need to reconcile. Section 8 is canonical; test code implements it.
 
 **Prompt examples:**
 
@@ -1586,7 +1586,7 @@ feature:
 **What happens (bidirectional via /spec [mode=sync]):**
 
 1. Reads feature doc Section 8 TCs (the canonical registry)
-2. Greps for TC annotations (e.g., test tags/traits) in the integration test code
+2. Greps for TC annotations (e.g., test tags/traits) across configured executing test tiers
 3. Builds a 2-way comparison:
 
 ```
@@ -1597,7 +1597,7 @@ feature:
 | TC-GM-030 | ❌              | ✅         | Back-fill §8 (emergency only)      |
 ```
 
-4. Forward (default): §8 is the source — flag every TC with no covering test; update each TC's `IntegrationTest` field once a test exists.
+4. Forward (default): §8 is the source — flag every TC with no covering test; update each TC's `CoveredBy` field once a test exists.
 5. Reverse (**emergency recovery only**): back-fill §8 for tests that exist without a canonical TC, with explicit user confirmation and a recovery report. §8 always wins conflicts.
 
 **Direction detection keywords:**
@@ -1638,7 +1638,7 @@ feature:
 4. Identifies: new commands/queries not covered, changed behaviors, removed features
 5. For bugfixes: adds a **regression TC** (e.g., `TC-GM-040: Regression — goal title validation bypass`)
 6. Generates gap analysis
-7. Updates feature docs Section 8 (canonical) and each affected TC's `IntegrationTest` field
+7. Updates feature docs Section 8 (canonical) and each affected TC's `CoveredBy` field
 8. Suggests: `/integration-test` to generate/update tests for changed TCs
 
 **spec-sync workflow sequence:**
@@ -2360,7 +2360,7 @@ big-feature: RESEARCH-DRIVEN FEATURE DEVELOPMENT (REVIEWED FOUNDATION -> IMPLEME
 |   |-- /integration-test -- Generate integration tests
 |   |-- /integration-test-review -- Assertion quality + bug-protection review
 |   |-- /integration-test-verify -- Verify tests pass
-|   +-- /spec [mode=sync] -- Reconcile Section 8 TCs <-> integration test code
+|   +-- /spec [mode=sync] -- Reconcile Section 8 TCs <-> executing test code
 |
 +-- QUALITY & WRAP PHASE (7 steps)
     |-- /workflow-review-changes -- Recursive review -> fix -> re-review of all changes
@@ -3203,7 +3203,7 @@ SPEC-DRIVEN FEEDBACK CHAIN
     → Feature Spec updated (canonical 8-section capability doc)
     → Feature doc Section 8 TCs updated (canonical TC registry)
     → Integration tests written with TC-{FEATURE}-{NNN} annotations
-    → §8 IntegrationTest field synced to the test method
+    → §8 CoveredBy field synced to the test method
     → SPEC-CHANGELOG.md entry written
 
   Every artifact updated in a single branch — no orphaned specs,
@@ -3225,9 +3225,9 @@ Each Feature Spec carries `last_reviewed` frontmatter. Keeping it current lets `
 
 #### Section 8 — Canonical Bidirectional Test Catalog
 
-The Feature Spec's **Section 8 is the cross-referenceable TC registry**. Each TC's `IntegrationTest` field links to the integration test method (`TestFile::MethodName`, or `Untested`). When integration tests exist but the corresponding §8 TC is not annotated, the `/integration-test-review` agent produces false-negative "no integration tests found" findings. (There is no separate QA dashboard — the retired `docs/specs/README.md` + `PRIORITY-INDEX.md` catalog was folded into §8.)
+The Feature Spec's **Section 8 is the cross-referenceable TC registry**. Each TC's `CoveredBy` field links to one or more covering tests, a test filter, manual-QC coverage, or `Untested`. When integration tests exist but the corresponding §8 TC is not annotated, the `/integration-test-review` agent produces false-negative "no integration tests found" findings. (There is no separate QA dashboard — the retired `docs/specs/README.md` + `PRIORITY-INDEX.md` catalog was folded into §8.)
 
-**Registration format:** Each §8 TC's `IntegrationTest` field carries the test method name (`TestFile::MethodName`). This enables future AI sessions to find the test via a single grep — no manual file tree traversal required.
+**Registration format:** Each §8 TC's `CoveredBy` field carries the covering test method name(s), a test filter, manual-QC coverage, or `Untested`. This enables future AI sessions to find the coverage carrier via a single grep — no manual file tree traversal required.
 
 The `[Trait("TestSpec", "TC-{FEATURE}-{NNN}")]` annotation in test code provides the bidirectional link:
 
@@ -3484,7 +3484,7 @@ flowchart TB
 | **Context injection at decision points**       | Static path→patternsDoc guidance in CLAUDE.md / SKILL.md (was hook-injected)                             | Skills/Config |
 | **Reminder rules prevent forgetting**          | Static SYNC rules + the workflow catalog baked into CLAUDE.md, re-read every prompt                      | Skills/Config |
 | **Generic & configurable via config**          | project-config.json drives path→patternsDoc routing                                                      | Config        |
-| **Prompt engineering quality**                 | 158 skills with YAML frontmatter + behavior protocols                                                    | Skills        |
+| **Prompt engineering quality**                 | 161 skills with YAML frontmatter + behavior protocols                                                    | Skills        |
 | **Auto-select workflow path before acting**    | Model reads the static catalog → direct/skill/workflow/custom path                                       | Workflows     |
 | **Confirm plan with questions**                | /plan-validate asks 3-8 questions before implementation                                                  | Skills        |
 | **Sequential thinking for complex problems**   | /sequential-thinking skill + /debug-investigate skill                                                    | Skills        |
@@ -3538,7 +3538,7 @@ flowchart TB
 │   │   ├── todo-state.cjs
 │   │   └── ...
 │   └── tests/ ────────── Test suites
-├── skills/ ────────────── 158 skill definitions
+├── skills/ ────────────── 161 skill definitions
 │   ├── {skill-name}/SKILL.md
 │   ├── shared/ ───────── 6 shared reference/protocol files
 │   └── _templates/ ───── Skill scaffolding
@@ -3731,13 +3731,13 @@ Mirror parity also enables **multi-AI execution**, not just portability: the **`
 
 Six verifier scripts (`.claude/scripts/codex/verify-*.mjs`, each with a unit test) turn "keep the mirrors in sync" from a discipline into a **build gate**:
 
-| Verifier                           | Asserts                                                                                                                                                                                                                                                                            |
-| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `verify-sync-divergence`           | **Oracle gate** — re-runs the real mirror transform into a throwaway dir and diffs against the committed `.agents/skills`. Any difference = someone edited source without re-syncing, or hand-edited a mirror.                                                                     |
-| `verify-skill-protocol-compliance` | Bidirectional set-diff parity (every source skill has a mirror and vice-versa); the 6 strict-execution-contract sentences present in every mirror; **no Claude-isms** (`Agent(`, `subagent_type`) leak into Codex output; AGENTS.md context block byte-matches `CODEX_CONTEXT.md`. |
-| `verify-workflow-cycle-compliance` | Workflow step-sequences in `workflows.json` match the skill files in **both** `.claude/skills` AND `.agents/skills` ("paired-drift" detection); ordered gates (integration → review → verify; docs-update → workflow-end) intact.                                                  |
-| `verify-no-project-residue`        | **Portability enforcement** — scans the generic surfaces for the origin project's literal name and a denylist of its framework symbols (configured per-project). A reusable skill that hardcodes a project-specific name **fails the build**.                                      |
-| `verify-sdd-semantic-compliance`   | ~30 semantic assertions on the spec-driven cycle; Codex mirrors reference the _local_ shared-contract path, not the `.claude` source path.                                                                                                                                         |
+| Verifier                           | Asserts                                                                                                                                                                                                                                                                                                                                   |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `verify-sync-divergence`           | **Oracle gate** — re-runs the real mirror transform into a throwaway dir and diffs against the committed `.agents/skills`. Any difference = someone edited source without re-syncing, or hand-edited a mirror.                                                                                                                            |
+| `verify-skill-protocol-compliance` | Bidirectional set-diff parity (every source skill has a mirror and vice-versa); the 6 strict-execution-contract sentences present in every mirror; **no Claude-isms** (`Agent(`, `subagent_type`) leak into Codex output; AGENTS.md context block byte-matches `CODEX_CONTEXT.md`.                                                        |
+| `verify-workflow-cycle-compliance` | Workflow step-sequences in `workflows.json` match the skill files in **both** `.claude/skills` AND `.agents/skills` ("paired-drift" detection); ordered gates (integration → review → verify; docs-update → workflow-end) intact.                                                                                                         |
+| `verify-no-project-residue`        | **Portability enforcement** — scans the generic surfaces for the origin project's literal name and a denylist of its framework symbols (configured per-project). A reusable skill that hardcodes a project-specific name **fails the build**.                                                                                             |
+| `verify-sdd-semantic-compliance`   | ~30 semantic assertions on the spec-driven cycle; Codex mirrors reference the _local_ shared-contract path, not the `.claude` source path.                                                                                                                                                                                                |
 | `verify-review-validate-coverage`  | **Self-Review Convergence Loop sensor** — every review-family skill that produces findings carries the `/why-review --validate-findings` route (the ≥85% finding-survival bar lives there), and a validate-only grader never embeds the `double-round-trip-review` fix-loop. A review skill shipped without the gate **fails the build**. |
 
 `verify-no-project-residue` is the load-bearing one for "works for any project": it is impossible to merge a generic skill that leaked project-specific names, because the residue scan rejects it. Portability isn't a guideline — it's a gate.
@@ -3858,7 +3858,7 @@ The framework succeeds because it aligns with how LLMs actually fail:
 
 ### The Result
 
-**15 top-level hook files**, **158 skills**, **18 registered workflows**, and **29 specialized agents** working in concert to deliver:
+**15 top-level hook files**, **161 skills**, **18 registered workflows**, and **29 specialized agents** working in concert to deliver:
 
 - **Fewer hallucinations** — Evidence gates and proof traces catch AI fabrications before they reach files
 - **Better code quality** — Pattern injection ensures AI follows project conventions, not generic training data
@@ -3866,7 +3866,7 @@ The framework succeeds because it aligns with how LLMs actually fail:
 - **Consistent adherence** — Programmatic enforcement means quality doesn't degrade in long sessions or complex tasks
 - **Recovery from amnesia** — External state persistence means context compaction doesn't lose progress
 - **Persistent learning** — Mistakes captured once prevent recurrence across all future sessions
-- **Prompt engineering depth** — Role prompting, chain-of-thought, few-shot, negative prompting, and iterative refinement applied systematically across 158 skills (Section 8.15)
+- **Prompt engineering depth** — Role prompting, chain-of-thought, few-shot, negative prompting, and iterative refinement applied systematically across 161 skills (Section 8.15)
 - **Context engineering precision** — JIT injection, dedup, external memory, budget management, and recovery keep the AI informed without overwhelming its context window (Section 8.16)
 
 The framework is **generic and reusable**. Replace `project-config.json` with your project's specifics, and the entire system adapts — different tech stack, different patterns, different conventions, same quality enforcement.

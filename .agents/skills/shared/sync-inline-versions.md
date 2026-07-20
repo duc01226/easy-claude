@@ -1648,6 +1648,13 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 ---
 
+## SYNC:tc-test-join-evidence
+
+> 1. **The resolved artifact is a TEST** — test project/suite membership, a test-framework annotation, or an executing assertion. Say which you checked. A corpus search matches production source too; implementations routinely cite in a comment the TC they satisfy.
+> 2. **The resolved test's SUBJECT matches this TC's `Given/When/Then`.** TC IDs are not guaranteed unique — the same ID may be bound by an unrelated test or one in a different module. An ID match is a string match; only the body match is evidence.
+
+---
+
 ## SYNC:spec-drift-adjudication
 
 > **Spec drift adjudication (code-wrong vs spec-stale).** Whenever changed behavior diverges from a canonical Feature Spec (business rule, acceptance criterion, flow, state transition, or §8 TC under `docs/specs/`), you MUST NOT silently pick a side. Adjudicate per `shared/sdd-artifact-contract.md` → **Drift Gates**:

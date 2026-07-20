@@ -216,7 +216,7 @@ AI-generated TC drafts are reference-only until `$artifact-review --type=spec-te
 **Output requirements:**
 
 - Map material acceptance criteria and user stories to TC IDs
-- Route planned TC IDs to Feature doc Section 8 through `$spec [mode=tests]`; `$docs-update` later verifies feature docs and §8 TC ↔ integration test code sync.
+- Route planned TC IDs to Feature doc Section 8 through `$spec [mode=tests]`; `$docs-update` later verifies feature docs and §8 TC ↔ executing test code sync.
 - Cover happy path, validation failure, authorization/permission, and important edge cases where applicable
 - Run `$artifact-review --type=spec-tests` before `$pbi-challenge`
 

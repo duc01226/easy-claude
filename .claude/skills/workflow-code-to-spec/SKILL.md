@@ -193,7 +193,7 @@ TaskCreate: "size-evaluation — classify scope breadth, count capabilities, bui
   → No line-count cap applies — split when TCs>40 or distinct module-level capabilities emerge
 
 /spec [mode=tests]
-  → Populate Section 8 with TC-{FEATURE}-{NNN} entries (BDD, Business Intent, abstract Evidence, IntegrationTest field, Status)
+  → Populate Section 8 with demoable business TC-{FEATURE}-{NNN} entries (BDD, Business Intent, abstract Evidence, CoveredBy field, Status)
 
 /artifact-review --type=spec-tests
   → Review §8 TCs for invariant coverage, GIVEN/WHEN/THEN completeness, duplicate TC IDs
@@ -202,7 +202,7 @@ TaskCreate: "size-evaluation — classify scope breadth, count capabilities, bui
   → Quality check the Feature Spec(s):
     - §1-7 strictly tech-free (zero framework/product/language terms in prose)
     - §5 Mermaid ERD present with entities, relationships, cardinalities
-    - §8 every TC has Business Intent, abstract `[Source: ns/service/id]` anchor, IntegrationTest field, Status
+    - §8 every TC has Business Intent, abstract `[Source: ns/service/id]` anchor, CoveredBy field, Status
     - YAML frontmatter present; no line-count cap applied
   → PASS criteria: zero [UNVERIFIED] without exclusion reason + zero tech terms in §1-7
   → Gap found → validate findings → fix validated gaps → restart full artifact-review pass from the first check

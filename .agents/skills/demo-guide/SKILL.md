@@ -179,7 +179,7 @@ When the block or file is absent, degrade gracefully: default `outputDir` to the
 
 - **`$understand`** — reuse its Purpose→How→Why framing for the "how the domain solves the feature" explanation.
 - **`$investigate`** / **`$scout`** — locate the feature's spec, tests, and domain files when scope is broad.
-- **`$spec`** — the canonical source of user stories + `TC-*` IDs when the project maintains feature specs.
+- **`$spec`** — the canonical source of user stories + `TC-*` IDs when the project maintains feature specs. **A business `TC-*` and a demo case are the SAME event for two audiences** — the spec states it as intent, this guide stages it for a room. So they converge by construction: reuse the TC's demo flow and expected result rather than re-deriving them, and **cite the `TC-*` ID per case** so the two cannot drift apart. ⚠️ **A `TC-*` you cannot stage as a live demo is a finding, not a formatting problem** — it means a non-demoable (technical) case reached the business spec, which violates **M7**. Report it; do NOT invent a demo to cover for it.
 - **`$release-doc`** / **`$changelog`** — sibling generators; `demo-guide` is presenter-facing (how to show it), they are change-facing (what changed).
 - **`$commit`** — commit the generated guide if the user wants it version-controlled.
 

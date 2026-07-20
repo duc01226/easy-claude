@@ -133,6 +133,11 @@
   "messaging": {},
   "api": {},
   "infrastructure": {},
+  "specRoots": {
+    "business": { "path": "docs/specs", "authorship": "authored", "m1Policy": "enforced" },
+    "technical": { "path": "docs/specs-technical", "authorship": "derived", "m1Policy": "exempt" }
+  },
+  "_techSpecScanNote": "`techSpecScan` is DELIBERATELY OMITTED, not overlooked. It tells the tech-spec generator how to discover annotated tests (sourceRoot / fileExtensions / annotationPattern). This repo is a JavaScript + Python framework with no `[Trait]`-style test-annotation convention, so there is nothing to scan. Declaring a fabricated pattern would make the generator appear runnable while finding nothing. With the key absent, `npm run tech-spec:generate` exits non-zero with 'Missing docs/project-config.json techSpecScan.{sourceRoot,fileExtensions,annotationPattern}' instead of reporting a false `status: ok`. When adding it, `annotationPattern` MUST expose exactly two capture groups: group 1 = trait name (must be `TestSpec` or `TechnicalSpec`), group 2 = the spec id (non-empty). The generator validates both and refuses to run otherwise.",
   "referenceDocs": [
     {
       "filename": "project-structure-reference.md",

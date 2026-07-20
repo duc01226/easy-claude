@@ -1,10 +1,10 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-07-14'
-  total_skills: 160
+  last_updated: '2026-07-17'
+  total_skills: 161
   total_by_status:
-    active: 159
+    active: 160
     deprecated: 1
     experimental: 0
 categories:
@@ -1157,7 +1157,7 @@ skills:
         create/maintain the tech-free 8-section Feature Spec; draft authors a provisional
         spec from an idea/requirement (no code yet, Evidence: TBD); tests generates
         Section 8 TC-{FEATURE}-{NNN} test specifications; sync reconciles §8 TCs ↔
-        integration test code. Per-mode procedure lives in references/{author,tests,sync}.md.'
+        executing test code. Per-mode procedure lives in references/{author,tests,sync}.md.'
       category: other
       has_scripts: false
       has_references: true
@@ -1260,6 +1260,20 @@ skills:
       category: other
       has_scripts: false
       has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: tech-spec
+      path: tech-spec/SKILL.md
+      description: '[Documentation] Use when (re)generating the DERIVED technical
+        spec view over code + tests, or reporting canonical §8 TC/test-code drift.
+        A GENERATOR — it projects code + tests into a regenerable per-component view
+        and NEVER authors business content. Modes generate|audit|sync. Per-mode procedure
+        lives in references/{author,sync}.md.'
+      category: other
+      has_scripts: true
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null

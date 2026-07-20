@@ -50,7 +50,11 @@ export const projectSymbolDenylist = [
 // examples today; denylisted as future-proofing so a NEW skill/hook can't introduce them as an
 // unmarked assertion. architecture-review is allowlisted below for its documented examples.
     'PlatformCqrsEntityEventApplicationHandler',
-    'PlatformCqrsEventBusMessageProducer'
+    'PlatformCqrsEventBusMessageProducer',
+    // Consuming-project directory/solution name. Was hardcoded as a service-derivation
+    // special case inside the tech-spec generator and passed this sensor unnoticed —
+    // denylisted so a consumer's project name can never re-enter portable framework code.
+    'PlatformExampleApp'
 ];
 
 // Per-file exemptions: skills that legitimately document THIS project's architecture as marked

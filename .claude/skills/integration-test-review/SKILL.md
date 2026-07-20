@@ -173,9 +173,9 @@ Rules: (1) every changed core-logic line gets a row — no sampling, no "represe
 
 > **Think:** Can I trace TC-XXX-NNN from test annotation → spec docs → feature docs in one unbroken chain?
 
-**PASS:** Test has a `TestSpec` annotation linking to a TC ID that exists in spec docs. The test method name need **NOT** match the TC, and **many test methods may legitimately carry the same TC** (one business TC → many tests across components/services — the join key is the test-spec annotation, not the method name; see `tc-format.md` → TC ↔ Test Code Cardinality).
+**PASS:** Business test has a `TestSpec` annotation linking to a TC ID that exists in spec docs. Technical-only test has a `TechnicalSpec` annotation and does not claim §8 business coverage. The test method name need **NOT** match the TC, and **many test methods may legitimately carry the same TC** (one business TC → many tests across components/services — the join key is the test-spec annotation, not the method name; see `tc-format.md` → TC ↔ Test Code Cardinality).
 
-**FAIL (WARN, not BLOCK):** Missing annotation, orphaned TC ID (annotation points to a TC absent from spec docs), or spec says "Planned" but test exists. **NOT a finding:** several tests sharing one TC, or a method name that differs from the TC — those are the expected one-to-many shape.
+**FAIL (WARN, not BLOCK):** Missing annotation, orphaned TC ID (business `TestSpec` points to a TC absent from spec docs), technical-only test still carrying a business `TestSpec`, or spec says "Planned" but test exists. **NOT a finding:** several tests sharing one TC, a method name that differs from the TC, or a technical-only test carrying `TechnicalSpec` instead of `TestSpec`.
 
 ### Gate 6: Three-Way Sync — "Do test, code, and docs agree?"
 
@@ -477,7 +477,7 @@ integration-test-review (you are here)
   │     After all fixes, run actual tests to confirm all gates pass.
   │
   ├─ [REQUIRED] → /spec [mode=sync]
-  │     If TCs were updated (Gate 5/6 fix), reconcile §8 TCs ↔ integration test code.
+  │     If TCs were updated (Gate 5/6 fix), reconcile §8 TCs ↔ executing test code.
   │
   └─ [RECOMMENDED] → /docs-update
         If Gate 6 revealed doc staleness, /docs-update runs full chain to update all layers.

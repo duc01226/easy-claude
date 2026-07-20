@@ -55,17 +55,31 @@
 
 **Preconditions:**
 
-- {Required DB state, seeded data, or prior actions}
+- {State a user or QC could arrange before the demo — e.g. "a published job opening with 3 applicants". NEVER storage setup ("a row in X", "a seeded document") — that is architecture, and it does not survive re-implementation.}
 
-**Test Steps:**
+**Demo Flow:** {the actions a real user or QC performs, in order — this TC must be demoable}
 \`\`\`gherkin
-Given {initial context/state}
+Given {state a user could arrange}
 And {additional context if needed}
-When {action performed}
+When {an action a user could take}
 And {additional action if needed}
-Then {expected outcome}
-And {additional verification}
+Then {an outcome a user could SEE}
+And {additional visible verification}
 \`\`\`
+
+> **[HARD] The demo test.** Every `Given` must be state a user could arrange, every `When` an action a user could
+> take, every `Then` an outcome a user could see. If the `When` is "the consumer receives the event" or the `Then`
+> is "the projection row is written", **this is not a business TC** — it belongs in the technical spec tree
+> (`specRoots.technical`), NOT here. Ask: **what would the stakeholder SEE change? No answer → TECHNICAL-ONLY.**
+
+**Expected Result:** {what the demo SHOWS — fill every dimension that applies; omit with a reason, never silently}
+
+| Dimension | What to state |
+| --- | --- |
+| **UI** | What the user sees on screen — the control, message, or view that changes |
+| **System behavior** | What the system does in response, in business terms |
+| **Business data state** | What is now true about the business — in business language, NEVER storage language ("the application is withdrawn", not "Status = 3") |
+| **Data shown on UI** | What the user reads back — the values displayed, and where |
 
 **Acceptance Criteria:**
 
@@ -92,25 +106,25 @@ boundaryCounterCase: "amounts summing past the credit limit → order rejected, 
 **Edge Cases:**
 
 - {Boundary: empty collection, max length, null values}
-- {Concurrency: simultaneous updates}
-- {Cross-service: message bus timing}
+- {Competing users: simultaneous business actions and what each user sees}
+- {External business timing: delayed external outcome and what the user can verify}
 
 **Transition Invariants (when the entity has lifecycle states — §5):**
 
-- {for ALL legal transitions of {Entity}} → assert exact post-state field values (`Status = X`) + no orphan/side-effect downstream
+- {for ALL legal transitions of {Entity}} → assert the exact post-state business facts visible to a user or QC
 - {for ALL illegal transitions of {Entity}} → assert the transition is rejected with the named failure + pre-state field values unchanged
 
-**Evidence:** `[Source: namespace/service/id]` or `TBD (pre-implementation)`
+**Evidence:** `[Source: namespace/service/id]` or `TBD (pre-implementation)`. Use `{configured-source-path}` only while investigating source evidence; keep the emitted TC evidence as the stack-portable `[Source: ...]` anchor.
 
-**IntegrationTest:** `{configured-test-path}/{TestFile}::{MethodName}` (comma-separated on one line when several tests cover this TC), OR `TestSpec=TC-{FEATURE}-{NNN}`, OR `Untested`
+**CoveredBy:** `{configured-test-path}/{TestFile}::{MethodName}` (comma-separated on one line when several tests cover this TC), OR `TestSpec=TC-{FEATURE}-{NNN}`, OR `Manual-QC`, OR `Untested`
 
-**Related Files:**
-| Layer | Type | File |
-| ------ | ------------- | ------------------------------------------------------------------------------------- |
-| API | Controller/Endpoint | `{configured-source-path}/{module}/{api-layer-path}/{FeatureEndpointFile}` |
-| App | Command/Query/Use Case | `{configured-source-path}/{module}/{application-layer-path}/{FeatureUseCaseFile}` |
-| Domain | Entity/Model | `{configured-source-path}/{module}/{domain-layer-path}/{FeatureEntityFile}` |
-| Test | Integration | `{configured-test-path}/{FeatureTestFile}` |
+**Related Behaviors:**
+| Capability | Anchor |
+| ------ | ------------- |
+| Business operation | `[Source: operation/{service}/{Feature}]` |
+| Business rule | `[Source: rule/{service}/{RuleId}]` |
+| Domain concept | `[Source: component/{service}/{Feature}]` |
+| Coverage | `TestSpec=TC-{FEATURE}-{NNN}` or `Manual-QC` |
 ```
 
 ---
@@ -132,13 +146,13 @@ Organize TCs into categories. Minimum 5 categories (positive, negative/validatio
 
 (Role-based access, cross-tenant isolation, authorization checks)
 
-### Workflow Tests
+### Business Workflow Tests
 
-(Multi-step processes, state transitions, event handler side effects)
+(Multi-step user or QC-demoable processes and state transitions)
 
-### Edge Case Tests
+### Business Edge Case Tests
 
-(Boundary conditions, concurrent operations, data migration scenarios)
+(Boundary conditions, competing user actions, and business timing edges visible in the product)
 
 ### Invariant / Property Tests (MANDATORY)
 
@@ -157,15 +171,19 @@ Given {input state the CURRENT code handles correctly}
 And {concrete preserved-state assertion — e.g., "ExternalId = X", "Status = Y"}
 When {the fix-triggering operation runs}
 Then {preserved state MUST match pre-fix snapshot — assert exact field values}
-And {no orphan/side-effect created in downstream store}
+And {no hidden downstream business state changes outside the expected outcome}
 ```
 ````
 
-**Trigger:** every bugfix spec MUST ATTENTION have ≥1 Preservation TC per "Healthy input" enumerated in the plan's Preservation Inventory (see `SYNC:preservation-inventory`).
+**Trigger:** every **BUSINESS-VISIBLE** bugfix spec MUST have ≥1 Preservation TC per "Healthy input" enumerated in the plan's Preservation Inventory (see `SYNC:preservation-inventory`).
 
-### Integration Tests
+⚠️ **[GATE] A TECHNICAL-ONLY bugfix produces ZERO Preservation TCs in the business spec.** Run the business-visibility gate first (`author.md` → *"Business-visibility gate"*): if the business rule, the user-visible outcome, and the business data state are all unchanged, this section is a **correct no-op** — the preservation obligation is real but belongs to the **technical** spec tree and its integration tests, not to a business spec.
 
-(Cross-service message bus flows, event handler chains)
+**Preservation TCs in a business spec must be demoable business outcomes** — *"the employee's approved leave balance still reads 12 days after the fix"* — never *"the consumer still writes the projection row"*. If the preserved state can only be observed by inspecting a queue, projection, or database row no user-facing behavior depends on, it is a technical preservation test and does not belong here.
+
+### External Outcome Tests
+
+(Business outcomes that cross product boundaries and remain demoable without inspecting architecture)
 
 ---
 

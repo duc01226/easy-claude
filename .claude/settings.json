@@ -210,7 +210,7 @@
   },
   "includeCoAuthoredBy": false,
   "permissions": {
-    "allow": ["Edit(.claude/**)", "Write(.claude/**)", "Bash(tmp/**)", "Edit(tmp/**)", "Read(tmp/**)", "Write(tmp/**)", "Glob(tmp/**)"],
+    "allow": ["Edit(.claude/**)", "Bash(tmp/**)", "Edit(tmp/**)", "Read(tmp/**)"],
     "ask": ["Bash(git push:*)", "Bash(npm publish:*)", "Bash(docker push:*)"],
     "defaultMode": "bypassPermissions",
     "deny": [
@@ -262,18 +262,7 @@
       "Read(**/credentials*)",
       "Read(~/.ssh/**)",
       "Read(~/.aws/**)",
-      "Read(~/.config/gcloud/**)",
-      "Write(**/.git/**)",
-      "Write(.git/**)",
-      "Write(**/.env!(.example))",
-      "Write(.env!(.example))",
-      "Write(**/secrets/**)",
-      "Write(**/credentials*)",
-      "Write(**/generated/**)",
-      "Write(**/obj/**)",
-      "Write(**/bin/**)",
-      "Write(**/dist/**)",
-      "Write(**/node_modules/**)"
+      "Read(~/.config/gcloud/**)"
     ]
   },
   "skillListingBudgetFraction": 0.05,
