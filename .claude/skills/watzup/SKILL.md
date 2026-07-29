@@ -31,7 +31,7 @@ description: '[Utilities] Use when you need to review recent changes and wrap up
 2. **Summarize** — Provide detailed change summary with quality assessment
 3. **Doc Check** — Cross-reference changed files against docs/ for staleness
 4. **Lesson Learned** — Analyze AI mistakes/issues during the task and capture lessons
-5. **Understand Handoff** — Invoke `/understand` as the final mandatory task so the developer gets a Purpose → How → Why explanation of the completed work
+5. **Understand Handoff** — Invoke `/understand` as the final mandatory task so the developer gets the full teaching report on the completed work (what · concepts · how · why-this-solution · options with pros/cons · trade-offs · impact · decision levers · challenge prompts) written to `plans/reports/understand-*.md` — or delivered in full in chat when no git-ignored directory is available for it — and summarized in chat
 
 **Key Rules:**
 

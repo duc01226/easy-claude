@@ -1,7 +1,7 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-07-17'
+  last_updated: '2026-07-29'
   total_skills: 161
   total_by_status:
     active: 160
@@ -1302,16 +1302,21 @@ skills:
       removal_after: null
     - name: understand
       path: understand/SKILL.md
-      description: '[Process] Use when the developer wants something explained — by
-        default the current working tasks + changes in context, or whatever the prompt
-        names (a plan, a subsystem, a decision, a concept, a bug). AI derives WHAT
-        to explain from the prompt and ALWAYS delivers a detailed, one-way explanation
-        of purpose (why it exists), how (the mechanics), and why-this-way (trade-offs/alternatives)
-        — regardless of coding level. Never asks the user questions, never quizzes,
-        never blocks.'
+      description: '[Process] Use when the developer wants something explained or
+        taught — by default the current working tasks + changes in context, or whatever
+        the prompt names (a plan, a subsystem, a decision, a concept, a bug). AI derives
+        WHAT to explain from the prompt and ALWAYS delivers a teacher-and-coach explanation:
+        what was done, the technical concepts needed to follow it, how it works, why
+        THIS solution, every alternative option with pros/cons, the trade-offs accepted,
+        the blast radius, the developer''s decision levers, and written challenge
+        prompts that provoke the reader to pressure-test the work. Writes the full
+        teaching report to an external markdown file (plans/reports/understand-*.md)
+        — or delivers it in full in chat when Step 3 finds no git-ignored directory
+        for it — and always summarizes it in chat. Regardless of coding level. Never
+        interrogates, never quizzes, never blocks.'
       category: other
       has_scripts: false
-      has_references: false
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null
