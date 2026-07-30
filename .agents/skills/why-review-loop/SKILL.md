@@ -56,15 +56,16 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Summary:**
 
 - **Each round = `$why-review` + `$fix`** — `$why-review` is review-ONLY and never edits the target, so the loop MUST pair it with a fix half; one without the other never converges.
-- **Steps (in order):** (0) resolve target + Goal Contract → (0b) bind the convergence loop (protocol loop primary + optional `/goal` accelerator) → (1) round loop { run `$why-review` INLINE → run `$fix` on the VALIDATED findings at the owning layer → log iteration } → (2) converge on a zero-findings round OR escalate on non-progress → (3) recap.
+- **Steps (in order):** (0) resolve target + Goal Contract → (0b) bind the convergence loop (protocol loop primary + optional `/goal` accelerator) → (1) round loop { run `$why-review` INLINE → clear the **Trade-Off Gate** on the fix set → run `$fix` on the VALIDATED findings at the owning layer → log iteration } → (2) converge on a zero-findings round OR escalate on non-progress → (3) recap.
 - **Convergence:** stop ONLY when a **fresh full** `$why-review` over the CURRENT (post-fix) target returns a PASS verdict with an **empty validated-finding set** — not a stale PASS predating the last fix.
 - **Inline invariant:** run `$why-review` via the skill invocation, NEVER the `spawn_agent` tool — it self-binds its OWN review-loop obligation (and a session `/goal` gate WHEN available, `why-review/SKILL.md:57-76`), which a sub-agent cannot own or carry back to this loop.
 - **Apply ONLY validated findings:** `$why-review` already validates its findings to the ≥85% survival bar; the loop applies THOSE, at the lowest owning layer (Entity > Service > Handler), routed by target type — NEVER unvalidated findings.
 - **Bounded:** round cap default 5; findings not shrinking across 2 rounds, or cap hit with findings still open → **STOP & escalate** by asking the user directly. Increasing findings → STOP (fixes regressing).
+- **TRADE-OFF GATE before every fix (ALWAYS ASK):** (1) **is there any trade-off in this fix?** name what it sacrifices — "none" is an unfinished analysis; (2) **is it worth it?** gain vs cost, who pays, when → WORTH IT / NOT WORTH IT / UNCLEAR — NOT WORTH IT → do NOT apply, report it back instead; (3) **is the trade-off material enough to confirm with the user?** irreversible · cost shifted elsewhere · quality attribute traded · boundary crossed · high-consequence path · UNCLEAR → **STOP the loop and confirm by asking the user directly BEFORE applying**. NEVER auto-apply a material-trade-off fix just because the loop wants to converge.
 
 **Why this skill exists (READ FIRST — it is the whole justification):** `$why-review` is **review-only** — `why-review/SKILL.md:330` (*"Review only — do NOT modify target files or implement changes"*) and `:76` (*"why-review fixes its OWN findings set, not code… Code/spec/test fixes remain the caller's job"*). Its internal self-recursive `/goal` loop (`why-review/SKILL.md:57-76`) converges its own **findings REPORT** to CLEAN — every surviving finding proof-backed, validated, ≥85% confidence — but it **never touches the code and never re-reviews a fixed target**. So a finding that demands a code/spec/doc change is validated and handed off, yet **nothing loops back to confirm the FIX is correct or that it introduced no new defect**. This skill closes that outer loop: it applies the validated fixes and re-runs a **fresh full** `$why-review` over the changed target until zero findings remain — catching fix-induced regressions and proving each fix actually resolved its finding. Without it, "why-review passed, then I fixed the findings" ships those fixes unreviewed.
 
-**Workflow:** resolve target + Goal Contract → bind the convergence loop (protocol loop + optional `/goal` accelerator) → **round loop** { run `$why-review` INLINE → run `$fix` on the validated findings at owning layer → log iteration } → converge when a fresh full review yields zero findings → recap.
+**Workflow:** resolve target + Goal Contract → bind the convergence loop (protocol loop + optional `/goal` accelerator) → **round loop** { run `$why-review` INLINE → clear the Trade-Off Gate on the fix set (trade-off? worth it? material → confirm with user) → run `$fix` on the validated findings at owning layer → log iteration } → converge when a fresh full review yields zero findings → recap.
 
 **Key Rules:**
 
@@ -74,6 +75,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - **`$fix` applies ONLY validated findings**, at the lowest owning layer, routed by target type (code → `$fix` with its intelligent routing, or a direct edit at Entity/Service; plan/PBI → `$refine`; spec → `$spec [update]` + `$spec [mode=tests]`; docs → `$docs-update`; tests → `$integration-test`). NEVER apply an unvalidated or demoted finding.
 - **The target base is FIXED across rounds; its content changes as fixes land.** Re-review the SAME target (same plan/diff/artifact) each round so convergence is measured against a stable subject.
 - **Round cap (default 5)** and **findings-not-shrinking / increasing → STOP & escalate** by asking the user directly. NEVER loop open-ended.
+- **ALWAYS ask the 3 trade-off questions before applying ANY fix** — is there a trade-off? is it worth it? is it material enough to confirm with the user? A MATERIAL trade-off (irreversible · cost shifted to another team/ops/maintainer/user · one quality attribute traded for another · tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change path · worth-it verdict UNCLEAR) **PAUSES the loop for an ask the user directly before the fix lands** — convergence pressure NEVER authorizes walking through a one-way door on the user's behalf. — why: an autonomous fix loop is exactly where an unpriced trade-off ships silently, because each round only asks "did findings shrink?".
 
 ---
 
@@ -124,8 +126,9 @@ Each round couples the two halves — **review to find, fix to resolve.** For ea
 
 1. **Run `$why-review` INLINE** on `{target}` via the skill invocation (NEVER the `spawn_agent` tool). Let it run its full adversarial review + its own internal Findings Validation Gate, so the findings it returns are already **validated** (proof-backed, ≥85% survival bar).
 2. **Read the validated finding set** from its report (`plans/reports/why-review-*.md`). If the verdict is PASS with **zero** findings → this round converged; go to Step 2 (no fix half needed).
-3. **Run `$fix` on the validated findings** (findings>0 only) — this is the half `$why-review` never does. Resolve each validated finding at its owning layer: code → `$fix` (its `--target` intelligent routing) or a direct edit at the lowest layer (Entity > Service > Handler); plan/PBI → `$refine`; spec → `$spec [update]` + `$spec [mode=tests]`; docs → `$docs-update`; behavior-changing → honor the finding's dual-feedback (spec verdict + test action per `why-review/SKILL.md:360`). Fix ONLY validated findings — never an unvalidated or demoted one.
-4. **Append an Iteration Log entry** to the Goal Contract: round number, findings count (validated), files/artifacts changed this round (`file:line`), fixes applied, and remaining gaps.
+3. **Trade-Off Gate on the fix set (BLOCKING — before any edit lands).** For EACH validated finding's fix, ask the 3 questions: (a) **is there any trade-off?** name what applying it sacrifices — future change cost, complexity, performance, coupling, reversibility, migration/ops burden, blast radius, security, testability, delivery time; "none" is an unfinished analysis, so state the dimensions checked; (b) **is it worth it?** gain vs cost, who pays, when → **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → do NOT apply — report the finding back as a withdrawn-fix note and count it as still-open, never as fixed; (c) **is the trade-off material enough to confirm with the user?** MATERIAL when irreversible (one-way door) · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · an auth/money/data-integrity/breaking-change path · or the verdict is UNCLEAR → **PAUSE the loop and confirm by asking the user directly BEFORE the edit**, stating the trade-off, both options, what each sacrifices, and your recommendation. Log each fix's trade-off verdict in the round's Iteration Log entry. — why: the loop's only convergence signal is "did findings shrink?", so a material trade-off rides in unpriced unless a gate stops the fix half specifically.
+4. **Run `$fix` on the validated findings** (findings>0 only, trade-off gate cleared) — this is the half `$why-review` never does. Resolve each validated finding at its owning layer: code → `$fix` (its `--target` intelligent routing) or a direct edit at the lowest layer (Entity > Service > Handler); plan/PBI → `$refine`; spec → `$spec [update]` + `$spec [mode=tests]`; docs → `$docs-update`; behavior-changing → honor the finding's dual-feedback (spec verdict + test action per `why-review/SKILL.md:360`). Fix ONLY validated findings — never an unvalidated or demoted one.
+5. **Append an Iteration Log entry** to the Goal Contract: round number, findings count (validated), files/artifacts changed this round (`file:line`), fixes applied, per-fix trade-off verdict (WORTH IT / NOT WORTH IT / UNCLEAR + material? + confirmed?), and remaining gaps.
 
 ## Step 2 — Convergence & Escalation Gate
 
@@ -134,7 +137,8 @@ Evaluate after every round:
 | Condition | Action |
 | --- | --- |
 | Fresh full `$why-review` returned **PASS with zero validated findings** | **CONVERGED** → mark the required criterion PASS in the Goal Satisfaction matrix → clear the `/goal` gate → go to Step 3. |
-| Findings > 0 AND round `< N` AND findings shrank vs prior round | Apply the validated fixes (Step 1.3), then run round `R+1` (fresh full re-review of the changed target). |
+| Findings > 0 AND round `< N` AND findings shrank vs prior round | Clear the Trade-Off Gate (Step 1.3), apply the validated fixes (Step 1.4), then run round `R+1` (fresh full re-review of the changed target). |
+| A fix carries a **MATERIAL** trade-off (irreversible · cost shifted elsewhere · quality attribute traded · boundary crossed · high-consequence path · worth-it UNCLEAR) | **PAUSE the loop → confirm by asking the user directly BEFORE applying that fix.** Convergence pressure NEVER authorizes deciding a material trade-off for the user. |
 | Findings did **not shrink** across 2 consecutive rounds (same/increasing count) | **STOP & escalate** by asking the user directly — a non-converging loop is a signal, not a reason to spin. |
 | Round cap `N` hit with findings still open | **STOP & escalate** by asking the user directly — report the still-open findings; do not silently continue. |
 
@@ -157,7 +161,7 @@ When findings remain but cannot be fixed (owner/product input needed) → **esca
 
 ---
 
-**IMPORTANT MANDATORY sequence:** Step 0 (resolve target + Goal Contract) → Step 0b (bind the convergence loop: protocol loop primary + optional `/goal` accelerator) → Step 1 (round loop: run `$why-review` INLINE → run `$fix` on validated findings → log) → Step 2 (converge on a zero-findings fresh review / escalate on non-progress) → Step 3 (recap).
+**IMPORTANT MANDATORY sequence:** Step 0 (resolve target + Goal Contract) → Step 0b (bind the convergence loop: protocol loop primary + optional `/goal` accelerator) → Step 1 (round loop: run `$why-review` INLINE → clear the Trade-Off Gate on the fix set → run `$fix` on validated findings → log) → Step 2 (converge on a zero-findings fresh review / escalate on non-progress) → Step 3 (recap).
 
 <!-- SYNC:goal-contract-satisfaction-loop -->
 
@@ -199,6 +203,29 @@ When findings remain but cannot be fixed (owner/product input needed) → **esca
 
 <!-- /SYNC:ai-mistake-prevention -->
 
+<!-- SYNC:trade-off-interrogation-gate -->
+
+> **Trade-Off Interrogation Gate** — ALWAYS ask these THREE questions before ANY verdict, score, finding, or recommendation — about the thing under review AND about every recommendation YOU make. — why: naming a benefit without its price is an endorsement, not a review; the costliest trade-offs are the ones nobody wrote down.
+>
+> 1. **Is there any trade-off?** Name what it SACRIFICES. "None" / "pure win" is an unfinished analysis, NOT an answer — to claim none, state which dimensions you checked and why each is unaffected: future change cost · complexity · performance/latency · memory/cost · coupling · reversibility · migration burden · operational load · blast radius · security posture · testability · team skill/ramp · delivery time · UX.
+> 2. **Is it worth it?** Weigh gain against sacrifice EXPLICITLY — what is gained (with a metric) · what it costs · WHO pays · WHEN it comes due — then emit **WORTH IT / NOT WORTH IT / UNCLEAR**. "Better" with no metric and no cost FAILS this question. NOT WORTH IT → withdraw or replace the recommendation, never keep it as-is.
+> 3. **Is the trade-off material enough to CONFIRM WITH THE USER?** A material trade-off is the user's call, never yours. **MATERIAL** when ANY holds: irreversible / one-way door (data migration, public contract, storage format, vendor lock-in) · cost shifted onto someone else (another team, ops/on-call, future maintainer, end user) · one quality attribute traded for another (correctness↔speed, security↔convenience, latency↔cost, simplicity↔flexibility) · a boundary crossed (client↔server tier, service contract, event contract, shared library) · a high-consequence path (auth, money, data integrity, breaking change, High/Medium residual risk) · the worth-it verdict is UNCLEAR.
+>
+> **MATERIAL → STOP and confirm by asking the user directly BEFORE the verdict stands** — state the trade-off, both options, what each sacrifices, and your recommendation. **NOT material →** record it inline with a one-line justification and proceed.
+>
+> **Non-asking execution contexts — ESCALATE BY HANDOFF, never by silence.** ask the user directly reaches only the main interactive agent: a sub-agent cannot ask the user, and a terminal/verdict-only mode asks nothing by design. When you are running in such a context, the obligation is **redirected, never waived** — do ALL of: (a) complete questions 1 and 2 normally; (b) decide materiality and record it in the Trade-Off Assessment row with `confirmed? = NO — cannot ask from this context`; (c) **name the unconfirmed MATERIAL trade-off explicitly in your returned summary/verdict so the CALLER (or parent orchestrator) escalates it by asking the user directly on your behalf** — a material trade-off mentioned only inside a report file on disk is NOT a handoff; (d) do not emit an unqualified PASS — mark the verdict as carrying an unconfirmed material trade-off, so the caller's gate stays closed until the user answers. The caller inherits the escalation duty the moment it reads your return.
+>
+> This carve-out is about **reachability, not convenience**: it applies ONLY where the tool genuinely cannot reach the user (spawned sub-agent, terminal validate/verdict-only mode, non-interactive/headless run). It is NEVER a licence to skip the question, to self-approve a one-way door, or to downgrade materiality because asking is inconvenient — if you CAN ask, you MUST ask.
+>
+> **Emit a Trade-Off Assessment row** per reviewed decision and per recommendation: `| decision | sacrifices | gain (metric) | who pays, when | WORTH IT/NOT/UNCLEAR | material? | confirmed? |`.
+>
+> **BLOCKED until:** trade-off named (or dimensions-checked justification given) · worth-it verdict emitted · materiality decided · every MATERIAL trade-off either confirmed with the user OR — in a non-asking context — handed off in the returned verdict for the caller to confirm. A MATERIAL trade-off that is neither confirmed nor handed off can NEVER be PASS, and NEVER gets buried as a Low-severity note.
+>
+> **NEVER** answer "no trade-off" without checking · decide a material trade-off silently on the user's behalf · let convergence/delivery pressure authorize walking through a one-way door · bundle several material trade-offs into one vague "proceed?".
+
+<!-- /SYNC:trade-off-interrogation-gate -->
+
+
 <!-- SYNC:goal-contract-satisfaction-loop:reminder -->
 
 - **MANDATORY** Resolve the active Goal Contract BEFORE work (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md` → create from current request) and read saved success criteria before editing.
@@ -218,11 +245,22 @@ When findings remain but cannot be fixed (owner/product input needed) → **esca
 
 <!-- /SYNC:ai-mistake-prevention:reminder -->
 
+<!-- SYNC:trade-off-interrogation-gate:reminder -->
+
+- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **is there any trade-off?** name what it SACRIFICES (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis, so state the dimensions checked; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it material enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm by asking the user directly BEFORE the verdict**.
+- **MANDATORY** A MATERIAL trade-off with no user confirmation can NEVER be PASS; NEVER bury one as a Low-severity note, NEVER decide it silently, and NEVER let delivery or convergence pressure authorize a one-way door. — why: an un-walked-back one-way door is the user's call to make, not the reviewer's.
+- **MANDATORY — non-asking contexts escalate BY HANDOFF, never by silence.** ask the user directly reaches only the main interactive agent: a sub-agent cannot ask the user, and a terminal/verdict-only mode asks nothing by design. There the duty is REDIRECTED, not waived — still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, **state the unconfirmed MATERIAL trade-off in your RETURNED verdict/summary so the CALLER escalates it** (a note only in an on-disk report is not a handoff), and never emit an unqualified PASS. Applies ONLY where the user is genuinely unreachable (spawned sub-agent, terminal validate mode, headless run) — if you CAN ask, you MUST ask.
+
+<!-- /SYNC:trade-off-interrogation-gate:reminder -->
+
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Pair `$why-review` + `$fix` in a recursive loop over a fixed target — review to find validated findings → `$fix` to resolve them → fresh full re-review of the CHANGED target — until a complete `$why-review` pass produces **zero findings** (nothing left to fix).
 
-**IMPORTANT MUST ATTENTION main steps (in order):** (0) resolve target + Goal Contract → (0b) bind the convergence loop (protocol loop primary + optional `/goal` accelerator) → (1) round loop: run `$why-review` INLINE → run `$fix` on VALIDATED findings at owning layer → append Iteration Log → (2) converge on a zero-findings fresh review / escalate on non-progress → (3) recap.
+**IMPORTANT MUST ATTENTION main steps (in order):** (0) resolve target + Goal Contract → (0b) bind the convergence loop (protocol loop primary + optional `/goal` accelerator) → (1) round loop: run `$why-review` INLINE → clear the **Trade-Off Gate** on the fix set (trade-off? worth it? material → confirm with user) → run `$fix` on VALIDATED findings at owning layer → append Iteration Log → (2) converge on a zero-findings fresh review / escalate on non-progress → (3) recap.
+
+**IMPORTANT MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS BEFORE EVERY FIX LANDS:** (1) **Is there any trade-off?** name what applying this fix SACRIFICES across future change cost · complexity · performance · coupling · reversibility · migration/ops burden · blast radius · security · testability · delivery time — "none" is an unfinished analysis, so state the dimensions checked and why each is unaffected; (2) **Is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN it comes due → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → do NOT apply the fix, report it back as withdrawn and count the finding still-open (never as fixed); (3) **Is the trade-off material enough to confirm with the user?** MATERIAL when irreversible (one-way door) · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · an auth/money/data-integrity/breaking-change path · or the verdict is UNCLEAR → **PAUSE the loop and confirm by asking the user directly BEFORE the edit lands**, stating the trade-off, both options, what each sacrifices, and your recommendation. Log every fix's trade-off verdict in the round's Iteration Log. — why: this loop's only convergence signal is "did findings shrink?", so an unpriced or one-way-door fix ships silently unless a gate stops the fix half specifically; convergence pressure NEVER authorizes deciding a material trade-off on the user's behalf.
 
 **IMPORTANT MUST ATTENTION [BLOCKING] plan the detailed todo tasks FIRST — before running the loop.** Before the first round, create a detailed todo-task plan that enumerates every planned step and every planned round; a round MUST NOT start until that round's fresh todo-task plan exists. On EVERY re-run (each new round), REGENERATE a fresh loop todo-task plan — NEVER reuse the prior round's task list — so each round's work is explicitly planned before it executes.
 

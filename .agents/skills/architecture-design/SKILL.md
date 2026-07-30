@@ -1,6 +1,6 @@
 ---
 name: architecture-design
-description: '[Architecture] Use when designing solution architecture across backend, frontend, deployment, monitoring, testing, and code quality.'
+description: '[Architecture] Use when designing solution architecture across backend, frontend, data & consistency, integration & APIs, deployment, monitoring, testing, and code quality. Architecture laws, style-selection triggers, coupling taxonomy, trade-off tables and the anti-pattern catalog live in `.claude/docs/architecture-knowledge.md`.'
 ---
 
 > Codex compatibility note:
@@ -56,16 +56,19 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Summary:**
 
 - Decide mode FIRST (Step 1): greenfield researches every concern from scratch; brownfield reads reference docs + accepted ADRs, constrains research to existing stack — NEVER re-litigate a settled ADR-recorded decision without superseding-ADR rationale.
-- Drive style choice with NUMBERS, not adjectives: quantify Step-2 quality-attribute scenarios (latency p95/p99, throughput, SLO, RPO/RTO, data growth, concurrency); any unknown target becomes explicit `Unresolved question`, never a silent guess.
+- **Rank every decision by REVERSIBILITY first (Step 2): one-way door (data model, tenancy, consistency model, service boundaries, public contracts, sync-vs-async) → ADR + user validation MANDATORY; two-way door → decide and move.** — why: architecture IS the set of decisions expensive to reverse; treating a one-way door as reversible is the costliest error this skill can make.
+- Drive style choice with NUMBERS, not adjectives: quantify Step-2 quality-attribute scenarios (latency p95/p99, throughput, SLO, RPO/RTO, data growth, concurrency); pick **≤3 DRIVING attributes and name which ones you SACRIFICE**; any unknown target becomes explicit `Unresolved question`, never a silent guess.
+- **Simplicity is the default; complexity must be BOUGHT with a measured requirement — modulith-first, distribute only against a named + measured extraction trigger (Step 3A).** Reason FROM `.claude/docs/architecture-knowledge.md` (laws, coupling taxonomy, style triggers, trade-off + anti-pattern catalogs) — never from familiarity or fashion.
 - Every concern needs 3+ researched options with cited evidence (stars, last release, downloads, CVE scan) + confidence % — familiarity alone never sufficient grounds for a recommendation.
+- **Interrogate before deciding, DESIGN IT TWICE, then self-audit:** run the 15-question pre-decision script (§20.1) on every one-way door (Step 2-2) · produce ≥2 MATERIALLY different candidates per one-way door before choosing (Step 3A) · run the 11 thinking red flags (§20.3) against your own draft before emitting. Prescribe the **TACTIC** (§2), never the product. — why: a first-idea design with no rejected alternative and no named falsifier is a belief, not a decision.
 - Produce the two binding downstream contracts or the chain breaks: emit an ADR per hard-to-reverse decision (`architecture-review` Cat 9 enforces) and the Scaffold Handoff tool-choices table (`scaffold`/`harness-setup` consume), then run the MANDATORY Step-12 user-validation interview before confirming.
-- **Main steps/tasks (run in order, track each):** 1 Load Context (+pick greenfield/brownfield mode) → 2 Derive Architecture Requirements (+quantified quality-attribute scenarios, user-validate) → 3 Backend Architecture (styles + patterns) → 4 Frontend Architecture (styles + patterns) → 4B UI System Architecture (styling/tokens/components/responsive, user-validate; skip if backend-only) → 5 Library Ecosystem Research (3 options/concern) → 6 Testing Architecture → 7 CI/CD & Deployment → 8 Observability & Monitoring → 9 Code Quality + Scaffold Handoff table → 10 Dependency Risk Assessment → 11 Generate Report + emit ADRs → 12 User Validation Interview (8-12 questions, mark `confirmed`) → Next Steps + always-offer council escalation. — why: AI keeps forgetting the skill's own steps; this is the recovery anchor.
+- **Main steps/tasks (run in order, track each):** 1 Load Context (+pick greenfield/brownfield mode) → 2 Derive Architecture Requirements (+reversibility ranking, ≤3 driving attributes, 6-part quality-attribute scenarios, 2-2 pre-decision interrogation, user-validate) → 3A Backend Styles (selection procedure incl. DESIGN IT TWICE + extraction triggers) → 3B Backend Design Patterns → **3C Data & Consistency Architecture** (store per access pattern, one writer per dataset, consistency model + staleness budget, transaction/aggregate boundary, tenancy, keys/partitioning, migrations, retention) → **3D Integration & API Architecture** (sync-vs-async, API style, versioning, contract tests, outbox, idempotency, event granularity) → 4 Frontend Architecture (styles + patterns) → 4B UI System Architecture (styling/tokens/components/responsive, user-validate; skip if backend-only) → 5 Library Ecosystem Research (3 options/concern) → 6 Testing Architecture → 7 CI/CD & Deployment (+expand–contract migrations, backward AND forward compat) → 8 Observability & Monitoring → 9 Code Quality + Scaffold Handoff table → 10 Dependency Risk Assessment → 11 Generate Report + emit ADRs → 12 User Validation Interview (8-12 questions, mark `confirmed`) → Next Steps + always-offer council escalation. — why: AI keeps forgetting the skill's own steps; this is the recovery anchor.
 
 **Workflow (12 steps):**
 
 1. **Load Context** — Read domain model, tech stack, business evaluation, refined PBI
-2. **Derive Architecture Requirements** — Map business/domain complexity to architecture constraints
-3. **Backend Architecture** — Research top 3 backend architecture styles + design patterns
+2. **Derive Architecture Requirements** — Rank by reversibility, pick ≤3 driving quality attributes, quantify 6-part scenarios, run the 2-2 pre-decision interrogation on every one-way door
+3. **Backend Architecture** — 3A styles (selection procedure) · 3B design patterns · **3C data & consistency** · **3D integration & APIs**
 4. **Frontend Architecture** — Research top 3 frontend architecture styles + design patterns
 5. **Library Ecosystem Research** — Best-practice libraries per concern (validation, caching, logging, utils, etc.)
 6. **Testing Architecture** — Unit, integration, E2E, performance testing frameworks + strategy
@@ -135,6 +138,21 @@ Extract, summarize:
 
 ## Step 2: Derive Architecture Requirements
 
+> **Reason FROM the knowledge body, not from memory.** `.claude/docs/architecture-knowledge.md` is AUTHORITATIVE for architecture laws (CAP/PACELC, Conway, Amdahl, USL, Little, Gall, Hyrum, Parnas), the coupling taxonomy + four coupling dimensions, style-selection triggers, the trade-off cheat sheet, and the ~100-entry anti-pattern catalog. Read the sections relevant to this design before recommending. **Honor the catalog's provenance markers in §3/§8/§9/§10** — a row (or section banner) marked `— VERIFY` is an UNVERIFIED assertion, so cite it as a hypothesis to check against the named source **where one is named** (a `[model-knowledge]` row names none — check the project's own docs or a primary source instead), NEVER as settled fact in a recommendation. **The project's own reference docs and accepted ADRs OUTRANK that catalog on any conflict** — the catalog supplies universal reasoning, the project supplies binding convention. — why: universal names hardcoded as project rules rot against real repos.
+
+### 2-0: Rank every decision by REVERSIBILITY (do this FIRST)
+
+Architecture = the set of decisions **expensive to reverse**; everything cheap to reverse is design — leave it to implementers. Classify each decision BEFORE researching it, because the classification sets how much rigour it earns.
+
+| Class | Meaning | Required treatment |
+| --- | --- | --- |
+| **One-way door** | Reversal costs a migration, a rewrite, or a breaking change to consumers | **ADR (Step 11) + user validation (Step 12) MANDATORY** — research 3+ options, name the rejected alternative AND the measurable revisit trigger |
+| **Two-way door** | Reversal is a refactor inside one module | Decide, record one line, move on — NEVER burn a validation question on it |
+
+**One-way doors (assume MANDATORY ADR unless proven otherwise):** data model + primary-key strategy · tenancy model · consistency model per read path · sync-vs-async at a boundary · public API/event contract · service boundary lines · cloud-primitive lock-in · auth/identity model · data residency + retention.
+
+**MANDATORY IMPORTANT MUST ATTENTION** never treat a one-way door as a two-way door to save a step — why: an unreviewed irreversible decision is the single most expensive failure mode of this skill, and it surfaces months later as a migration.
+
 Map signals to architecture constraints:
 
 | Signal                      | Architecture Requirement                                  | Priority |
@@ -162,10 +180,49 @@ Qualitative "Must/Should" cannot decide, e.g., modular monolith vs microservices
 | Data-volume growth    | Row/document/event growth → storage, index, partition strategy       | e.g. 10M rows/yr |
 | Concurrency           | Concurrent users/sessions and contention hot spots                   | e.g. 2k concurrent |
 | Compliance/retention  | Regulated data, retention window, residency, audit                   | e.g. GDPR, 7yr   |
+| Cost unit economics   | `$/request`, `$/tenant`, `$/MAU` — and whether unit cost RISES with scale | e.g. <$0.002/req |
+
+Scenario template — **all SIX parts, none optional**: `[SOURCE: who/what triggers] [STIMULUS: the event] on [ARTIFACT: which component] under [ENVIRONMENT: the conditions] SHALL produce [RESPONSE] within [MEASURE: threshold + instrument]`. "Must be scalable" decides nothing; "5,000 concurrent checkout sessions at 400 rps SHALL complete p99 < 800 ms, ≤0.1% errors, verified by the CI k6 profile" selects a structure.
+
+**MUST ATTENTION** a scenario missing SOURCE or ARTIFACT is untestable — you cannot write a fitness function for "the system" under "load", so name the actor and the component. — why: an unattributed scenario gets no owner, no test and no budget, so it is never verified and silently degrades.
 
 **Rule:** any target left unknown is explicit `Unresolved question` (Step 11), NEVER a silent omission — an architecture chosen without scale numbers is a guess, not a decision.
 
+**Move each attribute with a TACTIC, not a product.** Once a target is unmet or at risk, select the mechanism from the tactics inventory in `.claude/docs/architecture-knowledge.md` §2 (availability · performance · modifiability · security · testability · usability) — "bulkhead a pool per dependency" is a design decision; "add Kubernetes" is a shopping list. — why: the tactic is portable across stacks and makes the trade-off legible, the product imports costs nobody asked for.
+
+### 2-1: Pick ≤3 DRIVING attributes — and name what you SACRIFICE
+
+Quality attributes CONFLICT, and that conflict IS the architecture: consistency↔availability · latency↔durability · flexibility↔simplicity · security↔usability · cost↔redundancy · performance↔modifiability.
+
+**MANDATORY IMPORTANT MUST ATTENTION** name at most 3 DRIVING attributes and explicitly record which attributes are being SACRIFICED to buy them — a design claiming to maximize everything has decided nothing — why: unnamed sacrifices resurface as production surprises nobody agreed to.
+
+| Field | Record |
+| --- | --- |
+| Driving attributes (≤3) | ... + the quantified target for each (from the table above) |
+| Explicitly sacrificed | ... + the acceptable degradation, e.g. "search may lag ≤5 s" |
+| Trade-off purchased | Use the "buy this / pay with this" table in `.claude/docs/architecture-knowledge.md` §19 — state cost, never just benefit |
+
+**Availability arithmetic (compute it, never assert it):** dependencies in a request path MULTIPLY — five 99.9% deps ⇒ ~99.5% (≈43 h/yr down). Redundancy in PARALLEL adds 9s **only when failure modes are genuinely independent**; shared config, control plane, DNS and the deploy pipeline are the usual hidden serial term. Ladder: 99% = 3.65 d/yr · 99.9% = 8.77 h · 99.95% = 4.38 h · 99.99% = 52.6 min · 99.999% = 5.26 min.
+
+**Cost is a quality attribute, not a later phase.** Model unit economics now — an architecture whose UNIT cost RISES with scale fails eventually regardless of elegance. Biggest web-system drivers: egress + cross-AZ/cross-region traffic · idle over-provisioned compute · unbounded log/metric/trace retention and cardinality · per-request managed-service pricing at steady high volume · always-on non-prod. Serverless vs always-on **inverts with utilization** — model it, don't assume it.
+
 **MANDATORY IMPORTANT MUST ATTENTION** validate derived requirements with user by asking the user directly before proceeding.
+
+### 2-2: Pre-Decision Interrogation (MANDATORY for every one-way door from 2-0)
+
+Answer the 15-question pre-decision script in `.claude/docs/architecture-knowledge.md` §20.1 for each one-way door BEFORE researching options. Record answers in the Step 11 report; any question answered "unknown" becomes an `Unresolved question`, never a silent gap.
+
+The five that most often expose a wrong decision — never skip these:
+
+| # | Question | Why it changes the answer |
+| --- | --- | --- |
+| 3 | Is this a one-way or two-way door, and what makes it so? | Sets how much rigour the decision earns; misclassification is this skill's most expensive failure |
+| 5-6 | Expected load NOW and at 10× — and **what breaks FIRST**? | Names the actual bottleneck instead of the imagined one; 10×, never 1000× |
+| 8 | What is the consistency requirement PER read path, and what staleness is acceptable? | Consistency is decided per path, never once globally |
+| 14 | What existing thing could be used instead of building? | Generic subdomains (auth, billing, notifications, search) are the top source of wasted architecture budget |
+| 15 | **What would have to be TRUE for this to be the WRONG choice — and how would I detect it?** | Becomes the ADR's measurable revisit trigger |
+
+**MANDATORY IMPORTANT MUST ATTENTION** a one-way door with no answer to question 15 is a BELIEF, not a decision — NEVER emit its ADR without a named falsifier and a measurable revisit trigger. — why: with no trigger nobody ever revisits it, so the decision outlives the constraints that justified it.
 
 ### Architecture & Scalability Scorecard Inputs (feeds `architecture-scalability-review`)
 
@@ -198,6 +255,35 @@ WebSearch top 3 backend architecture styles. Candidates:
 | **CQRS + Event Sourcing**   | Audit-heavy, complex queries             | Read/write separation, event store        |
 | **Layered (N-Tier)**        | Simple CRUD, small teams                 | Layer responsibilities, coupling risk     |
 
+Full 16-style matrix with per-style *buys / costs / choose-when / avoid-when* → `.claude/docs/architecture-knowledge.md` §5.
+
+#### Style selection procedure (MANDATORY order — never shortcut)
+
+1. Take the ≤3 quantified driving attributes from Step 2-1.
+2. **ELIMINATE** every style that cannot meet them (state which attribute eliminated it).
+3. **DESIGN IT TWICE** — produce ≥2 MATERIALLY different surviving candidate designs (not two spellings of one idea) and write what each SACRIFICES. — why: committing to the first idea that occurred to you is the most common architecture failure and the one nobody records; a second real candidate is what makes the first one a choice.
+4. Among survivors take the **SIMPLEST** — not the most capable.
+5. Emit an ADR (Step 11) naming the rejected alternative AND the **measurable trigger** that would revisit the choice.
+
+**MANDATORY IMPORTANT MUST ATTENTION** design-it-twice applies to EVERY one-way door from 2-0, not only the style choice — data model, tenancy model, consistency model per read path, sync-vs-async at a boundary. NEVER emit a one-way-door ADR whose "Alternatives considered" section was written to justify a decision already made. — why: a retrofitted alternative is advocacy, not evaluation, and it hides the sacrifice the reviewer needs to see.
+
+Styles COMPOSE — modular monolith + event-driven integration + 2-3 extracted services is the most common good real answer. Recommending a single pure style is usually a sign step 2 was skipped.
+
+**MANDATORY IMPORTANT MUST ATTENTION — modulith-first default.** Default to a **modular monolith with CI-ENFORCED module boundaries** (architecture tests, Step 9) and extract services ONLY against a named, measured trigger from the table below. **Microservices are a destination reached under pressure, NEVER a starting point** — the 2025-2026 industry correction is documented: many organizations re-consolidated after debugging complexity, ops overhead and network latency outweighed autonomy gains. — why: distribution bought speculatively pays every distributed cost immediately and collects the benefit never.
+
+| Legitimate extraction trigger (record BEFORE building) | NOT a trigger (reject these) |
+| --- | --- |
+| Independent scaling profile ≥10x divergent | "The codebase feels big" |
+| Different compliance / data-residency boundary | "Microservices are best practice" |
+| Different availability requirement | A resume, a conference talk, or framework support |
+| A team boundary PROVABLY blocked by shared deploys | One slow endpoint (fix the endpoint) |
+| Genuinely different runtime need (GPU, language, memory profile) | A new team was hired |
+| Fault isolation for a KNOWN-unreliable dependency | The domain has many entities |
+
+**MUST ATTENTION** verify platform maturity before recommending microservices: CI/CD, IaC, distributed tracing, on-call, and a platform team. Microservices without them is the most reliable predictor of a failed migration — recommend the modulith and say so explicitly.
+
+**MUST ATTENTION** draw boundaries around **capabilities/behaviors** (`Checkout`, `Fulfilment`, `Pricing`), NEVER around **nouns/data** (`UserService`, `ProductService`). Entity-per-service guarantees every real use case must synchronously traverse many services — a distributed monolith produced by design. The unit of extraction is the **bounded context**, not the entity.
+
 ### 3B: Backend Design Patterns
 
 Evaluate applicability per layer:
@@ -219,6 +305,65 @@ Evaluate applicability per layer:
 | **Circuit Breaker** | Infrastructure | External service resilience                       |
 
 Per recommended pattern document: **Apply to**, **Why**, **Example**, **Risk if skipped**.
+
+**MUST ATTENTION** patterns are a VOCABULARY for a solution you already need, never a menu to shop from — applying patterns to demonstrate knowledge produces the *gas factory* anti-pattern. The right number of patterns is the SMALLEST number that removes a DEMONSTRATED pain. Watch the chronically over-applied ones: Singleton (global mutable state → prefer one DI registration), Service Locator (hides dependencies from compiler and tests), CQRS on simple CRUD, event sourcing used as an audit log (an audit table is the right answer).
+
+---
+
+## Step 3C: Data & Consistency Architecture
+
+> **Skip if:** the change touches no persistence, no consistency boundary, and no tenant-scoped data. Otherwise MANDATORY.
+
+**Data outlives every service, framework and team — this is the MOST irreversible step in this skill.** Treat every row below as a one-way door (Step 2-0) until proven otherwise: each needs an ADR and a Step-12 validation question.
+
+| Decision | Decide + record | Failure if skipped |
+| --- | --- | --- |
+| **Store per access pattern** | Pick each store from the ACCESS PATTERN, not familiarity: relational (relations/transactions/ad-hoc queries — **the correct default**) · document (aggregate-shaped reads) · key-value (lookup/session) · wide-column (huge writes, known queries) · graph (traversal) · time-series (append + rollups) · search (relevance/facets) · vector (semantic/ANN) · columnar (aggregation scans) · object storage (blobs). Each ADDITIONAL store needs its own justification — polyglot persistence costs per store (ops, backup, monitoring, expertise, and transactional impossibility across stores). | Golden-hammer: the wrong store makes the dominant query permanently expensive |
+| **One writer per dataset** | Name the single owning module/service for every dataset. Many READERS are fine — via API, replica, or published event stream. | Shared write access is shared coupling with NO contract; data diverges and nobody owns correctness |
+| **NEVER integrate through the database** | External consumers get an API, an event stream, or at most a published view/replica — never your tables. | Fastest known path to a distributed monolith and to "we can never change this table" |
+| **Consistency model per read path** | Per read path choose strong / causal / **session guarantees** (read-your-writes, monotonic reads) / eventual — and write the **STALENESS BUDGET** ("search index may lag ≤5 s") as a monitored SLI (Step 8). | Unbounded, unmeasured lag IS the defect. Most user-visible "consistency bugs" are missing read-your-writes from a lagging replica, NOT missing linearizability |
+| **Isolation level + check-then-act protection** | NAME the isolation level per critical write path — "we use transactions" says nothing about correctness. Read Committed permits **write skew** AND **lost update**; snapshot isolation permits **write skew** and — on any engine whose `REPEATABLE READ` is not true first-committer-wins SI — **lost update** too, so name the ENGINE as well as the level and protect every check-then-act invariant one of FOUR deliberate ways: a DB **constraint** (unique/check/exclusion — cheapest and most durable) · `SELECT … FOR UPDATE` on the rows read · **Serializable** + an app-side retry loop for serialization failures · a single atomic conditional write (`UPDATE … WHERE version = n`). An invariant spanning rows that DO NOT YET EXIST (no double-booking, no overlapping shift, at most N per tenant) cannot be protected by row locks. Full anomaly table → `.claude/docs/architecture-knowledge.md` §8. | Two concurrent transactions both pass their check and both write — the classic on-call corruption bug that passes every single-user test |
+| **Storage engine + index strategy** | Choose B-Tree (mixed read/write, ad-hoc queries, strong secondary indexes) vs LSM (write-heavy ingest with known query shapes — pay with compaction stalls in p99 and space amplification). Record the **WAL/fsync policy** as the durability↔latency knob the RPO depends on. Index rules: composite indexes obey the **leftmost-prefix** rule (`(a,b,c)` never serves `b` alone) · covering indexes remove the row fetch · every index slows writes, so index-per-query-shape has a ceiling · size the connection pool by Little's Law. | An unpooled service DOSes its own database; a wrong engine makes the dominant workload permanently expensive; `fsync` settings chosen by default silently violate the stated RPO |
+| **Distributed lock / leader election — fencing** | If any flow takes a distributed lock or elects a leader, name the **fencing token** (monotonic, rejected by the storage layer when stale), the lease duration, and the behaviour when the lease expires mid-operation. Consensus (Raft/Paxos) needs a MAJORITY — a 2-node or even-sized cluster buys nothing — and stays OFF the hot path. **NEVER order distributed events, compute expiry, or resolve conflicts by wall clock** — use versions/sequences, logical/vector clocks, or HLC. | An unfenced lock fails exactly once — under a GC/VM pause, at peak, writing corrupted state — and looks correct in every test (split brain) |
+| **Transaction / aggregate boundary** | One aggregate per transaction; reference other aggregates **by ID only**; keep aggregates SMALL; cross-aggregate consistency is EVENTUAL via domain events. Money movement, uniqueness, inventory decrement and auth state stay **strong inside ONE aggregate/DB transaction**. | Large aggregates cause lock contention; cross-aggregate transactions force 2PC or silent divergence |
+| **Cross-boundary transaction mechanism** | Local ACID (ALWAYS prefer) → saga + compensation → reservation/TCC. **AVOID 2PC/XA** in web-scale distributed systems. Compensations are NEW BUSINESS FACTS (`RefundIssued`), not technical rollbacks — design them as product decisions, and design for the intermediate state being USER-VISIBLE. | "We'll use a distributed transaction" is a non-answer that blocks on coordinator failure |
+| **Tenancy model** | Shared-schema `tenant_id` (**default for most B2B SaaS**) · schema-per-tenant · DB-per-tenant (regulated / residency / white-label / large enterprise) · hybrid tiering (pooled small + siloed whales — the mature scale-up shape). | Retrofitting tenancy is a full data migration |
+| **Tenant isolation ENFORCEMENT** | In a pooled model, name the LOWEST-layer mechanism: database **row-level security**, an ORM global filter/interceptor, or a mandatory repository base injecting tenant from the **authenticated principal** — plus a test asserting cross-tenant reads return zero rows (Step 6 + Step 9 fitness rule). **NEVER take `tenant_id` from a client-supplied field.** | One missing `WHERE tenant_id = ?` is a cross-tenant breach that passes every functional test |
+| **Keys & partitioning** | Prefer **time-ordered IDs (UUIDv7/ULID/Snowflake)** — sequential ints leak volume and are enumerable; UUIDv4 destroys index locality on write. NEVER expose an internal sequential PK publicly. Partition key must be uniformly distributed AND query-aligned; plan resharding (consistent hashing / virtual buckets) BEFORE needing it. | Hot partitions (time-based ⇒ hot latest; tenant-based ⇒ whale tenants) and write amplification |
+| **OLTP / OLAP separation** | Analytics go to a replica, CDC, or warehouse — never the transactional primary. | Reports saturating production is a top incident cause |
+| **Denormalization / caching as a PURCHASE** | For each denormalized copy or cache, name the mechanism keeping it correct and its invalidation strategy (TTL + jitter · event-driven · **versioned/namespaced keys**). Bound every cache (max size + eviction). **NEVER cache authorization decisions or per-tenant data under a key omitting the identity/tenant/permission dimension.** | Cache-key omission is a recurring cross-tenant leak that passes all functional tests; unbounded caches OOM |
+| **Migration strategy** | **Expand–contract** (add nullable → dual write → backfill → switch reads → stop writing old → drop), forward-only, idempotent, non-blocking on large tables, deployable independently of the code using it. | A breaking migration in one deploy breaks old pods during a rolling deploy and makes rollback impossible |
+| **Lifecycle: classification, retention, residency, deletion** | Classify (PII/PHI/PCI/public), set retention + archival tiering + deletion (GDPR/CCPA erasure) + residency NOW. | Retrofitting deletion into an event-sourced or heavily-denormalized system is brutally expensive — and erasure conflicts with immutable event stores by design |
+| **RPO / RTO per dataset** | Set them PER DATASET (they drive topology and cost) and schedule a **restore drill**. | "We have backups" is a hypothesis; an undrilled DR plan has an RTO of "unknown" |
+
+**MANDATORY IMPORTANT MUST ATTENTION** emit an ADR for the store choice, the tenancy model, the consistency model per read path, and the key strategy — these four are the least reversible decisions in the entire design — why: each one reversed later is a full data migration with downtime, not a refactor.
+
+---
+
+## Step 3D: Integration & API Architecture
+
+> **Skip if:** no boundary is crossed — no external consumer, no second service, no message bus, no third-party integration. Otherwise MANDATORY.
+
+| Decision | Decide + record | Failure if skipped |
+| --- | --- | --- |
+| **Sync vs async per boundary** | **Synchronous** only when the caller genuinely cannot proceed without the answer (user-awaited QUERIES). **Asynchronous** for EFFECTS (notification, fan-out, work completable later). A sync chain deeper than 2-3 hops is an availability + latency defect — flatten, cache, or make it an event. | Sync chains MULTIPLY availability (five 99.9% deps ⇒ 99.5%) and SUM latency |
+| **API style per consumer** | REST/HTTP+JSON (public, broad compat, HTTP caching) · GraphQL (client-driven queries, aggregation — needs depth/complexity limits + persisted queries + dataloader or it becomes a DoS and N+1 surface) · gRPC (low-latency internal, streaming, codegen) · webhooks (push to third parties — needs retries + signature verification) · WebSocket/SSE (real-time; SSE when one-way suffices). | Wrong style makes the dominant interaction chatty or uncacheable |
+| **Versioning + deprecation policy** | Version from **day one** (URL path versioning is the pragmatic default); version the CONTRACT, not every field; support ≥N-1 with a published deprecation policy + per-version usage telemetry. | Versionless contracts mean any producer change breaks consumers — and you cannot tell who |
+| **Contract-first + contract tests in CI** | OpenAPI / protobuf / AsyncAPI as the source of truth; consumer-driven contract tests are what make independent deploys SAFE (Step 6 + Step 9 gate). Tolerant reader — unknown fields ignored, never fatal. | Without contract tests, "independently deployable" is an aspiration, not a property |
+| **Write-then-publish ⇒ transactional outbox or CDC** | **MANDATORY** whenever a flow writes the DB *and* publishes. **NEVER two independent operations.** | **Dual-write:** DB commits + publish fails ⇒ silent divergence; publish succeeds + DB rolls back ⇒ phantom downstream data |
+| **Idempotency everywhere** | Exactly-once DELIVERY is impossible (Two Generals/FLP) ⇒ **effectively-once via idempotency**. Idempotency keys (with the stored RESULT + TTL) on all unsafe mutations; consumers dedup on message ID; prefer naturally idempotent operations (`SET status='paid'` over `balance += x`); optimistic concurrency via version/ETag. Assume **duplicate, out-of-order and delayed** arrival — carry a version/sequence and discard backward transitions. | Duplicate side effects: double charge, double email, double shipment |
+| **Message taxonomy — never conflate** | **Command** ("do this", one handler, may be rejected) vs **Event/fact** ("this happened", 0..N subscribers, cannot be rejected) vs query vs document message. An "event" with exactly one permitted consumer that MUST handle it, whose failure means the flow failed, is a **COMMAND in an event costume** — name it a command and own the coupling honestly. | You pay async debugging difficulty AND keep sync coupling |
+| **Event granularity per stream** | Deliberate choice: thin/notification (ID only — restores temporal coupling + read load) vs fat/state-transfer (self-contained, leaks more model, bigger payloads) vs hybrid (thin event + queryable snapshot endpoint). **NEVER leak raw DB rows as events** — CDC without a mapping layer publishes your internal schema as a frozen public contract (Hyrum). | Consumers become coupled to columns you can then never rename |
+| **Schema evolution** | Versioned, registered, backward-compatible event schemas with a CI compatibility check. In event sourcing, event schemas are public contracts **forever**. | One producer change silently breaks every consumer |
+| **Broker semantics — ordering, replay, durability** | Decide the three properties BEFORE naming a vendor: required **ordering scope** (global / per-entity-key / none) · required **replay window** (queue = consume-and-gone; log = offset-based replay by many consumer groups) · **durability acknowledgement** (replication factor + min-in-sync-replicas + producer acks — `acks=1` accepts data loss on leader failure, and `acks=all` waits for the replicas CURRENTLY in the ISR — so `min.insync=1` still waits for a healthy 3-replica ISR but silently degrades to `acks=1` durability once the ISR shrinks to the leader alone). Log partition count is hard to raise without rekeying, and ordering on a key costs parallelism on that key. Health SLI: queue depth + oldest-message age, or **consumer lag** for a log. | Vendor picked first ⇒ the one property you actually needed (ordering, replay, or durability) turns out to be the one that is expensive to change |
+| **Load-balancing + rate-limiting algorithm** | LB: **least-outstanding-requests is the best general default** (routes away from slow hosts automatically) · power-of-two-choices · consistent hashing only for cache/shard affinity (accept hot keys) · **slow-start for new instances** so a cold cache/JIT node is not handed full traffic. Rate limiting: **token bucket** for burst-tolerant public APIs · sliding-window counter for accuracy · **concurrency/in-flight limiter when per-request cost is unknown or highly variable** (it bounds the resource, not the count). Limit BY the protected dimension (tenant/principal/endpoint), never only by IP; always return `Retry-After`. Distributed enforcement needs a shared counter (new hot-path dependency) or per-node quota division (accept `N×` slack) — state which. | Round-robin ignores request cost and feeds a dying host; fixed-window limiters permit a 2× burst across the boundary; sticky sessions become the reason state was never externalized |
+| **Queue hygiene** | **Bounded** queues + DLQ + a redrive procedure + DLQ-depth alerting; capped exponential backoff **with jitter**; poison-message handling. | An unbounded queue converts a throughput problem into unbounded latency then OOM; a DLQ nobody watches is data loss with extra steps; unjittered retries synchronize into a thundering herd |
+| **Resilience config on EVERY outbound call** | Timeout (derived from the caller's remaining budget) on every network call, lock and query · capped jittered retries for idempotent ops ONLY · retry BUDGET as a % of traffic · circuit breaker with a defined fallback · bulkheads per dependency/tenant · load shedding at the edge by priority. | **A missing timeout is the single most common resilience defect**; retry amplification turns a blip into an outage. The dangerous failure is SLOW, not down — it exhausts your resources while looking healthy |
+| **Graceful degradation per feature** | Pre-decide the degraded mode per feature (stale data / hide module / read-only) — a PRODUCT decision, made now, not during the incident. | Undesigned degradation becomes a total outage |
+| **Trust boundary rules** | Validate at the boundary (allow-list); **NEVER trust client-supplied authorization data** — IDs, roles, prices, tenant IDs come from the authenticated principal. Machine-readable error contract (stable `code`, `message`, `details`, `traceId`; RFC 9457 problem+json is a good default) — NEVER leak stack traces. Propagate a correlation/trace ID through EVERY hop including async. | Broken access control is the #1 real-world risk; untraceable async hops make incidents unexplainable |
+| **Edge component responsibilities** | Gateway = TLS, routing, authn, rate limiting, quotas, versioning — **NEVER business logic** (smart-gateway anti-pattern: a shared bottleneck every team queues for). BFF only when a client genuinely needs its own aggregation AND the frontend team owns it — skip it with one client or when GraphQL already fills the role. | A gateway or BFF holding domain rules duplicates the domain in a layer no team owns |
+
+**MANDATORY IMPORTANT MUST ATTENTION** every sync-vs-async choice at a boundary and every public API/event contract is a one-way door — ADR + Step-12 validation, no exceptions — why: consumers you cannot see will depend on both, and Hyrum's Law makes every observable behavior a contract you must then keep.
 
 ---
 
@@ -403,6 +548,21 @@ Research deployment architecture, CI/CD tooling:
 | **Recreate**      | High | Yes      | Low        | Dev/staging environments |
 | **Feature Flags** | Low  | Zero     | Medium     | Feature-level control    |
 
+### Release-safety rules (decide + record — these bind Step 3C/3D contracts to the pipeline)
+
+| Rule | Requirement |
+| --- | --- |
+| **Decouple deploy from release** | Flags / canary with SLI gates + auto-rollback. A flag needs an EXPIRY date or it becomes permanent branching complexity |
+| **Backward AND forward compatible for one version** | **MANDATORY** — a rolling deploy runs both versions SIMULTANEOUSLY. Applies to APIs, event schemas AND database schemas alike |
+| **Expand–contract migrations** | Add nullable → dual write → backfill → switch reads → stop writing old → drop. Forward-only, idempotent, non-blocking, deployed INDEPENDENTLY of the code using it. **NEVER a breaking schema change in one deploy** |
+| **One artifact, external config** | Build once, promote the same artifact across environments (12-factor); config and secrets injected per environment |
+| **Graceful shutdown** | Stop accepting → drain in-flight with a deadline → flush buffers/metrics → close pools → exit. Without it EVERY deploy sheds requests |
+| **Liveness ≠ readiness** | Readiness reflects dependencies; **liveness must NOT** (or one dependency blip restarts the whole fleet). Add startup probes for slow boots |
+| **Legacy replacement** | Strangler fig (facade + capability-by-capability routing) or branch by abstraction, with **parallel run / shadow compare** for high-risk replacements. **NEVER a big-bang rewrite** of a system you don't fully understand — you inherit all undocumented behavior as invisible requirements |
+| **DORA as delivery SLIs** | Deploy frequency, lead time, change-failure rate, MTTR — measure outcomes, never proxy metrics (Goodhart) |
+
+**MANDATORY IMPORTANT MUST ATTENTION** if the design changes a database schema or a published contract, the migration plan is part of THIS design, not an implementation detail deferred to `plan-execute` — why: a schema change designed without expand–contract makes the whole release irreversible.
+
 ---
 
 ## Step 8: Observability & Monitoring
@@ -547,22 +707,31 @@ Per recommended library/package, evaluate maintenance, obsolescence risk:
 Write report to `{plan-dir}/research/architecture-design.md` with sections:
 
 1. Executive summary (recommended architecture in 8-10 lines)
-2. Architecture requirements table (from Step 2)
-3. Backend architecture — style comparison + recommended patterns (Steps 3)
-4. Frontend architecture — style comparison + recommended patterns (Step 4)
-5. Library ecosystem — per-concern recommendations with alternatives (Step 5)
-6. Testing architecture — pyramid, tools, coverage targets (Step 6)
-7. CI/CD & deployment — pipeline design, deployment strategy (Step 7)
-8. Observability stack — 3 pillars + alerting (Step 8)
-9. Code quality — enforcement gates, tooling (Step 9)
-10. Dependency risk matrix — high-risk packages, mitigation (Step 10)
-11. Architecture diagram (Mermaid — showing all layers and data flow)
-12. Risk assessment for overall architecture
-13. Unresolved questions
+2. Architecture requirements table + **reversibility ranking (one-way vs two-way doors)** + **≤3 driving attributes and what is SACRIFICED** + cost unit economics (from Step 2)
+3. Backend architecture — style comparison **with the elimination rationale per rejected style + the recorded extraction trigger** + recommended patterns (Step 3A/3B)
+4. **Data & consistency architecture — stores per access pattern, dataset writer ownership, consistency model + staleness budget per read path, transaction/aggregate boundaries, tenancy model + isolation enforcement mechanism, keys/partitioning, migration strategy, retention/residency, RPO/RTO per dataset (Step 3C)**
+5. **Integration & API architecture — sync-vs-async per boundary, API style per consumer, versioning + deprecation policy, contract tests, outbox/CDC, idempotency strategy, event granularity + schema evolution, queue hygiene, resilience config, degradation modes (Step 3D)**
+6. Frontend architecture — style comparison + recommended patterns (Step 4)
+7. Library ecosystem — per-concern recommendations with alternatives (Step 5)
+8. Testing architecture — pyramid, tools, coverage targets, **contract tests + tenant-isolation test** (Step 6)
+9. CI/CD & deployment — pipeline design, deployment strategy, **expand–contract migration plan + rolling-deploy compatibility** (Step 7)
+10. Observability stack — 3 pillars + alerting + **the staleness/lag SLIs declared in Step 3C** (Step 8)
+11. Code quality — enforcement gates, tooling, **fitness functions per architectural rule** (Step 9)
+12. Dependency risk matrix — high-risk packages, mitigation (Step 10)
+13. Architecture diagram (Mermaid — all layers, data flow, **trust boundaries and failure domains**)
+14. **Cost model — `$/request` or `$/tenant`, the dominant drivers, and whether unit cost rises with scale**
+15. Risk assessment for overall architecture — **including the anti-patterns deliberately accepted and why**
+16. Unresolved questions
+
+**MUST ATTENTION** every diagram needs a legend, a date and an owner — an undated diagram is a rumor. Show trust boundaries and failure domains explicitly: that is the entire point of drawing a deployment view.
 
 ### Emit ADRs for hard-to-reverse decisions (MANDATORY)
 
-For each decision significant AND costly to reverse — backend/frontend style, persistence/consistency model, messaging approach, a Step-2 quality-attribute budget, a rejected-with-reason alternative — write one ADR to `docs/adr/{NNNN}-{slug}.md` following the repo's existing ADR format (Status, Date, Context, Decision, Consequences [Positive/Negative/Neutral], Alternatives Considered, Related; see `docs/adr/0001-skill-lifecycle.md` for canonical shape). Start `Status: Proposed`; promote to `Accepted` after Step-12 user validation confirms it. These ADRs are the binding record `architecture-review` Category 9 checks changed code against — **a decision not written as an ADR cannot be enforced downstream.** Route ADR authoring through the `architect` sub-agent for cross-service/security/performance impact analysis.
+For each decision significant AND costly to reverse — **every one-way door classified in Step 2-0**: backend/frontend style, data model + key strategy, tenancy model, consistency model per read path, sync-vs-async at a boundary, public API/event contract, service boundary lines, auth/identity model, data residency + retention, messaging approach, a Step-2 quality-attribute budget, a rejected-with-reason alternative — write one ADR to `docs/adr/{NNNN}-{slug}.md` following the repo's existing ADR format (Status, Date, Context, Decision, Consequences [Positive/Negative/Neutral], Alternatives Considered, Related; see `docs/adr/0001-skill-lifecycle.md` for canonical shape). Start `Status: Proposed`; promote to `Accepted` after Step-12 user validation confirms it. These ADRs are the binding record `architecture-review` Category 9 checks changed code against — **a decision not written as an ADR cannot be enforced downstream.** Route ADR authoring through the `architect` sub-agent for cross-service/security/performance impact analysis.
+
+**ADR minimum content — the two most-skipped fields are the most valuable:** Context (forces, constraints, quantified attributes) · Decision · **Alternatives considered WITH why each was rejected** (prevents relitigating, and later explains the constraint to whoever is tempted to break it) · Consequences (what we now CANNOT do easily) · Status · **Revisit trigger** (the measurement that would reopen this decision).
+
+**MUST ATTENTION** an architectural rule NOT automatically verified is a SUGGESTION and will be violated within one quarter. Every ADR-recorded constraint that CAN be machine-checked MUST also land in the Step-9 Scaffold Handoff as an executable fitness rule (layer/dependency rules, no module cycles, domain purity, API + event schema compatibility, tenant-isolation test, "every outbound call has a timeout", bundle/latency budgets, cost-per-request regression). Pay existing architectural debt with a **RATCHET** — block new violations in CI, then decrement the existing count — never with a "cleanup sprint later" that never happens.
 
 ### Architecture Diagram Template
 
@@ -615,25 +784,34 @@ graph TB
 
 ### Required Questions
 
-1. **Backend architecture** — "I recommend {style}. Agree?"
-2. **Frontend architecture** — "I recommend {style} with {state management}. Agree?"
-3. **Design patterns** — "Recommended backend patterns: {list}. Frontend patterns: {list}. Any to add/remove?"
-4. **Key libraries** — "For {concern}, I recommend {lib} over {alternatives}. Agree?"
-5. **Testing strategy** — "Test pyramid: {unit}%/{integration}%/{E2E}% using {frameworks}. Appropriate?"
-6. **CI/CD** — "Pipeline: {tool} with {deployment strategy}. Fits your infra?"
-7. **Observability** — "Monitoring stack: {logs}/{metrics}/{traces}. Sufficient?"
-8. **Code quality** — "Enforcement: {linter + formatter + pre-commit hooks}. Team ready?"
-9. **Dependency risk** — "Found {N} high-risk dependencies. Accept or find alternatives?"
-10. **Complexity check** — "This architecture has {N} concerns addressed. Appropriate for team size?"
+1. **Driving attributes + sacrifices** — "I optimized for {≤3 attributes} and am SACRIFICING {list} — e.g. {concrete degradation}. Correct priorities?"
+2. **Backend architecture** — "I recommend {style}; I eliminated {alternatives} because {attribute}. The trigger that would make us extract services is {measurable trigger}. Agree?"
+3. **Consistency model + staleness budget** *(one-way door)* — "{read path} will be eventually consistent with a ≤{N}s staleness budget; {other path} stays strongly consistent. Acceptable to the business?"
+4. **Tenancy + isolation** *(one-way door)* — "Tenancy is {model}, isolation enforced by {mechanism}. Any tenant needing stronger isolation or its own residency?"
+5. **Sync vs async boundaries** *(one-way door)* — "{boundary} is async, so {effect} completes eventually and the user sees {intermediate state}. Acceptable UX?"
+6. **Frontend architecture** — "I recommend {style} with {state management}. Agree?"
+7. **Design patterns** — "Recommended backend patterns: {list}. Frontend patterns: {list}. Any to add/remove?"
+8. **Key libraries** — "For {concern}, I recommend {lib} over {alternatives}. Agree?"
+9. **Testing strategy** — "Test pyramid: {unit}%/{integration}%/{E2E}% using {frameworks}, plus contract tests at {boundaries}. Appropriate?"
+10. **CI/CD + migration safety** — "Pipeline: {tool} with {deployment strategy}, schema changes via expand–contract. Fits your infra?"
+11. **Observability** — "Monitoring stack: {logs}/{metrics}/{traces}, with {staleness/lag SLIs}. Sufficient?"
+12. **Code quality + fitness functions** — "Enforcement: {linter + formatter + hooks + architecture tests}. Team ready for CI to BLOCK on boundary violations?"
+13. **Dependency risk** — "Found {N} high-risk dependencies. Accept or find alternatives?"
+14. **Cost + complexity check** — "Estimated {$/request or $/tenant}; {N} concerns addressed. Appropriate for team size and budget?"
+
+Ask the **one-way-door questions first** — they are the ones the user actually owns. Two-way doors do not deserve a validation slot.
 
 ### Optional Deep-Dive Questions (pick 2-3)
 
-- "Should we use event sourcing or traditional state-based persistence?"
+- "Should we use event sourcing or traditional state-based persistence?" *(if the answer is "we want an audit log", the answer is an audit table)*
 - "Monolith-first or start with service boundaries?"
 - "Micro frontends or monolith SPA?"
 - "How important is framework independence for this repository or system?"
 - "Self-hosted observability or managed SaaS?"
 - "Strict lint rules from day 1 or gradual adoption?"
+- "What is the acceptable degraded mode when {critical dependency} is down — stale data, hidden feature, or read-only?"
+- "RPO/RTO per dataset — how much data loss and downtime is genuinely acceptable, and who signs off on the restore drill?"
+- "Is any data regulated or residency-bound in a way that forces per-tenant or per-region isolation?"
 
 After user confirms, update report with final decisions, mark `status: confirmed`.
 
@@ -659,6 +837,15 @@ Validate architecture against these principles — flag violations in report. �
 | **Testability**                | Architecture supports unit + integration testing           | ✅/⚠️  |
 | **12-Factor App**              | Config in env, stateless processes, port binding           | ✅/⚠️  |
 | **Fail-Fast**                  | Validate early, fail with clear errors                     | ✅/⚠️  |
+| **Reversibility ranked**       | Every one-way door identified and ADR-backed (Step 2-0)    | ✅/⚠️  |
+| **Coupling — 4 dimensions**    | Code, temporal, semantic AND deployment coupling each judged separately; no distributed monolith (services that must release together, shared DB/domain lib, sync chains ≥4 deep) | ✅/⚠️  |
+| **Cohesion**                   | Modules split by what CHANGES TOGETHER (Parnas volatility), never by technical layer or noun; no `Utils`/`Common`/`Shared` dumping ground | ✅/⚠️  |
+| **Conceptual integrity**       | One coherent paradigm — not two competing ones in one codebase | ✅/⚠️  |
+| **Complexity is BOUGHT**       | Every layer, service, store and abstraction traced to a named quality attribute with a number | ✅/⚠️  |
+| **Conservation of complexity** | Where complexity MOVED is stated (client / runbook / data layer), not claimed to have vanished | ✅/⚠️  |
+| **Enforceability**             | Every architectural rule has a fitness function; none rely on review discipline alone | ✅/⚠️  |
+| **Operability**                | Debuggable, monitorable, rollback-able — traces, structured logs, correlation IDs, graceful shutdown | ✅/⚠️  |
+| **Cost efficiency**            | Unit economics modeled; unit cost does not rise with scale  | ✅/⚠️  |
 
 ---
 
@@ -704,6 +891,21 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 | "It's a small feature — skip the ADR"                 | If a decision is significant AND costly to reverse, it needs an ADR or it cannot be enforced.      |
 | "Brownfield, but my preferred style is better"        | NEVER re-litigate a settled ADR-recorded decision without a superseding-ADR rationale.             |
 | "I'll document the budget, enforcement is optional"   | Documented-but-unenforced budgets erode. Encode them as executable fitness checks for CI.          |
+| "Microservices are the modern default"                | Modulith-first. Distribution needs a named, MEASURED extraction trigger — and CI/CD + tracing + a platform team first. |
+| "It's a data decision, the devs can sort it out"      | Data model, tenancy, consistency model and keys are the LEAST reversible decisions here (Step 3C). ADR + validate. |
+| "We'll just write the DB then publish the event"      | That is a dual write. Outbox or CDC — no exceptions (Step 3D).                                      |
+| "The queue guarantees exactly-once"                   | Exactly-once DELIVERY is impossible. Design idempotent consumers for duplicate + out-of-order arrival. |
+| "Eventual consistency is fine here"                   | Then state the STALENESS BUDGET and monitor it as an SLI. Unbounded, unmeasured lag IS the defect.  |
+| "I'll add resilience/observability/cost later"        | They are quality attributes decided in THIS pass. Retrofitting them costs a redesign.               |
+| "One good design is enough — writing a second wastes time" | Design-it-twice (Step 3A) is what turns a first idea into a CHOICE. A one-way door with one candidate has not been decided. |
+| "We take a distributed lock, so it's safe"            | An unfenced lock does not prevent split brain. Name the fencing token, the lease duration, and the expiry behaviour (Step 3C). |
+| "The ORM handles transactions"                        | Name the ISOLATION LEVEL. Read Committed and snapshot isolation both permit write skew — protect every check-then-act invariant explicitly (Step 3C). |
+| "We'll use Kafka / Redis / Kubernetes for that"       | Prescribe the TACTIC, not the product (Step 2). Name the ordering/replay/durability property you need, then let that select the tool. |
+| "Best practice says…"                                 | Name the FORCES it balances and the constraints of the company it came from. "Best practice" with no named sacrifice is red flag #5 (`architecture-knowledge.md` §20.3). |
+
+### Self-audit your OWN draft before emitting (MANDATORY)
+
+Run the 11 thinking red flags in `.claude/docs/architecture-knowledge.md` §20.3 against this design and every recommendation in it. Any hit invalidates the REASONING, not just the wording — fix the decision, not the sentence. The three that most often fire in this skill: **technology picked before the requirement was stated** · **cannot name what the recommendation SACRIFICES** · **designing for a scale you cannot evidence**. — why: a design that fails its own self-audit will pass review on presentation quality and fail in production on the unexamined assumption.
 
 <!-- SYNC:scenario-stress-eval -->
 
@@ -753,7 +955,16 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 - **Sequential Thinking:** multi-step Thought N/M with REVISION/BRANCH/HYPOTHESIS, confidence closer.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 
-**MANDATORY IMPORTANT MUST ATTENTION** execute ALL 12 main steps in order, tracking each — 1 Load Context (+mode) · 2 Derive Requirements (+quantified scenarios) · 3 Backend · 4 Frontend · 4B UI System (skip if backend-only) · 5 Library Ecosystem · 6 Testing · 7 CI/CD · 8 Observability · 9 Code Quality (+Scaffold Handoff table) · 10 Dependency Risk · 11 Generate Report (+ADRs) · 12 User Validation — NEVER skip, reorder, or merge a step without explicit user approval — why: the model keeps forgetting its own steps and silently drops mandatory gates.
+**MANDATORY IMPORTANT MUST ATTENTION** execute ALL 12 main steps in order, tracking each — 1 Load Context (+mode) · 2 Derive Requirements (+reversibility ranking, ≤3 driving attributes + sacrifices, 6-part quantified scenarios, 2-2 pre-decision interrogation, cost) · 3A Backend Styles (+selection procedure, modulith-first, extraction triggers) · 3B Backend Patterns · **3C Data & Consistency** (stores, one writer per dataset, consistency model + staleness budget, aggregate/transaction boundary, tenancy + isolation enforcement, keys/partitioning, expand–contract migrations, retention, RPO/RTO) · **3D Integration & APIs** (sync-vs-async, API style, versioning, contract tests, outbox/CDC, idempotency, event granularity, queue hygiene, timeouts/retries/breakers, degradation) · 4 Frontend · 4B UI System (skip if backend-only) · 5 Library Ecosystem · 6 Testing · 7 CI/CD (+release-safety rules) · 8 Observability · 9 Code Quality (+Scaffold Handoff table) · 10 Dependency Risk · 11 Generate Report (+ADRs) · 12 User Validation — NEVER skip, reorder, or merge a step without explicit user approval — why: the model keeps forgetting its own steps and silently drops mandatory gates.
+**MANDATORY IMPORTANT MUST ATTENTION** rank every decision by REVERSIBILITY first — one-way doors (data model + keys, tenancy, consistency model per read path, sync-vs-async at a boundary, public API/event contract, service boundaries, auth model, residency + retention) get an ADR + a Step-12 validation question; two-way doors get a decision and momentum — why: an unreviewed irreversible decision surfaces months later as a migration, and that is this skill's most expensive failure mode.
+**MANDATORY IMPORTANT MUST ATTENTION** reason FROM `.claude/docs/architecture-knowledge.md` (laws, quality-attribute TACTICS §2, coupling taxonomy + four coupling dimensions, module-design principles §4, style-selection triggers, isolation levels + coordination primitives §8-§9, trade-off cheat sheet, ~100-entry anti-pattern catalog, symptom→cause triage, judgment checklists §20) — but the project's OWN reference docs and accepted ADRs OUTRANK it on any conflict — why: universal reasoning must not be mistaken for binding project convention.
+**MANDATORY IMPORTANT MUST ATTENTION** interrogate BEFORE deciding and self-audit BEFORE emitting: run the 15 pre-decision questions (§20.1) on every one-way door — including question 15, "what would make this the WRONG choice, and how would I detect it?", which becomes the ADR's revisit trigger — **DESIGN IT TWICE** (≥2 materially different candidates per one-way door), then run the 11 thinking red flags (§20.3) against your own draft. Prescribe the TACTIC (§2), never the product — why: a first-idea design with no rejected alternative and no named falsifier is a belief, and a recommendation whose sacrifice you cannot name fails its own audit.
+**MANDATORY IMPORTANT MUST ATTENTION** name the ISOLATION LEVEL on every critical write path and protect every check-then-act invariant explicitly (constraint · `FOR UPDATE` · Serializable + retry · atomic conditional write) — Read Committed AND snapshot isolation both permit write skew; and any distributed lock/leader election MUST name its **fencing token**, lease duration and expiry behaviour — why: both defects pass every single-user test and corrupt data only under the concurrency production supplies.
+**MANDATORY IMPORTANT MUST ATTENTION** simplicity is the default; every layer, service, extra data store and abstraction must be BOUGHT with a named, quantified quality attribute — modulith-first, and distribute ONLY against a measured extraction trigger (never "the codebase feels big", never "microservices are best practice") — why: distribution bought speculatively pays every distributed cost immediately and collects the benefit never.
+**MANDATORY IMPORTANT MUST ATTENTION** name at most 3 DRIVING quality attributes AND the attributes being SACRIFICED, with the trade-off stated as "we accepted cost C to buy property P" — a design that claims to maximize everything has decided nothing — why: unnamed sacrifices resurface as production surprises nobody agreed to.
+**MANDATORY IMPORTANT MUST ATTENTION** any write-then-publish flow gets a transactional outbox or CDC (never a dual write), every consumer and unsafe mutation is idempotent (exactly-once delivery is impossible), every outbound call has a timeout with capped jittered retries, and every queue is bounded with a monitored DLQ — why: these four are the load-bearing correctness requirements of any async system and their absence passes all functional tests.
+**MANDATORY IMPORTANT MUST ATTENTION** in a pooled multi-tenant model, isolation is enforced at the LOWEST layer (row-level security / ORM global filter / mandatory repository base) with tenant derived from the authenticated principal, plus a test asserting cross-tenant reads return zero rows — NEVER developer discipline, NEVER a client-supplied `tenant_id` — why: one missing tenant predicate or tenant-less cache key is a cross-tenant breach that passes every functional test.
+**MANDATORY IMPORTANT MUST ATTENTION** an architectural rule not automatically verified is a SUGGESTION and will be violated within a quarter — every machine-checkable ADR constraint MUST land in the Step-9 Scaffold Handoff as an executable fitness function, and existing debt is paid with a CI RATCHET, never a promised cleanup sprint — why: governance by review meeting loses to governance by executable check, every time.
 **MANDATORY IMPORTANT MUST ATTENTION** research min 3 options per architecture concern with cited web evidence (stars, last release, downloads, CVE scan) — NEVER recommend from familiarity alone — why: familiarity bias ships unmaintained or insecure dependencies.
 **MANDATORY IMPORTANT MUST ATTENTION** validate decisions with user by asking the user directly (Step 12) — NEVER auto-decide a hard-to-reverse choice — why: the user owns hard-to-reverse decisions; the architect proposes, the user confirms.
 **MANDATORY IMPORTANT MUST ATTENTION** quantify Step-2 quality-attribute scenarios (latency p95/p99, throughput, SLO, RPO/RTO, growth, concurrency) — any unknown target becomes an explicit `Unresolved question`, NEVER a silent guess — why: a style chosen without numbers is a guess, not an enforceable decision.
@@ -773,6 +984,17 @@ After the existing `## Next Steps` prompt above resolves, present a **second**, 
 | "Small feature — skip the ADR / fitness check"       | Significant AND costly-to-reverse → needs an ADR + executable fitness rule, or it cannot be enforced. |
 | "Brownfield, but my preferred style is better"       | NEVER re-litigate a settled ADR-recorded decision without a superseding-ADR rationale.              |
 | "Found a nearby pattern, just copy it"               | Evaluate fit first — same scale/constraints/boundaries? Closest ≠ matching. Verify before reusing.  |
+| "Microservices are the modern default"               | Modulith-first. Distribution needs a named MEASURED trigger + CI/CD + tracing + a platform team.    |
+| "Split by entity — one service per aggregate"        | Entity-per-service guarantees a distributed monolith. Split by CAPABILITY / bounded context.        |
+| "Data details are an implementation concern"         | Data model, keys, tenancy and consistency model are the LEAST reversible decisions here (Step 3C).  |
+| "Write the DB, then publish the event"               | Dual write. Outbox or CDC — no exceptions (Step 3D).                                                |
+| "The broker gives us exactly-once"                   | Impossible. Effectively-once = idempotent consumers + dedup; assume duplicate + out-of-order.       |
+| "Eventual consistency is fine here"                  | Then state the STALENESS BUDGET and monitor it as an SLI. Unmeasured lag IS the defect.             |
+| "Add resilience / observability / cost later"        | Quality attributes decided in THIS pass. Retrofitting each one costs a redesign.                     |
+| "Pattern X is best practice, so include it"          | A pattern without its precondition IS an anti-pattern. Name the demonstrated pain it removes.        |
+| "One good candidate is enough"                        | Design it TWICE. A one-way door with a single candidate was not decided — and its ADR alternatives are advocacy. |
+| "The ORM handles transactions" / "we take a lock"     | Name the ISOLATION LEVEL and the FENCING TOKEN. Write skew and split brain pass every single-user test. |
+| "Use Kafka / Redis / K8s for that"                    | Prescribe the TACTIC (§2), not the product. Name the ordering/replay/durability property first.       |
 
 <!-- SYNC:scale-technique-gate -->
 

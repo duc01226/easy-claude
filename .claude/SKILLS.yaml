@@ -1,7 +1,7 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-07-29'
+  last_updated: '2026-07-30'
   total_skills: 161
   total_by_status:
     active: 160
@@ -30,7 +30,9 @@ skills:
     - name: architecture-design
       path: architecture-design/SKILL.md
       description: '[Architecture] Use when designing solution architecture across
-        backend, frontend, deployment, monitoring, testing, and code quality.'
+        backend, frontend, data & consistency, integration & APIs, deployment, monitoring,
+        testing, and code quality. Architecture laws, style-selection triggers, coupling
+        taxonomy, trade-off tables and the anti-pattern catalog live in `.claude/docs/architecture-knowledge.md`.'
       category: other
       has_scripts: false
       has_references: false
@@ -41,7 +43,10 @@ skills:
     - name: architecture-review
       path: architecture-review/SKILL.md
       description: '[Code Quality] Use when reviewing architecture compliance for
-        layers, messaging, service boundaries, CQRS, repos, and entity events.'
+        layers, messaging, service boundaries, CQRS, repos, entity events, and data/consistency/tenancy
+        boundaries. Universal architecture laws, coupling taxonomy and the anti-pattern
+        catalog live in `.claude/docs/architecture-knowledge.md` (project docs always
+        outrank it).'
       category: other
       has_scripts: false
       has_references: false
@@ -867,12 +872,14 @@ skills:
     - name: performance-review
       path: performance-review/SKILL.md
       description: '[Debugging] Use when analyzing or optimizing performance bottlenecks:
-        database queries, N+1 fan-out, indexing, API latency, memory, concurrency,
-        algorithmic complexity (O(n²)), frontend rendering, caching, and distributed
-        paths.'
+        database queries, N+1 fan-out, indexing, API latency, memory/GC, concurrency
+        and pool saturation, algorithmic complexity (O(n²)), network/protocol round
+        trips, frontend rendering and Core Web Vitals, caching, and distributed/resilience
+        paths. Calibration constants and domain laws (latency ladder, Little''s Law,
+        utilization knee, CWV thresholds, symptom→cause triage) live in references/performance-knowledge.md.'
       category: other
       has_scripts: false
-      has_references: false
+      has_references: true
       status: active
       deprecated_by: null
       deprecated_since: null

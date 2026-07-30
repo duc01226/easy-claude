@@ -1,6 +1,6 @@
 ---
 name: architecture-scalability-review
-version: 1.0.0
+version: 1.1.0
 description: '[Architecture] Use when grading project architecture and scalability quality for greenfield init or brownfield audit: build/CI scalability, distributed-monolith risk, module isolation, dependency discipline, loose coupling, horizontal scaling, DRY, abstraction, clean architecture, observability, and delivery.'
 ---
 
@@ -12,6 +12,7 @@ description: '[Architecture] Use when grading project architecture and scalabili
 
 - This skill is the scorecard OWNER, not the deep owner — it scores 10 areas 0-2 (`/20`), then routes sibling-owned depth (architecture-design/review, domain-analysis, performance-review, production-readiness-review, security-review, linter-setup, scaffold) via the Ownership Matrix; NEVER expand into a sibling's checklist.
 - Scoring is evidence-gated — `file:line`/command/artifact proof or explicit `N/A - reason`, else `0`; then 7 pass/fail gates (G1-G7) overlay the score without changing the `/20` math.
+- Before emitting, self-audit every grade against the 11 thinking red flags (`architecture-knowledge.md` §20.3) — a deduction for unevidenced scale, a tool named before the requirement, or a recommendation whose sacrifice you cannot state is re-derived or dropped, NEVER reworded. **A `— VERIFY` row or section banner in `architecture-knowledge.md` §3/§8/§9/§10 is UNVERIFIED** — it can never be the sole basis for a deduction; confirm against the named source or the project's own docs.
 - Two conditional advisory gates ride along — Technique Applicability + Scenario Stress — emitting guidance ONLY; NEVER mutate the `/20` score, verdict band, or gate pass/fail.
 - Runs in `mode=init` (planned greenfield architecture) or `mode=audit` (existing brownfield source/config/CI/ADR evidence).
 
@@ -146,7 +147,7 @@ Run these gates after scoring. Gates are pass/fail overlays and do not change th
 | G2 Build & CI Scalability | yes for init/audit scope with multi-module growth | Incremental/affected-only/caching strategy exists or a clear N/A rationale is documented. |
 | G3 Distributed-Monolith Risk | yes | Chosen architecture avoids service/module split with shared DB, circular sync calls, or deploy-together-only coupling disguised as distribution. |
 | G4 Boundary Enforcement | yes | Dependency direction and module boundaries are explicit and enforceable. |
-| G5 Horizontal Scaling Bottlenecks | yes for high-scale target | Statelessness, bottlenecks, SPOF, resource ceilings, and async/back-pressure posture are known and owned. |
+| G5 Horizontal Scaling Bottlenecks | yes for high-scale target | Statelessness, bottlenecks, SPOF, resource ceilings, and async/back-pressure posture are known and owned. **Also required: a named ESCAPE HATCH out of a metastable high-load state** (shed at the edge / drain-or-truncate the queue / warm the cache / restart at lower concurrency) — retry storms, cold caches and queue backlog form a self-sustaining loop that OUTLIVES its trigger, so removing load does not recover the system. **And latency evidence with no stated load-generation method cannot support a Pass — grade G5 `Partial` at best and ask for the method** (per `references/scorecard.md:38`; do NOT discard the figure as missing evidence) — because a harness that waits for slow responses deletes the worst samples (coordinated omission), so its p99 is a lie. |
 | G6 Reuse Without Coupling | no | Shared libraries/platform code reduce duplicated knowledge without leaking consumer domain concepts. |
 | G7 Secrets And Sensitive Output | yes | Audit report redacts credentials and does not expose secrets found during inspection. |
 
@@ -208,6 +209,8 @@ List only user-confirmed recommendations or mark `N/A`.
 4. **If the scorecard changed after validation:** re-run this gate — maximum 2 validation passes — until the remaining grades/findings are validated. No fix-loop: this skill grades and routes fixes to siblings; it never restarts a full review over its own fixes.
 
 **Anti-bias (MANDATORY before emitting):** steel-man each grade — argue the score should be one band better AND one band worse; a grade that survives its own steel-man ships. A scorecard whose grades were never challenged is not validated.
+
+**Self-audit against the thinking red flags (MANDATORY before emitting):** run the 11 red flags in `.claude/docs/architecture-knowledge.md` §20.3 against every grade, gap and recommendation. The four that fire most often in a scorecard: **grading down for a scale you cannot evidence** · **recommending a tool before stating the requirement** · **"best practice" with no named forces** · **cannot say what your recommendation SACRIFICES**. Any hit invalidates the GRADE's reasoning — re-derive it from evidence or drop the finding; NEVER just reword it. — why: an unevidenced deduction reads as rigour and sends the team to fix a problem they do not have.
 
 ## Completion Criteria
 
@@ -274,6 +277,29 @@ List only user-confirmed recommendations or mark `N/A`.
 
 <!-- /SYNC:goal-contract-satisfaction-loop -->
 
+<!-- SYNC:trade-off-interrogation-gate -->
+
+> **Trade-Off Interrogation Gate** — ALWAYS ask these THREE questions before ANY verdict, score, finding, or recommendation — about the thing under review AND about every recommendation YOU make. — why: naming a benefit without its price is an endorsement, not a review; the costliest trade-offs are the ones nobody wrote down.
+>
+> 1. **Is there any trade-off?** Name what it SACRIFICES. "None" / "pure win" is an unfinished analysis, NOT an answer — to claim none, state which dimensions you checked and why each is unaffected: future change cost · complexity · performance/latency · memory/cost · coupling · reversibility · migration burden · operational load · blast radius · security posture · testability · team skill/ramp · delivery time · UX.
+> 2. **Is it worth it?** Weigh gain against sacrifice EXPLICITLY — what is gained (with a metric) · what it costs · WHO pays · WHEN it comes due — then emit **WORTH IT / NOT WORTH IT / UNCLEAR**. "Better" with no metric and no cost FAILS this question. NOT WORTH IT → withdraw or replace the recommendation, never keep it as-is.
+> 3. **Is the trade-off material enough to CONFIRM WITH THE USER?** A material trade-off is the user's call, never yours. **MATERIAL** when ANY holds: irreversible / one-way door (data migration, public contract, storage format, vendor lock-in) · cost shifted onto someone else (another team, ops/on-call, future maintainer, end user) · one quality attribute traded for another (correctness↔speed, security↔convenience, latency↔cost, simplicity↔flexibility) · a boundary crossed (client↔server tier, service contract, event contract, shared library) · a high-consequence path (auth, money, data integrity, breaking change, High/Medium residual risk) · the worth-it verdict is UNCLEAR.
+>
+> **MATERIAL → STOP and confirm via `AskUserQuestion` BEFORE the verdict stands** — state the trade-off, both options, what each sacrifices, and your recommendation. **NOT material →** record it inline with a one-line justification and proceed.
+>
+> **Non-asking execution contexts — ESCALATE BY HANDOFF, never by silence.** `AskUserQuestion` reaches only the main interactive agent: a sub-agent cannot ask the user, and a terminal/verdict-only mode asks nothing by design. When you are running in such a context, the obligation is **redirected, never waived** — do ALL of: (a) complete questions 1 and 2 normally; (b) decide materiality and record it in the Trade-Off Assessment row with `confirmed? = NO — cannot ask from this context`; (c) **name the unconfirmed MATERIAL trade-off explicitly in your returned summary/verdict so the CALLER (or parent orchestrator) escalates it via `AskUserQuestion` on your behalf** — a material trade-off mentioned only inside a report file on disk is NOT a handoff; (d) do not emit an unqualified PASS — mark the verdict as carrying an unconfirmed material trade-off, so the caller's gate stays closed until the user answers. The caller inherits the escalation duty the moment it reads your return.
+>
+> This carve-out is about **reachability, not convenience**: it applies ONLY where the tool genuinely cannot reach the user (spawned sub-agent, terminal validate/verdict-only mode, non-interactive/headless run). It is NEVER a licence to skip the question, to self-approve a one-way door, or to downgrade materiality because asking is inconvenient — if you CAN ask, you MUST ask.
+>
+> **Emit a Trade-Off Assessment row** per reviewed decision and per recommendation: `| decision | sacrifices | gain (metric) | who pays, when | WORTH IT/NOT/UNCLEAR | material? | confirmed? |`.
+>
+> **BLOCKED until:** trade-off named (or dimensions-checked justification given) · worth-it verdict emitted · materiality decided · every MATERIAL trade-off either confirmed with the user OR — in a non-asking context — handed off in the returned verdict for the caller to confirm. A MATERIAL trade-off that is neither confirmed nor handed off can NEVER be PASS, and NEVER gets buried as a Low-severity note.
+>
+> **NEVER** answer "no trade-off" without checking · decide a material trade-off silently on the user's behalf · let convergence/delivery pressure authorize walking through a one-way door · bundle several material trade-offs into one vague "proceed?".
+
+<!-- /SYNC:trade-off-interrogation-gate -->
+
+
 <!-- SYNC:scale-technique-gate:reminder -->
 
 **IMPORTANT MUST ATTENTION** scale-technique gate: derive the scale tier from evidence FIRST (T0 internal · T1 <10k · T2 10k–1M · T3 millions+), then judge each warranted technique `PRESENT`/`MISSING-WARRANTED`/`N/A-by-scale`/`OVER-ENGINEERED`. Advise on warranted-but-missing gaps AND advise AGAINST unwarranted heavyweight techniques (anti-over-engineering). **ADVICE-ONLY — emit the Technique Applicability Matrix as guidance; NEVER mutate any score, verdict band, or gate pass/fail.** Full catalog → `.claude/docs/scale-technique-catalog.md` (authoritative for tier thresholds & per-technique warranting tiers — on any change update the catalog FIRST, then re-run `inject_scale_technique_gate.py`).
@@ -293,6 +319,15 @@ List only user-confirmed recommendations or mark `N/A`.
 
 <!-- /SYNC:goal-contract-satisfaction-loop:reminder -->
 
+<!-- SYNC:trade-off-interrogation-gate:reminder -->
+
+- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **is there any trade-off?** name what it SACRIFICES (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis, so state the dimensions checked; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it material enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm via `AskUserQuestion` BEFORE the verdict**.
+- **MANDATORY** A MATERIAL trade-off with no user confirmation can NEVER be PASS; NEVER bury one as a Low-severity note, NEVER decide it silently, and NEVER let delivery or convergence pressure authorize a one-way door. — why: an un-walked-back one-way door is the user's call to make, not the reviewer's.
+- **MANDATORY — non-asking contexts escalate BY HANDOFF, never by silence.** `AskUserQuestion` reaches only the main interactive agent: a sub-agent cannot ask the user, and a terminal/verdict-only mode asks nothing by design. There the duty is REDIRECTED, not waived — still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, **state the unconfirmed MATERIAL trade-off in your RETURNED verdict/summary so the CALLER escalates it** (a note only in an on-disk report is not a handoff), and never emit an unqualified PASS. Applies ONLY where the user is genuinely unreachable (spawned sub-agent, terminal validate mode, headless run) — if you CAN ask, you MUST ask.
+
+<!-- /SYNC:trade-off-interrogation-gate:reminder -->
+
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Grade project architecture & scalability quality on the evidence-backed scorecard — build/CI scalability, distributed-monolith risk, module isolation, dependency discipline, loose coupling, horizontal scaling, DRY, abstraction, clean architecture, observability, and delivery — routing sibling-owned depth (security, performance, production-readiness) rather than duplicating it.
@@ -306,3 +341,5 @@ List only user-confirmed recommendations or mark `N/A`.
 **IMPORTANT MUST ATTENTION** every score carries `file:line`/config/infra evidence or an explicit `N/A - reason`; confidence >80% to act, <60% do NOT recommend — NEVER present a guess as fact.
 **IMPORTANT MUST ATTENTION** the Technique Applicability Matrix is ADVISORY guidance only — advise on warranted-but-missing gaps AND advise AGAINST over-engineering below tier, but it NEVER changes the scorecard score, a verdict band, or a gate result (per user decision 2026-07-06).
 **IMPORTANT MUST ATTENTION** anti-over-engineering is first-class — a correctly-lean small system is a PASS, never a gap; do NOT recommend Kubernetes, sharding, multi-region, or service mesh below their warranting tier.
+**IMPORTANT MUST ATTENTION** self-audit every grade, gap and recommendation against the 11 thinking red flags (`.claude/docs/architecture-knowledge.md` §20.3) BEFORE emitting — a deduction for a scale you cannot evidence, a tool named before the requirement, "best practice" with no named forces, or a recommendation whose SACRIFICE you cannot state is re-derived from evidence or dropped, NEVER reworded — why: an unevidenced deduction reads as rigour and sends the team to fix a problem they do not have.
+**IMPORTANT MUST ATTENTION** G5 requires a named ESCAPE HATCH out of a metastable high-load state (shed / drain / warm / restart at lower concurrency) — a self-sustaining retry-cache-queue loop OUTLIVES its trigger, so load removal alone does not recover the system; and NEVER accept a latency number without knowing how the load was generated (coordinated omission deletes the worst samples).

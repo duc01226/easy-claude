@@ -1,7 +1,7 @@
 ---
 name: architecture-review
-version: 2.0.0
-description: '[Code Quality] Use when reviewing architecture compliance for layers, messaging, service boundaries, CQRS, repos, and entity events.'
+version: 2.2.0
+description: '[Code Quality] Use when reviewing architecture compliance for layers, messaging, service boundaries, CQRS, repos, entity events, and data/consistency/tenancy boundaries. Universal architecture laws, coupling taxonomy and the anti-pattern catalog live in `.claude/docs/architecture-knowledge.md` (project docs always outrank it).'
 ---
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -20,11 +20,12 @@ description: '[Code Quality] Use when reviewing architecture compliance for laye
 **Summary:**
 
 - **Purpose:** validate a changeset against architecture rules the project records in its OWN reference docs; classify every finding PASS/WARN/BLOCKED with `file:line` proof; self-validate before handoff — one reviewer in the `workflow-review-changes` pipeline.
-- **Main phases — run in order:** Phase 0 load architecture rules → Phase 1 determine scope → Phase 2 blast radius (if `graph.db`) → Phase 3 architecture review (12 categories) → Phase 4 finalize compliance report → Phase 5 `/why-review` self-validation gate → Next Steps `AskUserQuestion`.
-- **The 12 Phase-3 categories — review EVERY applicable one, serially:** 0 quality-tooling baseline · 1 clean-architecture layers · 2 message-bus patterns · 3 CQRS compliance · 4 repository patterns · 5 service-pattern era (legacy vs modern) · 6 entity event handlers · 7 service boundaries · 8 frontend architecture (frontend files only) · 9 ADR / recorded-decision conformance · 10 spec-loop discipline (property-TC + dual-feedback) · 11 scalability & coupling regression (diff-scoped; BLOCKED/WARN). Per category: `Think:` derivation → doc rule → source evidence → `file:line` proof + grep 3+ counterexamples → verdict. NEVER scan categories in parallel; codebase convention wins over a suspected violation. — why: skipping a category silently drops the violation class it uniquely covers.
+- **Main phases — run in order:** Phase 0 load architecture rules → Phase 1 determine scope → Phase 2 blast radius (if `graph.db`) → Phase 3 architecture review (13 categories) → Phase 4 finalize compliance report → Phase 5 `/why-review` self-validation gate → Next Steps `AskUserQuestion`.
+- **The 13 Phase-3 categories — review EVERY applicable one, serially:** 0 quality-tooling baseline · 1 clean-architecture layers · 2 message-bus patterns · 3 CQRS compliance · 4 repository patterns · 5 service-pattern era (legacy vs modern) · 6 entity event handlers · 7 service boundaries · 8 frontend architecture (frontend files only) · 9 ADR / recorded-decision conformance · 10 spec-loop discipline (property-TC + dual-feedback) · 11 scalability & coupling regression (diff-scoped; BLOCKED/WARN) · **12 data, consistency & tenancy boundaries (dual-write, idempotency, isolation level + write skew, unfenced lock, breaking migration, tenant isolation, dataset writer ownership; BLOCKED/WARN)**. Per category: `Think:` derivation → doc rule → source evidence → `file:line` proof + grep 3+ counterexamples → verdict. NEVER scan categories in parallel; codebase convention wins over a suspected violation. — why: skipping a category silently drops the violation class it uniquely covers.
 - Phase 0 is non-negotiable and first: load the project architecture docs (`backend-patterns-reference.md`, `project-structure-reference.md`, `frontend-patterns-reference.md`, `code-review-rules.md`) — every rule and base-class/symbol name comes from those docs, NEVER general knowledge; the framework names in Categories 2–8 are illustrative only.
+- **Universal reasoning comes from `.claude/docs/architecture-knowledge.md`** (coupling taxonomy + four coupling dimensions, distributed-monolith signature, module-design principles §4, isolation levels + coordination primitives §8-§9, ~100-entry anti-pattern catalog, symptom→root-cause triage, judgment checklists §20) — use it to RECOGNIZE a defect class, then prove it with `file:line`. **The project's own reference docs and accepted ADRs OUTRANK that catalog on every conflict — NEVER flag a deviation from the catalog as a project violation.** An anti-pattern match is a HYPOTHESIS until evidence plus the damaged quality attribute are both named. — why: pattern-shape matching without project grounding is exactly the guess-as-fact failure this skill exists to prevent.
 - Stay in lane: deep-review only what this skill OWNS (layers, messaging/CQRS/repos/service boundaries, entity events, frontend architecture, quality tooling, generated artifacts, ADRs); record a one-line `→ route to {sibling}` pointer for security/performance/DDD/UI/test findings instead of expanding them. — why: duplicated findings across reviewers inflate severity counts and bury issues each reviewer uniquely owns.
-- Read-only until validated: after producing any finding, run the Phase 5 `/why-review` self-validation gate before handoff; fixes happen only in the validated fix loop, and every fix restarts a full review from Phase 0. Write findings to `plans/reports/arch-review-{date}-{slug}.md`.
+- Read-only until validated: **self-audit every draft finding against the 11 thinking red flags (`architecture-knowledge.md` §20.3) FIRST** — a finding whose sacrifice/trade-off you cannot name, or that rests on "best practice", is demoted or deleted, never reworded — then run the Phase 5 `/why-review` self-validation gate before handoff; fixes happen only in the validated fix loop, and every fix restarts a full review from Phase 0. Write findings to `plans/reports/arch-review-{date}-{slug}.md`.
 
 **Default scope:** All uncommitted changes (staged + unstaged). Override: specify files, directories, services, or full codebase.
 
@@ -42,7 +43,7 @@ description: '[Code Quality] Use when reviewing architecture compliance for laye
 1. **Phase 0: Load Architecture Rules** — Read project architecture docs (rules come from docs, NEVER general knowledge)
 2. **Phase 1: Determine Scope** — Changed files (default) or user-specified scope
 3. **Phase 2: Blast Radius** — Run `/graph-blast-radius` if `graph.db` exists
-4. **Phase 3: Architecture Review** — Check each file serially against all 12 applicable categories (0 tooling → 11 scalability & coupling)
+4. **Phase 3: Architecture Review** — Check each file serially against all 13 applicable categories (0 tooling → 12 data, consistency & tenancy)
 5. **Phase 4: Finalize** — Generate compliance report with PASS/BLOCKED/WARN verdicts
 6. **Phase 5: Why-Review Self-Validation Gate** — Adversarially validate own findings via `/why-review` before handoff (MANDATORY when any finding exists)
 7. **Next Steps** — `AskUserQuestion`: `/code-simplifier` / `/code-review` / skip
@@ -125,6 +126,10 @@ When a finding clearly belongs to a sibling, record one-line `→ route to {skil
 - frontend files in scope → read `docs/project-reference/frontend-patterns-reference.md`
 - read `docs/project-reference/code-review-rules.md` — extract anti-patterns + review rules directly
 
+**Universal reasoning layer (secondary, never authoritative):** consult `.claude/docs/architecture-knowledge.md` for the coupling taxonomy + four coupling dimensions, the distributed-monolith detection signature, the ~100-entry anti-pattern catalog, and the symptom→root-cause triage matrix. Use it to RECOGNIZE a defect class the project docs do not name explicitly. **Honor its provenance markers in §3/§8/§9/§10:** a row or section banner marked `— VERIFY` is an UNVERIFIED assertion — it may seed a hypothesis, but NEVER quote it as the authority for a finding; confirm against the named source (or the project's own docs) first.
+
+> **MUST ATTENTION — precedence is absolute.** Project reference docs and accepted ADRs > the knowledge catalog > general knowledge. **NEVER report a deviation from the catalog as a project violation**, and NEVER let a catalog entry override an established, grepped codebase convention. Every catalog-derived observation is a HYPOTHESIS until you have BOTH `file:line`/config/topology evidence AND the named quality attribute it damages — otherwise record it as INFO or drop it. — why: universal patterns applied as project rules generate confident false positives, the most expensive output this skill can produce.
+
 ## Phase 1: Determine Scope
 
 **Default (no override):** Review all uncommitted changes.
@@ -178,10 +183,26 @@ MUST ATTENTION review serially. Per applicable category: read docs/source eviden
 - **Scope to the change (MUST ATTENTION):** On normal change-level review, *pre-existing* tooling gap unrelated to diff is WARN with single note — NEVER BLOCK whole review on standing, change-unrelated condition. Reserve BLOCKED for: new stack/service introduced by this change with no gate, change itself removing/breaking existing gate, or explicit full-codebase/greenfield audit scope. — why: change review that BLOCKs on unrelated standing gap produces noise that buries regression the diff actually introduced.
 - Before recommending tools, find current official/ecosystem setup and cite it; recommend capabilities first, tools second.
 
+**Fitness-function enforcement (architectural rules must be EXECUTABLE):** an architectural rule not automatically verified is a SUGGESTION and will be violated within a quarter. Check whether the project's own recorded architectural rules have a machine check — and whether THIS change adds a rule with no check:
+
+| Rule the project records | Fitness function expected (any equivalent counts) |
+| --- | --- |
+| Layer / dependency direction | Architecture test in CI (ArchUnit / NetArchTest / dependency-cruiser / import-linter / lint boundary rules) |
+| No module cycles | Cycle detection failing the build |
+| Domain purity | Assertion that the domain package imports no framework/ORM/HTTP namespace |
+| API / event schema compatibility | OpenAPI-or-protobuf diff gate · schema-registry backward-compat check · consumer contract tests |
+| Multi-tenant isolation | Test asserting a cross-tenant query returns zero rows (see Category 12) |
+| Resilience | "Every outbound call has a timeout" lint or test |
+| Performance / bundle budget | Latency-or-size assertion in the pipeline |
+
+- **WARN** when a recorded architectural rule has NO machine check and relies on review discipline alone. **BLOCKED** when this change REMOVES or disables an existing architecture/boundary check, or introduces a new enforced-by-prose-only boundary while the project already has a fitness-function mechanism available.
+- Existing violation backlog is fine if it is a RATCHET (new violations blocked, count only decrements) — a "cleanup later" comment with no gate is WARN.
+
 **Violation format:**
 
 ```
 BLOCKED: {stack} has no enforced lint/static-analysis/type-check quality gate ({evidenceFile}:{line})
+WARN: recorded architecture rule "{rule}" has no fitness function — enforced by review discipline only ({docFile}:{line})
 ```
 
 ---
@@ -196,11 +217,21 @@ BLOCKED: {stack} has no enforced lint/static-analysis/type-check quality gate ({
 - MUST ATTENTION verify business logic in correct layer: Entity/Domain > Service/Application > Controller/Component.
 - NEVER allow direct infrastructure access from Domain — keep repo interfaces in Domain, implementations in Persistence. — why: Domain depending on infrastructure inverts the dependency rule and couples core logic to a swappable detail.
 - NEVER allow business logic in API/Controller layer — push it down to Entity/Domain or Application.
+- **Module cycles (BLOCKED):** a cycle in the module/package dependency graph means the two modules ARE one deployable unit whatever the folder structure says. Detect with the graph (`trace --direction both`) or the project's dependency tool; flag any NEW cycle the diff introduces. — why: an unbroken cycle makes independent testing, release and extraction impossible, and it never gets easier to cut later.
+- **Domain purity (BLOCKED):** the domain layer MUST NOT import ORM attributes, HTTP types, SQL, serialization or framework namespaces. Grep the changed domain files for the infrastructure namespaces named in `backend-patterns-reference.md`.
+- **Shared/infra layer domain leak (BLOCKED):** a generic/shared/infrastructure layer MUST reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. **This leak compiles, runs, and passes functional tests while silently coupling the "reusable" layer to one consumer.** Fix by keeping the shared type domain-free and pushing domain fields down into the consumer via subclass/composition. — why: a layer coupled to one consumer's domain is no longer reusable, and every later consumer inherits the wrong abstraction.
+- **Cohesion / dumping ground (WARN):** a new or growing `Utils`/`Common`/`Shared`/`Helpers`/`Managers` module that everything imports is coincidental cohesion — it becomes the coupling hub and the cycle source. Test: "how many DIFFERENT reasons would make me edit this file?" More than one actor ⇒ split.
+- **Pass-through layer (WARN):** a layer that only forwards calls unchanged (sinkhole) adds cost with no responsibility — collapse it or give it a real job.
+- **Shallow module / pass-through method (WARN):** a new type whose public interface is nearly as large as its implementation, or a method that only forwards to the next layer with no added responsibility, earns nothing — it is interface cost with no hidden complexity. Judge module VALUE as *functionality hidden ÷ interface surface*: many tiny one-method classes ("classitis") raise total complexity while looking modular. Prefer pulling the complexity DOWNWARD into one deep module over spreading it across N call sites. — why: reviewers count classes and read it as modularity, so this defect is the one that survives review and then makes every future change touch five files.
+- **DIP placement (WARN, BLOCKED when the project's docs require it):** dependency inversion is only real when the **interface lives in the domain/policy package** and the adapter package depends inward. An interface declared beside its single implementation in the infrastructure package is a naming convention, not inversion — grep where the changed port/interface is DECLARED, not merely where it is used. — why: an interface in the infra package leaves the dependency arrow pointing the wrong way while the code reads as clean architecture.
+- **Wrong-abstraction extraction (WARN):** a diff that MERGES two code paths that look alike but change for DIFFERENT reasons creates a shared module with two actors. Duplication is cheaper than the wrong abstraction — require three real occurrences sharing the same reason to change (**rule of three**) before extracting. Verify against the project's own strategic-DRY decision before flagging. — why: a premature abstraction is defended by everyone who depends on it, so its cost compounds while duplication's cost stays linear.
 
 **Violation format:**
 
 ```
 BLOCKED: {layer} layer file {filePath}:{line} imports from {forbiddenLayer} layer ({importStatement})
+BLOCKED: {filePath}:{line} introduces module cycle {A} → {B} → {A}
+BLOCKED: shared/infra {filePath}:{line} references consumer domain concept {concept} — shared layer must stay domain-free
 ```
 
 ---
@@ -232,11 +263,28 @@ BLOCKED: {layer} layer file {filePath}:{line} imports from {forbiddenLayer} laye
 - Messages requiring ordered processing MUST set project's ordered-delivery / sub-queue partition key to meaningful value (resolve concrete API from `backend-patterns-reference.md`).
 - Unordered messages leave it unset / null.
 
+**Reliable publication — dual write (BLOCKED):**
+
+- **NEVER write the database and publish a message as two independent operations.** Any changed flow that commits state AND publishes MUST go through the project's inbox/outbox mechanism or CDC (verify the project's inbox/outbox enablement config — see `backend-patterns-reference.md`). — why: **dual write fails silently in both directions** — DB commits + publish fails ⇒ downstream never learns and diverges forever; publish succeeds + DB rolls back ⇒ phantom downstream data referencing a row that does not exist. Neither failure appears in tests or logs.
+- **Consumer idempotency (BLOCKED):** exactly-once DELIVERY is impossible, so at-least-once is what the bus gives you. Every changed consumer MUST be idempotent — dedup on message ID with a TTL, a version/sequence check that discards backward transitions, or a naturally idempotent write (`SET status = 'paid'`, never `balance += x`). Grep the handler for the project's dedup primitive. — why: a non-idempotent consumer produces duplicate side effects — double charge, double email, double shipment — only under redelivery, which is exactly when nobody is watching.
+- **Poison message + queue bounds (WARN):** capped retries with exponential backoff **and jitter**, then DLQ; DLQ depth monitored. Flag unbounded queues, uncapped/infinite retry, and unjittered retry (synchronizes into a thundering herd). A DLQ nobody watches is data loss with extra steps.
+- **Command-in-event-costume (WARN):** an "event" with exactly ONE permitted consumer that MUST handle it, whose failure means the business flow failed, is a command misnamed as an event — you pay async debugging difficulty AND keep the sync coupling. Flag the naming, route the redesign to `domain-analysis`.
+- **Raw-row events (WARN):** publishing internal DB rows/columns as the event contract (CDC with no mapping layer) freezes your schema as a public contract by Hyrum's Law — consumers then depend on columns you can never rename.
+- **Durability acknowledgement weakened (BLOCKED when a diff lowers it, WARN when newly introduced):** a change to producer ack mode, replication factor, or min-in-sync-replicas that accepts data loss on leader failure. `acks=1` loses the message when the leader dies before replication; **`acks=all` waits for every replica CURRENTLY in the ISR, so `min.insync.replicas` is the FLOOR that decides whether a shrunken ISR rejects the write or accepts it with no error** — with `min.insync=1` a healthy 3-replica ISR still waits for 3, but durability DEGRADES to `acks=1` the moment the ISR shrinks to the leader alone. Check BOTH values together, never one alone, and flag the degradation path rather than asserting an unconditional equivalence. — why: the config reads as durable while the guarantee is not, and the loss appears only during the failover nobody rehearsed.
+- **Ordering/replay assumption unmet (WARN):** a changed consumer that assumes global ordering when the broker gives ordering only per partition key, or that assumes replay is available on a consume-and-gone queue. Verify the required ordering scope (global / per-entity / none) and replay window against the project's broker config. Queue-vs-log semantics → `.claude/docs/architecture-knowledge.md` §10.
+
 **Also verify:**
 
 - NEVER direct cross-service DB access — MUST use message bus. — why: direct DB reach couples services and bypasses ownership boundaries.
 - last-sync-timestamp field on message used for conflict resolution in consumers (resolve concrete field from `backend-patterns-reference.md`).
-- Inbox/Outbox pattern for reliable delivery (verify project's inbox/outbox enablement config — see `backend-patterns-reference.md`).
+- Event schema changes are backward-compatible (a rolling deploy runs old and new consumers simultaneously) — a breaking schema change with no versioning or compatibility gate is BLOCKED.
+
+**Violation format:**
+
+```
+BLOCKED: {filePath}:{line} writes DB then publishes without outbox/CDC — dual write, silent divergence on partial failure
+BLOCKED: {filePath}:{line} consumer is not idempotent — no dedup/version check under at-least-once delivery
+```
 
 ---
 
@@ -330,11 +378,15 @@ BLOCKED: {filePath}:{line} uses the generic root-repository base instead of the 
 - Cross-service communication via message bus only (event bus or request bus).
 - Shared data through shared message projects, NOT direct references.
 - Verify service-to-DB mapping from `project-structure-reference.md`.
+- **One writer per dataset (BLOCKED):** every dataset has exactly ONE owning service/module that writes it. Many READERS are fine — via API, replica, or published event stream. Flag any change that adds a second writer to a dataset owned elsewhere. — why: shared write access is shared coupling with NO contract; the data then diverges and no layer owns correctness.
+- **Shared domain library (WARN):** a change making many services depend on one shared *domain* library forces lockstep deploys — that is deployment + semantic coupling, not reuse. Small duplicated DTOs are cheaper; share only genuinely generic technical utilities. Verify against the project's own strategic-DRY decision before flagging.
+- **Entity-shaped boundaries (WARN):** a new service/module named for a NOUN (`UserService`, `ProductService`) doing CRUD signals boundaries drawn around data instead of capabilities — it guarantees real use cases must synchronously traverse many services. Flag the smell; route the re-modeling to `domain-analysis`.
 
 **Violation format:**
 
 ```
 BLOCKED: {filePath}:{line} references {otherService} domain/persistence directly — must use message bus
+BLOCKED: {filePath}:{line} writes {dataset} owned by {otherService} — second writer, no contract
 ```
 
 ---
@@ -367,12 +419,14 @@ Verify against `frontend-patterns-reference.md` (Phase 0, frontend files); concr
 - Per changed file, check conformance against those constraints — grep the diff for reintroduced rejected options or forbidden references; cite `file:line`.
 - **BLOCKED** when change contradicts an accepted ADR's binding decision and no superseding ADR exists. Correct way to change a recorded decision = new superseding ADR (per `docs/adr/0001` lifecycle), NEVER a silent violation in the diff. — why: silent ADR violations erode the decision record and let rejected options creep back unreviewed.
 - **WARN** when change drifts from a recorded guideline, or is NFR-impacting against a recorded budget — flag it and route depth check to `performance-review`/`security-review`.
-- No ADRs exist → record "No recorded ADRs — conformance N/A" and skip (this category NEVER blocks a project that has chosen not to keep ADRs).
+- **New one-way door with NO ADR (WARN, or BLOCKED when the project mandates ADRs):** when the diff makes a decision that is expensive to REVERSE and no ADR records it, flag it. One-way doors: a new data model or primary-key strategy · a tenancy-model change · a consistency-model change on a read path · a NEW sync-vs-async choice at a boundary · a new public API or event contract · a new service boundary · a new cloud-primitive lock-in · an auth/identity model change · a data residency or retention decision. — why: an unrecorded irreversible decision cannot be enforced by this category later, and the next engineer relitigates or silently breaks it.
+- No ADRs exist → record "No recorded ADRs — conformance N/A" and skip (this category NEVER blocks a project that has chosen not to keep ADRs). Do NOT retroactively demand ADRs for pre-existing decisions on a change-level review — scope to what the diff decides.
 
 **Violation format:**
 
 ```
 BLOCKED: {filePath}:{line} contradicts {adr-id} ("{decision}") with no superseding ADR
+WARN: {filePath}:{line} makes a hard-to-reverse decision ({decision}) with no recorded ADR
 ```
 
 ---
@@ -399,7 +453,21 @@ BLOCKED: {filePath}:{line} [HARD] {rule/invariant} has no property TC (spec axis
 
 **Think:** Does this diff introduce a new **sync cross-context** call, shared-DB reach, statefulness, or copy-pasted cross-context logic that regresses module isolation, loose coupling, or horizontal scaling — turning a clean boundary into **distributed-monolith** coupling?
 
+**Judge the FOUR coupling dimensions SEPARATELY — low code coupling proves nothing on its own:**
+
+| Dimension | Question | Evidence to pull |
+| --- | --- | --- |
+| **Code** | Who imports whom? Any cycle? | Import graph / `trace --direction both` |
+| **Temporal (runtime)** | Must both be UP at once? A sync chain makes your SLO the PRODUCT of the chain's | Call graph across the boundary, sync vs async |
+| **Semantic (contract)** | Does a change in their MEANING force a change in mine? | Shared schema, shared entity/domain lib, shared enum |
+| **Operational (deployment)** | Must these ship TOGETHER? If yes they ARE one service | Release coordination, shared version pin |
+
+> **Distributed-monolith signature (BLOCKED when the diff moves the system toward it):** LOW code coupling + HIGH temporal + semantic + deployment coupling. Concrete detection: services that must release together · a shared database or shared entity/domain library · a request synchronously traversing ≥4 services · one team blocked by another's deploy · "we roll back all services together." — why: it pays every distributed cost and buys none of the benefits; it is the most expensive and most common modern architecture failure, and every diff that deepens it makes the exit harder.
+
 - **BLOCKED** when a change adds a NEW forbidden cross-context dependency, a circular context dependency, or a direct **sync cross-context** call where the recorded architecture requires an event/message or an owned contract (producer calling consumer directly — "I call you" instead of "you listen to me").
+- **BLOCKED** when the diff adds a NEW outbound network call, lock or long query with **no timeout** — a missing timeout is the single most common resilience defect, and the dangerous dependency failure is SLOW, not down: it exhausts your pool while every health check stays green. Also flag uncapped or unjittered retries on the new call, and retries on a NON-idempotent operation.
+- **BLOCKED** when the diff deepens a synchronous chain to ≥4 hops, or adds a sync hop to a path the recorded architecture requires to be async. Availability MULTIPLIES down a sync chain (five 99.9% deps ⇒ ~99.5%) and latency SUMS.
+- **WARN** for a new connascence of **Value** or **Timing** ACROSS a boundary (two services that must change a value together, or that depend on execution order). That is a BOUNDARY error, not a bug to patch — either the invariant belongs in one transactional boundary, or it must be made eventual ON PURPOSE with a designed compensating action. Route the redesign to `domain-analysis`.
 - **BLOCKED** when a change makes a previously **stateless**/scalable path stateful in a way that breaks horizontal scaling — in-memory session/cache assumed node-local, sticky-instance state, a new SPOF, or unbounded fan-out on a hot path — where the ADR/scale budget requires statelessness.
 - **WARN** for **cross-context duplication** (copy-pasted domain rule/util across contexts — a DRY regression), a new shared-DB read across a boundary, or a distributed-monolith smell with weaker evidence; record the smell and route the deep fix.
 - **Detect-only smells → route, do NOT deep-analyze here:** local hot-path/query/N+1 latency → `performance-review`; rollout/capacity/SRE/runtime readiness → `production-readiness-review`; bounded-context / aggregate re-modeling → `domain-analysis`; auth/secret/tenant-boundary coupling → `security-review`. This category flags the regression at `file:line`; the sibling owns the depth. — why: a diff reviewer that re-runs full capacity/DDD analysis blows its context and duplicates the sibling's job.
@@ -413,6 +481,69 @@ WARN: {filePath}:{line} cross-context duplication of {rule/util} — DRY regress
 ```
 
 **Technique applicability (advisory — INFO, does NOT alter this category's verdict):** When the diff touches a scale-sensitive surface, invoke `SYNC:scale-technique-gate` — derive the scale tier from evidence, then emit the Technique Applicability Matrix as an **INFO/advisory** block noting warranted-but-missing techniques and any `OVER-ENGINEERED` ones. This is guidance only: it is NEVER a BLOCKED/WARN finding, does NOT change the Category 11 severity, and does NOT feed the Phase 4 verdict table. A `MISSING-WARRANTED` technique is advice to consider, not a regression. Full catalog → `.claude/docs/scale-technique-catalog.md`.
+
+---
+
+### Category 12: Data, Consistency & Tenancy Boundaries — Severity: BLOCKED/WARN
+
+> **Diff-scoped, and the LEAST reversible category.** Data outlives every service, framework and team: a defect here is a future data migration, a silent divergence, or a cross-tenant breach — never a simple refactor. Skip ONLY when the diff touches no persistence, no consistency boundary, no message consumer and no tenant-scoped data. Overlaps by design with Category 2 (dual write / idempotency at the messaging layer) and Category 7 (dataset writer ownership) — record the finding ONCE in the category that owns the mechanism, and cross-reference.
+
+**Think:** Does this diff write state and publish without atomicity? Can it be replayed safely? **Is the isolation level named, and is every check-then-act invariant actually protected?** Does any lock or leadership claim carry a fencing token? Does every query and cache key carry the tenant? Does a schema change survive a rolling deploy? Is any read path newly stale with no declared budget?
+
+**Consistency & atomicity (BLOCKED):**
+
+- **Dual write** — state committed to the DB *and* a message/webhook/second-store write performed as two independent operations, with no outbox/CDC. Cross-reference Category 2. — why: it diverges silently in both directions and no test catches it.
+- **Non-idempotent consumer or mutation** — a changed message handler or unsafe endpoint with no dedup key, version check, or naturally idempotent write, under at-least-once delivery or client retry. Cross-reference Category 2.
+- **Cross-network transaction** — a database transaction held OPEN across an HTTP/RPC/queue call. Locks held during I/O convert one slow dependency into a database-wide stall.
+- **2PC/XA introduced across services** — flag it; the correct shape is saga + outbox + compensation. And a compensation must be a NEW BUSINESS FACT (`RefundIssued`), not a pretend rollback of a real-world side effect.
+- **Unprotected check-then-act (write skew / lost update)** — a changed path that READS state, decides, then WRITES based on that read, inside a transaction at Read Committed or snapshot isolation, with no protecting mechanism. **Neither Read Committed nor snapshot isolation prevents write skew**: two concurrent transactions both pass the check and both write. The change is correct only if it uses ONE of: a DB **constraint** (unique/check/exclusion) · `SELECT … FOR UPDATE` on the rows read · **Serializable** isolation *with* app-side handling of serialization failures · a single atomic conditional write (`UPDATE … WHERE version = n` / `WHERE stock > 0`). Grep the changed handler for the project's transaction/isolation primitive and 3+ existing examples before flagging. Anomaly table → `.claude/docs/architecture-knowledge.md` §8. — why: this is the classic on-call data-corruption bug — it passes every single-user test and fires only under production concurrency.
+- **Range invariant guarded by row locks** — an invariant over rows that DO NOT YET EXIST (no double-booking, no overlapping interval, at most N per tenant) cannot be protected by locking the rows you read. Requires a constraint, an exclusion index, a materializing lock row, or Serializable. NEVER accept "we check before inserting" as protection.
+- **Unfenced distributed lock / leader election** — a changed flow that takes a distributed lock or relies on leadership without a **monotonic fencing token the storage layer rejects when stale**, a stated lease duration, and defined behaviour when the lease expires mid-operation. A GC or VM pause makes a dead holder believe it is still the holder ⇒ split brain. Also flag consensus/quorum cluster SIZING: quorum is `⌊N/2⌋+1`, so an even-sized cluster tolerates no more failures than the odd size below it (4 tolerates 1, same as 3) while paying an extra node and a larger quorum, and a **2-node cluster tolerates ZERO** failures — strictly worse than 1 node. Flag the wasted/harmful sizing; NEVER claim an even-sized cluster cannot reach a majority or make progress. — why: an unfenced lock fails exactly once — under the pause, at peak, writing corrupted state — and it looks correct in every test.
+- **Wall-clock ordering or expiry (WARN, BLOCKED when correctness depends on it)** — ordering distributed events, resolving conflicts, or computing lock/lease expiry from a wall clock (`now()`, request timestamps from another host). Use per-entity versions/sequences, logical/Lamport or vector clocks, an HLC, or a bounded-uncertainty clock; measure elapsed time with a MONOTONIC clock. Also flag a new multi-leader/multi-region write path with no named conflict-resolution rule. — why: clocks in a distributed system disagree without bound, so "latest timestamp wins" silently discards writes.
+
+**Staleness (WARN):**
+
+- A newly eventually-consistent read path with **no declared, monitored staleness budget** — unbounded, unmeasured lag IS the defect.
+- A read-after-write path newly routed to a replica with no **read-your-writes** guarantee (sticky read / read-from-primary / version token). Most user-visible "consistency bugs" are this, not missing linearizability.
+
+**Tenant isolation (BLOCKED — treat as a security-adjacent defect):**
+
+- A tenant-scoped query, repository method, projection, background job, export or report with **no tenant predicate**, where the project's mechanism (row-level security / ORM global filter / mandatory repository base) does not automatically apply it. **One missing `WHERE tenant_id = ?` is a cross-tenant breach that passes every functional test.**
+- `tenant_id` (or user/role/price) taken from a **client-supplied field** rather than the authenticated principal. Cross-reference `security-review` for authz depth — this category owns only the BOUNDARY placement.
+- A cache, memo, or shared in-memory map keyed WITHOUT the tenant/identity/permission dimension. **Cache-key omission is a recurring cross-tenant leak vector that no functional test detects.**
+- **WARN** when a tenant-isolation change lands with no test asserting a cross-tenant read returns ZERO rows (the fitness function from Category 0).
+
+**Migrations & schema (BLOCKED):**
+
+- A **breaking schema change in one deploy** — column/table dropped or renamed, type narrowed, or NOT NULL added without a default — while the deployment strategy is rolling/canary. Both versions run simultaneously; this breaks old pods and makes rollback impossible. The required shape is **expand–contract**: add nullable → dual write → backfill → switch reads → stop writing old → drop, in separate deploys.
+- A migration that is not forward-only/idempotent, or that blocks writes on a large table with no online/batched strategy.
+
+**Data-access structure (WARN — route depth to `performance-review`):**
+
+- Unbounded query with no DB-side filter or pagination on a path whose result set grows with data (OOM and latency both scale with the table). **Check row COUNT before row SIZE** — pushing the filter to the DB beats projecting columns.
+- Deep `OFFSET` pagination where keyset/cursor is available; a new query filter/FK/sort column with no index; analytics query newly added against the OLTP primary.
+- Distributed cache treated as the source of truth (data unrecoverable after eviction/restart), or a new unbounded cache with no max size/eviction.
+- A new denormalized copy with no named mechanism keeping it correct.
+
+**Lifecycle (WARN):**
+
+- New PII/PHI/PCI-class field with no classification, retention, residency or deletion story — retrofitting erasure into a denormalized or event-sourced store is brutally expensive, and erasure conflicts with immutable event stores by design.
+- New public identifier exposing an internal sequential PK (enumerable, leaks volume).
+
+**Violation format:**
+
+```
+BLOCKED: {filePath}:{line} writes {store} then publishes {message} without outbox/CDC — dual write
+BLOCKED: {filePath}:{line} tenant-scoped query has no tenant predicate and no enforced filter — cross-tenant read possible
+BLOCKED: {filePath}:{line} cache key omits tenant/identity dimension ({key}) — cross-tenant leak
+BLOCKED: {migrationFile}:{line} drops/renames {column} in one deploy under rolling release — use expand–contract
+BLOCKED: {filePath}:{line} check-then-act at {isolationLevel} with no constraint/FOR UPDATE/Serializable/conditional write — write skew possible
+BLOCKED: {filePath}:{line} distributed lock taken with no fencing token or lease-expiry handling — split brain possible
+WARN: {filePath}:{line} orders/expires distributed events by wall clock — use versions/sequences or a logical clock
+WARN: {filePath}:{line} new eventually-consistent read path with no declared staleness budget or SLI
+```
+
+**MUST ATTENTION** every Category-12 finding still obeys the evidence gate: read the actual query/handler/migration, grep 3+ existing examples of the project's tenant-filter and outbox primitives, and confirm the mechanism is NOT already applied automatically at a lower layer before flagging. — why: projects that enforce tenancy in a repository base or via row-level security will show no predicate at the call site and are CORRECT — flagging those is the highest-noise false positive available in this category.
 
 ---
 
@@ -476,6 +607,8 @@ Update report with final sections:
 - Frontend Architecture: {PASS/WARN/BLOCKED/N/A}
 - ADR / Recorded-Decision Conformance: {PASS/WARN/BLOCKED/N/A}
 - Spec-Loop Discipline (property-TC + dual-feedback): {PASS/WARN/BLOCKED}
+- Scalability & Coupling Regression (4 coupling dimensions): {PASS/WARN/BLOCKED}
+- Data, Consistency & Tenancy Boundaries: {PASS/WARN/BLOCKED/N/A}
 - Technique applicability (advisory — INFO, does NOT alter verdict): {matrix summary or N/A-by-scale}
 ```
 
@@ -520,6 +653,8 @@ Per changed file:
 3. Read validation verdict path returned by why-review, expected as `plans/reports/why-review-validate-{date}.md`
 4. **why-review demotes/removes any finding →** UPDATE own finalized report with revised severities, remove false positives, add `## Why-Review Validation Notes` section citing what changed + why.
 5. **why-review confirms all findings →** Append `## Why-Review Validation` line to own report stating "All N findings re-validated against actual code; no severity changes."
+
+**Self-audit your OWN findings FIRST (before invoking why-review):** run the 11 thinking red flags in `.claude/docs/architecture-knowledge.md` §20.3 against each draft finding and each recommendation. The four that fire most often in this skill: **you cannot name what your recommendation SACRIFICES** · **you say "best practice" instead of naming the forces it balances** · **you flagged a scale problem you cannot evidence** · **you are treating a two-way door as irreversible**. Any hit invalidates the REASONING — demote or delete the finding, do not reword it. — why: a finding that survives only because it sounds authoritative consumes the team's fix budget and trains them to ignore the report.
 
 **Skip conditions (record explicit reason if skipping):**
 
@@ -1104,6 +1239,29 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:goal-contract-satisfaction-loop -->
 
+<!-- SYNC:trade-off-interrogation-gate -->
+
+> **Trade-Off Interrogation Gate** — ALWAYS ask these THREE questions before ANY verdict, score, finding, or recommendation — about the thing under review AND about every recommendation YOU make. — why: naming a benefit without its price is an endorsement, not a review; the costliest trade-offs are the ones nobody wrote down.
+>
+> 1. **Is there any trade-off?** Name what it SACRIFICES. "None" / "pure win" is an unfinished analysis, NOT an answer — to claim none, state which dimensions you checked and why each is unaffected: future change cost · complexity · performance/latency · memory/cost · coupling · reversibility · migration burden · operational load · blast radius · security posture · testability · team skill/ramp · delivery time · UX.
+> 2. **Is it worth it?** Weigh gain against sacrifice EXPLICITLY — what is gained (with a metric) · what it costs · WHO pays · WHEN it comes due — then emit **WORTH IT / NOT WORTH IT / UNCLEAR**. "Better" with no metric and no cost FAILS this question. NOT WORTH IT → withdraw or replace the recommendation, never keep it as-is.
+> 3. **Is the trade-off material enough to CONFIRM WITH THE USER?** A material trade-off is the user's call, never yours. **MATERIAL** when ANY holds: irreversible / one-way door (data migration, public contract, storage format, vendor lock-in) · cost shifted onto someone else (another team, ops/on-call, future maintainer, end user) · one quality attribute traded for another (correctness↔speed, security↔convenience, latency↔cost, simplicity↔flexibility) · a boundary crossed (client↔server tier, service contract, event contract, shared library) · a high-consequence path (auth, money, data integrity, breaking change, High/Medium residual risk) · the worth-it verdict is UNCLEAR.
+>
+> **MATERIAL → STOP and confirm via `AskUserQuestion` BEFORE the verdict stands** — state the trade-off, both options, what each sacrifices, and your recommendation. **NOT material →** record it inline with a one-line justification and proceed.
+>
+> **Non-asking execution contexts — ESCALATE BY HANDOFF, never by silence.** `AskUserQuestion` reaches only the main interactive agent: a sub-agent cannot ask the user, and a terminal/verdict-only mode asks nothing by design. When you are running in such a context, the obligation is **redirected, never waived** — do ALL of: (a) complete questions 1 and 2 normally; (b) decide materiality and record it in the Trade-Off Assessment row with `confirmed? = NO — cannot ask from this context`; (c) **name the unconfirmed MATERIAL trade-off explicitly in your returned summary/verdict so the CALLER (or parent orchestrator) escalates it via `AskUserQuestion` on your behalf** — a material trade-off mentioned only inside a report file on disk is NOT a handoff; (d) do not emit an unqualified PASS — mark the verdict as carrying an unconfirmed material trade-off, so the caller's gate stays closed until the user answers. The caller inherits the escalation duty the moment it reads your return.
+>
+> This carve-out is about **reachability, not convenience**: it applies ONLY where the tool genuinely cannot reach the user (spawned sub-agent, terminal validate/verdict-only mode, non-interactive/headless run). It is NEVER a licence to skip the question, to self-approve a one-way door, or to downgrade materiality because asking is inconvenient — if you CAN ask, you MUST ask.
+>
+> **Emit a Trade-Off Assessment row** per reviewed decision and per recommendation: `| decision | sacrifices | gain (metric) | who pays, when | WORTH IT/NOT/UNCLEAR | material? | confirmed? |`.
+>
+> **BLOCKED until:** trade-off named (or dimensions-checked justification given) · worth-it verdict emitted · materiality decided · every MATERIAL trade-off either confirmed with the user OR — in a non-asking context — handed off in the returned verdict for the caller to confirm. A MATERIAL trade-off that is neither confirmed nor handed off can NEVER be PASS, and NEVER gets buried as a Low-severity note.
+>
+> **NEVER** answer "no trade-off" without checking · decide a material trade-off silently on the user's behalf · let convergence/delivery pressure authorize walking through a one-way door · bundle several material trade-offs into one vague "proceed?".
+
+<!-- /SYNC:trade-off-interrogation-gate -->
+
+
 <!-- SYNC:evidence-based-reasoning:reminder -->
 
 **IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim. Confidence >80% to act, <60% = do NOT recommend.
@@ -1213,6 +1371,15 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:goal-contract-satisfaction-loop:reminder -->
 
+<!-- SYNC:trade-off-interrogation-gate:reminder -->
+
+- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **is there any trade-off?** name what it SACRIFICES (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis, so state the dimensions checked; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it material enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm via `AskUserQuestion` BEFORE the verdict**.
+- **MANDATORY** A MATERIAL trade-off with no user confirmation can NEVER be PASS; NEVER bury one as a Low-severity note, NEVER decide it silently, and NEVER let delivery or convergence pressure authorize a one-way door. — why: an un-walked-back one-way door is the user's call to make, not the reviewer's.
+- **MANDATORY — non-asking contexts escalate BY HANDOFF, never by silence.** `AskUserQuestion` reaches only the main interactive agent: a sub-agent cannot ask the user, and a terminal/verdict-only mode asks nothing by design. There the duty is REDIRECTED, not waived — still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, **state the unconfirmed MATERIAL trade-off in your RETURNED verdict/summary so the CALLER escalates it** (a note only in an on-disk report is not a handoff), and never emit an unqualified PASS. Applies ONLY where the user is genuinely unreachable (spawned sub-agent, terminal validate mode, headless run) — if you CAN ask, you MUST ask.
+
+<!-- /SYNC:trade-off-interrogation-gate:reminder -->
+
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Ensure changes preserve architecture boundaries, ownership, message flow, and generated artifact integrity before handoff — validating changed code against layers, service boundaries, message flow, CQRS, repositories, entity events, frontend architecture, generated artifacts, recorded architecture decisions (ADRs), and quality tooling.
@@ -1236,8 +1403,13 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 **IMPORTANT MUST ATTENTION** read project architecture docs in Phase 0 BEFORE reviewing — every rule and base-class/symbol name comes from `backend-patterns-reference.md` / `project-structure-reference.md` / `frontend-patterns-reference.md` / `code-review-rules.md`, NEVER general knowledge — why: hardcoded framework names rot on rename and break portability to other repos.
 **IMPORTANT MUST ATTENTION** every violation requires `file:line` proof + confidence >80% (60-80% verify first, <60% do NOT recommend); grep 3+ existing counterexamples before flagging — codebase convention wins. NEVER speculate — instead state "Insufficient evidence. Verified: [...]. Not verified: [...]."
-**IMPORTANT MUST ATTENTION** review serially, one category at a time (Cat 0 tooling baseline → Cat 11 scalability & coupling): doc rule → source evidence → `Think:` derivation → PASS/WARN/BLOCKED. NEVER scan categories simultaneously — why: parallel scanning collapses per-category evidence and drops findings.
-**IMPORTANT MUST ATTENTION** Phase 3 has 12 categories — review EVERY applicable one, NEVER stop early: 0 quality-tooling · 1 clean-architecture layers · 2 message-bus · 3 CQRS · 4 repositories · 5 service-pattern era · 6 entity event handlers · 7 service boundaries · 8 frontend architecture (frontend files only) · 9 ADR conformance · 10 spec-loop discipline · 11 scalability & coupling regression — why: a skipped category silently drops the violation class it uniquely covers.
+**IMPORTANT MUST ATTENTION** review serially, one category at a time (Cat 0 tooling baseline → Cat 12 data, consistency & tenancy): doc rule → source evidence → `Think:` derivation → PASS/WARN/BLOCKED. NEVER scan categories simultaneously — why: parallel scanning collapses per-category evidence and drops findings.
+**IMPORTANT MUST ATTENTION** Phase 3 has 13 categories — review EVERY applicable one, NEVER stop early: 0 quality-tooling (+fitness functions) · 1 clean-architecture layers (+module cycles, domain purity, shared-layer domain leak, shallow/pass-through modules, DIP interface placement) · 2 message-bus (+dual-write, consumer idempotency, durability acks) · 3 CQRS · 4 repositories · 5 service-pattern era · 6 entity event handlers · 7 service boundaries (+one writer per dataset) · 8 frontend architecture (frontend files only) · 9 ADR conformance (+unrecorded one-way door) · 10 spec-loop discipline · 11 scalability & coupling regression (+4 coupling dimensions, distributed-monolith signature, missing timeouts) · **12 data, consistency & tenancy boundaries (dual write, idempotency, isolation level + check-then-act/write skew, unfenced distributed lock, wall-clock ordering, breaking migration, tenant predicate + tenant-less cache key, staleness budget)** — why: a skipped category silently drops the violation class it uniquely covers.
+**IMPORTANT MUST ATTENTION** judge coupling in FOUR separate dimensions — code, temporal (runtime), semantic (contract), operational (deployment). Low code coupling proves nothing: the distributed-monolith signature is low code coupling + high temporal + semantic + deployment coupling (services releasing together, shared DB or shared domain lib, sync chain ≥4 hops) — why: a diff that deepens it looks clean file-by-file and makes the exit permanently harder.
+**IMPORTANT MUST ATTENTION** the highest-consequence defect classes are invisible to functional tests — dual write without an outbox, a non-idempotent consumer under at-least-once delivery, a missing tenant predicate or tenant-less cache key, a breaking migration under rolling deploy, a missing timeout on a new outbound call, **an unprotected check-then-act at Read Committed / snapshot isolation (write skew)**, and **a distributed lock with no fencing token (split brain)**. Check each explicitly on any diff that touches persistence, messaging, migrations, locking or tenant-scoped data — why: every one of them passes a green test suite and surfaces first in production as divergence, duplicate charges, cross-tenant leaks, failed rollbacks, pool exhaustion, or corrupted state under concurrency.
+**IMPORTANT MUST ATTENTION** self-audit your OWN draft findings against the 11 thinking red flags (`.claude/docs/architecture-knowledge.md` §20.3) BEFORE Phase 5 — a finding whose SACRIFICE you cannot name, one resting on "best practice", one asserting a scale problem with no evidence, or one treating a two-way door as irreversible is DEMOTED or DELETED, never reworded — why: a finding that survives on authoritative tone alone consumes the team's fix budget and teaches them to ignore the report.
+**IMPORTANT MUST ATTENTION** judge a module by *functionality hidden ÷ interface surface*, and check WHERE a port interface is DECLARED — shallow one-method types, pass-through methods and an interface sitting beside its single implementation in the infrastructure package all read as clean architecture while adding cost or leaving the dependency arrow pointing outward — why: reviewers count classes and interfaces as modularity, so these are the defects that pass review and then make every change touch five files.
+**IMPORTANT MUST ATTENTION** universal architecture knowledge (`.claude/docs/architecture-knowledge.md`) is a RECOGNITION aid, never authority — project reference docs and accepted ADRs OUTRANK it, an anti-pattern match is a HYPOTHESIS until `file:line`/config/topology evidence AND the damaged quality attribute are both named, and a grepped codebase convention beats any catalog entry — why: catalog-shaped false positives are confident, plausible, and the most expensive output this skill can produce.
 **IMPORTANT MUST ATTENTION** follow the phase order Phase 0 → 1 → 2 → 3 → 4 → 5 → Next Steps; Phase 5 `/why-review` self-validation is MANDATORY whenever any finding exists, and Next Steps MUST present `/code-simplifier` / `/code-review` / skip via `AskUserQuestion` — why: the AI repeatedly forgets the validation gate and stops at Phase 4, shipping unvalidated severities downstream.
 **IMPORTANT MUST ATTENTION** break work into small tasks using `TaskCreate` BEFORE starting; mark one `in_progress`/`completed` at a time; on context loss call `TaskList` first — why: resume existing tasks, never duplicate after compaction.
 **IMPORTANT MUST ATTENTION** stay in lane — deep-review only what this skill OWNS (layers, messaging/CQRS/repos/service boundaries, entity events, frontend architecture, quality tooling, generated artifacts, ADRs); record a one-line `→ route to {sibling}` pointer for security/performance/DDD/UI/integration-test findings instead of expanding them — why: duplicated findings across reviewers inflate severity counts and bury issues each reviewer uniquely owns.
@@ -1258,6 +1430,14 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 | "I know this framework's base classes" | Resolve from Phase 0 reference docs — literal names are illustrative; the project's convention wins. |
 | "Just flag obvious violations"       | Gray areas matter most. Apply `Think:` to every applicable category. |
 | "Found a violation, I'll just fix it" | Read-only skill. Validate via `/why-review` first, then route the fix; every fix restarts review from Phase 0. |
+| "Tests pass, so the data path is fine" | Dual write, non-idempotent consumers, missing tenant predicates, breaking migrations, write skew and unfenced locks ALL pass green suites. Check Category 12 explicitly. |
+| "It's inside a transaction, so it's atomic" | Name the ISOLATION LEVEL **and the engine**. Read Committed permits write skew and lost update; snapshot isolation permits write skew, plus lost update on any engine whose `REPEATABLE READ` is not true first-committer-wins SI. |
+| "It takes a distributed lock, so it's exclusive" | Not without a fencing token. A GC/VM pause makes a dead holder believe it still holds the lock. |
+| "More small classes/interfaces means better modularity" | Judge functionality hidden ÷ interface surface. Classitis and pass-through methods raise total complexity. |
+| "These two blocks look the same — extract them" | Same shape ≠ same reason to change. Rule of three, and the wrong abstraction costs more than duplication. |
+| "It's just one more service call"    | Judge all 4 coupling dimensions. A new sync hop multiplies availability and may deepen a distributed monolith. |
+| "The catalog says this is an anti-pattern" | The catalog RECOGNIZES; the project's docs, ADRs and grepped conventions DECIDE. No evidence + no damaged attribute = no finding. |
+| "Data/migration concerns belong to the DBA" | They are the least reversible decisions in the diff. Category 12 owns the boundary; route only query-plan depth to `performance-review`. |
 | "This finding is clearly someone else's domain, skip it" | Record a one-line `→ route to {sibling}` pointer — surfacing the route is owned here; expanding it is not. |
 | "Graph not needed here"              | Run ONE trace. 5 seconds → full blast radius revealed.             |
 | "Skill reviews only changed files"   | Default scope, not a limit. User can override.                     |

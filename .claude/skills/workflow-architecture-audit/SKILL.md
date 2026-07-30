@@ -47,7 +47,7 @@ Core step `architecture-review-full` runs INLINE in the main session (it SPAWNS 
 1. **Resolves scope** — whole project / current diff / specific path.
 2. **Fans out three deliberately-non-overlapping reviewers** as PARALLEL read-only sub-agents in one message behind an all-return barrier:
     - `architecture-scalability-review` (architect, scorecard /20)
-    - `architecture-review` (architect, 12-category PASS/WARN/BLOCKED)
+    - `architecture-review` (architect, 13-category PASS/WARN/BLOCKED)
     - `production-readiness-review` (code-reviewer, SRE /24 + 8-item gate)
 3. **Progressive synthesis (`IN PROGRESS`)** — opens ONE consolidated report file at status `🚧 IN PROGRESS` when fan-out starts, merges + **dedups** each face into it AS that face returns (never held in memory to the end). Siblings route to each other by design, so one underlying issue surfaces from multiple angles; collapse duplicates to one root finding citing every source.
 4. **Fix-report-per-review `/why-review` gate (`VALIDATING`)** — ONE merged `/why-review` pass that WALKS EACH of the three review faces + the dedup and fixes the report in place (revise severities, drop false positives, restore any distinct issue the dedup collapsed).

@@ -1,12 +1,13 @@
 ---
 name: why-review
-version: 1.4.0
+version: 1.5.0
 description: '[Code Quality] Use when reviewing rationale and change quality for plans, PBIs, commits, diffs, docs, specs, reports, or explicit artifacts.'
 ---
 
 > **[GOAL REMINDER — MUST ATTENTION CRITICAL]**
 >
 > Ensure every review target is reasonable, correct, proof-backed, and best-practice aligned.
+> **ALWAYS ASK THE 3 TRADE-OFF QUESTIONS (every decision AND every recommendation you make):** (1) **is there any trade-off?** — name what it sacrifices; "none" is an unfinished analysis, not an answer; (2) **is it worth it?** — gain vs cost, who pays, when → WORTH IT / NOT WORTH IT / UNCLEAR; (3) **is the trade-off material enough to confirm with the user?** — irreversible, cost shifted to someone else, one quality attribute traded for another, boundary crossed, high-consequence path, or UNCLEAR → STOP and confirm via `AskUserQuestion` BEFORE the verdict. NEVER resolve a material trade-off silently. — why: naming a benefit without its price is an endorsement, not a review, and a one-way door is the user's call to walk through, never yours.
 > **MANDATORY SECOND PASS (full mode):** whenever Round 1 produces ANY finding, you MUST call `/why-review --validate-findings` a SECOND time on those findings to confirm each is correct and reasonable BEFORE handoff. NEVER skip it; NEVER suppress, demote, or under-report findings to dodge it. The self-recursive review loop bound as the first full-mode action — the **protocol loop primarily** (host-independent), plus a `/goal` Stop-hook gate WHEN available — BLOCKS stopping until findings are validated. — why: an unvalidated finding is an unproven claim, and a second self-review catches the misreads and inflation Round 1 rationalized.
 
 <!-- PROMPT-ENHANCE:STEP-TASK-ANCHOR:START -->
@@ -28,12 +29,13 @@ description: '[Code Quality] Use when reviewing rationale and change quality for
 - **STEP 1 — DETECT MODE FIRST** (recursion control): `--validate-findings` is TERMINAL — NEVER re-invokes `/why-review`, NEVER runs the gate, NEVER spawns a sub-agent; full mode may call itself ONCE in validate-findings mode. Non-negotiable guard. — why: any of these from terminal mode loops infinitely.
 - **STEP 2 — FULL-MODE FIRST ACTION** → bind the self-recursive review loop: the **protocol loop is the primary, host-independent binding** (you self-drive review → validate → reconcile → full re-review until CLEAN with no new findings; max 2 re-dos, then escalate), and a `/goal` gate is an **optional accelerator invoked WHEN available** (its absence never weakens the loop) — NEVER bind it in terminal mode; "self-fix" = reconcile this review's OWN findings set, not code. THEN Task Bootstrap: create phase tasks + the MANDATORY Findings Validation Gate closing task.
 - **STEP 3 — RESOLVE TARGET TYPE** before any review (commit/PR/diff → code-change; PBI/spec/doc → artifact; "no active plan" ONLY for an unresolved plan-rationale request — NEVER silently convert), read the active Goal Contract, then route by concern (code-reviewer / security-auditor / performance-optimizer / general-purpose).
-- **STEP 4 — REVIEW as SKEPTIC** → complete ALL 6 Anti-Bias Gate boxes (steel-man rejected alt · unseen alternative · args against · stressed assumptions · pre-mortem · pros/cons symmetry) + Validation Checklist (presence AND quality depth) + Round 2 re-review; triangulate spec↔tests↔code — any disagreeing face is a finding, presence is NEVER a pass.
+- **STEP 4 — REVIEW as SKEPTIC** → complete ALL 7 Anti-Bias Gate boxes (steel-man rejected alt · unseen alternative · args against · stressed assumptions · pre-mortem · pros/cons symmetry · **Trade-Off Interrogation Gate**) + Validation Checklist (presence AND quality depth) + Round 2 re-review; triangulate spec↔tests↔code — any disagreeing face is a finding, presence is NEVER a pass.
+- **TRADE-OFF GATE — ALWAYS ASK, on every decision AND every recommendation YOU make:** (1) **is there any trade-off?** name the sacrifice — "none" is an unfinished analysis, so state the dimensions checked; (2) **is it worth it?** gain vs cost, who pays, when → WORTH IT / NOT WORTH IT / UNCLEAR; (3) **is it material enough to confirm with the user?** irreversible · cost shifted elsewhere · quality attribute traded · boundary crossed · high-consequence path · UNCLEAR → **STOP and confirm via `AskUserQuestion` BEFORE the verdict**. Emit the `Trade-Off Assessment` table; a material trade-off unconfirmed = NEVER PASS.
 - **STEP 5 — FINDINGS VALIDATION GATE** on your OWN findings (any severity): re-invoke terminal `--validate-findings`, reconcile, RE-DO the full review until CLEAN with no new findings (max 2), then ask next step via `AskUserQuestion` (+ conditional `/llm-council`). Dual-feedback: a behavior-changing finding needs BOTH a spec-drift verdict (CODE-WRONG / SPEC-STALE / AMBIGUOUS / SPEC-SILENT / in-sync) AND a test-feedback action; SPEC-SILENT also REQUIRES §4 BR/§3 AC + §8 TC enrichment — a missing axis is HAS-ISSUES, never clean.
 
 **Workflow:** Detect mode/target → (full mode only) bind the self-recursive review loop (protocol-primary; optional `/goal` accelerator when available) → route path/docs/graph/sub-agent focus → review dimensions/adversarial gates/Easy-to-Change → validate findings via terminal `--validate-findings` → reconcile + holistic full re-review until CLEAN with no new findings (max 2 re-dos) → ask next step in full mode.
 
-**Key Rules:** MUST ATTENTION resolve target type BEFORE review. MUST ATTENTION every finding needs `file:line`, severity, confidence, best-practice rationale. NEVER say "No active plan" except unresolved plan-rationale request. NEVER call `/why-review` from `validate-findings`. MUST ATTENTION judge by Easy-to-Change: lower future change cost or reject.
+**Key Rules:** MUST ATTENTION resolve target type BEFORE review. MUST ATTENTION every finding needs `file:line`, severity, confidence, best-practice rationale. MUST ATTENTION ask the 3 trade-off questions on every decision AND every recommendation (trade-off? worth it? material → confirm with user); NEVER accept "no trade-off" unexamined, NEVER decide a material trade-off silently. NEVER say "No active plan" except unresolved plan-rationale request. NEVER call `/why-review` from `validate-findings`. MUST ATTENTION judge by Easy-to-Change: lower future change cost or reject.
 
 ## Your Mission
 
@@ -121,6 +123,7 @@ Apply before any rule/checklist below; if downstream rule raises change cost, th
 | Unseen Alternatives    | Identify 1-2 approaches not mentioned; absence without exclusion reasoning = weak coverage.                      |
 | Pros/Cons Symmetry     | Count chosen-approach pros/cons. Pros > cons by 2:1 means likely bias.                                           |
 | Contrarian Pass        | Before finding/verdict, argue opposite conclusion in 2 sentences; choose stronger argument.                      |
+| Trade-Off Interrogation | Ask the 3 questions (below): is there a trade-off? · is it worth it? · is it material enough to confirm with the user? |
 
 ### Forbidden Patterns
 
@@ -131,10 +134,12 @@ Apply before any rule/checklist below; if downstream rule raises change cost, th
 | Vague rationale        | Demand metric + cost: better at what cost?               |
 | Asymmetric trade-offs  | Treat 3 pros / 1 con as incomplete analysis.             |
 | "Looks fine"           | Provide adversarial challenge evidence.                  |
+| "No trade-off" / "pure win" | Name the dimensions checked and why each is unaffected; unexamined ≠ absent. |
+| Material trade-off decided silently | Escalate to the user via `AskUserQuestion`; a one-way door is never yours to walk through. |
 
 ### Anti-Bias Gate (MANDATORY before finalizing verdict)
 
-Complete ALL checks before writing the final verdict (MUST ATTENTION):
+Complete ALL 7 checks before writing the final verdict (MUST ATTENTION):
 
 - steel-man at least one rejected alternative (argue FOR it)
 - identify at least 1 alternative NOT in the plan
@@ -142,8 +147,36 @@ Complete ALL checks before writing the final verdict (MUST ATTENTION):
 - surface 2-3 hidden assumptions with stress tests
 - run the pre-mortem (one concrete failure scenario)
 - check pros/cons symmetry
+- run the **Trade-Off Interrogation Gate** below (trade-off named · worth-it verdict · materiality escalation decided)
 
 Any check incomplete → adversarial review NOT complete. Go back.
+
+## Trade-Off Interrogation Gate (MANDATORY — no verdict, no finding, no recommendation without it)
+
+> **[BLOCKING]** Ask these THREE questions EVERY time — about the decision under review AND about every recommendation YOU make. — why: a review that names benefits without naming their price is an endorsement, not a review; and the biggest trade-offs are the ones nobody wrote down.
+
+**1. Is there any trade-off?** Name what this decision/recommendation SACRIFICES. Every choice buys something with something. "None" is NOT an acceptable answer — it is an unfinished analysis. To claim no material trade-off, state which dimensions you checked and why each is unaffected:
+
+> future change cost · complexity · performance/latency · memory/cost · coupling · reversibility · migration burden · operational/ops load · blast radius · security posture · testability · team skill/ramp · delivery time · UX.
+
+**2. Is it worth it?** Weigh gain against sacrifice EXPLICITLY — **what is gained · what it costs · who pays · when it comes due** — then emit one verdict: **WORTH IT / NOT WORTH IT / UNCLEAR**. Anchor on Easy-to-Change: a trade-off raising future change cost needs a proportionate, named payoff, not a vague one. "Better" without a metric and a cost FAILS this question.
+
+**3. Is the trade-off material enough to CONFIRM WITH THE USER?** A material trade-off is the user's call, never yours. MATERIAL when ANY row below holds:
+
+| Material when the trade-off…                     | Examples                                                                          |
+| ------------------------------------------------ | --------------------------------------------------------------------------------- |
+| Is irreversible — a one-way door                 | data migration, public API/contract shape, storage format, framework/vendor lock-in |
+| Shifts cost onto someone else                    | another team, ops/on-call, the future maintainer, the end user                     |
+| Trades one quality attribute for another          | correctness↔speed, security↔convenience, latency↔cost, simplicity↔flexibility     |
+| Crosses a boundary                               | client↔server tier seam, service contract, event contract, shared library         |
+| Sits on a high-consequence path                  | auth, money, data integrity, breaking change, High/Medium residual risk            |
+| Cannot be evidenced (worth-it verdict = UNCLEAR) | gain or cost unquantifiable from available evidence                                |
+
+- **MATERIAL → STOP and confirm via `AskUserQuestion`** BEFORE the verdict stands: state the trade-off, both options, what each sacrifices, your recommendation. NEVER resolve a material trade-off silently on the user's behalf, and NEVER bury it as a Low-severity note.
+- **NOT material → record it inline** in the Trade-Off Assessment table with a one-line justification and proceed; no escalation needed.
+- In `validate-findings` terminal mode: **assess and record, do NOT escalate** — that mode asks nothing (see Next Steps exemption); flag the unescalated material trade-off in the verdict so the CALLER escalates it.
+
+**Output:** every review emits the `Trade-Off Assessment` table (see Output Format) — one row per reviewed decision and per recommendation you make. An empty table with findings present is an incomplete review.
 
 ## Target Resolution (DO THIS BEFORE REVIEW)
 
@@ -202,6 +235,7 @@ Run one focused pass per applicable dimension; do NOT scan all dimensions simult
 | Target fit         | Did we resolve what user asked, with evidence and confidence?                              |
 | Goal alignment     | Does the rationale serve the saved Goal Contract's purpose and success criteria — or drift past them? |
 | Rationale depth    | Are alternatives real, causal, symmetric, assumption-aware?                                |
+| Trade-off honesty  | What does this SACRIFICE, is it worth it, and is the trade-off material enough to confirm with the user? An unpriced benefit is a rationale gap. |
 | Behavioral risk    | What breaks in happy, error, edge, and rollback paths?                                     |
 | Cross-boundary impact | Does a changed contract break a consumer on the other client↔server tier (BE↔FE), or a loosely-coupled/external service or event consumer? (tier seam + service/event) |
 | Test/spec/doc sync | Does evidence prove tests/specs/docs protect the intended invariant and avoid stale claims? |
@@ -260,6 +294,7 @@ For code-change reviews, use Code-Change Review Path instead of forcing plan che
 | 4   | Risk Assessment         | ✅/❌    | ✅/⚠️/❌      | {concrete mitigations or vague?} |
 | 5   | Ownership               | ✅/❌    | ✅/⚠️/❌      | {details}                        |
 | 6   | Bugfix Debugger Trace   | ✅/❌/N/A | ✅/⚠️/❌     | {final state, feeder paths, hypothesis matrix, owner, forward proof} |
+| 7   | Trade-Off Gate          | ✅/❌    | ✅/⚠️/❌      | {trade-off named? worth-it verdict? material → user confirmed?}  |
 
 > ✅ Strong ⚠️ Weak/Partial ❌ Missing
 
@@ -295,6 +330,14 @@ For code-change reviews, use Code-Change Review Path instead of forcing plan che
 
 **Pros/Cons symmetry:** Pros listed: {N} | Cons listed: {N} | Bias: {balanced / leans toward pros / leans toward cons}
 
+### Trade-Off Assessment (MANDATORY — one row per reviewed decision AND per recommendation you make)
+
+| # | Decision / recommendation | Trade-off — what it sacrifices | Gain (metric) | Who pays, when | Worth it? | Material? | Confirmed with user? |
+| - | ------------------------- | ------------------------------ | ------------- | -------------- | --------- | --------- | -------------------- |
+| 1 | {decision or my recommendation} | {sacrifice — or dimensions checked + why unaffected} | {gain + metric} | {payer / when due} | WORTH IT / NOT WORTH IT / UNCLEAR | YES / NO ({which materiality row}) | asked / N/A (not material) |
+
+> Material trade-off with `Confirmed with user? = no` → verdict CANNOT be PASS. Escalate via `AskUserQuestion` first.
+
 **Cross-Boundary Impact:** (code-change targets) {per client↔server seam AND per service/event/external touchpoint: NONE / ADDITIVE / BREAKING with routed fix; or `Single-tier / monolith — N/A`}
 
 ### Missing Items (if any)
@@ -314,13 +357,14 @@ After Round 1, execute **second full adversarial round**:
 
 1. **Assume Round 1 was wrong** — start with: "Round 1 missed something. Find it."
 2. **Challenge every PASS item** from Round 1 — generate at least 2 sentences arguing the opposite for each
-3. **Complete the Anti-Bias Gate** (all 6 boxes from Adversarial Review Mindset section)
+3. **Complete the Anti-Bias Gate** (all 7 boxes from Adversarial Review Mindset section, including the Trade-Off Interrogation Gate)
 4. **Populate Adversarial Analysis** — MANDATORY:
     - At least 2 arguments against the chosen approach
     - At least 1 unexamined alternative
     - At least 2 hidden assumptions with failure consequences
     - Pre-mortem scenario
     - Pros/Cons symmetry count
+    - Trade-Off Assessment table — every decision AND every recommendation of yours: trade-off named, worth-it verdict, materiality decided; re-ask the 3 questions on any trade-off Round 1 called "none" — why: Round 1's most common miss is an unpriced benefit.
 5. **Focus on Round-1 misses:**
     - Alternatives that are strawmen (too easy to dismiss)
     - Risks stated vaguely without concrete mitigations
@@ -367,6 +411,7 @@ Read supplied findings/report (path from `$ARGUMENTS`). For EACH finding, weakne
 - **Proof-backed** — concrete `file:line` or quoted plan/report section present; reject "probably / should be / I think".
 - **Reasonable** — severity/weight proportionate, not inflated; steel-man of opposing view does not dissolve it.
 - **Best-practice** — recommendation reflects project conventions and Easy-to-Change metric (lowers future change cost), not preference or speculative generality.
+- **Trade-off priced** — the finding's recommendation names what it SACRIFICES, carries a WORTH IT / NOT WORTH IT / UNCLEAR verdict, and has its materiality decided (per the Trade-Off Interrogation Gate). A recommendation presented as a pure win, or with `Trade-off: none` and no dimensions-checked justification, is a validation FAIL — flag HAS-ISSUES naming the unpriced recommendation. A **material** trade-off left unconfirmed with the user is HAS-ISSUES: name it so the CALLER escalates (terminal mode assesses, never asks). NOT WORTH IT → the finding is dropped or its recommendation replaced, never kept as-is. — why: a fix that costs more than the bug it removes is a finding the review should have withdrawn.
 - **Dual-feedback (behavior-changing findings only)** — if ANY finding changes observable behavior, confirm that BOTH halves of the feedback are present for it: (1) a spec-drift verdict — CODE-WRONG / SPEC-STALE / AMBIGUOUS / SPEC-SILENT / in-sync (per `SYNC:spec-drift-adjudication`) — AND (2) a concrete test-feedback action (regression/preservation TC via `/spec [mode=tests]`, or covering test via `/integration-test`). A behavior-changing finding missing EITHER half is a validation FAIL — flag it as HAS-ISSUES and name the missing axis (`spec verdict absent` or `test feedback absent`). A **SPEC-SILENT** verdict (code correctly enforces an invariant no spec artifact states) REQUIRES a spec-enrichment action on the spec axis — add the §4 BR/§3 AC + a §8 TC via `/spec [update]` + `/spec [mode=tests]`; a SPEC-SILENT finding with no spec-enrichment action is HAS-ISSUES, same as a blank dual-feedback axis. A code-only fix with no spec verdict and no owed TC is an incomplete finding, not a clean one.
 - **Confidence bar (distinct from the >80% act-gate)** — a finding survives ONLY if its own stated confidence that it is a real issue is **≥85%**. This is a HIGHER bar than the generic >80% act-gate, and a DIFFERENT question: the act-gate asks "may I act on this evidence?"; this bar asks "is this reported finding strong enough to KEEP?". A finding at 80-84% is demoted or dropped, not kept. The ≥85% must rest on the Proof-backed check above (a cited `file:line` + a traced failure path); confidence resting on inference alone caps below the bar.
 
@@ -386,6 +431,8 @@ Return verdict path + status. **Caller owns reconciliation and bounded re-do; ro
 > **EXEMPT in `validate-findings` mode:** terminal mode returns verdict; skip `## Next Steps`, `AskUserQuestion`, council gate.
 
 **MANDATORY — FULL MODE:** after review, use `AskUserQuestion`; user owns next step.
+
+> **[BLOCKING] Material trade-off confirmation comes FIRST.** Any trade-off the Trade-Off Interrogation Gate marked MATERIAL (irreversible · shifts cost to someone else · trades one quality attribute for another · crosses a boundary · high-consequence path · worth-it verdict UNCLEAR) MUST be confirmed with the user via its OWN `AskUserQuestion` — stating the trade-off, both options, what each sacrifices, and your recommendation — BEFORE the next-step question and BEFORE any PASS verdict. Multiple material trade-offs → ask the highest-consequence ones first (cap 3 questions per call), never bundle them into one vague "proceed?". — why: a one-way door walked through silently cannot be un-walked, and the user is the only one who owns that call.
 
 - **"/feature-implement (Recommended)"** — Begin implementation after design rationale is validated
 - **"/plan-execute"** — If implementing a simpler change
@@ -874,6 +921,29 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:goal-contract-satisfaction-loop -->
 
+<!-- SYNC:trade-off-interrogation-gate -->
+
+> **Trade-Off Interrogation Gate** — ALWAYS ask these THREE questions before ANY verdict, score, finding, or recommendation — about the thing under review AND about every recommendation YOU make. — why: naming a benefit without its price is an endorsement, not a review; the costliest trade-offs are the ones nobody wrote down.
+>
+> 1. **Is there any trade-off?** Name what it SACRIFICES. "None" / "pure win" is an unfinished analysis, NOT an answer — to claim none, state which dimensions you checked and why each is unaffected: future change cost · complexity · performance/latency · memory/cost · coupling · reversibility · migration burden · operational load · blast radius · security posture · testability · team skill/ramp · delivery time · UX.
+> 2. **Is it worth it?** Weigh gain against sacrifice EXPLICITLY — what is gained (with a metric) · what it costs · WHO pays · WHEN it comes due — then emit **WORTH IT / NOT WORTH IT / UNCLEAR**. "Better" with no metric and no cost FAILS this question. NOT WORTH IT → withdraw or replace the recommendation, never keep it as-is.
+> 3. **Is the trade-off material enough to CONFIRM WITH THE USER?** A material trade-off is the user's call, never yours. **MATERIAL** when ANY holds: irreversible / one-way door (data migration, public contract, storage format, vendor lock-in) · cost shifted onto someone else (another team, ops/on-call, future maintainer, end user) · one quality attribute traded for another (correctness↔speed, security↔convenience, latency↔cost, simplicity↔flexibility) · a boundary crossed (client↔server tier, service contract, event contract, shared library) · a high-consequence path (auth, money, data integrity, breaking change, High/Medium residual risk) · the worth-it verdict is UNCLEAR.
+>
+> **MATERIAL → STOP and confirm via `AskUserQuestion` BEFORE the verdict stands** — state the trade-off, both options, what each sacrifices, and your recommendation. **NOT material →** record it inline with a one-line justification and proceed.
+>
+> **Non-asking execution contexts — ESCALATE BY HANDOFF, never by silence.** `AskUserQuestion` reaches only the main interactive agent: a sub-agent cannot ask the user, and a terminal/verdict-only mode asks nothing by design. When you are running in such a context, the obligation is **redirected, never waived** — do ALL of: (a) complete questions 1 and 2 normally; (b) decide materiality and record it in the Trade-Off Assessment row with `confirmed? = NO — cannot ask from this context`; (c) **name the unconfirmed MATERIAL trade-off explicitly in your returned summary/verdict so the CALLER (or parent orchestrator) escalates it via `AskUserQuestion` on your behalf** — a material trade-off mentioned only inside a report file on disk is NOT a handoff; (d) do not emit an unqualified PASS — mark the verdict as carrying an unconfirmed material trade-off, so the caller's gate stays closed until the user answers. The caller inherits the escalation duty the moment it reads your return.
+>
+> This carve-out is about **reachability, not convenience**: it applies ONLY where the tool genuinely cannot reach the user (spawned sub-agent, terminal validate/verdict-only mode, non-interactive/headless run). It is NEVER a licence to skip the question, to self-approve a one-way door, or to downgrade materiality because asking is inconvenient — if you CAN ask, you MUST ask.
+>
+> **Emit a Trade-Off Assessment row** per reviewed decision and per recommendation: `| decision | sacrifices | gain (metric) | who pays, when | WORTH IT/NOT/UNCLEAR | material? | confirmed? |`.
+>
+> **BLOCKED until:** trade-off named (or dimensions-checked justification given) · worth-it verdict emitted · materiality decided · every MATERIAL trade-off either confirmed with the user OR — in a non-asking context — handed off in the returned verdict for the caller to confirm. A MATERIAL trade-off that is neither confirmed nor handed off can NEVER be PASS, and NEVER gets buried as a Low-severity note.
+>
+> **NEVER** answer "no trade-off" without checking · decide a material trade-off silently on the user's behalf · let convergence/delivery pressure authorize walking through a one-way door · bundle several material trade-offs into one vague "proceed?".
+
+<!-- /SYNC:trade-off-interrogation-gate -->
+
+
 <!-- SYNC:task-tracking-external-report:reminder -->
 
 - **MANDATORY** Bootstrap task tracking before target work; transition one task at a time.
@@ -945,11 +1015,20 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:double-round-trip-review:reminder -->
 
+<!-- SYNC:trade-off-interrogation-gate:reminder -->
+
+- **MANDATORY MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the thing under review AND on every recommendation you make: (1) **is there any trade-off?** name what it SACRIFICES (change cost · complexity · perf · coupling · reversibility · migration · ops load · blast radius · security · testability · delivery time · UX) — "none"/"pure win" is an unfinished analysis, so state the dimensions checked; (2) **is it worth it?** gain (with a metric) vs cost, WHO pays, WHEN → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace it; (3) **is it material enough to confirm with the user?** irreversible/one-way door · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · auth/money/data-integrity/breaking-change/High-or-Medium-risk path · verdict UNCLEAR → **STOP and confirm via `AskUserQuestion` BEFORE the verdict**.
+- **MANDATORY** A MATERIAL trade-off with no user confirmation can NEVER be PASS; NEVER bury one as a Low-severity note, NEVER decide it silently, and NEVER let delivery or convergence pressure authorize a one-way door. — why: an un-walked-back one-way door is the user's call to make, not the reviewer's.
+- **MANDATORY — non-asking contexts escalate BY HANDOFF, never by silence.** `AskUserQuestion` reaches only the main interactive agent: a sub-agent cannot ask the user, and a terminal/verdict-only mode asks nothing by design. There the duty is REDIRECTED, not waived — still name the trade-off, still decide materiality, record `confirmed? = NO — cannot ask from this context`, **state the unconfirmed MATERIAL trade-off in your RETURNED verdict/summary so the CALLER escalates it** (a note only in an on-disk report is not a handoff), and never emit an unqualified PASS. Applies ONLY where the user is genuinely unreachable (spawned sub-agent, terminal validate mode, headless run) — if you CAN ask, you MUST ask.
+
+<!-- /SYNC:trade-off-interrogation-gate:reminder -->
+
+
 ## Closing Reminders
 
 **IMPORTANT MUST ATTENTION Goal:** Resolve the requested review target and apply the matching adversarial review path (plan/PBI rationale, code changes, docs/spec/report, findings, or explicit artifact) so decisions, findings, and plans survive adversarial rationale review before downstream work proceeds.
 
-**IMPORTANT MUST ATTENTION Main steps (full mode) — execute in order, the skill AI keeps forgetting:** (1) DETECT MODE — `--validate-findings` is TERMINAL; (2) bind the self-recursive review loop — protocol loop primary (host-independent), optional `/goal` gate WHEN available — + Task Bootstrap (phase tasks + closing Findings Validation Gate task); (3) RESOLVE TARGET TYPE + read active Goal Contract + route by concern; (4) REVIEW as SKEPTIC — 6 Anti-Bias boxes + Validation Checklist (presence AND quality depth) + Round 2 re-review + spec↔tests↔code triangulation; (5) FINDINGS VALIDATION GATE — re-invoke terminal `--validate-findings`, reconcile, RE-DO the full re-review until CLEAN (max 2), then ask next step via `AskUserQuestion`. NEVER skip, reorder, or merge a step without explicit user approval. — why: the steps ARE the review's integrity; dropping one ships an unproven verdict.
+**IMPORTANT MUST ATTENTION Main steps (full mode) — execute in order, the skill AI keeps forgetting:** (1) DETECT MODE — `--validate-findings` is TERMINAL; (2) bind the self-recursive review loop — protocol loop primary (host-independent), optional `/goal` gate WHEN available — + Task Bootstrap (phase tasks + closing Findings Validation Gate task); (3) RESOLVE TARGET TYPE + read active Goal Contract + route by concern; (4) REVIEW as SKEPTIC — 7 Anti-Bias boxes (incl. the **Trade-Off Interrogation Gate**: trade-off? worth it? material → confirm with user) + Validation Checklist (presence AND quality depth) + Round 2 re-review + spec↔tests↔code triangulation; (5) FINDINGS VALIDATION GATE — re-invoke terminal `--validate-findings`, reconcile, RE-DO the full re-review until CLEAN (max 2), then ask next step via `AskUserQuestion`. NEVER skip, reorder, or merge a step without explicit user approval. — why: the steps ARE the review's integrity; dropping one ships an unproven verdict.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):** these are signposts — the canonical bodies above are binding; MUST ATTENTION honor each, NEVER treat a digest line as the full rule.
 
@@ -967,8 +1046,11 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **Review Protocol Injection:** embed all 11 protocol bodies VERBATIM into each fresh sub-agent prompt.
 - **Graph Impact Analysis:** run blast-radius when graph.db exists; impacted minus changed = stale files.
 - **Severity Rubric:** classify findings Critical/High/Medium/Low by consequence; Critical/High block PASS.
+- **Trade-Off Interrogation Gate:** always ask — trade-off? worth it? material → confirm with the user before any PASS.
 
-**IMPORTANT MUST ATTENTION** default stance SKEPTIC, NOT validator — before ANY verdict complete all 6 Anti-Bias Gate boxes: steel-man ≥1 rejected alternative, name ≥1 unseen alternative, list 2-3 arguments AGAINST chosen approach, stress-test 2-3 hidden assumptions, run a pre-mortem, check pros/cons symmetry. — why: section presence is never a pass, and a reviewer who already endorsed the reasoning needs a forced reset to find what's wrong.
+**IMPORTANT MUST ATTENTION** default stance SKEPTIC, NOT validator — before ANY verdict complete all 7 Anti-Bias Gate boxes: steel-man ≥1 rejected alternative, name ≥1 unseen alternative, list 2-3 arguments AGAINST chosen approach, stress-test 2-3 hidden assumptions, run a pre-mortem, check pros/cons symmetry, run the Trade-Off Interrogation Gate. — why: section presence is never a pass, and a reviewer who already endorsed the reasoning needs a forced reset to find what's wrong.
+
+**IMPORTANT MUST ATTENTION ALWAYS ASK THE 3 TRADE-OFF QUESTIONS** — on the decision under review AND on EVERY recommendation you yourself make: (1) **Is there any trade-off?** name what it SACRIFICES across future change cost · complexity · performance · coupling · reversibility · migration · ops load · blast radius · security · testability · team skill · delivery time · UX — "no trade-off" / "pure win" is an unfinished analysis, so state the dimensions checked and why each is unaffected; (2) **Is it worth it?** weigh gain vs sacrifice explicitly — what is gained (with a metric), what it costs, WHO pays, WHEN it comes due → emit **WORTH IT / NOT WORTH IT / UNCLEAR**; NOT WORTH IT → withdraw or replace the recommendation, never keep it; (3) **Is the trade-off material enough to confirm with the user?** MATERIAL when irreversible (one-way door) · cost shifted onto another team/ops/maintainer/user · one quality attribute traded for another · a tier/service/event/library boundary crossed · an auth/money/data-integrity/breaking-change/High-or-Medium-risk path · or the worth-it verdict is UNCLEAR → **STOP and confirm via its OWN `AskUserQuestion` BEFORE the next-step question and BEFORE any PASS verdict**, stating the trade-off, both options, what each sacrifices, and your recommendation. Emit the `Trade-Off Assessment` table every review; a MATERIAL trade-off with no user confirmation can NEVER be PASS, and NEVER bury one as a Low-severity note. In `validate-findings` terminal mode: assess and record, do NOT ask — flag it so the caller escalates. — why: a benefit named without its price is an endorsement rather than a review, unpriced fixes cost more than the bugs they remove, and a one-way door is the user's call to walk through, never the reviewer's.
 **IMPORTANT MUST ATTENTION** resolve target type BEFORE reviewing: plan/PBI rationale, code changes, docs/spec/report, findings, or another artifact. Commit/PR/diff input defaults to code-change review; say "no active plan" ONLY for unresolved plan-rationale requests, NEVER silently convert target types. — why: wrong target type reviews the wrong artifact against the wrong checklist.
 **IMPORTANT MUST ATTENTION** recursion guard is non-negotiable: full mode may call `/why-review --validate-findings` at most ONCE; validate-findings mode is TERMINAL — NEVER re-invokes why-review, NEVER runs the gate, NEVER spawns a sub-agent. — why: any of these from terminal mode causes infinite recursion.
 
@@ -1008,6 +1090,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > **[GOAL REMINDER — MUST ATTENTION CRITICAL]**
 >
 > Ensure every review target is reasonable, correct, proof-backed, and best-practice aligned.
+> **ALWAYS ASK THE 3 TRADE-OFF QUESTIONS (every decision AND every recommendation you make):** (1) **is there any trade-off?** — name what it sacrifices; "none" is an unfinished analysis, not an answer; (2) **is it worth it?** — gain vs cost, who pays, when → WORTH IT / NOT WORTH IT / UNCLEAR; (3) **is the trade-off material enough to confirm with the user?** — irreversible, cost shifted to someone else, one quality attribute traded for another, boundary crossed, high-consequence path, or UNCLEAR → STOP and confirm via `AskUserQuestion` BEFORE the verdict. NEVER resolve a material trade-off silently. — why: naming a benefit without its price is an endorsement, not a review, and a one-way door is the user's call to walk through, never yours.
 > **MANDATORY SECOND PASS (full mode):** whenever Round 1 produces ANY finding, you MUST call `/why-review --validate-findings` a SECOND time on those findings to confirm each is correct and reasonable BEFORE handoff. NEVER skip it; NEVER suppress, demote, or under-report findings to dodge it. The self-recursive review loop — the **protocol loop primarily** (host-independent), plus a `/goal` Stop-hook gate WHEN available — BLOCKS stopping until findings are validated. — why: an unvalidated finding is an unproven claim, and a second self-review catches the misreads and inflation Round 1 rationalized.
 
 **Anti-Rationalization:**
@@ -1022,7 +1105,11 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 | "Validate inline, don't re-invoke" | The second pass is a real terminal `/why-review --validate-findings` call on the written report — not a mental once-over. |
 | "All dimensions at once" | One focused pass per dimension; split attention catches misses.                        |
 | "Ask later"             | Full mode asks user next step before completion.                                        |
-| "Looks good / faces agree" | Default SKEPTIC; complete all 6 Anti-Bias boxes; triangulate spec↔tests↔code — any disagreeing face is a finding. |
+| "Looks good / faces agree" | Default SKEPTIC; complete all 7 Anti-Bias boxes; triangulate spec↔tests↔code — any disagreeing face is a finding. |
+| "No trade-off here / pure win" | Unexamined ≠ absent. Name the dimensions checked (change cost, complexity, perf, coupling, reversibility, ops, security, delivery) and why each is unaffected. |
+| "Trade-off is obvious, it's fine" | Emit the explicit WORTH IT / NOT WORTH IT / UNCLEAR verdict with gain, cost, who pays, when. "Obvious" is not a verdict. |
+| "I'll note the trade-off in the report instead of asking" | A MATERIAL trade-off needs its OWN `AskUserQuestion` before any PASS — a buried note is not a confirmation. |
+| "Just a review, not my decision to escalate" | Surfacing a material trade-off for the user's call IS the review's job; silence hands the decision to no one. |
 | "Behavior change, no spec impact" | Emit spec-drift verdict + test-feedback action; SPEC-SILENT requires §4 BR/§3 AC + §8 TC enrichment. |
 | "Fix where it crashes"  | Fix at the owning layer (lowest invariant owner); the crash site is the symptom, not the cause.       |
 | "High risk, but ship"   | High/Medium residual risk must be fixed, reduced, or owner-accepted before PASS.        |
