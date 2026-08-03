@@ -59,7 +59,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - **Main steps (run in order):** Phase 0 detect plan type → Step 1 read `plan.md` + `goal.md` + all `phase-*.md`, extract requirements/steps/files/risks → Step 2 evaluate the 4 checklist groups: **Validity** (summary, requirements, steps, files) · **Correctness** (Granularity Gate + Anti-Hallucination/Code-Proof Gate + spec/TC coverage + Goal-Contract mapping) · **Best Practices** (YAGNI/KISS/DRY/architecture) · **Completeness** (risks, testing, success criteria, security, graph-dependency) → run the 11 Adversarial techniques + Anti-Bias Gate + 7 Plan Dimensions → graph-trace each modified file (when graph.db exists) → Step 3 score PASS/WARN/FAIL → Step 4 output result → Step 5 recursive validate-fix-re-review loop.
 - **Detect plan type FIRST (Phase 0)** so the right focus applies — bugfix MANDATES the Behavioral Delta Matrix; security/performance/refactor/contract/infra/data-schema each add targeted checks.
 - **Findings are never fixed blindly:** run the `$why-review --validate-findings` gate BEFORE editing any `plan.md`/`phase-*.md`, fix only validated findings at the smallest responsible location, then restart the FULL review with a fresh, zero-memory sub-agent — loop until a clean pass with zero findings.
-- **No arbitrary round cap;** a clean pass ends the loop immediately. Escalate by asking the user directly only when the same blocker survives 3 consecutive full re-reviews with no progress, or a finding needs product/owner judgment.
+- **Round cap 5 — a ceiling, NEVER a target;** a clean pass ends the loop immediately at ANY round (round 1 included). Escalate by asking the user directly when the same blocker survives 3 consecutive full re-reviews with no progress, when round 5 completes with findings still open, or when a finding needs product/owner judgment — cap exhaustion escalates, it NEVER becomes a PASS.
 
 **Workflow:**
 
@@ -68,7 +68,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 3. **Evaluate Checklist** — Validity (summary, requirements, steps, files), Correctness (specific, paths, no conflicts), Best Practices (YAGNI/KISS/DRY, architecture), Completeness (risks, testing, success, security)
 4. **Score & Classify** — PASS (all Required + ≥50% Recommended), WARN (all Required + <50% Recommended), FAIL (any Required fails)
 5. **Output Result** — Status, checks passed, issues, recommendations, verdict
-6. **If any findings remain** — Run `$why-review --validate-findings` on the plan-review report first; fix only validated actionable issues in plan files, then re-review (loop back to step 2 until zero findings, unless the repeated-blocker cap applies)
+6. **If any findings remain** — Run `$why-review --validate-findings` on the plan-review report first; fix only validated actionable issues in plan files, then re-review (loop back to step 2 until zero findings, unless the repeated-blocker rule or the 5-round cap applies)
 
 **Core Principle — Detailed & Small Enough:**
 
@@ -81,8 +81,8 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - **No hallucination**: Every plan claim about existing source code must have `file:line` proof — unverified paths, class names, or behaviors = FAIL
 - **PASS**: Proceed to implementation
 - **WARN**: Proceed with caution, note gaps
-- **FAIL (any findings)**: Validate findings with `$why-review --validate-findings`, fix only validated plan issues, then **re-run the FULL review from the start**. Repeat this self-loop — no maximum round count, no forced minimum — until a complete pass finds ZERO findings.
-- **No-progress safety (not a round cap)**: only if the SAME blocker survives 3 consecutive full re-reviews with no progress, STOP and escalate to user by asking the user directly. A clean pass ends the loop immediately, even on round 1.
+- **FAIL (any findings)**: Validate findings with `$why-review --validate-findings`, fix only validated plan issues, then **re-run the FULL review from the start**. Repeat this self-loop — no forced minimum, capped at 5 rounds MAX — until a complete pass finds ZERO findings.
+- **Bounded loop — two escalation triggers, neither a completion criterion**: (a) **no-progress safety** — the SAME blocker surviving 3 consecutive full re-reviews with no progress; (b) **round cap** — round 5 completing with findings still open. Whichever trips first → STOP and escalate to user by asking the user directly, never a silent "good enough" PASS. A clean pass ends the loop immediately, even on round 1 — the cap is a ceiling, not a quota.
 - **Constructive**: Focus on implementation-blocking issues, not pedantic details
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
@@ -519,7 +519,7 @@ After the sub-agent returns:
         │  new agents for that restarted pass.    │
         └──────┬──────────────────────────────────┘
                │
-               └──→ Loop until zero findings or repeated-blocker cap
+               └──→ Loop until zero findings, repeated-blocker rule, or 5-round cap
 ```
 
 ### Iteration Rules
@@ -747,7 +747,9 @@ After the sub-agent returns:
 
 > **Validated-Finding Fix + Full Re-Review Loop** — Re-review is triggered by a validated finding fix cycle, not by a round number. Review purpose: `review → validate findings → fix validated findings → full re-review` until a complete review pass finds no issues. **A clean review ENDS the loop — no further rounds required.**
 >
-> _aka **Self-Review Convergence Loop**._ The name is historical — this loop has **NO 2-round cap**; "double-round-trip" only means a validated-finding fix cycle forces at least one fresh re-review. It runs until a clean pass, per the no-arbitrary-cap rule below.
+> _aka **Self-Review Convergence Loop**._ The name is historical — there is **NO 2-round cap**; "double-round-trip" only means a validated-finding fix cycle forces at least one fresh re-review. It runs until a clean pass, bounded by the **5-round ceiling** below.
+>
+> **Round cap — 5 rounds MAX (a ceiling, NEVER a target).** A clean pass ENDS the loop immediately at ANY round — round 1 included; the cap never obliges you to keep spinning. Hitting round 5 with validated findings still open → **STOP and escalate by asking the user directly** with the still-open findings listed; NEVER emit a silent "good enough" PASS on cap exhaustion, and NEVER let the cap substitute for the clean-review requirement. The 3-repeated-no-progress blocker rule stays an EARLIER exit — escalate at whichever trips first.
 >
 > **Universal scope (any new output/judgment):** any newly produced output or judgment gets **≥1 self-review**; any **new judgment** gets **≥1 `$why-review --validate-findings` pass**; anything flagged to re-check is re-checked **≥1 time** — before that output is treated as final. This loop is the default convergence contract for ANY work-producing skill, not review skills only.
 >
@@ -769,7 +771,7 @@ After the sub-agent returns:
 > - Subtle edge cases the prior round rationalized away
 > - Regressions introduced by the fixes themselves
 >
-> **Loop termination:** After each full re-review, repeat the same decision: clean → END; issues → validate findings → fix → restart from the first review phase. Continue until a complete review pass finds zero issues. If the same validated finding repeats for 3 full invocations with no progress, or a fix requires product/owner input, escalate by asking the user directly.
+> **Loop termination:** After each full re-review, repeat the same decision: clean → END; issues → validate findings → fix → restart from the first review phase. Continue until a complete review pass finds zero issues, **capped at 5 rounds**. Escalate by asking the user directly at whichever comes first: the same validated finding repeats for 3 full invocations with no progress · a fix requires product/owner input · round 5 completes with validated findings still open. NEVER loop past 5 rounds, and NEVER convert cap exhaustion into a PASS.
 >
 > **Rules:**
 >
@@ -779,13 +781,15 @@ After the sub-agent returns:
 > - NEVER skip the full re-review after a fix cycle (every fix invalidates the prior verdict)
 > - NEVER reuse a sub-agent across rounds — every iteration that uses sub-agents spawns NEW Agent calls
 > - Main agent READS sub-agent reports but MUST NOT filter, reinterpret, or override findings
-> - No arbitrary sub-agent-round cap replaces the clean-review requirement; use the 3 repeated-no-progress blocker rule only to avoid infinite spinning
+> - The 5-round cap NEVER replaces the clean-review requirement — it bounds runaway looping, it does not authorize shipping an un-clean review; a clean pass ends the loop early at any round, and cap exhaustion escalates rather than passes
+> - Enforce the round cap of 5 alongside the 3 repeated-no-progress blocker rule; both are escalation triggers, neither is a completion criterion
 > - Track recursive invocation count and repeated blockers in conversation context (session-scoped)
 > - Final verdict must incorporate ALL rounds executed
 >
 > **Report must include `## Round N Findings (Fresh Sub-Agent)` for every round N≥2 that was executed.**
 
 <!-- /SYNC:double-round-trip-review -->
+
 
 <!-- SYNC:review-protocol-injection -->
 
@@ -1053,8 +1057,10 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 <!-- SYNC:double-round-trip-review:reminder -->
 
 - **MANDATORY IMPORTANT MUST ATTENTION** execute the review loop (aka **Self-Review Convergence Loop**): review → validate findings → fix validated findings → full re-review. A complete review pass with zero findings ENDS the review. Any newly produced output/judgment gets ≥1 self-review; any new judgment gets ≥1 `$why-review --validate-findings` pass before it is treated as final.
+- **MANDATORY** enforce the **round cap of 5 — a ceiling, NEVER a target**: a clean pass ends the loop immediately at any round (round 1 included), and round 5 completing with validated findings still open → **STOP & escalate by asking the user directly**, never a silent PASS. The 3-repeated-no-progress blocker rule is an earlier exit — escalate at whichever trips first. NEVER loop open-ended.
 
 <!-- /SYNC:double-round-trip-review:reminder -->
+
 
 
 <!-- SYNC:graph-assisted-investigation:reminder -->
@@ -1172,7 +1178,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **MANDATORY IMPORTANT MUST ATTENTION** detect plan type FIRST (Phase 0) — bugfix MANDATES the Behavioral Delta Matrix (≥3 rows, ≥1 outside the bug report, any REGRESSION → FAIL until a preservation test covers it); security/perf/refactor/contract/infra each add their own focus.
 **MANDATORY IMPORTANT MUST ATTENTION** spec-loop scheduling — plan must schedule property/invariant test specs for every `[HARD]` §4 rule / §5 invariant + a MUTATION-SCORE quality bar; FAIL a plan targeting a line-coverage % instead of a mutation-score bar.
 **MANDATORY IMPORTANT MUST ATTENTION** when ANY finding exists, run `$why-review --validate-findings` BEFORE editing any `plan.md`/`phase-*.md`; fix ONLY validated findings at the smallest responsible location, then restart the FULL review with a fresh zero-memory sub-agent — loop until a clean pass; NEVER edit plan files before this gate passes — why: unvalidated fixes corrupt the plan and waste review rounds.
-**MANDATORY IMPORTANT MUST ATTENTION** no arbitrary round cap — a clean pass ends the loop immediately; escalate by asking the user directly ONLY when the SAME blocker survives 3 consecutive full re-reviews with no progress, or a finding needs product/owner judgment.
+**MANDATORY IMPORTANT MUST ATTENTION** round cap 5 — a CEILING, never a target: a clean pass ends the loop immediately at any round; escalate by asking the user directly when the SAME blocker survives 3 consecutive full re-reviews with no progress, when round 5 completes with findings still open, or when a finding needs product/owner judgment. NEVER loop past 5 rounds and NEVER convert cap exhaustion into a PASS.
 **MANDATORY IMPORTANT MUST ATTENTION** bootstrap task tracking task breakdown BEFORE reads/grep/edits (one task per file read); persist findings to `plans/reports/{skill}-{YYMMDD}-{HHmm}-{slug}.md` incrementally and synthesize from disk; add a final review task — why: long plan files exhaust context, the report file is ground truth.
 **MANDATORY IMPORTANT MUST ATTENTION** run a graph trace on each "files to modify" entry when `.code-graph/graph.db` exists; flag any downstream file NOT listed in the plan as "potentially missed" — why: catches cross-service/event-handler impact the author overlooked.
 **MANDATORY IMPORTANT MUST ATTENTION** standalone runs end with ask the user directly presenting findings + next-step options; skip ONLY inside a workflow.
