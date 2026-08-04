@@ -15,12 +15,13 @@ description: '[Utilities] Use when you need to review recent changes and wrap up
 
 ## Quick Summary
 
-**Goal:** Hand the developer a complete, evidence-backed wrap-up — by reviewing current branch changes and summarizing impact/quality — with a change summary, doc/spec staleness flags, root-cause lessons, and a `/understand` explanation, WITHOUT mutating any file, so they decide the next step from full context.
+**Goal:** Hand the developer a complete, evidence-backed wrap-up — by reviewing current branch changes and summarizing impact/quality — with a change summary, doc/spec staleness flags, root-cause lessons, and a `/understand` review guide (diagrams, user stories, a review path, and how to test/demo it), WITHOUT mutating any file, so they decide the next step from full context.
 
 **Summary:**
 
 - **READ-ONLY contract** — review/summarize current-branch commits and FLAG findings only; NEVER edit, fix, implement, or update the docs/specs you flag — why: watzup is a handoff, not an edit pass.
-- **Main steps in order:** (1) **Review** recent commits — what changed/added/removed; (2) **Summarize** impact + quality; (3) **Doc-staleness gate** — path→doc mapping table; (4) **Spec-driven health check** — feature-spec root → spec staleness → feature-docs freshness (ONLY when business code changed); (5) **Root-cause lesson extraction** — surface mistakes → name failure mode (not symptom) → universal rule → ask user; (6) **`/understand` handoff** (mandatory final); (7) **`AskUserQuestion` Next Steps**.
+- **Main steps in order:** (1) **Review** recent commits — what changed/added/removed; (2) **Summarize** impact + quality; (3) **Doc-staleness gate** — path→doc mapping table; (4) **Spec-driven health check** — feature-spec root → spec staleness → feature-docs freshness (ONLY when business code changed); (5) **Root-cause lesson extraction** — surface mistakes → name failure mode (not symptom) → universal rule → ask user; (6) **`/understand` handoff** — the full review guide, mandatory final; (7) **`AskUserQuestion` Next Steps**.
+- **Cost, declared:** the `/understand` handoff produces a **fuller artifact than it used to** — it now derives diagrams, resolves real test-case IDs, and builds an ordered review route, so it reads more of the repo and writes a longer report. That is the deliberate price of a wrap-up that ends with a route into the work rather than a recap of it; it is stated here so it is chosen, not discovered.
 - **Three required gates** after the change summary: doc-staleness check, spec-driven health check (business-code-only), root-cause lesson extraction — NEVER skip a gate because the change "looks small".
 - Lessons go to `/learn` ONLY after user confirmation; surface-level "always check file X" notes are noise, not lessons.
 - `/understand` is the mandatory final handoff and MUST run BEFORE the `AskUserQuestion` Next Steps prompt — if unavailable, STOP and report the blocker, NEVER skip — why: the developer's exit context is the explanation, not the raw diff.
@@ -31,7 +32,7 @@ description: '[Utilities] Use when you need to review recent changes and wrap up
 2. **Summarize** — Provide detailed change summary with quality assessment
 3. **Doc Check** — Cross-reference changed files against docs/ for staleness
 4. **Lesson Learned** — Analyze AI mistakes/issues during the task and capture lessons
-5. **Understand Handoff** — Invoke `/understand` as the final mandatory task so the developer gets the full teaching report on the completed work (what · concepts · how · why-this-solution · options with pros/cons · trade-offs · impact · decision levers · challenge prompts) written to `plans/reports/understand-*.md` — or delivered in full in chat when no git-ignored directory is available for it — and summarized in chat
+5. **Understand Handoff** — Invoke `/understand` as the final mandatory task so the developer gets the full review guide on the completed work, high level first then detail, in four parts: **Orient → Route → Depth → Prove & Push Back**. **The section contract lives in `understand/SKILL.md` Step 4 and is never re-listed here** — a copy of it in this file would go stale silently the next time it changes. Written to `plans/reports/understand-*.md` — or delivered in full in chat when no git-ignored directory is available for it — and summarized in chat
 
 **Key Rules:**
 
@@ -267,7 +268,7 @@ After `/understand` completes, MUST ATTENTION use `AskUserQuestion` to present t
 > **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
 > **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
 > **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
@@ -326,7 +327,7 @@ After `/understand` completes, MUST ATTENTION use `AskUserQuestion` to present t
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Hand the developer a complete, evidence-backed wrap-up — change summary, doc/spec staleness flags, root-cause lessons, and a `/understand` explanation — WITHOUT mutating any file, so they decide the next step from full context.
+**IMPORTANT MUST ATTENTION Goal:** Hand the developer a complete, evidence-backed wrap-up — change summary, doc/spec staleness flags, root-cause lessons, and a `/understand` review guide — WITHOUT mutating any file, so they decide the next step from full context.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 

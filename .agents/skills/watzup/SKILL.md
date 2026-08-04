@@ -51,12 +51,13 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Hand the developer a complete, evidence-backed wrap-up — by reviewing current branch changes and summarizing impact/quality — with a change summary, doc/spec staleness flags, root-cause lessons, and a `$understand` explanation, WITHOUT mutating any file, so they decide the next step from full context.
+**Goal:** Hand the developer a complete, evidence-backed wrap-up — by reviewing current branch changes and summarizing impact/quality — with a change summary, doc/spec staleness flags, root-cause lessons, and a `$understand` review guide (diagrams, user stories, a review path, and how to test/demo it), WITHOUT mutating any file, so they decide the next step from full context.
 
 **Summary:**
 
 - **READ-ONLY contract** — review/summarize current-branch commits and FLAG findings only; NEVER edit, fix, implement, or update the docs/specs you flag — why: watzup is a handoff, not an edit pass.
-- **Main steps in order:** (1) **Review** recent commits — what changed/added/removed; (2) **Summarize** impact + quality; (3) **Doc-staleness gate** — path→doc mapping table; (4) **Spec-driven health check** — feature-spec root → spec staleness → feature-docs freshness (ONLY when business code changed); (5) **Root-cause lesson extraction** — surface mistakes → name failure mode (not symptom) → universal rule → ask user; (6) **`$understand` handoff** (mandatory final); (7) **ask the user directly Next Steps**.
+- **Main steps in order:** (1) **Review** recent commits — what changed/added/removed; (2) **Summarize** impact + quality; (3) **Doc-staleness gate** — path→doc mapping table; (4) **Spec-driven health check** — feature-spec root → spec staleness → feature-docs freshness (ONLY when business code changed); (5) **Root-cause lesson extraction** — surface mistakes → name failure mode (not symptom) → universal rule → ask user; (6) **`$understand` handoff** — the full review guide, mandatory final; (7) **ask the user directly Next Steps**.
+- **Cost, declared:** the `$understand` handoff produces a **fuller artifact than it used to** — it now derives diagrams, resolves real test-case IDs, and builds an ordered review route, so it reads more of the repo and writes a longer report. That is the deliberate price of a wrap-up that ends with a route into the work rather than a recap of it; it is stated here so it is chosen, not discovered.
 - **Three required gates** after the change summary: doc-staleness check, spec-driven health check (business-code-only), root-cause lesson extraction — NEVER skip a gate because the change "looks small".
 - Lessons go to `$learn` ONLY after user confirmation; surface-level "always check file X" notes are noise, not lessons.
 - `$understand` is the mandatory final handoff and MUST run BEFORE the ask the user directly Next Steps prompt — if unavailable, STOP and report the blocker, NEVER skip — why: the developer's exit context is the explanation, not the raw diff.
@@ -67,7 +68,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 2. **Summarize** — Provide detailed change summary with quality assessment
 3. **Doc Check** — Cross-reference changed files against docs/ for staleness
 4. **Lesson Learned** — Analyze AI mistakes/issues during the task and capture lessons
-5. **Understand Handoff** — Invoke `$understand` as the final mandatory task so the developer gets the full teaching report on the completed work (what · concepts · how · why-this-solution · options with pros/cons · trade-offs · impact · decision levers · challenge prompts) written to `plans/reports/understand-*.md` — or delivered in full in chat when no git-ignored directory is available for it — and summarized in chat
+5. **Understand Handoff** — Invoke `$understand` as the final mandatory task so the developer gets the full review guide on the completed work, high level first then detail, in four parts: **Orient → Route → Depth → Prove & Push Back**. **The section contract lives in `understand/SKILL.md` Step 4 and is never re-listed here** — a copy of it in this file would go stale silently the next time it changes. Written to `plans/reports/understand-*.md` — or delivered in full in chat when no git-ignored directory is available for it — and summarized in chat
 
 **Key Rules:**
 
@@ -303,7 +304,7 @@ After `$understand` completes, MUST ATTENTION use ask the user directly to prese
 > **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
 > **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
 > **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
@@ -362,7 +363,7 @@ After `$understand` completes, MUST ATTENTION use ask the user directly to prese
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** Hand the developer a complete, evidence-backed wrap-up — change summary, doc/spec staleness flags, root-cause lessons, and a `$understand` explanation — WITHOUT mutating any file, so they decide the next step from full context.
+**IMPORTANT MUST ATTENTION Goal:** Hand the developer a complete, evidence-backed wrap-up — change summary, doc/spec staleness flags, root-cause lessons, and a `$understand` review guide — WITHOUT mutating any file, so they decide the next step from full context.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries):**
 
@@ -474,7 +475,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 - **When debugging, ask "whose responsibility?" before fixing.** Trace caller (wrong data) vs callee (wrong handling). Fix at responsible layer — never patch symptom site.
 - **Test failure → adjudicate WHO is at fault (source vs test) before forcing green.** A green-again suite is not the goal; the correct verdict on what was actually wrong is. Root-cause first, then triangulate the failure against the governing spec (`docs/specs/**` if one exists) AND the source: SOURCE-WRONG → fix code at the owning layer and keep/strengthen the test; TEST-WRONG → fix the stale assertion/setup at its root. NEVER weaken an assertion, add a skip, or relax a timeout to force green, and never change source to satisfy a broken test. Spec silent or ambiguous about which side is correct → STOP and ask the user.
 - **Grep ALL removed names after extraction/refactoring.** Primary file "done" ≠ secondary files clean. Grep entire scope for every removed symbol before declaring complete.
-- **Assume existing values are intentional — ask WHY before changing.** Pattern-matching as "wrong" skips context. Before changing any constant/limit/flag: read comments, git blame, surrounding code.
+- **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Pattern-matching as "wrong" skips context. Before changing or reporting any constant/limit/flag/cutoff: read comments, git blame, the CALLER's ordering (the guarantee that makes the value correct usually lives in code running immediately BEFORE the cited line), and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard — and in a validation pass, an accurate `file:line` citation proves the transcription, never the defect.
 - **Verify ALL affected outputs, not just the first.** One build green ≠ all green. Multi-stack changes (backend/frontend/tests/docs) require verifying EVERY output.
 - **Evaluate fit before copying a nearby pattern.** Closest example ≠ matching preconditions — verify the new context shares the same constraints, base classes, scope, lifetime.
 - **Holistic-first debugging — resist nearest-attention trap.** Don't dive into first plausible cause. List EVERY precondition (config, env vars, paths, DB, endpoints, creds, versions, DI, data). Verify each against evidence (grep/query — not reasoning). Ask "what would falsify this?" — if nothing, it's not a hypothesis. Most expensive failure: going deeper in "obvious" layer while bug sits in layer never questioned.
