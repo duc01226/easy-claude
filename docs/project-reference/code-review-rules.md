@@ -1,22 +1,41 @@
+<!-- Last scanned: 2026-08-04 -->
+
 # Code Review Rules
 
-<!-- Last scanned: 2026-03-15 -->
 <!-- This file is referenced by Claude skills and agents for project-specific context. -->
-<!-- Read by review skills/agents per the project-reference-docs gate in CLAUDE.md (the former auto-inject hook was removed in the de-hooking refactor). -->
+<!-- Read by review skills and agents through the project-reference-docs gate in CLAUDE.md. -->
+
+<!-- PROMPT-ENHANCE:QUICK-SUMMARY:START -->
+
+## Quick Summary
+
+**Goal:** Review easy-claude changes against the repository's actual CJS hook runtime, canonical-source architecture, skill/agent authoring conventions, and verification gates.
+
+**Summary:**
+
+- Start with the changed artifact's runtime and ownership boundary; use the Decision Trees before applying a checklist.
+- Treat `.claude` as authored source and generated mirrors as verification outputs.
+- Require repository evidence for findings and observable verification for completion claims.
+
+**Review sequence:** classify the changed artifact → trace its dependencies → apply the relevant rules/checklist → run targeted tests → verify mirrors/docs and stale-term cleanup.
+
+<!-- PROMPT-ENHANCE:QUICK-SUMMARY:END -->
 
 ## Critical Rules
 
-1. **CommonJS only** — All hooks and hook libraries use `require()`/`module.exports`. No ES modules (`import`/`export`).
-2. **stdin/stdout contract** — Hooks receive JSON on stdin, output context via `console.log()` to stdout, errors via stderr. Exit codes: `0` = allow, `2` = block (security/safety).
-3. **No hardcoded project paths** — All project-specific values come from `docs/project-config.json`, never hardcoded in hooks.
-4. **Idempotent hooks** — Hooks must be safe to run multiple times without side effects.
-5. **Graceful degradation (fail-open)** — If `project-config.json` is missing or incomplete, hooks must still function (skip injection, don't crash). On errors, exit `0` (allow) unless the hook is a safety blocker.
-6. **YAGNI / KISS / DRY** — No speculative code, no unnecessary complexity, no duplication. Every piece of code must earn its existence.
-7. **Evidence before claims** — Every review finding, recommendation, or code change must cite `file:line` evidence or grep results. Speculation is forbidden.
+1. **Match runtime boundary** — Hooks and hook libraries are strict CommonJS `.cjs`; ESM tooling stays in `.mjs` (`.claude/hooks/graph-session-init.cjs:1-16`; `.claude/scripts/codex/sync-context-workflows.mjs:1-8`).
+2. **Centralize event adaptation** — Use `runHook`/`runHookSync` when their lifecycle fits, or the shared parser when explicit blocking-gate exit control is required (`.claude/hooks/lib/hook-runner.cjs:56-175`; `.claude/hooks/lib/stdin-parser.cjs:28-97`).
+3. **Separate policy rejection from runtime failure** — Exit `2` only for a proved unsafe operation; malformed input, timeouts, and exceptions remain fail-open unless a tested deny-closed model exists (`.claude/hooks/git-commit-block.cjs:139-163`; `.claude/hooks/lib/hook-runner.cjs:144-175`).
+4. **Protect output channels** — stdout carries intentional result/context; diagnostics and rejection reasons use stderr (`.claude/hooks/lib/hook-runner.cjs:79-85,119-125`; `.claude/hooks/lib/debug-log.cjs:34-40,60-66`).
+5. **Canonical source before mirrors** — Edit `.claude` owners, then generate `.agents`, `.codex`, and `AGENTS.md`; verify parity and provenance (`.claude/skills/shared/sync-inline-versions.md:3-7`; `package.json:25-39`).
+6. **Entrypoints depend inward** — Hook files orchestrate lifecycle events and delegate reusable behavior to `hooks/lib` or focused hook-local subsystems (`.claude/hooks/session-end.cjs:15-48`; `.claude/hooks/doc-sync-gate.cjs:39-40,238-260`).
+7. **Evidence before claims** — Every rule, finding, and recommendation needs `file:line`, grep, graph, or command output; completion requires fresh verification.
 
 ---
 
-## Hook Code Conventions
+## Backend Rules
+
+### CJS Executable Layer
 
 ### File Structure
 
@@ -24,75 +43,36 @@
 - Location: `.claude/hooks/<name>.cjs`
 - Shared utilities: `.claude/hooks/lib/<name>.cjs`
 - File naming: kebab-case (e.g., `privacy-block.cjs`, `session-init.cjs`)
-- File size: Keep under 200 lines; extract to lib modules when larger
+- Cohesion: entrypoints orchestrate one lifecycle event; move reusable or independently testable logic to `hooks/lib` or a focused hook-local subsystem
 
 ### Required Patterns
 
 | Pattern                         | How                                                                 | Why                                                   |
 | ------------------------------- | ------------------------------------------------------------------- | ----------------------------------------------------- |
-| Use `hook-runner.cjs`           | `const { runHook } = require('./lib/hook-runner.cjs')`              | Standardized execution, error handling, stdin parsing |
-| Use `stdin-parser.cjs`          | `const { parseStdinSync } = require('./lib/stdin-parser.cjs')`      | Consistent stdin handling with defaults               |
-| Use `project-config-loader.cjs` | `const { loadConfig } = require('./lib/project-config-loader.cjs')` | Config loading with graceful fallback                 |
-| Use `debug-log.cjs`             | `const { debug, debugError } = require('./lib/debug-log.cjs')`      | Debug logging gated behind `CK_DEBUG=1`               |
+| Choose one shared event adapter | `runHook`/`runHookSync`, or shared parser for explicit blocker control | Prevent divergent stdin/default/error semantics       |
+| Load config when behavior needs it | Use shared config/schema helpers at the owning boundary          | Avoid universal imports and duplicate JSON reads      |
+| Use debug logging for diagnostics | `debug`/`debugError` write gated diagnostics to stderr            | Keep stdout clean; user-facing errors remain visible  |
 | `'use strict'`                  | Top of every file                                                   | Catch silent errors                                   |
-| Export testable functions       | `module.exports = { myFunction }` at end of file                    | Enable unit testing of hook logic                     |
+| Make behavior observable        | Export helpers when unit seams help; otherwise cover the process entrypoint | Test behavior without forcing artificial exports |
 
-### Hook Template
+### Golden-Path Examples
 
-```javascript
-#!/usr/bin/env node
-/**
- * my-hook.cjs - Brief description
- *
- * Event: PreToolUse | PostToolUse | SessionStart | etc.
- * Purpose: What this hook does
- */
-
-'use strict';
-
-const { runHook } = require('./lib/hook-runner.cjs');
-const { debug } = require('./lib/debug-log.cjs');
-
-runHook(
-    'my-hook',
-    async event => {
-        // event.hookEventName, event.toolName, event.toolInput, event.toolResult
-        // event.sessionId, event.cwd
-
-        return {
-            continue: true, // false = block operation
-            inject: 'Context', // Optional: inject into Claude context
-            message: 'User msg' // Optional: display to user
-        };
-    },
-    { exitCode: 0, errorExitCode: 0, outputResult: true }
-);
-
-module.exports = {
-    /* exported test helpers */
-};
-```
+- Standard asynchronous lifecycle: `graph-session-init.cjs` uses `runHook`, returns early when configuration or graph prerequisites are absent, and suppresses result output (`.claude/hooks/graph-session-init.cjs:12-20,34-39`).
+- Standard synchronous lifecycle: `session-end.cjs` uses `runHookSync` and delegates cleanup/state operations to shared libraries (`.claude/hooks/session-end.cjs:14-21,27-48`).
+- Explicit blocking policy: `privacy-block.cjs` uses shared event parsing, writes its rejection reason to stderr, and exits `2` only after sensitive paths are confirmed (`.claude/hooks/privacy-block.cjs:204-239`).
 
 ### Exit Code Rules
 
 | Code | Meaning                              | Use Case                                                                                                                                      |
 | ---- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | `0`  | Success / allow / non-critical error | Default for all hooks                                                                                                                         |
-| `2`  | Block operation                      | Safety hooks only (`privacy-block`, `path-boundary-block`, `scout-block`, `init-prompt-gate`, `git-commit-block`, `windows-command-detector`) |
+| `2`  | Block operation                      | Verified safety/policy violations in `privacy-block`, `path-boundary-block`, `scout-block`, `git-commit-block`, and `windows-command-detector` |
 
 **Rule:** Always exit `0` on errors unless the hook is explicitly a safety blocker. Hooks must be non-blocking by default.
 
 ### Error Handling
 
-```javascript
-// Correct: fail-open
-try {
-    // hook logic
-} catch (error) {
-    debugError('my-hook', error);
-    process.exit(0); // allow operation on error
-}
-```
+Runner-managed hooks inherit fail-open exception and timeout handling from `runHook`/`runHookSync` (`.claude/hooks/lib/hook-runner.cjs:87-97,127-136`). Direct-parser blockers must catch runtime failures separately from verified policy rejection, as `privacy-block.cjs` does (`.claude/hooks/privacy-block.cjs:230-248`).
 
 ### Performance
 
@@ -100,6 +80,25 @@ try {
 - No external API calls (network requests)
 - Use local checks only (file reads, regex tests, in-memory operations)
 - Minimize context injection — truncate to relevant snippets, avoid injecting full documentation files
+
+---
+
+## Frontend Rules
+
+Not applicable to this repository: Phase-0 detection found no frontend application or framework manifest. Skill-local reader/Remotion assets are reviewed within their owning skill boundaries; do not generalize them into application frontend rules (`docs/project-config.json:4-16,105-121`; `docs/project-reference/frontend-patterns-reference.md:7-18`).
+
+---
+
+## Architecture Rules
+
+| Rule | DO — repository evidence | DON'T |
+| --- | --- | --- |
+| Canonical → generated | Edit `.claude` owners, then run sync + parity/provenance verification (`.claude/skills/shared/sync-inline-versions.md:3-7`; `package.json:25-39`) | Hand-edit `.agents`, `.codex`, or `AGENTS.md`; those consumers are overwritten |
+| Entrypoints → libraries | Register lifecycle handlers declaratively and import reusable helpers inward (`.claude/settings.json:44-129`; `.claude/hooks/session-end.cjs:15-48`) | Import top-level hooks from libraries or duplicate reusable infrastructure inside entrypoints |
+| One protocol owner | Own shared protocol bodies in `sync-inline-versions.md`; compose verified carriers (`.claude/scripts/lib/hookless-prompt-protocol.cjs:5-39`) | Maintain standalone or copy-pasted protocol bodies without a canonical owner/parity check |
+| Narrow security blocking | Normalize untrusted input and exit `2` only after a verified policy breach (`.claude/hooks/path-boundary-block.cjs:87-88,149-154,425-437`) | Treat advisory/context gates or parser failures as security violations |
+| Isolated tests | Use temp directories and restore environment state (`.claude/hooks/tests/lib/test-utils.cjs:11-20,156-192`) | Leak cwd, environment variables, or shared temp state across suites |
+| Schema-driven config/docs | Keep config shape in the shared schema and doc impact in the shared classifier (`.claude/hooks/lib/project-config-schema.cjs:517-673`; `.claude/hooks/lib/doc-sync-classify.cjs:24`) | Hardcode module/spec roots, credentials, or doc-impact rules in individual hooks |
 
 ---
 
@@ -117,16 +116,17 @@ try {
 
 ### SKILL.md Format
 
-**YAML Frontmatter (mandatory):**
+**YAML Frontmatter:**
 
 ```yaml
 ---
 name: skill-name # Must match directory name exactly
 version: 2.0.0 # Semantic versioning (MAJOR.MINOR.PATCH)
 description: '...' # Include trigger keywords for discoverability
-allowed-tools: Read, Grep, Glob, Bash, Write, TaskCreate, Edit
 ---
 ```
+
+`name` and `description` identify and route the skill; this repository also versions its skills. Add only metadata supported by the skill's behavior and project conventions, such as `execution-mode`, `context-budget`, or `disable-model-invocation` (`.claude/skills/scan/SKILL.md:1-5`; `.claude/skills/code-review/SKILL.md:1-7`; `.claude/skills/design/SKILL.md:1-6`; `docs/project-config.json:18-21`).
 
 ### Naming Rules
 
@@ -150,7 +150,7 @@ allowed-tools: Read, Grep, Glob, Bash, Write, TaskCreate, Edit
 - Include `> **[IMPORTANT]** Use TaskCreate to break ALL work into small tasks BEFORE starting` when applicable
 - Include evidence gate: every recommendation needs `file:line` proof
 - Reference project-specific docs via `**MUST READ**` callouts
-- Large skills (>200 lines): use `references/` subdirectory for progressive disclosure
+- Move substantial supporting detail to `references/` when it is not required for routing or the execution spine
 
 ---
 
@@ -161,49 +161,49 @@ allowed-tools: Read, Grep, Glob, Bash, Write, TaskCreate, Edit
 - Location: `.claude/agents/<agent-name>.md`
 - Naming: kebab-case (e.g., `code-reviewer.md`, `fullstack-developer.md`)
 
-### YAML Frontmatter (mandatory)
+### YAML Frontmatter
 
 ```yaml
 ---
 name: agent-name
 description: >-
     What this agent does and when to use it.
-tools: Read, Write, Edit, MultiEdit, Grep, Glob, Bash, TaskCreate
 model: inherit
-skills: related-skill-name
 memory: project
-maxTurns: 30
+# skills: related-skill-name # when the agent delegates to a skill
 ---
 ```
 
+`name` and `description` are the routing identity. Current agents also declare `model` and `memory`; `skills` appears only when an agent delegates to one or more skills (`.claude/agents/code-reviewer.md:1-10`; `.claude/agents/frontend-developer.md:1-11`; `.claude/agents/architect.md:1-12`).
+
 ### Required Sections
 
-| Section              | Purpose                                                  |
-| -------------------- | -------------------------------------------------------- |
-| `## Role`            | What the agent does, evidence gate, external memory note |
-| `## Project Context` | Reference docs to read (`**MUST READ**` callouts)        |
-| `## Key Rules`       | Numbered rules with code examples where helpful          |
-| `## Workflow`        | Step-by-step process                                     |
-| `## Constraints`     | What the agent must NEVER/ALWAYS do                      |
-| `## Output`          | Expected deliverable format                              |
-| `## Reminders`       | Final NEVER/ALWAYS rules reinforcing key constraints     |
+| Section | Purpose |
+| --- | --- |
+| `## Quick Summary` | Goal, concise operating summary, and the ordered workflow when the role owns one |
+| `## Project Context` | Reference docs to read before project-specific work |
+| `## Key Rules` | Role-specific rules with evidence and examples where helpful |
+| `## Output` | Expected deliverable format |
+| `## Closing Reminders` | Highest-priority current instructions repeated at the end |
+
+Use a dedicated `## Workflow` when the agent owns an ordered process. The three current examples share Quick Summary, Project Context, Key Rules, Output, and Closing Reminders; their workflow details remain role-specific (`.claude/agents/code-reviewer.md:12-30`; `.claude/agents/frontend-developer.md:13-30`; `.claude/agents/architect.md:14-30`).
 
 ### Agent Design Rules
 
 - Agents must NOT duplicate skill logic — delegate to skills
-- Include evidence gate in the Role section
+- Include the role's evidence gate in its live instructions
 - Include external memory directive for complex work (write to `plans/reports/`)
 - Include project-specific reference doc callouts
 - Keep focused: one agent = one specialized role
 
 ---
 
-## Common Anti-Patterns
+## Anti-Patterns
 
 | Anti-Pattern                                      | Why It's Bad                                     | Correct Approach                                                |
 | ------------------------------------------------- | ------------------------------------------------ | --------------------------------------------------------------- |
 | ES module syntax in hooks (`import`/`export`)     | Breaks Node.js CJS hook loading                  | Use `require()`/`module.exports`                                |
-| Direct `process.stdin` parsing                    | Error-prone, no defaults                         | Use `stdin-parser.cjs`                                          |
+| Duplicated hand-rolled `process.stdin` parsing without a documented blocker need | Divergent empty-input, malformed-input, and exit behavior | Use `runHook`/`runHookSync`, or the shared parser for an explicitly tested blocker |
 | Hardcoded service paths in hooks                  | Breaks portability across projects               | Use `docs/project-config.json`                                  |
 | Skipping hook tests after changes                 | Regressions go undetected                        | Run `test-all-hooks.cjs` after every hook change                |
 | Skill without SKILL.md                            | Not discoverable by catalog or hooks             | Always create SKILL.md as entry point                           |
@@ -222,6 +222,17 @@ maxTurns: 30
 
 ---
 
+## Decision Trees
+
+| Decision | Route |
+| --- | --- |
+| How should a hook read an event? | Standard lifecycle/result serialization → `runHook`/`runHookSync`; explicit blocking-gate exit control → shared parser plus process-level allow/deny/malformed-input tests |
+| Where should new logic live? | Reusable/pure behavior → `hooks/lib`; one lifecycle orchestration → top-level hook; isolated complex subsystem → focused hook-local directory |
+| Which exit code? | Proven policy violation → `2`; irrelevant event, malformed input, timeout, dependency/config/runtime failure → `0` unless a documented and tested deny-closed model applies |
+| Which file is authoritative? | `.claude` authored source → edit there, sync mirrors, run parity/provenance verification; generated mirror → never edit directly |
+
+---
+
 ## Testing Requirements
 
 ### Hook Testing
@@ -237,27 +248,26 @@ maxTurns: 30
 ### Manual Hook Testing
 
 ```bash
-echo '{"hook_event_name":"PreToolUse","tool_name":"Read","tool_input":{"file_path":".env"}}' | node .claude/hooks/my-hook.cjs
+echo '{"hook_event_name":"PreToolUse","tool_name":"Read","tool_input":{"file_path":".env"}}' | node .claude/hooks/privacy-block.cjs
 echo $?  # Verify exit code
 ```
 
 ### Testing Rules
 
-- Every hook must have test coverage in `hooks/tests/`
-- Export testable functions from hook files for unit testing
+- Every hook must have observable test coverage in `hooks/tests/`
+- Export helpers when a unit seam is useful; process-test entrypoints when exported helpers would be artificial
 - Tests must run before push — DO NOT ignore failed tests to pass CI
 - Run linting before commit
 - New hooks: add manual test command in extending-hooks pattern
 
 ---
 
-## Review Checklists
+## Checklists
 
 ### Hook PR Checklist
 
 - [ ] Uses CommonJS (`require`/`module.exports`)
-- [ ] Uses `hook-runner.cjs` for execution (not raw stdin parsing)
-- [ ] Parses stdin via `stdin-parser.cjs`
+- [ ] Uses the shared event adapter suited to the lifecycle: runner for standard handling, or shared parser for documented blocker semantics
 - [ ] Loads config via `project-config-loader.cjs` (if config needed)
 - [ ] Handles missing config gracefully (fail-open)
 - [ ] Has `'use strict'` at top
@@ -265,21 +275,21 @@ echo $?  # Verify exit code
 - [ ] Exit codes follow convention (`0` = allow, `2` = block for safety only)
 - [ ] No hardcoded project-specific values
 - [ ] No external API calls (network requests)
-- [ ] Exports testable functions via `module.exports`
+- [ ] Has an observable test seam: exported helper or process-level entrypoint coverage
 - [ ] Context injection is concise (no full doc dumps)
-- [ ] File is under 200 lines (complex logic extracted to lib)
+- [ ] Entrypoint is cohesive and delegates reusable or independently testable logic
 - [ ] Registered in `.claude/settings.json` with correct event and matcher
 - [ ] All hook tests pass after changes
 
 ### Skill PR Checklist
 
-- [ ] Has `SKILL.md` with YAML frontmatter (`name`, `version`, `description`, `allowed-tools`)
+- [ ] Has `SKILL.md` with routing frontmatter (`name`, `description`) and repository version metadata
 - [ ] `name` field matches directory name exactly
 - [ ] Uses lowercase-hyphen-case, under 64 characters
 - [ ] Has version in semantic format (MAJOR.MINOR.PATCH)
 - [ ] Description includes trigger keywords for discoverability
 - [ ] References shared protocols via `**Prerequisites:** Read ...` (if applicable)
-- [ ] Large skills (>200 lines) use `references/` subdirectory
+- [ ] Supporting detail not required for routing or the execution spine uses progressive-disclosure `references/`
 - [ ] Scripts have tests (if applicable)
 - [ ] Referenced in workflow if applicable
 - [ ] Shared module extractions have 3+ consumers
@@ -287,19 +297,18 @@ echo $?  # Verify exit code
 ### Agent PR Checklist
 
 - [ ] Is a markdown file in `.claude/agents/`
-- [ ] Has YAML frontmatter (`name`, `description`, `tools`, `model`, `maxTurns`)
+- [ ] Has routing frontmatter (`name`, `description`) plus applicable runtime metadata (`model`, `memory`, `skills`)
 - [ ] Uses kebab-case filename
-- [ ] Has required sections: Role, Key Rules, Workflow, Constraints, Output
-- [ ] Includes evidence gate in Role section
+- [ ] Has Quick Summary, Project Context, Key Rules, Output, and Closing Reminders; includes Workflow when the role owns ordered steps
+- [ ] Includes an evidence gate in the live role instructions
 - [ ] Includes external memory directive (write to `plans/reports/`)
 - [ ] Includes `**MUST READ**` callouts for project reference docs
 - [ ] Does NOT duplicate skill logic — delegates via `skills:` field
-- [ ] `maxTurns` is set to reasonable value
 
 ### General PR Checklist
 
 - [ ] File naming follows kebab-case convention
-- [ ] Individual files under 200 lines
+- [ ] Files are cohesive; reusable or independently testable logic is delegated to the lowest appropriate module
 - [ ] No confidential data committed (.env, API keys, credentials)
 - [ ] Commit message uses conventional format (feat, fix, docs, refactor, etc.)
 - [ ] No "should work" / "probably" / "I think" language in code comments
@@ -342,9 +351,22 @@ If any of these are detected during review, the review must flag them as **CRITI
 
 ## Cross-Reference
 
-- **Read by:** review skills/agents per the project-reference-docs gate in `CLAUDE.md` (the former `code-review-rules-injector.cjs` hook was removed in the de-hooking refactor)
-- **Consumed by:** `/code-review`, `/changes-review`, `/review-pr`, `code-reviewer` agent
-- **Source protocols:** `evidence-based-reasoning-protocol.md`, `understand-code-first-protocol.md`, `rationalization-prevention-protocol.md`, `red-flag-stop-conditions-protocol.md`, `two-stage-task-review-protocol.md`
+- **Read by:** review skills and agents through the project-reference-docs gate in `CLAUDE.md`
+- **Consumed by:** `/code-review`, `/changes-review`, and the `code-reviewer` agent
+- **Canonical shared protocol source:** `.claude/skills/shared/sync-inline-versions.md`
+- **Hookless protocol composer:** `.claude/scripts/lib/hookless-prompt-protocol.cjs`
 - **Hook docs:** `.claude/docs/hooks/README.md`, `.claude/docs/hooks/extending-hooks.md`, `.claude/docs/hooks/architecture.md`
 - **Skill docs:** `.claude/docs/skill-naming-conventions.md`
 - **Agent docs:** `.claude/docs/agents/agent-patterns.md`
+
+---
+
+<!-- PROMPT-ENHANCE:CLOSING-REMINDERS:START -->
+
+## Closing Reminders
+
+1. **Prove the runtime boundary first** — `.cjs` hooks, `.mjs` tooling, and event-specific adapters have different contracts.
+2. **Edit canonical source first** — change `.claude`, regenerate mirrors, and verify parity/provenance before approval.
+3. **No claim without evidence** — cite repository lines for findings and run the observable checks that protect the changed behavior.
+
+<!-- PROMPT-ENHANCE:CLOSING-REMINDERS:END -->

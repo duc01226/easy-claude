@@ -1,76 +1,61 @@
 # Seed Test Data Reference
 
-<!-- Fill in your project's details below -->
+<!-- Last scanned: 2026-08-04 -->
 
-> Project-specific supplement to `/seed-test-data`. Replace placeholders with real paths, config keys, and conventions from your codebase.
+> **Goal:** State the verified seed-data capability of this repository without inventing application or database conventions.
+
+> **Context:** easy-claude ships framework skills, hooks, agents, and workflows. Its configured modules are framework libraries, and database, messaging, API, and infrastructure maps are empty (`docs/project-config.json:23-73`, `docs/project-config.json:149-152`).
 
 ## Quick Summary
 
-**Goal:** Document how this project seeds test/dev data safely and idempotently.
+- Application/dev-data seeding is **N/A** in this repository.
+- Hook-test fixtures are committed test inputs, not persistent seed data.
+- Re-scan this reference if an application database or executable seeder is added.
 
-**Key Rules:**
+## Workflow
 
-- Always gate seeding to non-production or explicit config flag
-- Always ensure idempotency (`existing >= target` short-circuit)
-- Prefer command/application-layer dispatch over direct domain writes
-- Use fresh DI/UoW scope per loop iteration when required by your stack
+1. Read the `contextGroups`, `databases`, and `infrastructure` maps in `docs/project-config.json`.
+2. Search executable source for seeder declarations, gates, count loops, scope helpers, registration, and polling.
+3. Document a pattern only after an executable seeder and its consumers are verified.
 
-## Seeder Locations
+## Key Rules
 
-- Primary folder(s): `TODO`
-- Core seeder class(es): `TODO`
-- Helper/orchestrator class(es): `TODO`
+- **NEVER** treat workflow skills or test fixtures as application data seeders.
+- **NEVER** copy the generic seeder template into this reference without project source evidence.
+- **MUST** rerun `/scan --target=seed-test-data` after introducing a database-backed application or seeder.
 
-## Config Keys
+## Seeder Base Class / Interface
 
-```json
-{
-    "TODO_EnableSeedFlag": true,
-    "TODO_SeedTargetCount": 0
-}
-```
+**N/A.** No `Data Seeders` context group is configured; the only context groups cover hooks, skills, and agents (`docs/project-config.json:74-105`).
 
-## Reference Files (fill with real paths)
+## Environment Gate
 
-1. `TODO` - base seeder abstraction
-2. `TODO` - concrete seeder implementation
-3. `TODO` - command/helper used by seeder
-4. `TODO` - DI registration location
+**N/A.** No seeder enable flag, environment guard, or target-count key is configured (`docs/project-config.json:74-152`).
 
-## Required Patterns
+## Idempotency Pattern
 
-### Environment Gate
+**N/A.** There is no persistent application store or executable seeder loop to make restart-safe (`docs/project-config.json:149-152`, `package.json:2-18`).
 
-- Config or environment key: `TODO`
-- Guard location: `TODO`
+## DI Scope Pattern
 
-### Idempotency
+**N/A.** No dependency-injection container, unit-of-work layer, database, or application service is configured (`docs/project-config.json:23-73`, `docs/project-config.json:149-152`).
 
-- Existing-count predicate: `TODO`
-- Target-count source: `TODO`
-- Loop strategy: `TODO`
+## Registration
 
-### DI/UoW Scope Safety
+**N/A.** Project context registration covers hooks, skills, and agents only; it contains no seeder registration (`docs/project-config.json:74-105`).
 
-- Required scope strategy: `TODO`
-- Anti-patterns to avoid: `TODO`
+## Cross-Service Wait
 
-## Minimal Template (stack-specific example)
+**N/A.** No service, message bus, or external-consistency seeding flow is configured (`docs/project-config.json:149-152`).
 
-```text
-if (!CanSeed()) return;
-target = ReadTargetCount();
-existing = CountExistingSeededData();
-if (existing >= target) return;
-for i in [existing..target):
-  with fresh scope:
-    dispatch create/update command
-```
+## Anti-Patterns
 
-## Verification Checklist
+No source-backed seeding violation exists because no executable seeder exists. Do not invent a warning from a generic stack assumption.
 
-- [ ] Seeder runs only in allowed environments
-- [ ] Rerun does not duplicate already-seeded records
-- [ ] Count is configurable and restart-safe
-- [ ] DI/UoW scope pattern is safe for parallel/loop execution
-- [ ] All claims include `file:line` evidence after scan
+## Closing Reminders
+
+- **MUST** cite the real seeder entry point and registration before documenting future conventions.
+- **MUST** verify environment gating, idempotency, and scope behavior from executable source.
+- **NEVER** convert an evidence-backed **N/A** into generic seeder boilerplate.
+
+> **Goal:** State the verified seed-data capability of this repository without inventing application or database conventions.

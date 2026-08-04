@@ -1,11 +1,84 @@
 # Project Structure Reference
 
-<!-- Last scanned: 2026-05-15 -->
+> **Goal:** Ground AI work in easy-claude's verified framework topology, runtime entry points, configuration surfaces, and commands so agents never invent application services, ports, or deployment infrastructure.
+> **MUST ATTENTION** Treat configured modules as framework libraries unless source evidence proves a deployable application.
+> **NEVER** infer ports, delivery providers, environments, or secret values; use cited configuration only.
+
+<!-- Last scanned: 2026-08-04 -->
 <!-- This file is referenced by Claude skills and agents for project-specific context. -->
+
+## Quick Summary
+
+**Goal:** Ground AI work in easy-claude's verified framework topology, runtime entry points, configuration surfaces, and commands so agents never invent application services, ports, or deployment infrastructure.
+
+**Summary:**
+
+- Start with Architecture Overview: single-package framework/library repository, not an application backend/frontend.
+- Map work through Key Directories, Module Codes, and Key Entry Points; `.claude/` is canonical, `.agents/`/`.codex/` are generated mirrors.
+- Read ports, commands, setting keys, and versions only from cited sources; keep secret values outside docs.
+- Re-run `$scan --target=project-structure` when topology or canonical inventory markers change.
+
+**Workflow:** Architecture classification → relevant module/entry point → source-backed runtime/config evidence → graph/path verification.
+
+**Key Rules:** MUST ATTENTION use `docs/project-config.json` as the module map. NEVER infer missing application/deployment layers. ALWAYS update canonical `.claude` sources before generated mirrors.
 
 ## Overview
 
-**easy-claude** is a Claude Code enhancement framework — a portable `.claude` template that transforms Claude Code into a project-aware, quality-enforced AI development agent. No application backend/frontend code; this project IS the framework.
+**easy-claude** is a portable Claude Code enhancement framework. No application backend/frontend code; the repository is the framework.
+
+## Architecture Overview
+
+| Axis | Detected state | Evidence |
+| --- | --- | --- |
+| Repository | Single-package framework/library repository; all configured modules are libraries | `docs/project-config.json:23-73`, `package.json:2-18` |
+| Runtime | Event-driven CommonJS hooks plus Python/Node tooling; no deployable application service | `.claude/docs/hooks/README.md:7-38`, `.claude/hooks/session-init.cjs:315-321` |
+| Orchestration | Direct command execution; no configured container or service orchestrator | `docs/project-config.json:149-152`, `package.json:18-47` |
+| Delivery | Undetermined: no provider workflow or IaC manifest is present | `docs/project-config.json:152`, `package.json:18-47` |
+
+## Service Architecture
+
+No backend API, worker, frontend app, Docker deploy unit, database, or broker configured (`docs/project-config.json:23-73`, `docs/project-config.json:149-152`). Hooks are CLI lifecycle handlers, not network services (`.claude/docs/hooks/README.md:7-38`).
+
+One opt-in local utility serves Markdown on loopback only:
+
+| Utility | Type | Port | Entry point |
+| --- | --- | --- | --- |
+| Markdown Novel Viewer | Local development HTTP utility | Defaults to `3456`, searches `3456-3500`, CLI-overridable | `.claude/skills/markdown-novel-viewer/scripts/server.cjs:39-61`, `.claude/skills/markdown-novel-viewer/scripts/lib/port-finder.cjs:6-9` |
+
+## Infrastructure Ports
+
+No mandatory database, broker, cache, or application port (`docs/project-config.json:149-152`). Loopback Markdown viewer port is local tooling, not deployment infrastructure.
+
+## Deployment & Delivery
+
+Delivery stack: **undetermined (no CI/IaC config found)**. Root commands cover local sync, generation, verification, and tests; no build/publish/deploy pipeline, promotion, or rollback defined (`package.json:18-47`). NEVER infer a provider.
+
+## Environment Configuration
+
+| Setting group | Surface | Purpose |
+| --- | --- | --- |
+| Framework runtime | `.claude/settings.json:24-30` | `CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR`, context/auto-memory controls, stop-hook cap, MCP timeout |
+| MCP authentication references | `.claude/.mcp.json:6-7`, `.claude/.mcp.json:21-22` | `GITHUB_PERSONAL_ACCESS_TOKEN`, `FIGMA_PERSONAL_ACCESS_TOKEN` |
+| Notification references | `.claude/hooks/notifications/.env.example:8-21` | Telegram, Discord, and Slack reference names |
+| Optional skill credentials | `.claude/skills/docs-seeker/.env.example:3-15`, `.claude/skills/devops/.env.example:10-23` | Context/search, repository, and deployment-tool reference names |
+
+MUST ATTENTION record setting keys/reference names only; keep credential values in environment or secret stores.
+
+## Frontend Apps
+
+None. No frontend framework dependency, app mapping, dev-server port, or frontend build command is configured (`docs/project-config.json:106-121`, `package.json:16-47`).
+
+## Key Directories
+
+| Path | Purpose |
+| --- | --- |
+| `.claude/hooks/` | Runtime lifecycle hooks and shared hook libraries (`docs/project-config.json:23-37`) |
+| `.claude/skills/` | Task automation definitions and optional skill-local tooling (`docs/project-config.json:38-44`) |
+| `.claude/agents/` | Specialized sub-agent definitions (`docs/project-config.json:45-51`) |
+| `.claude/scripts/` | Catalog, sync, graph, worktree, and maintenance tooling (`docs/project-config.json:52-58`) |
+| `.claude/workflows.json` | Registered workflow definitions (`docs/project-config.json:59-65`) |
+| `.claude/docs/` | Framework documentation (`docs/project-config.json:66-72`) |
+| `docs/project-reference/` | Project-specific AI reference docs (`docs/project-config.json:158-250`) |
 
 ## Component Architecture
 
@@ -17,221 +90,34 @@
 | Agents         | <!-- COUNT:agents -->29<!-- /COUNT -->                                                        | `.claude/agents/*.md`         | Markdown definitions                                                                       |
 | Workflows      | <!-- COUNT:workflows -->18<!-- /COUNT -->                                                     | `.claude/workflows.json`      | JSON workflow definitions                                                                  |
 | Output Styles  | 6                                                                                             | `.claude/output-styles/*.md`  | Coding level presets (ELI5→God)                                                            |
-| Scripts        | 28                                                                                            | `.claude/scripts/*`           | CJS + Python utilities (top-level; excludes code_graph package internals + tests/)         |
-| Codex Scripts  | 10                                                                                            | `.claude/scripts/codex/*.mjs` | ESM sync, migration, notification, and verification tools                                  |
-| Hook Tests     | 14 suites + 9 `test-*` files                                                                  | `.claude/hooks/tests/`        | CJS/JS test files; 9 `test-*` files (incl. primary runner) + `run-all-tests.cjs` aggregate |
+| Scripts        | 31                                                                                            | `.claude/scripts/*`           | CJS/ESM + Python utilities (top-level; excludes tests and non-executable data/docs)         |
+| Codex Scripts  | 13                                                                                            | `.claude/scripts/codex/*.mjs` | Top-level ESM sync, migration, notification, and verification tools                        |
+| Hook Tests     | 18 suites + 8 `test-*` files                                                                  | `.claude/hooks/tests/`        | CJS/JS test files; top-level `test-*` files plus `run-all-tests.cjs` aggregate             |
 | Codex Mirrors  | <!-- COUNT:skills -->161<!-- /COUNT --> skills, <!-- COUNT:agents -->29<!-- /COUNT --> agents | `.agents/`, `.codex/`         | Generated Codex-compatible copy                                                            |
 
 ## Project Directory Tree
 
 ```
 easy-claude/
-├── .agents/                          # Codex skill mirror generated from .claude/skills
-│   ├── README.md
-│   └── skills/                       # Codex-compatible skill manifests
-├── .codex/                           # Codex compatibility artifacts
-│   ├── agents/                       # 28 generated TOML agent definitions
-│   ├── CODEX_CONTEXT.md              # Hookless context parity for Codex
-│   ├── config.toml                   # Codex local config
-│   ├── hooks.json                    # Generated Codex hook map
-│   └── hooks.sync.report.json        # Hook sync report
-├── .claude/                          # Framework directory (the template library)
-│   ├── .ck.json                      # Claude Kit configuration
-│   ├── .ckignore                     # Ignore patterns for Claude Kit
-│   ├── .env.example                  # Environment template
-│   ├── .gitignore                    # Framework-level gitignore
-│   ├── .mcp.json                     # MCP server configuration
-│   ├── .mcp.README.md               # MCP configuration docs
-│   ├── .mcp.json.example            # MCP config template
-│   ├── .todo-state.json              # Persistent todo state
-│   ├── metadata.json                 # Framework metadata (large)
-│   ├── settings.json                 # Hook registration & features
-│   ├── settings.local.json.example   # Local settings template
-│   ├── workflows.json               # 18 workflow definitions
-│   ├── workflows.schema.json        # Workflow JSON schema
-│   ├── agent-memory/                 # Persistent agent memory
-│   │   ├── backend-developer/
-│   │   ├── code-reviewer/
-│   │   ├── code-simplifier/
-│   │   ├── frontend-developer/
-│   │   ├── fullstack-developer/
-│   │   ├── knowledge-worker/
-│   │   ├── planner/
-│   │   └── researcher/
-│   ├── agents/                       # Agent definitions
-│   │   ├── architect.md
-│   │   ├── backend-developer.md
-│   │   ├── code-reviewer.md
-│   │   ├── debugger.md
-│   │   ├── frontend-developer.md
-│   │   ├── planner.md
-│   │   ├── security-auditor.md
-│   │   └── ... (28 total)
-│   ├── config/                       # Templates & config
-│   │   ├── README.md
-│   │   ├── agent-template.md
-│   │   ├── skill-template.md
-│   │   └── release-notes-template.yaml
-│   ├── docs/                         # Framework documentation
-│   │   ├── README.md
-│   │   ├── claude-ai-agent-framework-guide.md  # Architecture deep-dive
-│   │   ├── quick-start.md
-│   │   ├── universal-setup-guide.md
-│   │   ├── troubleshooting.md
-│   │   ├── skill-naming-conventions.md
-│   │   ├── anti-hallucination-patterns.md
-│   │   ├── AI-DEBUGGING-PROTOCOL.md
-│   │   ├── team-collaboration-guide.md
-│   │   ├── agents/                   # Agent documentation
-│   │   ├── configuration/            # Settings reference
-│   │   ├── hooks/                    # Hook documentation
-│   │   ├── skills/                   # Skill documentation
-│   │   └── team-artifacts/           # Templates for PBIs, stories, specs
-│   ├── hooks/                        # 15 top-level .cjs runtime hook files
-│   │   ├── config/                   # Hook configuration
-│   │   │   └── swap-config.json
-│   │   ├── docs/                     # Hook documentation
-│   │   │   └── README.md
-│   │   ├── lib/                      # 26 shared utility modules
-│   │   │   ├── __tests__/            # Lib unit tests
-│   │   │   ├── ck-config-loader.cjs
-│   │   │   ├── ck-config-utils.cjs
-│   │   │   ├── ck-env-utils.cjs
-│   │   │   ├── ck-git-utils.cjs
-│   │   │   ├── ck-path-utils.cjs
-│   │   │   ├── ck-paths.cjs
-│   │   │   ├── ck-plan-resolver.cjs
-│   │   │   ├── ck-session-state.cjs
-│   │   │   ├── debug-log.cjs
-│   │   │   ├── dedup-constants.cjs
-│   │   │   ├── hook-runner.cjs
-│   │   │   ├── notify-windows.ps1
-│   │   │   ├── project-config-loader.cjs
-│   │   │   ├── project-config-schema.cjs
-│   │   │   ├── prompt-injections.cjs
-│   │   │   ├── session-init-helpers.cjs
-│   │   │   ├── stdin-parser.cjs
-│   │   │   ├── swap-engine.cjs
-│   │   │   ├── temp-file-cleanup.cjs
-│   │   │   ├── test-fixture-generator.cjs
-│   │   │   ├── todo-state.cjs
-│   │   │   └── workflow-state.cjs
-│   │   ├── notifications/            # Multi-channel notifications
-│   │   │   ├── notify.cjs
-│   │   │   ├── lib/
-│   │   │   ├── docs/
-│   │   │   └── providers/            # desktop, discord, slack, telegram, terminal-bell
-│   │   ├── scout-block/              # Broad search prevention
-│   │   │   ├── broad-pattern-detector.cjs
-│   │   │   ├── error-formatter.cjs
-│   │   │   ├── path-extractor.cjs
-│   │   │   ├── pattern-matcher.cjs
-│   │   │   ├── tests/
-│   │   │   └── vendor/
-│   │   ├── tests/                    # Hook test suites
-│   │   │   ├── test-all-hooks.cjs    # Main test runner
-│   │   │   ├── run-all-tests.cjs     # Suite runner
-│   │   │   ├── suites/               # 15 test suites
-│   │   │   ├── fixtures/             # Test fixtures
-│   │   │   ├── helpers/              # Test helpers
-│   │   │   ├── lib/                  # Test library utils
-│   │   │   ├── docs/                 # Test documentation
-│   │   │   └── 16 standalone files   # 15 test-* files (incl. primary runner) + run-all-tests.cjs
-│   │   │   # Runtime context-injection hooks removed in the de-hooking refactor — no
-│   │   │   # *-context / *-injector / prompt-context-assembler / subagent-init / pretooluse-ctx-* hooks.
-│   │   ├── doc-sync-gate.cjs
-│   │   ├── git-commit-block.cjs
-│   │   ├── graph-auto-update.cjs
-│   │   ├── graph-session-init.cjs
-│   │   ├── init-prompt-gate.cjs
-│   │   ├── npm-auto-install.cjs
-│   │   ├── path-boundary-block.cjs
-│   │   ├── post-edit-prettier.cjs
-│   │   ├── privacy-block.cjs
-│   │   ├── scout-block.cjs
-│   │   ├── session-end.cjs
-│   │   ├── session-init-docs.cjs
-│   │   ├── session-init.cjs
-│   │   ├── verify-install.cjs
-│   │   └── windows-command-detector.cjs
-│   ├── output-styles/                # 6 coding level presets
-│   │   ├── coding-level-0-eli5.md
-│   │   ├── coding-level-1-junior.md
-│   │   ├── coding-level-2-mid.md
-│   │   ├── coding-level-3-senior.md
-│   │   ├── coding-level-4-lead.md
-│   │   └── coding-level-5-god.md
-│   ├── scripts/                      # Utility scripts
-│   │   ├── generate_catalogs.py      # Skills/commands catalog generator
-│   │   ├── scan_skills.py            # Skill scanner
-│   │   ├── ck-help.py                # Claude Kit help utility
-│   │   ├── resolve_env.py            # Environment resolver
-│   │   ├── win_compat.py             # Windows compatibility
-│   │   ├── sync-hooks-to-skills.py   # SYNC-block propagation across skills
-│   │   ├── set-active-plan.cjs       # Active plan state for plan-* skills
-│   │   ├── statusline-project.cjs    # Project root folder name for statusline widget
-│   │   ├── statusline-tps.cjs        # Tokens-per-second estimator for statusline widget
-│   │   ├── worktree.cjs              # Git worktree management
-│   │   ├── worktree.test.cjs         # Worktree tests
-│   │   ├── code_graph/               # Code graph CLI + library
-│   │   ├── codex/                    # Codex sync, migration, notification, and verification tooling
-│   │   ├── commands_data.yaml        # Commands catalog data
-│   │   ├── skills_data.yaml          # Skills catalog data
-│   │   ├── requirements.txt          # Python dependencies
-│   │   └── README.md
-│   ├── skills/                       # Skill definitions
-│   │   ├── INSTALLATION.md           # Dependency installation guide
-│   │   ├── README.md                 # Skills overview
-│   │   ├── TESTING.md                # Testing guide
-│   │   ├── THIRD_PARTY_NOTICES.md    # Third-party licenses
-│   │   ├── install.sh                # Linux/macOS installer
-│   │   ├── install.ps1               # Windows installer
-│   │   ├── common/                   # Shared Python utilities
-│   │   ├── shared/                   # Shared reference/protocol files
-│   │   ├── _templates/               # Skill creation templates
-│   │   ├── feature-implement/SKILL.md             # Implementation skill
-│   │   ├── fix/SKILL.md              # Bug fix skill
-│   │   ├── plan/SKILL.md             # Planning skill
-│   │   ├── code-review/SKILL.md      # Code review skill
-│   │   ├── excalidraw-diagram/       # Diagramming skill
-│   │   ├── workflow-*/               # Workflow trigger skills
-│   │   ├── scan-*/                   # Project scanning skills (11)
-│   │   └── ... (direct SKILL.md files)
-│   ├── tmp/                          # Temporary files (gitignored)
-│   └── workflows/                    # Workflow rule files
-│       ├── development-rules.md
-│       ├── documentation-management.md
-│       ├── orchestration-protocol.md
-│       └── primary-workflow.md
+├── .claude/                 # Canonical framework source
+│   ├── agents/              # Specialized agent definitions
+│   ├── docs/                # Framework guides
+│   ├── hooks/               # Runtime hooks + shared libraries/tests
+│   ├── scripts/             # Catalog, graph, sync, and maintenance tools
+│   ├── skills/              # Skill definitions + optional local tooling
+│   └── workflows.json       # Registered workflow definitions
+├── .agents/                 # Generated Codex skill mirror
+├── .codex/                  # Generated Codex context/configuration
 ├── docs/
-│   ├── project-config.json           # Project-specific configuration
-│   ├── release/                      # Release notes by period
-│   └── project-reference/            # Reference docs (generated by /scan-*)
-│       ├── project-structure-reference.md
-│       ├── backend-patterns-reference.md
-│       ├── frontend-patterns-reference.md
-│       ├── integration-test-reference.md
-│       ├── code-review-rules.md
-│       ├── scss-styling-guide.md
-│       ├── design-system/
-│       ├── domain-entities-reference.md
-│       ├── e2e-test-reference.md
-│       └── lessons.md
-├── .vscode/                         # VS Code workspace settings
-│   ├── extensions.json
-│   ├── mcp.json
-│   └── settings.json
-├── AGENTS.md                         # Codex-facing project instructions
-├── CLAUDE.md                         # Project instructions for Claude
-├── package.json                      # Root Codex tooling scripts
-├── package-lock.json                 # Root tooling lockfile
-├── README.md                         # Project README
-├── LICENSE                           # Apache 2.0
-├── NOTICE                            # Attribution notice
-├── .gitignore                        # Root gitignore
-└── claude-start.cmd                  # Windows launch script
+│   ├── adr/                 # Architecture decisions
+│   ├── project-reference/   # Project-specific AI context
+│   ├── release/             # Release archives
+│   └── templates/           # Authored templates
+├── AGENTS.md                # Codex-facing generated instructions
+├── CLAUDE.md                # Canonical project instructions
+├── package.json             # Node tooling commands + runtime requirement
+└── README.md                # Project overview and setup
 ```
-
 ## Tech Stack
 
 | Category | Technology            | Details                                            |
@@ -254,13 +140,13 @@ easy-claude/
 | SK   | Skills         | `.claude/skills/`              | <!-- COUNT:skills -->161<!-- /COUNT --> task automation skill definitions                                                   |
 | AG   | Agents         | `.claude/agents/`              | <!-- COUNT:agents -->29<!-- /COUNT --> specialized subagent role definitions                                                |
 | WF   | Workflows      | `.claude/workflows.json`       | <!-- COUNT:workflows -->18<!-- /COUNT --> end-to-end process orchestrations                                                 |
-| SC   | Scripts        | `.claude/scripts/`             | 28 top-level utility scripts (catalog gen, audit, worktree, statusline-tps); excludes code_graph package internals + tests/ |
-| CX   | Codex Tooling  | `.claude/scripts/codex/`       | 10 sync, migration, notification, and verification scripts                                                                  |
+| SC   | Scripts        | `.claude/scripts/`             | 31 top-level CJS/ESM/Python utilities; excludes tests and non-executable data/docs                                            |
+| CX   | Codex Tooling  | `.claude/scripts/codex/`       | 13 top-level ESM sync, migration, notification, and verification scripts                                                     |
 | CM   | Codex Mirrors  | `.agents/`, `.codex/`          | Generated Codex-compatible skills, agents, hooks                                                                            |
 | OS   | Output Styles  | `.claude/output-styles/`       | 6 coding level presets                                                                                                      |
 | NT   | Notifications  | `.claude/hooks/notifications/` | Multi-channel notification providers (5)                                                                                    |
 | SB   | Scout Block    | `.claude/hooks/scout-block/`   | Broad search prevention subsystem (4 modules)                                                                               |
-| HT   | Hook Tests     | `.claude/hooks/tests/`         | 14 test suites + 9 `test-*` files (incl. primary runner) + `run-all-tests.cjs` aggregate                                    |
+| HT   | Hook Tests     | `.claude/hooks/tests/`         | 18 suite files + 8 top-level `test-*` files + `run-all-tests.cjs` aggregate                                                  |
 
 ## Hooks (<!-- COUNT:hooks -->15<!-- /COUNT --> top-level `.cjs` files)
 
@@ -280,11 +166,11 @@ easy-claude/
 | `doc-sync-gate`    | PreToolUse       | Gate edits that require doc sync     |
 | `git-commit-block` | PreToolUse       | Block unauthorized commit/stage/push |
 
-> **De-hooked enforcement.** Task/skill/edit gating (`edit-enforcement`, `skill-enforcement`, `workflow-task-guard`) and agent/skill-file routing (`agent-files-skill-gate`) were **removed** in the de-hooking refactor. The discipline they enforced — TaskCreate-before-edit, skill activation, workflow task-list integrity — is now a static rule set in `CLAUDE.md` / `SKILL.md`, read identically by hookless harnesses.
+> **Static enforcement.** Task creation, skill activation, edit gates, and workflow task-list integrity live in `CLAUDE.md` / `SKILL.md`; hookless harnesses read the same rules.
 
-### Context Injection Hooks (REMOVED — de-hooking refactor)
+### Static Project Context
 
-> The entire runtime context-injection layer — `backend-context`, `frontend-context`, `design-system-context`, `scss-styling-context`, `code-patterns-injector`, `code-review-rules-injector`, `lessons-injector`, `knowledge-context`, `role-context-injector`, `figma-context-extractor`, `mindset-injector`, `ba-refinement-context`, the `prompt-context-assembler*` set, and the `pretooluse-ctx-*` dispatchers — was **removed**. Backend/frontend/SCSS/design/lessons/mindset/role guidance now lives **statically** in `CLAUDE.md`, the per-area `docs/project-reference/*` references, and the relevant skills, read per the project-reference-docs gate so Codex/Copilot get identical context with no hook.
+> Backend/frontend/SCSS/design/lessons/mindset/role guidance lives in `CLAUDE.md`, `docs/project-reference/*`, and relevant skills. Read it through the project-reference docs gate; no runtime context-injection hook supplies it.
 
 ### Graph Hooks
 
@@ -302,11 +188,11 @@ easy-claude/
 | `session-end`       | SessionEnd   | Persist state, cleanup                |
 | `verify-install`    | SessionStart | Verify framework install integrity    |
 
-> **De-hooked compaction recovery.** Compaction snapshot/restore hooks (`pre-compact-snapshot`, `write-compact-marker`, `post-compact-recovery`, `session-resume`) were **removed**. There is no live `PreCompact` hook; recovery is now static re-anchoring — re-reading `CLAUDE.md` / `SKILL.md` and the persisted task list (`TaskList`) restores rules, lessons, and progress after compaction.
+> **Compaction recovery:** re-read `CLAUDE.md` / `SKILL.md` plus persisted task tracking; no live `PreCompact` recovery hook exists.
 
 ### Workflow Hooks
 
-> **De-hooked workflow tracking.** Todo/task-completion and workflow-step tracking (`todo-tracker`) was **removed**. Workflow progression is now model-driven — Claude advances steps by judgment against the static catalog in `CLAUDE.md` and the persisted `TaskList`, with no step-tracking hook.
+> **Workflow tracking:** progression is model-driven against `CLAUDE.md` and persisted task tracking; no workflow-step hook advances tasks.
 
 ### Utility Hooks
 
@@ -315,11 +201,11 @@ easy-claude/
 | `post-edit-prettier`       | PostToolUse       | Run prettier after edits                                       |
 | `npm-auto-install`         | SessionStart      | Auto-install npm deps on startup                               |
 | `windows-command-detector` | PreToolUse        | Detect Windows-specific commands                               |
-| `notifications/notify.cjs` | Stop/Notification | Unified notification router (desktop + Telegram/Discord/Slack) |
+| `.claude/hooks/notifications/notify.cjs` | Stop/Notification | Unified notification router (desktop + Telegram/Discord/Slack) |
 
-> **De-hooked post-processing.** Large-output externalization (`tool-output-swap`), sub-agent validation (`post-agent-validator`), and bash temp cleanup (`bash-cleanup`) were **removed** in the de-hooking refactor.
+> **Post-processing:** no large-output swap, post-agent validator, or bash-cleanup hook is registered.
 
-> **No `SubagentStart` hooks.** The former `subagent-init-*` dispatcher/builder layer was removed in the de-hooking refactor; sub-agent context is now carried statically in each agent's `.claude/agents/*.md` definition (read identically by hookless harnesses).
+> **Sub-agent context:** `.claude/agents/*.md` carries static context; no `SubagentStart` hook supplies it.
 
 ## Workflows (<!-- COUNT:workflows -->18<!-- /COUNT -->)
 
@@ -392,7 +278,7 @@ The single `/scan --target=<key>` skill populates `docs/project-reference/` (per
 | `backend-patterns`           | `backend-patterns-reference.md`                       |
 | `frontend-patterns`          | `frontend-patterns-reference.md`                      |
 | `scss-styling`               | `scss-styling-guide.md`                               |
-| `design-system`              | `design-system/README.md`                             |
+| `design-system`              | `docs/project-reference/design-system/README.md`      |
 | `code-review-rules`          | `code-review-rules.md`                                |
 | `domain-entities`            | `domain-entities-reference.md`                        |
 | `feature-spec`               | `feature-spec-reference.md`                           |
@@ -401,3 +287,13 @@ The single `/scan --target=<key>` skill populates `docs/project-reference/` (per
 | `integration-tests`          | `integration-test-reference.md`                       |
 | `seed-test-data`             | `seed-test-data-reference.md`                         |
 | `ui-system` _(orchestrator)_ | runs design-system + scss-styling + frontend-patterns |
+
+## Closing Reminders
+
+**IMPORTANT MUST ATTENTION Goal:** Ground AI work in easy-claude's verified framework topology, runtime entry points, configuration surfaces, and commands so agents never invent application services, ports, or deployment infrastructure.
+
+**IMPORTANT MUST ATTENTION** classify repository → select module/entry point → read cited runtime/config evidence → run graph/path verification.
+**IMPORTANT MUST ATTENTION** treat `.claude/` as canonical and `.agents/` / `.codex/` as generated mirrors.
+**IMPORTANT MUST ATTENTION** use actual configuration for every port, command, version, and setting reference.
+**IMPORTANT MUST ATTENTION** keep secret values out of reports/docs; record key/reference names only.
+**NEVER** fabricate a backend, frontend, database, broker, container, CI/IaC provider, environment, promotion flow, or rollback mechanism when evidence is absent.

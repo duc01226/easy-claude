@@ -1,337 +1,112 @@
 # Backend Patterns Reference
 
-<!-- Last scanned: 2026-03-15 -->
+<!-- Last scanned: 2026-08-04 -->
 <!-- This file is referenced by Claude skills and agents for project-specific context. -->
+
+> **Goal:** Keep hook-oriented backend guidance aligned with verified easy-claude runtime contracts and mark unsupported server-side patterns explicitly.
 
 > **Context:** easy-claude is a Claude Code enhancement framework. The "backend" equivalent is **CJS hook modules** under `.claude/hooks/` and `.claude/hooks/lib/`. There are no traditional backend services, APIs, or databases.
 
 ---
 
-## 1. Hook Architecture
+## Quick Summary
 
-### 1.1 Hook Lifecycle
+- Treat lifecycle hooks and focused CommonJS libraries as this repository's backend boundary.
+- Keep state ownership, parsing, validation, and configuration in their existing focused modules.
+- Treat CQRS, HTTP APIs, ORM repositories, message buses, DI containers, migrations, and schedulers as **N/A** until source evidence proves otherwise.
 
-Hooks are standalone Node.js CJS scripts triggered by Claude Code at specific lifecycle events. Each hook is a short-lived process that:
+## Workflow
 
-1. Reads JSON from **stdin** (event payload from Claude Code)
-2. Processes the event (validate, inject context, block, track state)
-3. Writes output to **stdout** (injected into conversation context) or **stderr** (debug/user-visible messages)
-4. Exits with a code signaling the outcome
+1. Read `docs/project-config.json` and the relevant hook registration in `.claude/settings.json`.
+2. Trace the entry hook into `.claude/hooks/lib/` and verify every cited source range.
+3. Reuse the established fail-open/fail-closed contract and run the configured hook test suite.
 
-### 1.2 Exit Code Convention
+## Key Rules
 
-| Exit Code | Meaning                        | Used By                                                                                                            |
-| --------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| `0`       | Allow / success (non-blocking) | All hooks (default)                                                                                                |
-| `1`       | Soft block with message        | _(none after de-hooking — `edit-enforcement` / `skill-enforcement` were removed; no surviving hook uses exit `1`)_ |
-| `2`       | Hard block (action rejected)   | `privacy-block`, `path-boundary-block`, `scout-block`, `git-commit-block`, `windows-command-detector`              |
+- **MUST** keep file-backed state loading, normalization, and atomic persistence in its owning state module.
+- **MUST** preserve each registered gate's documented stdout/stderr and exit-code contract.
+- **NEVER** invent web-service, database, CQRS, DI, bus, migration, or job conventions absent from source.
 
-**Fail-open principle:** On uncaught errors, hooks exit `0` to avoid blocking Claude. Errors log to stderr.
+## Repository Pattern
 
-### 1.3 Hook Event Types
-
-| Event              | When Fired                      | Example Hooks                                                                                   |
-| ------------------ | ------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `SessionStart`     | startup, resume, clear, compact | `session-init`, `session-init-docs`, `graph-session-init`, `verify-install`, `npm-auto-install` |
-| `SessionEnd`       | Session closing                 | `session-end`                                                                                   |
-| `UserPromptSubmit` | Each user message               | `init-prompt-gate`                                                                              |
-| `PreToolUse`       | Before tool execution           | `privacy-block`, `path-boundary-block`, `scout-block`, `git-commit-block`                       |
-| `PostToolUse`      | After tool execution            | `graph-auto-update`, `post-edit-prettier`                                                       |
-| `PreCompact`       | Before context compaction       | _(none — `pre-compact-snapshot` / `write-compact-marker` removed in the de-hooking refactor)_   |
-| `Stop`             | Main agent finishes responding  | `notifications/notify.cjs`                                                                      |
-| `Notification`     | System notifications            | Various                                                                                         |
-
-> No `SubagentStart` hook — the runtime context-injection layer (including the former `subagent-init*` dispatchers and `prompt-context-assembler` / `pretooluse-ctx-*` inject hooks) was removed in the de-hooking refactor; that guidance is now static in `CLAUDE.md` / `agents/*.md` / `SKILL.md`.
-
-### 1.4 Stdin JSON Payload Structure
+Traditional repository/ORM pattern: **N/A**. Hook state/config modules own file-backed retrieval and persistence (`docs/project-config.json:23-73`, `docs/project-config.json:149-152`). Keep storage/path/normalization logic inside the focused module, not hook entry points.
 
 ```js
-// PreToolUse example
-{
-  "hook_event_name": "PreToolUse",
-  "tool_name": "Edit",              // Tool being invoked
-  "tool_input": { "file_path": "..." }, // Tool arguments
-  "tool_result": "",                 // Empty for PreToolUse
-  "session_id": "abc-123",
-  "transcript_path": "/tmp/...",     // Path to conversation transcript
-  "cwd": "/project/root"
-}
-```
-
----
-
-## 2. Hook Composition Patterns
-
-### 2.1 Pattern A: `runHook` Wrapper (Recommended)
-
-Uses `lib/hook-runner.cjs` for automatic stdin parsing, timeout protection, and error handling.
-
-```js
-const { runHook } = require('./lib/hook-runner.cjs');
-
-runHook(
-    'my-hook',
-    async event => {
-        const { toolName, toolInput, sessionId } = event;
-        // ... logic ...
-        console.log('Context to inject'); // stdout → conversation
-    },
-    { outputResult: false }
-);
-```
-
-Variants: `runHookSync` (synchronous), `runBlockingHook` (validator returning `{ allowed, message }`).
-
-### 2.2 Pattern B: Direct Stdin Read (Legacy/Security Hooks)
-
-Used by security-critical hooks (`privacy-block`, `path-boundary-block`) that need full control.
-
-```js
-async function main() {
-    let input = '';
-    for await (const chunk of process.stdin) input += chunk;
-    const hookData = JSON.parse(input);
-    // ... validation logic ...
-    if (blocked) {
-        console.error(message);
-        process.exit(2);
+function loadState(sessionId) {
+    if (!sessionId) return getDefaultState();
+    const statePath = getWorkflowPath(sessionId);
+    try {
+        if (!fs.existsSync(statePath)) return getDefaultState();
+        const data = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+        return { ...getDefaultState(), ...data };
+    } catch (e) {
+        return getDefaultState();
     }
-    process.exit(0);
-}
-main().catch(() => process.exit(0)); // Fail-open
-```
-
-### 2.3 Pattern C: Context Injection (REMOVED — de-hooking refactor)
-
-The framework previously shipped a per-context PreToolUse "inject" layer (the
-`frontend-context`, `backend-context`, `scss-styling-context`, `knowledge-context`
-hooks) sharing a `lib/context-injector-base.cjs` base, and later the consolidated
-`lib/pretooluse-context-builders.cjs` / `lib/subagent-context-builders.cjs` builders.
-**That entire layer was removed.** The guidance those hooks injected at runtime now
-lives statically in `CLAUDE.md`, agent `.md`, and skill `SKILL.md` files, so a hookless
-harness (Codex / Copilot) reads identical instructions. There is no live runtime
-context-injection pattern — PreToolUse hooks that remain are gates (Pattern B) and the
-`runHook` wrapper (Pattern A).
-
-### 2.4 Pattern D: `require.main === module` Guard
-
-Hooks that export functions for testing and for use by other hooks use this guard to prevent main execution on `require()`.
-
-```js
-module.exports = { buildCatalog, buildInjection };
-if (require.main === module) {
-    main();
 }
 ```
 
----
+Source: `.claude/hooks/lib/workflow-state.cjs:54-64`.
 
-## 3. Library Module Patterns (`.claude/hooks/lib/`)
+## CQRS Patterns
 
-### 3.1 Module Categories
+Traditional CQRS, command/query handlers, controllers, pagination, projection, and HTTP result wrappers: **N/A**. Actual request path: `.claude/settings.json` event matcher → hook process stdin → parser/handler or direct security gate → stdout/stderr → exit code (`.claude/settings.json:32-209`, `.claude/hooks/lib/stdin-parser.cjs:78-91`). `runHook` executes one supplied handler; it is not a CQRS dispatcher (`.claude/hooks/lib/hook-runner.cjs:65-92`).
 
-| Category      | Modules                                                                                 | Purpose                                                                                             |
-| ------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| **Stdin/IO**  | `stdin-parser`, `debug-log`                                                             | Input parsing, debug output to stderr                                                               |
-| **Execution** | `hook-runner`                                                                           | Wrap hooks with timeout, error handling, exit codes                                                 |
-| **Config**    | `ck-config-loader`, `ck-config-utils`, `project-config-loader`, `project-config-schema` | Cascading config resolution, project detection                                                      |
-| **Paths**     | `ck-paths`, `ck-path-utils`                                                             | Centralized `/tmp/ck/` namespace, path normalization                                                |
-| **State**     | `ck-session-state`, `workflow-state`, `todo-state`                                      | Session-scoped persistence in temp files                                                            |
-| **Injection** | `prompt-injections`, `dedup-constants`                                                  | Canonical runtime-text helpers (verified against `SYNC:*` blocks by tests) + dedup marker constants |
-| **Engine**    | `swap-engine`                                                                           | External memory swap (large output externalization)                                                 |
-| **Plan**      | `ck-plan-resolver`, `ck-git-utils`, `ck-env-utils`                                      | Plan naming resolution, git/env helpers                                                             |
+## Validation Patterns
 
-### 3.2 Config Cascading Resolution
-
-`ck-config-loader.cjs` implements three-layer config:
-
-```
-DEFAULT_CONFIG (hardcoded) → ~/.claude/.ck.json (global) → .claude/.ck.json (local)
-```
-
-Deep merge with "local wins" semantics. Arrays replace entirely (not concatenated).
-
-`project-config-loader.cjs` loads `docs/project-config.json` with process-lifetime caching:
+Reusable validator contract: `{ allowed, message? }`; rejection writes stderr and exits `2`, while success/error/timeout remains fail-open `0` (`.claude/hooks/lib/hook-runner.cjs:135-175`). Registered security gates currently own raw parsing/exit behavior directly (`.claude/settings.json:64-130`).
 
 ```js
-let _cache = null;
-function loadProjectConfig() {
-    if (_cache) return _cache;
-    _cache = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
-    return _cache;
+if (result && result.allowed === false) {
+    if (result.message) {
+        process.stderr.write(result.message);
+    }
+    debug(name, "Hook blocked execution");
+    process.exit(2);
 }
 ```
 
-### 3.3 Centralized Path Namespace
+Source: `.claude/hooks/lib/hook-runner.cjs:161-168`.
 
-All temp files go under `/tmp/ck/` via `ck-paths.cjs`:
+## Entity Patterns
 
-```
-/tmp/ck/
-  markers/{sessionId}.json      — Session markers
-  session/{sessionId}.json      — Session state
-  workflow/{sessionId}.json     — Workflow state
-  swap/{sessionId}/             — External memory swap files
-  debug/{sessionId}.log         — Debug logs
-  calibration.json              — Global calibration data
-```
+ORM/domain entities: **N/A**. State modules use plain-object schemas and session-keyed JSON; the owning module supplies defaults, normalization, and atomic persistence (`.claude/hooks/lib/workflow-state.cjs:31-98`, `.claude/hooks/lib/todo-state.cjs:35-105`, `.claude/hooks/lib/ck-session-state.cjs:24-67`).
 
-### 3.4 Dedup System
+## DTO Mapping
 
-`dedup-constants.cjs` provides centralized markers and dynamically computed transcript window sizes to prevent duplicate context injection. Each hook checks whether its marker string appears in the last N lines of the transcript before injecting.
+Transport DTO layer: **N/A**. `parseHookEvent` owns raw snake-case event normalization into handler-friendly fields while retaining `raw` (`.claude/hooks/lib/stdin-parser.cjs:78-91`). State/config modules serialize their own plain objects.
 
-```js
-const { FRONTEND_CONTEXT: MARKER, DEDUP_LINES } = require('./lib/dedup-constants.cjs');
+## Event Handlers
 
-if (wasRecentlyInjected(transcriptPath, MARKER, DEDUP_LINES.FRONTEND_CONTEXT)) {
-    process.exit(0); // Already injected, skip
-}
-```
+Events are Claude lifecycle contracts, not domain/integration events: `Notification`, `PostToolUse`, `PreToolUse`, `SessionEnd`, `SessionStart`, `Stop`, and `UserPromptSubmit` (`.claude/settings.json:32-209`). Handlers are short-lived Node processes; wrapper handlers may be sync/async and default to a 15-second fail-open timeout (`.claude/hooks/lib/hook-runner.cjs:26-92`).
 
-Window sizes are computed from actual file sizes (for file-based injections) or fixed values (for template injections). All dedup line counts are imported from this single module -- never hardcoded.
+## Message Bus
 
----
+Message bus/publisher/consumer convention: **N/A** (`docs/project-config.json:149-152`). Notifications are the only external side-effect channel: desktop plus configured Telegram/Discord/Slack providers. Desktop failures are isolated; external-provider failures are isolated and throttled (`.claude/hooks/notifications/notify.cjs:130-216`, `.claude/hooks/notifications/lib/sender.cjs:88-125`).
 
-## 4. State Management Patterns
+## DI & Configuration
 
-### 4.1 Atomic File Writes
+DI container/lifetimes: **N/A**. Configuration uses JSON registration and focused CommonJS imports: hook commands/matchers in `.claude/settings.json:32-209`; project module/config map in `docs/project-config.json:23-148`; cached config queries in `.claude/hooks/lib/project-config-loader.cjs:53-69` and `:227-243`.
 
-State modules use write-to-temp-then-rename for crash safety:
+## Migrations
 
-```js
-function saveState(sessionId, state) {
-    const statePath = getPath(sessionId);
-    const tmpFile = statePath + '.' + Math.random().toString(36).slice(2);
-    fs.writeFileSync(tmpFile, JSON.stringify(state, null, 2));
-    fs.renameSync(tmpFile, statePath); // Atomic on same filesystem
-}
-```
+Database/schema migrations: **N/A**. No database or ORM configured (`docs/project-config.json:149-152`, `package.json:2-18`).
 
-### 4.2 File-Based Locking
+## Background Jobs
 
-`swap-engine.cjs` uses exclusive file creation for cross-process locking:
+Scheduler/recurring job framework: **N/A**. Hooks run only for registered lifecycle events. Notification sends are awaited sequentially and always fail open; they are not queued jobs (`.claude/hooks/notifications/notify.cjs:130-216`).
 
-```js
-fs.writeFileSync(lockPath, String(process.pid), { flag: 'wx' }); // Fails if exists
-// ... critical section ...
-fs.unlinkSync(lockPath); // Release
-```
+## Authorization
 
-Includes stale lock detection (5-second timeout) to prevent deadlocks.
+No identity/role/policy layer. Operation authorization lives at `PreToolUse` matcher boundaries, static permissions, per-request approval/commit markers, and resolved project path boundaries (`.claude/settings.json:64-130`, `.claude/settings.json:212-265`, `.claude/hooks/privacy-block.cjs:226-239`, `.claude/hooks/git-commit-block.cjs:139-160`, `.claude/hooks/path-boundary-block.cjs:409-444`).
 
-### 4.3 Session-Scoped State
+## Anti-Patterns
 
-State is always keyed by `sessionId` to prevent cross-session contamination. Example modules: `ck-session-state`, `workflow-state`, `todo-state`.
+No violation exceeded the 80% evidence threshold. Direct security gates and reusable `runBlockingHook` coexist in current source; non-adoption alone does not prove a defect (`.claude/hooks/lib/hook-runner.cjs:135-181`, `.claude/settings.json:64-130`). Do not force a wrapper refactor without a demonstrated correctness, cleanup, or configuration failure.
 
----
+## Closing Reminders
 
-## 5. Error Handling Patterns
+- **MUST** trace the registered lifecycle path before changing a hook contract.
+- **MUST** verify every path, declaration, and code sample against current source.
+- **NEVER** replace evidence-backed **N/A** findings with generic backend boilerplate.
 
-### 5.1 Fail-Open (Default)
-
-All hooks default to exit `0` on error to avoid blocking Claude:
-
-```js
-try {
-    // Hook logic
-} catch (error) {
-    console.error(`[hook-name] Error: ${error.message}`);
-    process.exit(0); // Allow operation to proceed
-}
-```
-
-### 5.2 Debug-Gated Logging
-
-`debug-log.cjs` gates verbose output behind `CK_DEBUG=1`:
-
-- `debug(context, ...args)` — Logs to stderr only when `CK_DEBUG` is enabled
-- `debugError(context, error)` — Debug-gated error with stack trace
-- `logError(context, error)` — Always logs (for critical errors)
-
-All debug output goes to **stderr** to avoid contaminating stdout (which is injected into conversation context).
-
-### 5.3 Timeout Protection
-
-`hook-runner.cjs` wraps async handlers with `Promise.race` against a 15-second timeout:
-
-```js
-const result = timeout > 0 ? await Promise.race([handlerPromise, timeoutPromise(timeout, name)]) : await handlerPromise;
-```
-
-On timeout, hooks exit `0` (fail-open).
-
-### 5.4 Graceful Degradation in Shell Commands
-
-`session-init.cjs` uses `execSafe` and `execFileSafe` wrappers with timeouts for external commands (git, python):
-
-```js
-function execSafe(cmd, timeoutMs = 5000) {
-  try { return execSync(cmd, { timeout: timeoutMs, ... }).trim(); }
-  catch { return null; }
-}
-```
-
----
-
-## 6. Security Patterns
-
-### 6.1 Privacy Block (`privacy-block.cjs`)
-
-Blocks access to sensitive files (`.env`, credentials, private keys) with user-override via `APPROVED:` prefix.
-
-### 6.2 Path Boundary Block (`path-boundary-block.cjs`)
-
-Restricts file access to project root. No user override (security-critical). Handles URI decoding, MSYS path conversion, symlink resolution, and configurable allowlist.
-
----
-
-## 7. Testing Patterns
-
-### 7.1 Test Infrastructure
-
-- **Test runner:** `node .claude/hooks/tests/test-all-hooks.cjs` — Custom runner (no external framework)
-- **Test suites:** `.claude/hooks/tests/suites/*.test.cjs` — Organized by category (integration, security, workflow, lifecycle, context, etc.)
-- **Assertions:** `.claude/hooks/tests/lib/assertions.cjs` — Custom assertion library (`assertEqual`, `assertBlocked`, `assertAllowed`, `assertContains`, etc.)
-- **Hook runner:** `.claude/hooks/tests/lib/hook-runner.cjs` — Spawns hooks as child processes with JSON stdin, captures stdout/stderr/exit code
-- **Test utilities:** `.claude/hooks/tests/lib/test-utils.cjs` — Temp dir management, mock config setup, state file helpers, env variable save/restore
-
-### 7.2 Test Execution Pattern
-
-Tests spawn hooks as child processes with JSON piped to stdin, then assert on exit code and output:
-
-```js
-const result = await runHook(hookPath, createPreToolUseInput('Read', { file_path: '.env' }));
-assertBlocked(result.code, 'Should block .env access');
-assertContains(result.stderr, 'PRIVACY BLOCK');
-```
-
-### 7.3 Test Isolation
-
-- Each test creates a temporary directory (`fs.mkdtempSync`) and cleans up after
-- Environment variables are saved/restored via `createEnvSaver()`
-- State files are written to temp directories, not production paths
-- Session IDs include timestamps to prevent cross-test contamination
-
-### 7.4 Integration Test Chains
-
-Tests verify multi-hook interactions by running hooks in sequence or parallel:
-
-```js
-// Sequence: stops at first block
-const results = await runHookSequence([PRIVACY_BLOCK, SCOUT_BLOCK], input);
-
-// Parallel: runs all, checks consistency
-const results = await runHooksParallel([
-    { hookPath: PRIVACY_BLOCK, input: legitInput },
-    { hookPath: PRIVACY_BLOCK, input: blockedInput }
-]);
-```
-
-### 7.5 Module Export for Testing
-
-Hooks export internal functions for unit testing while using `require.main === module` or `module.exports` at the bottom:
-
-```js
-// Export functions for unit testing
-module.exports = { isSafeFile, isPrivacySensitive, extractPaths };
-```
+> **Goal:** Keep hook-oriented backend guidance aligned with verified easy-claude runtime contracts and mark unsupported server-side patterns explicitly.

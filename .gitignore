@@ -17,3 +17,4 @@ node_modules/
 # Scratch report dumps + orphan test baselines (workflow-review-changes hygiene)
 rep-*.txt
 _baseline-*.txt
+.ai/workspace/analysis/
