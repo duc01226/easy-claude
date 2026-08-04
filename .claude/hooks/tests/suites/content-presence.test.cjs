@@ -41,6 +41,17 @@
  *               debug/fix/test-family skill, so every entry point decides WHO is at fault the
  *               same way instead of silently editing whichever side makes the suite green.
  *
+ *   TC-CP-011 — the understand skill's report contract (four-part section order, the mandatory
+ *               diagram set, the eight-field review-stage rule, the never-invent-a-case-ID rule,
+ *               the single-owner target-form rule, and the git-ignored-write HARD RULE) is
+ *               present, AND all three reference contracts it loads at Step 0.3 exist with their
+ *               load-bearing sections. Every one of these is enforced by prompt text alone — an
+ *               edit that drops one silently changes what every run produces.
+ *               It also enforces the contract STRUCTURALLY: report-template.md's form registry
+ *               must match all three of its per-form tables ID-for-ID, and no other file may
+ *               enumerate the form set. Presence checks cannot catch two present-but-disagreeing
+ *               statements, which is what drifted in three consecutive review rounds.
+ *
  * The 4 per-context inject hooks (design-system-canonical-guide / figma-context-extractor /
  * ba-refinement-context / graph-grep-suggester) are now presence-asserted by TC-CP-004..007
  * against the verbatim load-bearing phrases their guidance relocated to. A future skill edit
@@ -268,6 +279,141 @@ module.exports = {
                     `test-failure fault-adjudication rule drift:\n  ${missing.join('\n  ')}\n` +
                     `Fix: re-sync SYNC:test-failure-fault-adjudication ` +
                     `(py -3 .claude/scripts/sync-update-blocks.py test-failure-fault-adjudication).`);
+            },
+        },
+        {
+            name: '[content-presence] TC-CP-011 understand skill carries its report contract + both reference files',
+            fn: () => {
+                // The understand skill's deliverable contract — section order, the mandatory diagram
+                // set, the review-path stage rule, the never-invent-an-ID rule, the single-matrix
+                // rule, and the git-ignored-write HARD RULE — is enforced ONLY by prompt text. An
+                // edit that deletes any of it changes what every run produces while every other
+                // suite still passes. These are the load-bearing phrases, not a non-empty check.
+                const skillPhrases = {
+                    'part-1-orient': 'Part I — Orient',
+                    'part-2-route': 'Part II — Route',
+                    'part-3-depth': 'Part III — Depth',
+                    'part-4-prove': 'Part IV — Prove & Push Back',
+                    'never-invent-a-case-id': 'Never invent a case ID',
+                    'eight-field-stage-rule': 'all eight fields',
+                    'single-target-form-owner': 'SOLE owner of the target-form contract',
+                    'write-hard-rule': 'any git-tracked path',
+                };
+                const missing = [];
+                const body = readSkill('understand');
+                for (const [rule, phrase] of Object.entries(skillPhrases)) {
+                    if (!body.includes(phrase)) missing.push(`understand/SKILL.md → missing "${rule}" ("${phrase}")`);
+                }
+
+                // Step 0.3 loads three contracts. A missing one degrades to a stated blocker rather
+                // than a crash, but it still silently strips the detail the report depends on — so
+                // the distribution must carry all three.
+                const refPhrases = {
+                    'report-template.md': [
+                        'Target forms — the single-owner contract',
+                        'The form registry — the ONE enumeration',
+                        'Where this sits in the system that already existed',
+                    ],
+                    // D5 deliberately has NO per-diagram spec section — review-path.md owns all five
+                    // of its fields. A stub here that only pointed there drifted out of agreement
+                    // with the table row three review rounds running, so the table row is the only
+                    // place D5 is described and it must carry the "rendered in §4" scope itself.
+                    'diagram-catalog.md': [
+                        'D7 — Story map (MANDATORY)',
+                        'Derivation ladder',
+                        '**MANDATORY** — rendered in §4, not §2',
+                        '**D5 has no spec here**',
+                    ],
+                    'review-path.md': ['Cap: 3 context files per stage', '[context — not changed]'],
+                };
+                for (const [file, phrases] of Object.entries(refPhrases)) {
+                    const p = path.join(SKILLS_DIR, 'understand', 'references', file);
+                    if (!fs.existsSync(p)) { missing.push(`understand/references/${file} → FILE MISSING`); continue; }
+                    const ref = readFile(p);
+                    for (const phrase of phrases) {
+                        if (!ref.includes(phrase)) missing.push(`understand/references/${file} → missing "${phrase}"`);
+                    }
+                }
+
+                // ---- Single-owner structural guard on the target-form contract ----
+                //
+                // Three review rounds each produced the SAME failure: a form-set claim asserted in
+                // N files, a fix applied to the 1 that was cited, and nothing detecting the other
+                // N-1. Phrase-parity assertions could not catch that — they check that a phrase is
+                // PRESENT, and every drift instance was two present phrases disagreeing.
+                //
+                // So the contract was consolidated: report-template.md now owns a form REGISTRY
+                // (the one enumeration) plus all three per-form detail tables, and every other file
+                // carries a pointer and no list. That makes the invariant structural and checkable:
+                // the registry's ID column must equal each detail table's key column, exactly and
+                // in order. Adding a form to the registry alone, or to two tables out of three,
+                // fails here — which is precisely the half-edit that drifted three times.
+                //
+                // IDs are matched, not display names: detail rows abbreviate ("F5 · Un-fixed bug"
+                // vs the registry's "Un-fixed bug/error"), and it is the ID correspondence that
+                // carries the invariant. Coupling to markdown table shape is intentional — a
+                // reformat that breaks these patterns IS a change to the contract's single source
+                // and should require updating this TC.
+                const OWNER = 'report-template.md';
+                const ownerPath = path.join(SKILLS_DIR, 'understand', 'references', OWNER);
+                const owner = fs.existsSync(ownerPath) ? readFile(ownerPath) : '';
+                const chunks = owner.split(/^### /m);
+                const chunkFor = (heading) => chunks.find((c) => c.startsWith(heading)) || '';
+
+                // Registry rows are `| **F1** | Diff | ... |`; detail rows are `| **F1 · Diff** |`.
+                // The closing `**` right after the digits keeps the two patterns disjoint.
+                const registryIds = [...chunkFor('The form registry')
+                    .matchAll(/^\|\s*\*\*(F\d+)\*\*\s*\|/gm)].map((m) => m[1]);
+
+                if (registryIds.length < 2) {
+                    missing.push(`understand/references/${OWNER} → form registry missing or has <2 rows (expected "| **F1** | … |" rows under "### The form registry")`);
+                } else {
+                    const expected = registryIds.map((_, i) => `F${i + 1}`).join(',');
+                    if (registryIds.join(',') !== expected) {
+                        missing.push(`understand/references/${OWNER} → registry IDs are [${registryIds.join(', ')}], expected sequential [${expected}] — renumber so a form's ID is stable and greppable`);
+                    }
+                    for (const table of ['Table 1 of 3', 'Table 2 of 3', 'Table 3 of 3']) {
+                        const chunk = chunkFor(table);
+                        if (!chunk) { missing.push(`understand/references/${OWNER} → "### ${table}" section absent — the contract's three per-form tables must stay in the owner file`); continue; }
+                        const ids = [...chunk.matchAll(/^\|\s*\*\*(F\d+)\s*·/gm)].map((m) => m[1]);
+                        if (ids.join(',') !== registryIds.join(',')) {
+                            missing.push(`understand/references/${OWNER} → "${table}" covers [${ids.join(', ') || 'none'}] but the registry declares [${registryIds.join(', ')}] — a form was added or removed in one place only; every form needs a row in the registry AND in all three tables`);
+                        }
+                    }
+                }
+
+                // No file outside the owner may enumerate the form set — not as registry-style rows,
+                // not as a re-introduced legacy table keyed on the form nouns, and not as a COUNT.
+                // The count check covers both historical violations: "Six target forms are declared
+                // in Step 0" (was SKILL.md) and "Six forms are declared in Step 0" (was
+                // report-template.md) — an earlier regex required the word "target" and caught only
+                // the first, so `target` is optional here. Illustrative prose naming individual
+                // forms stays allowed; only an enumeration or a count is drift.
+                const COUNT_RX = /\b(?:four|five|six|seven|eight|nine)\s+(?:target\s+)?forms?\b/i;
+                const ID_ROW_RX = /^\|\s*\*\*F\d+/m;
+                const LEGACY_ROW_RX = /^\|\s*\*\*(?:Diff|Subsystem|Plan|Concept|Un-fixed bug|No user-facing story)\b/im;
+                const nonOwner = { 'SKILL.md': body };
+                for (const f of ['review-path.md', 'diagram-catalog.md']) {
+                    const p = path.join(SKILLS_DIR, 'understand', 'references', f);
+                    if (fs.existsSync(p)) nonOwner[`references/${f}`] = readFile(p);
+                }
+                for (const [where, text] of Object.entries(nonOwner)) {
+                    const count = text.match(COUNT_RX);
+                    if (count) missing.push(`understand/${where} → asserts a target-form COUNT ("${count[0]}") — the set is enumerated ONLY in references/${OWNER}'s registry; delete the count and point there`);
+                    if (ID_ROW_RX.test(text)) missing.push(`understand/${where} → carries form-registry rows ("| **F…") — only references/${OWNER} may enumerate the form set`);
+                    if (LEGACY_ROW_RX.test(text)) missing.push(`understand/${where} → carries a per-form table keyed on form names — that second list is what drifted from the owner three rounds running; replace it with a pointer to references/${OWNER}`);
+                    // Dangling deixis. Consolidation moved the per-form tables out of these files
+                    // but left two prose pointers reading "see the target-form matrix below" —
+                    // aimed at a table no longer there. A cross-file pointer must name the FILE, so
+                    // "below"/"above" deixis about the form contract is banned outside the owner.
+                    const dangling = text.match(/target[- ]form matrix|form matrix (?:below|above)/i);
+                    if (dangling) missing.push(`understand/${where} → points at a "${dangling[0]}" that does not live here — the per-form tables are in references/${OWNER}; cite it by filename and table number, never by "below"`);
+                }
+
+                assertTrue(missing.length === 0,
+                    `understand report-contract drift:\n  ${missing.join('\n  ')}\n` +
+                    `Fix: restore the dropped contract text, or update this TC if the contract ` +
+                    `intentionally changed (a deliberate contract change SHOULD edit this test).`);
             },
         },
     ],

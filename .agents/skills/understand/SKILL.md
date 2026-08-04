@@ -1,6 +1,6 @@
 ---
 name: understand
-description: '[Process] Use when the developer wants something explained or taught — by default the current working tasks + changes in context, or whatever the prompt names (a plan, a subsystem, a decision, a concept, a bug). AI derives WHAT to explain from the prompt and ALWAYS delivers a teacher-and-coach explanation: what was done, the technical concepts needed to follow it, how it works, why THIS solution, every alternative option with pros/cons, the trade-offs accepted, the blast radius, the developer''s decision levers, and written challenge prompts that provoke the reader to pressure-test the work. Writes the full teaching report to an external markdown file (plans/reports/understand-*.md) — or delivers it in full in chat when Step 3 finds no git-ignored directory for it — and always summarizes it in chat. Regardless of coding level. Never interrogates, never quizzes, never blocks.'
+description: '[Process] Use when the developer wants something explained or taught, or wants to know HOW TO REVIEW a change — by default the current working tasks + changes in context, or whatever the prompt names (a plan, a subsystem, a decision, a concept, a bug). AI derives WHAT to explain from the prompt and ALWAYS delivers a teacher-and-coach review guide, high level first then detail: what was done, a VISUAL MAP (system flowchart, domain ERD, sequence diagrams), the user stories and business rules with their REAL test-case IDs, a REVIEW PATH naming which files to open first and in what order with an exit criterion per stage, the technical concepts needed to follow it, how it works, why THIS solution, every alternative option with pros/cons, the trade-offs accepted, the blast radius, HOW TO TEST AND DEMO the change, the developer''s decision levers, and written challenge prompts that provoke the reader to pressure-test the work. Writes the full report to an external markdown file (plans/reports/understand-*.md) — or delivers it in full in chat when Step 3 finds no git-ignored directory for it — and always summarizes it in chat. Regardless of coding level. Never interrogates, never quizzes, never blocks.'
 disable-model-invocation: false
 ---
 
@@ -52,9 +52,16 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 
 ## Quick Summary
 
-**Goal:** Leave the **developer** able to **judge** the work, not merely accept it — so AI accelerates the human without eroding their grasp of the codebase or their authority over it. Teach **WHAT** was done, the **CONCEPTS** needed to follow it, **HOW** it works, **WHY this solution**, **WHICH OTHER OPTIONS** existed and their pros/cons, the **TRADE-OFFS** paid, the **IMPACT**, the developer's own **DECISION LEVERS**, and written **CHALLENGE** prompts that provoke them to pressure-test it. **AI derives WHAT to explain from the user's prompt.** There are no fixed modes — the scope flexes to whatever the developer needs explained, and the teaching is given in full **regardless of the developer's coding level** — never skipped, never gated.
+**Goal:** Leave the **developer** able to **review and judge** the work, not merely accept it — so AI accelerates the human without eroding their grasp of the codebase or their authority over it. Show **WHAT** was done, **DRAW IT** (system, domain, and flow diagrams), state the **USER STORIES** and the **BUSINESS RULES** they protect, hand over a **REVIEW PATH** (which files to open first, then next, and what to be able to answer before moving on), teach the **CONCEPTS** needed to follow it, explain **HOW** it works, **WHY this solution**, **WHICH OTHER OPTIONS** existed and their pros/cons, the **TRADE-OFFS** paid, the **IMPACT**, how to **TEST AND DEMO** it, the developer's own **DECISION LEVERS**, and written **CHALLENGE** prompts that provoke them to pressure-test it. **AI derives WHAT to explain from the user's prompt.** The scope flexes to whatever the developer needs explained; the report shape never does, and the teaching is given in full **regardless of the developer's coding level** — never skipped, never gated.
 
-**Deliverable:** a full teaching report written to `plans/reports/understand-{YYMMDD}-{HHmm}-{slug}.md` (git-ignored working artifact), **plus** an in-chat executive summary — and the report path whenever a file was written (Step 3 delivers the nine sections in chat instead when it finds no git-ignored directory for the report). Section shape and authoring rules: `references/report-template.md`.
+**Deliverable:** a full review guide written to `plans/reports/understand-{YYMMDD}-{HHmm}-{slug}.md` (git-ignored working artifact), **plus** an in-chat executive summary — and the report path whenever a file was written (Step 3 delivers every section in chat instead when it finds no git-ignored directory for the report). It reads **high level first, detail later**, in four parts:
+
+- **Part I — Orient:** §1 What Was Done · §2 Visual Map · §3 User Stories & Business Rules — the picture and the business, before any code.
+- **Part II — Route:** §4 Review Path — where to start reading, in what order, and what to answer at each stage.
+- **Part III — Depth:** §5 Concepts You Need · §6 How It Works · §7 Why This Solution · §8 Options Considered · §9 Trade-offs Accepted · §10 Impact & Blast Radius.
+- **Part IV — Prove & Push Back:** §11 Test & Demo · §12 Your Call · §13 Challenge This.
+
+Section shape and authoring rules: `references/report-template.md`. Diagram contract: `references/diagram-catalog.md`. Route contract: `references/review-path.md`.
 
 **Scope is prompt-driven — flexible for all cases:**
 
@@ -65,59 +72,74 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 **Key Rules (the contract — read these first):**
 
 - **DERIVE SCOPE FROM THE PROMPT.** What to explain is whatever the developer asked about; if they asked nothing specific, default to the current tasks + changes in context. Never force a fixed agenda.
-- **TEACH AND COACH — the developer must be able to JUDGE, not just follow.** A description of what the code does is a FAILED run. Teaching = the reader could re-derive the design. Coaching = the reader is handed the levers and the counter-arguments needed to disagree on evidence.
-- **ALL NINE SECTIONS, EVERY LEVEL.** What → Concepts → How → Why-this-solution → Options-considered → Trade-offs → Impact → Your-call → Challenge-this. Coding level tunes vocabulary, analogy density, and per-section LENGTH only — it NEVER deletes a section. A level-5 report is nine short sections, never four. There is no "skip by level".
+- **NO MODE — ALWAYS THE FULL REPORT.** There is no `--mode`, no light variant, no summary-only path, no opt-out. Every invocation produces every section, every mandatory diagram, and the review path. Scope flexes; the contract does not.
+- **TEACH, COACH, AND ROUTE — the developer must be able to JUDGE, not just follow.** A description of what the code does is a FAILED run. Teaching = the reader could re-derive the design. Coaching = the reader is handed the levers and the counter-arguments needed to disagree on evidence. Routing = the reader knows which file to open first, what to check there, and what they must be able to answer before moving on.
+- **ALL SECTIONS, EVERY LEVEL.** Part I What Was Done → Visual Map → User Stories & Business Rules; Part II Review Path; Part III Concepts → How → Why-this-solution → Options-considered → Trade-offs → Impact; Part IV Test & Demo → Your-call → Challenge-this. Coding level tunes vocabulary, analogy density, and per-section LENGTH only — it NEVER deletes a section, NEVER reduces the diagram count, and NEVER drops a review stage. A level-5 report is every section, short. There is no "skip by level".
+- **DIAGRAMS ARE MANDATORY, AND DERIVED — NEVER DRAWN FROM EXPECTATION.** §2 always carries a system flowchart, a domain ERD, and a sequence diagram per main flow, each built from a graph trace, a read call site, or an existing spec diagram. A mandatory diagram that cannot be derived degrades to a **stated blocker** — never to silence, never to an empty fence, and never to plausible-looking invented nodes. Contract: `references/diagram-catalog.md`.
+- **REAL IDs ONLY — NEVER INVENT A TEST CASE.** Every `TC-*` / test ID in §3 and §11 is one that actually exists in the specs or the test code. A story or case with no test says _"no test covers this"_ and is recorded as a coverage gap. A fabricated case ID is worse than an admitted gap: it retires a risk that is still live.
 - **ALTERNATIVES ARE MANDATORY, WITH PROS AND CONS EACH.** Every significant decision lists ≥2 alternatives beyond the chosen one — each with specific pros, specific cons, cost-to-switch-later, and the disqualifying reason — or an explicitly argued statement that the option space is genuinely empty. The chosen option MUST list real cons too. Generic pros/cons ("cleaner", "faster") are a failed section. Label each option `[deliberated]` (weighed during the work) or `[reconstructed]` (surfaced now, after the fact) — **NEVER invent a deliberation that did not happen.**
 - **PROVOKE THINKING IN WRITING — NEVER INTERROGATE.** The report MUST end with rhetorical challenge prompts, a named weakest link, and a pre-mortem, so the reader pressure-tests the work. These are **written provocations, not tool calls**: NEVER use ask the user directly, NEVER quiz or ask for teach-back, NEVER wait for an answer, NEVER gate anything on a reply. Provoke on paper; the developer answers at their own pace or not at all. On an ambiguous target, still do not ask — infer, state the assumption, proceed.
 - **STANDALONE, NEVER BLOCKS.** This skill can be invoked directly or as a wrap-up handoff from `$watzup`. It teaches and ends; it never traps the developer in a loop or prevents commit/workflow progress.
 - **EXPLAIN THE WHOLE SCOPE, LEAD WITH THE NON-OBVIOUS.** Cover everything in the resolved scope, but order by leverage — open with the highest-blast-radius, highest-future-change-cost, most-surprising parts; treat boilerplate/CRUD/mechanical edits briefly. Depth is the goal; ordering is the optimization.
 - **READ-ONLY on code & plans; writes ONLY git-ignored working artifacts.** This skill never edits source, plan, or doc files. Its only write targets are git-ignored working artifacts — the teaching report at `plans/reports/understand-{YYMMDD}-{HHmm}-{slug}.md` and the resumable index at `tmp/understand/{branch}-index.md` (see Step 3) — never in `.claude/`, the source tree, `docs/`, or any git-tracked path. When an artifact's candidate directories are all git-tracked it writes **nothing there** and reports the skip (Step 3): the constraint is what holds, never a fixed count of files.
+- **NO SECRET VALUES, ANYWHERE.** Diagrams, stage tables, and run/demo commands name the setting, the file, and the class of check — never a credential, token, key, connection string, or customer identifier. Secrets render as `<redacted:…>` placeholders from the moment they would enter context (Step 1 inventory 6), not at write time.
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
 ---
 
-# Understand — Prompt-Driven Teaching & Coaching Explainer
+# Understand — Prompt-Driven Review Guide, Teaching & Coaching Explainer
 
-You are a **teacher and a coach**, in that order.
+You are a **teacher, a coach, and a router**, in that order.
 
-- **As a teacher** you make the human deeply understand what happened: the motivation, the technical concepts they need, the mechanics, the business logic, the edge cases. You name a concept before you use it. You go first principles before jargon, concrete before abstract, and you offer an analogy for anything genuinely dense.
-- **As a coach** you make the human able to *judge* it: you lay out the options that existed and what each would have cost, you name what the decision paid for and what it paid with, you hand over the levers they'd pull to change it, and you write down the sharpest questions a hostile reviewer would ask — so they can push back on evidence instead of rubber-stamping AI output.
+- **As a teacher** you make the human deeply understand what happened: the motivation, the technical concepts they need, the mechanics, the business logic, the edge cases. You name a concept before you use it. You go first principles before jargon, concrete before abstract, and you offer an analogy for anything genuinely dense. You **draw** it before you describe it — a picture orients a reader in seconds that prose cannot in paragraphs.
+- **As a coach** you make the human able to _judge_ it: you lay out the options that existed and what each would have cost, you name what the decision paid for and what it paid with, you hand over the levers they'd pull to change it, and you write down the sharpest questions a hostile reviewer would ask — so they can push back on evidence instead of rubber-stamping AI output.
+- **As a router** you make the human able to _review_ it: you tell them which file to open first and why, what to check there, what a red flag looks like, and what question they must be able to answer before moving to the next group. A route is **directive**, not explanatory — "open these three files; you should be able to state the invariant before you continue", never "the domain layer is important".
 
-> **The bar:** a developer who reads the report could (a) re-derive the design themselves, (b) argue for a different option and say what it would cost, and (c) name the weakest part of the work. Anything less is a description, not teaching.
+> **The bar:** a developer who reads the report could (a) re-derive the design themselves, (b) argue for a different option and say what it would cost, (c) name the weakest part of the work, and (d) sit down and review the change in the right order without asking anyone where to start. Anything less is a description, not teaching.
 
-**One-way, never interrogating.** You do the teaching and the provoking; the developer reads. The challenge questions in §9 are **rhetorical and written down** — you never call ask the user directly, never quiz, never ask for teach-back, and never wait for or gate on a reply.
+**One-way, never interrogating.** You do the teaching and the provoking; the developer reads. The challenge questions in §13 are **rhetorical and written down** — you never call ask the user directly, never quiz, never ask for teach-back, and never wait for or gate on a reply.
 
 ## Step 0 — Resolve Scope & Read the Style Dial (do this first, cheaply)
 
 1. **Derive the scope from the prompt.** Read what the developer actually asked and pick the target:
 
-   | Prompt signal | Scope to explain |
-   | ------------- | ---------------- |
-   | Bare `$understand`, no target named | **Default: current working context** — active tasks (the current task list) + working-tree changes (`git diff --name-only` + untracked) + active plan / latest `$watzup` summary if present. |
-   | Names a change set / PR / "what I just did" / "these changes" | The diff and its rationale. |
-   | Names a plan / "the approach" / "before we build" | The active plan: problem, approach, rejected alternatives, risks, phase order. |
-   | Names a subsystem / file / feature / "how does X work" | That code path — read the files, run a graph trace, explain the flow. |
-   | Names a single decision / "why X over Y" | That decision and its trade-offs. |
-   | Names a concept / bug / error | That concept or root cause. |
-   | Ambiguous / multiple plausible targets | **Do NOT ask.** Infer the most likely target (default to current working context), state the assumption in one line, and proceed. |
+   | Prompt signal                                                 | Scope to explain                                                                                                                                                                  |
+   | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+   | Bare `$understand`, no target named                           | **Default: current working context** — active tasks (the current task list) + working-tree changes (`git diff --name-only` + untracked) + active plan / latest `$watzup` summary if present. |
+   | Names a change set / PR / "what I just did" / "these changes" | The diff and its rationale.                                                                                                                                                       |
+   | Names a plan / "the approach" / "before we build"             | The active plan: problem, approach, rejected alternatives, risks, phase order.                                                                                                    |
+   | Names a subsystem / file / feature / "how does X work"        | That code path — read the files, run a graph trace, explain the flow.                                                                                                             |
+   | Names a single decision / "why X over Y"                      | That decision and its trade-offs.                                                                                                                                                 |
+   | Names a concept / bug / error                                 | That concept or root cause.                                                                                                                                                       |
+   | Ambiguous / multiple plausible targets                        | **Do NOT ask.** Infer the most likely target (default to current working context), state the assumption in one line, and proceed.                                                 |
 
    State the resolved scope in one line before continuing (e.g. `Explaining: current working changes (3 files) + active task #42`).
 
-2. **Read the style dial (a LENGTH dial, NOT a section gate).** Resolve coding level (first found wins): env `CK_CODING_LEVEL` → `.claude/.ck.json` `codingLevel` → default `3`. The level ONLY tunes how the teaching reads — vocabulary, analogy density, assumed background, and per-section length. **It never decides whether to teach, and it never deletes a section.** All nine sections appear at every level.
+2. **Read the style dial (a LENGTH dial, NOT a section gate).** Resolve coding level (first found wins): env `CK_CODING_LEVEL` → `.claude/.ck.json` `codingLevel` → default `3`. The level ONLY tunes how the teaching reads — vocabulary, analogy density, assumed background, and per-section length. **It never decides whether to teach, and it never deletes a section.** Every section appears at every level.
 
-   | Level | Name | Style (all nine sections always present) |
-   | ----- | ---- | ---------------------- |
-   | 5 / -1 | God Mode | Terse and dense. Lead with the non-obvious trade-off and blast radius; assume all mechanics; teach only genuinely unusual concepts. Options matrix terse, weakest-link + pre-mortem kept. |
-   | 4 | Tech Lead | Concise. Emphasize design trade-offs, cost-to-switch, blast radius; light on mechanics; strategic challenges. |
-   | 3 | Senior | Balanced. Mechanics summarized; concepts one-line refreshers; options, trade-offs, and edge cases in full. |
-   | 2 | Mid | Fuller mechanics walkthrough; concepts placed in their pattern family; full options table with cost-to-switch reasoning. |
-   | 1 | Junior | WHY before HOW; mechanics step by step; every non-obvious term defined in §2 before §3 uses it; teach why each con matters. |
-   | 0 | ELI5 | Incremental, one concept at a time, analogies, no jargon. Options stated in plain "we could also have…" language. Still reaches all nine sections. |
+   | Level  | Name      | Style (all sections always present)                                                                                                                                                       |
+   | ------ | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+   | 5 / -1 | God Mode  | Terse and dense. Lead with the non-obvious trade-off and blast radius; assume all mechanics; teach only genuinely unusual concepts. Options matrix terse, weakest-link + pre-mortem kept. |
+   | 4      | Tech Lead | Concise. Emphasize design trade-offs, cost-to-switch, blast radius; light on mechanics; strategic challenges.                                                                             |
+   | 3      | Senior    | Balanced. Mechanics summarized; concepts one-line refreshers; options, trade-offs, and edge cases in full.                                                                                |
+   | 2      | Mid       | Fuller mechanics walkthrough; concepts placed in their pattern family; full options table with cost-to-switch reasoning.                                                                  |
+   | 1      | Junior    | WHY before HOW; mechanics step by step; every non-obvious term defined in §5 before §6 uses it; teach why each con matters.                                                               |
+   | 0      | ELI5      | Incremental, one concept at a time, analogies, no jargon. Options stated in plain "we could also have…" language. Still reaches every section.                                            |
+
+   > **The dial cuts prose, never structure.** It never reduces the number of diagrams and never drops a stage from the review path. A diagram is the densest form available — which makes it exactly what a level-5 reader wants most — and a route with a missing stage sends the reviewer into code they are not yet equipped to judge.
 
    Note the level you read in one line (e.g. `Style: level 3 (Senior) — balanced depth`), then teach. Do **not** offer a skip and do **not** ask the developer anything.
 
-3. **Load the report template.** Read `references/report-template.md` — it carries the nine-section skeleton, the options/pros-cons table format, the provenance labels, the per-level tuning matrix, and the pre-write self-check. Do not improvise the report shape from memory.
+3. **Load all three contracts.** Read them before gathering — the shape of the report determines what you must collect, so improvising it from memory guarantees a thin section:
+
+   | Reference                       | Supplies                                                                                                                                                             |
+   | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+   | `references/report-template.md` | The section skeleton, the four parts, the options/pros-cons table format, the provenance labels, the per-level tuning matrix, and the pre-write self-check           |
+   | `references/diagram-catalog.md` | Which diagrams are mandatory, how each is derived from real evidence, the provenance marking, size discipline, and what to emit when one genuinely cannot be derived |
+   | `references/review-path.md`     | The layer taxonomy, the deterministic ordering algorithm, the context-inclusion rule, and the eight fields every review stage must carry                             |
+
+   **If a contract file is missing** (a partial distribution, a vendored copy, an incomplete mirror sync), **degrade — never silently, and never by skipping the work it governs.** Say which file is absent in one line — *"`references/diagram-catalog.md` not found — running on the inline contract; diagram derivation detail unavailable"* — and fall back to the inline contract in this file: the mandatory diagram set and provenance rule at the §2 row of the section table, the eight-field stage rule at the §4 row, and the section order + code-free forms below. The report is still owed in full; only the elaboration is lost. This is the same rung every other input in this skill ends on (diagram sources, stories/TCs, route classification, run commands, write location) — a stated blocker, never a silent gap.
 
 ## Step 1 — Gather the Material
 
@@ -130,10 +152,15 @@ Gather **only** what the resolved scope needs:
 
 Keep gathering proportional to scope — don't read the whole repo to explain one decision.
 
-**Then gather the two things a description-only pass always skips:**
+**Portable discovery — resolve locations, never hardcode them.** Read `docs/project-config.json` (and the project-reference docs it points to) for source roots, spec/feature-doc location, test locations, and run commands. This skill runs on repos it has never seen; a hardcoded framework path is a guess wearing a citation. Where a source is absent, walk the degradation ladder stated per inventory below and **record which rung you landed on** — the reader calibrates on it.
 
-1. **The concept inventory (feeds §2).** List every technical concept, pattern, or mechanism a reader must hold in their head to follow the flow — CQRS, optimistic concurrency, debounce, idempotency key, event sourcing, memoization, whatever is actually in play. Keep only the load-bearing ones (1–4); drop decoration. For each, find where it is visible in this codebase (`file:line`) so the concept is taught against real code, not in the abstract.
-2. **The option space (feeds §5).** For each significant decision, reconstruct what ELSE could have been done. Sources, in order of strength:
+**Then gather the six things a description-only pass always skips.** Each feeds a named section; a skipped inventory produces a thin section, which the Step 4 gate will reject.
+
+1. **Diagram sources (feeds §2).** Collect the evidence each mandatory diagram is built from: `python .claude/scripts/code_graph trace <file> --direction both --node-mode file --json` for the component map; an existing spec `erDiagram` (lift it verbatim — the cheapest correct source) else the entity/model class fields else the migration/schema files for the domain model; the flow entry points and their handler chains for the sequences. Note any entity carrying a `status`/`state`/`phase` field, a lifecycle enum, or a transition guard — that, and only that, fires the state diagram. _Ladder:_ graph trace → grep + read the call sites → spec/plan text → **state the blocker**. Never a fifth rung of invention.
+2. **Story & test-case inventory (feeds §3, and §11's cases).** Identify the **main** user-facing capabilities in scope — the "As a … I want … so that …" the change delivers — and for each, the business rule or invariant it protects and where that rule is enforced (`file:line`). Then collect the **real** cases that prove it: spec `TC-*` IDs and/or the integration/unit/e2e `it`/`[Fact]`/scenario names. **Use the actual IDs — never invent case numbers.** Reconcile the union of spec TCs and test-code cases; a story with no case is a coverage gap to report, never a gap to fill with a plausible ID. _Ladder:_ specs → tests → PBIs/release notes/commit messages → the diff itself.
+3. **Review-path classification (feeds §4).** Assign every in-scope file to a layer bucket per `references/review-path.md` (contracts/API · domain · application · persistence · integration · UI · tests · config/generated), then walk **one hop outward** and admit the unchanged files a reviewer needs in order to judge the changed ones — the invariant owner, the interface satisfied, the base-class contract, the governing spec/TC. Mark every such file as context, not as a change. _Ladder:_ graph trace → grep of imports/references, in which case the emitted route must carry its approximation label.
+4. **The concept inventory (feeds §5).** List every technical concept, pattern, or mechanism a reader must hold in their head to follow the flow — CQRS, optimistic concurrency, debounce, idempotency key, event sourcing, memoization, whatever is actually in play. Keep only the load-bearing ones (1–4); drop decoration. For each, find where it is visible in this codebase (`file:line`) so the concept is taught against real code, not in the abstract.
+5. **The option space (feeds §8).** For each significant decision, reconstruct what ELSE could have been done. Sources, in order of strength:
    - the plan's rejected-alternatives section, ADRs under `docs/adr/`, PR/commit messages, code comments saying "instead of"/"we tried";
    - `git log`/`git blame` on the touched lines — a prior implementation IS an alternative, and its removal is evidence;
    - **3+ sibling patterns already in this codebase** solving the same shape of problem differently (grep/glob) — the strongest alternatives are the ones the repo already demonstrates;
@@ -142,15 +169,25 @@ Keep gathering proportional to scope — don't read the whole repo to explain on
 
    **[ANTI-HALLUCINATION]** Mark each option `[deliberated]` only when you have evidence it was actually weighed during the work. Everything else is `[reconstructed]` — surfaced now, for the developer's judgement. NEVER dress a reconstruction up as a deliberation; a fabricated decision history is worse than none.
 
-## Step 2 — Order the Topics by Leverage (cover all, lead with the non-obvious)
+6. **Demo & run evidence (feeds §11).** Collect the project's own test/run commands from `docs/project-config.json`, the seed/fixture paths that stage a scenario, and — per main case — how the domain **stores or changes** the data that makes the case work: the persisted field/column/table, the entity or migration that owns it, and the rule that consumes it to produce the outcome (`file:line` each). Read the code; do not infer persistence from names. A display-only case states _"no storage change"_ and describes the computed representation instead. _Ladder:_ `project-config.json` → the CI workflow's own commands → the test runner's manifest (`package.json` scripts, `*.csproj`, `Makefile`) → **state that you could not resolve a command** rather than guessing one.
 
-You will explain the **whole** resolved scope. Use this only to **order** the explanation — open with what matters most, compress the rest:
+   > **[SECURITY]** Record every command in **placeholder form**. Environment variables, connection strings, tokens, keys, and customer identifiers are referenced by NAME and rendered `<redacted:…>` — never by value. This is the point where a secret would first enter context, so it is the point that must refuse it.
+
+## Step 2 — Order the Material (two different axes — do not conflate them)
+
+You will explain the **whole** resolved scope. Two orderings come out of this step, and they answer different questions:
+
+**Axis A — narrative depth order (which topics get the most words).** Order by leverage; open with what matters most, compress the rest:
 
 - **Blast radius:** run `$graph-blast-radius` (or `python .claude/scripts/code_graph trace <file> --direction both --json`) on the key files in scope. High upstream/downstream reach → explain first and in most depth.
 - **Future-change-cost:** decisions expensive to reverse later (schema, public contract, cross-service message, shared/framework layer) → high priority.
 - **Surprise:** anything a competent engineer would NOT guess from the task description — a non-obvious trade-off, a preserved edge case, a "we did X instead of the obvious Y because Z" → call these out explicitly.
 
 Boilerplate, generated code, and mechanical renames get a one-line mention, not a deep dive. Nothing in scope is silently omitted — but depth follows leverage.
+
+**Axis B — review route order (which files a human opens first).** Order **contract-inward**, per `references/review-path.md`: start at the layer that defines _meaning_ (API contract, then domain invariants), walk outward through application → persistence → integration → UI, tests last, config/generated collapsed into one final skim. Blast radius is the **tie-break between peers here, not the primary axis**.
+
+**When the two disagree, each governs its own output — never borrow one for the other.** A shared utility with the widest blast radius leads Axis A: it gets the deepest explanation in §6 and §10. It does NOT lead Axis B: a route that opens with a util file drops the reviewer into mechanism before they know what the change is supposed to _mean_, and they cannot tell a correct edit from an incorrect one. The entity that owns the invariant leads the route even when its reach is small. Axis A orders §5–§10; Axis B orders §4.
 
 ## Step 3 — Open the Teaching Report (write incrementally, never in one final batch)
 
@@ -160,69 +197,91 @@ Two artifacts, different jobs:
 
 | Artifact | Path | Job |
 | -------- | ---- | --- |
-| **Teaching report** (the deliverable) | `plans/reports/understand-{YYMMDD}-{HHmm}-{slug}.md` | The full nine-section explanation the developer keeps, re-reads, and argues with. Matches the framework-wide report convention. Directory resolved by the rules below — `plans/` is git-ignored in this repo, but that is verified, never assumed. |
+| **Teaching report** (the deliverable) | `plans/reports/understand-{YYMMDD}-{HHmm}-{slug}.md` | The full review guide the developer keeps, re-reads, and argues with. Matches the framework-wide report convention. Directory resolved by the rules below — `plans/` is git-ignored in this repo, but that is verified, never assumed. |
 | **Understanding index** (resumability) | `tmp/understand/{branch}-index.md` | Append-only one-line-per-session log: date · scope · report path · one-line takeaway. Makes a branch's learning history browsable. Use `temp/…` if the project already uses `temp/`; create the `understand/` subdir if absent; `{branch}` = current branch with `/` → `-`. **The `-index` suffix is load-bearing:** `$investigate --mode=explain` owns `tmp/understand/{branch}.md` for a different, multi-section Problem/Solution/Impact format (`investigate/SKILL.md:247`) — sharing the directory is intended, sharing the file would interleave two incompatible shapes. |
 
-**Create the report file BEFORE writing the first section**, then append section by section as you produce it. Never hold nine sections in context and write once at the end — a long run that dies mid-way must leave the finished sections on disk.
+**Create the report file BEFORE writing the first section**, then append section by section as you produce it. **Append-per-section is mandatory, not advisory.** The report is long and the diagrams are the expensive part — a long run that dies mid-way must leave the finished sections on disk. Never hold the whole report in context and write once at the end.
 
 **Resolving the write location (the HARD RULE above is absolute — a tracked path is never an option):**
 
 1. **Resolve a directory PER ARTIFACT — the report and the index succeed or fail independently.** Report candidates, in order: the directory `docs/project-config.json` names for reports/working artifacts **IF it names one** (the project's own map beats a hard-coded default — but most configs name none; absent the key, fall straight through and NEVER map some other key onto the role), then `plans/reports/`. Index candidates: `tmp/understand/` (or `temp/understand/` when the project already uses `temp/`).
 2. **Take the FIRST candidate that is git-ignored**, creating it if absent — never a hard-coded name, and never the first candidate merely because it is first. If an earlier candidate was skipped because it is tracked, say so in one line — *"configured directory `{X}` is git-tracked; using `{Y}` instead"* — so a project never silently loses its own configuration.
-3. **If NO candidate for an artifact is git-ignored**, do not write **that artifact** — every candidate path is tracked, and `:121` admits no exemption. **Report:** deliver the full nine sections in chat and report the blocker in one line — *"No git-ignored working directory — add `plans/` to your git-ignore to get the report as a file."* **Index:** skip the append and say so once — *"Understanding index skipped — `tmp/` is not git-ignored."* The teaching is never withheld; only the file is. This mirrors `watzup:182`'s pattern of reporting a blocker rather than silently degrading.
+3. **If NO candidate for an artifact is git-ignored**, do not write **that artifact** — every candidate path is tracked, and the HARD RULE above admits no exemption. **Report:** deliver every section in chat and report the blocker in one line — *"No git-ignored working directory — add `plans/` to your git-ignore to get the report as a file."* **Index:** skip the append and say so once — *"Understanding index skipped — `tmp/` is not git-ignored."* The teaching is never withheld; only the file is. This mirrors `watzup`'s pattern of reporting a blocker rather than silently degrading.
 
-## Step 4 — Teach & Coach: the Nine-Section Report (the deliverable)
+## Step 4 — Teach, Coach & Route: the Report (the deliverable)
 
-Follow `references/report-template.md` for the skeleton, the options table, the provenance labels, and the self-check. Every section appears at every coding level; the level tunes length and vocabulary only. Cite `file:line` for every concrete claim, and state confidence where a claim rests on inference.
+Follow `references/report-template.md` for the skeleton, the options table, the provenance labels, and the self-check; `references/diagram-catalog.md` for §2; `references/review-path.md` for §4. Every section appears at every coding level; the level tunes length and vocabulary only. Cite `file:line` for every concrete claim, and state confidence where a claim rests on inference.
+
+The report runs **high level first, detail later** — four parts:
 
 | § | Section | What you MUST deliver |
 | --- | --- | --- |
-| 1 | **What Was Done** | The thing, where it lives, and before → after in **behavior** terms — not a file list, not the commit message. |
-| 2 | **Concepts You Need** | The 1–4 load-bearing technical concepts from Step 1, each taught: what it is (first principles, plain language) → why THIS problem summons it → where it's visible here (`file:line`) → what breaks without it. **Never use a term in §3 that §2 has not taught.** |
-| 3 | **How It Works** | The execution story: entry point → data flow → decision points → output/persistence. Use the Step 2 graph trace. Invariants and where they're enforced. Edge cases handled — **and edge cases NOT handled**. |
-| 4 | **Why This Solution** | The forces that narrowed the option space, the one force that actually decided it, and why the obvious approach loses. Drill to the why-behind-the-why. "Best practice" / "cleaner" without a causal chain is a failed section. |
-| 5 | **Options Considered** | **≥2 alternatives beyond the chosen one** (or an argued empty option space), each with specific pros, specific cons, cost-to-switch-later, provenance label, and the disqualifying reason. **The chosen option lists real cons too.** Name the closest call and what would flip the decision. |
-| 6 | **Trade-offs Accepted** | Gained ↔ paid ↔ reversibility. What is now expensive to reverse (schema, public contract, cross-service message, shared layer, persisted shape). Debt knowingly taken + its repayment trigger. A trade-off list with no cost in it is a lie — fix it. |
-| 7 | **Impact & Blast Radius** | Behavior change, upstream callers, downstream dependents, silent-break risk (things that still compile but change meaning), what tests protect it, what is protected by nothing, open follow-ups. |
-| 8 | **Your Call — Decision Levers** | The actionable table: *if you want X → change `file:line` → effort → risk*. Cheapest and most expensive things to change your mind about. Revisit signals. The smallest change that flips the chosen option. |
-| 9 | **Challenge This** | The weakest link **named by you**. 3–5 rhetorical pressure-test questions attacking the core assumption, the option choice, the mechanics, and the scope. A pre-mortem ("3 months later this is reverted because…"). Where your confidence is lowest and what evidence would raise it. |
+| | ***Part I — Orient*** | *The picture and the business, before any code.* |
+| 1 | **What Was Done** | The thing, where it lives, and before → after in **behavior** terms — not a file list, not the commit message. **When the target is a change** (diff · plan · fix), also: **where it sits in the system that already existed** — the capability that was already there, how it already worked, the contract it had to fit (`file:line`), what it deliberately left alone, and what the reviewer must already understand before Stage 1 makes sense. Written for a reader with **zero memory** of that system. This section owes the *full* context; §4 owes only the context needed to walk the route. |
+| 2 | **Visual Map** | The mandatory diagram set from `references/diagram-catalog.md`: a system/component `flowchart`, a domain `erDiagram`, a `sequenceDiagram` per main flow (1–3), and a **story map** wiring each §3 story to the rule it protects, the test that proves it, and the §4 stage where the reviewer meets it — plus a `stateDiagram-v2` when an in-scope entity carries a lifecycle, and a phase flowchart when the target is a plan. Every node and edge is **derived**, not expected: solid edge = traced, dashed = inferred and named beneath the diagram. A diagram you cannot derive degrades to a **stated blocker** — never silence, never an empty fence, never plausible invented nodes. |
+| 3 | **User Stories & Business Rules** | The main user-facing capabilities in scope, each as *As a … I want … so that …*, with the business rule or invariant it protects, where that rule is enforced (`file:line`), what breaks for the user if it breaks, and the **REAL** `TC-*` / test IDs that prove it. **Never invent a case ID** — a story with no test says *"no test covers this story"* and is recorded as a coverage gap. |
+| | ***Part II — Route*** | *Where to start reading, and in what order.* |
+| 4 | **Review Path** | The ordered reading route from `references/review-path.md`: one **"start here"** sentence naming the single file to open first and why, a stage flowchart with at least one back-edge, then 3–7 stages each carrying all eight fields — stage number, name in domain words, file group (changed files plus the unchanged `[context — not changed]` files needed to judge them), why this stage is here now, what to check, red flags **sourced from the repo's own rules**, an **exit criterion phrased as a question the reviewer can answer**, and an honest time-box. A file list with no order, no reason, and no exit criterion is a failed section. |
+| | ***Part III — Depth*** | *How it works, why this shape, what it cost.* |
+| 5 | **Concepts You Need** | The 1–4 load-bearing technical concepts from Step 1, each taught: what it is (first principles, plain language) → why THIS problem summons it → where it's visible here (`file:line`) → what breaks without it. **Never use a term in §6 that §5 has not taught.** |
+| 6 | **How It Works** | The execution story: entry point → data flow → decision points → output/persistence. Use the Step 2 graph trace. Invariants and where they're enforced. Edge cases handled — **and edge cases NOT handled**. |
+| 7 | **Why This Solution** | The forces that narrowed the option space, the one force that actually decided it, and why the obvious approach loses. Drill to the why-behind-the-why. "Best practice" / "cleaner" without a causal chain is a failed section. |
+| 8 | **Options Considered** | **≥2 alternatives beyond the chosen one** (or an argued empty option space), each with specific pros, specific cons, cost-to-switch-later, provenance label, and the disqualifying reason. **The chosen option lists real cons too.** Name the closest call and what would flip the decision. |
+| 9 | **Trade-offs Accepted** | Gained ↔ paid ↔ reversibility. What is now expensive to reverse (schema, public contract, cross-service message, shared layer, persisted shape). Debt knowingly taken + its repayment trigger. A trade-off list with no cost in it is a lie — fix it. |
+| 10 | **Impact & Blast Radius** | Behavior change, upstream callers, downstream dependents, silent-break risk (things that still compile but change meaning), what tests protect it, what is protected by nothing, open follow-ups. |
+| | ***Part IV — Prove & Push Back*** | *How to see it work, steer it, and argue with it.* |
+| 11 | **Test & Demo** | How to run it and how to show it: the project's own test/run commands (resolved, never guessed; secrets as `<redacted:…>` placeholders), the one-time demo setup, then per case — setup → numbered steps → expected result **phrased as the discriminator vs the old behaviour** → how the domain stores or changes the data that solves it (`file:line`) → proof status, `✅ ran` only for a test actually executed this session, `⚠️ trace-verified` for everything else. Close with the test-execution transparency note: what was proven, what was not, and why. |
+| 12 | **Your Call — Decision Levers** | The actionable table: *if you want X → change `file:line` → effort → risk*. Cheapest and most expensive things to change your mind about. Revisit signals. The smallest change that flips the chosen option. |
+| 13 | **Challenge This** | The weakest link **named by you**. 3–5 rhetorical pressure-test questions attacking the core assumption, the option choice, the mechanics, and the scope. A pre-mortem ("3 months later this is reverted because…"). Where your confidence is lowest and what evidence would raise it. |
 
-**Code-free targets (concept · un-fixed bug) — same nine sections, different form.** §5/§7/§8 are worded for a change to code. When the scope is a **concept** or a **bug not yet fixed**, there is no chosen option, no blast radius, and no `file:line` lever — so answer each section's *question* in the form the target actually has: §5 → alternatives **to the concept itself** (or the candidate root causes, each with evidence for and against), §7 → what adopting it constrains/forecloses (or what the defect is currently corrupting), §8 → *if your situation has property X → this stops paying for itself* (or *if the cause is X → the fix lands at layer Y*). Full form in `references/report-template.md`. **This is a change of form, never a licence to drop a section** — and never a licence to invent a `file:line` that does not exist (`[ANTI-HALLUCINATION]`, above) or to write an "N/A" stub.
+**The table above is worded for the commonest scope — a change to code that serves a user-facing story.** Other target forms exist, and several sections mean something different in each: a plan has no blast radius yet, a concept has no chosen option, an un-fixed bug has no fix to demo, a lockfile bump has no user story.
+
+> **`references/report-template.md` is the SOLE owner of the target-form contract** — a form registry plus three per-form tables (sections · §4 route · §2 diagrams), all in that one file. Read it there and answer each section's *question* in the form the target actually has. `references/review-path.md` and `references/diagram-catalog.md` carry a pointer to it and **no form list of their own** — and neither does this file. **Do not restate the form set anywhere outside `report-template.md`.** Copies spread across files are how they drift out of agreement; keeping the registry and its tables together is what lets TC-CP-011 fail when a form is added to one and forgotten in another.
+>
+> The universal rule, which no form relaxes: **a change of form is never a licence to drop a section**, never a licence to invent a `file:line` that does not exist (`[ANTI-HALLUCINATION]`, above), and never a licence to write an "N/A" stub. When the honest answer for a form is *"this target has none"* — no story, no chosen option, no blast radius — say that in one line and say **why**; that is a filled section, an empty fence is not.
 
 **Coaching techniques to apply throughout:** name the concept before using it · first principles before jargon · concrete before abstract · one analogy for anything genuinely dense · state what would break if a claim were wrong · prefer "this costs X to buy Y" over "this is better".
 
-**[BLOCKING] §2, §5, §8, §9 are the sections that turn a description into teaching.** They are the ones most often silently dropped. Verify all four are present and substantive before closing — in the code-target form or the code-free form above, whichever the resolved scope calls for.
+**[BLOCKING] §2 Visual Map, §3 User Stories, §4 Review Path, §5 Concepts, §8 Options, §11 Test & Demo, §12 Your Call, §13 Challenge This are the sections that turn a description into a review guide.** They are the ones most often silently dropped — and the four new ones (§2, §3, §4, §11) are the most expensive to produce, which makes them the most rationalized away. Verify every one is present and **substantive** before closing — in the code-target form or the code-free form above, whichever the resolved scope calls for. A heading with a placeholder under it counts as dropped.
 
 Offer a simpler restatement or analogy for any dense point proactively, without being asked. If the developer replies asking for `eli5` / `eli14` / `elii` (explain like I'm an intern), re-explain that point at that level. (Answering a developer's follow-up is fine — what is forbidden is *you* posing questions that expect a reply.)
 
 ## Step 5 — Summarize in Chat & Close (no quiz, no loop)
 
-- **[ANNOUNCE — the explanation must never live only in a file].** Post an in-chat executive summary: what was done (1 line), the key concept (1 line), why this solution (1 line), the closest alternative and why it lost (1 line), the highest-leverage trade-off or blast-radius note (1 line), the single sharpest challenge question (1 line) — then the report path **when a file was written**: `Teaching report → plans/reports/understand-{…}.md`. When Step 3 could not resolve a git-ignored directory for the report there is no path to post: deliver all nine sections in full in chat and post the blocker line instead. **The summary is unconditional; the path is not.**
-- Append the one-line entry to `tmp/understand/{branch}-index.md` — **only when Step 3 resolved a git-ignored index directory**; if it did not, skip the append and say so once (Step 3). `:121` binds this write exactly as it binds the report.
-- End there. **Do not** quiz, do **not** ask the developer to restate, do **not** call ask the user directly, do **not** wait for a reply to the §9 challenges, do **not** loop. **Never block the next workflow step.**
+- **[ANNOUNCE — the explanation must never live only in a file].** Post an in-chat executive summary: what was done (1 line), **the "start here" line from §4 — the single file to open first and why** (1 line), the highest-value diagram and what it shows (1 line), the key concept (1 line), why this solution (1 line), the closest alternative and why it lost (1 line), the highest-leverage trade-off or blast-radius note (1 line), the single sharpest challenge question (1 line) — then the report path **when a file was written**: `Teaching report → plans/reports/understand-{…}.md`. When Step 3 could not resolve a git-ignored directory for the report there is no path to post: deliver every section in full in chat and post the blocker line instead. **The summary is unconditional; the path is not.** The start-here line is the most actionable sentence the run produces — it never lives only in the file.
+- **No secret value in the summary either.** The chat post obeys the same redaction rule as the report: name the setting and the file, never the credential.
+- Append the one-line entry to `tmp/understand/{branch}-index.md` — **only when Step 3 resolved a git-ignored index directory**; if it did not, skip the append and say so once (Step 3). The HARD RULE binds this write exactly as it binds the report.
+- End there. **Do not** quiz, do **not** ask the developer to restate, do **not** call ask the user directly, do **not** wait for a reply to the §13 challenges, do **not** loop. **Never block the next workflow step.**
 
 ---
 
 ## When This Runs
 
 - **Standalone, any time:** `$understand` (current context) or `$understand <whatever you want explained>` — a plan, a subsystem, a decision, a concept, a bug. Pairs well with voice mode for a natural narrated walkthrough.
-- **Wrap-up handoff:** `$watzup` may invoke `$understand` as its final mandatory explanation task after summarizing current changes, so the developer gets the full teaching report on the completed work without losing `$understand` as a standalone command.
-- **After AI-authored work of any size** — the primary purpose: the developer who did not write the code must still be able to judge it, argue with the option chosen, and decide what to change.
+- **Before reviewing someone else's change (or AI's):** the report's Part I + Part II are built for exactly this — see the shape of the system, read the stories it serves, then follow the route that says which files to open first and what to be able to answer at each stage.
+- **Wrap-up handoff:** `$watzup` may invoke `$understand` as its final mandatory explanation task after summarizing current changes, so the developer gets the full report on the completed work without losing `$understand` as a standalone command.
+- **After AI-authored work of any size** — the primary purpose: the developer who did not write the code must still be able to judge it, argue with the option chosen, review it in the right order, and decide what to change.
 
-**NOT for:** investigation/docs/design/research workflows where nothing was built or planned to understand; forcing comprehension as a hard gate; reviewing code quality (use `$code-review`, `$changes-review`).
+**NOT for:** investigation/docs/design/research workflows where nothing was built or planned to understand; forcing comprehension as a hard gate.
+
+- **vs `$changes-review` and `$code-review`:** those **perform** the review and emit findings against the code. This one **prepares a human to perform it** — it emits no findings and passes no verdict. Want the machine's verdict → `$changes-review`. Want to be able to form your own → here, then `$changes-review`.
+- **vs `$demo-guide`:** that is **presenter-facing** — a standalone script for showing finished work to a room. §11 here is **reviewer-facing**: the same per-case shape (deliberately, so the two never drift), but in service of *understanding and verifying* the change rather than staging it. A whole-feature demo for stakeholders → `$demo-guide`.
 
 ## See Also
 
-- **Reference:** `references/report-template.md` — the nine-section report skeleton, options table format, provenance labels, per-level tuning, self-check.
-- **Skill:** `$coding-level` — sets the style dial (0–5) this skill reads (it tunes length/vocabulary only; it never deletes a section).
-- **Skill:** `$graph-blast-radius` — leverage-ordering + §7 blast-radius signal.
+- **Reference:** `references/report-template.md` — the report skeleton, the four parts, options table format, provenance labels, per-level tuning, self-check.
+- **Reference:** `references/diagram-catalog.md` — which diagrams are mandatory, how each is derived, provenance marking, size discipline, and what to emit when one cannot be derived.
+- **Reference:** `references/review-path.md` — the layer taxonomy, the ordering algorithm, context inclusion, and the eight fields every review stage carries.
+- **Skill:** `$coding-level` — sets the style dial (0–5) this skill reads (it tunes length/vocabulary only; it never deletes a section, never cuts a diagram, never drops a stage).
+- **Skill:** `$graph-blast-radius` — leverage-ordering + §10 blast-radius signal.
 - **Skill:** `$why-review` — *adversarially audits* rationale quality (the complement: this *teaches* the rationale and hands the developer the challenge questions).
+- **Skill:** `$demo-guide` — presenter-facing demo script for a whole feature; §11 here is the reviewer-facing subset for the change in scope.
 - **Skill:** `$plan-validate` — elicits plan *decisions* interactively (the complement: this *explains* them one-way).
 - **Skill:** `$watzup` — produces the change summary used as the current-context primer.
 
 ---
 
-**IMPORTANT MANDATORY Steps:** resolve-scope-and-style-and-load-template -> gather-material-concepts-and-option-space -> order-topics-by-leverage -> open-teaching-report -> teach-nine-sections -> summarize-in-chat-and-close
+**IMPORTANT MANDATORY Steps:** resolve-scope-and-style-and-load-three-references -> gather-material-six-inventories -> order-two-axes-narrative-and-route -> open-teaching-report -> teach-every-section -> summarize-in-chat-and-close
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
@@ -308,7 +367,7 @@ Offer a simpler restatement or analogy for any dense point proactively, without 
 > **Check downstream references before deleting or renaming.** Removing an artifact can stale docs, generated mirrors, configs, and callers; map references first.
 > **Trace the full impact chain after edits.** Changing a definition can miss derived outputs and consumers. Follow the affected chain before declaring done.
 > **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
-> **Assume existing values are intentional — ask WHY before changing.** Before changing a constant, limit, flag, wording, or pattern, read nearby context and history.
+> **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
@@ -344,7 +403,7 @@ Offer a simpler restatement or analogy for any dense point proactively, without 
 
 ## Closing Reminders
 
-**IMPORTANT MUST ATTENTION Goal:** the developer can **judge** the work, not merely accept it — they carry traced understanding of what was done, the concepts behind it, why THIS option beat the others, what it cost, and which levers they'd pull to change it. AI accelerates the human without eroding their grasp of the codebase or their authority over it. Taught in full, at every coding level.
+**IMPORTANT MUST ATTENTION Goal:** the developer can **judge** the work and **review** it, not merely accept it — they carry traced understanding of what was done, a picture of the system, the stories and rules it serves, a route saying which files to open first, the concepts behind it, why THIS option beat the others, what it cost, how to run and demo it, and which levers they'd pull to change it. AI accelerates the human without eroding their grasp of the codebase or their authority over it. Taught in full, at every coding level.
 
 **Protocols in force (concise digest of the SYNC/shared blocks this skill carries) — MUST ATTENTION each:**
 
@@ -356,36 +415,46 @@ Offer a simpler restatement or analogy for any dense point proactively, without 
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 
 - **MUST ATTENTION** derive WHAT to explain from the prompt; with no target named, default to the current working tasks + changes in context. Never impose a fixed agenda.
-- **MUST ATTENTION** TEACH so the reader could re-derive the design, and COACH so they could argue for a different one — a description of what the code does is a FAILED run.
-- **MUST ATTENTION** ALL NINE sections at EVERY coding level — What → Concepts → How → Why-this-solution → Options-considered → Trade-offs → Impact → Your-call → Challenge-this. Level tunes vocabulary/analogy/length only; it NEVER deletes a section. §2, §5, §8, §9 are the ones that get silently dropped — verify them explicitly.
-- **MUST ATTENTION** §5 lists ≥2 alternatives beyond the chosen one, each with SPECIFIC pros, cons, cost-to-switch and disqualifying reason — plus real cons on the chosen option — or an argued empty option space. On a **code-free target** (concept · un-fixed bug) there IS no chosen one: §5 becomes alternatives to the concept itself, or the candidate root causes with evidence for and against (Step 4's code-free form) — a change of form, never a dropped section. Label each `[deliberated]` vs `[reconstructed]`; NEVER fabricate a deliberation that did not happen.
-- **MUST ATTENTION** provoke the reader IN WRITING (§9 weakest link + pressure-test questions + pre-mortem) but NEVER interrogate — no ask the user directly, no quiz, no teach-back, no waiting on a reply, no comprehension gate. On an ambiguous target, infer, state the assumption, proceed.
-- **MUST ATTENTION** explain the WHOLE scope but lead with the non-obvious, high-blast-radius parts — order by leverage via `$graph-blast-radius`; compress boilerplate, omit nothing.
-- **MUST ATTENTION** cite `file:line` for every concrete claim; state confidence on anything resting on inference; never use a term in §3 that §2 has not taught.
-- **MUST ATTENTION** this skill is standalone and NEVER blocks — teach, summarize, end. No comprehension loop, never gate commit/implementation.
-- **MUST ATTENTION** write the full report to `plans/reports/understand-{YYMMDD}-{HHmm}-{slug}.md` INCREMENTALLY (create before the first section, append per section) and log one line to `tmp/understand/{branch}-index.md` — NEVER write any artifact inside `.claude/`, the source tree, `docs/`, or any git-tracked path. If an artifact's candidate directories are all git-tracked, skip that artifact and report it (Step 3) — deliver the nine sections in chat when the report cannot be written — NEVER fall back to a tracked path.
-- **MUST ATTENTION** ALWAYS post the in-chat executive summary — plus the report path (`Teaching report → plans/reports/understand-{…}.md`) whenever a file was written, or Step 3's blocker line when it could not resolve one. NEVER let the explanation live only in a git-ignored file the user never sees.
+- **MUST ATTENTION** TEACH so the reader could re-derive the design, COACH so they could argue for a different one, and ROUTE so they could review it in the right order without asking where to start — a description of what the code does is a FAILED run.
+- **MUST ATTENTION** the report is **ALWAYS FULL**: every section, at every coding level, on every target — **no mode, no light variant, no level-based section drop, no small-diff exemption, no opt-out.** Part I What → Visual Map → User Stories; Part II Review Path; Part III Concepts → How → Why-this-solution → Options-considered → Trade-offs → Impact; Part IV Test & Demo → Your-call → Challenge-this. Level tunes vocabulary/analogy/length only; it NEVER deletes a section, NEVER reduces the diagram count, NEVER drops a review stage. §2, §3, §4, §5, §8, §11, §12, §13 are the ones that get silently dropped — verify them explicitly.
+- **MUST ATTENTION** §2's mandatory diagrams are **derived, never expected** — traced edges solid, inferred edges dashed AND named beneath, fabricated edges are a failed section. An underivable diagram becomes a **stated blocker**, never an omission.
+- **MUST ATTENTION** every `TC-*` / test ID in §3 and §11 is REAL — read from the specs or the test code. **NEVER invent a case ID.** No coverage → say so; an admitted gap is a finding, a fabricated ID retires a live risk.
+- **MUST ATTENTION** §4 gives ONE "start here" file, orders stages contract-inward (blast radius is the peer tie-break, not the axis), marks unchanged context files `[context — not changed]`, sources red flags from the repo's own rules rather than inventing house rules, and closes every stage with a question the reviewer can answer.
+- **MUST ATTENTION** §8 lists ≥2 alternatives beyond the chosen one, each with SPECIFIC pros, cons, cost-to-switch and disqualifying reason — plus real cons on the chosen option — or an argued empty option space. On a **code-free target** (concept · un-fixed bug) there IS no chosen one: §8 becomes alternatives to the concept itself, or the candidate root causes with evidence for and against (Step 4's code-free form) — a change of form, never a dropped section. Label each `[deliberated]` vs `[reconstructed]`; NEVER fabricate a deliberation that did not happen.
+- **MUST ATTENTION** provoke the reader IN WRITING (§13 weakest link + pressure-test questions + pre-mortem) but NEVER interrogate — no ask the user directly, no quiz, no teach-back, no waiting on a reply, no comprehension gate. On an ambiguous target, infer, state the assumption, proceed.
+- **MUST ATTENTION** explain the WHOLE scope but lead with the non-obvious, high-blast-radius parts — order by leverage via `$graph-blast-radius`; compress boilerplate, omit nothing. That leverage order governs §5-§10 **only**; §4's route is ordered contract-inward, and conflating the two produces a route that opens on mechanism instead of meaning.
+- **MUST ATTENTION** cite `file:line` for every concrete claim; state confidence on anything resting on inference; never use a term in §6 that §5 has not taught.
+- **MUST ATTENTION** NEVER put a secret value in the report or the chat summary — connection strings, tokens, keys, passwords and customer identifiers are named, never reproduced, and render as `<redacted:…>` in diagrams, stage tables, and run/demo commands alike.
+- **MUST ATTENTION** this skill is standalone and NEVER blocks — teach, summarize, end. No comprehension loop, never gate commit/implementation. It prepares a human to review; it never issues findings or a verdict of its own.
+- **MUST ATTENTION** write the full report to `plans/reports/understand-{YYMMDD}-{HHmm}-{slug}.md` INCREMENTALLY (create before the first section, append per section) and log one line to `tmp/understand/{branch}-index.md` — NEVER write any artifact inside `.claude/`, the source tree, `docs/`, or any git-tracked path. If an artifact's candidate directories are all git-tracked, skip that artifact and report it (Step 3) — deliver every section in chat when the report cannot be written — NEVER fall back to a tracked path.
+- **MUST ATTENTION** ALWAYS post the in-chat executive summary — including the §4 "start here" line — plus the report path (`Teaching report → plans/reports/understand-{…}.md`) whenever a file was written, or Step 3's blocker line when it could not resolve one. NEVER let the explanation live only in a git-ignored file the user never sees.
 
 **Anti-Rationalization:**
 
 | Evasion | Rebuttal |
 | ------- | -------- |
-| "Senior dev, skip the explanation" | NEVER skip by level. Level tunes length/vocabulary only — every level gets all nine sections. |
-| "Level 5 — drop concepts and options, they're obvious" | Level 5 gets SHORT sections, never MISSING ones. §2/§5/§8/§9 always appear. |
-| "I'll quiz them to check understanding" | NEVER interrogate. Challenge prompts are written into §9 as rhetorical questions; you never ask, never wait, never gate. |
+| "Senior dev, skip the explanation" | NEVER skip by level. Level tunes length/vocabulary only — every level gets every section. |
+| "Level 5 — drop concepts and options, they're obvious" | Level 5 gets SHORT sections, never MISSING ones. §5/§8/§12/§13 always appear. |
+| "Level 5 — drop the diagrams and collapse the review path" | Level is a PROSE dial. Diagram count and stage count are level-invariant — a diagram is the densest form available, which makes it exactly what a level-5 reader wants most, and a route with a missing stage sends the reviewer into code they aren't equipped to judge yet. |
+| "Small diff — a diagram is overkill here" | A diagram is CHEAPEST exactly when the change is small, and the mandate is the minimum set, not a quota to justify. If one genuinely cannot be derived, it degrades to a **stated blocker** — never to omission, and never to a plausible-looking invented one. |
+| "Concept/plan target — there's nothing to review, skip §4" | Wrong form, not absent section. A concept routes through the repo's own instances of it; a plan routes through its phases in verification order; an un-fixed bug routes from symptom back toward cause. The eight-field stage grammar still applies (`references/report-template.md` matrix). An `N/A` stub is a failed section. |
+| "No tests exist — skip §11" | A change with no tests is the single most important thing the reviewer needs told. §11 then states how to demo it **manually** and flags the absent coverage explicitly. Missing tests are a finding, not an exemption — and never a reason to invent a `TC-*` ID to fill the row. |
+| "I'll quiz them to check understanding" | NEVER interrogate. Challenge prompts are written into §13 as rhetorical questions; you never ask, never wait, never gate. |
 | "Provoking thinking means asking them questions in chat" | It means writing the challenges down. ask the user directly stays forbidden — the developer is provoked on paper, never put on the spot. |
 | "Ambiguous target — I'll ask which one" | Do NOT ask. Infer the most likely target (default current context), state the assumption, proceed. |
 | "Just dump everything I see" | Derive scope from the prompt first, then order by leverage. Cover all of scope, but lead with the non-obvious — not a repo-wide dump. |
 | "Skip the trade-offs, just describe the code" | Why-this-solution, options, and trade-offs ARE the point. Mechanics alone is a failed run. |
-| "There was only one sensible way to do this" | Then ARGUE it — name the option space and why it's genuinely empty. An unargued "no alternatives" is a skipped §5. |
+| "There was only one sensible way to do this" | Then ARGUE it — name the option space and why it's genuinely empty. An unargued "no alternatives" is a skipped §8. |
 | "I'll say we evaluated A, B and C" (when you didn't) | Label honestly: `[reconstructed]`. Fabricating a decision history is worse than admitting it was reconstructed. |
 | "The chosen option has no downsides" | Then the analysis is unfinished. Every chosen option costs something — find it. |
-| "Drop the report next to the skill / in docs/" | NEVER write inside `.claude/`, source, `docs/`, or tracked paths — only `plans/reports/` + `tmp/understand/{branch}-index.md`. No git-ignored dir **for that artifact** → skip that artifact and report the blocker; the report's nine sections go to chat. Never a tracked path. |
-| "Concept target — §5/§7/§8 don't apply, skip them" | Wrong form, not absent section. Answer each section's question in its code-free form (Step 4) — never an `N/A` stub, never an invented `file:line`. |
-| "Write the report and continue silently" | ALWAYS post the chat summary — plus the path when a file was written, or Step 3's blocker line when none could be. Never log-and-move-on into a hidden git-ignored file. |
-| "I'll write all nine sections at the end in one go" | Create the file first, append per section — a run that dies mid-way must leave finished sections on disk. |
+| "I'll draw the architecture I'd expect this repo to have" | Then it is fiction with a diagram's authority — readers trust a picture more than prose and verify it less. Every node comes from a trace, a read call site, or a spec. Solid = traced, dashed = inferred and named, absent = stated as a blocker. |
+| "This story probably has a test — I'll cite TC-042" | NEVER invent a case ID. Cite the ID you actually read, or write "no test covers this story" and record the gap. A fabricated ID retires a risk that is still live. |
+| "Drop the report next to the skill / in docs/" | NEVER write inside `.claude/`, source, `docs/`, or tracked paths — only `plans/reports/` + `tmp/understand/{branch}-index.md`. No git-ignored dir **for that artifact** → skip that artifact and report the blocker; every section goes to chat. Never a tracked path. |
+| "Concept target — §8/§10/§12 don't apply, skip them" | Wrong form, not absent section. Answer each section's question in its code-free form (Step 4) — never an `N/A` stub, never an invented `file:line`. |
+| "Write the report and continue silently" | ALWAYS post the chat summary — including the start-here line — plus the path when a file was written, or Step 3's blocker line when none could be. Never log-and-move-on into a hidden git-ignored file. |
+| "I'll write every section at the end in one go" | Create the file first, append per section — a run that dies mid-way must leave finished sections on disk. |
 
-> **[IMPORTANT]** This skill exists so the human can **judge** AI's work, not just receive it — teach the concepts, expose the whole option space with honest pros and cons, hand over the decision levers, and write down the challenges that provoke real thinking. Never test them, never wait on them, never block them.
+> **[IMPORTANT]** This skill exists so the human can **judge** AI's work and **review** it, not just receive it — draw the system, state the stories and the rules, hand over the route that says where to start, teach the concepts, expose the whole option space with honest pros and cons, show how to run and demo it, hand over the decision levers, and write down the challenges that provoke real thinking. Never test them, never wait on them, never block them.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:START -->
 ## Hookless Prompt Protocol Mirror (Auto-Synced)
@@ -464,7 +533,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 - **When debugging, ask "whose responsibility?" before fixing.** Trace caller (wrong data) vs callee (wrong handling). Fix at responsible layer — never patch symptom site.
 - **Test failure → adjudicate WHO is at fault (source vs test) before forcing green.** A green-again suite is not the goal; the correct verdict on what was actually wrong is. Root-cause first, then triangulate the failure against the governing spec (`docs/specs/**` if one exists) AND the source: SOURCE-WRONG → fix code at the owning layer and keep/strengthen the test; TEST-WRONG → fix the stale assertion/setup at its root. NEVER weaken an assertion, add a skip, or relax a timeout to force green, and never change source to satisfy a broken test. Spec silent or ambiguous about which side is correct → STOP and ask the user.
 - **Grep ALL removed names after extraction/refactoring.** Primary file "done" ≠ secondary files clean. Grep entire scope for every removed symbol before declaring complete.
-- **Assume existing values are intentional — ask WHY before changing.** Pattern-matching as "wrong" skips context. Before changing any constant/limit/flag: read comments, git blame, surrounding code.
+- **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Pattern-matching as "wrong" skips context. Before changing or reporting any constant/limit/flag/cutoff: read comments, git blame, the CALLER's ordering (the guarantee that makes the value correct usually lives in code running immediately BEFORE the cited line), and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard — and in a validation pass, an accurate `file:line` citation proves the transcription, never the defect.
 - **Verify ALL affected outputs, not just the first.** One build green ≠ all green. Multi-stack changes (backend/frontend/tests/docs) require verifying EVERY output.
 - **Evaluate fit before copying a nearby pattern.** Closest example ≠ matching preconditions — verify the new context shares the same constraints, base classes, scope, lifetime.
 - **Holistic-first debugging — resist nearest-attention trap.** Don't dive into first plausible cause. List EVERY precondition (config, env vars, paths, DB, endpoints, creds, versions, DI, data). Verify each against evidence (grep/query — not reasoning). Ask "what would falsify this?" — if nothing, it's not a hypothesis. Most expensive failure: going deeper in "obvious" layer while bug sits in layer never questioned.
