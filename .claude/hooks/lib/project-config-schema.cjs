@@ -488,7 +488,15 @@ const SCHEMA = {
         properties: {
             // false = keep a project-only CLAUDE.md/AGENTS.md; the agent-files bootstrap
             // gate then checks only existence, not universal-guides completeness. Default true.
-            requireUniversalGuides: { type: 'boolean', required: false }
+            requireUniversalGuides: { type: 'boolean', required: false },
+            // The root package.json `name` that marks this repo as carrying the framework's own
+            // npm surface. Read by .claude/scripts/codex/tests/framework-repo.helper.mjs to decide
+            // whether the framework-repo self-checks apply here; defaults to the upstream
+            // 'easy-claude-tooling'. A project that VENDORS this framework and wires the standalone
+            // runner into its own npm scripts MUST declare its package name here — otherwise the
+            // guard resolves false and every self-check it gates skips silently while the suite
+            // still reports green.
+            toolingPackageName: { type: 'string', required: false }
         }
     },
     // Per-project skill frontmatter conventions consumed by

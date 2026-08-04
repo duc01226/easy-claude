@@ -52,11 +52,21 @@ function stripQuotes(value) {
     if (!value) return value;
     const trimmed = value.trim();
     if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
-        return trimmed.slice(1, -1).trim();
+        // Double-quoted YAML escapes with a backslash. De-wrapping alone leaked `\"` and `\/`
+        // into the Codex mirror while the CLAUDE.md/AGENTS.md path decoded them, so the SAME
+        // description rendered differently per surface — the exact defect class the single-quoted
+        // branch below was fixed for, on the other branch.
+        return trimmed
+            .slice(1, -1)
+            .replace(/\\(["\\/])/g, '$1')
+            .trim();
     }
     if (trimmed.startsWith("'") && trimmed.endsWith("'")) {
         // Decode YAML single-quoted escaping and collapse repeated double-escaping
-        // introduced by legacy non-idempotent normalization.
+        // introduced by legacy non-idempotent normalization. Cost of the repeat-until-stable
+        // collapse: a description carrying two GENUINE consecutive apostrophes (`don''''t` in
+        // YAML) over-collapses to one. Accepted — legacy double-escaping is real and observed,
+        // consecutive literal apostrophes in a one-line description are not.
         let unescaped = trimmed.slice(1, -1).trim();
         let previous = '';
         while (unescaped !== previous) {

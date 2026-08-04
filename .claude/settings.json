@@ -78,6 +78,10 @@
             "type": "command"
           },
           {
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/bash-shell-guard.cjs",
+            "type": "command"
+          },
+          {
             "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/git-commit-block.cjs",
             "type": "command"
           },

@@ -6,7 +6,7 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { builtinModules } from 'node:module';
 import { fileURLToPath } from 'node:url';
-import { FRAMEWORK_PACKAGE_NAME, frameworkPkg, isFrameworkRepo } from './framework-repo.helper.mjs';
+import { DEFAULT_FRAMEWORK_PACKAGE_NAME, frameworkPackageName, frameworkPkg, isFrameworkRepo } from './framework-repo.helper.mjs';
 
 // Portability contract: copying ONLY `.claude/` into a new project that has NO root package.json
 // must still run the full sync+verify pipeline. The framework's script execution is self-contained in
@@ -307,9 +307,15 @@ test('PORT-007 export-claude payload contains the full pipeline and no package.j
 // guard can only ever be disabled deliberately.
 // The identity check must NOT key on the package name it is verifying — that would be circular. It
 // keys on an INDEPENDENT signal instead: a package.json whose scripts invoke the standalone runner is
-// an easy-claude tooling package, and such a package must carry the name the guard expects. A bare
+// a framework-tooling package, and such a package must carry the name the guard expects. A bare
 // `.claude` copy has no package.json, and an adopting project's own package.json does not wire the
 // runner, so both skip without a false alarm.
+//
+// The expected name is now RESOLVED (project config → upstream default), not a constant, so the
+// remedy this test names is "declare your package name in the project config", not "edit a portable
+// framework file". A vendoring project that renames its tooling package is the normal case; before
+// the name was configurable it was indistinguishable from a rename accident, and the whole guarded
+// set skipped there.
 test('PORT-011 the framework-repo guard resolves true in this repo (conditional self-checks really run)', async () => {
     let raw;
     try {
@@ -321,12 +327,59 @@ test('PORT-011 the framework-repo guard resolves true in this repo (conditional 
     const wiresRunner = Object.values(pkg.scripts ?? {}).some(v => String(v).includes('run-codex-sync.mjs'));
     if (!wiresRunner) return; // adopting project keeping its own npm surface
 
-    assert.equal(pkg.name, FRAMEWORK_PACKAGE_NAME,
-        `the framework-repo guard keys on package name "${FRAMEWORK_PACKAGE_NAME}". This repo's package.json ` +
-        `says "${pkg.name}", so every guarded self-check (PORT-003/004/005/008/010, TC-MWG-001/002/003, ` +
-        `TC-PROV-011b, adoption-parity npm half) is now SKIPPING. Update FRAMEWORK_PACKAGE_NAME in ` +
-        `framework-repo.helper.mjs to match, or restore the package name.`);
+    const expected = frameworkPackageName(repoRoot);
+    assert.equal(pkg.name, expected,
+        `this package.json wires the standalone runner, so it IS a framework-tooling package, but the ` +
+        `guard expects the name "${expected}" and package.json says "${pkg.name}". Every guarded ` +
+        `self-check (PORT-003/004/005/008/010, TC-MWG-001/002/003, TC-PROV-011b, adoption-parity npm ` +
+        `half) is therefore SKIPPING. Fix by setting portability.toolingPackageName to "${pkg.name}" in ` +
+        `the project config (docs/project-config.json by default) — or, in the upstream framework repo, ` +
+        `restore the package name to "${DEFAULT_FRAMEWORK_PACKAGE_NAME}".`);
     assert.equal(isFrameworkRepo(repoRoot), true, 'isFrameworkRepo must be true when running inside this repo');
+});
+
+// ── PORT-012 — the expected tooling package name is project data, not a hard-coded constant ──────
+//
+// Regression for the failure mode PORT-011 could only report, never fix: a project that VENDORS this
+// framework and wires the runner into its own npm scripts names that package after ITSELF. With the
+// expected name hard-coded, `frameworkPkg()` resolved null there, so every guarded self-check skipped
+// while the suite still reported green — the framework's own guards silently off in the one place its
+// source was being edited. The remedy has to live in project config, because a portable file cannot
+// know the adopting project's package name.
+//
+// Covers all three arms so a future "simplification" back to a constant fails here: config wins,
+// absent/blank config falls back to the upstream default, and the fallback is what the framework repo
+// itself relies on (it ships no such config key).
+test('PORT-012 tooling package name resolves from project config, falling back to the upstream default', async () => {
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'port-pkgname-'));
+    after(() => fs.rm(tmp, { recursive: true, force: true }));
+    const writeConfig = async portability => {
+        await fs.mkdir(path.join(tmp, 'docs'), { recursive: true });
+        await fs.writeFile(path.join(tmp, 'docs', 'project-config.json'), JSON.stringify({ portability }));
+    };
+
+    // 1. No config at all → upstream default (a bare `.claude` copy must still resolve something).
+    assert.equal(frameworkPackageName(tmp), DEFAULT_FRAMEWORK_PACKAGE_NAME);
+
+    // 2. Config declares a name → that name wins.
+    await writeConfig({ toolingPackageName: 'adopting-project-tooling' });
+    assert.equal(frameworkPackageName(tmp), 'adopting-project-tooling');
+
+    // 3. Blank/whitespace is treated as undeclared, not as an empty package name — an empty string
+    //    would match no package.json and silently re-disable every guarded self-check.
+    await writeConfig({ toolingPackageName: '   ' });
+    assert.equal(frameworkPackageName(tmp), DEFAULT_FRAMEWORK_PACKAGE_NAME);
+
+    // 4. End-to-end through the guard itself: a package.json matching the CONFIGURED name must make
+    //    the repo read as a framework repo. This is the arm that was broken.
+    await writeConfig({ toolingPackageName: 'adopting-project-tooling' });
+    await fs.writeFile(path.join(tmp, 'package.json'), JSON.stringify({ name: 'adopting-project-tooling' }));
+    assert.equal(isFrameworkRepo(tmp), true, 'a package.json matching the configured name must satisfy the guard');
+    assert.equal(frameworkPkg(tmp)?.name, 'adopting-project-tooling');
+
+    // 5. A non-matching package.json still resolves null — the guard must not become vacuous.
+    await fs.writeFile(path.join(tmp, 'package.json'), JSON.stringify({ name: 'some-unrelated-app' }));
+    assert.equal(isFrameworkRepo(tmp), false, 'an unrelated package.json must NOT satisfy the guard');
 });
 
 // ── PORT-009 — runner fails fast (exit 1) on an unknown --only/--skip stage id ────────────────────

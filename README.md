@@ -4,7 +4,7 @@
 
 ## What is this?
 
-**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **15 top-level hook files**, **161 skills**, **18 workflows**, and **29 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`, with Copilot instruction generation available through sync skills and scripts.
+**easy-claude** is a portable `.claude` template you copy into any project to supercharge Claude Code with **16 top-level hook files**, **161 skills**, **18 workflows**, and **29 specialized agents**. It covers the entire software development lifecycle — from idea capture and test specification through implementation, code review, and documentation. The Claude-authored source also syncs to Codex mirrors under `.agents/` and `.codex/`, with Copilot instruction generation available through sync skills and scripts.
 
 **Core insight:** LLMs forget, hallucinate, and drift. Instead of hoping the AI "just gets it right," this framework uses **programmatic guardrails** (hooks) and **prompt-engineered protocols** (skills/workflows) to enforce correctness at every stage.
 
@@ -137,17 +137,17 @@ npm run codex:sync                                          # same via package.j
 
 ## What's Inside
 
-### Hooks (15 top-level `.cjs` files + 1 `.js` helper, 25 lib modules)
+### Hooks (16 top-level `.cjs` files + 1 `.js` helper, 25 lib modules)
 
 Runtime Node.js scripts that fire on Claude Code lifecycle events.
 
-| Category               | Hooks                                                                                                          | Purpose                                                                                                     |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| **Safety**             | `path-boundary-block`, `privacy-block`, `scout-block`, `git-commit-block`, `windows-command-detector`          | Prevent out-of-scope access, block secrets, limit broad searches, guard git/CMD                             |
-| **Quality**            | `doc-sync-gate`                                                                                                | Warn on doc⇄code drift                                                                                      |
-| **Session Management** | `verify-install`, `session-init`, `session-init-docs`, `session-end`, `npm-auto-install`, `graph-session-init` | Initialize state, load config, auto-install deps, seed the graph                                            |
-| **Routing**            | `init-prompt-gate`                                                                                             | Gate prompts until project config is ready (routing is model-driven from the static catalog in `CLAUDE.md`) |
-| **Post-processing**    | `post-edit-prettier`, `graph-auto-update`                                                                      | Format after edits, keep the code graph current                                                             |
+| Category               | Hooks                                                                                                                     | Purpose                                                                                                                   |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **Safety**             | `path-boundary-block`, `privacy-block`, `scout-block`, `git-commit-block`, `windows-command-detector`, `bash-shell-guard` | Prevent out-of-scope access, block secrets, limit broad searches, guard git, catch CMD/PowerShell syntax sent to Git Bash |
+| **Quality**            | `doc-sync-gate`                                                                                                           | Warn on doc⇄code drift                                                                                                    |
+| **Session Management** | `verify-install`, `session-init`, `session-init-docs`, `session-end`, `npm-auto-install`, `graph-session-init`            | Initialize state, load config, auto-install deps, seed the graph                                                          |
+| **Routing**            | `init-prompt-gate`                                                                                                        | Gate prompts until project config is ready (routing is model-driven from the static catalog in `CLAUDE.md`)               |
+| **Post-processing**    | `post-edit-prettier`, `graph-auto-update`                                                                                 | Format after edits, keep the code graph current                                                                           |
 
 > **De-hooked enforcement & context injection.** Earlier versions ran runtime
 > enforcement/lifecycle hooks — per-edit/per-prompt inject dispatchers plus task/skill/edit
@@ -249,7 +249,7 @@ easy-claude/
 ├── .codex/                   # Codex agents, hooks, and context parity files
 ├── .claude/                  # <-- The framework template (copy this to your project)
 │   ├── agents/               # 29 specialized agent definitions
-│   ├── hooks/                # 15 top-level hook files + lib/ utilities
+│   ├── hooks/                # 16 top-level hook files + lib/ utilities
 │   │   ├── lib/              # Shared hook libraries
 │   │   ├── notifications/    # Multi-channel notification system
 │   │   ├── scout-block/      # Broad search prevention
@@ -286,7 +286,7 @@ The entire framework is **project-agnostic**. All project-specific knowledge liv
 ```
 ┌─────────────────────────────────────┐
 │     Generic Framework (reusable)    │
-│ 15 Hook Files + 161 Skills + 18 Flows │
+│ 16 Hook Files + 161 Skills + 18 Flows │
 └──────────────┬──────────────────────┘
                │
         ┌──────┴──────┐

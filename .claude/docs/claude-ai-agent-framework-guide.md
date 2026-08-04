@@ -5,7 +5,7 @@
 **Audience:** AI engineers, tech leads, and teams wanting to build reliable AI-assisted development systems.
 **Scope:** What each layer does, why it exists, how the pieces compose, the design principles behind every decision, and which AI agent best practices each addresses.
 
-> **Document Sync Status** — Current local verification (2026-07-06): **15 hook files · 161 skills · 18 workflows · 29 agents** using the ADR-0002 filesystem metrics. Codex mirrors are committed under `.agents/`, `.codex/`, and `AGENTS.md`. Notable mechanisms documented here include multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential-thinking.
+> **Document Sync Status** — Current local verification (2026-08-05): **16 hook files · 161 skills · 18 workflows · 29 agents** using the ADR-0002 filesystem metrics. Codex mirrors are committed under `.agents/`, `.codex/`, and `AGENTS.md`. Notable mechanisms documented here include multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential-thinking.
 
 ---
 
@@ -45,7 +45,7 @@
 
 ## 1. Executive Summary
 
-This framework wraps Claude Code in a three-pillar execution framework — **15 top-level hook files**, **161 skills**, **18 registered workflows**, and **29 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
+This framework wraps Claude Code in a three-pillar execution framework — **16 top-level hook files**, **161 skills**, **18 registered workflows**, and **29 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
 
 It is also **harness- and project-agnostic**: the `.claude/` source compiles to verified OpenAI Codex mirrors (`AGENTS.md`, `.agents/`, `.codex/`), while all project-specific knowledge is factored into `project-config.json` + reference docs — so the same behavior runs on any supported AI tool and ports to any codebase (Section 13).
 
@@ -96,7 +96,7 @@ graph TB
         AUQ[Model Auto-Select<br/>start-workflow]
     end
 
-    subgraph "Enforcement Layer — 15 Top-Level Hook Files"
+    subgraph "Enforcement Layer — 16 Top-Level Hook Files"
         subgraph "Safety Hooks"
             PB[Path Boundary Block]
             PR[Privacy Block]
@@ -282,7 +282,7 @@ graph LR
 > `.claude/settings.json`.
 
 ```
-HOOK SYSTEM (15 top-level .cjs hooks + 1 .js notification helper)
+HOOK SYSTEM (16 top-level .cjs hooks + 1 .js notification helper)
 │
 ├── SESSION LIFECYCLE (6 hooks)
 │   ├── verify-install.cjs ────────── Install-integrity preflight (runs first)
@@ -296,11 +296,12 @@ HOOK SYSTEM (15 top-level .cjs hooks + 1 .js notification helper)
 │   └── init-prompt-gate.cjs ──────── Block until project-config exists; routes
 │   │                                  /project-init when CLAUDE.md/AGENTS.md missing
 │
-├── SAFETY & BLOCKING (5 hooks)
+├── SAFETY & BLOCKING (6 hooks)
 │   ├── path-boundary-block.cjs ──── Block access outside project root
 │   ├── privacy-block.cjs ─────────── Block .env, credentials, keys
 │   ├── scout-block.cjs ──────────── Block bulk reads outside approved scope
 │   ├── windows-command-detector ──── Block Windows CMD in Git Bash
+│   ├── bash-shell-guard.cjs ─────── Block PowerShell here-strings in Git Bash
 │   └── git-commit-block.cjs ──────── Block git commit/push unless /commit is active
 │
 ├── DOC SYNC (1 hook)
@@ -877,7 +878,7 @@ The hook and skill system is **project-agnostic**. All project-specific knowledg
 ```mermaid
 graph LR
     subgraph "Generic Framework (reusable)"
-        H[15 Hook Files]
+        H[16 Hook Files]
         S[161 Skills]
         W[18 Workflows]
     end
@@ -3858,7 +3859,7 @@ The framework succeeds because it aligns with how LLMs actually fail:
 
 ### The Result
 
-**15 top-level hook files**, **161 skills**, **18 registered workflows**, and **29 specialized agents** working in concert to deliver:
+**16 top-level hook files**, **161 skills**, **18 registered workflows**, and **29 specialized agents** working in concert to deliver:
 
 - **Fewer hallucinations** — Evidence gates and proof traces catch AI fabrications before they reach files
 - **Better code quality** — Pattern injection ensures AI follows project conventions, not generic training data

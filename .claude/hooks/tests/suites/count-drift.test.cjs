@@ -293,10 +293,11 @@ const tests = [
             const docsIndex = fs.readFileSync(DOCS_INDEX_PATH, 'utf8');
             const expected = listProjectReferenceDocs().length;
             // Case-insensitive on the row LABEL only: `/scan --target=docs-index` owns the
-            // category-table schema (`.claude/skills/scan/references/targets.md:780-793`) and
-            // renders labels in Title Case ("Project Reference"). Pinning one casing here made
-            // the locator break on a spec-conformant regeneration. The count assertion below is
-            // the actual guard and stays strict.
+            // category-table schema and renders every label in Title Case — the generated table
+            // uses Title Case across all 11 category rows ("Root-Level Docs", "Project Reference",
+            // "Framework Docs", ...). Pinning one casing here made the locator break on a
+            // spec-conformant regeneration. The count assertion below is the actual guard and
+            // stays strict.
             const m = docsIndex.match(/\|\s*Project\s+reference\s*\|\s*(\d+)\s*\|/i);
             if (!m) {
                 throw new Error('docs-index-reference.md is missing the "Project reference" category-count row');

@@ -28,12 +28,12 @@
 
 ## Architecture Overview
 
-| Axis | Detected state | Evidence |
-| --- | --- | --- |
-| Repository | Single-package framework/library repository; all configured modules are libraries | `docs/project-config.json:23-73`, `package.json:2-18` |
-| Runtime | Event-driven CommonJS hooks plus Python/Node tooling; no deployable application service | `.claude/docs/hooks/README.md:7-38`, `.claude/hooks/session-init.cjs:315-321` |
-| Orchestration | Direct command execution; no configured container or service orchestrator | `docs/project-config.json:149-152`, `package.json:18-47` |
-| Delivery | Undetermined: no provider workflow or IaC manifest is present | `docs/project-config.json:152`, `package.json:18-47` |
+| Axis          | Detected state                                                                          | Evidence                                                                      |
+| ------------- | --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Repository    | Single-package framework/library repository; all configured modules are libraries       | `docs/project-config.json:23-73`, `package.json:2-18`                         |
+| Runtime       | Event-driven CommonJS hooks plus Python/Node tooling; no deployable application service | `.claude/docs/hooks/README.md:7-38`, `.claude/hooks/session-init.cjs:315-321` |
+| Orchestration | Direct command execution; no configured container or service orchestrator               | `docs/project-config.json:149-152`, `package.json:18-47`                      |
+| Delivery      | Undetermined: no provider workflow or IaC manifest is present                           | `docs/project-config.json:152`, `package.json:18-47`                          |
 
 ## Service Architecture
 
@@ -41,8 +41,8 @@ No backend API, worker, frontend app, Docker deploy unit, database, or broker co
 
 One opt-in local utility serves Markdown on loopback only:
 
-| Utility | Type | Port | Entry point |
-| --- | --- | --- | --- |
+| Utility               | Type                           | Port                                                      | Entry point                                                                                                                             |
+| --------------------- | ------------------------------ | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | Markdown Novel Viewer | Local development HTTP utility | Defaults to `3456`, searches `3456-3500`, CLI-overridable | `.claude/skills/markdown-novel-viewer/scripts/server.cjs:39-61`, `.claude/skills/markdown-novel-viewer/scripts/lib/port-finder.cjs:6-9` |
 
 ## Infrastructure Ports
@@ -55,12 +55,12 @@ Delivery stack: **undetermined (no CI/IaC config found)**. Root commands cover l
 
 ## Environment Configuration
 
-| Setting group | Surface | Purpose |
-| --- | --- | --- |
-| Framework runtime | `.claude/settings.json:24-30` | `CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR`, context/auto-memory controls, stop-hook cap, MCP timeout |
-| MCP authentication references | `.claude/.mcp.json:6-7`, `.claude/.mcp.json:21-22` | `GITHUB_PERSONAL_ACCESS_TOKEN`, `FIGMA_PERSONAL_ACCESS_TOKEN` |
-| Notification references | `.claude/hooks/notifications/.env.example:8-21` | Telegram, Discord, and Slack reference names |
-| Optional skill credentials | `.claude/skills/docs-seeker/.env.example:3-15`, `.claude/skills/devops/.env.example:10-23` | Context/search, repository, and deployment-tool reference names |
+| Setting group                 | Surface                                                                                    | Purpose                                                                                              |
+| ----------------------------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| Framework runtime             | `.claude/settings.json:24-30`                                                              | `CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR`, context/auto-memory controls, stop-hook cap, MCP timeout |
+| MCP authentication references | `.claude/.mcp.json:6-7`, `.claude/.mcp.json:21-22`                                         | `GITHUB_PERSONAL_ACCESS_TOKEN`, `FIGMA_PERSONAL_ACCESS_TOKEN`                                        |
+| Notification references       | `.claude/hooks/notifications/.env.example:8-21`                                            | Telegram, Discord, and Slack reference names                                                         |
+| Optional skill credentials    | `.claude/skills/docs-seeker/.env.example:3-15`, `.claude/skills/devops/.env.example:10-23` | Context/search, repository, and deployment-tool reference names                                      |
 
 MUST ATTENTION record setting keys/reference names only; keep credential values in environment or secret stores.
 
@@ -70,30 +70,30 @@ None. No frontend framework dependency, app mapping, dev-server port, or fronten
 
 ## Key Directories
 
-| Path | Purpose |
-| --- | --- |
-| `.claude/hooks/` | Runtime lifecycle hooks and shared hook libraries (`docs/project-config.json:23-37`) |
-| `.claude/skills/` | Task automation definitions and optional skill-local tooling (`docs/project-config.json:38-44`) |
-| `.claude/agents/` | Specialized sub-agent definitions (`docs/project-config.json:45-51`) |
-| `.claude/scripts/` | Catalog, sync, graph, worktree, and maintenance tooling (`docs/project-config.json:52-58`) |
-| `.claude/workflows.json` | Registered workflow definitions (`docs/project-config.json:59-65`) |
-| `.claude/docs/` | Framework documentation (`docs/project-config.json:66-72`) |
-| `docs/project-reference/` | Project-specific AI reference docs (`docs/project-config.json:158-250`) |
+| Path                      | Purpose                                                                                         |
+| ------------------------- | ----------------------------------------------------------------------------------------------- |
+| `.claude/hooks/`          | Runtime lifecycle hooks and shared hook libraries (`docs/project-config.json:23-37`)            |
+| `.claude/skills/`         | Task automation definitions and optional skill-local tooling (`docs/project-config.json:38-44`) |
+| `.claude/agents/`         | Specialized sub-agent definitions (`docs/project-config.json:45-51`)                            |
+| `.claude/scripts/`        | Catalog, sync, graph, worktree, and maintenance tooling (`docs/project-config.json:52-58`)      |
+| `.claude/workflows.json`  | Registered workflow definitions (`docs/project-config.json:59-65`)                              |
+| `.claude/docs/`           | Framework documentation (`docs/project-config.json:66-72`)                                      |
+| `docs/project-reference/` | Project-specific AI reference docs (`docs/project-config.json:158-250`)                         |
 
 ## Component Architecture
 
-| Component      | Count                                                                                         | Location                      | Format                                                                                     |
-| -------------- | --------------------------------------------------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------ |
-| Hooks          | <!-- COUNT:hooks -->15<!-- /COUNT -->                                                         | `.claude/hooks/*.cjs`         | Top-level CommonJS Node.js hook scripts counted by ADR-0002                                |
-| Hook Libraries | <!-- COUNT:lib-modules -->25<!-- /COUNT -->                                                   | `.claude/hooks/lib/*.cjs`     | CommonJS utility modules                                                                   |
-| Skills         | <!-- COUNT:skills -->161<!-- /COUNT -->                                                       | `.claude/skills/*/SKILL.md`   | Markdown + YAML frontmatter                                                                |
-| Agents         | <!-- COUNT:agents -->29<!-- /COUNT -->                                                        | `.claude/agents/*.md`         | Markdown definitions                                                                       |
-| Workflows      | <!-- COUNT:workflows -->18<!-- /COUNT -->                                                     | `.claude/workflows.json`      | JSON workflow definitions                                                                  |
-| Output Styles  | 6                                                                                             | `.claude/output-styles/*.md`  | Coding level presets (ELI5→God)                                                            |
-| Scripts        | 31                                                                                            | `.claude/scripts/*`           | CJS/ESM + Python utilities (top-level; excludes tests and non-executable data/docs)         |
-| Codex Scripts  | 13                                                                                            | `.claude/scripts/codex/*.mjs` | Top-level ESM sync, migration, notification, and verification tools                        |
-| Hook Tests     | 18 suites + 8 `test-*` files                                                                  | `.claude/hooks/tests/`        | CJS/JS test files; top-level `test-*` files plus `run-all-tests.cjs` aggregate             |
-| Codex Mirrors  | <!-- COUNT:skills -->161<!-- /COUNT --> skills, <!-- COUNT:agents -->29<!-- /COUNT --> agents | `.agents/`, `.codex/`         | Generated Codex-compatible copy                                                            |
+| Component      | Count                                                                                         | Location                      | Format                                                                              |
+| -------------- | --------------------------------------------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------- |
+| Hooks          | <!-- COUNT:hooks -->16<!-- /COUNT -->                                                         | `.claude/hooks/*.cjs`         | Top-level CommonJS Node.js hook scripts counted by ADR-0002                         |
+| Hook Libraries | <!-- COUNT:lib-modules -->25<!-- /COUNT -->                                                   | `.claude/hooks/lib/*.cjs`     | CommonJS utility modules                                                            |
+| Skills         | <!-- COUNT:skills -->161<!-- /COUNT -->                                                       | `.claude/skills/*/SKILL.md`   | Markdown + YAML frontmatter                                                         |
+| Agents         | <!-- COUNT:agents -->29<!-- /COUNT -->                                                        | `.claude/agents/*.md`         | Markdown definitions                                                                |
+| Workflows      | <!-- COUNT:workflows -->18<!-- /COUNT -->                                                     | `.claude/workflows.json`      | JSON workflow definitions                                                           |
+| Output Styles  | 6                                                                                             | `.claude/output-styles/*.md`  | Coding level presets (ELI5→God)                                                     |
+| Scripts        | 31                                                                                            | `.claude/scripts/*`           | CJS/ESM + Python utilities (top-level; excludes tests and non-executable data/docs) |
+| Codex Scripts  | 13                                                                                            | `.claude/scripts/codex/*.mjs` | Top-level ESM sync, migration, notification, and verification tools                 |
+| Hook Tests     | 18 suites + 8 `test-*` files                                                                  | `.claude/hooks/tests/`        | CJS/JS test files; top-level `test-*` files plus `run-all-tests.cjs` aggregate      |
+| Codex Mirrors  | <!-- COUNT:skills -->161<!-- /COUNT --> skills, <!-- COUNT:agents -->29<!-- /COUNT --> agents | `.agents/`, `.codex/`         | Generated Codex-compatible copy                                                     |
 
 ## Project Directory Tree
 
@@ -118,6 +118,7 @@ easy-claude/
 ├── package.json             # Node tooling commands + runtime requirement
 └── README.md                # Project overview and setup
 ```
+
 ## Tech Stack
 
 | Category | Technology            | Details                                            |
@@ -133,22 +134,22 @@ easy-claude/
 
 ## Module Codes
 
-| Code | Module         | Location                       | Description                                                                                                                 |
-| ---- | -------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
-| HK   | Hooks          | `.claude/hooks/`               | <!-- COUNT:hooks -->15<!-- /COUNT --> top-level `.cjs` runtime hook files (session init, safety gates, graph, formatting)   |
-| HL   | Hook Libraries | `.claude/hooks/lib/`           | <!-- COUNT:lib-modules -->25<!-- /COUNT --> shared utility modules for hooks                                                |
-| SK   | Skills         | `.claude/skills/`              | <!-- COUNT:skills -->161<!-- /COUNT --> task automation skill definitions                                                   |
-| AG   | Agents         | `.claude/agents/`              | <!-- COUNT:agents -->29<!-- /COUNT --> specialized subagent role definitions                                                |
-| WF   | Workflows      | `.claude/workflows.json`       | <!-- COUNT:workflows -->18<!-- /COUNT --> end-to-end process orchestrations                                                 |
-| SC   | Scripts        | `.claude/scripts/`             | 31 top-level CJS/ESM/Python utilities; excludes tests and non-executable data/docs                                            |
-| CX   | Codex Tooling  | `.claude/scripts/codex/`       | 13 top-level ESM sync, migration, notification, and verification scripts                                                     |
-| CM   | Codex Mirrors  | `.agents/`, `.codex/`          | Generated Codex-compatible skills, agents, hooks                                                                            |
-| OS   | Output Styles  | `.claude/output-styles/`       | 6 coding level presets                                                                                                      |
-| NT   | Notifications  | `.claude/hooks/notifications/` | Multi-channel notification providers (5)                                                                                    |
-| SB   | Scout Block    | `.claude/hooks/scout-block/`   | Broad search prevention subsystem (4 modules)                                                                               |
-| HT   | Hook Tests     | `.claude/hooks/tests/`         | 18 suite files + 8 top-level `test-*` files + `run-all-tests.cjs` aggregate                                                  |
+| Code | Module         | Location                       | Description                                                                                                               |
+| ---- | -------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| HK   | Hooks          | `.claude/hooks/`               | <!-- COUNT:hooks -->16<!-- /COUNT --> top-level `.cjs` runtime hook files (session init, safety gates, graph, formatting) |
+| HL   | Hook Libraries | `.claude/hooks/lib/`           | <!-- COUNT:lib-modules -->25<!-- /COUNT --> shared utility modules for hooks                                              |
+| SK   | Skills         | `.claude/skills/`              | <!-- COUNT:skills -->161<!-- /COUNT --> task automation skill definitions                                                 |
+| AG   | Agents         | `.claude/agents/`              | <!-- COUNT:agents -->29<!-- /COUNT --> specialized subagent role definitions                                              |
+| WF   | Workflows      | `.claude/workflows.json`       | <!-- COUNT:workflows -->18<!-- /COUNT --> end-to-end process orchestrations                                               |
+| SC   | Scripts        | `.claude/scripts/`             | 31 top-level CJS/ESM/Python utilities; excludes tests and non-executable data/docs                                        |
+| CX   | Codex Tooling  | `.claude/scripts/codex/`       | 13 top-level ESM sync, migration, notification, and verification scripts                                                  |
+| CM   | Codex Mirrors  | `.agents/`, `.codex/`          | Generated Codex-compatible skills, agents, hooks                                                                          |
+| OS   | Output Styles  | `.claude/output-styles/`       | 6 coding level presets                                                                                                    |
+| NT   | Notifications  | `.claude/hooks/notifications/` | Multi-channel notification providers (5)                                                                                  |
+| SB   | Scout Block    | `.claude/hooks/scout-block/`   | Broad search prevention subsystem (4 modules)                                                                             |
+| HT   | Hook Tests     | `.claude/hooks/tests/`         | 18 suite files + 8 top-level `test-*` files + `run-all-tests.cjs` aggregate                                               |
 
-## Hooks (<!-- COUNT:hooks -->15<!-- /COUNT --> top-level `.cjs` files)
+## Hooks (<!-- COUNT:hooks -->16<!-- /COUNT --> top-level `.cjs` files)
 
 ### Safety Hooks
 
@@ -196,11 +197,12 @@ easy-claude/
 
 ### Utility Hooks
 
-| Hook                       | Event             | Purpose                                                        |
-| -------------------------- | ----------------- | -------------------------------------------------------------- |
-| `post-edit-prettier`       | PostToolUse       | Run prettier after edits                                       |
-| `npm-auto-install`         | SessionStart      | Auto-install npm deps on startup                               |
-| `windows-command-detector` | PreToolUse        | Detect Windows-specific commands                               |
+| Hook                                     | Event             | Purpose                                                        |
+| ---------------------------------------- | ----------------- | -------------------------------------------------------------- |
+| `post-edit-prettier`                     | PostToolUse       | Run prettier after edits                                       |
+| `npm-auto-install`                       | SessionStart      | Auto-install npm deps on startup                               |
+| `windows-command-detector`               | PreToolUse        | Detect Windows-specific commands                               |
+| `bash-shell-guard`                       | PreToolUse        | Block PowerShell here-strings; name the POSIX heredoc form     |
 | `.claude/hooks/notifications/notify.cjs` | Stop/Notification | Unified notification router (desktop + Telegram/Discord/Slack) |
 
 > **Post-processing:** no large-output swap, post-agent validator, or bash-cleanup hook is registered.

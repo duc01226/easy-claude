@@ -21,12 +21,54 @@
 // DOES have a package.json, so `if (exists)` would still fail there. `PORT-011` locks the guard to
 // resolve true in this repo, so renaming the package fails loudly instead of silently skipping the
 // self-checks.
+//
+// WHY THE NAME IS CONFIGURABLE
+// Hard-coding the upstream name here made the guard un-portable in exactly the case it matters most:
+// a project that VENDORS this framework, wires the runner into its own npm scripts, and names that
+// package after itself. There the guard resolved false, so every self-check it gates silently
+// skipped — the framework source was being edited with its own guards disabled, and PORT-011's
+// tripwire was the only symptom. The expected name is therefore project data, read from
+// `portability.toolingPackageName` in the project config, with the upstream name as the fallback so
+// the framework repo itself needs no config to keep working.
 
 import fs from 'node:fs';
 import path from 'node:path';
 
-/** The `name` field identifying THIS repo's tooling package. */
-export const FRAMEWORK_PACKAGE_NAME = 'easy-claude-tooling';
+/** The upstream framework repo's own package `name` — the fallback when the project config is silent. */
+export const DEFAULT_FRAMEWORK_PACKAGE_NAME = 'easy-claude-tooling';
+
+/** Parse a JSON file, or `null` when it is absent/unreadable/malformed. */
+function readJson(file) {
+    try {
+        return JSON.parse(fs.readFileSync(file, 'utf8'));
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Locate the project config, honoring `.claude/.ck.json`'s `portability.projectConfigPath` when a
+ * project relocated it. Read with a plain `fs` parse rather than `hooks/lib/project-config-loader`
+ * on purpose: PORT-001 requires the codex pipeline to import only `node:` built-ins and relative
+ * files, so this helper must not reach across into the hook layer.
+ */
+function projectConfigPath(repoRoot) {
+    const configured = readJson(path.join(repoRoot, '.claude', '.ck.json'))?.portability?.projectConfigPath;
+    const rel = typeof configured === 'string' && configured.trim() ? configured.trim() : 'docs/project-config.json';
+    return path.isAbsolute(rel) ? rel : path.join(repoRoot, rel);
+}
+
+/**
+ * The package `name` that identifies THIS project's framework-tooling package.
+ *
+ * Resolution order: `portability.toolingPackageName` in the project config → the upstream default.
+ * Deliberately uncached — a test that rewrites the config of a temp repo between calls must observe
+ * the new value, and the read costs one small file per call in a test-only helper.
+ */
+export function frameworkPackageName(repoRoot) {
+    const configured = readJson(projectConfigPath(repoRoot))?.portability?.toolingPackageName;
+    return typeof configured === 'string' && configured.trim() ? configured.trim() : DEFAULT_FRAMEWORK_PACKAGE_NAME;
+}
 
 /**
  * The framework repo's own parsed `package.json`, or `null` when the assertion does not apply —
@@ -48,7 +90,7 @@ export function frameworkPkg(repoRoot) {
         return null; // an adopting project's malformed package.json is not this suite's business
     }
 
-    return pkg?.name === FRAMEWORK_PACKAGE_NAME ? pkg : null;
+    return pkg?.name === frameworkPackageName(repoRoot) ? pkg : null;
 }
 
 /** True only inside the framework repo itself. */
