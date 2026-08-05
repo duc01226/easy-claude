@@ -30,7 +30,7 @@ Deterministic: the same change set always yields the same stage order.
 3. **Break ties by blast radius, descending.** Where two files are peers, the higher-reach file goes first. This reuses the signal `changes-review/SKILL.md:161` already establishes ("prioritize file review order, highest-impact files first") — the route **adopts** it as the tie-break rather than replacing it, so the two skills never disagree on the same diff.
 4. **Tests last.** L7 is always the final substantive stage — it is the verification pass, read once you know what should be true.
 5. **Skim bucket.** L8 plus generated/boilerplate files collapse into a single final "skim" stage. Never distribute them through the route.
-6. **Bound the route.** 3-7 stages. Fewer than 3 → merge is not needed, the change is small; say so. More than 7 → **collapse adjacent layers** until it fits. A 15-stage route is not followed, which fails the purpose exactly as a file list would.
+6. **No stage ceiling.** One stage per meaningful shift in what the reviewer is checking. Fewer than three → the change is small; say so. A route that grows long is a signal the **GROUP** is too big — **split the group, never collapse the stages** (`SKILL.md` Step 0.5). A 15-stage route is not followed; a 15-stage route is also not the remedy for a 15-stage problem.
 
 ## Context inclusion
 
@@ -45,9 +45,9 @@ The route covers **changed files PLUS the unchanged files a reviewer needs in or
 
 **Every context file renders `[context — not changed]`** inside its stage's file group. Without the marker a reviewer burns effort on unchanged code, or finds a pre-existing issue and attributes it to this change.
 
-**Cap: 3 context files per stage**, highest blast radius first (rule 3's tie-break). Overflow is named once beneath the stage as *"further context available: {paths}"* — **named but NOT routed**. Uncapped, a change to a well-connected shared layer produces a route longer than the diff it explains.
+**No cap on context files.** Route every unchanged file the reviewer needs in order to judge the changed ones — the invariant owner, the interface satisfied, the base-class contract, the governing spec/TC — **highest blast radius first** (rule 3's tie-break). If the list grows past what a stage can carry, that is a split signal for the stage or the group, **never a reason to leave a needed file unrouted**.
 
-> **The cap bounds the ROUTE, never the reader's context.** §4 admits only what is needed to *walk* the route; **§1 owes the full picture of the pre-existing system**, and overflow files named here are exactly what it must account for. So when this cap drops files, say in one clause **why they still matter** — *"further context available: {paths} — these define the contract Stage 2 is measured against; §1 covers what they already guaranteed"* — rather than listing bare paths. A path with no reason reads as *"safe to ignore"*, which is the opposite of what an overflow file is.
+> **§4 bounds the ROUTE, never the reader's context.** §4 admits only what is needed to *walk* the route; **§1 owes the full picture of the pre-existing system** — every file the route touches, and every file it did not need to. If a stage's context list grows past what a reviewer can hold in one sitting, that is the split signal above, not a licence to name a file and leave it unexplained.
 
 ## Stage record contract
 
@@ -117,6 +117,27 @@ Per stage, walk the ladder and stop at the first rung that yields rules:
 No `.code-graph/graph.db` → the algorithm still runs, with grep+read of imports/references replacing the trace in rules 2 and 3, and the one-hop context walk. Ordering within a stage falls back to layer + path grouping.
 
 **The emitted route MUST carry the trust label:** *"Route derived by grep, not graph trace — ordering within stages is approximate."* The reader calibrates on it. Silently emitting a grep-derived route as if it were traced is the same failure class as an unmarked inferred edge in a diagram.
+
+## Scale — the bound is PER GROUP, and a group route sits above it
+
+When `SKILL.md` Step 0.5 decomposes the target into **≥2 understanding groups**, everything above runs **once per group, over that group's files only** — the layer taxonomy, the ordering algorithm, and the routing rules alike. A 60-file target never produces a 20-stage route; it produces 8 groups with a short route each. — why: a 15-stage route is not followed, and that fact does not change when the target grows — so **the remedy is more groups, never more stages**.
+
+**Above the per-group routes sits the GROUP route** — the spine's §4. Same eight-field grammar, one altitude up:
+
+| Field | At group altitude |
+| --- | --- |
+| **Stage N** | The group's reading position (G-order, not file order) |
+| **Name** | What the group is about, in domain words |
+| **File group** | The group's **anchor** (`#g{n}-{slug}`) plus its entry files; groups it depends on marked `[context — already read]` |
+| **Why now** | The dependency or contract reason this group precedes the next |
+| **What to check** | The claim the reader should be able to make about this group once done |
+| **Red flags** | Cross-group flags only — a boundary crossed, a contract consumed but not owned, a duplicated invariant |
+| **Exit criterion** | A question that spans the group — *"can you state what G3 guarantees to G5?"* |
+| **Time-box** | The group's honest total: block plus its entry files |
+
+**"Start here" stays exactly one sentence** — it names the first GROUP and, inside it, the one file to open first. Never a list of groups.
+
+**D5 renders at both altitudes:** a group-level flowchart in the spine region (nodes are groups, edges are reading order, back-edges where a failed check sends the reader to an earlier group), and the usual stage-level flowchart inside each group block. **Do not merge it with §2's D8 group map** — D8 shows what the groups ARE and how they depend on each other; the spine's D5 shows the ORDER you read them in. Same §2-vs-§4 split as at file altitude, one level up.
 
 ## Security
 

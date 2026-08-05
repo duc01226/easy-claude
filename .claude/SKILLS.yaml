@@ -1,7 +1,7 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-08-04'
+  last_updated: '2026-08-05'
   total_skills: 161
   total_by_status:
     active: 160
@@ -1321,10 +1321,15 @@ skills:
         why THIS solution, every alternative option with pros/cons, the trade-offs
         accepted, the blast radius, HOW TO TEST AND DEMO the change, the developer''s
         decision levers, and written challenge prompts that provoke the reader to
-        pressure-test the work. Writes the full report to an external markdown file
-        (plans/reports/understand-*.md) — or delivers it in full in chat when Step
-        3 finds no git-ignored directory for it — and always summarizes it in chat.
-        Regardless of coding level. Never interrogates, never quizzes, never blocks.'
+        pressure-test the work. Works at ANY scope — from one line of code to the
+        whole project: it SIZES the target into a scope tier, DECOMPOSES a large one
+        into understanding groups, BREAKS the work into tasks before the first deep
+        read, and ACCUMULATES the report group by group on disk so a huge explanation
+        stays complete instead of thinning out. Writes the full report to a single
+        combined markdown file (plans/reports/understand-*.md) that opens with a detailed
+        summary section — or delivers it in full in chat when Step 3 finds no git-ignored
+        directory for it — and always summarizes it in chat. Regardless of coding
+        level. Never interrogates, never quizzes, never blocks.'
       category: other
       has_scripts: false
       has_references: true

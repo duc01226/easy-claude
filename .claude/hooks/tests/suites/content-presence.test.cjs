@@ -298,6 +298,15 @@ module.exports = {
                     'eight-field-stage-rule': 'all eight fields',
                     'single-target-form-owner': 'SOLE owner of the target-form contract',
                     'write-hard-rule': 'any git-tracked path',
+                    // §0 is the read-only-this section and the FIRST thing in the report. It is
+                    // registered here (not only in the template) because a section that exists in
+                    // the skeleton but not in SKILL.md's [BLOCKING] drop-risk bar is a section a
+                    // run under budget pressure drops first.
+                    'section-zero': '§0 Detailed Summary',
+                    // The report is ONE combined file at every tier. This rule replaced a
+                    // report-DIRECTORY rule that survived unexamined until a real run emitted 12
+                    // files; without an assertion it is one edit away from returning.
+                    'one-file-always': 'ONE file at every tier',
                 };
                 const missing = [];
                 const body = readSkill('understand');
@@ -313,6 +322,7 @@ module.exports = {
                         'Target forms — the single-owner contract',
                         'The form registry — the ONE enumeration',
                         'Where this sits in the system that already existed',
+                        '## 0. Detailed Summary',
                     ],
                     // D5 deliberately has NO per-diagram spec section — review-path.md owns all five
                     // of its fields. A stub here that only pointed there drifted out of agreement
@@ -324,7 +334,13 @@ module.exports = {
                         '**MANDATORY** — rendered in §4, not §2',
                         '**D5 has no spec here**',
                     ],
-                    'review-path.md': ['Cap: 3 context files per stage', '[context — not changed]'],
+                    // 'Cap: 3 context files per stage' was asserted here until the contract
+                    // deliberately REMOVED that cap: a cap makes a run drop a file the reviewer
+                    // needs, where the replacement rule makes it split the stage or the group.
+                    // Asserting a rule the contract retired would have pushed the next maintainer
+                    // to "fix" the red by restoring the cap — so the assertion moved to the
+                    // replacement wording instead. TC-CP-013 makes the cap's RETURN a failure.
+                    'review-path.md': ['No cap on context files', '[context — not changed]'],
                 };
                 for (const [file, phrases] of Object.entries(refPhrases)) {
                     const p = path.join(SKILLS_DIR, 'understand', 'references', file);
@@ -414,6 +430,153 @@ module.exports = {
                     `understand report-contract drift:\n  ${missing.join('\n  ')}\n` +
                     `Fix: restore the dropped contract text, or update this TC if the contract ` +
                     `intentionally changed (a deliberate contract change SHOULD edit this test).`);
+            },
+        },
+        {
+            name: '[content-presence] TC-CP-012 understand skill emits ONE report file — no multi-file vocabulary',
+            fn: () => {
+                // The skill used to emit a report DIRECTORY at tier S3+ (`00-index.md` spine plus
+                // `NN-{group-slug}.md` per group). That rule survived unexamined until a real run
+                // produced 12 files nobody opened as a whole. It is now ONE file at every tier.
+                //
+                // ALLOWLIST RATIONALE — READ BEFORE BROADENING THIS PATTERN:
+                // this check matches FILE-SHAPED TOKENS, never the English word "directory". The
+                // word appears deliberately in the do-not-re-split rationale ("a directory is a
+                // deliverable nobody opens as a whole") and in an anti-rationalization row quoting
+                // the mistake ("I'll split it into a directory"). A `/directory/i` pattern would
+                // fail on exactly the text that PREVENTS the regression — the guard would fight
+                // the guardrail. Match what materializes files; not what argues against them.
+                const FILE_SHAPED = [/00-index/i, /NN-\{group-slug\}/i, /sub-spine/i, /block path/i];
+                const dir = path.join(SKILLS_DIR, 'understand');
+                const files = [];
+                const walk = (d) => {
+                    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+                        const p = path.join(d, e.name);
+                        if (e.isDirectory()) walk(p);
+                        else if (e.name.endsWith('.md')) files.push(p);
+                    }
+                };
+                walk(dir);
+
+                // Vacuity guard: a glob that matches nothing asserts nothing.
+                assertTrue(files.length >= 5,
+                    `TC-CP-012 found only ${files.length} markdown file(s) under .claude/skills/understand — ` +
+                    `expected at least 5 (SKILL.md + 4 references). The scan is vacuous; fix the walk before trusting a green.`);
+
+                const hits = [];
+                for (const p of files) {
+                    const text = readFile(p);
+                    for (const rx of FILE_SHAPED) {
+                        const m = text.match(rx);
+                        if (m) hits.push(`${path.relative(SKILLS_DIR, p)} → "${m[0]}"`);
+                    }
+                }
+                assertTrue(hits.length === 0,
+                    `understand multi-file vocabulary returned:\n  ${hits.join('\n  ')}\n` +
+                    `Fix: the report is ONE file at every tier — see references/report-template.md → ` +
+                    `"Scaled report layout". At >12 groups it NESTS in the same file, never splits. ` +
+                    `If the contract intentionally changed back, update this TC.`);
+            },
+        },
+        {
+            name: '[content-presence] TC-CP-013 understand skill caps nothing it SAYS, and keeps every split trigger',
+            fn: () => {
+                // Three assertions, one invariant with three halves. A tree where the caps are gone
+                // but the triggers went with them is NOT a pass — deleting a trigger removes the
+                // structure that keeps a large target readable, which is the opposite of the goal.
+                //
+                // ALLOWLIST RATIONALE — READ BEFORE BROADENING THESE PATTERNS:
+                // this check matches CAP PHRASINGS, never bare numbers. report-template.md's
+                // "Caps vs split triggers" note quotes the trigger numbers deliberately, and
+                // scale-protocol.md keeps its trigger rows. A digit-shaped pattern would fail on
+                // the text that documents the distinction.
+                //
+                // KNOWN BLIND SPOT — this guard is ONE-DIRECTIONAL. It blocks the caps that
+                // existed, not a cap invented later: a future "§0: keep under 500 words" passes it
+                // green. That is accepted, not overlooked — a general "no numeric limit" regex
+                // would fire on the caps-vs-triggers note itself. Two backstops: CAP_PHRASINGS
+                // carries BOTH the digit and word forms a cap has historically taken here, and
+                // report-template.md's caps-vs-triggers note is the human-readable rule a reviewer
+                // reads. Do not trust this guard past that range.
+                const CAP_PHRASINGS = [
+                    /1[–-]4 concepts/i, /concepts MAX/i, /1[–-]3 flows/i,
+                    /3[–-]7[- ]stages?/i, /bounds the route to 3[–-]7/i, /Cap: 3 context files/i,
+                    // Word forms. The digit patterns above cannot see these, which is exactly how
+                    // SKILL.md's "exactly three lines — no more" survived the first cap inventory.
+                    /exactly three lines/i, /lines? — no more/i,
+                ];
+                // Digit-free sentences BUILT ON a removed cap. No cap-shaped pattern can see these
+                // — none contains a number. The last two catch the subtler second-order failure:
+                // REWORDING such a sentence into the vocabulary of review-path.md's replacement
+                // rule, which abolished the named-but-unrouted mechanism outright. A paraphrase
+                // that keeps the mechanism contradicts the rule on the same page, and is harder to
+                // spot than the dangling reference it replaced.
+                const ORPHAN_PHRASINGS = [
+                    /context cap/i, /cap of 3/i, /The cap bounds/i, /(file|stage) cap/i,
+                    /named but/i, /(did|could) not route/i,
+                ];
+                // The other half: exceeding one of these ADDS structure. They must survive.
+                // SECOND KNOWN BLIND SPOT, measured not assumed: this is a FILE-LEVEL presence
+                // check, and several triggers are stated twice in their owning file (once in the
+                // §1 group-size table, once in the §7 triggers table). Deleting ONE statement
+                // leaves the guard green — proven by mutating only §1's "≤ 8 files" and watching
+                // this assertion pass. Deleting BOTH goes red. So it catches a trigger REMOVED,
+                // not a trigger left half-stated. Anchoring each pattern to its specific table row
+                // would close the gap and couple the test to markdown layout; the looser check was
+                // kept deliberately. Restating a trigger is redundancy that helps a reader — but
+                // do not read a green here as proof that every restatement still agrees.
+                const TRIGGERS = [
+                    { file: 'references/scale-protocol.md', rx: /≤ ?8 files/, what: 'group size (≤8 files)' },
+                    { file: 'references/scale-protocol.md', rx: /≤ ?2000/, what: 'group size (≤2000 diff-lines)' },
+                    { file: 'references/scale-protocol.md', rx: /≤ ?12/, what: 'groups per level (≤12 → nest)' },
+                    { file: 'references/scale-protocol.md', rx: /≤ ?10 lines/, what: 'sub-agent return bound (a MESSAGE bound, not a report bound)' },
+                    { file: 'references/diagram-catalog.md', rx: /~ ?20 nodes/, what: 'diagram size (~20 nodes → split/subgraph)' },
+                ];
+
+                const dir = path.join(SKILLS_DIR, 'understand');
+                const files = [];
+                const walk = (d) => {
+                    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+                        const p = path.join(d, e.name);
+                        if (e.isDirectory()) walk(p);
+                        else if (e.name.endsWith('.md')) files.push(p);
+                    }
+                };
+                walk(dir);
+                assertTrue(files.length >= 5,
+                    `TC-CP-013 found only ${files.length} markdown file(s) under .claude/skills/understand — ` +
+                    `expected at least 5. The scan is vacuous; fix the walk before trusting a green.`);
+
+                const problems = [];
+                for (const p of files) {
+                    const text = readFile(p);
+                    const rel = path.relative(SKILLS_DIR, p);
+                    for (const rx of CAP_PHRASINGS) {
+                        const m = text.match(rx);
+                        if (m) problems.push(`${rel} → content cap returned: "${m[0]}"`);
+                    }
+                    for (const rx of ORPHAN_PHRASINGS) {
+                        const m = text.match(rx);
+                        if (m) problems.push(`${rel} → orphaned cap reference: "${m[0]}"`);
+                    }
+                }
+                for (const t of TRIGGERS) {
+                    const p = path.join(dir, t.file);
+                    const text = fs.existsSync(p) ? readFile(p) : '';
+                    if (!t.rx.test(text)) problems.push(`${t.file} → SPLIT TRIGGER DELETED: ${t.what}`);
+                }
+
+                assertTrue(problems.length === 0,
+                    `understand cap/trigger contract broken:\n  ${problems.join('\n  ')}\n` +
+                    `Fix — "content cap returned": no rule may cap what the report SAYS; a limit that ` +
+                    `binds makes a run drop knowledge to fit. Replace the count with the quality rule ` +
+                    `it approximated.\n` +
+                    `Fix — "orphaned cap reference": a sentence still points at (or paraphrases) a cap ` +
+                    `this contract removed. Delete the clause; do not reword it into the replacement ` +
+                    `rule's vocabulary.\n` +
+                    `Fix — "SPLIT TRIGGER DELETED": removing a trigger does NOT remove a cap — it ` +
+                    `removes the structure that keeps a large target readable. See ` +
+                    `references/report-template.md → "Caps vs split triggers".`);
             },
         },
     ],

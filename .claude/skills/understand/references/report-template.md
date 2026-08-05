@@ -14,6 +14,7 @@ Coding level tunes **vocabulary, analogy density, and per-section length**. It N
 
 | §   | Section              | Answers                                              | Fails when                                                    |
 | --- | -------------------- | ---------------------------------------------------- | ------------------------------------------------------------- |
+| 0 ⚠ | Detailed Summary     | If I read only this, what do I now know?              | It is a table of contents, it introduces a claim no section below carries, or it reproduces evidence a section below owns instead of pointing at it |
 |     | **Part I — Orient**  | *What is this, and what does it look like?*           |                                                                |
 | 1   | What Was Done        | What is this, in developer terms? before → after      | It restates the commit message                                 |
 | 2 ⚠ | Visual Map           | What does this system look like?                      | A mandatory diagram is missing, empty, or drawn from expectation instead of evidence |
@@ -86,7 +87,7 @@ The route algorithm, its eight-field grammar, and its failure modes live in `ref
 | **F5 · Un-fixed bug** | Investigation order | The symptom site, walking back toward the cause | Whether the hypothesis survived this stage's evidence |
 | **F6 · No user-facing story** | Review order weighted to **call sites over definitions** | The most-referenced changed symbol — found by grep, not by diff order | Whether behavior is genuinely unchanged **at this call site**, which is the only risk such a change carries |
 
-For **F4** the file group is example call sites rather than changed files — every entry is `[context — not changed]`, and the stage's file cap does not apply because nothing is a diff. Say so in *why now* rather than dropping the marker.
+For **F4** the file group is example call sites rather than changed files — every entry is `[context — not changed]` because nothing here is a diff. Say so in *why now* rather than dropping the marker.
 
 ### Table 3 of 3 — what §2's diagrams show per form
 
@@ -113,7 +114,43 @@ For **F4** the nodes are conceptual, not `file:line` — that is a change of for
 **Date:** {YYYY-MM-DD HH:mm} · **Scope:** {what is explained} · **Style level:** {N} ({name})
 **Sources read:** {file:line list / plan path / diff range} · **Graph trace:** {ran | not applicable — reason}
 
-> **How to read this:** **Part I (§1–§3)** shows you what this is — the picture, and the business it serves. **Part II (§4)** routes you: where to start reading and in what order. **Part III (§5–§10)** goes deep — how it works, why this shape, what it cost. **Part IV (§11–§13)** is yours: run it, steer it, and disagree with any of it on evidence.
+> **How to read this:** **§0** is the whole report in short — read it and you hold the main knowledge; everything below is the evidence and the depth. **Part I (§1–§3)** shows you what this is — the picture, and the business it serves. **Part II (§4)** routes you: where to start reading and in what order. **Part III (§5–§10)** goes deep — how it works, why this shape, what it cost. **Part IV (§11–§13)** is yours: run it, steer it, and disagree with any of it on evidence.
+
+## 0. Detailed Summary
+
+> **Read only this and you hold the main knowledge.** Everything below is the evidence and the depth.
+
+**Purpose:** {one sentence — why this exists at all}
+
+**The change in one paragraph**
+
+{What it is, where it lives, and before → after in BEHAVIOR terms. **A paragraph, not a sentence count** — as many sentences as the change needs to be understood, and no ceiling. Someone who reads this and nothing else should be able to say what happened and why it matters.}
+
+**What you need to know**
+
+{One bullet per item below, **for every item that applies**. This list is the **minimum set, never a maximum**. Each bullet is ONE line and carries its `file:line` or `§N` pointer. At ≥2 groups it repeats **per group** — a 12-group report has 12 key mechanics, not one.}
+
+- **Key mechanic** — {what actually makes it work} → §6
+- **Business rule at stake** — {the rule, and who it protects} → §3
+- **Decisive design force** — {the constraint that made this the answer} → §7
+- **Closest rejected alternative** — {option} lost because {specific reason} → §8
+- **Highest-leverage trade-off** — bought {X}, paid with {Y} → §9
+- **Blast-radius headline** — {what else moves because of this} → §10
+- **Proof verdict** — {what is tested; what is protected by nothing} → §11
+- **Weakest link** — {the part the author trusts least} → §13
+- {Anything load-bearing that fits none of these categories gets its OWN bullet — the list orients, it does not bound.}
+
+**Start here**
+
+{The §4 start-here file and why — verbatim from §4. The two must never disagree.}
+
+**Groups** *(at ≥2 groups only — one row per group, and nothing more)*
+
+| G | Group | Takeaway | Anchor |
+| --- | --- | --- | --- |
+| G1 | {name} | {the one line that matters about this group} | [#g1-{slug}](#g1-{slug}) |
+
+**The one thing to double-check:** {one sentence — what a reviewer should verify first, stated as an action}
 
 # Part I — Orient
 
@@ -131,7 +168,7 @@ For **F4** the nodes are conceptual, not `file:line` — that is a change of for
 
 {2–5 sentences on the PRE-EXISTING system this plugs into, written for a reader with **zero memory of it**. Name the capability that was already there and how it already worked, the contract or convention this change had to fit (`file:line`), and what it deliberately left alone. A reviewer who cannot say what was already true cannot tell a deliberate change from an accidental one — which is the difference between reviewing and rubber-stamping.}
 
-{Then, in one line: **what a reviewer must already understand before Stage 1 makes sense** — the concepts §5 will teach, the surrounding files §4 admits as `[context — not changed]`, and the ones §4 had to leave out. Where §4's context cap named files it could not route (see §4), say here why they still matter. This is the section that owes the reader the *full* context; §4 owes only the context needed to walk the route.}
+{Then, in one line: **what a reviewer must already understand before Stage 1 makes sense** — the concepts §5 will teach and the surrounding files §4 admits as `[context — not changed]`. This is the section that owes the reader the *full* context; §4 owes only the context needed to walk the route.}
 
 ## 2. Visual Map
 
@@ -151,7 +188,7 @@ erDiagram
     {entities with tech-agnostic types only — string/number/boolean/date/list/map; PK/FK marked; quoted cardinality labels}
 ```
 
-**D3 — {flow name}** {one per main flow, 1–3 flows; name any flow you omitted}
+**D3 — {flow name}** {one per main flow — draw them all; no maximum}
 
 ```mermaid
 sequenceDiagram
@@ -200,7 +237,7 @@ flowchart LR
 
 ## 4. Review Path — where to start, and in what order
 
-> Route contract: `references/review-path.md`. Every stage carries all eight fields; a stage missing any of them is a failed stage. Repeat the stage block below per stage — the contract bounds the route to 3–7.
+> Route contract: `references/review-path.md`. Every stage carries all eight fields; a stage missing any of them is a failed stage. Repeat the stage block below per stage — as many stages as the change genuinely needs, and no ceiling.
 
 **Start here:** `{one file}` — {why this file first, in one sentence}
 
@@ -228,7 +265,7 @@ flowchart TD
 
 ## 5. Concepts You Need
 
-{1–4 concepts MAX — only the ones without which §6 is unreadable. Skip nothing that is load-bearing; add nothing that is decoration. If the change needs no new concept, write "No new concepts — this is plain {X}" and say why.}
+{Every concept without which §6 is unreadable — however many that is. Skip nothing that is load-bearing; add nothing that is decoration. **No maximum.** If the change needs no new concept, write "No new concepts — this is plain {X}" and say why.}
 
 ### {Concept name}
 
@@ -357,16 +394,133 @@ flowchart TD
 **Pre-mortem:** it is 3 months later and this is being reverted. The most likely reason is {…}, and the earliest signal would be {…}.
 
 **Where the author's confidence is lowest:** {claim} — {N}% — {what evidence would raise it}
+````
 
 ---
 
-## Recap
+## §0 Detailed Summary — the authoring contract
 
-- **Purpose:** {one sentence}
-- **Key mechanic:** {one sentence}
-- **Highest-leverage trade-off:** {one sentence}
-- **The one thing to double-check:** {one sentence}
+> §0 is the section a reader opens first and the one the run writes last. These three rules are what make that safe. They live here, outside the skeleton, because they govern how §0 is produced — they are not text the report emits.
+
+**§0 has NO maximum length.** It is as long as the main knowledge requires — a one-line change needs a paragraph, a whole-project report needs a page or more, and neither is capped. **NEVER drop a bullet, a group row, or a rule to fit a length; there is no length to fit.**
+
+What keeps §0 compact is not a word count but a **division of labour: §0 carries the knowledge, the sections below carry the evidence.** State the conclusion and point at the section that proves it — never reproduce a `file:line` walk, a full options table, or a diagram here. A §0 that has become a second copy of the report is failing the content rule, and the fix is to replace the reproduced evidence with a pointer, never to cut knowledge. — why: a length cap forces a run to drop knowledge to fit, which fails the more important half of what §0 is for; a content rule tells the run exactly *what* to cut instead.
+
+**Authoring order: reserved first, written last.** Before section one is written, reserve the stub:
+
+```markdown
+## 0. Detailed Summary
+
+_pending — filled last, from the written sections_
+```
+
+Fill it **last, from what is written on disk — never from memory.** — why: this is the rule the spine already proves (see *Spine skeleton* below); a section that belongs at the top can only be written at the end, and reserving the stub keeps the file coherent at every intermediate moment, which is what the crash-safety rule protects.
+
+**§0 introduces NO new claim.** Every line restates something §1–§13 already carries — the same constraint D7 runs on (`references/diagram-catalog.md`), and for the same reason: a section that may only restate is a section that cannot hallucinate. A claim in §0 that appears nowhere below is a defect **in §0**, fixed by deleting it or by fixing the section that should have carried it — never by leaving both. This also makes "is §0 correct?" a mechanical cross-check rather than a judgement call.
+
+---
+
+## Caps vs split triggers — the distinction, written down once
+
+> **No rule in this contract caps what the report SAYS.** There is no maximum on concepts, flows, stages, context files, options, challenges, or §0's length. A limit that binds makes a run **drop knowledge to fit** — and a reader cannot skim toward something that is not there. That is the failure this skill exists to prevent.
+>
+> The numeric limits that remain are **split triggers**, and they cap nothing: exceeding one **adds structure** rather than removing content — `≤8 files / ≤2000 diff-lines` splits a **group**, `≤12 groups` nests a **level**, `~20 nodes` splits a **diagram** (or collapses it into subgraphs, which preserves every node). Every one of them makes the report *bigger and more navigable*, never smaller.
+>
+> **Deleting a split trigger does not remove a cap; it removes the structure that makes a large target readable.** A 60-file single group still produces a report — a thin, summary-shaped one whose §1–§13 are no longer answerable about it alone. Do not confuse the two, and do not "finish the job" of removing caps by deleting a trigger.
+
+## Scaled report layout — ONE file: spine, then a block per group
+
+> Fires when `SKILL.md` Step 0.5 produced **≥2 understanding groups**. One group → the skeleton above, unchanged, zero overhead. **The report is ONE file at every tier and every group count**; this section owns only the SHAPE inside it. The tier→layout mapping lives in `SKILL.md` Step 3 and the grouping/accumulation process in `references/scale-protocol.md`.
+
+**Always `understand-{YYMMDD}-{HHmm}-{slug}.md`.** One group → the skeleton above. **≥2 groups** → the spine region, then one `# G{n}` block appended per group, in group order.
+
+**More than 12 groups** → nest **in the same file**: an intervening `# Context — {name}` heading per bounded context, groups as `## G{n}` beneath it, and the ledger nested one level. The ≤12-per-level cap and `[NO SILENT TRUNCATION]` are unchanged.
+
+— why: a directory is a deliverable nobody opens as a whole; anchors survive copy, share, and concatenation where paths do not. **Do not re-split this for size** — size is what §0 and the ledger are for.
+
+### Altitude — every section is owed ONCE, at the level where its answer differs
+
+| Altitude | Owns |
+| --- | --- |
+| **Spine** | §1 the whole scope · §2 the group map (D8) + the scope-level system view · §4 the **group route** · §9/§10 the cross-cutting trade-offs and blast radius no single group can see · §13 the whole-scope weakest link · the group **ledger** |
+| **Group block** | The full §1–§13 **in that group's scope** — its diagrams, its stories with REAL IDs, its stage file route, concepts, mechanics, why-this-solution, options, trade-offs, impact, test & demo, levers, challenges |
+
+A section may be answered on the spine INSTEAD of inside a group **only when its answer is genuinely identical across groups**, and the block then carries a one-line **pointer** — `§5 — shared concept, see spine: optimistic concurrency`. **A pointer is a filled section; an empty heading, an "N/A" stub, or silence is a dropped one.** — why: scale is the most rationalized excuse for dropping a section, and it is never a valid one.
+
+### Spine region
+
+The **spine** is not a file — it is the **header region of the one report file**: everything above the first `# G1`. Create it **before the first group block**, with every scope-wide heading present and stubbed `_pending — filled after the group blocks land_`. — why: those sections belong at the top but can only be written last; reserving them keeps the file coherent at every intermediate moment.
+
+````markdown
+# Understand — {resolved scope}
+
+**Date:** {YYYY-MM-DD HH:mm} · **Tier:** {S2|S3|S4} · **Groups:** {N} · **Style level:** {N} ({name})
+**Grouping axis:** {module | capability | flow | layer slice | structural} — {the rung, and why it was the first that fit}
+**Sources read:** {…} · **Graph trace:** {ran | not applicable — reason} · **Delegated:** {`/scout` G1–G3 | none}
+
+> **How to read this:** **§0** is the whole report in short. §4 names which GROUP to open first. Each group block below is a full report in its own scope; this spine region carries what they share and what only appears when you look across them.
+
+## 0. Detailed Summary
+
+_pending — filled last, from the written blocks_
+
+## Group ledger
+
+| ID | Group | Scope | Depends on | Status | Anchor | Takeaway |
+| --- | --- | --- | --- | --- | --- | --- |
+| G1 | {name — no "and" in it} | {paths · file count} | — | written | [#g1-{slug}](#g1-{slug}) | {one line} |
+| G2 | {…} | {…} | G1 | pending | — | — |
+
+**Coverage:** {N of N groups written} · **Deferred or dropped:** {named explicitly — paths and why — or "none"}
+
+# Part I — Orient (whole scope)
+
+## 1. What Was Done — across the whole scope
+## 2. Visual Map — D8 group map + the scope-level system view
+
+# Part II — Route (across groups)
+
+## 4. Group Route — which group to read first, and why
+
+# Part III — Depth (cross-cutting only)
+
+## 9. Trade-offs Accepted — the ones no single group can see
+## 10. Impact & Blast Radius — across group boundaries
+
+# Part IV — Prove & Push Back (whole scope)
+
+## 13. Challenge This — the weakest link of the whole scope
 ````
+
+**Group blocks are appended BELOW this region, in group order** — nothing is written above the spine after the run starts.
+
+### Group block skeleton
+
+Header, then **§1–§13 exactly as the skeleton above**, scoped to the group:
+
+````markdown
+# G{n} — {group name}
+
+**Scope:** {explicit paths} · **Depends on:** {G… | —} · **Why one unit:** {the cohesion sentence}
+**Reads with:** [§0 Detailed Summary](#0-detailed-summary) and the spine region — {which shared sections this block points at, by anchor}
+````
+
+The heading is `# G{n} — {group name}` and **never changes once written** — the ledger's anchors point at it.
+
+**At ≥2 groups, wrap each group block in a `<details>` element** so the report opens as a one-screen index that expands on demand:
+
+````markdown
+<details>
+<summary><b>G{n} — {group name}</b> · {the one-line takeaway from the ledger}</summary>
+
+{the full # G{n} block — every section, unchanged}
+
+</details>
+````
+
+The `<summary>` line carries the **same** takeaway as the ledger row — one derivation, two consumers, so they cannot disagree. **Never** put a group's only copy of a fact in the summary line; it is a label, not content. The block inside is byte-for-byte what it would be uncollapsed — collapsing changes what the reader **sees first**, never what the report **says**.
+
+— why: §0 and the ledger tell you the report is long; `<details>` is what makes the length navigable instead of merely admitted. It renders natively in GitHub, VS Code preview, and every common markdown viewer. **Caveat, stated so nobody is surprised:** in a plain-text reader or a markdown-to-PDF converter that strips HTML, the tags render as literal text and every block shows expanded — the content is all still there and in order, only the folding is lost. That is the correct failure direction: degraded presentation, never withheld knowledge. At ONE group, do not collapse — there is nothing to navigate between.
 
 ---
 
@@ -374,16 +528,18 @@ flowchart TD
 
 > **Diagram COUNT is level-invariant.** Level compresses prose; it NEVER deletes a diagram. A diagram is the densest representation available — which is precisely what a level-5 reader wants most. §2's mandatory D1–D3 + D7 and §4's D5 appear at every level, ELI5 through God Mode. What flexes is label vocabulary and the amount of prose around them.
 
-**The teaching sections:**
+**§0 and the teaching sections:**
 
-| Level | §5 Concepts | §6 How | §8 Options | §13 Challenge |
-| --- | --- | --- | --- | --- |
-| 0 ELI5 | Analogy-led, one idea at a time, zero jargon | Story form, step by step | Plain-language "we could also have…" | Gentle "here's what to wonder about" |
-| 1 Junior | Full definition + why it exists as a concept at all | Every step spelled out, terms defined inline | Full table, teach WHY each con matters | Concrete, tied to code they can open |
-| 2 Mid | Definition + the pattern family it belongs to | Flow + edge cases in full | Full table + cost-to-switch reasoning | Design-level challenges |
-| 3 Senior | Name it, one-line refresher, focus on why-here | Summarized flow, full edge cases/invariants | Full table, terse cells | Trade-off and reversibility challenges |
-| 4 Tech Lead | Name only unless non-standard | Compressed; emphasis on contracts + risk | Focus on cost-to-switch and flip conditions | Strategic/architectural challenges |
-| 5 God Mode | Only genuinely unusual concepts | Bullet flow, assume mechanics | Terse matrix, lead with the closest call | The weakest link + pre-mortem, nothing else |
+| Level | §0 Detailed Summary | §5 Concepts | §6 How | §8 Options | §13 Challenge |
+| --- | --- | --- | --- | --- | --- |
+| 0 ELI5 | Same bullets; each gets a plain-language clause explaining the term it uses | Analogy-led, one idea at a time, zero jargon | Story form, step by step | Plain-language "we could also have…" | Gentle "here's what to wonder about" |
+| 1 Junior | Same bullets; each gets a plain-language clause | Full definition + why it exists as a concept at all | Every step spelled out, terms defined inline | Full table, teach WHY each con matters | Concrete, tied to code they can open |
+| 2 Mid | Same bullets; domain vocabulary, one line each | Definition + the pattern family it belongs to | Flow + edge cases in full | Full table + cost-to-switch reasoning | Design-level challenges |
+| 3 Senior | Same bullets; one line each | Name it, one-line refresher, focus on why-here | Summarized flow, full edge cases/invariants | Full table, terse cells | Trade-off and reversibility challenges |
+| 4 Tech Lead | Same bullets; one terse line each | Name only unless non-standard | Compressed; emphasis on contracts + risk | Focus on cost-to-switch and flip conditions | Strategic/architectural challenges |
+| 5 God Mode | Same bullets; one terse line each — no bullet is dropped for terseness | Only genuinely unusual concepts | Bullet flow, assume mechanics | Terse matrix, lead with the closest call | The weakest link + pre-mortem, nothing else |
+
+> **§0's bullet set is level-invariant.** Level tunes the vocabulary and the prose around each bullet — it never removes a bullet, never merges two, and **never imposes a length limit** (see *§0 — the authoring contract* above). A level-5 §0 is every bullet, terse.
 
 **The orient / route / prove sections:**
 
@@ -399,12 +555,15 @@ flowchart TD
 
 ## Self-check before writing the file
 
-- [ ] Every section present, and each ⚠ drop-risk section verified individually — §2, §3, §4, §5, §8, §11, §12, §13 are the ones most often silently dropped
+- [ ] **§0 is present, sits before `# Part I`, and carries every required bullet** — the purpose line, the paragraph, the full *What you need to know* set, the start-here line, the group ledger at ≥2 groups, and the double-check line. **No length check applies, and nothing was cut to fit one**
+- [ ] **Every §0 claim traces to a section below it** — no claim appears in §0 that §1–§13 do not carry, and no evidence is reproduced from the section that owns it (a `file:line` walk, an options table, or a diagram in §0 is a pointer that should have stayed a pointer)
+- [ ] **§0's start-here line matches §4's verbatim** — the two are one derivation with two readers, so they cannot be allowed to disagree
+- [ ] Every section present, and each ⚠ drop-risk section verified individually — §0, §2, §3, §4, §5, §8, §11, §12, §13 are the ones most often silently dropped
 - [ ] §2 carries D1, D2, D3, and D7 — each either derived or carrying a stated blocker; no empty fence, and nothing drawn from expectation instead of evidence
 - [ ] D7's nodes all restate §3 stories/rules and §4 stages — no story, rule, or stage appears in D7 that is absent from those sections, and every test edge cites a REAL ID or `⚠ no test`
 - [ ] Every dashed edge in §2 is named beneath its diagram; no diagram contains a fabricated node or edge
 - [ ] §3 and §11 cite only REAL `TC-*` / test IDs — a story or case with no test says so instead of inventing one
-- [ ] For a change target, §1 states **where it sits in the system that already existed** — the pre-existing capability, the contract it fits (`file:line`), what it left alone, and what §4's context cap named but did not route
+- [ ] For a change target, §1 states **where it sits in the system that already existed** — the pre-existing capability, the contract it fits (`file:line`), and what it left alone
 - [ ] §4 has one "start here" file, a D5 flowchart with at least one back-edge, and an exit criterion per stage phrased as a question the reviewer can answer
 - [ ] Every concrete claim cites `file:line`, a plan path, or is labelled as inference with confidence
 - [ ] §8 has ≥2 alternatives with SPECIFIC pros/cons and provenance labels, or an argued empty option space
@@ -416,3 +575,7 @@ flowchart TD
 - [ ] No question in the report expects an answer from the reader, and nothing in the flow waits for one
 - [ ] Jargon in §6 was defined in §5 first
 - [ ] Chat received the executive summary — plus the report path when a file was written, or Step 3's blocker line when it could not resolve one — so the explanation never lives only in the file
+- [ ] **At ≥2 groups:** the spine region exists with its ledger, **every row marked `written` resolves to a `# G{n}` heading present in this file that carries its sections**, and the coverage line names anything deferred or dropped instead of implying full coverage
+- [ ] **At ≥2 groups:** every group block carries all ⚠ drop-risk sections in its own scope — or a one-line pointer to the spine for a genuinely shared answer, never an "N/A" stub
+- [ ] **At ≥2 groups:** the spine's §4 is a GROUP route (which group first, and why), while each block's §4 is a stage file route inside that group — the two are different altitudes, never a copy of each other
+- [ ] **At ≥2 groups:** the report is still **ONE file** — no directory, no index file, no per-group file — and every ledger anchor resolves to a heading inside it

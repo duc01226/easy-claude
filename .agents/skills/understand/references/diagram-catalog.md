@@ -12,11 +12,12 @@
 | --- | --- | --- | --- |
 | **D1** | System / component `flowchart` | **MANDATORY** | Always |
 | **D2** | Domain `erDiagram` | **MANDATORY** | Always |
-| **D3** | `sequenceDiagram` — one per main flow | **MANDATORY** | Always (one per flow, 1–3 flows) |
+| **D3** | `sequenceDiagram` — one per main flow | **MANDATORY** | Always (one per main flow — every one, no maximum) |
 | D4 | `stateDiagram-v2` | Conditional | An in-scope entity has a `status` / `state` / `phase` / `stage` field, an enum of lifecycle values, or a transition guard |
 | **D5** | Review-path `flowchart` | **MANDATORY** — rendered in §4, not §2 | Always. The reading order: which group of files to open first, then next. **Fully owned by `references/review-path.md`** — purpose, derivation, skeleton, labelling and failure modes all live there, so D5 has no spec below. WRONG when duplicated into §2: §2 shows *what the system is*, §4 *how to read it* |
 | D6 | Phase / milestone `flowchart` | Conditional | The target is a **plan**, roadmap, or multi-phase sequence |
 | **D7** | Story-map `flowchart` | **MANDATORY** | Always. Renders the §3 stories and the §4 route as ONE picture — the bridge between what the change is *for* and where you start reading |
+| **D8** | Group-map `flowchart` | Conditional | The run decomposed the target into **≥2 understanding groups** (observable in the group ledger). Renders ONCE, in the report's **spine region** — the header region above the first `# G{n}` block — never inside a group block |
 
 **Trigger discipline.** A conditional diagram fires on something **observable in the code or artifact** — a field, an enum, a file type. Never on "it would be useful here". A `stateDiagram` for a change with no state machine is noise that costs the reader attention and costs you credibility.
 
@@ -81,7 +82,7 @@ erDiagram
 
 - **Purpose:** the verbs — the ordered call path a request actually takes, which is what a reviewer walks when checking correctness.
 - **Derivation source:** `code_graph trace <entrypoint> --direction down --json` → read the handler/service chain → the test that exercises the flow.
-- **Labelling:** participants are components, not files. One diagram **per flow**, 1–3 flows; if the change has more, pick the ones the diff touches and say which you omitted. Show the failure branch when the change has one — `alt` / `else`.
+- **Labelling:** participants are components, not files. One diagram **per flow** — draw every main flow the change touches; omit none, and there is no maximum. Show the failure branch when the change has one — `alt` / `else`.
 - **Skeleton:**
 
 ```mermaid
@@ -171,6 +172,29 @@ flowchart LR
 - **WRONG when:** it invents a story the spec does not carry, cites a test ID that does not exist, or shows stories with no edge into the route — a story the reviewer never *meets* while reading is a story the route failed to cover, and that is a §4 defect D7 exists to expose.
 - **Form note:** for a target with no user-facing story (F6), D7 maps **invariants** instead, with node labels saying *"invariant, not story"* — see Table 3 of 3 in `references/report-template.md`. The picture is still owed; only its left-hand column changes.
 
+### D8 — Group map (conditional — multi-group targets only)
+
+- **Purpose:** the one picture that makes a large target navigable — what the **understanding groups** are, how they depend on each other, and where the reader enters. Without it a 60-file or whole-project report is a wall; with it the reader sees the whole shape in seconds and knows which block to open.
+- **Derivation source:** the group registry (`references/scale-protocol.md` §1 — IDs, names, scopes, depends-on) → cross-group edges traced with `code_graph trace <group entry> --direction both --node-mode file --json` → grep of imports/references **across group boundaries**. An edge means *"this group consumes something that group owns"* — never mere adjacency, never shared directory.
+- **Labelling:** one node per group carrying `G{n}` plus the group name in domain words — never a path. Edges are labelled with what crosses the boundary (`-->|consumes invariant|`, `-->|subscribes event|`). Mark the entry group — the one §4's group route opens with. At S4, wrap groups in a `subgraph` per bounded context.
+- **Skeleton:**
+
+```mermaid
+flowchart TD
+    subgraph Ordering["Ordering context"]
+        G1["G1 · What makes an order valid<br/>domain invariants"]:::entry
+        G2["G2 · Submitting an order<br/>application + API"]
+    end
+    subgraph Fulfilment["Fulfilment context"]
+        G3["G3 · Reserving stock<br/>integration"]
+    end
+    G2 -->|consumes invariant| G1
+    G3 -->|subscribes OrderSubmitted| G2
+    classDef entry stroke-width:3px
+```
+
+- **WRONG when:** its nodes are directories rather than explainable units; an edge asserts a dependency that no import, call, or message actually establishes; or it duplicates the spine's D5 reading order instead of showing structure — **D8 is what the groups ARE, D5 is the order you read them in** (the same §2-vs-§4 split, one altitude up).
+
 ---
 
 ## Derivation ladder
@@ -201,7 +225,9 @@ A diagram over **~20 nodes** stops being a map and becomes a hairball. Two remed
 1. **Split by layer** — one diagram per architectural layer, or one per bounded context.
 2. **Collapse into `subgraph`s** — group the detail behind a named boundary and show only the boundary's edges.
 
-**An unreadable diagram is a failed diagram**, exactly as an empty one is. Size is part of the contract, not a style preference.
+**An unreadable diagram is a failed diagram**, exactly as an empty one is. Size is part of the contract, not a style preference — and this is a **split trigger**, not a cap: both remedies above preserve every node.
+
+**At multi-group scale the split is already made for you:** D1, D2 and D3 render **per group**, inside that group's block, each bounded by the ~20-node rule over that group's files only. The spine region carries D8 plus a boundary-only scope view — group nodes and the edges between them, never every file in the system. — why: one whole-project flowchart is the hairball this rule exists to prevent, and the grouping is the layer split rung 1 already asks for — and because every group now renders into the SAME file, the ~20-node bound is what keeps that file readable; it is a harder rule here, never a softer one.
 
 ## Redaction
 
