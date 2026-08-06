@@ -5,6 +5,9 @@ The structure the `demo-guide` skill writes. Fill from real project evidence; ke
 
 ## Best-practice principles (apply while writing)
 
+- **Understand before you script.** Nothing here is written until the skill's Step 1 comprehension bar is
+  cleared with `file:line` per answer. A step derived from a screen name instead of the code is a step that
+  fails live — in front of the room the guide was written for.
 - **Show, then explain the data.** A demo is credible when the presenter shows the behaviour AND can point
   to the stored/changed data that makes it true. Every case pairs an observable step with a domain explanation.
 - **Steps are live-runnable.** Write action-level steps a presenter follows in the real app/API: who acts,
@@ -15,8 +18,23 @@ The structure the `demo-guide` skill writes. Fill from real project evidence; ke
   state that a user could not reach.
 - **Group by user story, order by demo flow.** Within a story, order cases so the demo tells a story
   (happy path first, then variants, edge cases, and legacy/back-compat last).
-- **Honesty about proof.** Tag each case: proven by an executed test, or trace-verified / demo-only. Never
-  imply a green run that didn't happen.
+- **Honesty about proof.** Every case sits on exactly one rung of the proof ladder below, and carries the
+  `file:line` proof chain a challenger can walk. Never imply a green run that didn't happen.
+- **No secret values, anywhere.** This guide is shared. Name the setting, the file, and the account **role**;
+  render credentials, tokens, keys, connection strings, and customer identifiers as `<redacted:…>`.
+
+## The proof ladder (one rung per case — there is no fifth rung)
+
+| Rung                | Means                                                                | Licence                                                            |
+| ------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `✅ ran`            | The test was **executed this session**                               | The ONLY rung that may claim green. Record the command + pass/fail. |
+| `⚠️ trace-verified` | Code read end-to-end, `file:line` chain complete, not executed       | Demo it live; say it was not run.                                   |
+| `📄 spec-only`      | Asserted by a spec/TC; the code path was not traced                  | Weakest rung — say so explicitly.                                   |
+| `❌ no coverage`    | No test exists for this case                                         | A reported gap. NEVER filled with a plausible ID.                   |
+
+**Proof chain per case:** where the value is **written** → where it is **read** → where the presenter **sees**
+it, `file:line` each. A chain with a missing link caps the case at `📄 spec-only`. A case that fits no rung is
+a **stated blocker**, never a quiet promotion.
 
 ## Document structure
 
@@ -24,9 +42,18 @@ The structure the `demo-guide` skill writes. Fill from real project evidence; ke
 # Demo Guide — {Feature name}
 
 **Scope:** {feature} — resolved from {prompt | current working context | user-confirmed}
-**Sources:** {spec path(s), test file(s), changed dirs, migration(s)}
+**Tier / story groups:** {S0–S4} · {n} groups
+**Sources:** {spec path(s), test file(s), changed dirs, migration(s)} — {degradation rung landed on, if any}
 **Governing spec / rules:** {spec file + rule IDs, if any}
+**Investigation:** comprehension bar cleared per group — brief at `{path}` · Delegated: {`$investigate` — Story B mechanics | none}
+**Deferred / not covered:** {named explicitly, or `none`}
 **Audience:** {team / PO / QC / stakeholders}
+
+## Story-group ledger
+
+| Group | Story | Cases | Status |
+| ----- | ----- | ----- | ------ |
+| G1    | {A}   | {n}   | written / pending |
 
 ---
 
@@ -37,7 +64,7 @@ The structure the `demo-guide` skill writes. Fill from real project evidence; ke
 **One-time demo setup:** {roles, configuration, seed data, which app/screen — staged via real paths}
 
 ### {A1} — {short case title} · `{REAL-TC-ID(s)}`
-- **Setup / preconditions:** {exact state to stage first}
+- **Setup / preconditions:** {exact state to stage first, via real user paths; accounts by role, secrets `<redacted:…>`}
 - **Demo steps:**
     1. {actor} {action} on {screen/endpoint} with {input}
     2. {next action}
@@ -48,7 +75,8 @@ The structure the `demo-guide` skill writes. Fill from real project evidence; ke
   that consumes it to produce the outcome, and why this storage makes the case correct — edge cases,
   legacy fallback, cross-tier parity}. _(If display-only: state "no storage change" and describe the
   computed representation that solves it.)_
-- **Proof:** {✅ proven by executed test `id` | ⚠️ trace-verified / demo-only}
+- **Proof chain:** written `{file:line}` → read `{file:line}` → seen `{screen/endpoint + file:line}`
+- **Proof:** {✅ ran `id` — `{command}` → {pass/fail} | ⚠️ trace-verified | 📄 spec-only | ❌ no coverage}
 
 ### {A2} — ...
 
@@ -68,14 +96,16 @@ demo" the team should walk away understanding.}
 
 ## Main test-case quick reference
 
-| Story | Test case | What it proves | Proof |
-| ----- | --------- | -------------- | ----- |
-| {A}   | {TC-ID}   | {one line}     | ✅ ran / ⚠️ demo-UI |
+| Story | Test case | What it proves | Proof rung |
+| ----- | --------- | -------------- | ---------- |
+| {A}   | {REAL TC-ID} | {one line}  | ✅ ran / ⚠️ trace-verified / 📄 spec-only / ❌ no coverage |
 
 ## Test-execution transparency
 
-- **Proven this session:** {suites/cases actually executed + pass/fail counts}.
-- **Not executed:** {cases only trace-verified + why (e.g. runner blocker)} — demo these live instead of via a green run.
+- **Proven this session:** {suites/cases actually executed + the command + pass/fail counts}.
+- **Not executed:** {cases at ⚠️/📄 + why (runner blocker, environment)} — demo these live instead of via a green run.
+- **No coverage:** {cases at ❌} — reported gaps, not staged as proven.
+- **Blockers:** {cases that fit no rung, or preconditions that could not be staged} — stated, never omitted.
 
 ---
 
@@ -96,7 +126,7 @@ For each case, read the code — do not infer — and capture:
 
 State it in plain team language, but keep the `file:line` anchors so anyone can verify.
 
-## Scope-resolution candidates (Step 1 helper)
+## Scope-resolution candidates (Step 0.1 helper)
 
 When the prompt is empty and you must derive scope, gather candidates from — in order — the active
 task/workflow goal, `git status`/`git diff`, branch-vs-main commits, and in-progress plans/specs/release
