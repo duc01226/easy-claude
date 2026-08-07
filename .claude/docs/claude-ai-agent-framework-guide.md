@@ -3165,7 +3165,7 @@ during review steps. The dedicated docs-update step handles all of this.
 TEST SPEC VERIFICATION above is READ-ONLY cross-reference only — flag gaps, do not write.
 ```
 
-**Effect:** Review steps are strictly read-only for docs. They may _flag_ staleness as a finding, but the actual write is deferred to `/docs-update` (step 15), which uses specialized sub-skills with evidence verification. Single point of write = no race conditions, no reviewer hallucinations in docs.
+**Effect:** Review steps are strictly read-only for docs. They may _flag_ staleness as a finding, but the actual write is deferred to the dedicated `/docs-update` step, which uses specialized sub-skills with evidence verification. Single point of write = no race conditions, no reviewer hallucinations in docs.
 
 #### docs-update v3.2.0 — Mandatory Task Table with Audit Trail
 
@@ -3243,7 +3243,7 @@ Both directions are queryable without reading source code, making the spec-drive
 
 The hardest hallucination to catch is the one inside the review itself. A review agent that fabricates a finding — wrong `file:line`, inflated severity, a "bug" that re-traces as correct — poisons everything downstream: the fix targets nothing, the human burns trust, the audit trail records noise. Evidence gates (Section 8.6) protect the _implementation_; this gate protects the _review_.
 
-The mechanism is a **recursion-guarded self-review loop**: after any review produces findings, the reviewer re-reviews its own output once more in a terminal mode, and a bounded re-do loop reconciles until the findings are clean. It ships in `/why-review`; standalone `/changes-review` runs it in Phase 6, while `$workflow-review-changes` runs the findings-validation gate as parent step 2 before parallel reviewers and later fix planning.
+The mechanism is a **recursion-guarded self-review loop**: after any review produces findings, the reviewer re-reviews its own output once more in a terminal mode, and a bounded re-do loop reconciles until the findings are clean. It ships in `/why-review`; standalone `/changes-review` runs it in Phase 6. `$workflow-review-changes` launches a FULL-mode whole-target `/why-review` sub-agent in parallel with inline `/changes-review` (steps 1–2), then runs the parent findings-validation gate at step 3 over the `/changes-review` findings before specialist reviewers and fix planning.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -3277,12 +3277,12 @@ The mechanism is a **recursion-guarded self-review loop**: after any review prod
 
 A naive "review your review" instruction recurses forever — the validation pass is itself a review, which triggers another validation, and so on. Three rules make it terminate deterministically:
 
-| Rule                                                                                                                                            | What it prevents                                                               |
-| ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `validate-findings` is **terminal** — never calls `/why-review`, never re-runs the gate, never spawns a sub-agent                               | Infinite self-recursion                                                        |
-| The re-do loop lives in the **caller** (standalone `/changes-review` Phase 6 or `$workflow-review-changes` parent step 2), not in validate mode | Diffuse, unbounded looping across agents                                       |
-| **Bounded at max 2 re-dos**, then `AskUserQuestion` escalation                                                                                  | A finding the AI can neither prove nor drop silently looping forever           |
-| All passes run in the **same main-agent session** (never a spawned sub-agent)                                                                   | Context loss between validation rounds; the validator sees the real cited code |
+| Rule                                                                                                                                                                                | What it prevents                                                               |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `validate-findings` is **terminal** — never calls `/why-review`, never re-runs the gate, never spawns a sub-agent                                                                   | Infinite self-recursion                                                        |
+| The re-do loop lives in the **caller** (standalone `/changes-review` Phase 6, the initial whole-target reviewer, or `$workflow-review-changes` parent step 3), not in validate mode | Diffuse, unbounded looping across agents                                       |
+| **Bounded at max 2 re-dos**, then `AskUserQuestion` escalation                                                                                                                      | A finding the AI can neither prove nor drop silently looping forever           |
+| Each review's validation passes stay in that review's own session (the initial whole-target lane is a sub-agent; the parent step-3 lane is main-session)                            | Context loss between validation rounds; the validator sees the real cited code |
 
 #### Why this matters operationally
 
@@ -3842,18 +3842,18 @@ The framework elevates the AI from a code autocomplete tool to a **strategic dev
 
 The framework succeeds because it aligns with how LLMs actually fail:
 
-| LLM Failure Mode               | Root Cause                                                  | Framework Counter                                                  |
-| ------------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------ |
-| **Pattern invention**          | Training data generalizes; your project is specific         | Context injection puts real patterns in every prompt               |
-| **Context amnesia**            | Long conversations exceed attention; compaction drops state | External state files + recovery hooks restore progress             |
-| **Skipped steps**              | LLMs optimize for shortest path to output                   | Workflow enforcement makes process non-negotiable                  |
-| **Confident hallucination**    | LLMs can't distinguish recall from confabulation            | Evidence gates demand `file:line` proof for every claim            |
-| **Convention drift**           | Without reminders, AI reverts to generic patterns           | Hook injection re-injects project conventions on every edit        |
-| **Repeated mistakes**          | Each session starts fresh with no memory of past errors     | Lessons system persists errors and re-injects them as guardrails   |
-| **Wrong-surface reviews**      | Reviewers check FE patterns on BE-only PRs                  | Phase 0.7 surface detection routes to correct sub-agent set        |
-| **Reviewer writes stale docs** | Review agents update docs with unverified content           | DOC SYNC DEFERRAL: review=read-only; writes deferred to step 15    |
-| **Silent doc phase skips**     | /docs-update phases run without audit trail                 | Mandatory 8-task table: every phase tracked, skips logged          |
-| **Stale Feature Spec**         | AI sessions read outdated enum/model specs                  | `/spec [mode=update]` + `docs-update` keep `last_reviewed` current |
+| LLM Failure Mode               | Root Cause                                                  | Framework Counter                                                                         |
+| ------------------------------ | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| **Pattern invention**          | Training data generalizes; your project is specific         | Context injection puts real patterns in every prompt                                      |
+| **Context amnesia**            | Long conversations exceed attention; compaction drops state | External state files + recovery hooks restore progress                                    |
+| **Skipped steps**              | LLMs optimize for shortest path to output                   | Workflow enforcement makes process non-negotiable                                         |
+| **Confident hallucination**    | LLMs can't distinguish recall from confabulation            | Evidence gates demand `file:line` proof for every claim                                   |
+| **Convention drift**           | Without reminders, AI reverts to generic patterns           | Hook injection re-injects project conventions on every edit                               |
+| **Repeated mistakes**          | Each session starts fresh with no memory of past errors     | Lessons system persists errors and re-injects them as guardrails                          |
+| **Wrong-surface reviews**      | Reviewers check FE patterns on BE-only PRs                  | Phase 0.7 surface detection routes to correct sub-agent set                               |
+| **Reviewer writes stale docs** | Review agents update docs with unverified content           | DOC SYNC DEFERRAL: review=read-only; writes deferred to the dedicated `/docs-update` step |
+| **Silent doc phase skips**     | /docs-update phases run without audit trail                 | Mandatory 8-task table: every phase tracked, skips logged                                 |
+| **Stale Feature Spec**         | AI sessions read outdated enum/model specs                  | `/spec [mode=update]` + `docs-update` keep `last_reviewed` current                        |
 
 **The meta-principle:** Don't fight the LLM's nature — build infrastructure around it. Accept that it forgets, and build state persistence. Accept that it hallucinates, and build evidence gates. Accept that it drifts, and build convention injection. The framework doesn't make the AI smarter — it makes the AI's environment smarter.
 

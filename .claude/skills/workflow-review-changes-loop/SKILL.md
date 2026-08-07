@@ -24,14 +24,14 @@ description: '[Workflow] Use when you need to run /workflow-review-changes repea
 - **Inline invariant:** run `/workflow-review-changes` via the `Skill` tool, NEVER the `Agent` tool — it self-binds its own review-loop obligation (owning the session Stop hook for its `/goal` gate WHEN available), which a sub-agent cannot own or carry back to this loop.
 - **Bounded:** round cap default 5; findings not shrinking across 2 rounds, or cap hit with fixes still landing → **STOP & escalate** via `AskUserQuestion`.
 
-**Why this skill exists (READ FIRST — it is the whole justification):** `/workflow-review-changes` already converges *internally* to a clean pass, BUT its inner loop does **NOT** re-run the 7 specialist reviewers from scratch. Per `.claude/skills/workflow-review-changes/SKILL.md:258`, the step-14 inline re-review re-runs only `/changes-review`'s own BE/FE/SCSS/UI dimensions plus *scoped* re-runs of the specific specialist that raised a finding — `/architecture-review`, `/performance-review`, `/security-review`, `/integration-test-review`, `/production-readiness-review`, `/domain-entities-review` fire ONCE (steps 3–9). Only a **fresh full re-invocation** re-runs ALL specialists over the now-fixed code — catching **second-order defects the fixes themselves introduced** and killing whole-workflow confirmation bias. Without this outer loop those regressions ship unreviewed.
+**Why this skill exists (READ FIRST — it is the whole justification):** `/workflow-review-changes` already converges *internally* to a clean pass, BUT its inner loop does **NOT** re-run the 7 specialist reviewers from scratch. Per the `Conditional Inline Re-Review Protocol` in `.claude/skills/workflow-review-changes/SKILL.md`, the step-15 inline re-review re-runs only `/changes-review`'s own BE/FE/SCSS/UI dimensions plus *scoped* re-runs of the specific specialist that raised a finding — `/architecture-review`, `/performance-review`, `/security-review`, `/integration-test-review`, `/production-readiness-review`, `/domain-entities-review`, and `/ui-review` fire ONCE (steps 4–10). Only a **fresh full re-invocation** re-runs ALL specialists over the now-fixed code — catching **second-order defects the fixes themselves introduced** and killing whole-workflow confirmation bias. Without this outer loop those regressions ship unreviewed.
 
 **Workflow:** resolve scope + Goal Contract → bind the convergence loop (protocol loop + optional `/goal` accelerator) → **round loop** { run `/workflow-review-changes` INLINE → detect fixes-applied → log iteration } → converge when a round applies zero fixes → recap.
 
 **Key Rules:**
 
-- **MUST run INLINE in the main session — NEVER dispatch `/workflow-review-changes` as a sub-agent.** It self-binds its own review-loop obligation (owning the session Stop hook for its `/goal` gate when available); as a sub-agent that in-session guarantee is silently lost (`workflow-review-changes/SKILL.md:318-322`). This loop skill therefore also runs inline.
-- **Convergence = a whole round applied ZERO fixes** (its fix cycle, steps 11–14, was skipped because reviews passed clean). That, not "one clean review", ends the loop.
+- **MUST run INLINE in the main session — NEVER dispatch `/workflow-review-changes` as a sub-agent.** It self-binds its own review-loop obligation (owning the session Stop hook for its `/goal` gate when available); as a sub-agent that in-session guarantee is silently lost (see the `[WORKFLOW-IN-WORKFLOW]` execution block in `workflow-review-changes/SKILL.md`). This loop skill therefore also runs inline.
+- **Convergence = a whole round applied ZERO fixes** (its fix cycle, steps 12–15, was skipped because reviews passed clean). That, not "one clean review", ends the loop.
 - **Scope base is FIXED across rounds; the working tree grows.** Recompute the scope each round as `branch-diff base` ∪ current uncommitted changes — the diff base never moves, so convergence is measured against a stable target.
 - **Round cap (default 5)** and **findings-increasing → STOP & escalate** via `AskUserQuestion`. NEVER loop open-ended.
 
@@ -83,9 +83,9 @@ The `/goal` Stop hook blocks stopping until the condition holds and auto-clears 
 For each round `R` (starting at 1), do ALL of:
 
 1. **Snapshot before:** record the working-tree fingerprint — `git status --porcelain` + `git diff --stat` (or `git rev-parse` of `git stash create` for an exact hash). This is the fixes-applied baseline for the round.
-2. **Run the workflow INLINE:** invoke `/workflow-review-changes` via the `Skill` tool (NEVER the `Agent` tool) with the recomputed `{scope}` as its prompt. Let it run its full 18-step sequence including its own internal fix→re-review loop.
+2. **Run the workflow INLINE:** invoke `/workflow-review-changes` via the `Skill` tool (NEVER the `Agent` tool) with the recomputed `{scope}` as its prompt. Let it run its full 19-step sequence including its own internal fix→re-review loop.
 3. **Detect fixes-applied (objective):** compare the working tree after the round to the before-snapshot AND read the workflow's own result:
-   - **Fixes applied (>0)** if the working tree changed during the round OR the workflow reported its fix cycle (steps 11–14) ran / `/plan-execute` modified files.
+   - **Fixes applied (>0)** if the working tree changed during the round OR the workflow reported its fix cycle (steps 12–15) ran / `/plan-execute` modified files.
    - **Zero fixes** if the working tree is byte-identical to the before-snapshot AND the workflow reported all reviews PASS with no validated findings (fix cycle skipped).
 4. **Append an Iteration Log entry** to the Goal Contract: round number, files changed this round (`file:line`), fixes-applied count, the review verdict, and remaining gaps.
 
@@ -100,7 +100,7 @@ Evaluate after every round:
 | Findings did **not shrink** across 2 consecutive rounds (same/increasing count) | **STOP & escalate** via `AskUserQuestion` — a non-converging loop is a signal, not a reason to spin. |
 | Round cap `N` hit with fixes still landing | **STOP & escalate** via `AskUserQuestion` — report the still-open findings; do not silently continue. |
 
-> **Increasing findings = STOP.** If round `R` surfaces MORE findings than round `R-1`, the fixes are regressing the code — STOP and escalate immediately (mirrors `workflow-review-changes/SKILL.md:279`). Never trade one fix for two new findings across rounds.
+> **Increasing findings = STOP.** If round `R` surfaces MORE findings than round `R-1`, the fixes are regressing the code — STOP and escalate immediately (mirrors the **Issue count increasing** rule under **Iteration Tracking (Conversation-Scoped)** in `workflow-review-changes/SKILL.md`). Never trade one fix for two new findings across rounds.
 
 ## Step 3 — Recap
 
@@ -223,7 +223,7 @@ When (a) is true but (b) is false → **escalate** (a real finding the loop cann
 **IMPORTANT MUST ATTENTION** the convergence loop is bound by the **AI-driven protocol loop (Steps 1–2) — that is the primary, host-independent mechanism you MUST self-drive whether or not any command exists.** The `/goal` command is an OPTIONAL accelerator: invoke it (a real call) ONLY when available and permitted; if it is absent/unregistered/not-permitted, record one line in the Goal Contract and proceed — NEVER error, block, or fake a gate. Correctness must not depend on `/goal`.
 **IMPORTANT MUST ATTENTION** run `/workflow-review-changes` **INLINE via the `Skill` tool — NEVER as a sub-agent** (it self-binds its own review-loop obligation + a session `/goal` gate when available).
 **IMPORTANT MUST ATTENTION** convergence = a whole round applied **ZERO fixes** (fix cycle skipped, working tree unchanged, reviews clean) — not merely one clean review.
-**IMPORTANT MUST ATTENTION** the outer loop's value is the **fresh full specialist sweep** the inner loop never re-runs (`workflow-review-changes/SKILL.md:258`) — that is why this skill exists.
+**IMPORTANT MUST ATTENTION** the outer loop's value is the **fresh full specialist sweep** the inner loop never re-runs (see the **Conditional Inline Re-Review Protocol** in `workflow-review-changes/SKILL.md`) — that is why this skill exists.
 **IMPORTANT MUST ATTENTION** keep the diff **base fixed** across rounds; recompute `{scope}` = branch-diff base ∪ current uncommitted changes each round.
 **IMPORTANT MUST ATTENTION** enforce the **round cap (default 5)**; findings not shrinking across 2 rounds, or cap hit with fixes still landing → **STOP & escalate** via `AskUserQuestion`. NEVER loop open-ended.
 **IMPORTANT MUST ATTENTION** do NOT commit or push unless the user explicitly asks.

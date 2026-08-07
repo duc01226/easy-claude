@@ -123,6 +123,71 @@ test('TC-WFPROTO-008: review workflow batch prompt uses canonical skill ids and 
     assert.match(combined, /Agent\(architecture-review, subagent_type="architect"/);
 });
 
+test('TC-WFADV-022: whole-target why-review starts in parallel with changes-review and preserves the final gate', async () => {
+    const workflows = JSON.parse(
+        await fs.readFile(path.join(repoRoot, '.claude', 'workflows.json'), 'utf8')
+    ).workflows;
+    const workflow = workflows['workflow-review-changes'];
+    const skillText = normalizeEol(
+        await fs.readFile(path.join(repoRoot, '.claude', 'skills', 'workflow-review-changes', 'SKILL.md'), 'utf8')
+    );
+    const codexContextText = normalizeEol(
+        await fs.readFile(path.join(repoRoot, '.codex', 'CODEX_CONTEXT.md'), 'utf8')
+    );
+    const loopSkillText = normalizeEol(
+        await fs.readFile(path.join(repoRoot, '.claude', 'skills', 'workflow-review-changes-loop', 'SKILL.md'), 'utf8')
+    );
+    const workflowVerifierText = normalizeEol(
+        await fs.readFile(path.join(repoRoot, '.claude', 'scripts', 'codex', 'verify-workflow-cycle-compliance.mjs'), 'utf8')
+    );
+
+    assert.deepEqual(
+        workflow.sequence.slice(0, 3),
+        ['changes-review', 'why-review --target=whole-review-target', 'why-review'],
+        'initial whole-target review must be a distinct sequence occurrence before findings validation'
+    );
+    assert.deepEqual(
+        workflow.parallelGroups.find(group => group.id === 'initial-reviews'),
+        {
+            id: 'initial-reviews',
+            members: ['changes-review', 'why-review --target=whole-review-target'],
+            conditionalMembers: [],
+            barrier: true
+        },
+        'changes-review and whole-target why-review must share an unconditional all-return barrier'
+    );
+    assert.deepEqual(
+        workflow.stepMeta['why-review --target=whole-review-target'],
+        { executionMode: 'subagent', contextBudget: 'high' },
+        'whole-target why-review must run out-of-band so changes-review can remain inline'
+    );
+    assert.equal(
+        workflow.sequence.at(-4),
+        'why-review',
+        'the settled-state final holistic why-review must remain after the conditional re-review'
+    );
+    assert.match(skillText, /Initial Parallel Phase \(Steps 1[–-]2\)/);
+    assert.match(skillText, /fresh `code-reviewer` sub-agent[^\n]*FULL mode/);
+    assert.match(skillText, /Advance only after BOTH return/);
+    assert.match(skillText, /step 16[^\n]*settled[^\n]*whole target/i);
+    assert.match(
+        codexContextText,
+        /plan-execute -> changes-review -> why-review -> docs-update/,
+        'generated guidance must preserve the later conditional changes-review occurrence'
+    );
+    assert.match(loopSkillText, /full 19-step sequence/);
+    assert.doesNotMatch(loopSkillText, /full 18-step sequence/);
+    assert.match(loopSkillText, /fix cycle, steps 12[–-]15/);
+    assert.doesNotMatch(loopSkillText, /fix cycle, steps 11[–-]14/);
+    assert.doesNotMatch(
+        loopSkillText,
+        /workflow-review-changes\/SKILL\.md:\d/,
+        'loop protocol must use stable named-section references instead of shifted line coordinates'
+    );
+    assert.match(workflowVerifierText, /step-15 re-review is inline by design/);
+    assert.doesNotMatch(workflowVerifierText, /step-12 re-review is inline by design/);
+});
+
 test('TC-WFADV-021: parallelGroups structural guards reject malformed barrier configs (no silent false-pass)', async () => {
     const { checkParallelGroupsStructure } = await import(
         pathToFileURL(path.join(repoRoot, '.claude', 'scripts', 'codex', 'verify-workflow-cycle-compliance.mjs')).href

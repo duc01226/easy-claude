@@ -1,6 +1,6 @@
 ---
 name: workflow-review-changes
-version: 4.1.0
+version: 4.2.0
 description: '[Workflow] Use when activating the Review Current Changes workflow for review, fix, and re-review recursively until all issues resolved.'
 ---
 
@@ -15,18 +15,19 @@ description: '[Workflow] Use when activating the Review Current Changes workflow
 
 ## Quick Summary
 
-**Goal:** Ensure changed work reaches clean review through validated findings, verified fixes, full re-review, and synchronized docs/tests — review all uncommitted changes, validate findings, fix only validated findings, then re-run `/changes-review` INLINE (only when `/plan-execute` actually changed files), repeating the plan→plan-execute→changes-review loop until a complete pass is clean.
+**Goal:** Ensure changed work reaches clean review through an initial whole-target adversarial pass run in parallel with dimensional review, validated findings, verified fixes, full re-review, and synchronized docs/tests — review all uncommitted changes, fix only validated findings, then repeat the plan→plan-execute→changes-review loop until a complete pass is clean.
 
 **Summary:**
 
-- **Step 0 (FIRST ACTION, pre-sequence):** bind the self-recursive review loop — an always-on protocol loop you self-drive (the BINDING mechanism, hook/command-independent) PLUS, when available, a `/goal` Stop-hook gate as an optional accelerator — so the review→self-fix→whole-diff-re-review loop is unabandonable until it converges to a clean zero-finding pass — why: a soft "loop until clean" directive gets rationalized away after one fix cycle, and the protocol loop holds even where `/goal` is absent. Session-level wrapper, NOT one of the 18 canonical steps. ALWAYS runs — including as a step inside a parent workflow — because this workflow always runs INLINE in the main session (never a sub-agent), so it owns the loop directly in every case.
-- Step 1 `/changes-review` runs FIRST and owns the baseline (surface analysis, integration-test/translation-sync gaps, UI review via internal `/ui-review`); step 2 `/why-review` validates those findings to drop false positives BEFORE the parallel batch fires — so steps 3–9 act only on warranted findings.
-- Steps 3–9 (`/architecture-review`, `/domain-entities-review` [if entity files], `/performance-review`, `/integration-test-review`, `/security-review`, `/production-readiness-review`, `/ui-review` [if frontend files]) are read-only sub-agents: spawn ALL in ONE message and advance ONLY after every member returns (all-return barrier); the mutating `/code-simplifier` (step 10) waits until the barrier clears and self-reviews its own changes via `/code-review`. (`/ui-review` runs here as a DEDICATED conditional batch member AND still runs internally inside step 1's `/changes-review` — both by design; see the UI-review note below.)
-- Fix cycle (steps 11–14 `/plan`→`/plan-review`→`/plan-execute`→`/changes-review`) runs ONLY when validated findings exist; the step-14 re-review runs ONLY if `/plan-execute` changed files, re-reading the full diff from scratch INLINE to counter orchestrator confirmation bias, and loops until a clean zero-finding pass, bounded at **5 rounds MAX** (escalate via `AskUserQuestion` at whichever trips first: 3 no-progress repeats of the same blocker, or round 5 completing with findings still open — cap exhaustion escalates, never PASSes).
-- **Step 15 `/why-review` (ALWAYS runs, FULL mode, standalone)** — near-final HOLISTIC review of the WHOLE target + current changes (complete changeset plus the surrounding code/spec/docs it touches) as ONE artifact through `/why-review`'s full adversarial rationale gate. A DIFFERENT lens from step-2 `--validate-findings` (only sanity-checks the `/changes-review` findings) and from the per-file/per-dimension reviewers (steps 1, 3–9): catches design-rationale, hidden-coupling, easy-to-change, and whole-package gaps the granular passes miss — why: a standalone `/why-review` of the target catches what the per-file/per-dimension batch structurally cannot. On findings → re-enter `/plan`→`/plan-execute`→`/changes-review`, then re-run step 15, looping run→fix→run until a full-mode pass finds zero new findings (bounded by `/why-review`'s own review loop: max 2 re-dos / 3-repeat-blocker → escalate).
-- `/docs-update` (step 16) ALWAYS runs and triages internally; SPEC-STALE drift verdicts from step 1 flow here to update the Feature Spec first — the workflow is NOT clean while any behavior-vs-spec divergence stays unadjudicated (green tests do not normalize drift).
+- **Step 0 (FIRST ACTION, pre-sequence):** bind the self-recursive review loop — an always-on protocol loop you self-drive (the BINDING mechanism, hook/command-independent) PLUS, when available, a `/goal` Stop-hook gate as an optional accelerator — so the review→self-fix→whole-diff-re-review loop is unabandonable until it converges to a clean zero-finding pass — why: a soft "loop until clean" directive gets rationalized away after one fix cycle, and the protocol loop holds even where `/goal` is absent. Session-level wrapper, NOT one of the 19 canonical steps. ALWAYS runs — including as a step inside a parent workflow — because this workflow always runs INLINE in the main session (never a sub-agent), so it owns the loop directly in every case.
+- **Initial parallel phase (steps 1–2, all-return barrier):** launch step 2 `/why-review --target=whole-review-target` as a fresh read-only `code-reviewer` sub-agent, then immediately run step 1 `/changes-review` INLINE while it is active. Step 1 owns the dimensional baseline (surface analysis, integration-test/translation/spec-drift gaps, internal UI review); step 2 independently reviews the WHOLE review target + current changes in FULL mode. Neither consumes the other's output. Advance only after BOTH return, then consolidate both reports.
+- Step 3 `/why-review` validates the step-1 `/changes-review` findings to drop false positives BEFORE the specialist batch fires. The initial whole-target step 2 already validates its own findings through `/why-review`'s full-mode closing gate.
+- Steps 4–10 (`/architecture-review`, `/domain-entities-review` [if entity files], `/performance-review`, `/integration-test-review`, `/security-review`, `/production-readiness-review`, `/ui-review` [if frontend files]) are read-only sub-agents: spawn ALL in ONE message and advance ONLY after every member returns (all-return barrier); the mutating `/code-simplifier` (step 11) waits until the barrier clears and self-reviews its own changes via `/code-review`. (`/ui-review` runs here as a DEDICATED conditional batch member AND still runs internally inside step 1's `/changes-review` — both by design; see the UI-review note below.)
+- Fix cycle (steps 12–15 `/plan`→`/plan-review`→`/plan-execute`→`/changes-review`) runs ONLY when validated findings exist; the step-15 re-review runs ONLY if `/plan-execute` changed files, re-reading the full diff from scratch INLINE to counter orchestrator confirmation bias, and loops until a clean zero-finding pass, bounded at **5 rounds MAX** (escalate via `AskUserQuestion` at whichever trips first: 3 no-progress repeats of the same blocker, or round 5 completing with findings still open — cap exhaustion escalates, never PASSes).
+- **Step 16 `/why-review` (ALWAYS runs, FULL mode, standalone)** — near-final HOLISTIC review of the settled WHOLE target + current changes as ONE artifact. It remains mandatory even though step 2 uses the same lens at startup: step 2 finds whole-package risks early; step 16 proves the final post-fix state. On findings → re-enter `/plan`→`/plan-execute`→`/changes-review`, then re-run step 16 until a full-mode pass finds zero new findings (bounded by `/why-review`'s own review loop: max 2 re-dos / 3-repeat-blocker → escalate).
+- `/docs-update` (step 17) ALWAYS runs and triages internally; SPEC-STALE drift verdicts from step 1 flow here to update the Feature Spec first — the workflow is NOT clean while any behavior-vs-spec divergence stays unadjudicated (green tests do not normalize drift).
 
-**Sequence:** *(Step 0 pre-sequence: bind self-recursive review loop — protocol loop always, `/goal` accelerator when available — top-level only)* → /changes-review (owns UI review — invokes /ui-review internally when frontend changes) → /why-review (validate findings) → **[parallel batch]** /architecture-review + /domain-entities-review (if entity changes) + /performance-review + /integration-test-review + /security-review + /production-readiness-review + /ui-review (if frontend changes) → /code-simplifier (self-reviews its own changes via /code-review) → /plan → /plan-review → /plan-execute → **/changes-review (conditional inline re-review — only if /plan-execute changed files; loops /plan→/plan-execute→/changes-review until clean)** → **/why-review (HOLISTIC full-mode standalone review of the WHOLE target + changes; loops run→fix→run until zero new findings)** → /docs-update → /workflow-end → /watzup
+**Sequence:** *(Step 0 pre-sequence: bind self-recursive review loop — protocol loop always, `/goal` accelerator when available)* → **[initial parallel phase]** /changes-review (INLINE; owns dimensional/UI baseline) + `/why-review --target=whole-review-target` (fresh read-only sub-agent; FULL mode over the whole target) → /why-review (validate step-1 findings) → **[specialist parallel batch]** /architecture-review + /domain-entities-review (if entity changes) + /performance-review + /integration-test-review + /security-review + /production-readiness-review + /ui-review (if frontend changes) → /code-simplifier → /plan → /plan-review → /plan-execute → **`/changes-review` (conditional inline re-review)** → **`/why-review` (final HOLISTIC full-mode review of the settled WHOLE target)** → /docs-update → /workflow-end → /watzup
 
 **Key Rules:**
 
@@ -34,7 +35,7 @@ description: '[Workflow] Use when activating the Review Current Changes workflow
 - MUST ATTENTION when creating/reviewing specs or tests, name `Business Intent / Invariant Guarded` or the protected business intent/invariant and ensure the test would fail if that intent breaks.
 - MUST ATTENTION carry every unresolved finding or unaccepted risk into validation/fix planning; do not close until fixed or explicitly accepted.
 - MUST ATTENTION include unresolved risk register, generated mirror drift, and spec/test/docs drift in the fresh review prompt when relevant.
-- MUST ATTENTION run `/why-review` at step 2 to validate the `/changes-review` findings BEFORE spawning the parallel reviewers — drop false positives early so the batch and fix cycle act only on warranted findings.
+- MUST ATTENTION launch the whole-target full-mode `/why-review` sub-agent before starting step 1 inline, then advance only after BOTH initial-phase members return; run step 3 `/why-review --validate-findings` on the step-1 findings before spawning the specialist reviewers.
 
 - After `/plan-execute` applies validated fixes (and ONLY if `/plan-execute` changed files) → re-run `/changes-review` INLINE over the current full diff from the first phase; re-read the diff from scratch to counter orchestrator confirmation bias
 - Main-agent re-review (with knowledge of its own fixes) is NOT sufficient — orchestrator-level confirmation bias
@@ -66,7 +67,7 @@ below — if a downstream rule would raise change cost, this principle wins.
 
 ## Step 0 — Bind the Self-Recursive Review Loop (FIRST ACTION — pre-sequence; protocol-first, `/goal` optional)
 
-> **MUST ATTENTION:** Before creating the 18 step tasks below, the VERY FIRST action is to BIND the self-recursive review loop so the session cannot end until the whole workflow loop converges to a clean zero-finding pass. Binding has TWO layers: (1) an **always-on protocol loop** you self-drive — the BINDING mechanism, hook/command-independent, in force on every host; and (2) an **optional `/goal` accelerator** — a mechanical Stop-hook block installed only WHEN the command is available. This is a session-level enforcement WRAPPER — NOT one of the 18 canonical `workflows.json` sequence steps, so it does NOT change the step count or the sequence; it makes the existing loop unabandonable.
+> **MUST ATTENTION:** Before creating the 19 step tasks below, the VERY FIRST action is to BIND the self-recursive review loop so the session cannot end until the whole workflow loop converges to a clean zero-finding pass. Binding has TWO layers: (1) an **always-on protocol loop** you self-drive — the BINDING mechanism, hook/command-independent, in force on every host; and (2) an **optional `/goal` accelerator** — a mechanical Stop-hook block installed only WHEN the command is available. This is a session-level enforcement WRAPPER — NOT one of the 19 canonical `workflows.json` sequence steps, so it does NOT change the step count or the sequence; it makes the existing loop unabandonable.
 
 **Entry gate:**
 
@@ -76,12 +77,12 @@ below — if a downstream rule would raise change cost, this principle wins.
 
 **1. Protocol loop — ALWAYS binding (hook/command-independent).** This is the mechanism that actually holds the loop shut; it binds Claude, Codex, and Copilot equally, whether or not `/goal` exists. You yourself MUST NOT stop until the condition below holds:
 
-> Run /changes-review + /why-review + the parallel reviewers + /code-simplifier → if validated findings exist, /plan → /plan-execute SELF-FIXES them → re-run /changes-review INLINE over the WHOLE current diff from the first phase (combined with the prior fixes, not just the last fix) → loop /plan→/plan-execute→/changes-review until one complete pass finds zero findings; only then /docs-update → /workflow-end. Stop only when a complete review pass is clean (or the same blocker repeats 3× with no progress → escalate via `AskUserQuestion`). Do not stop while any validated finding is unfixed.
+> Run the initial parallel phase (`/changes-review` INLINE + `/why-review --target=whole-review-target` in a fresh sub-agent) to its all-return barrier → validate step-1 findings → run the specialist parallel reviewers + `/code-simplifier` → if validated findings exist, `/plan` → `/plan-execute` SELF-FIXES them → re-run `/changes-review` INLINE over the WHOLE current diff → loop until one complete pass finds zero findings → run the final full-mode `/why-review` over the settled whole target → only then `/docs-update` → `/workflow-end`. Stop only when all required review passes are clean (or the same blocker repeats 3× with no progress → escalate via `AskUserQuestion`).
 
 **2. `/goal` command — invoke as an accelerator WHEN AVAILABLE.** If `/goal` is registered and permitted on this host, invoke it (the actual built-in command) with the same condition to add a mechanical Stop-hook block on top of the protocol loop:
 
 ```
-/goal workflow-review-changes self-recursive loop: run /changes-review + /why-review + the parallel reviewers + /code-simplifier → if validated findings exist, /plan → /plan-execute SELF-FIXES them → re-run /changes-review INLINE over the WHOLE current diff from the first phase (combined with the prior fixes, not just the last fix) → loop /plan→/plan-execute→/changes-review until one complete pass finds zero findings; only then /docs-update → /workflow-end. Stop only when a complete review pass is clean (or the same blocker repeats 3× with no progress → escalate via AskUserQuestion). Do not stop while any validated finding is unfixed.
+/goal workflow-review-changes self-recursive loop: run the initial parallel phase (/changes-review INLINE + /why-review --target=whole-review-target in a fresh sub-agent) to its all-return barrier → validate step-1 findings → run the specialist parallel reviewers + /code-simplifier → if validated findings exist, /plan → /plan-execute SELF-FIXES them → re-run /changes-review INLINE over the WHOLE current diff → loop until one complete pass finds zero findings → run the final full-mode /why-review over the settled whole target → only then /docs-update → /workflow-end. Stop only when all required review passes are clean (or the same blocker repeats 3× with no progress → escalate via AskUserQuestion).
 ```
 
 The `/goal` Stop hook then blocks stopping until the condition holds and auto-clears when met — do not tell the user to clear it.
@@ -92,38 +93,39 @@ The `/goal` Stop hook then blocks stopping until the condition holds and auto-cl
 /goal accelerator unavailable — review loop bound by protocol (Step 0 step 1)
 ```
 
-3. Then proceed to create the 18 step tasks below and run the sequence.
+3. Then proceed to create the 19 step tasks below and run the sequence.
 
-> **Why bind the loop on top of the loop prose:** the conditional re-review (step 14) and the "loop until clean" rules are soft directives an orchestrator can rationalize away after one fix cycle (confirmation bias). The protocol loop (step 1) converts them into a self-enforced invariant on every host; the `/goal` Stop hook (step 2), when present, adds a mechanical block — but the guarantee never depends on it. The session cannot end with a validated finding unfixed or a non-clean review pass. — why: a fix cycle that stops before re-proving the whole diff ships unreviewed work, so the loop must hold even where `/goal` is absent.
+> **Why bind the loop on top of the loop prose:** the conditional re-review (step 15) and the "loop until clean" rules are soft directives an orchestrator can rationalize away after one fix cycle. The protocol loop converts them into a self-enforced invariant on every host; the optional `/goal` Stop hook adds a mechanical block, but correctness never depends on it.
 
 ## Mandatory Task Creation (ZERO TOLERANCE)
 
 > **Step 0 first:** bind the Step 0 self-recursive review loop (above — protocol loop always, `/goal` accelerator when available) BEFORE creating these tasks — always, including when this workflow is a step inside a parent workflow, since it always runs inline in the main session and owns the loop directly.
 
-Create one task per row in the table below — source of truth is `workflows.json` → `changes-review.sequence` (currently 18 steps; verify count matches if you suspect drift). The Step 0 loop binding is a pre-sequence wrapper and is NOT counted among these 18:
+Create one task per row in the table below — source of truth is `workflows.json` → `workflow-review-changes.sequence` (currently 19 steps; verify count matches if you suspect drift). The Step 0 loop binding is a pre-sequence wrapper and is NOT counted among these 19:
 
 | #   | Task Subject                                                                                                                                                                   | Conditional?                                                                                   |
 | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
-| 1   | `[Workflow] /changes-review — Surface detection + dimensional review tasks (BE/FE/SCSS/Synthesis/General) + UI dimension via /ui-review (if frontend changes) + integration test sync check + multilingual translation sync check` | No                                                            |
-| 2   | `[Workflow] /why-review — Validate the /changes-review findings before parallel reviewers run (each finding warranted, evidence-backed, not a false positive)`                | No — FINDINGS-VALIDATION gate over the /changes-review findings; the fix plan's design is reviewed by /plan-review (step 12); if step 1 found zero issues, pass through with nothing to validate |
-| 3   | `[Workflow] /architecture-review — Architecture compliance review` ⚡ **PARALLEL BATCH**                                                                                       | No — run as sub-agent in parallel with steps 4/5/6/7/8/9                                       |
-| 4   | `[Workflow] /domain-entities-review — DDD quality review of changed domain entity files` ⚡ **PARALLEL BATCH**                                                                 | Yes — skip if no domain entity files (Domain/, Entities/, ValueObjects/) in git diff           |
-| 5   | `[Workflow] /performance-review — Performance analysis` ⚡ **PARALLEL BATCH**                                                                                                         | No — run as sub-agent in parallel with steps 3/4/6/7/8/9                                       |
-| 6   | `[Workflow] /integration-test-review — 7-gate test quality review + Gate 7 change coverage (every behavior change → covering test + spec TC)` ⚡ **PARALLEL BATCH**            | No — run as sub-agent in parallel with steps 3/4/5/7/8/9                                       |
-| 7   | `[Workflow] /security-review — Security vulnerability review` ⚡ **PARALLEL BATCH**                                                                                                   | No — run as sub-agent in parallel with steps 3/4/5/6/8/9                                       |
-| 8   | `[Workflow] /production-readiness-review — SRE production-readiness review (12 criteria /24 + Extended SRE Readiness gate) in READ-ONLY findings/score mode` ⚡ **PARALLEL BATCH**       | No — run as sub-agent in parallel with steps 3/4/5/6/7/9; read-only in the batch (its standalone Validated Fix + Full Re-Review loop is deferred to the mutating steps) |
-| 9   | `[Workflow] /ui-review — UI/frontend quality review (long-content overflow, responsive multi-screen flex, flex-vs-fixed sizing, z-index discipline, SCSS/BEM, async loading/error/empty states)` ⚡ **PARALLEL BATCH** | Yes — skip if no frontend files (project frontend path/extension patterns) in git diff; runs as ui-ux-designer sub-agent in parallel with steps 3/4/5/6/7/8. DEDICATED batch member AND still runs internally inside step 1's /changes-review — both by design (see UI-review note below) |
-| 10  | `[Workflow] /code-simplifier — Simplify and refine code (self-reviews its own changes via /code-review before returning)`                                                       | No — runs AFTER parallel batch (modifies code; batch reviews pre-simplification state; simplifier owns review of its own output) |
-| 11  | `[Workflow] /plan — Consolidate validated review findings into fix plan`                                                                                                       | Conditional — run ONLY if reviews surfaced validated findings to fix; skip if all reviews PASS  |
-| 12  | `[Workflow] /plan-review — Architecture/design review of fix plan (includes adversarial design-rationale pass + internal /why-review --validate-findings of its own findings)` | Conditional — run ONLY if there is a fix plan (i.e. findings exist); skip if all reviews PASS    |
-| 13  | `[Workflow] /plan-execute — Implement fixes from plan`                                                                                                                                 | Conditional — run ONLY if there are validated findings to fix; skip if all reviews PASS          |
-| 14  | `[Workflow] /changes-review — Conditional inline re-review after /plan-execute (re-runs the review over the current diff); loop /plan→/plan-execute→/changes-review until clean`                | Skip if all reviews PASS, OR if /plan-execute applied no file changes                                  |
-| 15  | `[Workflow] /why-review — HOLISTIC full-mode standalone review of the WHOLE review target + current changes as one artifact; loop run→fix→run until a complete full-mode pass finds zero new findings` | Always run — FULL mode (NOT --validate-findings); distinct lens from step 2 + the dimensional reviewers; on findings re-enter /plan→/plan-execute→/changes-review then re-run step 15 (bounded by /why-review's own review loop: max 2 re-dos / 3-repeat-blocker → escalate) |
-| 16  | `[Workflow] /docs-update — Update impacted documentation`                                                                                                                      | Always run — /docs-update triages internally (fast-exits when only config/tool files changed)  |
-| 17  | `[Workflow] /workflow-end — End workflow state (prints the concise change recap, then clears state)`                                                                           | No                                                                                             |
-| 18  | `[Workflow] /watzup — Post-workflow summary and final /understand handoff`                                                                                                    | No                                                                                             |
+| 1   | `[Workflow] /changes-review — Inline dimensional baseline, UI dimension, integration/translation/spec-drift checks` ⚡ **INITIAL PARALLEL PHASE** | No — run INLINE while step 2's sub-agent is active |
+| 2   | `[Workflow] /why-review --target=whole-review-target — FULL-mode adversarial review of the WHOLE target + current changes` ⚡ **INITIAL PARALLEL PHASE** | No — launch first as a fresh read-only `code-reviewer` sub-agent; independent of step 1; barrier waits for both |
+| 3   | `[Workflow] /why-review — Validate the step-1 /changes-review findings before specialist reviewers run` | No — FINDINGS-VALIDATION gate over step-1 findings; step 2 self-validates its own findings |
+| 4   | `[Workflow] /architecture-review — Architecture compliance review` ⚡ **SPECIALIST PARALLEL BATCH** | No — run as sub-agent in parallel with steps 5/6/7/8/9/10 |
+| 5   | `[Workflow] /domain-entities-review — DDD quality review of changed domain entity files` ⚡ **SPECIALIST PARALLEL BATCH** | Yes — skip if no domain entity files in git diff |
+| 6   | `[Workflow] /performance-review — Performance analysis` ⚡ **SPECIALIST PARALLEL BATCH** | No — run as sub-agent in parallel with steps 4/5/7/8/9/10 |
+| 7   | `[Workflow] /integration-test-review — Test quality + change-coverage review` ⚡ **SPECIALIST PARALLEL BATCH** | No — run as sub-agent in parallel with steps 4/5/6/8/9/10 |
+| 8   | `[Workflow] /security-review — Security vulnerability review` ⚡ **SPECIALIST PARALLEL BATCH** | No — run as sub-agent in parallel with steps 4/5/6/7/9/10 |
+| 9   | `[Workflow] /production-readiness-review — Read-only SRE readiness review` ⚡ **SPECIALIST PARALLEL BATCH** | No — run as sub-agent in parallel with steps 4/5/6/7/8/10 |
+| 10  | `[Workflow] /ui-review — UI/frontend quality review` ⚡ **SPECIALIST PARALLEL BATCH** | Yes — skip if no frontend files; dedicated batch member and still runs internally inside step 1 |
+| 11  | `[Workflow] /code-simplifier — Simplify and refine code, then self-review its changes` | No — runs after the specialist barrier |
+| 12  | `[Workflow] /plan — Consolidate validated review findings into fix plan` | Conditional — only when validated findings exist |
+| 13  | `[Workflow] /plan-review — Review the fix plan and its rationale` | Conditional — only when a fix plan exists |
+| 14  | `[Workflow] /plan-execute — Implement validated fixes from plan` | Conditional — only when validated findings exist |
+| 15  | `[Workflow] /changes-review — Conditional inline re-review after /plan-execute; loop until clean` | Skip if all reviews pass or `/plan-execute` changed no files |
+| 16  | `[Workflow] /why-review — Final HOLISTIC full-mode review of the settled WHOLE target + changes` | Always run — preserves post-fix convergence; on findings re-enter steps 12–15, then re-run step 16 |
+| 17  | `[Workflow] /docs-update — Update impacted documentation` | Always run — triages internally |
+| 18  | `[Workflow] /workflow-end — End workflow state` | No |
+| 19  | `[Workflow] /watzup — Post-workflow summary and final /understand handoff` | No |
 
-> **UI review runs in TWO places by design (keep both).** `/ui-review` runs BOTH (a) INTERNALLY inside step 1 (`/changes-review` invokes it as its UI dimension) AND (b) as a DEDICATED conditional parallel-batch member (step 9, `ui-ux-designer` sub-agent). Both are gated on the same trigger — frontend/UI files in the diff — so both are skipped when no frontend files changed. Create the step-9 `[Workflow] /ui-review` task (conditional) AND keep step 1's internal UI dimension; do NOT collapse them into one.
+> **UI review runs in TWO places by design (keep both).** `/ui-review` runs BOTH (a) INTERNALLY inside step 1 (`/changes-review` invokes it as its UI dimension) AND (b) as a DEDICATED conditional specialist-batch member (step 10, `ui-ux-designer` sub-agent). Both are gated on the same trigger — frontend/UI files in the diff — so both are skipped when no frontend files changed. Create the step-10 `[Workflow] /ui-review` task (conditional) AND keep step 1's internal UI dimension; do NOT collapse them into one.
 
 NEVER consolidate, rename, or omit steps. If reviews PASS, mark conditional tasks `completed` with note "Skipped — all reviews passed".
 
@@ -131,37 +133,48 @@ NEVER consolidate, rename, or omit steps. If reviews PASS, mark conditional task
 
 > **Translation Sync:** The `/changes-review` skill (task #1) includes a **mandatory** multilingual UI translation-sync check. When UI text changes in multilingual projects without locale updates, the skill uses `AskUserQuestion` for an explicit user decision — NOT purely advisory.
 
-> **Docs Update:** `/docs-update` MUST run after EVERY review — it performs Phase 0 triage and fast-exits automatically when only non-business-code files changed (`.claude/**`, config). When business code is in the changeset, it WILL invoke: Phase 2 `/spec` (business feature doc update), Phase 2.5 `/spec-index [mode=index]` (derived bucket INDEX/ERD refresh — if `docs/specs/` bucket maintains a derived index; note: dirs may be app buckets or flat system folders — probe `ls docs/specs/{name}/` to find a specific service), Phase 2.6 `/tech-spec` when the derived technical view is affected, Phase 3 `/spec [mode=tests]` (test spec sync), Phase 4 `/spec [mode=sync]` (§8 TCs ↔ executing test code). Never skip based on review PASS status alone.
+> **Docs Update:** `/docs-update` (step 17) MUST run after EVERY review — it performs Phase 0 triage and fast-exits automatically when only non-business-code files changed (`.claude/**`, config). When business code is in the changeset, it WILL invoke: Phase 2 `/spec` (business feature doc update), Phase 2.5 `/spec-index [mode=index]` (derived bucket INDEX/ERD refresh — if `docs/specs/` bucket maintains a derived index; note: dirs may be app buckets or flat system folders — probe `ls docs/specs/{name}/` to find a specific service), Phase 2.6 `/tech-spec` when the derived technical view is affected, Phase 3 `/spec [mode=tests]` (test spec sync), Phase 4 `/spec [mode=sync]` (§8 TCs ↔ executing test code). Never skip based on review PASS status alone.
 
-> **Spec Drift Adjudication:** The `/changes-review` skill (task #1) runs a **mandatory** spec-drift adjudication (`SYNC:spec-drift-adjudication`, per `shared/sdd-artifact-contract.md` → Drift Gates) for every behavior-changing file: it classifies each divergence between changed behavior and the canonical Feature Spec as **CODE-WRONG** (BLOCKING — fix the code/test against intended behavior), **SPEC-STALE** (the change is the new intent — the spec documents the old behavior), or **AMBIGUOUS** (escalate). The reviewer never silently picks a side. A **SPEC-STALE** verdict flows downstream: `/docs-update` (step 16) updates the Feature Spec FIRST via `/spec [update]`, then re-syncs `/spec [mode=tests]`. The workflow is NOT clean while any behavior-vs-spec divergence remains unadjudicated — green tests do not normalize drift (green can encode the drift itself).
+> **Spec Drift Adjudication:** The `/changes-review` skill (task #1) runs a **mandatory** spec-drift adjudication (`SYNC:spec-drift-adjudication`, per `shared/sdd-artifact-contract.md` → Drift Gates) for every behavior-changing file: it classifies each divergence between changed behavior and the canonical Feature Spec as **CODE-WRONG** (BLOCKING — fix the code/test against intended behavior), **SPEC-STALE** (the change is the new intent — the spec documents the old behavior), or **AMBIGUOUS** (escalate). The reviewer never silently picks a side. A **SPEC-STALE** verdict flows downstream: `/docs-update` (step 17) updates the Feature Spec FIRST via `/spec [update]`, then re-syncs `/spec [mode=tests]`. The workflow is NOT clean while any behavior-vs-spec divergence remains unadjudicated — green tests do not normalize drift (green can encode the drift itself).
 
-> **Spec enrichment per cycle (MANDATORY — closes the feedback loop):** Every confirmed finding fixed in the loop (steps 11–14) that changed observable behavior MUST produce a new or updated §8 regression/preservation TC via `/spec [mode=tests]` before the workflow is clean — a code-only fix with no covering §8 TC is an INCOMPLETE cycle, not a clean pass. This applies to EVERY confirmed behavior-changing fix, not only SPEC-STALE drift verdicts or bugfix-workflow paths: a CODE-WRONG fix owes a regression TC describing the now-correct behavior; a behavior change owes a preservation/regression TC guarding the new behavior. So each recursive cycle ENRICHES the spec rather than only mutating code — the inline re-review (step 14) and the `/workflow-end` spec ↔ TDD-test sync gate both treat a behavior-changing fix that left no §8 TC as an open finding.
+> **Spec enrichment per cycle (MANDATORY — closes the feedback loop):** Every confirmed finding fixed in the loop (steps 12–15) that changed observable behavior MUST produce a new or updated §8 regression/preservation TC via `/spec [mode=tests]` before the workflow is clean — a code-only fix with no covering §8 TC is an INCOMPLETE cycle, not a clean pass. This applies to EVERY confirmed behavior-changing fix, not only SPEC-STALE drift verdicts or bugfix-workflow paths: a CODE-WRONG fix owes a regression TC describing the now-correct behavior; a behavior change owes a preservation/regression TC guarding the new behavior. So each recursive cycle ENRICHES the spec rather than only mutating code — the inline re-review (step 15) and the `/workflow-end` spec ↔ TDD-test sync gate both treat a behavior-changing fix that left no §8 TC as an open finding.
 
 ---
 
-## Parallel Review Phase (Steps 3–9) — EXECUTION PROTOCOL
+## Initial Parallel Phase (Steps 1–2) — EXECUTION PROTOCOL
 
-> **Note:** Steps 3–9 are the specialist reviewers — architecture compliance, DDD entities,
+Steps 1 and 2 are independent, read-only review lanes over the same starting state:
+
+1. Launch `/why-review --target=whole-review-target` as a **fresh `code-reviewer` sub-agent** in FULL mode. Its target is the whole review target combined with the current changes — the complete changeset plus surrounding code/spec/docs — and it writes its report incrementally under `plans/reports/`.
+2. Immediately run `/changes-review` **INLINE in the main session** while that sub-agent is active. It owns surface detection, dimensional review, the internal UI dimension, and integration/translation/spec-drift gates.
+3. Treat the pair as one declared all-return barrier. Neither lane consumes or waits on the other's partial output. Advance only after BOTH return; then mark both tasks complete and consolidate both reports.
+4. Run step 3 `/why-review --validate-findings` against the step-1 findings. Do not revalidate step 2's findings here because full-mode `/why-review` already owns its closing findings-validation gate.
+
+This phase intentionally mixes one inline member with one sub-agent member: dispatch the sub-agent first, start the inline member immediately, and do not advance past the phase until both complete. The unique sequence token `why-review --target=whole-review-target` prevents the initial occurrence from being confused with the final plain `why-review` occurrence by workflow barrier renderers.
+
+## Specialist Parallel Review Phase (Steps 4–10) — EXECUTION PROTOCOL
+
+> **Note:** Steps 4–10 are the specialist reviewers — architecture compliance, DDD entities,
 > performance, integration test quality, security vulnerabilities, production readiness, and
 > UI/frontend quality (`/ui-review`, conditional on frontend files). They run as workflow-level
 > parallel sub-agents, separate from the DIMENSIONAL review (BE/FE/SCSS/Synthesis + UI dimension)
 > that runs INSIDE Step 1 (`/changes-review`).
 > **`/ui-review` runs in TWO places by design (keep both):** (a) INTERNALLY inside Step 1 as
-> `/changes-review`'s UI dimension, AND (b) here as the DEDICATED step-9 batch member
+> `/changes-review`'s UI dimension, AND (b) here as the DEDICATED step-10 batch member
 > (`ui-ux-designer` sub-agent). Both fire only when the diff has files matching the project's
 > configured frontend/UI file patterns; both are skipped otherwise.
 
-Steps 3–9 (`/architecture-review`, `/domain-entities-review`, `/performance-review`, `/integration-test-review`, `/security-review`, `/production-readiness-review`, `/ui-review`) are **read-only** and **independent** — no shared mutable state, no ordering dependency between them. Run them as parallel sub-agents to preserve main session context budget and reduce wall-clock time.
+Steps 4–10 (`/architecture-review`, `/domain-entities-review`, `/performance-review`, `/integration-test-review`, `/security-review`, `/production-readiness-review`, `/ui-review`) are **read-only** and **independent** — no shared mutable state, no ordering dependency between them. Run them as parallel sub-agents to preserve main session context budget and reduce wall-clock time.
 
 ### Why parallel?
 
 Each reviewer reads the git diff independently and analyzes one concern. Sequential execution would burn 50K+ tokens in the main session absorbing all seven inline. The `stepMeta` in `workflows.json` marks all seven as `executionMode: subagent, contextBudget: high` — dispatch each as a sub-agent per the model-driven advancement rule (no hook emits a `💡 [SUB-AGENT RECOMMENDED]` hint).
 
-> **UI review runs in TWO places by design (keep both).** `/changes-review` (step 1) invokes `/ui-review` (ui-ux-designer sub-agent) INTERNALLY as its own dimensional-batch UI dimension when frontend files changed, AND step 9 spawns `/ui-review` again as a DEDICATED conditional member of THIS parallel phase. Both fire only when frontend/UI files are in the diff; both are skipped otherwise. This intentional double-run gives the UI dimension both an in-context read (step 1) and a first-class, independently-reported specialist pass (step 9).
+> **UI review runs in TWO places by design (keep both).** `/changes-review` (step 1) invokes `/ui-review` internally as its dimensional-batch UI dimension when frontend files changed, AND step 10 spawns `/ui-review` again as a DEDICATED conditional member of THIS specialist phase. Both fire only when frontend/UI files are in the diff; both are skipped otherwise.
 
 ### Execution: spawn in one message
 
-After steps 1 and 2 (`/changes-review` and `/why-review`) complete, spawn all active parallel reviewers in **a single response** with multiple `Agent` tool calls:
+After the initial steps 1–2 barrier clears and step 3 validates the step-1 findings, spawn all active specialist reviewers in **a single response** with multiple `Agent` tool calls:
 
 ```
 Agent(architecture-review, subagent_type="architect", ...)           ← all in ONE message
@@ -183,17 +196,17 @@ Each sub-agent receives:
 
 Advancement here is **model-driven** — your responsibility against the task list, NOT a hook/tool signal. This is the same rule the universal context files carry ("Workflow Step Advancement & Parallel Phases" in CLAUDE.md / AGENTS.md), so the batch advances identically under Claude and Codex. The shared kernel is the canonical **`SYNC:parallel-phase-advancement`** block consolidated at the end of this skill — its barrier rule governs this batch: declare the group up-front; spawn ALL members in ONE message; advance ONLY after EVERY member returns (a skipped conditional member counts as "returned"); a sub-agent return advances a step IDENTICALLY to an inline call; defer the mutating `/code-simplifier` step until the barrier clears; hooks are accelerators only.
 
-**Applied to this workflow's batch** — after ALL parallel reviewers (steps 3–9) have returned:
+**Applied to this workflow's specialist batch** — after ALL parallel reviewers (steps 4–10) have returned:
 
-1. `TaskUpdate` step 3 → `completed`
-2. `TaskUpdate` step 4 → `completed` (or "Skipped — no entity files" if the conditional `domain-entities-review` member did not run — a skipped conditional counts as "returned")
-3. `TaskUpdate` step 5 → `completed`
-4. `TaskUpdate` step 6 → `completed`
-5. `TaskUpdate` step 7 → `completed`
-6. `TaskUpdate` step 8 (`/production-readiness-review`) → `completed`
-7. `TaskUpdate` step 9 (`/ui-review`) → `completed` (or "Skipped — no frontend/UI files" if the conditional `ui-review` member did not run — a skipped conditional counts as "returned")
+1. `TaskUpdate` step 4 → `completed`
+2. `TaskUpdate` step 5 → `completed` (or "Skipped — no entity files" if the conditional `domain-entities-review` member did not run — a skipped conditional counts as "returned")
+3. `TaskUpdate` step 6 → `completed`
+4. `TaskUpdate` step 7 → `completed`
+5. `TaskUpdate` step 8 → `completed`
+6. `TaskUpdate` step 9 (`/production-readiness-review`) → `completed`
+7. `TaskUpdate` step 10 (`/ui-review`) → `completed` (or "Skipped — no frontend/UI files" if the conditional `ui-review` member did not run — a skipped conditional counts as "returned")
 8. Read all sub-agent report files; synthesize findings into a combined review summary
-9. Proceed to step 10 (`/code-simplifier`) sequentially — only after the barrier above (it is a code-mutating step and must see the complete review snapshot)
+9. Proceed to step 11 (`/code-simplifier`) sequentially — only after the barrier above (it is a code-mutating step and must see the complete review snapshot)
 
 > **Advancement here is model-driven.** This sub-agent batch advances only after every member returns (the all-return barrier) — no step-tracking hook advances it. Claude and Codex both rely entirely on this rule.
 
@@ -227,17 +240,16 @@ Dimensional agent reports (if mode = DIMENSIONAL):
 - `plans/reports/review-scss-{date}.md` — SCSS findings (if spawned)
 - `plans/reports/synthesis-review-{date}.md` — Cross-boundary findings
 
-All four (plus the UI-dimension `/ui-review` findings when frontend files changed) feed into the consolidation summary alongside steps 3–9 specialist findings (which include the dedicated step-9 `/ui-review` pass).
+All four (plus the UI-dimension `/ui-review` findings when frontend files changed) feed into the consolidation summary alongside the step-2 whole-target report and steps 4–10 specialist findings (including the dedicated step-10 `/ui-review` pass).
 
 ### What runs sequentially (never parallelize)
 
 | Step                            | Why sequential                                                              |
 | ------------------------------- | --------------------------------------------------------------------------- |
-| `changes-review` (#1)           | Establishes baseline — must run first                                       |
-| `why-review` (#2)               | Validates the `changes-review` findings before the batch — gates which findings the batch and fix cycle act on |
-| `code-simplifier` (#10)         | Modifies code — batch reviews pre-simplification state; self-reviews its own output via `/code-review` before returning |
-| `plan` → `plan-review` → `plan-execute` (#11–13) | Ordered validated fix-plan cycle — `/plan` consumes already-validated review findings; `/plan-review` reviews the fix plan's design (adversarial rationale pass + internal `/why-review --validate-findings` of its own findings) before `/plan-execute` implements it |
-| `why-review` (#15)              | Near-final HOLISTIC standalone review — runs in FULL mode over the WHOLE target + changes after the step-14 loop converges; its own findings re-enter the fix loop, so it must run after fixes settle, not before |
+| `why-review` (#3)               | Validates the step-1 findings after the initial all-return barrier and before the specialist batch |
+| `code-simplifier` (#11)         | Modifies code — specialist batch reviews pre-simplification state; self-reviews its own output via `/code-review` before returning |
+| `plan` → `plan-review` → `plan-execute` (#12–14) | Ordered validated fix-plan cycle — `/plan` consumes already-validated findings and `/plan-review` reviews the fix plan before implementation |
+| `why-review` (#16)              | Final HOLISTIC standalone review — runs in FULL mode over the settled WHOLE target after the step-15 loop converges |
 
 ---
 
@@ -246,38 +258,38 @@ All four (plus the UI-dimension `/ui-review` findings when frontend files change
 ### Decision Logic
 
 ```
-Reviews (steps 1-10) → ALL PASS (no findings)?
-  YES → skip steps 11-14 (/plan//plan-review//plan-execute//changes-review), proceed to /why-review HOLISTIC full-mode pass (step 15) → /docs-update (step 16) → /workflow-end → /watzup → DONE
-  NO (findings exist) → /plan → /plan-review → /plan-execute → (if /plan-execute changed files) /changes-review INLINE re-review (step 14) → loop until clean → /why-review HOLISTIC full-mode pass (step 15)
-Step 15 (ALWAYS): /why-review FULL mode over the WHOLE target + changes. If it finds new findings → re-enter /plan→/plan-execute→/changes-review, then re-run step 15; loop run→fix→run until a complete full-mode why-review pass is clean → /docs-update (step 16).
-Note: /code-simplifier (step 10) self-reviews the code it changes via /code-review before returning — there is no separate workflow-level code-review step.
-Note: /why-review runs TWICE — step 2 in `--validate-findings` mode (sanity-checks the /changes-review findings before the parallel batch; the fix plan's design rationale is reviewed by /plan-review (step 12), which self-invokes /why-review --validate-findings on its own findings) AND step 15 in FULL mode (a holistic standalone review of the whole target + changes as one artifact). The two are different lenses — step 2 validates surfaced findings; step 15 hunts whole-package/design-rationale gaps the granular passes never surfaced.
+Reviews (steps 1-11) → ALL PASS (no findings)?
+  YES → skip steps 12-15 (/plan → /plan-review → /plan-execute → /changes-review), proceed to final /why-review HOLISTIC full-mode pass (step 16) → /docs-update (step 17) → /workflow-end → /watzup → DONE
+  NO (findings exist) → /plan → /plan-review → /plan-execute → (if /plan-execute changed files) /changes-review INLINE re-review (step 15) → loop until clean → final /why-review HOLISTIC full-mode pass (step 16)
+Step 16 (ALWAYS): /why-review FULL mode over the settled WHOLE target + changes. If it finds new findings → re-enter /plan → /plan-execute → /changes-review, then re-run step 16; loop until clean → /docs-update (step 17).
+Note: /code-simplifier (step 11) self-reviews the code it changes via /code-review before returning.
+Note: /why-review has three workflow occurrences: step 2 FULL mode on the whole starting target in parallel with step 1; step 3 `--validate-findings` mode over step-1 findings; step 16 FULL mode over the settled post-fix target. Steps 2 and 16 share a lens but observe different states, while step 3 is a terminal findings-validation gate.
 ```
 
-### Conditional Inline Re-Review Gate (Step 14) — After `/plan-execute` Applies Fixes
+### Conditional Inline Re-Review Gate (Step 15) — After `/plan-execute` Applies Fixes
 
-1. **CONDITION (run only if /plan-execute changed files):** Step 14 runs ONLY when `/plan-execute` actually modified files (validated fixes were applied). If `/plan-execute` made no file changes — nothing was wrong, or the plan resolved to no-ops — SKIP step 14 entirely and proceed to the step-15 holistic `/why-review` (which still ALWAYS runs), then `/docs-update`.
+1. **CONDITION (run only if /plan-execute changed files):** Step 15 runs ONLY when `/plan-execute` actually modified files. If `/plan-execute` made no file changes, SKIP step 15 and proceed to the step-16 holistic `/why-review`, then `/docs-update`.
 2. **DO** re-run the `/changes-review` protocol **INLINE in the main session** over the current full diff. Create a fresh task breakdown, rerun blast radius, risk detection, surface categorization, diff collection, dimensional reviews, synthesis, and validation gates. (Inline by design for this workflow — cheaper than spawning a fresh sub-agent; accept the mild orchestrator-confirmation-bias tradeoff, and counter it by re-reading the diff from scratch.)
 3. **DO** track re-review invocation count and repeated blockers in conversation context
 4. **DO** integrate the inline `/changes-review` findings — MUST NOT filter, reinterpret, or override
-5. **IF** the inline re-review returns PASS with zero findings → first confirm every confirmed behavior-changing fix applied in this loop produced a new/updated §8 regression/preservation TC via `/spec [mode=tests]` (per "Spec enrichment per cycle" above); a behavior-changing fix that left no covering §8 TC is an OPEN finding — re-enter the loop to add it before proceeding. Only once spec enrichment is complete → proceed to the step-15 holistic `/why-review` (FULL mode over the whole target + changes; loop run→fix→run until it is clean) → then `/docs-update` → `/workflow-end` → `/watzup` → DONE
-6. **IF** the inline re-review returns FAIL and the same blocker has not repeated 3 times → validate findings, run `/plan` + `/plan-execute` again, then re-run `/changes-review` (step 14)
+5. **IF** the inline re-review returns PASS with zero findings → confirm every behavior-changing fix has its required §8 regression/preservation TC, then proceed to the step-16 holistic `/why-review`; after it is clean, continue to `/docs-update` → `/workflow-end` → `/watzup`.
+6. **IF** the inline re-review returns FAIL and the same blocker has not repeated 3 times → validate findings, run `/plan` + `/plan-execute` again, then re-run `/changes-review` (step 15)
 7. **IF** the same validated blocker repeats across 3 invocations with no observable progress → STOP and escalate via `AskUserQuestion` — do NOT silently loop or fall back to any prior protocol
 
 > **Loop-binding tie-in:** the Step 0 protocol loop (and the `/goal` gate when available) stays OPEN until this loop reaches a clean zero-finding pass (or a 3-repeat blocker escalates). The session cannot stop with a validated finding still unfixed by `/plan-execute` or a non-clean re-review outstanding — this binds on every host, whether or not `/goal` is installed. Each re-review reviews the WHOLE current diff from the first phase combined with ALL prior fixes — never just the previous cycle's fix in isolation. (This applies in every case — including when this workflow is a step inside a parent workflow — because it always runs inline in the main session and owns the loop directly.)
 
-> **Specialist finding re-entry (steps 3–9) — DEFAULT is re-run the raising specialist, NOT holistic-only.** The Step 14 inline `/changes-review` re-runs only its own BE/FE/SCSS/UI dimensions; it does NOT re-run the specialist reviewers (`/architecture-review`, `/performance-review`, `/security-review`, `/integration-test-review`, `/production-readiness-review`, `/domain-entities-review`, `/ui-review`) that ran once at steps 3–9. Therefore a specialist finding fixed in this fix cycle MUST re-enter convergence by DEFAULT via a scoped re-run of the SPECIFIC specialist that raised it — that specialist owns its lens and is the authority on whether its own finding is genuinely resolved. (Exception: `/ui-review`'s UI lens is additionally re-covered by the Step 14 inline `/changes-review`'s UI dimension, so a step-9 UI finding may close on that inline re-review; the other six specialists are not re-run inline.) The holistic Step 15 `/why-review` alone MAY substitute ONLY as a documented exception with explicit written justification (e.g. the specialist's concern is fully subsumed by the holistic package). NEVER treat a specialist finding as closed on a single pass.
+> **Specialist finding re-entry (steps 4–10) — DEFAULT is re-run the raising specialist, NOT holistic-only.** The step-15 inline `/changes-review` re-runs only its own BE/FE/SCSS/UI dimensions; it does NOT re-run the specialist reviewers that ran once at steps 4–10. A specialist finding fixed in this cycle MUST therefore receive a scoped re-run of the specialist that raised it. The final step-16 `/why-review` alone may substitute only with explicit written justification. A step-10 UI finding may close on step 15's internal UI dimension because that lens is intentionally duplicated.
 
-### Holistic Why-Review Gate (Step 15) — Standalone Full-Mode Review of the Whole Target (ALWAYS RUNS)
+### Final Holistic Why-Review Gate (Step 16) — Standalone Full-Mode Review of the Settled Whole Target (ALWAYS RUNS)
 
-> **Why this step exists:** the step-2 `/why-review --validate-findings` gate only sanity-checks the findings `/changes-review` already surfaced, and steps 1 + 3–9 each review one file or one dimension. None of them review the **whole target as a single artifact** through `/why-review`'s adversarial design-rationale lens — which is exactly why running `workflow-review-changes` historically missed issues that a standalone `/why-review <target>` caught. Step 15 closes that gap: it is the same call a human would make by running `/why-review` directly over the change, now wired into the workflow.
+> **Why this step remains after the new initial whole-target pass:** step 2 reviews the starting state early, in parallel with dimensional review. Any simplification or fix invalidates that verdict. Step 16 applies the same holistic adversarial lens to the settled final state, so parallelizing discovery does not weaken post-fix convergence.
 
-1. **CONDITION:** ALWAYS run (whether or not a fix cycle happened). It runs AFTER the step-14 `/changes-review` loop has converged to a clean pass (or was skipped because no fixes were needed), so it reviews the settled, final state of the whole change.
+1. **CONDITION:** ALWAYS run after the step-15 `/changes-review` loop converges or is skipped because no fixes were needed.
 2. **MODE:** Invoke `/why-review` in **FULL mode** — pass the review target + the current changes as the target (e.g. `/why-review the whole <feature/diff/target> combined with the current changes`). MUST NOT use `--validate-findings` here (that mode is terminal and only re-checks an existing findings list — it would NOT perform the holistic review this step requires).
 3. **SCOPE:** "the whole review target combined with current changes" = the complete changeset AND the surrounding code/spec/docs it touches, reviewed as ONE artifact — not a per-file or per-finding pass. `/why-review` runs its full Validation Checklist + both Adversarial Rounds + Easy-to-Change gate, then validates its own findings via its internal closing gate.
-4. **LOOP (run → fix → run until no findings):** If step 15 surfaces ANY new finding → validate it, re-enter `/plan` → `/plan-execute` → `/changes-review` (step 14 loop) to fix, then RE-RUN step 15 over the whole updated target. Loop until a complete full-mode `/why-review` pass finds **zero new findings**. `/why-review`'s own self-recursive review loop bounds this (max 2 re-do rounds; a 3-repeat blocker with no progress → escalate via `AskUserQuestion`).
-5. **INLINE INSIDE A PARENT WORKFLOW:** when this workflow is a step inside a parent workflow it runs INLINE in the main session (never as a sub-agent), so step 15 runs exactly as it does standalone — it is part of the 18-step sequence and this session owns its own review loop directly (protocol loop always; `/goal` gate when available).
-6. **ONLY THEN** proceed to `/docs-update` (step 16) — so the final docs sweep reflects any fixes step 15 forced.
+4. **LOOP (run → fix → run until no findings):** If step 16 surfaces ANY new finding, validate it, re-enter `/plan` → `/plan-execute` → `/changes-review` (step 15 loop), then RE-RUN step 16 until a complete pass finds zero new findings.
+5. **INLINE INSIDE A PARENT WORKFLOW:** step 16 runs in the main session as part of this 19-step workflow; only the distinct step-2 initial whole-target occurrence is delegated as a sub-agent.
+6. **ONLY THEN** proceed to `/docs-update` (step 17).
 
 ### Iteration Tracking (Conversation-Scoped)
 
@@ -295,16 +307,18 @@ Iteration count is tracked **in conversation context only** — no persistent fi
 ### Flow Diagram
 
 ```
-Main Session: Review → Validate findings → Plan → Fix (/plan-execute) → /changes-review re-review
+Initial phase: /changes-review INLINE + whole-target /why-review sub-agent → all-return barrier
+                                ↓
+Main Session: Validate findings → Specialist batch → Plan → Fix → /changes-review re-review
                   │                                          │
                   │ (no issues)                              │ (only if /plan-execute changed files;
                   ↓                                          ↓  else skip to holistic /why-review)
-       /why-review HOLISTIC (step 15)          /changes-review re-runs INLINE
+       /why-review HOLISTIC (step 16)          /changes-review re-runs INLINE
        full-mode review of WHOLE target         over the current full diff
                   │                                          │
        new findings? ── yes ──┐                              ↓
-                  │ no        │                    Report → PASS? → /why-review HOLISTIC (step 15)
-                  ↓           └─→ Validate → Plan → Fix → /changes-review → (re-run step 15)
+                  │ no        │                    Report → PASS? → /why-review HOLISTIC (step 16)
+                  ↓           └─→ Validate → Plan → Fix → /changes-review → (re-run step 16)
             /docs-update                  → FAIL? → Validate findings → Plan → Fix
             /workflow-end                          → /changes-review re-review
             /watzup
@@ -313,32 +327,33 @@ Main Session: Review → Validate findings → Plan → Fix (/plan-execute) → 
 
 ---
 
-**IMPORTANT MANDATORY Steps:** /changes-review -> /why-review -> /architecture-review -> /domain-entities-review -> /performance-review -> /integration-test-review -> /security-review -> /production-readiness-review -> /ui-review -> /code-simplifier -> /plan -> /plan-review -> /plan-execute -> /changes-review -> /why-review -> /docs-update -> /workflow-end -> /watzup
+**IMPORTANT MANDATORY Steps:** /changes-review -> /why-review --target=whole-review-target -> /why-review -> /architecture-review -> /domain-entities-review -> /performance-review -> /integration-test-review -> /security-review -> /production-readiness-review -> /ui-review -> /code-simplifier -> /plan -> /plan-review -> /plan-execute -> /changes-review -> /why-review -> /docs-update -> /workflow-end -> /watzup
 
 > **[STEP CONDITIONS]** Not every step always runs — the bare list above is the canonical order; these are the run-conditions:
-> - **Step 0 loop binding (pre-sequence)** — ALWAYS bind the self-recursive review loop (protocol loop always; `/goal` accelerator when available), including when this workflow is a step inside a parent workflow, because it always runs inline in the main session and owns the loop directly. Not one of the 18 counted steps.
-> - **Step 4 `/domain-entities-review`** — only if domain entity files (Domain/, Entities/, ValueObjects/) are in the diff.
-> - **Step 9 `/ui-review`** — only if frontend/UI files (per the project's configured frontend/UI file patterns) are in the diff. Runs in TWO places by design (keep both): also invoked INTERNALLY inside step 1 `/changes-review` as its UI dimension.
-> - **Steps 11–13 `/plan` → `/plan-review` → `/plan-execute`** — only if reviews surfaced validated findings to fix (i.e. there are findings / code changes to make). Skip all three when steps 1–10 PASS clean.
-> - **Step 14 `/changes-review` (re-review)** — only if `/plan-execute` actually changed files; re-runs INLINE and loops `/plan`→`/plan-execute`→`/changes-review` until a clean pass (bounded: 3-repeat blocker rule AND 5 rounds MAX — escalate at whichever trips first).
-> - **Step 15 `/why-review` (HOLISTIC, FULL mode)** — ALWAYS runs after the step-14 loop converges; reviews the WHOLE target + changes as one artifact; on new findings re-enters the step-14 fix loop and re-runs until a clean full-mode pass.
-> - **Steps 1–3, 5–8, 10, 15–18** — always run.
+> - **Step 0 loop binding (pre-sequence)** — ALWAYS bind the self-recursive review loop. Not one of the 19 counted steps.
+> - **Steps 1–2 initial phase** — always run together behind one all-return barrier; step 1 is inline, step 2 is a fresh read-only sub-agent in FULL mode over the whole review target.
+> - **Step 5 `/domain-entities-review`** — only if domain entity files are in the diff.
+> - **Step 10 `/ui-review`** — only if frontend/UI files are in the diff; it also runs internally inside step 1.
+> - **Steps 12–14 `/plan` → `/plan-review` → `/plan-execute`** — only if validated findings require fixes. Skip all three when steps 1–11 PASS clean.
+> - **Step 15 `/changes-review` (re-review)** — only if `/plan-execute` changed files; loops until clean within the existing bounds.
+> - **Step 16 `/why-review` (HOLISTIC, FULL mode)** — ALWAYS runs over the settled whole target after step 15 converges or is skipped.
+> - **Steps 1–4, 6–9, 11, 16–19** — always run.
 
-> **[BLOCKING SEQUENCING]** Step 1 `/changes-review` is SEQUENTIAL and MUST run FIRST — it produces the baseline (surface analysis + integration-test/translation gap detection) consumed by all downstream reviewers, AND owns the internal UI review (invokes `/ui-review` internally via a ui-ux-designer sub-agent when the diff has frontend/UI files — this is the (a) of the keep-both dual run). Step 2 `/why-review` is SEQUENTIAL and runs immediately after — it validates the `/changes-review` findings (drops false positives) before any parallel reviewer spawns. Steps 3–9 (`/architecture-review`, `/domain-entities-review`, `/performance-review`, `/integration-test-review`, `/security-review`, `/production-readiness-review`, `/ui-review`) form a PARALLEL BATCH — spawn all in ONE message via specialized `Agent` tool calls (`architect`, `code-reviewer`, `performance-optimizer`, `integration-tester`, `security-auditor`, `/production-readiness-review` via `code-reviewer`, plus `/ui-review` via `ui-ux-designer` — the (b) of the keep-both dual run, conditional on frontend/UI files). Step 10 `/code-simplifier` is SEQUENTIAL and waits until ALL parallel batch sub-agents return + consolidation summary is built; it self-reviews the code it changes via `/code-review` (scoped to its own changed files) before returning, so there is no separate workflow-level code-review step. Steps 11–14 proceed sequentially as listed. Step 15 `/why-review` is SEQUENTIAL, ALWAYS runs after the step-14 loop converges, and is invoked in FULL mode (NOT `--validate-findings`) over the WHOLE target + changes — its own findings loop back through steps 11–14 until a clean full-mode pass, then step 16 `/docs-update` runs.
+> **[BLOCKING SEQUENCING]** Launch step 2 `/why-review --target=whole-review-target` as a fresh `code-reviewer` sub-agent, then immediately run step 1 `/changes-review` inline; advance only after both return. Step 3 validates step-1 findings. Steps 4–10 form the specialist parallel batch. Step 11 `/code-simplifier` waits for that barrier. Steps 12–15 are the sequential fix/re-review cycle. Step 16 is the final FULL-mode whole-target gate, followed by step 17 `/docs-update`.
 
-> **[WORKFLOW-IN-WORKFLOW: MUST RUN INLINE IN THE MAIN SESSION — never as a sub-agent]** This skill activates the full `workflow-review-changes` workflow (18 steps). When invoked as a step inside a parent workflow (e.g., `workflow-feature`, `workflow-bugfix`, `workflow-refactor`), it MUST run INLINE in the **main current session agent** via the `Skill` tool — NEVER dispatched through the `Agent` tool as a sub-agent. This is a deliberate, documented EXCEPTION to the general "Workflow-in-workflow → sub-agent" rule (CLAUDE.md / AGENTS.md "Workflow Step Advancement" §3).
+> **[WORKFLOW-IN-WORKFLOW: MUST RUN INLINE IN THE MAIN SESSION — never as a sub-agent]** This skill activates the full `workflow-review-changes` workflow (19 steps). When invoked inside a parent workflow, the orchestrator stays INLINE in the main session. Its step-2 whole-target reviewer is still a child sub-agent, as declared by the initial parallel phase.
 >
-> **Why inline, never a sub-agent:** this workflow's correctness depends on owning the main session. (1) Step 0 binds a self-recursive review loop — a self-driven protocol loop on every host, plus (when available) a `/goal` gate that binds the **session Stop hook** — so the review→self-fix→re-review loop is unabandonable; a sub-agent runs in an isolated context that only returns a summary and cannot own the session Stop hook, so dispatched as a sub-agent both the inline self-fix loop and the `/goal` guarantee are silently lost. (2) The step-13 post-fix re-review runs **INLINE by design** over the live main-session diff. (3) The recursive `/plan`→`/plan-execute`→`/changes-review`→`/why-review` self-fix loop must mutate and re-read the real working tree across the session, not an isolated context that only returns a summary. Context stays bounded anyway because the heavy reviewers (steps 3–9) are STILL dispatched as sub-agents that write full findings to `plans/reports/` — only the orchestration and the self-fix loop run inline.
+> **Why inline, never a sub-agent:** the workflow orchestrator owns Step 0's session loop and the step-15 live-working-tree re-review. Delegating the orchestrator would lose those guarantees. Context remains bounded because the initial step-2 whole-target reviewer and steps 4–10 specialists are child sub-agents writing full reports to `plans/reports/`.
 >
 > **Standalone invocation** (not inside a workflow): inline in the main session, identically — no sub-agent.
 
 > **[BLOCKING]** Each step MUST invoke its `Skill` tool — marking a task `completed` without skill invocation is a workflow violation. NEVER batch-complete validation gates.
-> **[CONDITIONAL INLINE RE-REVIEW]** After validated fixes in `/plan-execute` — and ONLY if `/plan-execute` changed files — re-run `/changes-review` INLINE (step 14) over the current full diff. If `/plan-execute` made no changes, skip step 14. Clean review passes with zero findings end the step-14 loop; repeated blockers stop after 3 no-progress invocations. Either way, step 15 `/why-review` (holistic, FULL mode) ALWAYS runs next over the whole target + changes before `/docs-update`.
+> **[CONDITIONAL INLINE RE-REVIEW]** After validated fixes in `/plan-execute` — and ONLY if files changed — re-run `/changes-review` INLINE (step 15). Either way, step 16 `/why-review` ALWAYS runs next over the settled whole target before `/docs-update`.
 > **[REPEATED BLOCKER CAP]** Track re-review invocations in conversation context, not persistent files. After a fix cycle, PASS = a complete inline `/changes-review` re-review pass finds zero findings without more fixes; stop after the same blocker repeats 3 times with no progress.
 
 Activate the `workflow-review-changes` workflow. Run `/start-workflow workflow-review-changes` with the user's prompt as context.
 
-> **Applicability in this workflow (reconciles with step 13):** the canonical block below is the general fresh-context mechanism. In `workflow-review-changes` the **step-14 post-fix re-review applies its _principle_ — zero memory, re-read the full diff from scratch, no self-filtering — INLINE in the main session** (the deliberate cost tradeoff documented at step 14), NOT via an isolated sub-agent. The isolated-sub-agent form below governs ONLY the parallel dimensional reviewers in steps 3–9 (already sub-agents); the workflow itself — even as a step inside a parent workflow — always runs INLINE in the main session, never as a sub-agent. So "with isolated sub-agents **where applicable**" resolves to *inline* for the step-14 self-re-review and for the workflow orchestration — no contradiction.
+> **Applicability in this workflow:** step 15 applies fresh-context re-review principles INLINE by re-reading the full diff from scratch. The isolated-sub-agent form governs the initial step-2 whole-target reviewer and steps 4–10 specialists; the workflow orchestrator itself always remains inline.
 
 <!-- SYNC:parallel-phase-advancement -->
 
@@ -634,22 +649,22 @@ Activate the `workflow-review-changes` workflow. Run `/start-workflow workflow-r
 - **Critical Thinking:** every claim needs traced proof; confidence >80% to act.
 - **Project Reference Docs:** read required project-reference docs first; conventions override generic defaults.
 
-**IMPORTANT MUST ATTENTION** run the sequence in order — step 1 `/changes-review` owns the baseline (surface analysis + UI review via internal `/ui-review` + integration-test/translation-sync/spec-drift gates), step 2 `/why-review` validates those findings BEFORE the parallel batch fires — so steps 3–9 act only on warranted findings — why: validating after fixing wastes the batch on false positives.
-**IMPORTANT MUST ATTENTION** spawn the steps 3–9 read-only reviewers (`/architecture-review`, `/domain-entities-review` [if entity files], `/performance-review`, `/integration-test-review`, `/security-review`, `/production-readiness-review`, `/ui-review` [if frontend/UI files]) ALL in ONE message and advance ONLY after EVERY member returns (all-return barrier) — defer mutating `/code-simplifier` (step 10) until the barrier clears — why: a code-mutating step must see the complete review snapshot, not a partial one.
+**IMPORTANT MUST ATTENTION** launch step 2's whole-target FULL-mode `/why-review` as a fresh sub-agent, immediately run step 1 `/changes-review` inline, and advance only after BOTH return; then step 3 validates step-1 findings before the specialist batch.
+**IMPORTANT MUST ATTENTION** spawn the steps 4–10 specialist reviewers ALL in ONE message and advance ONLY after EVERY member returns; defer mutating `/code-simplifier` (step 11) until the barrier clears.
 **IMPORTANT MUST ATTENTION** every finding, recommendation, and verdict needs `file:line` proof or traced evidence + a confidence % — >80% act, 60–80% verify first, <60% DO NOT recommend; "Insufficient evidence" is valid output — why: speculation is forbidden output and silently encodes false positives into the fix plan.
 
-**MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting — create ALL 18 tasks immediately (source of truth = `workflows.json` → `changes-review.sequence`); mark one `in_progress`, mark `completed` immediately after each step's evidence; on context loss call `TaskList` first — never duplicate.
+**MUST ATTENTION** break work into small todo tasks using `TaskCreate` BEFORE starting — create ALL 19 tasks immediately (source of truth = `workflows.json` → `workflow-review-changes.sequence`); mark one `in_progress`, mark `completed` immediately after each step's evidence; on context loss call `TaskList` first — never duplicate.
 **MUST ATTENTION** grep 3+ existing patterns and read the target files BEFORE proposing any fix; cite `file:line` evidence in the fix plan — local conventions override generic framework defaults — why: closest example ≠ matching preconditions, verify shared base classes/scope/lifetime before copying.
 **MUST ATTENTION** after fixes in `/plan-execute` (and ONLY if `/plan-execute` changed files), re-run `/changes-review` INLINE over the current full diff from Phase 0; re-read the diff from scratch to counter orchestrator confirmation bias — why: the main agent rationalizes findings about its own fixes; loop `/plan`→`/plan-execute`→`/changes-review` until clean.
 **MUST ATTENTION** track full re-review invocations and repeated blockers in conversation context (session-scoped, no persistent files) — stop after the same blocker repeats 3 times with no progress and escalate via `AskUserQuestion`; STOP and escalate if round N finds MORE issues than round N-1 — never silently loop.
 **MUST ATTENTION** PASS means one complete review pass finds zero blocking issues after all validated fixes and verification are included; a behavior-changing fix that left no covering §8 regression/preservation TC is an OPEN finding, NOT a clean pass — green tests do not normalize spec drift.
-**MUST ATTENTION** skip steps 11–14 ONLY when all reviews PASS with zero findings (no fixes needed); mark conditional tasks `completed` with note "Skipped — all reviews passed" — NEVER consolidate, rename, or omit steps. Step 15 `/why-review` (holistic) is NOT skippable on a clean pass — it ALWAYS runs.
-**MUST ATTENTION** step 15 runs `/why-review` STANDALONE in FULL mode over the WHOLE review target combined with the current changes (NOT `--validate-findings`), after the step-14 loop converges; if it surfaces findings, re-enter `/plan`→`/plan-execute`→`/changes-review` and re-run step 15, looping run→fix→run until a complete full-mode why-review pass finds zero new findings — why: a standalone holistic `/why-review` of the target catches design-rationale/whole-package gaps the per-file/per-dimension reviewers (and the step-2 findings-validation gate) structurally cannot.
+**MUST ATTENTION** skip steps 12–15 ONLY when all reviews PASS with zero findings; step 16 `/why-review` is never skippable and proves the settled post-fix target.
+**MUST ATTENTION** step 16 runs `/why-review` STANDALONE in FULL mode over the settled WHOLE review target; if it surfaces findings, re-enter `/plan`→`/plan-execute`→`/changes-review` and re-run step 16 until clean.
 **MUST ATTENTION** adjudicate every behavior-vs-spec divergence in step 1 as CODE-WRONG (BLOCKING) / SPEC-STALE (spec is stale, `/docs-update` fixes spec first) / AMBIGUOUS (escalate) — NEVER silently pick a side; the workflow is NOT clean while any divergence stays unadjudicated.
 **IMPORTANT MUST ATTENTION** each step MUST invoke its `Skill` tool — marking a task completed without invocation is a workflow violation; NEVER batch-complete validation gates — why: a skipped gate ships unreviewed work.
 **IMPORTANT MUST ATTENTION** treat integration-test coverage gaps and multilingual UI translation gaps as mandatory `AskUserQuestion` user-decision gates — surface them, never silently pass when tests or locale updates are missing.
-**IMPORTANT MUST ATTENTION** `/why-review` runs TWICE — step 2 as a `--validate-findings` gate (drops false positives before the parallel batch; the fix-plan rationale check is owned by `/plan-review` (step 12), which self-invokes `/why-review --validate-findings` internally) AND step 15 as a HOLISTIC FULL-mode standalone review of the whole target + changes (loops run→fix→run until a clean full-mode pass). The two are different lenses — step 2 validates surfaced findings; step 15 hunts whole-package/design-rationale gaps the per-file/per-dimension passes missed, which is what a standalone `/why-review` of the target catches that the dimensional batch alone did not.
-**IMPORTANT MUST ATTENTION** when invoked as a step inside a parent workflow, run this whole 18-step workflow INLINE in the main session via the `Skill` tool, NEVER as an `Agent` sub-agent — why: Step 0's self-driven protocol loop (plus the `/goal` Stop-hook gate when available) and the step-14 inline re-review require owning the main session; a sub-agent cannot hold the Stop hook or mutate the live working tree, so the unabandonable-loop guarantee would be silently lost. Context stays bounded because steps 3–9 reviewers remain sub-agents writing to `plans/reports/`.
+**IMPORTANT MUST ATTENTION** `/why-review` has three occurrences: step 2 FULL-mode whole-target startup review in parallel with step 1; step 3 terminal validation of step-1 findings; step 16 FULL-mode whole-target final review after convergence.
+**IMPORTANT MUST ATTENTION** when invoked inside a parent workflow, run this whole 19-step workflow INLINE in the main session; only its declared child reviewers (step 2 and steps 4–10) run as sub-agents.
 **IMPORTANT MUST ATTENTION** apply critical + sequential thinking — keep the SKEPTIC default when reviewing: steel-man rejected alternatives, invert each stated reason, stress-test top assumptions; section presence ≠ quality — why: certainty without evidence is the root of hallucination.
 **IMPORTANT MUST ATTENTION** Easy to Change is the success metric — every finding/test/refactor must answer "does this make the next change cheaper?"; name the real enemies (coupling, hidden state, duplicated knowledge, unclear intent) — reject best practices that raise change cost.
 
@@ -658,8 +673,8 @@ Activate the `workflow-review-changes` workflow. Run `/start-workflow workflow-r
 | Evasion                                          | Rebuttal                                                                                                          |
 | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
 | "Reviews look clean, skip `/why-review`"         | Step 2 validates findings BEFORE the batch — run it; a false positive entering the fix plan wastes 7 reviewers. |
-| "Dimensional reviews passed, skip the step-15 holistic `/why-review`" | Step 15 is a DIFFERENT lens (FULL-mode whole-target design-rationale review) — it ALWAYS runs and catches whole-package/coupling gaps the per-file/per-dimension passes never surface; skipping it reintroduces the exact miss this step was added to fix. |
-| "Step 15 can reuse `--validate-findings`"        | No — `--validate-findings` is terminal and only re-checks an existing findings list; step 15 MUST run FULL mode to actually review the whole target as one artifact. |
+| "The initial whole-target review passed, skip step 16" | Step 2 reviewed the starting state; step 16 must prove the settled post-fix state. |
+| "Step 16 can reuse `--validate-findings`"        | No — terminal validation only re-checks an existing findings list; step 16 must run FULL mode over the whole target. |
 | "I already know what I fixed, skip re-review"    | Orchestrator confirmation bias — re-read the full diff from scratch INLINE; main-agent self-review is NOT enough. |
 | "Tests are green, the spec drift is fine"        | Green can encode the drift itself — adjudicate CODE-WRONG / SPEC-STALE; not clean until every divergence resolved. |
 | "Mark the step done, the skill obviously ran"    | Marking completed without invoking the `Skill` tool is a workflow violation — show the invocation evidence.       |
@@ -668,7 +683,7 @@ Activate the `workflow-review-changes` workflow. Run `/start-workflow workflow-r
 
 ---
 
-**IMPORTANT MUST ATTENTION** Step 0 (FIRST ACTION) binds the self-recursive review loop — an always-on protocol loop you self-drive (BINDING, hook/command-independent) plus a `/goal` Stop-hook gate as an optional accelerator when available — so stopping is BLOCKED until the whole loop reaches a clean zero-finding pass; the protocol loop holds even where `/goal` is absent (record one line and proceed, never error). A pre-sequence wrapper, not one of the 18 steps; it ALWAYS runs (including as a step inside a parent workflow) because this workflow always runs inline in the main session and owns the loop directly.
-**IMPORTANT MUST ATTENTION** step 1 `/changes-review` runs FIRST and owns the baseline; step 2 `/why-review` validates findings BEFORE the steps 3–9 parallel batch — spawn the batch in ONE message, advance only after the all-return barrier, defer `/code-simplifier` until it clears.
+**IMPORTANT MUST ATTENTION** Step 0 binds the self-recursive review loop before the 19-step sequence; the workflow orchestrator always runs inline in the main session.
+**IMPORTANT MUST ATTENTION** steps 1–2 form the initial all-return barrier (`/changes-review` inline + whole-target `/why-review` sub-agent); step 3 validates step-1 findings; steps 4–10 form the specialist barrier; `/code-simplifier` waits until it clears.
 **IMPORTANT MUST ATTENTION** every finding/verdict needs `file:line` evidence + confidence (>80% act, <60% DO NOT recommend); grep 3+ patterns and read target files before any fix — no speculation.
 **IMPORTANT MUST ATTENTION** after `/plan-execute` changes files, re-run `/changes-review` INLINE from scratch and loop until ONE clean zero-finding pass — a behavior change with no covering §8 TC is an OPEN finding; bounded at 5 rounds MAX with repeated blockers capped at 3 → escalate at whichever trips first, never PASS on cap exhaustion.

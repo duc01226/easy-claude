@@ -207,7 +207,7 @@ End-to-end process orchestration with step enforcement. The table below shows th
 
 ### Quality Gates & Review Skills
 
-Reviews are first-class skills you can run standalone, and several are chained automatically inside `workflow-review-changes` — the recommended gate before any commit. That workflow runs, in order: `/why-review` → `/changes-review` → `/architecture-review` → `/domain-entities-review` → `/performance-review` → `/integration-test-review` → `/security-review` → `/why-review` → `/code-simplifier`, then re-reviews until clean.
+Reviews are first-class skills you can run standalone, and several are chained automatically inside `workflow-review-changes` — the recommended gate before any commit. It starts `/changes-review` inline and a FULL-mode whole-target `/why-review` sub-agent in parallel behind an all-return barrier, validates the dimensional findings, runs the specialist reviewer batch, simplifies/fixes, then runs a final whole-target `/why-review` over the settled state before closing.
 
 | Review skill                   | Catches                                                                  |
 | ------------------------------ | ------------------------------------------------------------------------ |
