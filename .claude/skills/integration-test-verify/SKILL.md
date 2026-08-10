@@ -40,6 +40,7 @@ description: '[Testing] Use when you need to verify integration tests pass after
 - If system check fails → instruct user how to start system (reference `startupScript` from config)
 - If config says local infrastructure, databases, services, or full system startup is required, treat that as a blocking prerequisite
 - On test failure → diagnose root cause: test bug or service bug. NEVER weaken assertions.
+- On an INTERMITTENT failure (red in one run, green in another) → adjudicate the cause first — (a) unrealistic scenario / compressed pacing, (b) harness topology amplification, or (c) genuine product race — and record the verdict with evidence BEFORE any change. NEVER resolve a flake by widening a timeout, adding a retry, or skipping
 - Verification only passes after 2 consecutive successful runs of each relevant suite/project without DB reset
 - When many independent, isolated test projects must run, fan out one `integration-tester` sub-agent per project (or balanced group) in parallel to speed it up — barrier on all returns, then aggregate; fall back to sequential when suites share a DB or aren't isolated
 - Always report exact failure counts and names — "all passed" requires evidence
@@ -165,7 +166,7 @@ Run this step only after Step 2 passed or the config/reference docs explicitly s
 
 Execute using `quickRunCommand` from config. Run each relevant suite/project 2 consecutive times without resetting data.
 
-**Two-run idempotency gate:** If any run fails, verification fails. Fix the root cause, then restart the 2-run sequence from run 1.
+**Two-run idempotency gate:** If any run fails, verification fails. Fix the root cause, then restart the 2-run sequence from run 1. If a test is red in one run and green in the other, it is INTERMITTENT — adjudicate the cause per [Intermittent (flaky) failure adjudication](#intermittent-flaky-failure-adjudication--verdict-before-any-change) and record the verdict BEFORE changing anything.
 
 Example for a configured integration-test suite:
 
@@ -281,6 +282,7 @@ This script typically: creates networks → removes stale containers → builds 
 - ❌ Create or mutate domain data through repositories to bypass real use-case paths
 - ❌ Mark passing by ignoring error output
 - ❌ Report "all passed" without showing actual runner output
+- ❌ Widen an assertion timeout, add a retry around a failing assertion, or mark a test flaky-and-skipped to make an intermittent failure go away
 
 **DO** this instead:
 
@@ -292,6 +294,26 @@ This script typically: creates networks → removes stale containers → builds 
 6. **If step 3 found the CODE was wrong (SOURCE-WRONG) and your fix changed production/source code**, route that changed source into a fresh `/changes-review` (or emit a HIGH finding requiring it) BEFORE declaring the 2-run green PASS — a source fix that greens a test must not ship un-code-reviewed. (In `workflow-feature`/`workflow-bugfix` the downstream `workflow-review-changes` step already covers this; the route matters for standalone runs.)
 
 If a test fails because the system is unavailable → report as "system not ready" and reference `startupScript` / `runScript`. Never change the test.
+
+### Intermittent (flaky) failure adjudication — verdict BEFORE any change
+
+A test that is red in one run of the 2-run gate and green in another has NOT told you what is wrong. **Emit a written verdict, with evidence, BEFORE editing test code, production code, or any timeout.** An unadjudicated flake gets "fixed" by whatever is nearest — which is almost always the assertion.
+
+**Classify the cause into exactly one of three:**
+
+| Verdict                                  | What it means                                                                                                                                                                                                       | Evidence required to claim it                                                                                                                                                                                            | Resolution                                                                                                                                                     |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **(a) Unrealistic scenario / compressed pacing** | The test drives a sequence, timing, or data state production could never reach — most often distinct actor actions fired back-to-back that real usage separates by seconds, minutes, or hours, letting an in-flight async message land out of order | Read the ARRANGE block as a production trace; cite the chained actor actions (`file:line`) and state what separates them in real usage                                                                                     | Fix the SCENARIO — add an ARRANGE-phase settle barrier polling a real observable of the prior step. NEVER a widened assertion timeout                          |
+| **(b) Harness topology amplification**   | The trigger is real but the LOCAL topology makes a rare production race routine — shared infrastructure, fan-out consumers over a shared parent, parallel suite execution, cold starts, or a resource-starved runner | Name the amplifying topology and cite it (config, fixture, suite settings, another test sharing the data); state whether the trigger exists in production and at what likelihood                                          | Isolate the test's data/topology, or record the amplification explicitly. Report the production likelihood alongside — an amplified race may still be a real one |
+| **(c) Genuine product race**             | The production code itself has an ordering, concurrency, or idempotency defect that a realistic scenario can hit                                                                                                    | Trace the failure end-to-start to the defective production path (`file:line`); show the realistic sequence that reaches it                                                                                                | Report it as a product defect and fix at the owning layer per the fault-adjudication protocol; keep or strengthen the test that caught it                       |
+
+**Rules:**
+
+1. **Verdict first, change second.** Record `Flake verdict: (a) | (b) | (c) — {evidence}` in the Step 5 report before any edit. "Probably flaky" is not a verdict.
+2. **Reproduce before concluding.** Re-run the failing test repeatedly (it is a fast local test — see the 60s cap) so the intermittency is characterized, not assumed. State the observed ratio.
+3. **NEVER resolve a flake by widening a timeout, adding a retry, or skipping.** Those hide all three causes equally and destroy the signal.
+4. **Do not file (c) until (a) and (b) are ruled out with evidence.** Reporting a test-fidelity defect as a product defect burns hours and erodes trust in the suite.
+5. **Any resolution restarts the 2-run gate from run 1.** An intermittent test is not verified until it is green twice consecutively without a DB reset.
 
 ---
 
@@ -382,6 +404,22 @@ If a test fails because the system is unavailable → report as "system not read
 > 5. **Loop until the whole suite is green.** After fixing the validated root cause, restart the full 2-run verification from run 1. Done means the entire relevant suite passes repeatably — never green-once, never a subset.
 
 <!-- /SYNC:integration-test-execution-discipline -->
+
+<!-- SYNC:real-world-fidelity-testing -->
+
+> **Real-World Fidelity Gate** — MANDATORY when authoring, reviewing, or repairing any integration / E2E / system test.
+>
+> A test earns trust by reproducing a situation the system can actually meet in production. A scenario that could never occur in real life proves nothing when it passes, and wastes hours when it fails.
+>
+> 1. **Ask the fidelity question BEFORE writing the setup:** *"Can this sequence, timing, and data actually occur in production?"* If no, the test is mis-specified — fix the SCENARIO, never the assertion.
+> 2. **Model real pacing between actor steps.** Two distinct actor actions that production separates by seconds, minutes, or hours MUST NOT be fired back-to-back in the same millisecond. Compressed pacing manufactures races the system was never designed to survive, then reports them as product defects.
+> 3. **Wait on a real signal, never a blind sleep.** Find an observable proving the prior step finished — a persisted state change, an audit/version stamp, a queue/worker idle marker, a completion event — and poll until it settles (unchanged across a short stability window). Use a fixed delay ONLY when no observable exists, and say so in a comment.
+> 4. **Barriers belong in ARRANGE, never in ASSERT.** Waiting for a precondition is fidelity. Widening an assertion's timeout, loosening a comparison, adding a retry around a failing assertion, or skipping the test is masking. NEVER do the latter to force green.
+> 5. **Distinguish harness-amplified from real.** Test topologies (shared infra, fan-out consumers, parallel suites, cold starts) can make a rare production race routine locally. Before filing a product defect, state whether the trigger exists in production and at what likelihood.
+> 6. **Keep the protected invariant intact.** Improving fidelity must NEVER reduce what the test protects. If a realistic scenario no longer exercises the rule, the rule needs a DIFFERENT realistic scenario — not a weaker assertion.
+> 7. **Deliberate impossible-state tests are allowed, but MUST be labelled.** Corruption-repair, migration, and fail-safe tests intentionally construct states production should never reach; comment WHY the state is reachable (upstream bug, partial write, legacy data), so they are never confused with unrealistic setups.
+
+<!-- /SYNC:real-world-fidelity-testing -->
 
 <!-- SYNC:ai-mistake-prevention -->
 
@@ -508,6 +546,7 @@ If a test fails because the system is unavailable → report as "system not read
 - **Source/Test Drift:** On source change, reconcile affected tests vs source-bug from evidence.
 - **Spec↔Tests↔Code Triangulation:** judge the WHOLE PACKAGE (spec §3/§4/§8 + tests + code) for mutual consistency; a disagreeing or missing face is a logged finding, NEVER a silent pass.
 - **Spec Drift Adjudication:** on behavior divergence from a canonical spec, classify CODE-WRONG / SPEC-STALE / AMBIGUOUS / SPEC-SILENT and harvest unwritten invariants into §4/§8 + a guarding test — NEVER normalize drift to whichever side is green.
+- **Real-World Fidelity:** a scenario production could never reach proves nothing green and blames the product red; settle barriers on a real observable belong in ARRANGE — NEVER a widened assertion timeout, a blind sleep, or a retry around a failing assertion; distinguish harness-amplified from real before filing a product defect.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 - **Nested Task Creation:** Expand child phases and link parent when nested; one `in_progress`.
 - **Task Tracking & External Report:** Bootstrap tracking; persist plan/review findings to `plans/reports/` incrementally.
@@ -524,6 +563,8 @@ If a test fails because the system is unavailable → report as "system not read
 **IMPORTANT MUST ATTENTION** show actual runner output (Passed/Failed/Skipped counts + failing names) — "all passed" without evidence is theater, not verification — confidence >80% to claim PASS, and that confidence rests on the captured output, never assumption.
 **IMPORTANT MUST ATTENTION** on failure, diagnose test-bug vs service-bug at the responsible layer BEFORE any edit — fix the root cause; report service bugs as findings, do NOT silently fix — why: patching the symptom site leaves the real defect live.
 **IMPORTANT MUST ATTENTION** on a FAILED TEST, FIRST read the `/integration-test-review` skill protocol (assertion-quality, coverage & spec↔test↔code fault gates) to set investigation/fix direction — decide whether the fault is a source-code root cause or a test-code setup/assertion issue — why: fixing without that verdict patches the wrong side and can green a broken invariant.
+**IMPORTANT MUST ATTENTION** on an INTERMITTENT failure (red in one run, green in another) adjudicate the cause BEFORE any change and record the verdict with evidence — (a) unrealistic scenario / compressed actor pacing, (b) harness topology amplification (shared infra, fan-out consumers, suite parallelism, cold start), or (c) a genuine product race; do NOT file (c) until (a) and (b) are ruled out — why: reporting a test-fidelity defect as a product defect burns hours and erodes trust in the suite.
+**IMPORTANT MUST ATTENTION** NEVER resolve a flake by widening an assertion timeout, adding a retry around a failing assertion, or skipping the test — repair the SCENARIO (an ARRANGE-phase barrier on a real observable) or the product defect, then restart the 2-run gate from run 1 — why: those three hide all causes equally and destroy the only signal you had.
 **IMPORTANT MUST ATTENTION** to make red go green NEVER weaken/remove assertions, add skip annotations, or mutate domain data outside real use-case paths — instead fix the assertion setup or the handler, then re-run the full 2-run sequence — why: a test that no longer protects its invariant is worse than no test.
 **IMPORTANT MUST ATTENTION** before authoring or changing any test code, grep 3+ sibling integration tests and follow the local pattern (base fixtures, real DI, no mocks) — cite `file:line` — why: the closest example may not share the same preconditions; verify fit before copying.
 **IMPORTANT MUST ATTENTION** bootstrap task tracking before work and mark one task `in_progress` / `completed` at a time; on context loss call `TaskList` first and resume — never blindly duplicate tasks.
@@ -536,6 +577,9 @@ If a test fails because the system is unavailable → report as "system not read
 | "One green run is enough"                     | 2 consecutive green runs without DB reset, or it isn't verified. Restart on any red. |
 | "I'll just hardcode `dotnet test`"            | Read `quickRunCommand` from config — this skill is language-agnostic.            |
 | "The test asserts too strictly, relax it"     | Fix the code or the setup, never the assertion. Weakened tests protect nothing.  |
+| "It's just flaky, re-run it"                  | Intermittent = unadjudicated. Classify (a) unrealistic scenario, (b) harness amplification, or (c) real product race — with evidence — before any change. |
+| "Bump the timeout and move on"                | Widening a timeout masks all three flake causes. The barrier belongs in ARRANGE, on a real observable. |
+| "Found a race — file it as a product bug"     | Not until (a) and (b) are ruled out. State whether the trigger exists in production and at what likelihood. |
 | "Looks like it passed"                        | Show Passed/Failed/Skipped counts from real runner output. No output = no claim. |
 | "System probably ready"                       | Run `systemCheckCommand`. Unhealthy system → STOP, point user at `startupScript`. |
 | "Too simple to track"                         | Skip depth, never skip task tracking. Wrong assumptions waste more time.         |

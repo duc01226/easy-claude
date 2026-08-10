@@ -89,6 +89,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - A configurable count serves BOTH goals — self-test the main happy-path cases AND enrich data volume (many simulated users) for performance testing and realistic first-time-init data
 - GUARANTEE idempotency — check count before seeding; never re-seed already-seeded data on restart
 - ALWAYS loop from `existing_count` to `target_count` so stop/restart resumes the remainder (target X, at 50% → continue until X), never re-seeding from 0
+- SEED only states the application could actually produce — application-level operations guarantee reachability by construction; a direct store write fabricating an otherwise-unreachable state MUST be commented with why it is legitimate, and seeded entities MUST carry plausible relative timing rather than one shared instant
 
 ## Mode Routing (FIRST decision)
 
@@ -126,7 +127,8 @@ rg "{Feature}Seeder|{Feature}SeedData|{Feature}TestData" {configured-source-root
 4. **Idempotency (no re-seed when already seeded)** — Check existing count → calculate remaining → seed only the difference. On restart with data already seeded, seed NOTHING. Running N times converges to the target, never duplicating.
 5. **Count-Configurable (dual purpose, small default)** — Read the seed count/times from the project config key (discovered Step 1); NEVER hardcode. **Default to a small number when nothing is configured.** The same count serves BOTH goals: repeating each scenario like a QC tester running it many times exercises the main cases AND enriches data volume (many simulated users) for performance testing and realistic first-time-init data. Zero → no-op.
 6. **Restart-Safe (resume from last count)** — Supports stop/start/restart any number of times: the loop runs from `existing_count` to `target_count`, so if the target is X and only 50% of X is currently seeded, it continues until X is reached — never restarting from 0.
-7. **Spec-Consistent (Spec-Loop Discipline — tailored)** — Seeders are orchestration, NOT business logic, so property/metamorphic generation and the MUTATION-SCORE gate are **N/A here** — do not force them. Apply the dual-feedback half: every seeded scenario MUST stay consistent with the **§5 invariants** (commands own validation; a seeder that produces state violating an invariant is a bug, not a fixture). If a seeder encodes a **domain rule** — a required precondition, a status/relationship the scenario assumes, a business default — that rule belongs in the **spec**, not silently in the seeder: feed it into BOTH the spec (the rule) AND, where it is testable, the tests — never a seeder-only fix.
+7. **Real-World Reachable State (seed only what the app could produce)** — Every seeded entity MUST represent a state the application itself could have produced. This is the deeper reason Rule 2 exists: an application-level operation can only ever leave reachable state behind. Where a direct store write is genuinely unavoidable, it MUST carry a comment stating WHY that state is legitimate (bootstrapping legacy/migrated data, an externally-owned record, a deliberately corrupt fixture for repair testing) — unexplained, it is a defect, not a fixture. Seeded entities MUST also carry **plausible relative timing**: stagger creation/update/activity stamps across a realistic span instead of stamping every record with one shared instant. — why: a corpus the application could never produce makes every test over it prove nothing, and a corpus where everything happened in the same millisecond hides ordering defects and makes time-window, sort, and pagination behaviour untestable.
+8. **Spec-Consistent (Spec-Loop Discipline — tailored)** — Seeders are orchestration, NOT business logic, so property/metamorphic generation and the MUTATION-SCORE gate are **N/A here** — do not force them. Apply the dual-feedback half: every seeded scenario MUST stay consistent with the **§5 invariants** (commands own validation; a seeder that produces state violating an invariant is a bug, not a fixture). If a seeder encodes a **domain rule** — a required precondition, a status/relationship the scenario assumes, a business default — that rule belongs in the **spec**, not silently in the seeder: feed it into BOTH the spec (the rule) AND, where it is testable, the tests — never a seeder-only fix.
 
 ## Protocol _(Generate mode)_
 
@@ -217,6 +219,8 @@ MUST ATTENTION verify all before complete:
 - MUST ATTENTION seeder registered via project DI mechanism — `file:line` evidence
 - MUST ATTENTION count config key read correctly (zero → no-op, NEVER hardcoded)
 - MUST ATTENTION scoped DI per iteration — shared scope = DbContext/session corruption
+- MUST ATTENTION every seeded state is one the application could actually produce; any unavoidable direct store write carries a comment justifying WHY that state is legitimate — `file:line` evidence
+- MUST ATTENTION seeded entities carry plausible relative timing (staggered stamps), NEVER one shared instant
 
 ## Sub-Agent Routing
 
@@ -245,6 +249,8 @@ Pattern: grep → trace → grep verify.
 | Hardcoded count (`for i in 0..10`)      | Read count from config key (discovered Step 1)                        |
 | No environment gate                     | Check project env gate key first                                      |
 | Shared DI scope across loop iterations  | Use project's scoped DI per iteration (prevents DbContext corruption) |
+| Seeded state no application operation could produce | Seed it through an application-level operation; if a direct write is unavoidable, comment WHY that state is legitimate |
+| Every seeded record sharing one creation instant    | Stagger stamps across a realistic span so ordering / time-window behaviour stays testable |
 | Batch-all-then-write sub-agent findings | Persist findings per file; NEVER batch at end                         |
 
 ## Review Loop
@@ -287,7 +293,7 @@ MUST ATTENTION read, in full, before forming ANY verdict:
 
 - `docs/project-reference/seed-test-data-reference.md` — project seeder locations, base class, env-gate key, count config key, DI/UoW scope strategy, Required Patterns, Verification Checklist.
 - `docs/project-config.json` → `Data Seeders` context group — configured source roots, naming conventions, run commands.
-- The [Universal Seed Data Rules](#universal-seed-data-rules) (1–7) in this skill — the principles being graded.
+- The [Universal Seed Data Rules](#universal-seed-data-rules) (1–8) in this skill — the principles being graded.
 - The target seeder file(s) themselves — re-read in full; NEVER review from memory.
 - Step 1 discovery: confirm the project's ACTUAL seeder base class, env-gate key, and count key with `file:line` — the review grades against THESE, not generic defaults.
 
@@ -304,6 +310,7 @@ MUST ATTENTION read, in full, before forming ANY verdict:
 - [ ] **Count-configurable** — count read from the discovered config key; NEVER hardcoded (zero → no-op).
 - [ ] **Restart-safe loop** — loop starts at `existing_count`, NEVER 0.
 - [ ] **Scoped DI per iteration** — fresh scope per loop iteration; no shared DbContext/session.
+- [ ] **Real-world reachable state** — every seeded entity is a state the application itself could produce; any direct store write fabricating an otherwise-unreachable state carries a comment justifying WHY it is legitimate; seeded entities carry plausible relative timing, not one shared instant.
 - [ ] **Spec-consistency** — every seeded scenario satisfies the §5 invariants; any encoded domain rule (precondition / status / default) is reflected in the spec (and tests where testable), not seeder-only.
 
 **Project-specific conventions (from the reference doc):**
@@ -408,6 +415,22 @@ Per item: **PASS / FAIL / N/A** with `file:line` evidence and confidence (>80% r
 
 <!-- /SYNC:ai-mistake-prevention -->
 
+<!-- SYNC:real-world-fidelity-testing -->
+
+> **Real-World Fidelity Gate** — MANDATORY when authoring, reviewing, or repairing any integration / E2E / system test.
+>
+> A test earns trust by reproducing a situation the system can actually meet in production. A scenario that could never occur in real life proves nothing when it passes, and wastes hours when it fails.
+>
+> 1. **Ask the fidelity question BEFORE writing the setup:** *"Can this sequence, timing, and data actually occur in production?"* If no, the test is mis-specified — fix the SCENARIO, never the assertion.
+> 2. **Model real pacing between actor steps.** Two distinct actor actions that production separates by seconds, minutes, or hours MUST NOT be fired back-to-back in the same millisecond. Compressed pacing manufactures races the system was never designed to survive, then reports them as product defects.
+> 3. **Wait on a real signal, never a blind sleep.** Find an observable proving the prior step finished — a persisted state change, an audit/version stamp, a queue/worker idle marker, a completion event — and poll until it settles (unchanged across a short stability window). Use a fixed delay ONLY when no observable exists, and say so in a comment.
+> 4. **Barriers belong in ARRANGE, never in ASSERT.** Waiting for a precondition is fidelity. Widening an assertion's timeout, loosening a comparison, adding a retry around a failing assertion, or skipping the test is masking. NEVER do the latter to force green.
+> 5. **Distinguish harness-amplified from real.** Test topologies (shared infra, fan-out consumers, parallel suites, cold starts) can make a rare production race routine locally. Before filing a product defect, state whether the trigger exists in production and at what likelihood.
+> 6. **Keep the protected invariant intact.** Improving fidelity must NEVER reduce what the test protects. If a realistic scenario no longer exercises the rule, the rule needs a DIFFERENT realistic scenario — not a weaker assertion.
+> 7. **Deliberate impossible-state tests are allowed, but MUST be labelled.** Corruption-repair, migration, and fail-safe tests intentionally construct states production should never reach; comment WHY the state is reachable (upstream bug, partial write, legacy data), so they are never confused with unrealistic setups.
+
+<!-- /SYNC:real-world-fidelity-testing -->
+
 <!-- SYNC:understand-code-first:reminder -->
 
 **IMPORTANT MUST ATTENTION** search 3+ existing patterns and read code BEFORE writing any seeder.
@@ -453,6 +476,7 @@ Per item: **PASS / FAIL / N/A** with `file:line` evidence and confidence (>80% r
 - **Understand Code First:** ALWAYS search 3+ patterns and read code before writing.
 - **Evidence:** MUST ATTENTION cite `file:line` per claim; declare confidence; "insufficient evidence" valid.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
+- **Real-World Fidelity:** seed only states the application could actually produce; realistic relative timing; label any deliberately unreachable fixture.
 
 **IMPORTANT MUST ATTENTION** FIND the project's existing seed-data convention FIRST (base class, env-gate key, count key, registration, marker) and MATCH it — never invent a parallel mechanism — why: a divergent seeder fragments the codebase and silently breaks the project's restart/idempotency guarantees
 **IMPORTANT MUST ATTENTION** ENABLE by default ONLY on a local/development environment (env gate is the FIRST check) — auto-setup for local/first-init, NEVER production
@@ -462,6 +486,7 @@ Per item: **PASS / FAIL / N/A** with `file:line` evidence and confidence (>80% r
 **IMPORTANT MUST ATTENTION** scoped DI per iteration — shared DI scope = silent DbContext/session corruption
 **IMPORTANT MUST ATTENTION** ALWAYS make the count configurable and read it from the discovered config key — NEVER hardcode; **default to a SMALL number when nothing is configured** (zero → no-op, never unbounded loop); the same count serves BOTH self-testing the main cases AND enriching volume for performance / many-users / first-init realism
 **IMPORTANT MUST ATTENTION** NEVER duplicate command logic in the seeder — seeder provides realistic inputs, commands own validation/domain/events
+**IMPORTANT MUST ATTENTION** SEED only states the application could actually produce — application-level operations guarantee reachability by construction; a direct store write fabricating an otherwise-unreachable state MUST carry a comment saying why it is legitimate, and seeded entities MUST carry plausible relative timing rather than one shared instant — why: a corpus the application could never produce makes every test over it prove nothing, and same-instant data hides ordering and time-window defects
 **IMPORTANT MUST ATTENTION** every seeded scenario MUST stay consistent with the §5 universal invariants; if a seeder encodes a domain rule (precondition, status, default) feed it into the spec — and tests where testable — NEVER a seeder-only fix — why: a hidden rule in a seeder drifts from the spec and breaks future readers
 
 **IMPORTANT MUST ATTENTION Evidence gate:** cite `file:line` for the env gate, count gate, loop start, DI scope, and seeder registration — confidence >80% to act, <60% DO NOT recommend; "Insufficient evidence" is valid output

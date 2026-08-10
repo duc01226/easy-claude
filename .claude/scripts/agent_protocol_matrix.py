@@ -293,17 +293,18 @@ AGENT_QUALITY_BLOCKS = {
         "trade-off-interrogation-gate", "test-failure-fault-adjudication",
         "integration-test-execution-discipline", "spec-tests-code-triangulation",
         "spec-drift-adjudication", "test-data-isolation",
+        "real-world-fidelity-testing",
     ],
     "tester": [
         "source-test-drift-check", "repeatable-test-principle",
         "test-spec-verification", "red-flag-stop-conditions",
         # wave 2 (twin: test)
-        "test-failure-fault-adjudication",
+        "test-failure-fault-adjudication", "real-world-fidelity-testing",
     ],
     "e2e-runner": [
         "source-test-drift-check", "repeatable-test-principle",
         # wave 2 (twin: e2e-test)
-        "test-failure-fault-adjudication",
+        "test-failure-fault-adjudication", "real-world-fidelity-testing",
     ],
     "database-admin": [
         "graph-impact-analysis",

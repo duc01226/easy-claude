@@ -71,6 +71,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - READ-ONLY: do not implement fixes, only report results
 - Activate relevant skills from catalog during process
 - Always use `tester` subagent, not direct test commands
+- An INTERMITTENT failure (red in one run, green in another) is NOT yet a product defect — route it through the same adjudication `$integration-test-verify` uses before reporting it as one: (a) unrealistic scenario / compressed actor pacing, (b) harness topology amplification (shared infra, fan-out consumers, suite parallelism, cold start), or (c) a genuine product race. Report the verdict with its evidence, or report the failure as UNADJUDICATED — never as a product defect on the strength of one red run
 
 **Be skeptical. Apply critical thinking, sequential thinking. Every claim needs traced proof, confidence percentages (Idea should be more than 80%).**
 
@@ -175,6 +176,22 @@ below — if a downstream rule would raise change cost, this principle wins.
 
 <!-- /SYNC:test-failure-fault-adjudication -->
 
+<!-- SYNC:real-world-fidelity-testing -->
+
+> **Real-World Fidelity Gate** — MANDATORY when authoring, reviewing, or repairing any integration / E2E / system test.
+>
+> A test earns trust by reproducing a situation the system can actually meet in production. A scenario that could never occur in real life proves nothing when it passes, and wastes hours when it fails.
+>
+> 1. **Ask the fidelity question BEFORE writing the setup:** *"Can this sequence, timing, and data actually occur in production?"* If no, the test is mis-specified — fix the SCENARIO, never the assertion.
+> 2. **Model real pacing between actor steps.** Two distinct actor actions that production separates by seconds, minutes, or hours MUST NOT be fired back-to-back in the same millisecond. Compressed pacing manufactures races the system was never designed to survive, then reports them as product defects.
+> 3. **Wait on a real signal, never a blind sleep.** Find an observable proving the prior step finished — a persisted state change, an audit/version stamp, a queue/worker idle marker, a completion event — and poll until it settles (unchanged across a short stability window). Use a fixed delay ONLY when no observable exists, and say so in a comment.
+> 4. **Barriers belong in ARRANGE, never in ASSERT.** Waiting for a precondition is fidelity. Widening an assertion's timeout, loosening a comparison, adding a retry around a failing assertion, or skipping the test is masking. NEVER do the latter to force green.
+> 5. **Distinguish harness-amplified from real.** Test topologies (shared infra, fan-out consumers, parallel suites, cold starts) can make a rare production race routine locally. Before filing a product defect, state whether the trigger exists in production and at what likelihood.
+> 6. **Keep the protected invariant intact.** Improving fidelity must NEVER reduce what the test protects. If a realistic scenario no longer exercises the rule, the rule needs a DIFFERENT realistic scenario — not a weaker assertion.
+> 7. **Deliberate impossible-state tests are allowed, but MUST be labelled.** Corruption-repair, migration, and fail-safe tests intentionally construct states production should never reach; comment WHY the state is reachable (upstream bug, partial write, legacy data), so they are never confused with unrealistic setups.
+
+<!-- /SYNC:real-world-fidelity-testing -->
+
 <!-- SYNC:ai-mistake-prevention -->
 
 > **AI Mistake Prevention** — Failure modes to avoid on every task:
@@ -235,12 +252,14 @@ below — if a downstream rule would raise change cost, this principle wins.
 - **Critical Thinking:** ALWAYS apply critical + sequential thinking; traced proof, confidence >80%.
 - **Evidence:** ALWAYS cite `file:line` per claim; NEVER speculate without proof.
 - **Source/Test Drift:** when source changes, decide from evidence whether test or source is wrong; NEVER assume.
+- **Real-World Fidelity:** a scenario production could never reach proves nothing green and blames the product red; distinguish harness-amplified from real before calling an intermittent failure a product defect.
 - **AI Mistake Prevention:** verify generated content against evidence, trace downstream references, verify all affected outputs, re-read after context loss, surface ambiguity.
 
 **MANDATORY IMPORTANT MUST ATTENTION** READ-ONLY — run tests, report pass/fail counts + failing-test names + report path; NEVER implement fixes here, stop at reporting — why: fixing is `$fix`'s job; mixing the two hides the true test state.
 **MANDATORY IMPORTANT MUST ATTENTION** ALWAYS run tests through the `tester` subagent; NEVER invoke test commands directly — why: the subagent isolates the run and produces the canonical summary report this skill analyzes.
 **MANDATORY IMPORTANT MUST ATTENTION** resolve the active Goal Contract after the run; append verification evidence (test command, exact pass/fail counts, report path) to the goal file's Iteration Log and update the Goal Satisfaction matrix; record `No active goal — evidence reported inline only.` when none exists; NEVER copy raw sensitive fixture data into the goal file — why: the goal file is the durable PASS/FAIL ledger, not a secrets store.
 **MANDATORY IMPORTANT MUST ATTENTION** cite `file:line` evidence for every claim about a failure (confidence >80% to act, <80% verify first); NEVER speculate which test failed or why — read the report — why: a guessed failure verdict sends the user to fix the wrong thing.
+**MANDATORY IMPORTANT MUST ATTENTION** an INTERMITTENT failure is UNADJUDICATED, not a product defect — classify it as (a) unrealistic scenario / compressed actor pacing, (b) harness topology amplification (shared infra, fan-out consumers, suite parallelism, cold start), or (c) a genuine product race, with evidence, before reporting it as a defect; report it as UNADJUDICATED when the evidence is not there — why: a test-fidelity defect reported as a product defect sends the team to fix code that was never wrong.
 **MANDATORY IMPORTANT MUST ATTENTION** before asserting a test/source relationship, grep 3+ similar tests and match the local pattern; apply the source/test drift check — decide from evidence whether a failing test guards intended behavior or the source is the bug — why: a mismatched assumption mislabels a real bug as a flaky test.
 **MANDATORY IMPORTANT MUST ATTENTION** break work into small todo tasks using task tracking BEFORE starting; mark one `in_progress`, complete immediately after evidence; add a final review todo to verify work quality.
 **MANDATORY IMPORTANT MUST ATTENTION** validate route/decisions with the user by asking the user directly — NEVER auto-decide a workflow vs standalone run.
@@ -255,6 +274,7 @@ below — if a downstream rule would raise change cost, this principle wins.
 | "Failure looks trivial, I'll just fix it"     | Stop at reporting. Fixing is `$fix`'s job; this skill is strictly READ-ONLY.                   |
 | "No goal file, skip the evidence step"        | Record `No active goal — evidence reported inline only.` Never silently skip the Goal Contract. |
 | "I know which test failed"                    | Show `file:line` + the report path. No proof = no claim.                                       |
+| "It failed once — that's a product bug"       | Intermittent = unadjudicated. Rule out unrealistic scenario and harness amplification first, with evidence. |
 
 > **[IMPORTANT]** Analyze how big the task is and break it into many small todo tasks systematically before starting — this is very important.
 

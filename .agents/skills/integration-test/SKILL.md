@@ -68,6 +68,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - NEVER write smoke-only tests — read handler/entity/event source first, assert specific field values
 - ALWAYS wrap ALL DB assertions in async polling — no exceptions, not just async handlers
 - NEVER create invalid test state by direct repository writes; use real use-case paths (commands, queries, production consumers/messages) or valid seeded fixtures
+- MUST ATTENTION apply the Real-World Fidelity Gate BEFORE writing setup — a sequence, pacing, or data shape production can never reach proves nothing when green; fix the SCENARIO, never the assertion
 - MUST ATTENTION search existing patterns FIRST before generating any test
 - MUST ATTENTION READ `references/integration-test-patterns.md` before writing
 - Organize by domain feature NEVER by CQRS type — NEVER create `Queries/` or `Commands/` folders
@@ -273,6 +274,21 @@ Build mapping: test case description → TC code (e.g., "create valid order" →
 - No TC exists → **CREATE IT** in Section 8 before generating test. NOT optional.
 - TC outdated/incorrect → **UPDATE IT** first.
 - Section 8 missing → run `$spec [mode=tests]` first.
+
+## Step 2c: Real-World Fidelity Check (BEFORE any test code is written)
+
+MUST ATTENTION answer this BEFORE the Arrange block exists — never after a failure:
+
+> **"Can this sequence, timing, and data actually occur in production?"**
+
+For each planned test, state:
+
+- **Sequence** — can a real actor reach these steps, in this order, through the paths under test?
+- **Pacing** — how far apart does production separate consecutive actor actions (milliseconds, seconds, minutes, hours)? Firing two distinct actor actions back-to-back in the same millisecond is a fidelity defect, NOT a test speed-up.
+- **Data shape** — is every seeded value reachable through a real use-case path (see the direct-repository-write ban above)?
+- **Barrier** — for each gap between actor actions, name the observable that proves the prior step settled (persisted state change, audit/version stamp, queue/worker idle marker, completion event) and poll it in ARRANGE.
+
+Any "no" → fix the SCENARIO before writing the test; NEVER compensate afterwards by widening an assertion timeout. Full contract: `SYNC:real-world-fidelity-testing` below; barrier shape: `references/integration-test-patterns.md` → Pattern 10.
 
 ## Step 3: Generate Test File
 
@@ -869,6 +885,22 @@ integration-test (you are here)
 
 <!-- /SYNC:test-data-isolation -->
 
+<!-- SYNC:real-world-fidelity-testing -->
+
+> **Real-World Fidelity Gate** — MANDATORY when authoring, reviewing, or repairing any integration / E2E / system test.
+>
+> A test earns trust by reproducing a situation the system can actually meet in production. A scenario that could never occur in real life proves nothing when it passes, and wastes hours when it fails.
+>
+> 1. **Ask the fidelity question BEFORE writing the setup:** *"Can this sequence, timing, and data actually occur in production?"* If no, the test is mis-specified — fix the SCENARIO, never the assertion.
+> 2. **Model real pacing between actor steps.** Two distinct actor actions that production separates by seconds, minutes, or hours MUST NOT be fired back-to-back in the same millisecond. Compressed pacing manufactures races the system was never designed to survive, then reports them as product defects.
+> 3. **Wait on a real signal, never a blind sleep.** Find an observable proving the prior step finished — a persisted state change, an audit/version stamp, a queue/worker idle marker, a completion event — and poll until it settles (unchanged across a short stability window). Use a fixed delay ONLY when no observable exists, and say so in a comment.
+> 4. **Barriers belong in ARRANGE, never in ASSERT.** Waiting for a precondition is fidelity. Widening an assertion's timeout, loosening a comparison, adding a retry around a failing assertion, or skipping the test is masking. NEVER do the latter to force green.
+> 5. **Distinguish harness-amplified from real.** Test topologies (shared infra, fan-out consumers, parallel suites, cold starts) can make a rare production race routine locally. Before filing a product defect, state whether the trigger exists in production and at what likelihood.
+> 6. **Keep the protected invariant intact.** Improving fidelity must NEVER reduce what the test protects. If a realistic scenario no longer exercises the rule, the rule needs a DIFFERENT realistic scenario — not a weaker assertion.
+> 7. **Deliberate impossible-state tests are allowed, but MUST be labelled.** Corruption-repair, migration, and fail-safe tests intentionally construct states production should never reach; comment WHY the state is reachable (upstream bug, partial write, legacy data), so they are never confused with unrealistic setups.
+
+<!-- /SYNC:real-world-fidelity-testing -->
+
 <!-- SYNC:integration-test-execution-discipline -->
 
 > **Integration Test Execution Discipline** — How the integration-test family (write · review · verify) runs, diagnoses, and clears a suite. Binds `$integration-test`, `$integration-test-review`, and `$integration-test-verify` identically.
@@ -1094,6 +1126,7 @@ integration-test (you are here)
 - **Graph Impact Analysis:** run blast-radius when graph.db exists; flag stale impacted files.
 - **Repeatable Test Principle:** unique data, additive-only, no reset — pass 2 consecutive runs.
 - **Parallel-Safe Test Isolation:** own fresh per-test data; never a shared mutable entity; account for cross-cutting consumers that wipe a shared parent; suspect contamination FIRST on contradiction; prove isolation by grep.
+- **Real-World Fidelity Gate:** only test sequences, pacing, and data production can actually reach; barriers wait on a real settle signal in ARRANGE — never a widened assertion.
 - **Red Flag Stop Conditions:** escalate on low confidence, large blast radius, breaking change.
 - **Rationalization Prevention:** reject step-skipping evasions; show grep evidence, plan anyway.
 - **Incremental Persistence:** persist findings to `plans/reports/` after each file, never in memory.
@@ -1116,6 +1149,7 @@ integration-test (you are here)
 - **MANDATORY IMPORTANT MUST ATTENTION** NEVER create `Queries/` or `Commands/` folders — instead organize by domain feature — why: CQRS-type folders fragment a domain across directories
 - **MANDATORY IMPORTANT MUST ATTENTION** NEVER mark done after one green run — verification requires 2 consecutive `$integration-test-verify` passes WITHOUT a DB reset — why: one run proves only the current run, not repeatability
 - **MANDATORY IMPORTANT MUST ATTENTION** make every test parallel-safe — own fresh per-test data down to the root it asserts on, NEVER a shared mutable entity; account for cross-cutting consumers (bulk re-sync/recompute/rebuild/cascade) that wipe a shared parent; on a contradiction between a provably-innocent path and wrong state, suspect cross-test interference FIRST and prove isolation by grepping other tests + consumers — why: shared mutable state lets another test silently corrupt your data and the innocent path takes the blame
+- **MANDATORY IMPORTANT MUST ATTENTION** apply the Real-World Fidelity Gate BEFORE writing any setup — ask "can this sequence, timing, and data actually occur in production?", model real pacing between distinct actor actions instead of firing them in the same millisecond, and wait on an observable settle signal in ARRANGE; NEVER widen an assertion timeout, loosen a comparison, or wrap a failing assertion in a retry to compensate — why: a scenario production can never reach proves nothing when it passes and manufactures phantom "product defects" when it fails
 - **MANDATORY IMPORTANT MUST ATTENTION** `review`/`verify` are lightweight in-skill MODES — invoke the standalone `$integration-test-review` and `$integration-test-verify` skills for the heavier workflow gates — why: name-collision; modes are not the sibling skills
 - **MANDATORY IMPORTANT MUST ATTENTION** ask the user directly — validate workflow/route decisions with the user. NEVER auto-decide complexity.
 - **MANDATORY IMPORTANT MUST ATTENTION** passing code/tests NEVER outrank canonical spec intent — instead reach adjudication-required with evidence before changing spec/test/code on a behavior mismatch — why: a green test can encode a regression

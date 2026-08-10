@@ -11,7 +11,7 @@
 **Workflow:**
 
 1. **Header** — Create priority summary for generated/manual test coverage.
-2. **TC Entry** — Capture objective, business intent/invariant, GWT steps, acceptance criteria, data, edge cases, evidence, and related files.
+2. **TC Entry** — Capture objective, business intent/invariant, real-world reachability, GWT steps, acceptance criteria, data, edge cases, evidence, and related files.
 3. **Categories** — Group TCs by CRUD, validation, permissions, workflows, edge cases, **invariant/property**, preservation, and integration concerns.
 4. **Evidence** — Start with `TBD (pre-implementation)` only in TDD-first mode; update after implementation.
 
@@ -19,6 +19,7 @@
 
 - MUST ATTENTION each TC names `Business Intent / Invariant Guarded`.
 - MUST ATTENTION derive **properties, not just examples** — for each [HARD] §4 rule + §5 invariant, write ≥1 universally-quantified property TC ("for ALL inputs in {domain}, {invariant} holds") + ≥1 boundary counter-case; probe the 6 invariant classes in `.claude/skills/shared/tc-format.md` → "Invariant Categories to Probe".
+- MUST ATTENTION each TC fills `Real-World Reachability` — the prior actor actions that produce its Preconditions, plus the realistic gap between consecutive actor actions; a TC that intentionally builds an unreachable state fills `Deliberate Impossible State` instead of leaving it unexplained.
 - MUST ATTENTION preservation tests assert old healthy behavior before and after bugfixes.
 - MUST ATTENTION evidence changes from `TBD` to `[Source: namespace/service/id]` (stack-portable abstract anchor — never physical code coordinates or repository-root paths) after implementation.
 - NEVER let generated tests mirror implementation mechanics without guarding behavior.
@@ -56,6 +57,10 @@
 **Preconditions:**
 
 - {State a user or QC could arrange before the demo — e.g. "a published job opening with 3 applicants". NEVER storage setup ("a row in X", "a seeded document") — that is architecture, and it does not survive re-implementation.}
+
+**Real-World Reachability:** {how production actually reaches the Preconditions above — which actor performs which prior action, in what order, and the realistic elapsed gap between consecutive actor actions (e.g. "a reviewer opens the record minutes after the applicant submits it"). "The data is simply there" is not reachability. Two distinct actor actions with no stated gap get generated as a back-to-back call, which manufactures a race production never has — so "instantaneous" is a claim to justify, never a default.}
+
+**Deliberate Impossible State (only when this TC intentionally constructs a state production should never reach):** {WHY that state is reachable at all — upstream defect, partial write, legacy/migrated data, external-system fault — and which repair or fail-safe behaviour the TC proves. Omit this field entirely for ordinary TCs; unlabelled, an unreachable setup is indistinguishable from a mis-specified one.}
 
 **Demo Flow:** {the actions a real user or QC performs, in order — this TC must be demoable}
 \`\`\`gherkin
@@ -207,11 +212,30 @@ When generating TCs before implementation:
 - Focus on WHAT the behavior should be, not HOW it's implemented
 - Prefer **properties over examples**: when a rule is universal ("for ALL valid amounts…"), write it as a property TC with a generator spec (input domain + invariant) rather than one hand-picked input
 - After implementation, run `$spec [mode=tests]` to fill in evidence
+- Fill `Real-World Reachability` from the intended actor journey, not from the future test harness — a TC written before the code is the cheapest place to catch an impossible sequence
+
+<!-- SYNC:real-world-fidelity-testing -->
+
+> **Real-World Fidelity Gate** — MANDATORY when authoring, reviewing, or repairing any integration / E2E / system test.
+>
+> A test earns trust by reproducing a situation the system can actually meet in production. A scenario that could never occur in real life proves nothing when it passes, and wastes hours when it fails.
+>
+> 1. **Ask the fidelity question BEFORE writing the setup:** *"Can this sequence, timing, and data actually occur in production?"* If no, the test is mis-specified — fix the SCENARIO, never the assertion.
+> 2. **Model real pacing between actor steps.** Two distinct actor actions that production separates by seconds, minutes, or hours MUST NOT be fired back-to-back in the same millisecond. Compressed pacing manufactures races the system was never designed to survive, then reports them as product defects.
+> 3. **Wait on a real signal, never a blind sleep.** Find an observable proving the prior step finished — a persisted state change, an audit/version stamp, a queue/worker idle marker, a completion event — and poll until it settles (unchanged across a short stability window). Use a fixed delay ONLY when no observable exists, and say so in a comment.
+> 4. **Barriers belong in ARRANGE, never in ASSERT.** Waiting for a precondition is fidelity. Widening an assertion's timeout, loosening a comparison, adding a retry around a failing assertion, or skipping the test is masking. NEVER do the latter to force green.
+> 5. **Distinguish harness-amplified from real.** Test topologies (shared infra, fan-out consumers, parallel suites, cold starts) can make a rare production race routine locally. Before filing a product defect, state whether the trigger exists in production and at what likelihood.
+> 6. **Keep the protected invariant intact.** Improving fidelity must NEVER reduce what the test protects. If a realistic scenario no longer exercises the rule, the rule needs a DIFFERENT realistic scenario — not a weaker assertion.
+> 7. **Deliberate impossible-state tests are allowed, but MUST be labelled.** Corruption-repair, migration, and fail-safe tests intentionally construct states production should never reach; comment WHY the state is reachable (upstream bug, partial write, legacy data), so they are never confused with unrealistic setups.
+
+<!-- /SYNC:real-world-fidelity-testing -->
 
 ## Closing Reminders
 
 - MUST ATTENTION Section 8 TCs protect behavior and invariants, not implementation shape.
 - MUST ATTENTION derive properties not just examples — each [HARD] §4 rule / §5 invariant gets a universally-quantified property TC (generator spec: input domain + invariant) plus a boundary counter-case; probe the 6 invariant classes in `tc-format.md`.
+- MUST ATTENTION every TC states `Real-World Reachability` — the actor path that produces its Preconditions and the realistic gap between consecutive actor actions; an intentionally unreachable setup is declared in `Deliberate Impossible State`, never left silent.
 - MUST ATTENTION bugfix specs include preservation tests for pre-existing good behavior.
 - MUST ATTENTION replace `TBD (pre-implementation)` with concrete evidence after implementation.
 - NEVER ship Section 8 with untraceable TC intent or smoke-only acceptance criteria.
+- NEVER specify a scenario production could never reach — an impossible sequence in the spec guarantees an unrealistic test, and its failures get reported as product defects.

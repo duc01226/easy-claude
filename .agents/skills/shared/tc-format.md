@@ -59,6 +59,10 @@ consumers: [spec, spec [mode=tests], spec [mode=sync], integration-test, integra
 
 - {Required DB state, seeded data, or prior actions}
 
+**Real-World Reachability:** {how production actually reaches the Preconditions above — which actor performs which prior action, in what order, and the realistic elapsed gap between consecutive actor actions. "The data is simply there" is not reachability. Two distinct actor actions with no stated gap get generated as a back-to-back call, which manufactures a race production never has — so "instantaneous" is a claim to justify, never a default.}
+
+**Deliberate Impossible State (only when this TC intentionally constructs a state production should never reach):** {WHY that state is reachable at all — upstream defect, partial write, legacy/migrated data, external-system fault — and which repair or fail-safe behaviour the TC proves. Omit this field entirely for ordinary TCs; unlabelled, an unreachable setup is indistinguishable from a mis-specified one.}
+
 **Demo Flow:** {the actions a real user or QC performs, in order — this TC must be demoable}
 
 ```gherkin

@@ -83,7 +83,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 6. **Phase 2: File Review** — Review each changed file, update report incrementally
 7. **Phase 3: Fresh-Context Gate** — Skip when findings already exist; run a second-round sub-agent only for an explicit user/workflow/high-risk synthesis trigger
 8. **Phase 3.5: Code-Simplifier Optimization (MANDATORY when code files changed)** — Invoke `$code-simplifier` scoped to the changed code files to surface clarity/consistency/maintainability simplifications; record them as findings that flow into the same validation/fix loop (skip docs-only diffs)
-9. **Phase 3.7: Integration-Test-Review Coverage Gate (MANDATORY when behavior-bearing code changed)** — Invoke `$integration-test-review` over the full diff; its 7 quality gates audit changed tests AND its Gate 7 (Change Coverage) maps every behavior-changing production file to a covering test (integration-first; unit fallback needs justification) and a spec TC. GAP/SPEC-GAP results become findings for the same validation/fix loop (skip docs-only diffs; deferred to the parent's dedicated step inside `$workflow-review-changes`)
+9. **Phase 3.7: Integration-Test-Review Coverage Gate (MANDATORY when behavior-bearing code changed)** — Invoke `$integration-test-review` over the full diff; its 8 quality gates audit changed tests AND its Gate 7 (Change Coverage) maps every behavior-changing production file to a covering test (integration-first; unit fallback needs justification) and a spec TC. GAP/SPEC-GAP results become findings for the same validation/fix loop (skip docs-only diffs; deferred to the parent's dedicated step inside `$workflow-review-changes`)
 10. **Phase 4: Finalize** — Generate critical issues, recommendations, suggested commit message
 11. **Phase 5: Docs Triage** — Record stale-doc findings for validation/fix loop
 12. **Phase 6: Why-Review Findings Validation (standalone-only; REQUIRED before any standalone fix)** — Whenever the report contains one or more findings, you MUST invoke the `$why-review` skill (an actual skill invocation-tool call) with `--validate-findings` to verify every finding is correct, proof-backed, reasonable, and best-practice before fixing. This is a genuine skill invocation — re-reading the cited lines yourself, "self-validating," or any inline/manual substitute does NOT satisfy this gate. When this skill is step 1 inside `$workflow-review-changes`, stop after the report; parent step 2 owns findings validation.
@@ -615,7 +615,7 @@ For each changed file, identify related documentation:
 **Protocol:**
 
 1. Set the `[Review Phase 3.7]` task to `in_progress`.
-2. **Invoke `$integration-test-review`** scoped to the Phase 1 diff source (working-tree, staged, branch, or commit range) so it audits the **FULL change set** — changed production code AND changed test files, never just the test files. It runs all 7 quality gates, builds the Gate 7 Coverage Mapping Table, and cross-checks spec TCs in both directions.
+2. **Invoke `$integration-test-review`** scoped to the Phase 1 diff source (working-tree, staged, branch, or commit range) so it audits the **FULL change set** — changed production code AND changed test files, never just the test files. It runs all 8 quality gates, builds the Gate 7 Coverage Mapping Table, and cross-checks spec TCs in both directions.
 3. **Capture, do NOT auto-fix.** Integrate its output into the main report under `## Integration-Test-Review Findings`: per-gate verdicts, the Coverage Mapping Table, and every GAP / SPEC-GAP / unjustified COVERED-UNIT as a finding (GAP = HIGH severity minimum; CRITICAL for auth/money/data-integrity paths).
 4. Set the `[Review Phase 3.7]` task to `completed`.
 
@@ -1018,7 +1018,7 @@ changes-review (you are here)
   ├─ Phase 3.5: Code-simplifier optimization (INTERNAL — $code-simplifier over changed code files, report mode)
   │    → Simplification findings feed Phase 6 validation → Phase 7 fix (skip docs-only diffs)
   │
-  ├─ Phase 3.7: Integration-test-review coverage gate (INTERNAL — $integration-test-review over the FULL diff, 7 gates)
+  ├─ Phase 3.7: Integration-test-review coverage gate (INTERNAL — $integration-test-review over the FULL diff, 8 gates)
   │    → Gate 7 maps every behavior-changing production file to a covering test (integration-first) + spec TC
   │    → GAP/SPEC-GAP verdicts feed Phase 6 validation → Phase 7 fix
   │    → GAP fix = WRITE the missing test via $integration-test; SPEC-GAP fix = $spec [mode=tests] [update] (skip docs-only diffs)

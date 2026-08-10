@@ -60,6 +60,23 @@
     - **Data Change TCs:** business data state transforms correctly and remains visible/usable as expected
     - **Preservation TCs (MANDATORY business-visible bugfixes):** ≥1 per "Healthy input" row — authored from OLD code semantics BEFORE fix lands. Technical-only bugfixes with no business-visible result produce zero business TCs.
 - **Interactive review:** ALWAYS `AskUserQuestion` — review TC list with user before writing
+- **Real-world fidelity (per TC):** every TC's `Preconditions` and `Demo Flow` MUST describe a situation real actor behaviour can actually produce. State HOW production reaches the precondition, and — whenever two consecutive steps are distinct actor actions — state the realistic elapsed gap between them. A TC specifying a sequence production could never reach GUARANTEES an unrealistic test downstream: the spec is the upstream lever, so fix it here, never in the generated test's assertions.
+
+<!-- SYNC:real-world-fidelity-testing -->
+
+> **Real-World Fidelity Gate** — MANDATORY when authoring, reviewing, or repairing any integration / E2E / system test.
+>
+> A test earns trust by reproducing a situation the system can actually meet in production. A scenario that could never occur in real life proves nothing when it passes, and wastes hours when it fails.
+>
+> 1. **Ask the fidelity question BEFORE writing the setup:** *"Can this sequence, timing, and data actually occur in production?"* If no, the test is mis-specified — fix the SCENARIO, never the assertion.
+> 2. **Model real pacing between actor steps.** Two distinct actor actions that production separates by seconds, minutes, or hours MUST NOT be fired back-to-back in the same millisecond. Compressed pacing manufactures races the system was never designed to survive, then reports them as product defects.
+> 3. **Wait on a real signal, never a blind sleep.** Find an observable proving the prior step finished — a persisted state change, an audit/version stamp, a queue/worker idle marker, a completion event — and poll until it settles (unchanged across a short stability window). Use a fixed delay ONLY when no observable exists, and say so in a comment.
+> 4. **Barriers belong in ARRANGE, never in ASSERT.** Waiting for a precondition is fidelity. Widening an assertion's timeout, loosening a comparison, adding a retry around a failing assertion, or skipping the test is masking. NEVER do the latter to force green.
+> 5. **Distinguish harness-amplified from real.** Test topologies (shared infra, fan-out consumers, parallel suites, cold starts) can make a rare production race routine locally. Before filing a product defect, state whether the trigger exists in production and at what likelihood.
+> 6. **Keep the protected invariant intact.** Improving fidelity must NEVER reduce what the test protects. If a realistic scenario no longer exercises the rule, the rule needs a DIFFERENT realistic scenario — not a weaker assertion.
+> 7. **Deliberate impossible-state tests are allowed, but MUST be labelled.** Corruption-repair, migration, and fail-safe tests intentionally construct states production should never reach; comment WHY the state is reachable (upstream bug, partial write, legacy data), so they are never confused with unrealistic setups.
+
+<!-- /SYNC:real-world-fidelity-testing -->
 
 ---
 
@@ -350,6 +367,7 @@ TC Blast Radius Analysis:
 | Invariant coverage  | **Property TC** count guarding §4 [HARD] rules + §5 invariants | ≥ count([HARD] BR) + count(§5 entity invariants) | {n}    | PASS/FAIL |
 | Transition coverage | Valid + invalid transition TCs for each §5 lifecycle state     | ≥ 2 per stateful entity (≥1 valid, ≥1 invalid) | {n}    | PASS/FAIL |
 | Chain coverage      | End-to-end chain TC (decade 061–069) per `COMPLETE` user-facing chain (Full-Chain Trace Map) | ≥ 1 per COMPLETE UI-bearing chain | {n} | PASS/FAIL |
+| Scenario fidelity   | TCs whose Preconditions + step pacing production can actually reach | ALL planned TCs (0 unreachable; a deliberate impossible-state TC counts only when labelled) | {n} | PASS/FAIL |
 | Total floor         | Total planned TCs                                             | ≥ `business_floor`                             | {n}    | PASS/FAIL |
 
 > ⚠️ **This table has NO Write-op / Read-op / Event-job rows, deliberately.** Those made the business TC count a function of the architecture — an Event/job row mints a business TC for every consumer and background job, which is how sync/consumer/event-handler cases entered a tech-free business spec. **The obligation is not abolished: it is owned by the technical spec tree**, where counting handlers is correct. Every row above reads a **spec section**, so re-architecting cannot move any number in this table.
@@ -427,6 +445,8 @@ Options:
 
 - {State a user or QC could arrange — never storage setup}
 
+**Real-World Reachability:** {how production actually reaches those Preconditions — which actor performs which prior action, in what order, and the realistic elapsed gap between consecutive actor actions}
+
 **Demo Flow:**
 \`\`\`gherkin
 Given {state a user could arrange}
@@ -469,6 +489,15 @@ And {additional visible verification}
 > **[M7 — Business-visibility — judge the TC BODY]** Apply the demo test to the case BODY: *"what would a stakeholder SEE change?"* — no answer → FAIL as TECHNICAL-ONLY, and the case does NOT belong in §8. A `When` that is an invocation (a handler runs, a consumer receives, a job fires, data syncs) or a `Then` asserting schema/type/nullability/call-count FAILS. Judge the BODY, never the title or ID — a business-sounding title routinely fronts an invocation-shaped `When`.
 >
 > **M1 governs vocabulary; M7 governs subject matter.** A technical case in impeccably tech-free prose satisfies M1 while violating M7 — *"the system correctly synchronizes the record"* names no technology, passes the M1-M2 check above, and is still a technical TC wearing a business costume. The M1-M2 stack-swap check CANNOT catch this; only the demo test can. See `.claude/skills/shared/sdd-artifact-contract.md` → "Business-Visibility Gate" for the full BLOCKING criteria, the detection recipe, and the no-op rule (a change with no business-behavior delta correctly yields ZERO new TCs).
+
+> **[BLOCKING] Real-world fidelity — judge the SCENARIO the TC specifies.** Per the Real-World Fidelity Gate above, a TC is the upstream lever on test realism: a spec describing an impossible situation guarantees an unrealistic test, and that test proves nothing when it passes. Before writing any TC body, answer: *"Can this sequence, timing, and data actually occur in production?"*
+>
+> 1. **`Real-World Reachability` is REQUIRED on every TC** — name the prior actor action(s) that produce the `Preconditions`. "The data is simply there" is not reachability; if no actor path produces that state, the TC is mis-specified — re-scope it, never soften the `Then`.
+> 2. **State the gap whenever consecutive steps are distinct actor actions.** A TC whose `When`/`And` steps imply two different actor actions with NO realistic gap MUST declare the gap explicitly (*"the reviewer responds minutes after the applicant submits"*) or be re-scoped into separate TCs. Silence here becomes a back-to-back call in the generated test, manufacturing a race production never has.
+> 3. **A deliberately unreachable state MUST be labelled** with WHY it is reachable (upstream defect, partial write, legacy data) — see the template's `Deliberate Impossible State` field. Unlabelled, it is indistinguishable from a mis-specified TC.
+> 4. **Fidelity NEVER costs coverage.** If a realistic scenario stops exercising the [HARD] rule or §5 invariant the TC guards, author a DIFFERENT realistic scenario — never a weaker `Then`.
+>
+> Full field definitions: `references/spec-tests-template.md` → Individual TC Entry.
 
 **Evidence rules by mode:**
 
@@ -593,6 +622,7 @@ When feature behavior removed or significantly changed:
 - ❌ Generating TCs without reading existing Section 8 (causes ID collisions)
 - ❌ Skipping the interactive review step (user must approve TC list)
 - ❌ Writing TCs without Evidence field (every TC needs it, even if `TBD`)
+- ❌ Specifying a scenario production could never reach — unreachable `Preconditions`, or two distinct actor actions with no realistic gap (mis-specified TC → unrealistic test → false defect report)
 
 ---
 

@@ -19,15 +19,15 @@ description: '[Code Quality] Use when you need to review integration tests for a
 
 **Summary:**
 
-- **Purpose:** Review target is the CHANGE (collect BOTH changed production code AND changed test files), never just the test files — Gates 1-6 judge test quality, Gate 7 maps every behavior-changing production file to a covering test (integration-first; unit only with recorded justification) + spec TC. Uncovered changed behavior = HIGH finding minimum.
-- **The 7 Gates (main review steps):** G1 Assertion Value — mutation-score, record the Mutation Probe Ledger (no ledger = FAIL); G2 Data State — assert specific DB fields with async polling; G3 Repeatability — unique IDs, additive-only, 2 consecutive green runs; G4 Domain Logic — read handler, assert ONLY fields it writes; G5 Spec Traceability — `TestSpec` annotation → TC in spec docs (1 TC → many tests is correct); G6 Three-Way Sync — feature-docs > test-spec docs > code > test, escalate conflicts; G7 Change Coverage — every behavior-changing file → covering test + non-stale §8 TC.
-- **The phase pipeline (run ALL, `TaskCreate` each):** P0 Scope-detect → P1 Collect (split prod vs test files) → P2 Gate Review (Gates 1-6 per file, Gate 7 across set) → P3 Spec Cross-Check (both directions) → P4 Initial Report → P5 Fix ALL Crit/High + WRITE missing tests → P6 Validated-fix + full fresh re-review until 0 Crit/0 High → P7 Build & run ALL tests → P8 Failure Investigation → P9 Why-Review self-validation.
+- **Purpose:** Review target is the CHANGE (collect BOTH changed production code AND changed test files), never just the test files — Gates 1-6 and 8 judge test quality, Gate 7 maps every behavior-changing production file to a covering test (integration-first; unit only with recorded justification) + spec TC. Uncovered changed behavior = HIGH finding minimum.
+- **The 8 Gates (main review steps):** G1 Assertion Value — mutation-score, record the Mutation Probe Ledger (no ledger = FAIL); G2 Data State — assert specific DB fields with async polling; G3 Repeatability — unique IDs, additive-only, 2 consecutive green runs; G4 Domain Logic — read handler, assert ONLY fields it writes; G5 Spec Traceability — `TestSpec` annotation → TC in spec docs (1 TC → many tests is correct); G6 Three-Way Sync — feature-docs > test-spec docs > code > test, escalate conflicts; G7 Change Coverage — every behavior-changing file → covering test + non-stale §8 TC; G8 Scenario Fidelity — the setup's sequence, pacing, and data must be reachable in production; settle barriers in ARRANGE, never widened assertion timeouts.
+- **The phase pipeline (run ALL, `TaskCreate` each):** P0 Scope-detect → P1 Collect (split prod vs test files) → P2 Gate Review (Gates 1-6 + 8 per file, Gate 7 across set) → P3 Spec Cross-Check (both directions) → P4 Initial Report → P5 Fix ALL Crit/High + WRITE missing tests → P6 Validated-fix + full fresh re-review until 0 Crit/0 High → P7 Build & run ALL tests → P8 Failure Investigation → P9 Why-Review self-validation.
 - **Read handler/service source (and feature docs) BEFORE judging any assertion.** FAIL smoke-only, existence-only (not-null), dead (always-true), copy-paste, and DI-resolution-only tests — why: assertion quality is unknowable without knowing what the handler actually writes.
 - **Don't just report gaps — fix them.** Gate 6: NEVER fix a test to match broken code, NEVER self-resolve a three-way conflict (escalate via `AskUserQuestion`). Phase 5 WRITES the missing test (runs `/spec [mode=tests]` for SPEC-GAPs); a full fresh re-review runs after every validated fix cycle until a clean pass returns 0 CRITICAL/0 HIGH.
 
 **Scope:** The FULL change set — changed production code AND changed test files — from uncommitted changes (default), user-specified files, or a user-specified diff (branch/PR). The review target is never "just the test files".
 
-**Workflow:** Phase 0 Detect → Collect → Coverage Map (Gate 7) → 7-Gate Review → Spec Cross-Check → Report → validate findings → fix validated issues (including writing missing tests) → full re-review after fixes → Build & verify → If fail: investigate + fix plan
+**Workflow:** Phase 0 Detect → Collect → Coverage Map (Gate 7) → 8-Gate Review → Spec Cross-Check → Report → validate findings → fix validated issues (including writing missing tests) → full re-review after fixes → Build & verify → If fail: investigate + fix plan
 
 **Non-negotiable rules:**
 
@@ -41,6 +41,7 @@ description: '[Code Quality] Use when you need to review integration tests for a
 - MUST verify tests use unique IDs per run (infinitely repeatable)
 - MUST use async polling/retry for ALL DB assertions — async delays are norm
 - MUST flag repository-created or repository-mutated test data that bypasses real use cases and can leave invalid state
+- MUST treat an unrealistic setup as a review finding (Gate 8) — compressed pacing between actor steps, a fixed sleep standing in for a real observable, a widened assertion timeout replacing an ARRANGE barrier, or a retry wrapped around a failing assertion
 - MUST require 2 consecutive successful suite/project runs before declaring integration tests verified/idempotent
 - NEVER accept assertions that always pass regardless of handler correctness
 - **NO smoke/fake/useless tests** — every test MUST execute actual operations and verify data state
@@ -82,15 +83,15 @@ Classify BEFORE any gate review. Route wrong → waste all effort.
 | 0 test files BUT production code changed     | Coverage-gap review | Gate 7 IS the review — map every changed behavior to existing tests; uncovered behavior = finding. Do NOT exit |
 | 0 changes at all                             | Empty target        | Ask user for explicit scope via `AskUserQuestion`                                                            |
 
-**The review target is the CHANGE, not the test files.** Changed test files are reviewed for quality (Gates 1-6); changed production files are checked for coverage and spec alignment (Gate 7). Both halves are mandatory.
+**The review target is the CHANGE, not the test files.** Changed test files are reviewed for quality (Gates 1-6 and 8); changed production files are checked for coverage and spec alignment (Gate 7). Both halves are mandatory.
 
 **Search for test reference docs** — NEVER hardcode paths. Grep for `integration-test-reference`, `test-patterns`, `integration-test-guide` near changed test files to discover project-specific conventions before starting gate review.
 
 ---
 
-## The 7 Quality Gates
+## The 8 Quality Gates
 
-> Gates 1-6 apply per changed/target TEST file. Gate 7 applies to the CHANGE SET — every behavior-changing production file must map to a covering test and a spec TC.
+> Gates 1-6 and Gate 8 apply per changed/target TEST file. Gate 7 applies to the CHANGE SET — every behavior-changing production file must map to a covering test and a spec TC.
 
 ### Gate 1: Assertion Value — "Would this catch the bug?" (MUTATION-SCORE gate)
 
@@ -263,6 +264,29 @@ This gate makes the skill verify the REVIEW TARGET has coverage — not merely r
 
 **Explicit user waiver** (recorded verbatim in the report with the user's reason) is the ONLY alternative to closing a GAP.
 
+### Gate 8: Scenario Fidelity — "Could production ever reach this setup?"
+
+> **Think:** Read the ARRANGE block as a production trace. Could this exact sequence, timing, and data actually occur in the running system? If no, the test is mis-specified — the finding lands on the SCENARIO, never on the assertion.
+
+An unrealistic setup proves nothing when it passes and burns hours when it fails. Judge fidelity BEFORE judging assertion strength — a strong assertion over an impossible scenario is still a defective test. Applies per changed/target TEST file, alongside Gates 1-6.
+
+**Finding triggers — mechanically checkable; each fires as a finding with severity + `file:line` evidence:**
+
+| Trigger (what to look for in the test)                                                                                                                                     | Severity                                                                       | Fix direction                                                                                                                             |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Chained actor actions with no settle barrier** — two or more distinct actor actions issued back-to-back that production separates by seconds, minutes, or hours          | HIGH (CRITICAL when an in-flight async message can land between them and clobber state) | Add an ARRANGE barrier that polls a real observable proving the prior action finished                                                     |
+| **Fixed sleep standing in for a real observable** — a hardcoded delay where a persisted state change, version/audit stamp, queue/worker idle marker, or completion event exists | MEDIUM (HIGH when the delay is what keeps a race from firing)                  | Replace with poll-until-settled on that observable; a fixed delay is acceptable ONLY when no observable exists AND a comment says so       |
+| **Widened assertion timeout instead of an added precondition** — the ASSERT-side wait grew, or a retry/poll wrapper appeared there, rather than an ARRANGE barrier being added | HIGH                                                                           | Move the wait into ARRANGE and restore the original assertion window                                                                      |
+| **Unreachable setup state with no explanation** — ARRANGE constructs a state and nothing records how production could reach it                                             | MEDIUM (HIGH when the asserted outcome depends on that state)                  | Reach the state through real use-case paths, or label it a deliberate impossible-state test with the reason it is reachable               |
+| **Retry wrapped around a failing assertion** — a retry/loop added around the ACT+ASSERT pair after a red run                                                               | CRITICAL                                                                       | Revert the retry; adjudicate the intermittency (`/integration-test-verify`) before any change                                             |
+| **Fidelity improvement that weakened the protected invariant** — the scenario became realistic and the assertion became looser in the same change                          | HIGH                                                                           | Keep the assertion; find a DIFFERENT realistic scenario that still exercises the rule                                                     |
+
+**PASS:** Every actor step in ARRANGE could occur in production in that order and at that pacing; every wait is an ARRANGE-phase barrier on a real observable (or a commented fixed delay where no observable exists); any deliberately impossible state carries a comment naming WHY production could reach it (upstream bug, partial write, legacy data).
+
+**FAIL:** Any trigger row fires with no recorded justification.
+
+**Verify:** Read the test end-to-end as a production trace — per actor step ask "what separates this from the previous step in real life, and what does the test wait on?" Then grep the test file (and, when reviewing a change, its diff) for sleep/delay calls, retry/poll wrappers, and enlarged timeout arguments; every hit is a candidate row above. A trigger that fires in the DIFF (a wait that grew, a retry that appeared) outranks one that merely pre-existed — it is evidence of masking in progress.
+
 ---
 
 ## Review Protocol (9 Phases)
@@ -271,7 +295,7 @@ Use `TaskCreate` for EACH phase before starting.
 
 **Phase 1 — Collect:** Split the change set: production files (Gate 7 coverage targets) vs test files. Categorize test files: new (full review), modified (changed methods only), new projects (infra + samples). Categorize production files: behavior-changing vs excluded (with reason).
 
-**Phase 2 — Gate Review:** Per test file, apply Gates 1-6. Apply Gate 7 once across the change set and produce the Coverage Mapping Table. Record per-file verdict table:
+**Phase 2 — Gate Review:** Per test file, apply Gates 1-6 and Gate 8. Apply Gate 7 once across the change set and produce the Coverage Mapping Table. Record per-file verdict table:
 
 | Gate                              | Verdict                 | Evidence    |
 | --------------------------------- | ----------------------- | ----------- |
@@ -282,6 +306,7 @@ Use `TaskCreate` for EACH phase before starting.
 | 5. Traceability                   | PASS/WARN               | {file:line} |
 | 6. Three-Way Sync                 | PASS/WARN/FAIL/ESCALATE | {file:line} |
 | 7. Change Coverage (per change set) | COVERED/COVERED-UNIT/GAP/SPEC-GAP | {coverage mapping table} |
+| 8. Scenario Fidelity              | PASS/FAIL               | {file:line} |
 
 **Phase 3 — Spec Cross-Check + Three-Way Diff:** Two directions — from tests AND from changed code.
 
@@ -306,9 +331,10 @@ For each behavior-changing production file in the review target (reverse directi
 1. Prioritize: CRITICAL → HIGH → MEDIUM
 2. Per fix: read handler source, understand domain logic, write/fix assertion
 3. **Gate 7 GAP fixes:** WRITE the missing test — integration test first (route through `/integration-test` patterns); unit test only with recorded justification. SPEC-GAP fixes: run `/spec [mode=tests]` UPDATE to add/correct the TC before or alongside writing the test
-4. NEVER weaken assertions to make tests pass — fix root cause (timing, data, setup) instead
-5. Re-read changed files to verify fix correctness
-6. Record each fix with `file:line` under `## Fixes Applied`
+4. **Gate 8 fidelity fixes:** repair the SCENARIO, never the assertion — add the ARRANGE-phase settle barrier on a real observable, restore any widened assertion timeout to its original window, remove any retry wrapped around a failing assertion, and comment a deliberate impossible-state setup with why production could reach it
+5. NEVER weaken assertions to make tests pass — fix root cause (timing, data, setup) instead
+6. Re-read changed files to verify fix correctness
+7. Record each fix with `file:line` under `## Fixes Applied`
 
 **Phase 6 — Validated Fix + Full Re-Review (MANDATORY when fixes are applied):**
 
@@ -317,7 +343,7 @@ Do not spawn a fresh reviewer to re-review the same findings before validation/f
 1. Copy Agent call shape from `SYNC:review-protocol-injection` template verbatim
 2. Set `subagent_type: "integration-tester"`
 3. Embed full verbatim body of 9 SYNC blocks (all present inline in this skill file): `SYNC:evidence-based-reasoning`, `SYNC:bug-detection`, `SYNC:design-patterns-quality`, `SYNC:logic-and-intention-review`, `SYNC:test-spec-verification`, `SYNC:fix-layer-accountability`, `SYNC:rationalization-prevention`, `SYNC:graph-assisted-investigation`, `SYNC:understand-code-first`
-4. Task field: `"Run a full fresh integration-test review pass over {file-list} after validated fixes were applied. Review against 7 quality gates: assertion value, data state, infinite repeatability, domain logic, test-spec traceability, three-way sync, change coverage. Read handler source AND feature docs before judging assertions. Flag smoke-only, existence-only, dead assertions, and repository-created invalid test data as FAIL. Gate 3 also flags tests that are not parallel-safe: assertions hung off a shared mutable entity another test can change, or off a parent a bulk cross-cutting consumer (re-sync/recompute/rebuild/cascade) can wipe even without this test mutating it — each test must own fresh per-test data; prove by grepping other tests on that shared data and every consumer over it. Gate 7: map every behavior-changing production file in {changed-production-file-list} to a covering test (integration-first; unit fallback requires justification) AND a spec TC — uncovered behavior is a HIGH finding minimum, missing/stale TC is a SPEC-GAP finding. Source-of-truth hierarchy: feature docs > test-spec docs > implementation code > test code. Classify every disagreement as: wrong test, code bug, stale docs, or escalate (three-way conflict)."`
+4. Task field: `"Run a full fresh integration-test review pass over {file-list} after validated fixes were applied. Review against 8 quality gates: assertion value, data state, infinite repeatability, domain logic, test-spec traceability, three-way sync, change coverage, scenario fidelity. Read handler source AND feature docs before judging assertions. Flag smoke-only, existence-only, dead assertions, and repository-created invalid test data as FAIL. Gate 3 also flags tests that are not parallel-safe: assertions hung off a shared mutable entity another test can change, or off a parent a bulk cross-cutting consumer (re-sync/recompute/rebuild/cascade) can wipe even without this test mutating it — each test must own fresh per-test data; prove by grepping other tests on that shared data and every consumer over it. Gate 7: map every behavior-changing production file in {changed-production-file-list} to a covering test (integration-first; unit fallback requires justification) AND a spec TC — uncovered behavior is a HIGH finding minimum, missing/stale TC is a SPEC-GAP finding. Gate 8 (Scenario Fidelity): read each ARRANGE block as a production trace and flag setups production could never reach — distinct actor actions chained with no settle barrier where real life separates them by seconds/minutes/hours, a fixed sleep standing in for a real observable, an assertion timeout widened instead of an ARRANGE barrier added, a retry wrapped around a failing assertion, or a setup state with no explanation of how production reaches it; the finding is on the SCENARIO, never on the assertion. Source-of-truth hierarchy: feature docs > test-spec docs > implementation code > test code. Classify every disagreement as: wrong test, code bug, stale docs, or escalate (three-way conflict)."`
 5. Target Files: explicit file list (never pass inline contents)
 6. Reference Docs: include `docs/project-reference/integration-test-reference.md`
 7. Report path: `plans/reports/integration-test-review-rerun{N}-{date}.md`
@@ -346,7 +372,7 @@ After sub-agents return:
 5. **Environment blockers:** Document as `BLOCKED — requires running system`; do NOT mark as test failures
 6. Append under `## Failure Investigation`
 
-**10+ files:** Parallel sub-agents grouped by module. Each gets file list + 7 gates + handler paths + feature doc paths + the changed-production-file list for its module (Gate 7). Consolidate into single report — the orchestrator merges per-module coverage tables into ONE Coverage Mapping Table covering the whole change set.
+**10+ files:** Parallel sub-agents grouped by module. Each gets file list + 8 gates + handler paths + feature doc paths + the changed-production-file list for its module (Gate 7). Consolidate into single report — the orchestrator merges per-module coverage tables into ONE Coverage Mapping Table covering the whole change set.
 
 ---
 
@@ -365,6 +391,9 @@ After sub-agents return:
 | **Shared mutable entity** (assertions on data another test can change) | Not parallel-safe — another test corrupts the shared state; own fresh per-test data |
 | **Cross-cutting consumer blind spot** (shared parent wiped by bulk re-sync/recompute/rebuild/cascade) | A consumer empties your data without this test touching the parent — sharing is unsafe even without direct mutation |
 | **Repository data hacks** (direct create/update bypassing use cases) | Leaves impossible state and hides real workflow bugs |
+| **Compressed actor pacing** (distinct actor actions fired microseconds apart that production separates by minutes) | Manufactures a race the system was never designed to survive — reported as a product defect when it is a test-fidelity defect |
+| **Blind sleep instead of a settle barrier** (fixed delay where an observable exists) | Passes or fails by luck; hides the real completion signal the test should wait on |
+| **Widened assertion timeout as the fix** (ASSERT-side wait grown instead of an ARRANGE precondition added) | Masks the fidelity defect and stretches every future run — the barrier belongs in ARRANGE |
 | **Missing await** (unchecked async exception)                        | Exception swallowed silently                         |
 | **Event not triggered** (query, never fire)                          | Tests seeder, not handler                            |
 | **Test fixed to match broken code**                                  | Hides the bug — docs still say it's wrong            |
@@ -427,7 +456,7 @@ After sub-agents return:
 | Skill                      | Relationship                                                           | When to Call                                                                   |
 | -------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | `/integration-test`        | **Producer** — generates tests this skill reviews                      | Always preceded by /integration-test                                           |
-| `/integration-test-verify` | **Successor** — runs tests after review clears                         | Call after review passes all 7 gates                                           |
+| `/integration-test-verify` | **Successor** — runs tests after review clears                         | Call after review passes all 8 gates                                           |
 | `/spec [mode=tests]`                | **TC source** — Gate 5 checks TCs exist in feature doc Section 8       | If Gate 5 fails (orphaned test) → run /spec [mode=tests] UPDATE                         |
 | `/spec-index`              | **Spec authority** — Gate 6 compares test code vs spec bundle          | If Gate 6 finds conflict: spec is authority                                    |
 | `/spec`            | **Business doc** — Gate 6 compares tests vs feature doc business rules | If Gate 6 finds conflict: check spec vs spec-index alignment first |
@@ -444,6 +473,12 @@ integration-test-review (you are here)
   │    Tests may NOT exist yet for changed code — that is a Gate 7 finding, not an exit condition
   │
   ├─ Gate 1-5 findings → fix tests (re-run integration-test if test code needs regeneration)
+  │
+  ├─ Gate 8 (Scenario Fidelity) findings → repair the SCENARIO, never the assertion:
+  │    → Add the ARRANGE-phase settle barrier on a real observable between chained actor actions
+  │    → Restore any widened assertion timeout; remove any retry wrapped around a failing assertion
+  │    → Label a deliberate impossible-state setup with why production could reach it
+  │    → If the realistic scenario no longer exercises the rule, find a DIFFERENT realistic scenario — never a weaker assertion
   │
   ├─ Gate 7 (Change Coverage) gap resolution:
   │    │
@@ -803,6 +838,22 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 <!-- /SYNC:integration-test-execution-discipline -->
 
+<!-- SYNC:real-world-fidelity-testing -->
+
+> **Real-World Fidelity Gate** — MANDATORY when authoring, reviewing, or repairing any integration / E2E / system test.
+>
+> A test earns trust by reproducing a situation the system can actually meet in production. A scenario that could never occur in real life proves nothing when it passes, and wastes hours when it fails.
+>
+> 1. **Ask the fidelity question BEFORE writing the setup:** *"Can this sequence, timing, and data actually occur in production?"* If no, the test is mis-specified — fix the SCENARIO, never the assertion.
+> 2. **Model real pacing between actor steps.** Two distinct actor actions that production separates by seconds, minutes, or hours MUST NOT be fired back-to-back in the same millisecond. Compressed pacing manufactures races the system was never designed to survive, then reports them as product defects.
+> 3. **Wait on a real signal, never a blind sleep.** Find an observable proving the prior step finished — a persisted state change, an audit/version stamp, a queue/worker idle marker, a completion event — and poll until it settles (unchanged across a short stability window). Use a fixed delay ONLY when no observable exists, and say so in a comment.
+> 4. **Barriers belong in ARRANGE, never in ASSERT.** Waiting for a precondition is fidelity. Widening an assertion's timeout, loosening a comparison, adding a retry around a failing assertion, or skipping the test is masking. NEVER do the latter to force green.
+> 5. **Distinguish harness-amplified from real.** Test topologies (shared infra, fan-out consumers, parallel suites, cold starts) can make a rare production race routine locally. Before filing a product defect, state whether the trigger exists in production and at what likelihood.
+> 6. **Keep the protected invariant intact.** Improving fidelity must NEVER reduce what the test protects. If a realistic scenario no longer exercises the rule, the rule needs a DIFFERENT realistic scenario — not a weaker assertion.
+> 7. **Deliberate impossible-state tests are allowed, but MUST be labelled.** Corruption-repair, migration, and fail-safe tests intentionally construct states production should never reach; comment WHY the state is reachable (upstream bug, partial write, legacy data), so they are never confused with unrealistic setups.
+
+<!-- /SYNC:real-world-fidelity-testing -->
+
 <!-- SYNC:source-test-drift-check -->
 
 > **Source/test drift check.** For coding, fix, debug, investigation, test, or review work: when source behavior changes, inspect affected unit/integration/E2E tests and decide from evidence whether tests should change to match intended behavior or the source change is an unintended bug to fix. Do not write tests for migration code; schema/data migrations are one-time execution paths, not core application logic.
@@ -1152,7 +1203,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 
 **IMPORTANT MUST ATTENTION Goal:** Ensure the review target (changed production code) is covered by tests that protect real business behavior with correct data assertions, infinite repeatability, and spec alignment — verify every behavior change has a covering test (integration-first, unit fallback) so specs ↔ tests ↔ code stay aligned (spec-driven development).
 
-**IMPORTANT MUST ATTENTION 7 Gates (judge every one):** G1 Assertion Value (mutation-score + Mutation Probe Ledger) · G2 Data State (assert DB fields, async-poll) · G3 Repeatability (unique IDs, 2 green runs) · G4 Domain Logic (read handler, assert only fields it writes) · G5 Spec Traceability (TC annotation → spec docs; 1 TC → many tests OK) · G6 Three-Way Sync (feature-docs > test-spec > code > test; escalate conflicts) · G7 Change Coverage (every behavior-changing file → covering test + non-stale §8 TC).
+**IMPORTANT MUST ATTENTION 8 Gates (judge every one):** G1 Assertion Value (mutation-score + Mutation Probe Ledger) · G2 Data State (assert DB fields, async-poll) · G3 Repeatability (unique IDs, 2 green runs) · G4 Domain Logic (read handler, assert only fields it writes) · G5 Spec Traceability (TC annotation → spec docs; 1 TC → many tests OK) · G6 Three-Way Sync (feature-docs > test-spec > code > test; escalate conflicts) · G7 Change Coverage (every behavior-changing file → covering test + non-stale §8 TC) · G8 Scenario Fidelity (setup reachable in production; settle barrier in ARRANGE, never a widened assertion timeout).
 
 **IMPORTANT MUST ATTENTION Phases (run ALL, `TaskCreate` each, one `in_progress`):** P0 Scope-detect → P1 Collect (split prod vs test) → P2 Gate Review → P3 Spec Cross-Check (both directions) → P4 Initial Report → P5 Fix ALL Crit/High + WRITE missing tests → P6 Validated-fix + full fresh re-review until 0 Crit/0 High → P7 Build & run ALL tests → P8 Failure Investigation → P9 Why-Review self-validation.
 
@@ -1163,6 +1214,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **Double Round-Trip Review:** Validated-fix then full fresh re-review until clean.
 - **Repeatable Test Principle:** Unique IDs, additive-only, no cleanup; ALWAYS async-poll DB asserts.
 - **Parallel-Safe Test Isolation:** Own fresh per-test data; never a shared mutable entity; account for cross-cutting consumers wiping a shared parent; suspect contamination FIRST on contradiction; prove isolation by grep.
+- **Real-World Fidelity:** the setup's sequence, pacing, and data must be reachable in production; settle barriers on a real observable belong in ARRANGE — NEVER a widened assertion timeout, a blind sleep, or a retry around a failing assertion; label deliberate impossible-state tests with why the state is reachable.
 - **Source/Test Drift Check:** Source change → reinspect affected tests for intended behavior.
 - **Spec↔Tests↔Code Triangulation:** the unit of review is the WHOLE PACKAGE (spec §3/§4/§8 + tests + code) — load all three, reason mutual-consistency first; a disagreeing or missing face is a logged finding, NEVER a silent PASS.
 - **Spec Drift Adjudication:** on behavior divergence from a canonical spec, classify CODE-WRONG / SPEC-STALE / AMBIGUOUS / SPEC-SILENT and harvest unwritten invariants into §4/§8 + a guarding test — NEVER normalize drift to whichever side is green.
@@ -1185,6 +1237,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 **IMPORTANT MUST ATTENTION** a test that cannot fail is decoration — if it cannot catch the protected business rule/invariant breaking, delete or fix it; flag smoke-only/existence-only/dead assertions as FAIL unless justified by explicit design comment
 **IMPORTANT MUST ATTENTION** tests MUST be infinitely repeatable — unique IDs per run, no cleanup, no rollback; ALWAYS use async polling/retry for ALL DB assertions; verification requires 2 consecutive passing runs without DB reset — why: one green run hides ordering and eventual-consistency flakiness
 **IMPORTANT MUST ATTENTION** Gate 3 also enforces parallel-safe isolation — FAIL any test hanging assertions off a shared mutable entity another test can change, or off a parent a bulk cross-cutting consumer (re-sync/recompute/rebuild/cascade) can wipe even without this test mutating it; require fresh per-test data and prove isolation by grepping other tests on that shared data AND every consumer over it; on a contradiction between a provably-innocent path and wrong state, suspect contamination FIRST — why: shared mutable state lets another test silently corrupt your data and the innocent path takes the blame
+**IMPORTANT MUST ATTENTION** Gate 8 — an unrealistic setup is a REVIEW FINDING, not a tolerable quirk: flag actor actions chained with no settle barrier where production separates them by seconds/minutes/hours, a fixed sleep standing in for a real observable, an assertion timeout widened instead of an ARRANGE barrier added, a retry wrapped around a failing assertion, and a setup state with no explanation of how production reaches it — fix the SCENARIO, NEVER the assertion — why: a scenario production can never meet proves nothing when green and blames the product when red
 **IMPORTANT MUST ATTENTION** Gate 6 — read ALL three sources before classifying (never two); NEVER fix a test to match broken code (report the code bug instead); NEVER self-resolve a three-way conflict (escalate via `AskUserQuestion`); "stale docs" requires BOTH impl code AND test to agree — why: a winner picked without evidence hides bugs
 **IMPORTANT MUST ATTENTION** fix ALL CRITICAL/HIGH issues (Phase 5 NOT optional); validate findings via `/why-review` before fixing; after validated fixes rerun a full fresh review until a clean pass returns 0 CRITICAL/0 HIGH — why: every fix invalidates the prior verdict
 **IMPORTANT MUST ATTENTION** integration-test reviews ALWAYS spawn the `integration-tester` sub-agent, NEVER `code-reviewer`, with all protocol bodies embedded VERBATIM — why: `code-reviewer` lacks TC-traceability and async-polling assertion depth, and file-path indirection drops compliance ~40%
@@ -1212,6 +1265,9 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 | "It shares an existing entity, that's fine" | Shared mutable state is the single point another test corrupts. Require fresh per-test data; only immutable lookup data may be shared. |
 | "This test never mutates that parent"     | A cross-cutting consumer wipes the shared parent without this test touching it. Sharing is unsafe even without direct mutation. |
 | "The path under test is correct, test passes elsewhere" | Provably-innocent path + wrong state = suspect cross-test interference FIRST. Grep other tests + cross-cutting consumers before clearing. |
+| "The setup is unrealistic but the assertion is strong" | A strong assertion over a scenario production can never reach is still a defective test. Gate 8 finding — fix the scenario. |
+| "It just needed a longer timeout"         | A widened assertion timeout is masking, not a fix. The barrier belongs in ARRANGE, on a real observable. |
+| "A sleep there is harmless"               | A blind sleep passes or fails by luck. Name the observable that proves the prior step finished, or comment why none exists. |
 
 ---
 
