@@ -65,7 +65,7 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 - **Self-recursive loop is protocol-bound (goal-gated when available).** Standalone mode's FIRST action (Phase -1) binds the review loop as a standing protocol obligation you self-drive — and installs a `/goal` Stop-hook condition WHEN available — so stopping is BLOCKED until the loop converges. Findings are never auto-fixed on sight: validate (Phase 6 `$why-review --validate-findings`, an actual skill call) → SELF-FIX (Phase 7) → restart `$changes-review` from Phase 0 over the WHOLE updated diff (combined with prior fixes, not just the last fix), looping until one whole pass has zero findings. Inside `$workflow-review-changes` you skip Phase -1, stop after the report, and hand findings to the parent (which owns the goal).
 - **When code changed, three delegated gates are MANDATORY:** Phase 3.5 `$code-simplifier` (clarity/maintainability), Phase 3.7 `$integration-test-review` Gate-7 coverage (every behavior change → covering test + spec TC), and — for every behavior change — Spec Drift Adjudication + the Dual-Feedback Ledger (the gap feeds BOTH spec AND tests).
 - **Docs-update is the unconditional terminal step.** Once the loop converges clean, Phase 8 `$docs-update` ALWAYS runs over the full changeset (deferred only to the parent inside the workflow).
-- **MUST ATTENTION — run ALL main phases in order (the steps AI keeps forgetting):** Phase -1 bind self-recursive review loop — protocol-primary, optional `/goal` gate when available (standalone, FIRST action) → 0 `$graph-blast-radius` → 0.1 change-context + full-pipeline trace (tier FE↔BE + cross-service/event) → 0.3 change-type risk tasks → 0.7 surface-detection dimension tasks → 0.5 plan compliance → 1 collect diff + create report → 2 file-by-file review → 3 fresh-context gate (SKIP when findings exist) → 3.5 `$code-simplifier` (code diffs) → 3.7 `$integration-test-review` Gate-7 coverage (behavior diffs) → 4 finalize + Dual-Feedback Ledger → 5 docs triage → 6 `$why-review --validate-findings` → 7 self-fix + full restart from Phase 0 → 7.5 holistic full-mode `$why-review` → 8 `$docs-update` (unconditional terminal) — why: a skipped phase silently drops a guard (coverage, spec-drift, holistic review, or docs sync) and ships unreviewed work.
+- **MUST ATTENTION — run ALL main phases in order (the steps AI keeps forgetting):** Phase -1 bind self-recursive review loop — protocol-primary, optional `/goal` gate when available (standalone, FIRST action) → 0 `$graph-blast-radius` → 0.1 change-context + full-pipeline trace (tier FE↔BE + cross-service/event) → 0.3 change-type risk tasks → 0.7 surface-detection dimension tasks → 0.8 parallel full-mode `$why-review` rationale sub-agent, spawned in the SAME batch as the 0.7 agents → 0.5 plan compliance → 1 collect diff + create report → 2 file-by-file review → 3 fresh-context gate (SKIP when findings exist) → 3.5 `$code-simplifier` (code diffs) → 3.7 `$integration-test-review` Gate-7 coverage (behavior diffs) → 4 finalize + Dual-Feedback Ledger → 5 docs triage → 6 `$why-review --validate-findings` → 7 self-fix + full restart from Phase 0 → 7.5 holistic full-mode `$why-review` → 8 `$docs-update` (unconditional terminal) — why: a skipped phase silently drops a guard (coverage, spec-drift, holistic review, or docs sync) and ships unreviewed work.
 
 > **Routing boundary:** This skill reviews a **git diff** — working-tree (default), staged, branch, or commit. For an explicit file-set or SHA-range review, processing received review feedback, or a pre-completion verification gate over already-known scope, use `code-review` instead.
 
@@ -79,7 +79,8 @@ Do not read all docs blindly. Start from `docs-index-reference.md`, then open on
 2. **Phase 0.3: Change Types** — Detect high-risk change types; create risk tasks
 3. **Phase 0.5: Plan Compliance** — Verify against active plan (conditional)
 4. **Phase 0.7: Surface Detection** — AI categorizes changed files; creates dimension tasks
-5. **Phase 1: Collect** — Run git status/diff, create report file
+5. **Phase 0.8: Parallel Rationale Review** — Spawn a full-mode `$why-review` sub-agent in the SAME parallel batch as the 0.7 dimensional agents; its findings merge into the Phase 4 final evaluation (standalone-only)
+6. **Phase 1: Collect** — Run git status/diff, create report file
 6. **Phase 2: File Review** — Review each changed file, update report incrementally
 7. **Phase 3: Fresh-Context Gate** — Skip when findings already exist; run a second-round sub-agent only for an explicit user/workflow/high-risk synthesis trigger
 8. **Phase 3.5: Code-Simplifier Optimization (MANDATORY when code files changed)** — Invoke `$code-simplifier` scoped to the changed code files to surface clarity/consistency/maintainability simplifications; record them as findings that flow into the same validation/fix loop (skip docs-only diffs)
@@ -214,6 +215,7 @@ Before starting, call task tracking with:
 - [ ] `[Review Phase 0.1] Note change context + holistic full-pipeline trace across BOTH boundaries — client↔server tier (FE↔BE) AND service/event/external — classify each seam/touchpoint NONE/ADDITIVE/BREAKING` - pending **(MANDATORY comprehension-first; record explicit N/A for single-tier or monolith)**
 - [ ] `[Review Phase 0.3] Detect high-risk change types, create risk tasks` - pending
 - [ ] `[Review Phase 0.7] Categorize changed files, create dimension review tasks` - pending
+- [ ] `[Review Phase 0.8] Spawn parallel $why-review full-mode rationale sub-agent in the SAME batch as the Phase 0.7 dimensional agents; merge its findings into the final evaluation` - pending **(MANDATORY standalone; skip inside `$workflow-review-changes` — parent steps 2-3 own it)**
 - [ ] `[Review Phase 0.5] Plan compliance check (skip if no active plan)` - pending
 - [ ] `[Review Phase 1] Get changes and create report file` - pending
 - [ ] `[Review Phase 2] Review file-by-file and update report` - pending
@@ -426,6 +428,42 @@ For EACH identified category:
 
 > **UI/frontend dimension (OWNED by this skill):** When a _Client-side logic_ or _Styles/Assets_ category surfaces frontend files matching the project's configured frontend/UI file patterns, `$changes-review` owns the UI review and invokes `$ui-review` as its UI dimension — preferably as a dedicated `ui-ux-designer` sub-agent spawned in the same parallel batch as the other dimensional agents (inline-fold its checklist only when sub-agent spawning is unavailable). The checklist: long-content overflow (wrap vs ellipsis+tooltip), responsive multi-screen via flex, flex-grow vs fixed sizing (prefer min/max + flex over fixed px), z-index scale discipline (no raw numbers, no `!important`), and SCSS/BEM quality. This is the SAME behavior in both standalone and workflow contexts — `$ui-review` is NOT a separate workflow step; it always runs here. Skip entirely if no frontend files changed.
 
+**Phase 0.8: Parallel Why-Review Rationale Dimension (MANDATORY — spawned in the SAME batch as the Phase 0.7 dimensional agents)**
+
+> **Purpose:** every Phase 0.7 dimensional reviewer is *scoped* — one category, one file set, one concern. NONE asks the rationale question: *was this change the right call, and does its reasoning survive an adversarial pass?* `$why-review` owns it. Run it CONCURRENTLY with the dimensional agents so rationale findings enter the finding set from the START and flow through the same validate → fix → re-review loop as every other finding; NEVER defer them to Phase 7.5, where fixes already rest on an unquestioned premise. — why: a diff can be clean on every dimension and still be the wrong change; discovering that after the loop converges wastes the whole loop.
+
+**Entry gate:**
+
+- **Run** in standalone mode on EVERY diff — code, docs, specs, config. NEVER exempt one as "too small to have a rationale".
+- **SKIP** inside `$workflow-review-changes` — parent steps 2-3 (`$why-review --target=whole-review-target` → `$why-review`) run immediately after this skill and own the rationale pass. Record: `Phase 0.8 deferred to parent workflow $why-review steps (2-3).` — why: firing here AND at parent step 2 reviews the identical target twice, back to back.
+
+**Protocol:**
+
+1. Set the `[Review Phase 0.8]` task to `in_progress`.
+2. **Spawn ONE `spawn_agent` sub-agent (`agent_type: general-purpose`) in the SAME parallel batch as the Phase 0.7 dimensional agents** — one message, all agents together — so review runs concurrently, NEVER as a blocking pre-step. Its prompt MUST invoke `$why-review` in FULL mode (an actual skill invocation call, NOT `--validate-findings`) over the Phase 1 diff + the Phase 0.1 Change Context note, and MUST carry all four constraints below verbatim.
+3. **Report-only constraints (ALL FOUR are binding on the sub-agent):**
+
+    | Constraint | Rule |
+    | --- | --- |
+    | **NEVER bind the `/goal` gate** | The sub-agent MUST record `/goal accelerator unavailable — sub-agent context` and rely on why-review's protocol loop instead — why: a sub-agent cannot own the session Stop hook, so a goal bound there silently never fires. |
+    | **NEVER fix anything** | Return findings only. Phase 7 owns fixes, after Phase 6 validates them — why: a sub-agent fixing in parallel with reviewers races the diff the other agents are reading. |
+    | **SKIP the Integration-Test-Review Linkage** | Record the deferral line; `$changes-review` Phase 3.7 owns the `$integration-test-review` audit — why: running it here duplicates a full 8-gate audit in the same review. |
+    | **NEVER invoke `$changes-review`** | This skill is the caller — why: a callback closes a `changes-review → why-review → changes-review` cycle. |
+
+4. **Capture — NEVER auto-fix.** Integrate the returned `SYNC:subagent-return-contract` summary into the main report under `## Why-Review Rationale Findings`, preserving each finding's `file:line` proof, severity, confidence.
+5. Set the `[Review Phase 0.8]` task to `completed` once the sub-agent returns. Per the parallel-phase barrier, advance to Phase 4 consolidation ONLY after this agent AND every Phase 0.7 dimensional agent has returned — why: consolidating on a partial agent set silently drops a whole dimension's findings.
+
+**Pipeline integration:** Phase 0.8 findings are ORDINARY findings — consolidated in Phase 4 (Final Review Result), validated in Phase 6 (`$why-review --validate-findings`), fixed in Phase 7 ONLY once validated. They also arm the Phase 3 entry gate: rationale findings count as "findings already exist", so Phase 3's fresh-context pass is skipped exactly as for any other finding.
+
+**Relationship to Phase 7.5 — DISTINCT gates, NEITHER replaces the other:**
+
+| Gate | Reviews | When | Catches |
+| --- | --- | --- | --- |
+| **Phase 0.8** (this gate) | the diff **as authored**, pre-fix | start, in parallel | a wrong premise, before the fix loop builds on it |
+| **Phase 7.5** | the **post-fix package**, whole target + every Phase 7 fix read together | after the loop converges clean | rationale defects the FIXES introduced, which 0.8 could not have seen |
+
+> A clean Phase 0.8 NEVER exempts Phase 7.5, and vice versa — they review different artifacts at different times. Recording one as satisfying the other is a skipped gate.
+
 **Step 3: Work through tasks in order**
 
 For each created task:
@@ -630,6 +668,7 @@ Update report with final sections (**MUST ATTENTION** — include every section 
 - Overall Assessment (big picture summary)
 - Critical Issues (must fix before merge)
 - High Priority (should fix)
+- **Why-Review Rationale Findings (from the Phase 0.8 parallel sub-agent — its verdict + every rationale finding with `file:line`, severity, confidence; or `Phase 0.8 deferred to parent workflow $why-review steps (2-3)`).** MUST ATTENTION fold these into the Overall Assessment rather than listing them apart — a diff that is dimensionally clean but rationally unsound is NOT a passing review.
 - Architecture Recommendations
 - Cross-Boundary Impact (from Phase 0.1 — per client↔server seam AND per service/event/external touchpoint: NONE / ADDITIVE / BREAKING with routed fix; or explicit "Single-tier / monolith — N/A")
 - Documentation Staleness (list stale docs with what changed, or "No doc updates needed")
@@ -998,7 +1037,7 @@ If `architectureRules` not present in project-config.json, skip silently.
 
 | Skill                      | Relationship                                                                | When to Call                                                                                                |
 | -------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `$why-review`              | **TWO distinct gates** — Phase 6 `--validate-findings` (scoped: verifies the supplied finding-list) AND Phase 7.5 FULL mode (holistic: standalone adversarial review of the whole target+diff that scoped review misses) | Phase 6 whenever findings exist; Phase 7.5 (standalone) once the loop converges clean. Both deferred to the parent's own steps inside `$workflow-review-changes`. |
+| `$why-review`              | **THREE distinct gates** — Phase 0.8 FULL mode (parallel: rationale review of the diff **as authored**, spawned with the dimensional agents) · Phase 6 `--validate-findings` (scoped: verifies the supplied finding-list) · Phase 7.5 FULL mode (holistic: whole **post-fix** target+diff as one artifact) | Phase 0.8 at start, always (standalone); Phase 6 whenever findings exist; Phase 7.5 (standalone) once the loop converges clean. All three deferred to the parent's own steps inside `$workflow-review-changes`. NEVER let one stand in for another — different artifacts, different times. |
 | `$docs-update`             | **Mandatory terminal gate (Phase 8)** — final docs sync after the review/fix loop converges; also the primary fix path for flagged staleness | ALWAYS at Phase 8 once review is clean (standalone) — unconditional; AND during Phase 7 for validated staleness findings. Deferred to parent in `$workflow-review-changes`. |
 | `$spec-index`              | **Derived index** — regenerates the bucket `INDEX.md`/ERD FROM the Feature Specs (never a source of truth) | After specs change, to refresh navigation aids — NOT for correcting specs |
 | `$spec [update]`   | **Canonical spec updater** — corrects feature doc §1-8 (the single source of truth) | Called internally by docs-update; call directly for targeted update — and BEFORE docs-update if a spec-was-wrong scenario is detected |
@@ -1014,6 +1053,12 @@ If `architectureRules` not present in project-config.json, skip silently.
 
 ```
 changes-review (you are here)
+  │
+  ├─ Phase 0.8: Parallel rationale dimension (INTERNAL — $why-review FULL mode in a sub-agent, spawned WITH the Phase 0.7 dimensional agents)
+  │    → Reviews the diff AS AUTHORED, before any fix — catches a wrong premise the dimensional reviewers cannot see
+  │    → Sub-agent is report-only: no /goal bind, no fixes, no integration-test linkage (Phase 3.7 owns it), no $changes-review callback
+  │    → Findings merge into the Phase 4 final evaluation → Phase 6 validation → Phase 7 fix
+  │    → SKIP inside $workflow-review-changes — the parent's $why-review steps (2-3) own it
   │
   ├─ Phase 3.5: Code-simplifier optimization (INTERNAL — $code-simplifier over changed code files, report mode)
   │    → Simplification findings feed Phase 6 validation → Phase 7 fix (skip docs-only diffs)
@@ -1760,6 +1805,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 > **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
@@ -2034,6 +2080,7 @@ Every finding MUST have file:line evidence. Speculation is forbidden.
 - **MANDATORY** after fixing validated findings in standalone mode, recursively invoke `$changes-review` again from Phase 0 with a brand-new task breakdown and review the full current diff, not only the fixed files; in parent mode, parent steps 10-15 own the fix plan, feature-implement, and full restart
 - **MANDATORY** continue validate → fix → full restart until one complete review invocation has zero findings; standalone mode executes that loop locally, parent mode reports findings to `$workflow-review-changes` for the loop
 - **MANDATORY** documentation staleness check is REQUIRED in every review — flag stale docs even if not auto-fixing
+- **MANDATORY** run the **Phase 0.8 Parallel Why-Review Rationale Dimension** at the START of every standalone review — spawn ONE `general-purpose` sub-agent in the SAME parallel batch as the Phase 0.7 dimensional agents (one message, all agents together; NEVER a blocking pre-step) that invokes `$why-review` in FULL mode over the diff as authored, under all four report-only constraints (NEVER bind `/goal` — a sub-agent cannot own the session Stop hook · NEVER fix · SKIP the Integration-Test-Review Linkage, Phase 3.7 owns it · NEVER call back into `$changes-review`). Merge its findings into the Phase 4 final evaluation, where they become ordinary findings for Phase 6 validation and Phase 7 fixes. Deferred inside `$workflow-review-changes` to the parent's `$why-review` steps (2-3). A clean Phase 0.8 NEVER exempts Phase 7.5 — 0.8 reviews the PRE-fix diff, 7.5 reviews the POST-fix package — why: every dimensional reviewer is scoped to a category and none asks whether the change was the right call at all; surfacing a wrong premise only at Phase 7.5 means the entire fix loop was spent building on it.
 - **MANDATORY** run the **Phase 7.5 Holistic Standalone Full-Mode Why-Review gate** once the dimensional review/fix loop converges to zero findings, in standalone mode — invoke the `$why-review` skill in FULL mode (an ACTUAL skill invocation call, NOT `--validate-findings`, NOT inline self-review) ONCE over the WHOLE review target combined with the current changes as a single artifact, exactly as a user running `$why-review` against the target directly; fix any findings and re-run until a full-mode pass is clean; deferred only inside `$workflow-review-changes` to the parent's dedicated `$why-review` step (13) — why: the per-file/per-dimension reviewers and the Phase 6 `--validate-findings` gate are scoped and routinely miss whole-package design-rationale/holistic issues that a standalone full-mode `$why-review` of the target catches; a clean dimensional review with a skipped holistic pass is INCOMPLETE
 - **MANDATORY** run the **Phase 8 final `$docs-update` gate** once the review/fix loop converges to zero findings — ALWAYS, unconditional, never skipped on a clean verdict (deferred only inside `$workflow-review-changes` to the parent's docs-update step) — why: a passing code review still leaves docs stale until docs-update reconciles every impacted doc against the actual changes; a clean review with skipped docs-update is INCOMPLETE
 - **MANDATORY** run the **Phase 3.5 Code-Simplifier Optimization gate** whenever the diff includes code files — invoke `$code-simplifier` (report mode) over the changed code files, record its clarity/consistency/maintainability findings in the report, and route them through Phase 6 validation → Phase 7 fix; skip ONLY for docs-only diffs (record the skip reason) — why: correctness review proves it works, the simplifier gate proves it stays cheap to change, and the step is silently dropped without an anchored reminder
@@ -2194,6 +2241,7 @@ Break work into small tasks (task tracking) before starting. Add final task: "An
 - **Front-load report-write in sub-agent prompts for large reviews.** Many-file sub-agents hit budget before final write — findings lost. Design prompts so: (1) report-write is first explicit deliverable, (2) append per-file/section (not batched), (3) scope bounded so reads don't exhaust budget. Truncated mid-sentence with no report file → spawn narrower scope, don't retry same prompt.
 - **After context compaction, re-verify all prior phase outcomes before continuing.** Summaries describe intent, not environment state (git index, filesystem, processes). On resume, FIRST audit: git status, re-read modified files, verify filesystem. Every "completed" claim is an untested hypothesis until evidence confirms.
 - **OOM/memory: check row count before row size.** Triage: (1) Unbounded query — no DB filter for trigger? Push filter to DB; eliminates OOM. (2) Large rows? Projection reduces proportionally. Row reduction > projection in ROI.
+- **Assert the outcome your system OWNS, never the intermediate state your INFRASTRUCTURE owns.** When testing anything asynchronous (queue/broker delivery, retries, background jobs, caches, replication), assert the final business/entity state. NEVER assert the delivery bookkeeping — consume/send status, attempt counts, last-error, row existence or counts in a broker, scheduler, or outbox/inbox table. That bookkeeping lives in shared infrastructure that ANY co-running process (a peer worker, a second replica, a leftover local container) can write, usually under a deterministic shared key, so the assertion silently tests the developer's environment instead of the system: green when run alone, flaky the instant anything else shares that broker + database. Gate question for every assertion: "would this hold no matter WHICH process did the work?" — if no, assert the converged data state instead. Corollary: process-local fault injection and in-process telemetry cannot gate work any process may perform — use them as stress amplifiers (arm → bounded window → disarm → assert convergence), never as preconditions.
 - **Keep domain concepts out of generic/shared/infrastructure layers.** Reusable layer (shared library, framework, infra module) must reference NO consumer-specific domain concept — tenant/customer/product IDs, business entities, feature rules. Leak compiles + runs → passes review silently while coupling the "reusable" layer to one consumer. Keep shared type domain-free; push domain fields/logic down into the consumer via subclass/composition. — why: a layer coupled to one consumer's domain is no longer reusable.
 
 <!-- CODEX:SYNC-PROMPT-PROTOCOLS:END -->

@@ -22,7 +22,7 @@ description: '[Testing] Use when you need to verify integration tests pass after
 - **Step 2 — Gate on a healthy system AND every harvested precondition:** run `systemCheckCommand` AND verify each checklist item against real evidence; any unmet → STOP, mark ENVIRONMENT-BLOCKED, name the precondition + the doc line declaring it, point user at `startupScript`. — why: `systemCheckCommand` covers only what the config author thought to encode, so a doc-declared precondition it misses becomes a red suite blamed on the tests.
 - **Step 3 — Determine test projects:** discover via `testProjectPattern` glob > `testProjects` list > git auto-detect; run only projects the change touches.
 - **Step 4 — Run the 2-run gate, fan out when many isolated projects:** each relevant suite passes 2 consecutive green runs WITHOUT DB reset; any failure restarts from run 1. When several independent, per-DB-isolated projects exist, fan out one `integration-tester` sub-agent per project/group in parallel → barrier on ALL returns → aggregate; suites sharing a DB run sequentially. — why: parallel runs over a shared DB cross-contaminate and silently break the no-reset guarantee.
-- **Step 5 — Report from real output, fix at root:** report Passed/Failed/Skipped counts + failing names (only actual runner output proves a result); on failure diagnose test-bug vs service-bug and fix at the owning layer — NEVER weaken assertions, add skips, or mutate domain data to force green.
+- **Step 5 — Report from real output, fix at root, hand failures to the loop:** report Passed/Failed/Skipped counts + failing names (only actual runner output proves a result); on failure diagnose test-bug vs service-bug and fix at the owning layer — NEVER weaken assertions, add skips, or mutate domain data to force green. ANY failure → recommend `/workflow-integration-test-green`, which owns the converge-to-green loop this skill does not (skip that recommendation when this run IS a round of that loop). — why: a snapshot that reports red and stops leaves the user hand-carrying every failure.
 
 **Workflow:**
 
@@ -42,6 +42,7 @@ description: '[Testing] Use when you need to verify integration tests pass after
 - Any harvested precondition unmet → STOP, mark ENVIRONMENT-BLOCKED, cite the precondition + its doc line, and point the user at the setup step — NEVER run the suite anyway and NEVER report an environment failure as a failing test
 - If config says local infrastructure, databases, services, or full system startup is required, treat that as a blocking prerequisite
 - On test failure → diagnose root cause: test bug or service bug. NEVER weaken assertions.
+- ANY failing test at the end of the run → recommend `/workflow-integration-test-green` as the next step (it owns the converge-to-green loop); omit that recommendation when this run is itself a round of that loop
 - On an INTERMITTENT failure (red in one run, green in another) → adjudicate the cause first — (a) unrealistic scenario / compressed pacing, (b) harness topology amplification, or (c) genuine product race — and record the verdict with evidence BEFORE any change. NEVER resolve a flake by widening a timeout, adding a retry, or skipping
 - Verification only passes after 2 consecutive successful runs of each relevant suite/project without DB reset
 - When many independent, isolated test projects must run, fan out one `integration-tester` sub-agent per project (or balanced group) in parallel to speed it up — barrier on all returns, then aggregate; fall back to sequential when suites share a DB or aren't isolated
@@ -272,6 +273,8 @@ Status: ✅ ALL PASS | ❌ {N} FAILURES
 3. If test bug → fix in the test file (do NOT weaken assertions — fix setup/data)
 4. If service bug → report as finding, do NOT silently fix without telling user
 5. After fixing → re-run the full 2-run verify sequence
+6. **RECOMMEND `/workflow-integration-test-green` to the user whenever this run ends with ANY failure.** This skill reports a snapshot; it does not own convergence. That workflow runs the loop that clears the suite — each round re-verifies, adjudicates the fault with `/debug-investigate` + `/integration-test-review`, fixes at the owning layer, code-reviews the round's fix diff, and re-verifies from a FRESH full run until the whole suite passes its 2-run gate. Surface it as the recommended next step (see [Next Steps](#next-steps)) rather than hand-carrying failures one by one.
+    - **EXCEPTION — do NOT recommend it when this run IS a round of that loop** (invoked by `integration-test-verify-loop` or inside `workflow-integration-test-green`). Return the counts + failing names to the caller instead. — why: the loop already owns convergence; recommending it from inside itself is circular and would restart the very loop that is running.
 
 **Goal Contract evidence (after verify run):** Resolve the active Goal Contract per the goal-contract-satisfaction-loop protocol (active plan `goal.md` → `plans/goals/{YYMMDD-HHmm}-{slug}/goal.md`). When one exists, append the verification evidence to the goal file's Iteration Log — run command, per-run pass/fail counts, report path — mapped to the saved success criteria these tests verify, and update the matching Goal Satisfaction matrix rows (PASS on 2/2 green, FAIL with the failing-test list, BLOCKED with a user-facing reason). Record `No active goal — results reported inline only.` when none exists. Never copy raw sensitive fixture data into the goal file.
 
@@ -366,8 +369,11 @@ A test that is red in one run of the 2-run gate and green in another has NOT tol
 
 **MANDATORY IMPORTANT MUST ATTENTION — NO EXCEPTIONS** after completing this skill, you MUST ATTENTION use `AskUserQuestion` to present these options. Do NOT skip because the task seems "simple" or "obvious" — the user decides:
 
-- **"/workflow-review-changes (Recommended)"** — Review all changes before committing
-- **"/integration-test-review"** — If tests fail: review and fix integration tests before re-verify
+**Any failures in this run → `/workflow-integration-test-green` is the RECOMMENDED first option** (list it first), because it owns the converge-to-green loop this skill deliberately does not. All green → lead with `/workflow-review-changes` as before.
+
+- **"/workflow-integration-test-green (Recommended when ANY test failed)"** — Drive the whole suite to green: verify → adjudicate the fault → fix at the owning layer → review the fix diff → fresh re-verify, looping until the 2-run gate passes. Omit this option when this run was itself a round of that loop, or when the suite is fully green.
+- **"/workflow-review-changes (Recommended when all green)"** — Review all changes before committing
+- **"/integration-test-review"** — Review the failing tests only (report-only fault opinion), without entering the convergence loop
 - **"/docs-update"** — Update documentation if test counts changed
 - **"Skip, continue manually"** — user decides
 
@@ -468,6 +474,7 @@ A test that is red in one run of the 2-run gate and green in another has NOT tol
 > **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
@@ -600,6 +607,7 @@ A test that is red in one run of the 2-run gate and green in another has NOT tol
 **IMPORTANT MUST ATTENTION** when the set has several independent, per-DB-isolated projects, fan out one `integration-tester` sub-agent per project/balanced group in parallel, barrier on ALL returns, then aggregate into the Step 5 report — each sub-agent owns its full 2-run gate and returns real counts + failing names; suites sharing a DB run sequentially — why: parallel runs over a shared DB cross-contaminate state and silently break the no-reset guarantee.
 **IMPORTANT MUST ATTENTION** show actual runner output (Passed/Failed/Skipped counts + failing names) — "all passed" without evidence is theater, not verification — confidence >80% to claim PASS, and that confidence rests on the captured output, never assumption.
 **IMPORTANT MUST ATTENTION** on failure, diagnose test-bug vs service-bug at the responsible layer BEFORE any edit — fix the root cause; report service bugs as findings, do NOT silently fix — why: patching the symptom site leaves the real defect live.
+**IMPORTANT MUST ATTENTION** the run ended with ANY failing test → RECOMMEND `/workflow-integration-test-green` as the user's next step, listed FIRST in the Next Steps options — it owns the converge-to-green loop (verify → adjudicate → fix → review → fresh re-verify) that this snapshot skill deliberately does not; do NOT recommend it when this run is itself a round of that loop (return counts + failing names to the caller instead) — why: reporting red and stopping leaves the user hand-carrying every failure, while recommending it from inside itself is circular.
 **IMPORTANT MUST ATTENTION** on a FAILED TEST, FIRST read the `/integration-test-review` skill protocol (assertion-quality, coverage & spec↔test↔code fault gates) to set investigation/fix direction — decide whether the fault is a source-code root cause or a test-code setup/assertion issue — why: fixing without that verdict patches the wrong side and can green a broken invariant.
 **IMPORTANT MUST ATTENTION** on an INTERMITTENT failure (red in one run, green in another) adjudicate the cause BEFORE any change and record the verdict with evidence — (a) unrealistic scenario / compressed actor pacing, (b) harness topology amplification (shared infra, fan-out consumers, suite parallelism, cold start), or (c) a genuine product race; do NOT file (c) until (a) and (b) are ruled out — why: reporting a test-fidelity defect as a product defect burns hours and erodes trust in the suite.
 **IMPORTANT MUST ATTENTION** NEVER resolve a flake by widening an assertion timeout, adding a retry around a failing assertion, or skipping the test — repair the SCENARIO (an ARRANGE-phase barrier on a real observable) or the product defect, then restart the 2-run gate from run 1 — why: those three hide all causes equally and destroy the only signal you had.
@@ -619,6 +627,7 @@ A test that is red in one run of the 2-run gate and green in another has NOT tol
 | "Bump the timeout and move on"                | Widening a timeout masks all three flake causes. The barrier belongs in ARRANGE, on a real observable. |
 | "Found a race — file it as a product bug"     | Not until (a) and (b) are ruled out. State whether the trigger exists in production and at what likelihood. |
 | "Looks like it passed"                        | Show Passed/Failed/Skipped counts from real runner output. No output = no claim. |
+| "Tests failed — report it and stop"           | Reporting red is half the job. Recommend `/workflow-integration-test-green`; it owns the loop that clears the suite. |
 | "System probably ready"                       | Run `systemCheckCommand`. Unhealthy system → STOP, point user at `startupScript`. |
 | "I read the reference doc, that's the gate"   | Reading is not checking. Harvest the preconditions into a cited checklist and settle every row before the first test command. |
 | "systemCheckCommand is green, skip the checklist" | It verifies only what the config author encoded. The doc's preconditions are the ones the runner silently assumes — verify each. |

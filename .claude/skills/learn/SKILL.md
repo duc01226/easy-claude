@@ -291,12 +291,12 @@ Run these 2 tasks at the end of every `/learn` operation:
 
 `docs/project-reference/lessons.md` is a static project-reference carrier read during project work. Token budget must be controlled.
 
-**Hard limit:** 10000 characters (~3333 tokens). Check BEFORE saving any new lesson.
+**Hard limit:** 20000 characters (~6666 tokens). Check BEFORE saving any new lesson.
 
 **Workflow when adding to `docs/project-reference/lessons.md`:**
 
 1. Read file, count characters (`wc -c docs/project-reference/lessons.md`)
-2. If current + new lesson > 10000 chars → trigger **Budget Trim** before saving
+2. If current + new lesson > 20000 chars → trigger **Budget Trim** before saving
 3. If under budget → save normally
 
 **Budget Trim process:**
@@ -389,6 +389,7 @@ After saving a lesson to any target file, run `/prompt-enhance` on the modified 
 > **Verify ALL affected outputs, not just the first.** One green check is not all green checks; validate every output surface the change can affect.
 > **Assume existing values are intentional — ask WHY before changing OR flagging one as a defect.** Before changing or reporting a constant, limit, flag, cutoff, wording, or pattern, read nearby context and history, the CALLER's ordering, and 2+ sibling call sites of the same convention. A doc stating WHAT without WHY is missing rationale, not proof of a missing guard.
 > **Surface ambiguity before acting — don't pick silently.** Multiple valid interpretations require an explicit question or stated assumption with risk.
+> **Assert the outcome your system owns, not the intermediate state your infrastructure owns.** When verifying async work, assert the final business state — never the delivery/retry bookkeeping held in shared infrastructure that any co-running process can write. Such a check passes when run alone and flakes the moment anything else shares that infrastructure.
 > **Keep shared guidance role-relevant.** Universal guidance must help every receiving skill or agent; code-specific obligations belong only in code-specific protocols.
 
 <!-- /SYNC:ai-mistake-prevention -->
