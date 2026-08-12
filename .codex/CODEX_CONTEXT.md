@@ -119,7 +119,7 @@ Use this protocol for workflow execution in Codex (no hook dependency):
 5. Tasking: create tasks for each workflow/custom/skill step when the selected path has multiple steps.
 6. Execute: run steps in order, validate outputs, and report completion.
 
-Workflow source: `.claude/workflows.json` (18 workflows).
+Workflow source: `.claude/workflows.json` (19 workflows).
 
 ## Workflow Catalog
 
@@ -137,6 +137,7 @@ Workflow source: `.claude/workflows.json` (18 workflows).
 | start a new project from scratch, init a greenfield project, plan a new application | `workflow-greenfield-init` | Greenfield Project Init |
 | po/ba wants a grooming-ready pbi backlog, user stories, tdd test specifications | `workflow-idea-to-pbi` | Idea to PBI |
 | turn a raw product idea, vision, or problem statement into one canonical | `workflow-idea-to-spec` | Idea to Feature Spec |
+| make all integration tests pass, fix failing integration tests, drive the integration test suite to | `workflow-integration-test-green` | Integration Test Green (Verify · Adjudicate · Fix · Loop) |
 | restructure, reorganize, clean up | `workflow-refactor` | Code Refactoring |
 | research a topic from web sources, a business/market viability evaluation, a marketing strategy | `workflow-research` | Research & Synthesis |
 | review current uncommitted, staged, or unstaged changes before committing | `workflow-review-changes` | Review Current Changes |
@@ -740,6 +741,47 @@ UNIVERSAL RULES:
 - Tests Verify Intent: when creating or reviewing specs/tests, name the protected business intent or invariant and ensure the test would fail if that intent breaks.
 ```
 
+### workflow-integration-test-green — Integration Test Green (Verify · Adjudicate · Fix · Loop)
+- Description: Drive an integration-test suite to fully green with a bounded convergence loop — verify the whole system (or the named target), adjudicate every failure with debug-investigate + integration-test-review before any edit, fix at the owning layer, re-verify from scratch, then sync spec TCs, the integration-test reference doc, and feature docs
+- When To Use: Make all integration tests pass, fix failing integration tests, drive the integration test suite to green, run the whole integration test suite and fix whatever fails, integration tests are red after a change, verify the whole system integration tests pass repeatably, loop until all integration tests are green, diagnose and fix an intermittent or flaky integration test
+- Sequence: `scout -> integration-test-verify-loop -> spec [mode=sync] -> scan --target=integration-tests -> docs-update -> workflow-end -> watzup`
+
+Protocol:
+```text
+INTEGRATION TEST GREEN PROTOCOL (Verify → Adjudicate → Fix → Re-verify, looped):
+⚠️ PROJECT CONTEXT: Read docs/project-config.json → integrationTestVerify (quickRunCommand, testProjectPattern, testProjects, systemCheckCommand, startupScript, referenceDocs) AND framework.integrationTestDoc before any test command. NEVER hardcode a language-specific runner.
+⚠️ SCOPE DEFAULT: the WHOLE SYSTEM. With no target in the prompt, verify EVERY integration-test project discoverable via testProjectPattern > testProjects — NOT the git-changed subset. A target named in the prompt (suite, module, feature, diff/branch/PR) narrows the scope; state how it was resolved.
+
+1. Scout: resolve the target scope to a concrete test-project list (fast when the scope is the whole system — record the discovered project list as the scope string).
+2. Integration Test Verify Loop ($integration-test-verify-loop): the core convergence engine. Sets the Goal Contract FIRST, then loops:
+   a. Run $integration-test-verify INLINE over the fixed scope (passed explicitly) — 2 consecutive green runs without DB reset, real Passed/Failed/Skipped counts.
+   b. On ANY failure, adjudicate BEFORE any edit by running BOTH INLINE: $debug-investigate (end-to-start trace to a file:line root cause at the invariant-owning layer, validated by its own $why-review gate) AND $integration-test-review in REPORT-ONLY mode (8 gates: assertion value, data state, repeatability, domain logic, spec traceability, three-way sync, change coverage, scenario fidelity) — it STOPS after its findings report; the loop owns fixing and re-running.
+   c. Emit ONE written Fault Verdict per failure: TEST-WRONG | TEST-NOT-OPTIMAL | SOURCE-WRONG | ENVIRONMENT-BLOCKED | AMBIGUOUS, each with file:line evidence and confidence. AMBIGUOUS → ask the user directly, never a silent pick between source and test.
+   d. $fix at the OWNING layer (Entity > Service > Handler), never the crash site. SOURCE-WRONG keeps/strengthens the test that caught it. TEST-NOT-OPTIMAL repairs the SCENARIO with an ARRANGE-phase barrier on a real observable.
+   e. CONDITIONAL $changes-review — in EVERY round that applied ANY fix (source, test, scenario, or spec), run $changes-review INLINE and REPORT-ONLY over that round's fix diff (the files changed since the round's snapshot), validate its findings with $why-review --validate-findings, and fold every VALIDATED finding into the SAME round's fix set. No fix landed → skip with a recorded reason. Unfixable validated findings → STOP and escalate. This SUBSUMES the SOURCE-WRONG verdict's own changes-review obligation — run it once per round over the whole fix diff, never twice, and never open a nested review→fix loop inside a round.
+   f. Round Integrity Check (BLOCKING): executed test count must not decrease, skipped count must not increase, scope must not shrink.
+   g. Re-verify from a FRESH full run. Round cap 5; failing count not shrinking across 2 rounds, failures increasing, cap hit with failures open, lost coverage, an open validated $changes-review finding, or ENVIRONMENT-BLOCKED → STOP and escalate by asking the user directly.
+3. Spec Sync ($spec [mode=sync]): reconcile §8 TC-{FEATURE}-{NNN} specs ↔ the executing test code. Update each TC CoveredBy field with all covering {File}::{MethodName} links (1 TC → many tests is correct).
+4. Integration Test Doc Scan ($scan --target=integration-tests): regenerate the integration-test project-reference doc so patterns, fixtures, helper conventions, and suite inventory reflect the tests as they now stand after the loop.
+5. Docs Update ($docs-update): update every OTHER impacted doc — feature-doc evidence fields, version history, and any doc embedding test counts or coverage claims that the loop changed.
+6. Close the workflow and summarize.
+
+GUARDRAIL — NEVER force green: no weakened or removed assertions, no skip annotations, no widened assertion timeouts, no retries wrapped around a failing assertion, no repository-hacked domain data, no narrowed scope. Fix the scenario or the product defect, then restart the 2-run gate from run 1.
+GUARDRAIL — a suite that got greener by losing tests REGRESSED. The Round Integrity Check is blocking, not advisory.
+GUARDRAIL — ENVIRONMENT-BLOCKED is not a loop condition: STOP, mark BLOCKED, and point the user at startupScript. NEVER change a test because the system was down.
+GUARDRAIL — no fix ships un-code-reviewed: the loop's only convergence signal is "the tests went green", and a green test cannot see a wrong-layer fix, a broken invariant elsewhere, dead code, or a security/performance regression. Every round that lands a fix code-reviews that fix in the SAME round.
+MANDATORY INTEGRATION-TEST-GREEN GATES:
+- The Goal Contract is set FIRST (before round 1) with one required Success Criterion: a fresh full $integration-test-verify over the scope reports ZERO failed tests across 2 consecutive runs without a DB reset, with no test deleted, skipped, or weakened to get there.
+- $integration-test-verify, $debug-investigate, $integration-test-review, and $changes-review run INLINE via the skill invocation — NEVER as sub-agents (their in-session $why-review and fix/re-review gates are lost). Their OWN internal fan-outs (verify per-project integration-tester agents, review phase agents) stay sub-agents by their own design.
+- $integration-test-review runs REPORT-ONLY inside the loop. If it cannot be constrained and self-fixes anyway, treat that as the round fix half and skip $fix for that round — never double-fix.
+- Every pass/fail claim is backed by actual test-runner output. "All passed" without counts and names is theater, not verification.
+- Documentation sync is part of DONE, not an optional tail: $spec [mode=sync] + $scan --target=integration-tests + $docs-update all run after convergence so the spec TCs, the integration-test reference doc, and the feature docs match the suite the loop actually left behind.
+UNIVERSAL RULES:
+- Goal-Driven Execution: define success criteria before execution; loop until observable checks pass.
+- Tests Verify Intent: a test must protect a named business rule/invariant and FAIL when that intent breaks — never merely mirror current behavior. A failure that is "fixed" by relaxing the test destroys the only signal the suite had.
+- Test-Failure Fault Adjudication: a green-again suite is NOT the goal; the correct verdict on what was actually wrong is. Triangulate the failure against the governing spec (docs/specs/** §3 ACs / §4 BRs / §5 invariants / §8 TCs) AND the source before fixing either side. Spec silent or ambiguous → STOP and ask the user.
+```
+
 ### workflow-refactor — Code Refactoring
 - Description: Code improvement and restructuring workflow with search-first approach
 - When To Use: User wants to restructure, reorganize, clean up, or improve existing code without changing behavior; technical debt
@@ -1034,7 +1076,7 @@ UNIVERSAL RULES:
 
 Session-start reference derived from `.claude/workflows.json` — use it to pick a route on any prompt: run a standard workflow, compose a custom workflow from the step-skills, invoke a single skill, or execute directly.
 
-### Workflow Skills (60 composable steps)
+### Workflow Skills (61 composable steps)
 
 Distinct step-skills used across the workflows above — compose these into a custom workflow when no standard workflow fits.
 
@@ -1067,6 +1109,7 @@ Distinct step-skills used across the workflows above — compose these into a cu
 | `integration-test` | [Testing] Use when you need to generate or review integration tests. |
 | `integration-test-review` | [Code Quality] Use when you need to review integration tests for assertion quality, bug protection, repeatability, and test-spec traceability — AND verify the review target (changed production code) has test coverage (integration-first) with spec↔test↔code alignment. |
 | `integration-test-verify` | [Testing] Use when you need to verify integration tests pass after writing and reviewing them. |
+| `integration-test-verify-loop` | [Testing] Use when you need to drive an integration-test suite to fully green — each round runs $integration-test-verify (whole system by default, or the target named in the prompt), and on ANY failure combines $debug-investigate + $integration-test-review (report-only) to adjudicate the fault (test wrong · test not optimal · source wrong), then $fix to resolve it at the owning layer, then $changes-review on that round's fix diff, then re-runs a FRESH full verify — looping until the whole suite passes its 2-consecutive-green-runs gate with zero failures. |
 | `investigate` | [Fix & Debug] Use when you need to investigate and explain how existing features or logic work. Flag: --mode=explain produces a one-way developer-narrative explanation (Purpose → How → Why → Impact) tuned by coding level; use $understand for the standalone prompt-driven explainer. |
 | `knowledge-review` | [Research] Use when you need to review knowledge artifacts for completeness, citation quality, confidence accuracy, and template compliance. |
 | `knowledge-synthesis` | [Research] Use when you need to synthesize research findings into structured report using template. |

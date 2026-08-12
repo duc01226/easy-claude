@@ -93,7 +93,7 @@
 
 ## Workflow Catalog Reference
 
-All workflows are defined in `.claude/workflows.json` — the canonical catalog (18 workflows). Each workflow composes a subset of the phases above into a specific sequence. Tables below are regenerated from the live catalog.
+All workflows are defined in `.claude/workflows.json` — the canonical catalog (19 workflows). Each workflow composes a subset of the phases above into a specific sequence. Tables below are regenerated from the live catalog.
 
 ### Core Development Workflows
 
@@ -128,6 +128,7 @@ All workflows are defined in `.claude/workflows.json` — the canonical catalog 
 | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | **e2e** (`--source=recording\|update-ui\|changes`) | Recording → Playwright (recording), update screenshot baselines (update-ui), or sync E2E tests to code/spec changes (changes) |
 | **write-integration-test**                         | Spec-first integration test authoring for existing code: specs → test code → review gates → run and verify                    |
+| **integration-test-green**                         | Drive an existing integration-test suite to fully green: verify whole system → adjudicate every failure (debug-investigate + integration-test-review) → fix at owning layer → re-verify, looped |
 | **workflow-seed-test-data**                        | Generate/enhance idempotent test-data seeders simulating QC happy-path scenarios                                              |
 
 ### Design & Visualization Workflows

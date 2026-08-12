@@ -28,8 +28,8 @@ Claude Code uses a **three-pillar architecture** to assist every role:
 | Pillar                        | What It Does                                                          | Count                   |
 | ----------------------------- | --------------------------------------------------------------------- | ----------------------- |
 | **Hooks** (Enforcement)       | Enforce quality gates, block unsafe actions, manage session lifecycle | 16 top-level hook files |
-| **Skills** (Intelligence)     | Prompt-engineered protocols loaded on demand via `/skill-name`        | 161 skills              |
-| **Workflows** (Orchestration) | Multi-step sequences of skills with progress tracking                 | 18 workflows            |
+| **Skills** (Intelligence)     | Prompt-engineered protocols loaded on demand via `/skill-name`        | 163 skills              |
+| **Workflows** (Orchestration) | Multi-step sequences of skills with progress tracking                 | 19 workflows            |
 
 ### Workflow Detection
 

@@ -162,7 +162,8 @@ const EXPECTED_WORKFLOW_IDS = [
     'workflow-spec-sync',
     'workflow-visualize',
     'workflow-seed-test-data',
-    'workflow-write-integration-test'
+    'workflow-write-integration-test',
+    'workflow-integration-test-green'
 ];
 
 // Ids removed by the rename — must never reappear as workflow keys.

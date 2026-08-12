@@ -758,6 +758,23 @@
 - category: other
   deprecated_by: null
   deprecated_since: null
+  description: '[Testing] Use when you need to drive an integration-test suite to
+    fully green — each round runs /integration-test-verify (whole system by default,
+    or the target named in the prompt), and on ANY failure combines /debug-investigate
+    + /integration-test-review (report-only) to adjudicate the fault (test wrong ·
+    test not optimal · source wrong), then /fix to resolve it at the owning layer,
+    then /changes-review on that round''s fix diff, then re-runs a FRESH full verify
+    — looping until the whole suite passes its 2-consecutive-green-runs gate with
+    zero failures.'
+  has_references: false
+  has_scripts: false
+  name: integration-test-verify-loop
+  path: integration-test-verify-loop/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
   description: '[Fix & Debug] Use when you need to investigate and explain how existing
     features or logic work. Flag: --mode=explain produces a one-way developer-narrative
     explanation (Purpose → How → Why → Impact) tuned by coding level; use /understand
@@ -1553,11 +1570,15 @@
     concepts needed to follow it, how it works, why THIS solution, every alternative
     option with pros/cons, the trade-offs accepted, the blast radius, HOW TO TEST
     AND DEMO the change, the developer''s decision levers, and written challenge prompts
-    that provoke the reader to pressure-test the work. Writes the full report to an
-    external markdown file (plans/reports/understand-*.md) — or delivers it in full
-    in chat when Step 3 finds no git-ignored directory for it — and always summarizes
-    it in chat. Regardless of coding level. Never interrogates, never quizzes, never
-    blocks.'
+    that provoke the reader to pressure-test the work. Works at ANY scope — from one
+    line of code to the whole project: it SIZES the target into a scope tier, DECOMPOSES
+    a large one into understanding groups, BREAKS the work into tasks before the first
+    deep read, and ACCUMULATES the report group by group on disk so a huge explanation
+    stays complete instead of thinning out. Writes the full report to a single combined
+    markdown file (plans/reports/understand-*.md) that opens with a detailed summary
+    section — or delivers it in full in chat when Step 3 finds no git-ignored directory
+    for it — and always summarizes it in chat. Regardless of coding level. Never interrogates,
+    never quizzes, never blocks.'
   has_references: true
   has_scripts: false
   name: understand
@@ -1759,6 +1780,21 @@
   has_scripts: false
   name: workflow-idea-to-spec
   path: workflow-idea-to-spec/SKILL.md
+  removal_after: null
+  status: active
+- category: other
+  deprecated_by: null
+  deprecated_since: null
+  description: '[Workflow] Use when activating the Integration Test Green workflow
+    — drive an integration-test suite to fully green with a bounded convergence loop:
+    verify the whole system (or the named target), adjudicate every failure with /debug-investigate
+    + /integration-test-review before any edit, fix at the owning layer, /changes-review
+    each round''s fix diff, re-verify from scratch, then sync spec TCs, the integration-test
+    reference doc, and feature docs.'
+  has_references: false
+  has_scripts: false
+  name: workflow-integration-test-green
+  path: workflow-integration-test-green/SKILL.md
   removal_after: null
   status: active
 - category: other

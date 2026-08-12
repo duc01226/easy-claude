@@ -7,10 +7,10 @@
 | Goal                         | Document                                                                                        |
 | ---------------------------- | ----------------------------------------------------------------------------------------------- |
 | **New to Claude Code?**      | [quick-start.md](./quick-start.md) - 5-minute onboarding                                        |
-| **Need a skill?**            | [skills/README.md](./skills/README.md) - 161 skills catalog                                     |
+| **Need a skill?**            | [skills/README.md](./skills/README.md) - 163 skills catalog                                     |
 | **Building a feature?**      | [skills/README.md](./skills/README.md) + `docs/project-reference/` patterns                     |
 | **Understanding hooks?**     | [hooks/README.md](./hooks/README.md) - 16 top-level hook files deep-dive                        |
-| **Understanding workflows?** | `CLAUDE.md` workflow catalog (project root) - 18 workflows                                      |
+| **Understanding workflows?** | `CLAUDE.md` workflow catalog (project root) - 19 workflows                                      |
 | **Configuring Claude?**      | [configuration/README.md](./configuration/README.md)                                            |
 | **Team collaboration?**      | [team-collaboration-guide.md](./team-collaboration-guide.md) - PO, BA, QA, QC, UX, PM workflows |
 | **Graph intelligence?**      | [code-graph-mechanism.md](./code-graph-mechanism.md) - How structural code analysis works       |
@@ -23,7 +23,7 @@
 |-- README.md                 <- You are here (Navigation hub)
 |-- quick-start.md            5-minute onboarding guide
 |
-|-- skills/                   161 skills across 15+ domains
+|-- skills/                   163 skills across 15+ domains
 |   |-- README.md             Skills overview + full catalog
 |   +-- (patterns)           → docs/project-reference/
 |
@@ -143,12 +143,12 @@
 
 | Category               | Count |
 | ---------------------- | ----- |
-| Skills                 | 161   |
+| Skills                 | 163   |
 | Hook files (top-level) | 16    |
 | Lib Modules            | 25    |
 | Hook Events            | 8     |
 | Agents                 | 29    |
-| Workflows              | 18    |
+| Workflows              | 19    |
 | Hook Tests             | 224   |
 | Documentation Files    | 28    |
 

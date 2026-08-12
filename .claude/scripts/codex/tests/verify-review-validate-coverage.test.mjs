@@ -137,7 +137,8 @@ const ROUTE_MENTIONERS_NOT_SCANNED = new Set([
     'workflow-idea-to-pbi',    // workflow orchestrator: references the route in a gate step
     'plan-review',             // reviews plans via why-review's own recursion engine (not an SC grader)
     'spec-clarify',            // clarification gate: references the route, not a findings grader
-    'changes-review-loop'      // convergence-loop orchestrator: runs /changes-review report-only + /why-review --validate-findings + /fix; delegates finding-production to changes-review, not itself an SC grader
+    'changes-review-loop',     // convergence-loop orchestrator: runs /changes-review report-only + /why-review --validate-findings + /fix; delegates finding-production to changes-review, not itself an SC grader
+    'integration-test-verify-loop' // convergence-loop orchestrator: runs /integration-test-verify + /integration-test-review report-only + /changes-review + /why-review --validate-findings + /fix; delegates finding-production to those reviewers, not itself an SC grader
 ]);
 
 // TC-CONVLOOP-047 — allow-list COMPLETENESS (closes the allow-list-rot gap). Any skill whose SKILL.md

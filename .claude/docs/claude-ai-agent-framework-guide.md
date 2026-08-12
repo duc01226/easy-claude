@@ -5,7 +5,7 @@
 **Audience:** AI engineers, tech leads, and teams wanting to build reliable AI-assisted development systems.
 **Scope:** What each layer does, why it exists, how the pieces compose, the design principles behind every decision, and which AI agent best practices each addresses.
 
-> **Document Sync Status** — Current local verification (2026-08-05): **16 hook files · 161 skills · 18 workflows · 29 agents** using the ADR-0002 filesystem metrics. Codex mirrors are committed under `.agents/`, `.codex/`, and `AGENTS.md`. Notable mechanisms documented here include multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential-thinking.
+> **Document Sync Status** — Current local verification (2026-08-12): **16 hook files · 163 skills · 19 workflows · 29 agents** using the ADR-0002 filesystem metrics. Codex mirrors are committed under `.agents/`, `.codex/`, and `AGENTS.md`. Notable mechanisms documented here include multi-AI-tool portability (§13), behavioral-principle injection (§8.21), self-validating review (§8.20), and embedded sequential-thinking.
 
 ---
 
@@ -45,7 +45,7 @@
 
 ## 1. Executive Summary
 
-This framework wraps Claude Code in a three-pillar execution framework — **16 top-level hook files**, **161 skills**, **18 registered workflows**, and **29 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
+This framework wraps Claude Code in a three-pillar execution framework — **16 top-level hook files**, **163 skills**, **19 registered workflows**, and **29 specialized agents** — that transforms a generic LLM into a project-aware, quality-enforced, hallucination-resistant development agent. The framework covers the **entire software development lifecycle** — from idea capture and TDD test specification through implementation, testing, E2E testing, code review, and documentation — with AI as a first-class participant at every stage.
 
 It is also **harness- and project-agnostic**: the `.claude/` source compiles to verified OpenAI Codex mirrors (`AGENTS.md`, `.agents/`, `.codex/`), while all project-specific knowledge is factored into `project-config.json` + reference docs — so the same behavior runs on any supported AI tool and ports to any codebase (Section 13).
 
@@ -65,7 +65,7 @@ It is also **harness- and project-agnostic**: the `.claude/` source compiles to 
 │  AI drifts from plan   │  CLAUDE.md task rule│  Model-driven gate│
 │  AI injects duplicates │  Hooks (dedup)      │  File-based dedup│
 │  AI skips test specs   │  TDD skills/flows   │  Unified TC IDs  │
-│  AI misses lifecycle   │  18 workflows       │  Full SDLC cover │
+│  AI misses lifecycle   │  19 workflows       │  Full SDLC cover │
 │  AI skips research   │  big-feature wf      │  Step-select gate  │
 │  AI skips E2E tests    │  E2E skills/flows   │  Recording→test  │
 │  AI ignores doc format │  buildSpecContext   │  8-section inject  │
@@ -117,7 +117,7 @@ graph TB
         end
     end
 
-    subgraph "Intelligence Layer — 161 Skills"
+    subgraph "Intelligence Layer — 163 Skills"
         SP[Shared Protocols<br/>5 files]
         IS[Implementation Skills<br/>feature-implement, fix, refactor]
         QS[Quality Skills<br/>code-review, prove-fix]
@@ -455,11 +455,11 @@ allowed-tools: Read, Grep, Glob, Bash, Write, TaskCreate
 2. Declare confidence level...
 ```
 
-### 5.2 Skill Categories (161 skills)
+### 5.2 Skill Categories (163 skills)
 
 ```mermaid
 mindmap
-  root((161 Skills))
+  root((163 Skills))
     Quality & Verification
       code-review
       prove-fix
@@ -879,7 +879,7 @@ The hook and skill system is **project-agnostic**. All project-specific knowledg
 graph LR
     subgraph "Generic Framework (reusable)"
         H[16 Hook Files]
-        S[161 Skills]
+        S[163 Skills]
         W[18 Workflows]
     end
 
@@ -3485,7 +3485,7 @@ flowchart TB
 | **Context injection at decision points**       | Static path→patternsDoc guidance in CLAUDE.md / SKILL.md (was hook-injected)                             | Skills/Config |
 | **Reminder rules prevent forgetting**          | Static SYNC rules + the workflow catalog baked into CLAUDE.md, re-read every prompt                      | Skills/Config |
 | **Generic & configurable via config**          | project-config.json drives path→patternsDoc routing                                                      | Config        |
-| **Prompt engineering quality**                 | 161 skills with YAML frontmatter + behavior protocols                                                    | Skills        |
+| **Prompt engineering quality**                 | 163 skills with YAML frontmatter + behavior protocols                                                    | Skills        |
 | **Auto-select workflow path before acting**    | Model reads the static catalog → direct/skill/workflow/custom path                                       | Workflows     |
 | **Confirm plan with questions**                | /plan-validate asks 3-8 questions before implementation                                                  | Skills        |
 | **Sequential thinking for complex problems**   | /sequential-thinking skill + /debug-investigate skill                                                    | Skills        |
@@ -3509,7 +3509,7 @@ flowchart TB
 | **DDD domain modeling**                        | /domain-analysis skill: bounded contexts, ERD, aggregates                                                | Skills        |
 | **Tech stack comparison with evidence**        | /tech-stack-research: top 3 per layer, confidence %                                                      | Skills        |
 | **Step-selection gate for long workflows**     | big-feature + greenfield preActions let user deselect                                                    | Workflows     |
-| **Workflow trigger shortcuts**                 | 18 workflow-\* skills for workflow activation and lifecycle control                                      | Skills        |
+| **Workflow trigger shortcuts**                 | 19 workflow-\* skills for workflow activation and lifecycle control                                      | Skills        |
 | **Prompt engineering (role + CoT + evidence)** | Skills use role prompting, chain-of-thought, few-shot                                                    | Skills        |
 | **Context engineering (JIT + dedup + budget)** | Hooks manage context window with precision injection                                                     | Hooks         |
 | **Skill chain navigation (Next Steps)**        | AskUserQuestion recommends logical next skill per step                                                   | Skills        |
@@ -3527,7 +3527,7 @@ flowchart TB
 ├── ccstatusline.json ──── Status line display config (model, context, tokens, tok/s estimator)
 ├── .ck.json ──────────── Hook-specific config
 ├── .ckignore ─────────── Scout block patterns
-├── workflows.json ─────── 18 workflow definitions
+├── workflows.json ─────── 19 workflow definitions
 ├── workflows/ ──────────── Workflow definitions (primary-workflow.md, etc.)
 ├── hooks/ ─────────────── 15 top-level .cjs hooks (+ 1 .js helper) + 25 lib modules
 │   ├── session-init.cjs
@@ -3539,7 +3539,7 @@ flowchart TB
 │   │   ├── todo-state.cjs
 │   │   └── ...
 │   └── tests/ ────────── Test suites
-├── skills/ ────────────── 161 skill definitions
+├── skills/ ────────────── 163 skill definitions
 │   ├── {skill-name}/SKILL.md
 │   ├── shared/ ───────── 6 shared reference/protocol files
 │   └── _templates/ ───── Skill scaffolding
@@ -3859,7 +3859,7 @@ The framework succeeds because it aligns with how LLMs actually fail:
 
 ### The Result
 
-**16 top-level hook files**, **161 skills**, **18 registered workflows**, and **29 specialized agents** working in concert to deliver:
+**16 top-level hook files**, **163 skills**, **19 registered workflows**, and **29 specialized agents** working in concert to deliver:
 
 - **Fewer hallucinations** — Evidence gates and proof traces catch AI fabrications before they reach files
 - **Better code quality** — Pattern injection ensures AI follows project conventions, not generic training data
@@ -3867,7 +3867,7 @@ The framework succeeds because it aligns with how LLMs actually fail:
 - **Consistent adherence** — Programmatic enforcement means quality doesn't degrade in long sessions or complex tasks
 - **Recovery from amnesia** — External state persistence means context compaction doesn't lose progress
 - **Persistent learning** — Mistakes captured once prevent recurrence across all future sessions
-- **Prompt engineering depth** — Role prompting, chain-of-thought, few-shot, negative prompting, and iterative refinement applied systematically across 161 skills (Section 8.15)
+- **Prompt engineering depth** — Role prompting, chain-of-thought, few-shot, negative prompting, and iterative refinement applied systematically across 163 skills (Section 8.15)
 - **Context engineering precision** — JIT injection, dedup, external memory, budget management, and recovery keep the AI informed without overwhelming its context window (Section 8.16)
 
 The framework is **generic and reusable**. Replace `project-config.json` with your project's specifics, and the entire system adapts — different tech stack, different patterns, different conventions, same quality enforcement.

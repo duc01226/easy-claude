@@ -1,10 +1,10 @@
 metadata:
   title: Skills Catalog
   description: Auto-generated catalog of all available skills in ClaudeKit Engineer
-  last_updated: '2026-08-05'
-  total_skills: 161
+  last_updated: '2026-08-12'
+  total_skills: 163
   total_by_status:
-    active: 160
+    active: 162
     deprecated: 1
     experimental: 0
 categories:
@@ -682,6 +682,23 @@ skills:
       path: integration-test-verify/SKILL.md
       description: '[Testing] Use when you need to verify integration tests pass after
         writing and reviewing them.'
+      category: other
+      has_scripts: false
+      has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: integration-test-verify-loop
+      path: integration-test-verify-loop/SKILL.md
+      description: '[Testing] Use when you need to drive an integration-test suite
+        to fully green — each round runs /integration-test-verify (whole system by
+        default, or the target named in the prompt), and on ANY failure combines /debug-investigate
+        + /integration-test-review (report-only) to adjudicate the fault (test wrong
+        · test not optimal · source wrong), then /fix to resolve it at the owning
+        layer, then /changes-review on that round''s fix diff, then re-runs a FRESH
+        full verify — looping until the whole suite passes its 2-consecutive-green-runs
+        gate with zero failures.'
       category: other
       has_scripts: false
       has_references: false
@@ -1506,6 +1523,21 @@ skills:
         a raw idea/vision/problem into ONE canonical (provisional) Feature Spec. STOPS
         at the reviewed spec; chain workflow-spec-to-pbi for a backlog. For code→spec
         use workflow-code-to-spec.'
+      category: other
+      has_scripts: false
+      has_references: false
+      status: active
+      deprecated_by: null
+      deprecated_since: null
+      removal_after: null
+    - name: workflow-integration-test-green
+      path: workflow-integration-test-green/SKILL.md
+      description: '[Workflow] Use when activating the Integration Test Green workflow
+        — drive an integration-test suite to fully green with a bounded convergence
+        loop: verify the whole system (or the named target), adjudicate every failure
+        with /debug-investigate + /integration-test-review before any edit, fix at
+        the owning layer, /changes-review each round''s fix diff, re-verify from scratch,
+        then sync spec TCs, the integration-test reference doc, and feature docs.'
       category: other
       has_scripts: false
       has_references: false
