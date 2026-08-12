@@ -14,20 +14,20 @@ description: '[Testing] Use when you need to verify integration tests pass after
 
 ## Quick Summary
 
-**Goal:** Prove the reviewed integration tests (written by `/integration-test`, reviewed by `/integration-test-review`) pass repeatably — 2 consecutive green runs without DB reset, using project-configured run commands — with every pass/fail claim backed by actual test-runner output, never assumption.
+**Goal:** Prove the reviewed integration tests (written by `/integration-test`, reviewed by `/integration-test-review`) pass repeatably — 2 consecutive green runs without DB reset, using project-configured run commands, against an environment whose doc-declared preconditions were harvested and verified BEFORE the first test command — with every pass/fail claim backed by actual test-runner output, never assumption.
 
 **Summary:** read-this-if-nothing-else digest of the 5 main steps —
 
-- **Step 1 — Read config FIRST:** load `docs/project-config.json` → `integrationTestVerify`, obey its `quickRunCommand` / `referenceDocs` — language-agnostic, so NEVER hardcode `dotnet test`; missing section → Fallback Mode. — why: a hardcoded runner breaks on any non-default stack.
-- **Step 2 — Gate on a healthy system:** run `systemCheckCommand`; STOP and point user at `startupScript` when infra/services aren't ready. — why: an unreliable system yields unreliable green/red that proves nothing.
+- **Step 1 — Read config + reference docs FIRST, then HARVEST preconditions:** load `docs/project-config.json` → `integrationTestVerify` and obey its `quickRunCommand`; READ every `referenceDocs` file (else the project's integration-test reference doc) and harvest from it an explicit **Environment Precondition Checklist** — whatever that doc actually declares (services/containers, DB + migration/seed state, env vars, ports, credentials, startup script, isolation rules). Language-agnostic, so NEVER hardcode `dotnet test`; missing section → Fallback Mode. — why: reading the doc without extracting its preconditions changes nothing — the run still starts blind.
+- **Step 2 — Gate on a healthy system AND every harvested precondition:** run `systemCheckCommand` AND verify each checklist item against real evidence; any unmet → STOP, mark ENVIRONMENT-BLOCKED, name the precondition + the doc line declaring it, point user at `startupScript`. — why: `systemCheckCommand` covers only what the config author thought to encode, so a doc-declared precondition it misses becomes a red suite blamed on the tests.
 - **Step 3 — Determine test projects:** discover via `testProjectPattern` glob > `testProjects` list > git auto-detect; run only projects the change touches.
 - **Step 4 — Run the 2-run gate, fan out when many isolated projects:** each relevant suite passes 2 consecutive green runs WITHOUT DB reset; any failure restarts from run 1. When several independent, per-DB-isolated projects exist, fan out one `integration-tester` sub-agent per project/group in parallel → barrier on ALL returns → aggregate; suites sharing a DB run sequentially. — why: parallel runs over a shared DB cross-contaminate and silently break the no-reset guarantee.
 - **Step 5 — Report from real output, fix at root:** report Passed/Failed/Skipped counts + failing names (only actual runner output proves a result); on failure diagnose test-bug vs service-bug and fix at the owning layer — NEVER weaken assertions, add skips, or mutate domain data to force green.
 
 **Workflow:**
 
-1. **Read Config** — Load `docs/project-config.json` → `integrationTestVerify` section for project-specific run guidance
-2. **System Check** — Verify required system is healthy before running
+1. **Read Config + Reference Docs** — Load `docs/project-config.json` → `integrationTestVerify`, read the project's integration-test reference docs, harvest the Environment Precondition Checklist
+2. **System Check + Precondition Gate** — Verify the system is healthy AND every harvested precondition is met before running
 3. **Determine Test Projects** — Discover via `testProjectPattern` glob, `testProjects` list, or git auto-detect
 4. **Run Tests** — Execute `quickRunCommand` on determined test projects for 2 consecutive runs; fan out parallel `integration-tester` sub-agents when many isolated projects must run
 5. **Report** — Pass/fail counts, failed test names, next steps on failure
@@ -36,8 +36,10 @@ description: '[Testing] Use when you need to verify integration tests pass after
 
 - MUST read project config `integrationTestVerify` section before doing anything else
 - MUST read project-specific reference docs named by `integrationTestVerify.referenceDocs` or the project's integration-test doc path before running tests
+- MUST harvest an explicit Environment Precondition Checklist from those docs — derive each item from what the doc declares, NEVER from a fixed list in this skill — and verify every item before the first test command
 - Use `quickRunCommand` from config — NEVER hardcode `dotnet test` or any language-specific command
 - If system check fails → instruct user how to start system (reference `startupScript` from config)
+- Any harvested precondition unmet → STOP, mark ENVIRONMENT-BLOCKED, cite the precondition + its doc line, and point the user at the setup step — NEVER run the suite anyway and NEVER report an environment failure as a failing test
 - If config says local infrastructure, databases, services, or full system startup is required, treat that as a blocking prerequisite
 - On test failure → diagnose root cause: test bug or service bug. NEVER weaken assertions.
 - On an INTERMITTENT failure (red in one run, green in another) → adjudicate the cause first — (a) unrealistic scenario / compressed pacing, (b) harness topology amplification, or (c) genuine product race — and record the verdict with evidence BEFORE any change. NEVER resolve a flake by widening a timeout, adding a retry, or skipping
@@ -69,7 +71,7 @@ below — if downstream rule would raise change cost, this principle wins.
 
 ---
 
-## Step 1: Read Project Config
+## Step 1: Read Project Config + Reference Docs
 
 Read `docs/project-config.json` and extract the `integrationTestVerify` section.
 
@@ -102,9 +104,31 @@ Then read the project-specific setup guidance before any system check or test co
 3. If config names `runScript` or `startupScript`, read those scripts when needed to understand startup, health checks, arguments, or labels. Use them as project-specific evidence, not generic assumptions.
 4. If no project-specific reference exists, proceed only with the explicit config values and call out that the project should add reference docs to `integrationTestVerify`.
 
+### Step 1b: Harvest the Environment Precondition Checklist (BLOCKING — before any command)
+
+Reading the reference doc is not the point; **extracting what it requires of the environment** is. From the docs and scripts just read, derive an explicit checklist of every precondition the test run depends on, then carry it into Step 2.
+
+**Derive, never enumerate.** Take the items from what THIS project's doc actually declares — no fixed list here would survive a different stack. Typical shapes the doc may state: required services/containers up and healthy · database reachable, migrated, and seeded to a known baseline · message broker / queue / cache running · env vars, connection strings, ports, credentials, certificates · a startup or bootstrap script that must run first · build/restore performed before the run · per-suite isolation (own DB/schema/namespace) · required test data or fixtures · external dependency stubs.
+
+Record it as a table before proceeding:
+
+```
+### Environment Precondition Checklist (harvested)
+
+| # | Precondition | Declared by (doc:line / script) | How to verify | Status |
+|---|--------------|---------------------------------|---------------|--------|
+| 1 | {what must be true} | {file:line} | {command / observable} | PENDING |
+```
+
+Rules:
+
+- MUST cite `file:line` (or script path) for every harvested item — an item with no source is an assumption, not a precondition.
+- No reference doc found, or the doc declares no environment prerequisites → record `No environment preconditions declared — proceeding on config values only` and say which doc was checked. NEVER invent preconditions to fill the table — why: a fabricated prerequisite blocks a healthy run and trains the user to ignore the gate.
+- A precondition you cannot verify by any command or observable is still recorded, marked `UNVERIFIABLE`, and surfaced to the user — why: an unverifiable prerequisite is a gap in the project's doc, not a reason to skip the gate.
+
 ---
 
-## Step 2: System Check
+## Step 2: System Check + Environment Precondition Gate
 
 **If `systemCheckCommand` exists in config:**
 
@@ -116,14 +140,26 @@ Run the system check via Bash:
 
 Evaluate output:
 
-- **Healthy** → proceed to Step 3
+- **Healthy** → proceed to the precondition gate below
 - **Partially healthy / no containers** → display startup instructions to user: > "System not fully ready. To start: run `{startupScript}` (or follow the guidance above). Wait for all services to be healthy, then re-run `/integration-test-verify`."
     > **STOP** — do not run tests against an unhealthy system. Results would be unreliable.
 
 **If no `systemCheckCommand`:**
 
 - If `guidance`, reference docs, `runScript`, or `startupScript` indicate required local infrastructure/services, STOP and tell the user the project config needs a concrete readiness check before AI verification can run.
-- Otherwise, proceed to Step 3 and explicitly report that no system check was configured.
+- Otherwise, proceed to the precondition gate and explicitly report that no system check was configured.
+
+### Precondition gate (BLOCKING — every harvested item, evidence-backed)
+
+A green `systemCheckCommand` does NOT discharge the Step 1b checklist: it verifies only what the config author thought to encode, while the reference doc is where the project wrote down what the runner silently assumes. Walk the checklist and settle every row.
+
+1. **Verify each item against real evidence** — a command's actual output, a port/process/container check, a config or env read, a query. NEVER mark an item met by reasoning that it "should" be up.
+2. **Mark each row** `MET` (with the evidence) · `UNMET` (with what is missing) · `UNVERIFIABLE` (no observable exists — surface it).
+3. **Any `UNMET` → STOP before the first test command.** Report `ENVIRONMENT-BLOCKED`, name the unmet precondition and the `file:line` that declares it, and give the user the concrete setup step (`startupScript`, the doc's setup section, the missing env var). NEVER run the suite anyway — why: a suite run against a half-ready environment reports infrastructure faults as failing tests, which then get "fixed" in the test code.
+4. **Never fix an environment gap by editing tests.** An unmet precondition is a setup action for the user or a project-config gap to report — never a reason to weaken a test, add a skip, or relax a timeout.
+5. **Emit the settled checklist** (rows + statuses + evidence) into the Step 5 report, so the pass/fail result proves the environment was ready when it ran.
+
+All rows `MET` (or the explicit `no preconditions declared` record) → proceed to Step 3.
 
 ---
 
@@ -162,7 +198,7 @@ If auto-detect finds nothing (no uncommitted test changes), ask user: "No change
 
 ## Step 4: Run Tests
 
-Run this step only after Step 2 passed or the config/reference docs explicitly state no external system is required.
+Run this step only after Step 2 passed — system healthy AND every harvested precondition settled `MET` — or the config/reference docs explicitly state no external system is required.
 
 Execute using `quickRunCommand` from config. Run each relevant suite/project 2 consecutive times without resetting data.
 
@@ -217,6 +253,7 @@ After all tests complete, report:
 **Run command:** {quickRunCommand}
 **Projects tested:** {N}
 **Repeatability gate:** 2 consecutive runs without DB reset
+**Environment preconditions:** {M} harvested from {referenceDoc} — all MET (or: none declared)
 
 | Project | Run | Passed | Failed | Skipped |
 |---------|-----|--------|--------|---------|
@@ -555,7 +592,9 @@ A test that is red in one run of the 2-run gate and green in another has NOT tol
 **IMPORTANT MUST ATTENTION** read `docs/project-config.json` → `integrationTestVerify` FIRST — project-specific guidance overrides defaults; missing section → Fallback Mode — why: hardcoded assumptions about the runner break on any non-default stack.
 **IMPORTANT MUST ATTENTION** use `quickRunCommand` from config — NEVER hardcode `dotnet test` or any language-specific command — why: this skill is language-agnostic and one repo's runner is another's wrong tool.
 **IMPORTANT MUST ATTENTION** read project-specific integration-test reference docs/scripts named by `referenceDocs` before any test command — Codex has no hook injection, so it must open these files directly.
+**IMPORTANT MUST ATTENTION** harvest an Environment Precondition Checklist from those docs (Step 1b) BEFORE any command — derive every item from what the doc declares with a `file:line` citation, NEVER from a fixed list and NEVER invented; no declared prerequisites → record that explicitly — why: reading the doc without extracting its preconditions leaves the run just as blind as not reading it.
 **IMPORTANT MUST ATTENTION** gate on a healthy system before running — run `systemCheckCommand`, and STOP (point user at `startupScript`) when infrastructure/services aren't ready — why: an unreliable system produces unreliable green/red results that prove nothing.
+**IMPORTANT MUST ATTENTION** settle EVERY harvested precondition against real evidence before the first test command — any `UNMET` → STOP, report `ENVIRONMENT-BLOCKED` naming the precondition + its doc line + the setup step, and NEVER run the suite anyway or repair an environment gap by editing tests — why: a half-ready environment reports infrastructure faults as failing tests, which then get "fixed" in the test code.
 **IMPORTANT MUST ATTENTION** determine the test-project set BEFORE running — `testProjectPattern` glob > `testProjects` list > git auto-detect — and run only projects the change touches unless the user asks for all — why: running irrelevant suites wastes the gate and muddies the result.
 **IMPORTANT MUST ATTENTION** pass requires 2 consecutive green runs of each relevant suite WITHOUT DB reset; any single failure restarts the sequence from run 1 — why: a one-off green run hides order-dependent and state-leak flakiness.
 **IMPORTANT MUST ATTENTION** when the set has several independent, per-DB-isolated projects, fan out one `integration-tester` sub-agent per project/balanced group in parallel, barrier on ALL returns, then aggregate into the Step 5 report — each sub-agent owns its full 2-run gate and returns real counts + failing names; suites sharing a DB run sequentially — why: parallel runs over a shared DB cross-contaminate state and silently break the no-reset guarantee.
@@ -581,6 +620,9 @@ A test that is red in one run of the 2-run gate and green in another has NOT tol
 | "Found a race — file it as a product bug"     | Not until (a) and (b) are ruled out. State whether the trigger exists in production and at what likelihood. |
 | "Looks like it passed"                        | Show Passed/Failed/Skipped counts from real runner output. No output = no claim. |
 | "System probably ready"                       | Run `systemCheckCommand`. Unhealthy system → STOP, point user at `startupScript`. |
+| "I read the reference doc, that's the gate"   | Reading is not checking. Harvest the preconditions into a cited checklist and settle every row before the first test command. |
+| "systemCheckCommand is green, skip the checklist" | It verifies only what the config author encoded. The doc's preconditions are the ones the runner silently assumes — verify each. |
+| "Env is half-up, run the suite and see"       | A half-ready environment reports infrastructure faults as failing tests. STOP, report ENVIRONMENT-BLOCKED, name the unmet precondition. |
 | "Too simple to track"                         | Skip depth, never skip task tracking. Wrong assumptions waste more time.         |
 
 > **[IMPORTANT]** Use `TaskCreate` to break ALL work into small tasks BEFORE starting — analyze task size first.
@@ -588,7 +630,7 @@ A test that is red in one run of the 2-run gate and green in another has NOT tol
 ---
 
 **IMPORTANT MUST ATTENTION Goal:** Prove reviewed integration tests pass repeatably — 2 consecutive green runs, no DB reset, every pass/fail claim backed by actual runner output.
-**IMPORTANT MUST ATTENTION** read `integrationTestVerify` config FIRST and use its `quickRunCommand` — NEVER hardcode a language-specific runner.
+**IMPORTANT MUST ATTENTION** read `integrationTestVerify` config AND the project's integration-test reference docs FIRST, harvest their environment preconditions into a cited checklist, and settle every row before the first test command — use `quickRunCommand` from config, NEVER hardcode a language-specific runner.
 **IMPORTANT MUST ATTENTION** NEVER weaken assertions, add skips, or mutate domain data to force green — fix the root-cause layer (test bug vs service bug) and re-run the full 2-run sequence.
 
 ---
